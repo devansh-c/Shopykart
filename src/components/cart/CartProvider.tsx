@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 export type CartItem = {
   id: string;
@@ -12,9 +12,12 @@ export type CartItem = {
 
 type CartContextType = {
   cart: CartItem[];
+  wishlist: string[];
   addToCart: (product: any) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+  toggleWishlist: (productId: string) => void;
+  isInWishlist: (productId: string) => boolean;
   totalItems: number;
   totalPrice: number;
 };
@@ -23,6 +26,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
 
   const addToCart = (product: any) => {
     setCart((prev) => {
@@ -50,11 +54,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setCart([]);
 
+  const toggleWishlist = (productId: string) => {
+    setWishlist(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const isInWishlist = (productId: string) => wishlist.includes(productId);
+
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ 
+      cart, 
+      wishlist,
+      addToCart, 
+      removeFromCart, 
+      clearCart, 
+      toggleWishlist, 
+      isInWishlist,
+      totalItems, 
+      totalPrice 
+    }}>
       {children}
     </CartContext.Provider>
   );

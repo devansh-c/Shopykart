@@ -1,6 +1,6 @@
 "use client"
 
-import { Zap, Plus, Minus } from 'lucide-react';
+import { Zap, Plus, Minus, Heart } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { Button } from '@/components/ui/button';
@@ -69,7 +69,7 @@ type PopularProductsProps = {
 };
 
 export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
-  const { cart, addToCart, removeFromCart } = useCart();
+  const { cart, wishlist, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
 
   const filteredProducts = popularProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,41 +97,48 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
+            const liked = isInWishlist(product.id);
 
             return (
               <div 
                 key={product.id}
-                className="bg-white rounded-2xl p-4 flex justify-between items-center group active:scale-[0.99] transition-all shadow-sm border border-border/40"
+                className="bg-white rounded-[2rem] p-5 flex justify-between items-center group active:scale-[0.99] transition-all shadow-sm border border-border/40 relative"
               >
+                <button 
+                  onClick={() => toggleWishlist(product.id)}
+                  className="absolute top-4 left-4 z-10 p-1.5 rounded-full bg-white/80 shadow-sm"
+                >
+                  <Heart className={cn("h-4 w-4 transition-colors", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                </button>
+
                 <div className="flex-1 pr-4">
                   <div className="mb-2">
-                    <div className="h-3.5 w-3.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                      <div className="h-full w-full bg-green-600 rounded-sm" />
+                    <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                      <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
                   </div>
-                  <h3 className="font-bold text-base leading-tight mb-1">{product.name}</h3>
-                  <p className="text-[11px] text-muted-foreground mb-3 line-clamp-1 italic font-medium">{product.description}</p>
-                  <div className="text-lg font-black italic">₹{product.price.toFixed(2)}</div>
+                  <h3 className="font-bold text-lg leading-tight mb-2 text-foreground">{product.name}</h3>
+                  <div className="text-xl font-bold">₹{product.price.toFixed(2)}</div>
                 </div>
                 
-                <div className="relative w-28 h-28 flex-shrink-0">
-                  <div className="w-full h-full rounded-2xl overflow-hidden border border-border/20">
+                <div className="relative w-32 h-32 flex-shrink-0">
+                  <div className="w-full h-full rounded-2xl overflow-hidden bg-muted border border-border/20">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-3">
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
                     {quantity === 0 ? (
-                      <Button 
-                        onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
-                        className="w-full h-8 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-black text-[10px] rounded-xl shadow-lg transition-all"
+                      <button 
+                        onClick={() => addToCart({ ...product, imageUrl })}
+                        className="w-full h-10 bg-white text-primary border border-primary shadow-lg font-black text-xs rounded-xl active:scale-95 transition-all"
                       >
                         ADD +
-                      </Button>
+                      </button>
                     ) : (
-                      <div className="flex items-center justify-between w-full h-8 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
+                      <div className="flex items-center justify-between w-full h-10 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
                         <button 
                           onClick={() => removeFromCart(product.id)}
                           className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
@@ -140,7 +147,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                         </button>
                         <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
                         <button 
-                          onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
+                          onClick={() => addToCart({ ...product, imageUrl })}
                           className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
                         >
                           <Plus className="h-3 w-3" />
@@ -154,7 +161,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           })
         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground text-sm font-medium">No matches found</p>
+            <p className="text-muted-foreground text-sm font-medium italic">No products matched your search.</p>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import {CartProvider} from '@/components/cart/CartProvider';
 import {Toaster} from '@/components/ui/toaster';
+import {FloatingCart} from '@/components/shared/FloatingCart';
 
 export const metadata: Metadata = {
   title: 'ShopyKart | Premium Food Delivery',
@@ -22,7 +23,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <CartProvider>
-          {children}
+          <div className="relative min-h-screen">
+            {children}
+            <FloatingCart />
+          </div>
           <Toaster />
         </CartProvider>
       </body>
