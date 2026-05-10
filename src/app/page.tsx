@@ -8,6 +8,7 @@ import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
+import { PopularProducts } from '@/components/home/PopularProducts';
 
 export default function Home() {
   return (
@@ -29,6 +30,9 @@ export default function Home() {
 
       {/* Categories Horizontal Scroll */}
       <CategoryList />
+
+      {/* Popular Products Vertical List */}
+      <PopularProducts />
 
       {/* Bottom Navigation */}
       <BottomNav />
