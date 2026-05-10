@@ -16,14 +16,14 @@ export function OfferSlider() {
   ];
 
   return (
-    <div className="w-full">
+    <div className="w-full px-4">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
           {banners.map((banner, index) => {
             const img = PlaceHolderImages.find(p => p.id === banner.imageId);
             return (
               <CarouselItem key={banner.id}>
-                <div className="relative h-[200px] w-full overflow-hidden shadow-sm">
+                <div className="relative h-[200px] w-full overflow-hidden shadow-sm rounded-[2rem]">
                   <Image
                     src={img?.imageUrl || "https://picsum.photos/seed/default/800/400"}
                     alt={banner.title}
