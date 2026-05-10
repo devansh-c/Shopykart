@@ -1,22 +1,23 @@
+
 {
   "placeholderImages": [
     {
-      "id": "pizza-banner",
-      "description": "Delicious gourmet pizza banner",
-      "imageUrl": "https://picsum.photos/seed/feast-1/800/400",
-      "imageHint": "pizza gourmet"
+      "id": "hero-burger",
+      "description": "Buy 1 Get 1 Barbeque Burger Banner",
+      "imageUrl": "https://picsum.photos/seed/hero-1/800/400",
+      "imageHint": "burger barbeque"
     },
     {
-      "id": "burger-banner",
-      "description": "Juicy burger deal banner",
-      "imageUrl": "https://picsum.photos/seed/feast-2/800/400",
-      "imageHint": "burger juicy"
+      "id": "starter-combo",
+      "description": "Starter Combo meal with burger and drink",
+      "imageUrl": "https://picsum.photos/seed/combo-1/400/400",
+      "imageHint": "burger combo"
     },
     {
-      "id": "sushi-banner",
-      "description": "Fresh sushi offer banner",
-      "imageUrl": "https://picsum.photos/seed/feast-3/800/400",
-      "imageHint": "sushi fresh"
+      "id": "couple-combo",
+      "description": "Couple Bite Combo with two burgers and drinks",
+      "imageUrl": "https://picsum.photos/seed/combo-2/400/400",
+      "imageHint": "double burger combo"
     },
     {
       "id": "category-pizza",
@@ -53,18 +54,6 @@
       "description": "Double Cheese Burger",
       "imageUrl": "https://picsum.photos/seed/p2/400/300",
       "imageHint": "cheeseburger"
-    },
-    {
-      "id": "prod-3",
-      "description": "California Roll",
-      "imageUrl": "https://picsum.photos/seed/p3/400/300",
-      "imageHint": "california roll"
-    },
-    {
-      "id": "prod-4",
-      "description": "Avocado Toast",
-      "imageUrl": "https://picsum.photos/seed/p4/400/300",
-      "imageHint": "avocado toast"
     }
   ]
 }
