@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Search, ShoppingBag, Menu, Heart, Camera, Mic, Loader2, PlusCircle, Send } from 'lucide-react';
+import { Search, ShoppingBag, Menu, Heart, Camera, Mic, Loader2, PlusCircle } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
@@ -117,8 +117,48 @@ export function LocationHeader({ searchValue, onSearchChange }: LocationHeaderPr
         {/* Logo Section */}
         <Logo className="flex-shrink-0" />
 
-        {/* Top Action Buttons (Primary) */}
+        {/* Action Buttons Row (Top) */}
         <div className="flex items-center gap-2">
+          {/* Custom Request Trigger */}
+          <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
+            <DialogTrigger asChild>
+              <button className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
+                <PlusCircle className="h-5 w-5" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="rounded-[2.5rem] max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="font-black italic uppercase text-xl tracking-tighter text-center">Custom Veg Dish</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <p className="text-xs text-muted-foreground font-bold text-center uppercase tracking-widest">
+                  Can't find it? Tell us what you want!
+                </p>
+                <Textarea 
+                  placeholder="E.g. Paneer Tikka Masala..."
+                  className="rounded-2xl h-24 bg-muted/30 border-none focus-visible:ring-primary/20"
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                />
+                <p className="text-[10px] text-primary font-black uppercase text-center tracking-widest">
+                  Note: ₹20 Delivery charge applies
+                </p>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleCustomSubmit} className="w-full h-12 rounded-xl bg-primary font-black uppercase italic tracking-tighter">
+                  ADD TO CART
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Wishlist Button */}
+          <Link href="/wishlist">
+            <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+              <Heart className="h-5 w-5" />
+            </div>
+          </Link>
+
           {/* Cart Button */}
           <Link href="/cart">
             <div className="relative">
@@ -177,46 +217,6 @@ export function LocationHeader({ searchValue, onSearchChange }: LocationHeaderPr
             onChange={handleFileChange}
           />
         </div>
-
-        {/* Custom Request Trigger */}
-        <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
-          <DialogTrigger asChild>
-            <button className="h-12 w-12 rounded-2xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
-              <PlusCircle className="h-6 w-6" />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="rounded-[2.5rem] max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="font-black italic uppercase text-xl tracking-tighter text-center">Custom Veg Dish</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <p className="text-xs text-muted-foreground font-bold text-center uppercase tracking-widest">
-                Can't find it? Tell us what you want!
-              </p>
-              <Textarea 
-                placeholder="E.g. Paneer Tikka Masala..."
-                className="rounded-2xl h-24 bg-muted/30 border-none focus-visible:ring-primary/20"
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-              />
-              <p className="text-[10px] text-primary font-black uppercase text-center tracking-widest">
-                Note: ₹20 Delivery charge applies
-              </p>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleCustomSubmit} className="w-full h-12 rounded-xl bg-primary font-black uppercase italic tracking-tighter">
-                ADD TO CART
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Wishlist Button */}
-        <Link href="/wishlist">
-          <div className="h-12 w-12 rounded-2xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
-            <Heart className="h-5 w-5" />
-          </div>
-        </Link>
       </div>
     </div>
   );
