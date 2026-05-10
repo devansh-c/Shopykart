@@ -17,7 +17,8 @@ import {
   Zap, 
   Settings,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -28,18 +29,20 @@ import { AdminOverview } from '@/components/admin/AdminOverview';
 import { ProductManagement } from '@/components/admin/ProductManagement';
 import { BannerManagement } from '@/components/admin/BannerManagement';
 import { OrderManagement } from '@/components/admin/OrderManagement';
+import { ReviewManagement } from '@/components/admin/ReviewManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'catalog', label: 'Catalog', icon: Layers },
+  { id: 'orders', label: 'Orders', icon: ShoppingBag },
+  { id: 'reviews', label: 'Reviews', icon: MessageSquare },
+  { id: 'design', label: 'Design', icon: Feather },
   { id: 'stores', label: 'Stores', icon: Store },
   { id: 'fleet', label: 'Delivery Fleet', icon: Bike },
   { id: 'mission', label: 'Mission Control', icon: Rocket },
-  { id: 'catalog', label: 'Catalog', icon: Layers },
-  { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'reports', label: 'Reports', icon: LineChart },
   { id: 'discounts', label: 'Discounts', icon: Percent },
-  { id: 'design', label: 'Design', icon: Feather },
   { id: 'plugins', label: 'Plugins', icon: Zap },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -77,11 +80,13 @@ export default function AdminDashboard() {
         return <BannerManagement />;
       case 'orders':
         return <OrderManagement />;
+      case 'reviews':
+        return <ReviewManagement />;
       default: {
         const activeItem = menuItems.find(i => i.id === activeTab);
         const Icon = activeItem?.icon;
         return (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-muted-foreground/20">
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-muted-foreground/20">
             <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mb-4">
               {Icon && <Icon className="h-8 w-8 text-muted-foreground" />}
             </div>
