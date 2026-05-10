@@ -14,18 +14,18 @@ const categories = [
 
 export function CategoryList() {
   return (
-    <div className="py-4">
+    <div className="py-4 mb-4">
       <div className="flex items-center justify-between px-4 mb-3">
         <h2 className="text-lg font-bold">Categories</h2>
-        <button className="text-primary text-xs font-bold uppercase tracking-wider">See All</button>
+        <button className="text-primary text-[10px] font-black uppercase tracking-wider">See All</button>
       </div>
-      <div className="flex overflow-x-auto space-x-4 px-4 no-scrollbar">
+      <div className="flex overflow-x-auto space-x-3 px-4 no-scrollbar">
         {categories.map((cat) => {
           const img = PlaceHolderImages.find(p => p.id === cat.imageId);
           return (
-            <div key={cat.id} className="flex flex-col items-center space-y-2 min-w-[70px]">
-              <div className="h-16 w-16 rounded-2xl bg-white soft-shadow flex items-center justify-center p-3 border border-border/50 hover:border-primary/30 transition-colors">
-                <div className="relative h-10 w-10">
+            <div key={cat.id} className="flex flex-col items-center space-y-2 min-w-[64px]">
+              <div className="h-14 w-14 rounded-2xl bg-white soft-shadow flex items-center justify-center p-2.5 border border-border/50 hover:border-primary/30 transition-colors">
+                <div className="relative h-8 w-8">
                   <Image
                     src={img?.imageUrl || "https://picsum.photos/seed/cat/100/100"}
                     alt={cat.name}
@@ -34,7 +34,7 @@ export function CategoryList() {
                   />
                 </div>
               </div>
-              <span className="text-xs font-semibold text-gray-700">{cat.name}</span>
+              <span className="text-[10px] font-bold text-gray-700">{cat.name}</span>
             </div>
           );
         })}

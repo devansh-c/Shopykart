@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Plus } from 'lucide-react';
@@ -33,21 +32,21 @@ export function ComboSection() {
   const { addToCart } = useCart();
 
   return (
-    <div className="py-6">
-      <div className="flex items-center px-4 mb-4">
-        <span className="text-2xl mr-2">🎁</span>
-        <h2 className="text-2xl font-black">Combos</h2>
+    <div className="py-4">
+      <div className="flex items-center px-4 mb-3">
+        <span className="text-xl mr-2">🎁</span>
+        <h2 className="text-xl font-black">Combos</h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-4 no-scrollbar">
         {combos.map((combo) => {
           const img = PlaceHolderImages.find(p => p.id === combo.imageId);
-          const imageUrl = img?.imageUrl || "https://picsum.photos/400/400";
+          const imageUrl = img?.imageUrl || "https://picsum.photos/seed/combo/400/400";
           return (
             <div 
               key={combo.id} 
-              className="min-w-[240px] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-border/40"
+              className="min-w-[210px] max-w-[210px] bg-white rounded-[1.75rem] overflow-hidden shadow-sm border border-border/40"
             >
-              <div className="relative h-44 w-full">
+              <div className="relative h-36 w-full">
                 <img 
                   src={imageUrl} 
                   alt={combo.name} 
@@ -55,15 +54,15 @@ export function ComboSection() {
                 />
               </div>
               <div className="p-4">
-                <h3 className="font-bold text-lg text-foreground">{combo.name}</h3>
-                <p className="text-muted-foreground text-sm truncate mb-4">{combo.desc}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-black text-foreground">₹{combo.price}</span>
+                <h3 className="font-bold text-sm text-foreground line-clamp-1">{combo.name}</h3>
+                <p className="text-muted-foreground text-[10px] truncate mb-3">{combo.desc}</p>
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-base font-black text-foreground">₹{combo.price}</span>
                   <button 
                     onClick={() => addToCart({ id: combo.id, name: combo.name, price: combo.price, imageUrl })}
-                    className="bg-primary text-white text-xs font-black px-4 py-2 rounded-xl flex items-center hover:bg-primary/90 active:scale-95 transition-all"
+                    className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-lg flex items-center hover:bg-primary/90 active:scale-95 transition-all"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3.5 w-3.5 mr-1" />
                     Add
                   </button>
                 </div>
