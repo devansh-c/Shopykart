@@ -8,7 +8,6 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
-import { PersonalizedOffers } from '@/components/home/PersonalizedOffers';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,9 +21,6 @@ export default function Home() {
       {!searchQuery && (
         <div className="mt-6 space-y-4">
           <OfferSlider />
-          
-          {/* AI Powered Section */}
-          <PersonalizedOffers />
           
           <ComboSection />
           <OffersSection />
