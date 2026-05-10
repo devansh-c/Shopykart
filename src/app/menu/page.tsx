@@ -1,16 +1,17 @@
+
 "use client"
 
 import { useState, useMemo } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
-import { allProducts } from '@/lib/mock-data';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -27,15 +28,19 @@ export default function MenuPage() {
   const [requestText, setRequestText] = useState('');
   const { cart, addToCart, removeFromCart, addCustomRequest } = useCart();
   const { toast } = useToast();
+  
+  const firestore = useFirestore();
+  const { data: dbProducts, loading } = useCollection(firestore ? collection(firestore, 'products') : null);
 
   const filteredProducts = useMemo(() => {
-    return allProducts.filter(product => {
+    if (!dbProducts) return [];
+    return dbProducts.filter((product: any) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.category.toLowerCase().includes(searchQuery.toLowerCase());
+                          (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, dbProducts]);
 
   const handleCustomRequest = () => {
     if (!requestText.trim()) return;
@@ -66,49 +71,47 @@ export default function MenuPage() {
       </div>
 
       <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar mb-8">
-        {categories.map((cat) => {
-          const img = PlaceHolderImages.find(p => p.id === cat.imageId);
-          const isActive = activeCategory === cat.id;
-
-          return (
-            <button 
-              key={cat.id} 
-              onClick={() => setActiveCategory(cat.id)}
-              className="flex flex-col items-center space-y-2 min-w-[70px] relative"
-            >
-              <div className={cn(
-                "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
-                isActive ? "border-primary scale-110 shadow-lg" : "border-transparent bg-white shadow-sm"
-              )}>
-                <img
-                  src={img?.imageUrl || "https://picsum.photos/seed/cat/100/100"}
-                  alt={cat.name}
-                  className="w-full h-full object-cover"
-                />
-                {cat.badge && isActive && (
-                   <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm translate-x-1 translate-y-1">
-                    <span className="text-[10px]">{cat.badge}</span>
-                  </div>
-                )}
-              </div>
-              <span className={cn(
-                "text-[10px] font-black uppercase tracking-widest transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}>
-                {cat.name}
-              </span>
-            </button>
-          );
-        })}
+        {categories.map((cat) => (
+          <button 
+            key={cat.id} 
+            onClick={() => setActiveCategory(cat.id)}
+            className="flex flex-col items-center space-y-2 min-w-[70px] relative"
+          >
+            <div className={cn(
+              "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
+              activeCategory === cat.id ? "border-primary scale-110 shadow-lg" : "border-transparent bg-white shadow-sm"
+            )}>
+              <img
+                src={`https://picsum.photos/seed/${cat.id}/100/100`}
+                alt={cat.name}
+                className="w-full h-full object-cover"
+              />
+              {cat.badge && activeCategory === cat.id && (
+                 <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm translate-x-1 translate-y-1">
+                  <span className="text-[10px]">{cat.badge}</span>
+                </div>
+              )}
+            </div>
+            <span className={cn(
+              "text-[10px] font-black uppercase tracking-widest transition-colors",
+              activeCategory === cat.id ? "text-primary" : "text-muted-foreground"
+            )}>
+              {cat.name}
+            </span>
+          </button>
+        ))}
       </div>
 
       <div className="px-6 space-y-4">
-        {filteredProducts.length > 0 ? (
-          filteredProducts.map((product) => {
-            const img = PlaceHolderImages.find(pi => pi.id === product.imageId);
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredProducts.length > 0 ? (
+          filteredProducts.map((product: any) => {
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
-            const imageUrl = img?.imageUrl || "https://picsum.photos/400/300";
+            const imageUrl = product.imageUrl || "https://picsum.photos/400/300";
 
             return (
               <div 
@@ -171,7 +174,6 @@ export default function MenuPage() {
         )}
       </div>
 
-      {/* Special Request Section */}
       <div className="px-6 mt-12 mb-10">
         <div className="bg-gradient-to-br from-[#0B0B0B] to-[#1A1A1A] rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4">
@@ -198,10 +200,6 @@ export default function MenuPage() {
                 <Send className="h-5 w-5" />
               </Button>
             </div>
-            <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-4 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 bg-primary rounded-full" />
-              Note: ₹20 Delivery charge applies for custom requests
-            </p>
           </div>
         </div>
       </div>

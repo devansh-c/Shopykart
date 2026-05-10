@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -158,14 +159,14 @@ export function LocationHeader({
 
   return (
     <div className="w-full">
-      <div className="bg-[#0B0B0B] p-4 flex flex-col gap-4 rounded-none shadow-2xl border-b border-white/5">
+      <div className="bg-[#0B0B0B] p-3 flex flex-col gap-3 rounded-none shadow-2xl border-b border-white/5">
         <div className="flex items-center justify-between gap-2">
           <Logo className="flex-shrink-0" />
 
           <div className="flex items-center gap-2">
             <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
               <DialogTrigger asChild>
-                <button className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
+                <button className="h-9 w-9 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
                   <PlusCircle className="h-5 w-5" />
                 </button>
               </DialogTrigger>
@@ -201,14 +202,14 @@ export function LocationHeader({
             </Dialog>
 
             <Link href="/wishlist">
-              <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+              <div className="h-9 w-9 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
                 <Heart className="h-5 w-5" />
               </div>
             </Link>
 
             <Link href="/cart">
               <div className="relative">
-                <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+                <div className="h-9 w-9 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 {totalItems > 0 && (
@@ -223,7 +224,7 @@ export function LocationHeader({
 
             <Sheet>
               <SheetTrigger asChild>
-                <button className="h-10 w-10 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
+                <button className="h-9 w-9 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
                   <Menu className="h-5 w-5 text-white" />
                 </button>
               </SheetTrigger>
@@ -276,14 +277,14 @@ export function LocationHeader({
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search favorites..."
-              className="h-12 bg-[#1A1A1A] border-none rounded-full pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+              className="h-10 bg-[#1A1A1A] border-none rounded-full pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-white'}`}>
-                <Mic className="h-4 w-4" />
+                <Mic className="h-3.5 w-3.5" />
               </button>
               <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-white rounded-xl transition-all active:scale-90 disabled:opacity-50">
-                {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
