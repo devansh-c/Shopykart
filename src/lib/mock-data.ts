@@ -7,6 +7,7 @@ export const allProducts = [
     imageId: 'prod-fries', 
     isVeg: true, 
     category: 'fries',
+    restaurantName: 'The Fry Co.',
     description: 'Crispy golden fries smothered in our secret triple-cheese blend.'
   },
   { 
@@ -16,6 +17,7 @@ export const allProducts = [
     imageId: 'prod-pasta-red', 
     isVeg: true, 
     category: 'pasta',
+    restaurantName: 'Pasta Paradise',
     description: 'Spicy red sauce penne with bird eye chillies and bell peppers.'
   },
   { 
@@ -25,6 +27,7 @@ export const allProducts = [
     imageId: 'prod-pasta-white', 
     isVeg: true, 
     category: 'pasta',
+    restaurantName: 'Pasta Paradise',
     description: 'Classic creamy white sauce pasta with Italian herbs and garlic.'
   },
   { 
@@ -34,6 +37,7 @@ export const allProducts = [
     imageId: 'prod-burger-classic', 
     isVeg: true, 
     category: 'burgers',
+    restaurantName: 'Bun Burst',
     description: 'Juicy vegetable patty with lettuce, tomatoes, and house mayo.'
   },
   { 
@@ -43,6 +47,7 @@ export const allProducts = [
     imageId: 'prod-pizza-margherita', 
     isVeg: true, 
     category: 'pizza',
+    restaurantName: 'Pizza Point',
     description: 'A thin-crust delight with extra mozzarella and fresh basil.'
   },
   { 
@@ -52,6 +57,7 @@ export const allProducts = [
     imageId: 'prod-drink-mojito', 
     isVeg: true, 
     category: 'drinks',
+    restaurantName: 'Liquid Lounge',
     description: 'Refreshing lime and mint cooler served over crushed ice.'
   },
 ];

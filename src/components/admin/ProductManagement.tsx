@@ -1,19 +1,20 @@
+
 "use client"
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 
 const initialProducts = [
-  { id: 'p1', name: 'Cheese loaded French fries', price: 199, category: 'Fries', badges: ['Best Seller'], isVeg: true, imageUrl: 'https://picsum.photos/seed/fries1/300/300' },
-  { id: 'p2', name: 'Chilli Attack Pasta', price: 249, category: 'Pasta', badges: ['Trending'], isVeg: true, imageUrl: 'https://picsum.photos/seed/pasta1/300/300' },
-  { id: 'p3', name: 'Classic Veggie Burger', price: 149, category: 'Burgers', badges: ['Featured'], isVeg: true, imageUrl: 'https://picsum.photos/seed/burg1/300/300' },
+  { id: 'p1', name: 'Cheese loaded French fries', price: 199, category: 'Fries', restaurantName: 'The Fry Co.', badges: ['Best Seller'], isVeg: true, imageUrl: 'https://picsum.photos/seed/fries1/300/300' },
+  { id: 'p2', name: 'Chilli Attack Pasta', price: 249, category: 'Pasta', restaurantName: 'Pasta Paradise', badges: ['Trending'], isVeg: true, imageUrl: 'https://picsum.photos/seed/pasta1/300/300' },
+  { id: 'p3', name: 'Classic Veggie Burger', price: 149, category: 'Burgers', restaurantName: 'Bun Burst', badges: ['Featured'], isVeg: true, imageUrl: 'https://picsum.photos/seed/burg1/300/300' },
 ];
 
 export function ProductManagement() {
@@ -61,9 +62,15 @@ export function ProductManagement() {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Category</label>
-                <Input placeholder="e.g. Burgers, Pizza" className="rounded-xl" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Category</label>
+                  <Input placeholder="e.g. Burgers, Pizza" className="rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Restaurant Name</label>
+                  <Input placeholder="e.g. Bun Burst" className="rounded-xl" />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -143,17 +150,23 @@ export function ProductManagement() {
                   <h3 className="font-bold text-base">{product.name}</h3>
                   {product.isVeg && <div className="h-2 w-2 rounded-full bg-green-500" title="Veg" />}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-muted-foreground uppercase">{product.category}</span>
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase">
+                    <Store className="h-3 w-3 mr-1 text-primary" />
+                    {product.restaurantName}
+                  </div>
                   <span className="text-xs text-muted-foreground">•</span>
-                  <span className="text-sm font-black text-primary italic">₹{product.price}</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">{product.category}</span>
                 </div>
-                <div className="flex gap-2 mt-2">
-                  {product.badges.map(b => (
-                    <Badge key={b} variant="secondary" className="text-[9px] font-black uppercase px-2 py-0">
-                      {b}
-                    </Badge>
-                  ))}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-black text-primary italic">₹{product.price}</span>
+                  <div className="flex gap-1 ml-2">
+                    {product.badges.map(b => (
+                      <Badge key={b} variant="secondary" className="text-[9px] font-black uppercase px-2 py-0">
+                        {b}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
