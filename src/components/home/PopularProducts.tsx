@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Zap, Plus, Minus, Heart, Star } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
@@ -15,7 +15,6 @@ type PopularProductsProps = {
 
 export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
-  const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter(product => {
@@ -25,24 +24,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, category]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisibleItems((prev) => new Set([...prev, entry.target.getAttribute('data-id') || '']));
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    const elements = document.querySelectorAll('.product-reveal-trigger');
-    elements.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [filteredProducts]);
 
   return (
     <div className="px-4 py-8">
@@ -61,23 +42,17 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
       <div className="grid grid-cols-1 gap-6">
         {filteredProducts.length > 0 ? (
-          filteredProducts.map((product, idx) => {
+          filteredProducts.map((product) => {
             const img = PlaceHolderImages.find(p => p.id === product.imageId);
             const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const liked = isInWishlist(product.id);
-            const isVisible = visibleItems.has(product.id);
 
             return (
               <div 
                 key={product.id}
-                data-id={product.id}
-                className={cn(
-                  "premium-card p-6 flex justify-between items-center group relative overflow-hidden product-reveal-trigger opacity-0",
-                  isVisible && "animate-apple-reveal opacity-100"
-                )}
-                style={{ animationDelay: `${idx * 0.05}s` }}
+                className="premium-card p-6 flex justify-between items-center group relative overflow-hidden"
               >
                 {/* Wishlist Button */}
                 <button 
