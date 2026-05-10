@@ -10,7 +10,7 @@ export function LocationHeader() {
   const { totalItems } = useCart();
 
   return (
-    <div className="bg-[#121212] px-4 pt-8 pb-6 rounded-b-[2rem]">
+    <div className="bg-[#121212] px-4 pt-8 pb-10 rounded-b-[2rem]">
       <div className="flex items-center justify-between">
         {/* Left Side: Logo */}
         <Logo className="scale-90 origin-left" />
