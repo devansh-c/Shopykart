@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 
 export type CartItem = {
   id: string;
@@ -28,7 +28,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
 
-  const addToCart = (product: any) => {
+  const addToCart = useCallback((product: any) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
@@ -38,9 +38,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-  };
+  }, []);
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = useCallback((productId: string) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === productId);
       if (existing && existing.quantity > 1) {
@@ -50,35 +50,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return prev.filter((item) => item.id !== productId);
     });
-  };
+  }, []);
 
-  const clearCart = () => setCart([]);
+  const clearCart = useCallback(() => setCart([]), []);
 
-  const toggleWishlist = (productId: string) => {
+  const toggleWishlist = useCallback((productId: string) => {
     setWishlist(prev => 
       prev.includes(productId) 
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
     );
-  };
+  }, []);
 
-  const isInWishlist = (productId: string) => wishlist.includes(productId);
+  const isInWishlist = useCallback((productId: string) => wishlist.includes(productId), [wishlist]);
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+  const totalPrice = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
+
+  const value = useMemo(() => ({
+    cart, 
+    wishlist,
+    addToCart, 
+    removeFromCart, 
+    clearCart, 
+    toggleWishlist, 
+    isInWishlist,
+    totalItems, 
+    totalPrice 
+  }), [cart, wishlist, addToCart, removeFromCart, clearCart, toggleWishlist, isInWishlist, totalItems, totalPrice]);
 
   return (
-    <CartContext.Provider value={{ 
-      cart, 
-      wishlist,
-      addToCart, 
-      removeFromCart, 
-      clearCart, 
-      toggleWishlist, 
-      isInWishlist,
-      totalItems, 
-      totalPrice 
-    }}>
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );

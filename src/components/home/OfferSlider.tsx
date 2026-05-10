@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -20,7 +19,7 @@ export function OfferSlider() {
     <div className="px-4 py-1">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
-          {banners.map((banner) => {
+          {banners.map((banner, index) => {
             const img = PlaceHolderImages.find(p => p.id === banner.imageId);
             return (
               <CarouselItem key={banner.id}>
@@ -31,6 +30,7 @@ export function OfferSlider() {
                     fill
                     className="object-cover"
                     data-ai-hint={img?.imageHint}
+                    priority={index === 0}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
                     <h3 className="text-white text-2xl font-black italic tracking-tighter leading-none mb-0.5">

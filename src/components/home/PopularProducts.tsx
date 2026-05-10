@@ -1,9 +1,9 @@
 "use client"
 
+import { useMemo } from 'react';
 import { Zap, Plus, Minus, Heart } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const popularProducts = [
@@ -69,14 +69,16 @@ type PopularProductsProps = {
 };
 
 export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
-  const { cart, wishlist, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
+  const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
 
-  const filteredProducts = popularProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        product.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = category === 'all' || product.category === category;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    return popularProducts.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = category === 'all' || product.category === category;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, category]);
 
   return (
     <div className="px-4 py-6">
@@ -127,6 +129,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
                     />
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">

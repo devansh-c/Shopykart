@@ -1,14 +1,12 @@
-
 "use client"
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { Search, Plus, Minus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -33,21 +31,21 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const { cart, addToCart, removeFromCart } = useCart();
 
-  const filteredProducts = allProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        product.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    return allProducts.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, activeCategory]);
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-24">
-      {/* Header */}
       <div className="px-6 pt-12 pb-4">
         <h1 className="text-4xl font-bold text-foreground">Menu</h1>
       </div>
       
-      {/* Search Bar */}
       <div className="px-6 mb-6">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -60,7 +58,6 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Categories */}
       <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar mb-8">
         {categories.map((cat) => {
           const img = PlaceHolderImages.find(p => p.id === cat.imageId);
@@ -76,11 +73,10 @@ export default function MenuPage() {
                 "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
                 isActive ? "border-transparent" : "border-transparent bg-white shadow-sm"
               )}>
-                <Image
+                <img
                   src={img?.imageUrl || "https://picsum.photos/seed/cat/100/100"}
                   alt={cat.name}
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
                 {cat.badge && isActive && (
                    <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm translate-x-1 translate-y-1">
@@ -102,7 +98,6 @@ export default function MenuPage() {
         })}
       </div>
 
-      {/* Product List */}
       <div className="px-6 space-y-4">
         {filteredProducts.length > 0 ? (
           filteredProducts.map((product) => {
@@ -132,6 +127,7 @@ export default function MenuPage() {
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
