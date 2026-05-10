@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -10,6 +9,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
   
   const allProducts = [
     { id: 'p1', name: 'Cheese Loaded Fries', price: 199.00, imageId: 'prod-fries', isVeg: true, category: 'fries' },
@@ -22,10 +22,12 @@ export default function MenuPage() {
     { id: 'p8', name: 'Peri Peri Fries', price: 179.00, imageId: 'prod-fries', isVeg: true, category: 'fries' },
   ];
 
-  const filteredProducts = allProducts.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = allProducts.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -36,7 +38,7 @@ export default function MenuPage() {
       </div>
       
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
-      <CategoryList />
+      <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
       <div className="px-4 mt-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -56,7 +58,7 @@ export default function MenuPage() {
             })
           ) : (
             <div className="col-span-full text-center py-20">
-              <p className="text-muted-foreground">No products found matching "{searchQuery}"</p>
+              <p className="text-muted-foreground">No products found matching your selection.</p>
             </div>
           )}
         </div>

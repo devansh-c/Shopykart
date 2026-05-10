@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -10,39 +9,35 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
+import { PersonalizedOffers } from '@/components/home/PersonalizedOffers';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
 
   return (
     <div className="min-h-screen bg-[#fafafa] pb-24">
-      {/* Top Header - Now Dark with Logo on Left */}
+      {/* Top Header */}
       <LocationHeader />
       
-      {/* Search Bar - Now overlaid on header */}
+      {/* Search Bar */}
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-      {/* Only show Hero content if not searching */}
-      {!searchQuery ? (
+      {!searchQuery && (
         <div className="mt-4">
-          {/* Hero Offer Banner */}
           <OfferSlider />
-
-          {/* Combos Section */}
           <ComboSection />
-
-          {/* Offers & Coupons Section */}
+          <PersonalizedOffers />
           <OffersSection />
         </div>
-      ) : null}
+      )}
 
-      {/* Categories Horizontal Scroll */}
-      <CategoryList />
+      {/* Category Selection */}
+      <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
-      {/* Popular Products Vertical List - Filtered by search */}
-      <PopularProducts searchQuery={searchQuery} />
+      {/* Filtered Trending Products */}
+      <PopularProducts searchQuery={searchQuery} category={activeCategory} />
 
-      {/* Bottom Navigation */}
       <BottomNav />
     </div>
   );

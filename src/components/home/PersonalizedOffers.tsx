@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { Sparkles, Tag, Calendar } from 'lucide-react';
 import { getPersonalizedOfferSuggestions, PersonalizedOfferSuggestionsOutput } from '@/ai/flows/personalized-offer-suggestions-flow';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export function PersonalizedOffers() {
   const [offersData, setOffersData] = useState<PersonalizedOfferSuggestionsOutput | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchOffers() {
@@ -26,6 +28,13 @@ export function PersonalizedOffers() {
     }
     fetchOffers();
   }, []);
+
+  const handleRedeem = (title: string) => {
+    toast({
+      title: "Offer Activated!",
+      description: `${title} will be applied at checkout.`,
+    });
+  };
 
   if (loading) {
     return (
@@ -72,7 +81,10 @@ export function PersonalizedOffers() {
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{offer.description}</p>
             </div>
             
-            <button className="mt-4 text-xs font-bold text-primary self-start hover:underline">
+            <button 
+              onClick={() => handleRedeem(offer.title)}
+              className="mt-4 text-xs font-bold text-primary self-start hover:underline"
+            >
               REDEEM NOW
             </button>
           </div>

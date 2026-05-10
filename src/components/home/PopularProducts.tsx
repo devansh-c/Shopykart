@@ -1,10 +1,10 @@
-
 "use client"
 
-import { Zap } from 'lucide-react';
+import { Zap, Plus, Minus } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const popularProducts = [
   {
@@ -65,15 +65,18 @@ const popularProducts = [
 
 type PopularProductsProps = {
   searchQuery?: string;
+  category?: string;
 };
 
-export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
-  const { addToCart } = useCart();
+export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
+  const { cart, addToCart, removeFromCart } = useCart();
 
-  const filteredProducts = popularProducts.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = popularProducts.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = category === 'all' || product.category === category;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="px-4 py-6">
@@ -92,6 +95,8 @@ export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
           filteredProducts.map((product) => {
             const img = PlaceHolderImages.find(p => p.id === product.imageId);
             const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
+            const cartItem = cart.find(item => item.id === product.id);
+            const quantity = cartItem?.quantity || 0;
 
             return (
               <div 
@@ -118,12 +123,30 @@ export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
                     />
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-3">
-                    <Button 
-                      onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
-                      className="w-full h-8 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-black text-[10px] rounded-xl shadow-lg transition-all"
-                    >
-                      ADD +
-                    </Button>
+                    {quantity === 0 ? (
+                      <Button 
+                        onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
+                        className="w-full h-8 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-black text-[10px] rounded-xl shadow-lg transition-all"
+                      >
+                        ADD +
+                      </Button>
+                    ) : (
+                      <div className="flex items-center justify-between w-full h-8 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
+                        <button 
+                          onClick={() => removeFromCart(product.id)}
+                          className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
+                        <button 
+                          onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
+                          className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -131,7 +154,7 @@ export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
           })
         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground text-sm font-medium">No matches found for "{searchQuery}"</p>
+            <p className="text-muted-foreground text-sm font-medium">No matches found</p>
           </div>
         )}
       </div>

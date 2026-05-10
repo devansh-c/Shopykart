@@ -3,14 +3,24 @@
 import { BottomNav } from '@/components/shared/BottomNav';
 import { User, MapPin, CreditCard, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
+  const { toast } = useToast();
+  
   const menuItems = [
     { label: 'Personal Information', icon: User },
     { label: 'Delivery Addresses', icon: MapPin },
     { label: 'Payment Methods', icon: CreditCard },
     { label: 'Settings', icon: Settings },
   ];
+
+  const handleAction = (label: string) => {
+    toast({
+      title: label,
+      description: "This feature is coming soon in a future update.",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -32,6 +42,7 @@ export default function ProfilePage() {
         {menuItems.map((item) => (
           <button 
             key={item.label}
+            onClick={() => handleAction(item.label)}
             className="w-full premium-card p-4 flex items-center justify-between active:scale-[0.98] transition-all"
           >
             <div className="flex items-center space-x-3">
@@ -44,7 +55,10 @@ export default function ProfilePage() {
           </button>
         ))}
 
-        <button className="w-full premium-card p-4 flex items-center space-x-3 text-red-500 hover:bg-red-50 transition-colors mt-6">
+        <button 
+          onClick={() => handleAction("Sign Out")}
+          className="w-full premium-card p-4 flex items-center space-x-3 text-red-500 hover:bg-red-50 transition-colors mt-6"
+        >
           <div className="bg-red-50 p-2 rounded-xl">
             <LogOut className="h-5 w-5" />
           </div>

@@ -1,10 +1,8 @@
-
 "use client"
 
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -15,9 +13,12 @@ const categories = [
   { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
 ];
 
-export function CategoryList() {
-  const [activeTab, setActiveTab] = useState('all');
+type CategoryListProps = {
+  activeCategory?: string;
+  onCategoryChange?: (id: string) => void;
+};
 
+export function CategoryList({ activeCategory = 'all', onCategoryChange }: CategoryListProps) {
   return (
     <div className="py-6">
       <div className="flex items-center justify-between px-4 mb-5">
@@ -27,12 +28,12 @@ export function CategoryList() {
       <div className="flex overflow-x-auto space-x-6 px-4 no-scrollbar">
         {categories.map((cat) => {
           const img = PlaceHolderImages.find(p => p.id === cat.imageId);
-          const isActive = activeTab === cat.id;
+          const isActive = activeCategory === cat.id;
 
           return (
             <button 
               key={cat.id} 
-              onClick={() => setActiveTab(cat.id)}
+              onClick={() => onCategoryChange?.(cat.id)}
               className="flex flex-col items-center space-y-2 min-w-[70px] relative group"
             >
               <div className={cn(
