@@ -1,15 +1,16 @@
+
 "use client"
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Menu as MenuIcon, ShoppingBag, Gift, User } from 'lucide-react';
+import { Home, Menu as MenuIcon, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Menu', icon: MenuIcon, href: '/menu' },
-  { label: 'Orders', icon: ShoppingBag, href: '/orders' },
+  { label: 'Orders', icon: Package, href: '/orders' },
   { label: 'Rewards', icon: Gift, href: '/rewards' },
   { label: 'Profile', icon: User, href: '/profile' },
 ];

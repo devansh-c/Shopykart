@@ -3,7 +3,7 @@
 
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Heart, Plus, ShoppingBag, ChevronLeft } from 'lucide-react';
+import { Heart, Plus, ShoppingCart, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { PlaceHolderImages } from '@/lib/placeholder-images';

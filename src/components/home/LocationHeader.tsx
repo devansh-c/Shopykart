@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Search, ShoppingBag, Menu, Heart, Camera, Mic, Loader2, PlusCircle } from 'lucide-react';
+import { Search, ShoppingCart, Menu, Heart, Camera, Mic, Loader2, PlusCircle } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
@@ -163,7 +163,7 @@ export function LocationHeader({ searchValue, onSearchChange }: LocationHeaderPr
           <Link href="/cart">
             <div className="relative">
               <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 active:scale-90 transition-all">
-                <ShoppingBag className="h-5 w-5 text-white" />
+                <ShoppingCart className="h-5 w-5 text-white" />
               </div>
               {totalItems > 0 && (
                 <div className="absolute -top-1 -right-1 h-5 w-5 bg-white rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-in zoom-in">

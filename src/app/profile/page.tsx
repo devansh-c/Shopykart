@@ -1,7 +1,8 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, Settings, LogOut, ChevronRight, Heart, ShoppingBag } from 'lucide-react';
+import { User, MapPin, CreditCard, Settings, LogOut, ChevronRight, Heart, ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -12,7 +13,7 @@ export default function ProfilePage() {
   
   const menuItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
-    { label: 'Active Cart', icon: ShoppingBag, path: '/cart' },
+    { label: 'Active Cart', icon: ShoppingCart, path: '/cart' },
     { label: 'Personal Information', icon: User },
     { label: 'Delivery Addresses', icon: MapPin },
     { label: 'Payment Methods', icon: CreditCard },

@@ -1,9 +1,10 @@
+
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, ChevronLeft, Sparkles, X } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowRight, ShoppingCart, ChevronLeft, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -15,7 +16,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-muted h-32 w-32 rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="h-12 w-12 text-muted-foreground" />
+          <ShoppingCart className="h-12 w-12 text-muted-foreground" />
         </div>
         <h2 className="text-2xl font-black italic uppercase">Your cart is empty</h2>
         <p className="text-muted-foreground mt-2 mb-8">Add something delicious to get started!</p>
