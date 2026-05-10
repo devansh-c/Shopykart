@@ -3,7 +3,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ChevronLeft, MessageSquare, Phone, Clock, FileText, User, CreditCard, Calendar, CheckCircle2, Circle, Send, XCircle } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Phone, Clock, FileText, Send, XCircle, CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,9 +27,8 @@ export default function OrderDetailsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // Mock order time - usually would come from backend
   const [placedAt] = useState(new Date());
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(120);
   const [canCancel, setCanCancel] = useState(true);
   const [isCancelled, setIsCancelled] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -80,10 +79,12 @@ export default function OrderDetailsPage() {
           </button>
           <h1 className="text-lg font-bold">Order Details</h1>
         </div>
-        <Button variant="outline" size="sm" className="rounded-full border-red-100 text-red-500 bg-red-50/50 hover:bg-red-50 font-bold px-4">
-          <MessageSquare className="h-4 w-4 mr-1" />
-          Chat
-        </Button>
+        {!isCancelled && (
+          <Button variant="outline" size="sm" className="rounded-full border-red-100 text-red-500 bg-red-50/50 hover:bg-red-50 font-bold px-4">
+            <MessageSquare className="h-4 w-4 mr-1" />
+            Chat
+          </Button>
+        )}
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
@@ -91,13 +92,18 @@ export default function OrderDetailsPage() {
         <div className={cn(
           "rounded-xl p-4 flex items-center gap-3 border",
           isCancelled 
-            ? "bg-red-50 border-red-100 text-red-600" 
+            ? "bg-red-50 border-red-200 text-red-600" 
             : "bg-[#FFF8E6] border-[#FFE8B3] text-[#B38B00]"
         )}>
           {isCancelled ? <XCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-          <span className="font-bold text-sm">
-            {isCancelled ? `Order Cancelled: ${cancelReason}` : "Order placed successfully"}
-          </span>
+          <div>
+            <div className="font-bold text-sm">
+              {isCancelled ? "Order Cancelled" : "Order placed successfully"}
+            </div>
+            {isCancelled && cancelReason && (
+              <p className="text-xs mt-0.5 opacity-80">Reason: {cancelReason}</p>
+            )}
+          </div>
         </div>
 
         {/* Restaurant Info Card */}
@@ -112,9 +118,11 @@ export default function OrderDetailsPage() {
                 <p className="text-[10px] text-gray-400 font-medium">ByPass Rd, Near KGN Colony, Sa...</p>
               </div>
             </div>
-            <button className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-500">
-              <Phone className="h-4 w-4 fill-current" />
-            </button>
+            {!isCancelled && (
+              <button className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                <Phone className="h-4 w-4 fill-current" />
+              </button>
+            )}
           </div>
           
           <div className="pt-4 border-t border-gray-50">
@@ -147,13 +155,13 @@ export default function OrderDetailsPage() {
               <span className="font-medium">₹40.00</span>
             </div>
             <div className="pt-3 border-t border-gray-50 flex justify-between items-center">
-              <span className="text-base font-black uppercase">Paid</span>
+              <span className="text-base font-black uppercase">{isCancelled ? 'Refund Processing' : 'Paid'}</span>
               <span className="text-xl font-black">₹836.00</span>
             </div>
           </div>
         </div>
 
-        {!isCancelled && (
+        {!isCancelled ? (
           <>
             {/* Order Progress Stepper */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -200,9 +208,9 @@ export default function OrderDetailsPage() {
               </div>
               <div className="flex gap-2">
                 <Input placeholder="Type a message..." className="rounded-full bg-gray-50 border-gray-100 h-11 px-6 text-sm focus-visible:ring-red-100" />
-                <Button size="icon" className="h-11 w-11 rounded-full bg-red-100 text-red-500 hover:bg-red-200">
+                <button className="h-11 w-11 rounded-full bg-red-100 text-red-500 hover:bg-red-200 flex items-center justify-center">
                   <Send className="h-5 w-5" />
-                </Button>
+                </button>
               </div>
             </div>
 
@@ -252,6 +260,21 @@ export default function OrderDetailsPage() {
               </Dialog>
             )}
           </>
+        ) : (
+          <div className="text-center py-12 px-6">
+            <div className="bg-red-50 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+              <XCircle className="h-10 w-10" />
+            </div>
+            <h3 className="text-xl font-black italic uppercase text-gray-800">Order Cancelled</h3>
+            <p className="text-sm text-gray-500 mt-2">Tracking is no longer available for this order. Your refund is being processed.</p>
+            <Button 
+              onClick={() => router.push('/menu')} 
+              variant="outline" 
+              className="mt-8 rounded-full font-bold px-8"
+            >
+              Order Something Else
+            </Button>
+          </div>
         )}
       </div>
     </div>
