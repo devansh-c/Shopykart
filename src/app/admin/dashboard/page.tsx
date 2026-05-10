@@ -77,16 +77,21 @@ export default function AdminDashboard() {
         return <BannerManagement />;
       case 'orders':
         return <OrderManagement />;
-      default:
+      default: {
+        const activeItem = menuItems.find(i => i.id === activeTab);
+        const Icon = activeItem?.icon;
         return (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-muted-foreground/20">
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-muted-foreground/20">
             <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mb-4">
-              {menuItems.find(i => i.id === activeTab)?.icon({ className: "h-8 w-8 text-muted-foreground" })}
+              {Icon && <Icon className="h-8 w-8 text-muted-foreground" />}
             </div>
             <h3 className="text-xl font-black italic uppercase">Module Coming Soon</h3>
-            <p className="text-muted-foreground text-sm font-medium">The {menuItems.find(i => i.id === activeTab)?.label} section is under development.</p>
+            <p className="text-muted-foreground text-sm font-medium">
+              The {activeItem?.label || 'selected'} section is under development.
+            </p>
           </div>
         );
+      }
     }
   };
 

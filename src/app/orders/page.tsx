@@ -1,7 +1,9 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
 import { ShoppingBag, ChevronRight, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const orders = [
   { id: 'ORD-5542', status: 'Delivering', date: 'Just now', total: 24.50, items: 2 },
@@ -60,5 +62,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-import { cn } from '@/lib/utils';
