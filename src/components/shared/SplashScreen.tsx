@@ -42,7 +42,7 @@ export function SplashScreen() {
         )}>
           <div className="px-10 py-4 border-2 border-[#C5A021]/30 rounded-[2.5rem] bg-black/40 backdrop-blur-md shadow-[0_0_50px_rgba(197,160,33,0.15)]">
             <h1 className="text-white font-black italic text-5xl tracking-tighter text-center">
-              SHOPYKART <span className="text-primary">EATS</span>
+              SHOPYKART
             </h1>
           </div>
           <p className="text-center mt-6 text-[10px] text-[#C5A021] font-black uppercase tracking-[0.5em] opacity-80">

@@ -29,7 +29,7 @@ export function Logo({ className }: { className?: string }) {
       )}
     >
       <h1 className="text-white font-black italic text-xl tracking-tighter">
-        SHOPYKART <span className="text-primary">EATS</span>
+        SHOPYKART
       </h1>
     </div>
   );
