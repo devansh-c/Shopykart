@@ -15,48 +15,50 @@ export function LocationHeader({ searchValue, onSearchChange }: LocationHeaderPr
   const { totalItems } = useCart();
 
   return (
-    <div className="bg-[#0B0B0B] px-4 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-50">
-      {/* Logo Section */}
-      <Logo className="flex-shrink-0" />
+    <div className="bg-[#0B0B0B] px-4 py-4 flex flex-col gap-4 sticky top-0 z-50 shadow-2xl">
+      <div className="flex items-center justify-between gap-3">
+        {/* Logo Section */}
+        <Logo className="flex-shrink-0" />
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Wishlist Button */}
+          <Link href="/wishlist">
+            <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
+              <Heart className="h-4 w-4 text-white" />
+            </div>
+          </Link>
+
+          {/* Cart Button */}
+          <Link href="/cart">
+            <div className="relative">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 active:scale-90 transition-all">
+                <ShoppingBag className="h-5 w-5 text-white" />
+              </div>
+              {totalItems > 0 && (
+                <div className="absolute -top-1 -right-1 h-5 w-5 bg-white rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-in zoom-in">
+                  <span className="text-[10px] font-black text-primary">{totalItems}</span>
+                </div>
+              )}
+            </div>
+          </Link>
+
+          {/* Menu Button */}
+          <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
+            <Menu className="h-5 w-5 text-white" />
+          </div>
+        </div>
+      </div>
 
       {/* Integrated Search Bar */}
-      <div className="relative flex-1 max-w-[140px]">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+      <div className="relative w-full">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
         <Input 
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search" 
-          className="h-8 bg-[#1A1A1A] border-none rounded-full pl-8 text-[12px] text-white placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+          placeholder="Search for your favorites..." 
+          className="h-12 bg-[#1A1A1A] border-none rounded-2xl pl-11 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
         />
-      </div>
-      
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2">
-        {/* Wishlist Button */}
-        <Link href="/wishlist">
-          <div className="h-9 w-9 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors">
-            <Heart className="h-4 w-4 text-white" />
-          </div>
-        </Link>
-
-        {/* Cart Button */}
-        <Link href="/cart">
-          <div className="relative">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shadow-lg">
-              <ShoppingBag className="h-5 w-5 text-white" />
-            </div>
-            {totalItems > 0 && (
-              <div className="absolute -top-1 -right-1 h-4 w-4 bg-white rounded-full flex items-center justify-center border border-[#0B0B0B]">
-                <span className="text-[9px] font-black text-primary">{totalItems}</span>
-              </div>
-            )}
-          </div>
-        </Link>
-
-        {/* Menu Button */}
-        <div className="h-9 w-9 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-white/5">
-          <Menu className="h-5 w-5 text-white" />
-        </div>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@
     --border: 0 0% 92%;
     --input: 0 0% 92%;
     --ring: 348 83% 47%;
-    --radius: 0.5rem;
+    --radius: 1rem;
   }
 }
 
@@ -33,6 +33,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-tap-highlight-color: transparent;
   }
 }
@@ -72,5 +73,13 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-2xl border border-border/40 shadow-sm transition-all duration-300 hover:shadow-md;
+  @apply bg-white rounded-[2rem] border border-border/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1;
+}
+
+.glass {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20;
+}
+
+.text-headline {
+  font-family: 'Playfair Display', serif;
 }

@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Sparkles, Tag, Calendar } from 'lucide-react';
+import { Sparkles, Tag, Calendar, ChevronRight } from 'lucide-react';
 import { getPersonalizedOfferSuggestions, PersonalizedOfferSuggestionsOutput } from '@/ai/flows/personalized-offer-suggestions-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export function PersonalizedOffers() {
   const [offersData, setOffersData] = useState<PersonalizedOfferSuggestionsOutput | null>(null);
@@ -15,9 +16,9 @@ export function PersonalizedOffers() {
     async function fetchOffers() {
       try {
         const result = await getPersonalizedOfferSuggestions({
-          userId: 'user-123',
-          pastOrdersSummary: 'User frequently orders pizza and burgers. Occasionally orders desserts.',
-          browsingHistorySummary: 'Recently viewed premium steak houses and high-rated sushi places.'
+          userId: 'user-premium-01',
+          pastOrdersSummary: 'The user has a refined palate, preferring artisanal pizzas and gourmet burgers. They value quality over quantity and often order for special occasions.',
+          browsingHistorySummary: 'Recently explored premium dessert collections and trending healthy bowls.'
         });
         setOffersData(result);
       } catch (error) {
@@ -32,17 +33,17 @@ export function PersonalizedOffers() {
   const handleRedeem = (title: string) => {
     toast({
       title: "Offer Activated!",
-      description: `${title} will be applied at checkout.`,
+      description: `${title} has been linked to your account.`,
     });
   };
 
   if (loading) {
     return (
-      <div className="px-4 py-4 space-y-4">
-        <Skeleton className="h-6 w-48" />
-        <div className="flex space-x-4 overflow-x-auto no-scrollbar py-2">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="min-w-[280px] h-32 rounded-3xl" />
+      <div className="px-4 py-8 space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2">
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="min-w-[300px] h-48 rounded-[2.5rem]" />
           ))}
         </div>
       </div>
@@ -52,40 +53,46 @@ export function PersonalizedOffers() {
   if (!offersData?.offers || offersData.offers.length === 0) return null;
 
   return (
-    <div className="py-4">
-      <div className="flex items-center px-4 mb-4">
-        <div className="bg-amber-100 p-1.5 rounded-lg mr-2">
-          <Sparkles className="h-4 w-4 text-amber-600" />
+    <div className="py-8">
+      <div className="flex items-center justify-between px-4 mb-6">
+        <div className="flex items-center">
+          <div className="bg-primary/10 p-2 rounded-2xl mr-3">
+            <Sparkles className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-black italic tracking-tighter text-headline">Curated For You</h2>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">AI-driven gourmet suggestions</p>
+          </div>
         </div>
-        <h2 className="text-lg font-bold">Recommended for You</h2>
       </div>
       
-      <div className="flex overflow-x-auto space-x-4 px-4 no-scrollbar">
+      <div className="flex overflow-x-auto space-x-6 px-4 no-scrollbar pb-4">
         {offersData.offers.map((offer, idx) => (
           <div 
             key={idx} 
-            className="min-w-[280px] premium-card p-5 bg-gradient-to-br from-white to-secondary/10 flex flex-col justify-between"
+            className="min-w-[300px] premium-card p-6 bg-gradient-to-br from-white to-[#FFF5F5] flex flex-col justify-between border-2 border-primary/5"
           >
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full flex items-center">
-                  <Tag className="h-3 w-3 mr-1" />
+              <div className="flex items-center justify-between mb-4">
+                <span className="bg-primary text-white text-[9px] font-black px-3 py-1.5 rounded-full flex items-center shadow-lg shadow-primary/20 italic uppercase tracking-tighter">
+                  <Tag className="h-3 w-3 mr-1.5" />
                   {offer.discount}
                 </span>
-                <div className="flex items-center text-muted-foreground text-[10px]">
+                <div className="flex items-center text-muted-foreground text-[10px] font-bold">
                   <Calendar className="h-3 w-3 mr-1" />
-                  Valid until {offer.validUntil}
+                  Ends {offer.validUntil}
                 </div>
               </div>
-              <h3 className="font-bold text-base leading-tight">{offer.title}</h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{offer.description}</p>
+              <h3 className="font-black text-xl leading-tight mb-2 italic tracking-tight">{offer.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed font-medium">{offer.description}</p>
             </div>
             
             <button 
               onClick={() => handleRedeem(offer.title)}
-              className="mt-4 text-xs font-bold text-primary self-start hover:underline"
+              className="mt-6 text-[10px] font-black text-primary uppercase tracking-widest flex items-center group active:translate-x-1 transition-all"
             >
-              REDEEM NOW
+              REDEEM OFFER
+              <ChevronRight className="h-3 w-3 ml-1 group-hover:ml-2 transition-all" />
             </button>
           </div>
         ))}

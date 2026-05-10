@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -9,26 +8,33 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
+import { PersonalizedOffers } from '@/components/home/PersonalizedOffers';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
   return (
-    <div className="min-h-screen bg-[#fafafa] pb-24">
+    <div className="min-h-screen bg-[#FAFAFA] pb-32">
       {/* Top Header with Integrated Search */}
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
       {!searchQuery && (
-        <div className="mt-4">
+        <div className="mt-6 space-y-4">
           <OfferSlider />
+          
+          {/* AI Powered Section */}
+          <PersonalizedOffers />
+          
           <ComboSection />
           <OffersSection />
         </div>
       )}
 
       {/* Category Selection */}
-      <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+      <div className="bg-white my-8 py-2 rounded-[3rem] mx-2 shadow-sm border border-border/40">
+        <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+      </div>
 
       {/* Filtered Trending Products */}
       <PopularProducts searchQuery={searchQuery} category={activeCategory} />
