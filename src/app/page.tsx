@@ -1,9 +1,9 @@
+
 "use client"
 
 import { useState } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { SearchBar } from '@/components/home/SearchBar';
 import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
@@ -17,12 +17,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] pb-24">
-      {/* Top Header */}
-      <LocationHeader />
+      {/* Top Header with Integrated Search */}
+      <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
-      {/* Search Bar */}
-      <SearchBar value={searchQuery} onChange={setSearchQuery} />
-
       {!searchQuery && (
         <div className="mt-4">
           <OfferSlider />
