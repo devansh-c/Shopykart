@@ -1,10 +1,13 @@
 "use client"
 
-import { Search, ShoppingBag, Menu, Heart } from 'lucide-react';
+import { Search, ShoppingBag, Menu, Heart, Camera, Mic, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { useRef, useState } from 'react';
+import { identifyFood } from '@/ai/flows/visual-search-flow';
+import { useToast } from '@/hooks/use-toast';
 
 type LocationHeaderProps = {
   searchValue: string;
@@ -13,6 +16,83 @@ type LocationHeaderProps = {
 
 export function LocationHeader({ searchValue, onSearchChange }: LocationHeaderProps) {
   const { totalItems } = useCart();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isIdentifying, setIsIdentifying] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const { toast } = useToast();
+
+  const handleCameraClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsIdentifying(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      try {
+        const result = await identifyFood({ photoDataUri: base64String });
+        onSearchChange(result.identifiedFood);
+        toast({
+          title: "Visual Search Successful",
+          description: `Searching for: ${result.identifiedFood}`,
+        });
+      } catch (err) {
+        toast({
+          variant: "destructive",
+          title: "Search Failed",
+          description: "Could not identify the food from the photo.",
+        });
+      } finally {
+        setIsIdentifying(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleMicClick = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast({
+        variant: "destructive",
+        title: "Not Supported",
+        description: "Your browser does not support voice search.",
+      });
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast({
+        title: "Listening...",
+        description: "Go ahead, tell me what you're looking for.",
+      });
+    };
+
+    recognition.onresult = (event: any) => {
+      const speechToText = event.results[0][0].transcript;
+      onSearchChange(speechToText);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
 
   return (
     <div className="bg-[#0B0B0B] px-4 py-4 flex flex-col gap-4 sticky top-0 z-50 shadow-2xl">
@@ -57,7 +137,33 @@ export function LocationHeader({ searchValue, onSearchChange }: LocationHeaderPr
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search for your favorites..." 
-          className="h-12 bg-[#1A1A1A] border-none rounded-2xl pl-11 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+          className="h-12 bg-[#1A1A1A] border-none rounded-2xl pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+        />
+        
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <button 
+            onClick={handleMicClick}
+            className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-white animate-pulse' : 'text-gray-400 hover:text-white'}`}
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          
+          <button 
+            onClick={handleCameraClick}
+            disabled={isIdentifying}
+            className="p-2 text-gray-400 hover:text-white rounded-xl transition-all active:scale-90 disabled:opacity-50"
+          >
+            {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          capture="environment"
+          onChange={handleFileChange}
         />
       </div>
     </div>
