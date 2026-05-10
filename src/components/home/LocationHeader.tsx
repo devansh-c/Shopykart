@@ -157,8 +157,8 @@ export function LocationHeader({
   ];
 
   return (
-    <div className="px-4 pt-4">
-      <div className="bg-[#0B0B0B] px-4 py-6 flex flex-col gap-6 rounded-none shadow-2xl border border-white/5">
+    <div className="w-full">
+      <div className="bg-[#0B0B0B] px-4 py-8 flex flex-col gap-8 rounded-none shadow-2xl border-b border-white/5">
         <div className="flex items-center justify-between gap-2">
           <Logo className="flex-shrink-0" />
 

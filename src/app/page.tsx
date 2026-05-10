@@ -19,7 +19,7 @@ export default function Home() {
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
       {!searchQuery && (
-        <div className="mt-6 space-y-4">
+        <div className="mt-0 space-y-6">
           <OfferSlider />
           
           <ComboSection />
