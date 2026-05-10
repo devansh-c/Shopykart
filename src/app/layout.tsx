@@ -3,6 +3,7 @@ import './globals.css';
 import {CartProvider} from '@/components/cart/CartProvider';
 import {Toaster} from '@/components/ui/toaster';
 import {FloatingCart} from '@/components/shared/FloatingCart';
+import {SplashScreen} from '@/components/shared/SplashScreen';
 
 export const metadata: Metadata = {
   title: 'ShopyKart | Premium Food Delivery',
@@ -23,6 +24,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-[#FAFAFA] text-foreground">
         <CartProvider>
+          <SplashScreen />
           <div className="relative min-h-screen">
             {children}
             <FloatingCart />
