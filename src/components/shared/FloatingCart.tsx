@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
-import { ShoppingCart, ArrowRight } from 'lucide-react';
+import { ShoppingBag, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +23,7 @@ export function FloatingCart() {
       >
         <div className="flex items-center gap-3">
           <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <ShoppingCart className="h-5 w-5" />
+            <ShoppingBag className="h-5 w-5" />
           </div>
           <div className="flex flex-col items-start">
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{totalItems} Item{totalItems > 1 ? 's' : ''} Added</span>
