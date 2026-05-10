@@ -1,0 +1,68 @@
+
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A food item in the menu",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isVeg": { "type": "boolean" },
+        "badges": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["Best Seller", "Featured", "Trending"] }
+        }
+      },
+      "required": ["name", "price", "category"]
+    },
+    "Banner": {
+      "title": "Homepage Banner",
+      "description": "Promotional banners for the slider",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "tag": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["title", "imageUrl"]
+    },
+    "Order": {
+      "title": "Customer Order",
+      "description": "Details of a placed order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["Preparing", "Out for Delivery", "Delivered"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "#/entities/Product",
+      "description": "Collection of menu items"
+    },
+    "/banners/{bannerId}": {
+      "schema": "#/entities/Banner",
+      "description": "Collection of homepage promotional banners"
+    },
+    "/orders/{orderId}": {
+      "schema": "#/entities/Order",
+      "description": "Collection of customer orders"
+    },
+    "/stats/summary": {
+      "schema": "object",
+      "description": "Global statistics for the admin dashboard"
+    }
+  }
+}
