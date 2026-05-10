@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Zap } from 'lucide-react';
@@ -76,17 +77,17 @@ export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
 
   return (
     <div className="px-4 py-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
           <div className="text-amber-500">
-            <Zap className="h-5 w-5 fill-current" />
+            <Zap className="h-6 w-6 fill-current" />
           </div>
-          <h2 className="text-xl font-bold italic">Trending Now</h2>
+          <h2 className="text-2xl font-black italic tracking-tighter">Trending Now</h2>
         </div>
-        <button className="text-primary text-[10px] font-bold uppercase tracking-widest underline underline-offset-4">See Catalog</button>
+        <button className="text-primary text-[11px] font-black uppercase tracking-widest underline underline-offset-4 decoration-2">See Catalog</button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {filteredProducts.length > 0 ? (
           filteredProducts.map((product) => {
             const img = PlaceHolderImages.find(p => p.id === product.imageId);
@@ -95,31 +96,31 @@ export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
             return (
               <div 
                 key={product.id}
-                className="premium-card bg-white p-3 flex justify-between items-center group active:scale-[0.99] transition-all"
+                className="bg-white rounded-[2rem] p-4 flex justify-between items-center group active:scale-[0.99] transition-all shadow-sm border border-border/40"
               >
-                <div className="flex-1 pr-3">
-                  <div className="mb-1.5">
-                    <div className="h-3 w-3 border border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                <div className="flex-1 pr-4">
+                  <div className="mb-2">
+                    <div className="h-3.5 w-3.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5">
                       <div className="h-full w-full bg-green-600 rounded-sm" />
                     </div>
                   </div>
-                  <h3 className="font-bold text-sm leading-tight mb-0.5">{product.name}</h3>
-                  <p className="text-[10px] text-muted-foreground mb-2 line-clamp-1 italic">{product.description}</p>
-                  <div className="text-base font-bold italic">₹{product.price.toFixed(2)}</div>
+                  <h3 className="font-bold text-base leading-tight mb-1">{product.name}</h3>
+                  <p className="text-[11px] text-muted-foreground mb-3 line-clamp-1 italic font-medium">{product.description}</p>
+                  <div className="text-lg font-black italic">₹{product.price.toFixed(2)}</div>
                 </div>
                 
-                <div className="relative w-24 h-24 flex-shrink-0">
-                  <div className="w-full h-full rounded-lg overflow-hidden border border-border/20">
+                <div className="relative w-28 h-28 flex-shrink-0">
+                  <div className="w-full h-full rounded-2xl overflow-hidden border border-border/20">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-3">
                     <Button 
                       onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
-                      className="w-full h-7 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-bold text-[9px] rounded shadow-md transition-colors"
+                      className="w-full h-8 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-black text-[10px] rounded-xl shadow-lg transition-all"
                     >
                       ADD +
                     </Button>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Plus } from 'lucide-react';
@@ -33,9 +34,9 @@ export function ComboSection() {
 
   return (
     <div className="py-4">
-      <div className="flex items-center px-4 mb-3">
+      <div className="flex items-center px-4 mb-4">
         <span className="text-xl mr-2">🎁</span>
-        <h2 className="text-xl font-bold">Combos</h2>
+        <h2 className="text-2xl font-black tracking-tight">Combos</h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-4 no-scrollbar">
         {combos.map((combo) => {
@@ -44,23 +45,23 @@ export function ComboSection() {
           return (
             <div 
               key={combo.id} 
-              className="min-w-[200px] max-w-[200px] bg-white rounded-xl overflow-hidden shadow-sm border border-border/40"
+              className="min-w-[210px] max-w-[210px] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-border/40 pb-4"
             >
-              <div className="relative h-32 w-full">
+              <div className="relative h-36 w-full">
                 <img 
                   src={imageUrl} 
                   alt={combo.name} 
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="p-3">
-                <h3 className="font-bold text-sm text-foreground line-clamp-1">{combo.name}</h3>
-                <p className="text-muted-foreground text-[10px] truncate mb-2">{combo.desc}</p>
+              <div className="px-4 pt-3">
+                <h3 className="font-bold text-base text-foreground line-clamp-1">{combo.name}</h3>
+                <p className="text-muted-foreground text-[11px] font-medium truncate mb-3">{combo.desc}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-base font-bold text-foreground">₹{combo.price}</span>
+                  <span className="text-lg font-black text-foreground">₹{combo.price}</span>
                   <button 
                     onClick={() => addToCart({ id: combo.id, name: combo.name, price: combo.price, imageUrl })}
-                    className="bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-primary/90 active:scale-95 transition-all"
+                    className="bg-primary text-white text-xs font-black px-4 py-2 rounded-xl hover:bg-primary/90 active:scale-95 transition-all flex items-center"
                   >
                     <Plus className="h-3 w-3 mr-1" />
                     Add
