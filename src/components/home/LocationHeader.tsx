@@ -230,8 +230,8 @@ export function LocationHeader({
               </SheetTrigger>
               <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
                 <SheetHeader className="p-8 border-b border-white/5">
-                  <Logo className="justify-start" />
-                  <SheetTitle className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] mt-2">Menu Navigation</SheetTitle>
+                  <Logo className="justify-start border-none bg-transparent shadow-none px-0" />
+                  <SheetTitle className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] mt-2 text-left">Menu Navigation</SheetTitle>
                 </SheetHeader>
                 <div className="p-6 space-y-2">
                   {menuItems.map((item) => (
@@ -262,8 +262,8 @@ export function LocationHeader({
                     </button>
                   </div>
                 </div>
-                <div className="absolute bottom-8 left-0 right-0 px-8">
-                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center">ShopyKart v1.0.2 Premium</p>
+                <div className="absolute bottom-8 left-0 right-0 px-8 text-center">
+                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">ShopyKart v1.0.2 Premium</p>
                 </div>
               </SheetContent>
             </Sheet>
