@@ -8,6 +8,7 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
+import { PersonalizedOffers } from '@/components/home/PersonalizedOffers';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,16 +20,16 @@ export default function Home() {
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
       {!searchQuery && (
-        <div className="mt-0 space-y-6">
+        <div className="mt-6 space-y-6">
           <OfferSlider />
-          
+          <PersonalizedOffers />
           <ComboSection />
           <OffersSection />
         </div>
       )}
 
       {/* Category Selection */}
-      <div className="bg-white my-8 py-2 rounded-[3rem] mx-2 shadow-sm border border-border/40">
+      <div className="bg-white my-8 py-2 rounded-[3rem] mx-4 shadow-sm border border-border/40">
         <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
       </div>
 

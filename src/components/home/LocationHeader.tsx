@@ -157,8 +157,8 @@ export function LocationHeader({
   ];
 
   return (
-    <div className="w-full">
-      <div className="bg-[#0B0B0B] px-4 py-8 flex flex-col gap-8 rounded-none shadow-2xl border-b border-white/5">
+    <div className="w-full px-4 pt-6">
+      <div className="bg-[#0B0B0B] p-6 flex flex-col gap-6 rounded-[2.5rem] shadow-2xl border border-white/5">
         <div className="flex items-center justify-between gap-2">
           <Logo className="flex-shrink-0" />
 
@@ -276,7 +276,7 @@ export function LocationHeader({
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search favorites..."
-              className="h-14 bg-[#1A1A1A] border-none rounded-none pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+              className="h-14 bg-[#1A1A1A] border-none rounded-2xl pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-white'}`}>
