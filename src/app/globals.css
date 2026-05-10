@@ -77,7 +77,7 @@
 }
 
 .premium-card:hover {
-  @apply shadow-[0_25px_50px_rgba(197,160,33,0.15)] -translate-y-1.5 border-[#C5A021];
+  @apply shadow-[0_25px_50px_rgba(220,38,38,0.12)] -translate-y-1.5 border-primary;
 }
 
 .premium-card:active {
