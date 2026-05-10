@@ -1,6 +1,6 @@
-
 "use client"
 
+import { useState } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { SearchBar } from '@/components/home/SearchBar';
@@ -11,28 +11,35 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('');
+
   return (
     <div className="min-h-screen bg-[#fafafa] pb-24">
       {/* Top Header */}
       <LocationHeader />
       
       {/* Search Bar */}
-      <SearchBar />
+      <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-      {/* Hero Offer Banner */}
-      <OfferSlider />
+      {/* Only show Hero content if not searching */}
+      {!searchQuery ? (
+        <>
+          {/* Hero Offer Banner */}
+          <OfferSlider />
 
-      {/* Combos Section */}
-      <ComboSection />
+          {/* Combos Section */}
+          <ComboSection />
 
-      {/* Offers & Coupons Section */}
-      <OffersSection />
+          {/* Offers & Coupons Section */}
+          <OffersSection />
+        </>
+      ) : null}
 
       {/* Categories Horizontal Scroll */}
       <CategoryList />
 
-      {/* Popular Products Vertical List */}
-      <PopularProducts />
+      {/* Popular Products Vertical List - Filtered by search */}
+      <PopularProducts searchQuery={searchQuery} />
 
       {/* Bottom Navigation */}
       <BottomNav />

@@ -1,6 +1,6 @@
-
 "use client"
 
+import { useState } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { SearchBar } from '@/components/home/SearchBar';
 import { CategoryList } from '@/components/home/CategoryList';
@@ -8,6 +8,8 @@ import { ProductCard } from '@/components/shared/ProductCard';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function MenuPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const allProducts = [
     { id: 'p1', name: 'Cheese Loaded Fries', price: 199.00, imageId: 'prod-fries', isVeg: true, category: 'fries' },
     { id: 'p2', name: 'Chilli Attack Pasta', price: 249.00, imageId: 'prod-pasta-red', isVeg: true, category: 'pasta' },
@@ -19,6 +21,11 @@ export default function MenuPage() {
     { id: 'p8', name: 'Peri Peri Fries', price: 179.00, imageId: 'prod-fries', isVeg: true, category: 'fries' },
   ];
 
+  const filteredProducts = allProducts.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-12 pb-4">
@@ -27,24 +34,30 @@ export default function MenuPage() {
         <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-2">ShopyKart Premium Catalog</p>
       </div>
       
-      <SearchBar />
+      <SearchBar value={searchQuery} onChange={setSearchQuery} />
       <CategoryList />
 
       <div className="px-4 mt-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {allProducts.map((p) => {
-            const img = PlaceHolderImages.find(pi => pi.id === p.imageId);
-            return (
-              <ProductCard 
-                key={p.id}
-                id={p.id}
-                name={p.name}
-                price={p.price}
-                isVeg={p.isVeg}
-                imageUrl={img?.imageUrl || "https://picsum.photos/400/300"}
-              />
-            );
-          })}
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((p) => {
+              const img = PlaceHolderImages.find(pi => pi.id === p.imageId);
+              return (
+                <ProductCard 
+                  key={p.id}
+                  id={p.id}
+                  name={p.name}
+                  price={p.price}
+                  isVeg={p.isVeg}
+                  imageUrl={img?.imageUrl || "https://picsum.photos/400/300"}
+                />
+              );
+            })
+          ) : (
+            <div className="col-span-full text-center py-20">
+              <p className="text-muted-foreground">No products found matching "{searchQuery}"</p>
+            </div>
+          )}
         </div>
       </div>
 

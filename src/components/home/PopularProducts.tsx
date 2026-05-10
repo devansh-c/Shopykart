@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Zap } from 'lucide-react';
@@ -13,6 +12,7 @@ const popularProducts = [
     price: 199.00,
     imageId: 'prod-fries',
     isVeg: true,
+    category: 'fries',
     description: 'Crispy golden fries smothered in our secret triple-cheese blend.'
   },
   {
@@ -21,6 +21,7 @@ const popularProducts = [
     price: 249.00,
     imageId: 'prod-pasta-red',
     isVeg: true,
+    category: 'pasta',
     description: 'Spicy red sauce penne with bird eye chillies and bell peppers.'
   },
   {
@@ -29,6 +30,7 @@ const popularProducts = [
     price: 219.00,
     imageId: 'prod-pasta-white',
     isVeg: true,
+    category: 'pasta',
     description: 'Classic creamy white sauce pasta with Italian herbs and garlic.'
   },
   {
@@ -37,6 +39,7 @@ const popularProducts = [
     price: 149.00,
     imageId: 'prod-burger-classic',
     isVeg: true,
+    category: 'burgers',
     description: 'Juicy vegetable patty with lettuce, tomatoes, and house mayo.'
   },
   {
@@ -45,6 +48,7 @@ const popularProducts = [
     price: 399.00,
     imageId: 'prod-pizza-margherita',
     isVeg: true,
+    category: 'pizza',
     description: 'A thin-crust delight with extra mozzarella and fresh basil.'
   },
   {
@@ -53,12 +57,22 @@ const popularProducts = [
     price: 129.00,
     imageId: 'prod-drink-mojito',
     isVeg: true,
+    category: 'drinks',
     description: 'Refreshing lime and mint cooler served over crushed ice.'
   }
 ];
 
-export function PopularProducts() {
+type PopularProductsProps = {
+  searchQuery?: string;
+};
+
+export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
   const { addToCart } = useCart();
+
+  const filteredProducts = popularProducts.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="px-4 py-6">
@@ -73,46 +87,52 @@ export function PopularProducts() {
       </div>
 
       <div className="space-y-4">
-        {popularProducts.map((product) => {
-          const img = PlaceHolderImages.find(p => p.id === product.imageId);
-          const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map((product) => {
+            const img = PlaceHolderImages.find(p => p.id === product.imageId);
+            const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
 
-          return (
-            <div 
-              key={product.id}
-              className="premium-card bg-white p-4 flex justify-between items-center group active:scale-[0.99] transition-all"
-            >
-              <div className="flex-1 pr-4">
-                <div className="mb-2">
-                  <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                    <div className="h-full w-full bg-green-600 rounded-full" />
+            return (
+              <div 
+                key={product.id}
+                className="premium-card bg-white p-4 flex justify-between items-center group active:scale-[0.99] transition-all"
+              >
+                <div className="flex-1 pr-4">
+                  <div className="mb-2">
+                    <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                      <div className="h-full w-full bg-green-600 rounded-full" />
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-base leading-tight mb-1">{product.name}</h3>
+                  <p className="text-[10px] text-muted-foreground mb-3 line-clamp-1 italic">{product.description}</p>
+                  <div className="text-lg font-black italic">₹{product.price.toFixed(2)}</div>
+                </div>
+                
+                <div className="relative w-28 h-28 flex-shrink-0">
+                  <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm">
+                    <img 
+                      src={imageUrl} 
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
+                    <Button 
+                      onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
+                      className="w-full h-8 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-black text-[10px] rounded-lg shadow-md transition-colors"
+                    >
+                      ADD +
+                    </Button>
                   </div>
                 </div>
-                <h3 className="font-bold text-base leading-tight mb-1">{product.name}</h3>
-                <p className="text-[10px] text-muted-foreground mb-3 line-clamp-1 italic">{product.description}</p>
-                <div className="text-lg font-black italic">₹{product.price.toFixed(2)}</div>
               </div>
-              
-              <div className="relative w-28 h-28 flex-shrink-0">
-                <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm">
-                  <img 
-                    src={imageUrl} 
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
-                  <Button 
-                    onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
-                    className="w-full h-8 bg-white text-primary border border-primary hover:bg-primary hover:text-white font-black text-[10px] rounded-lg shadow-md transition-colors"
-                  >
-                    ADD +
-                  </Button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div className="text-center py-10">
+            <p className="text-muted-foreground text-sm font-medium">No products found matching "{searchQuery}"</p>
+          </div>
+        )}
       </div>
     </div>
   );
