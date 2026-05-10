@@ -33,23 +33,26 @@ export function SplashScreen() {
       )}
     >
       <div className="relative flex flex-col items-center">
-        <div className="absolute inset-0 bg-primary/20 blur-[100px] animate-pulse rounded-full" />
+        {/* Golden Glow */}
+        <div className="absolute inset-0 bg-[#C5A021]/15 blur-[120px] animate-pulse rounded-full" />
         
         <div className={cn(
-          "transition-all duration-1000 transform",
+          "transition-all duration-1000 transform flex flex-col items-center",
           isVisible ? "scale-100 opacity-100" : "scale-110 opacity-0"
         )}>
-          <h1 className="text-white font-black italic text-6xl tracking-tighter text-center">
-            SHOPYKART <span className="text-primary">EATS</span>
-          </h1>
-          <p className="text-center mt-4 text-[10px] text-white/40 font-bold uppercase tracking-[0.5em]">
+          <div className="px-10 py-4 border-2 border-[#C5A021]/30 rounded-[2.5rem] bg-black/40 backdrop-blur-md shadow-[0_0_50px_rgba(197,160,33,0.15)]">
+            <h1 className="text-white font-black italic text-5xl tracking-tighter text-center">
+              SHOPYKART <span className="text-primary">EATS</span>
+            </h1>
+          </div>
+          <p className="text-center mt-6 text-[10px] text-[#C5A021] font-black uppercase tracking-[0.5em] opacity-80">
             Premium Food Delivery
           </p>
         </div>
       </div>
 
-      <div className="absolute bottom-20 w-48 h-[1px] bg-white/10 overflow-hidden">
-        <div className="h-full bg-primary animate-[shimmer_2s_infinite] w-full" />
+      <div className="absolute bottom-20 w-48 h-[1px] bg-white/5 overflow-hidden">
+        <div className="h-full bg-[#C5A021] animate-[shimmer_2s_infinite] w-full" />
       </div>
     </div>
   );
