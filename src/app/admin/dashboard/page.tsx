@@ -3,10 +3,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  LayoutDashboard, 
+  Store, 
+  Bike, 
+  Rocket, 
+  Layers, 
+  ShoppingBag, 
+  Users, 
+  LineChart, 
+  Percent, 
+  Feather, 
+  Zap, 
+  Settings,
+  LogOut,
+  ChevronRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, LayoutDashboard, Package, Tag, LogOut, TrendingUp, Users, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 // Admin Sub-components
 import { AdminOverview } from '@/components/admin/AdminOverview';
@@ -14,10 +29,26 @@ import { ProductManagement } from '@/components/admin/ProductManagement';
 import { BannerManagement } from '@/components/admin/BannerManagement';
 import { OrderManagement } from '@/components/admin/OrderManagement';
 
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'stores', label: 'Stores', icon: Store },
+  { id: 'fleet', label: 'Delivery Fleet', icon: Bike },
+  { id: 'mission', label: 'Mission Control', icon: Rocket },
+  { id: 'catalog', label: 'Catalog', icon: Layers },
+  { id: 'orders', label: 'Orders', icon: ShoppingBag },
+  { id: 'customers', label: 'Customers', icon: Users },
+  { id: 'reports', label: 'Reports', icon: LineChart },
+  { id: 'discounts', label: 'Discounts', icon: Percent },
+  { id: 'design', label: 'Design', icon: Feather },
+  { id: 'plugins', label: 'Plugins', icon: Zap },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
@@ -36,62 +67,91 @@ export default function AdminDashboard() {
 
   if (!isAuthorized) return null;
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <AdminOverview />;
+      case 'catalog':
+        return <ProductManagement />;
+      case 'design':
+        return <BannerManagement />;
+      case 'orders':
+        return <OrderManagement />;
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-muted-foreground/20">
+            <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mb-4">
+              {menuItems.find(i => i.id === activeTab)?.icon({ className: "h-8 w-8 text-muted-foreground" })}
+            </div>
+            <h3 className="text-xl font-black italic uppercase">Module Coming Soon</h3>
+            <p className="text-muted-foreground text-sm font-medium">The {menuItems.find(i => i.id === activeTab)?.label} section is under development.</p>
+          </div>
+        );
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      {/* Sidebar/Header */}
-      <header className="bg-white border-b border-border/50 sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+    <div className="min-h-screen bg-[#F9FAFB] flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-border/50 flex flex-col sticky top-0 h-screen overflow-y-auto no-scrollbar">
+        <div className="p-6 flex items-center space-x-3 border-b border-border/30">
           <div className="bg-primary p-2 rounded-xl text-white">
-            <LayoutDashboard className="h-6 w-6" />
+            <LayoutDashboard className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-black italic">ADMIN PANEL</h1>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">ShopyKart Control Center</p>
+            <h1 className="text-lg font-black italic leading-none">SHOPYKART</h1>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Admin Panel</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-red-500 font-bold">
-          <LogOut className="h-4 w-4 mr-2" />
-          EXIT
-        </Button>
-      </header>
 
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-white border p-1 rounded-2xl h-auto flex-wrap sm:flex-nowrap justify-start">
-            <TabsTrigger value="overview" className="rounded-xl font-bold px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="products" className="rounded-xl font-bold px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Package className="h-4 w-4 mr-2" />
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="banners" className="rounded-xl font-bold px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Tag className="h-4 w-4 mr-2" />
-              Banners
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="rounded-xl font-bold px-4 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white">
-              <ShoppingBag className="h-4 w-4 mr-2" />
-              Orders
-            </TabsTrigger>
-          </TabsList>
+        <nav className="flex-1 px-4 py-6 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                  isActive 
+                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                <div className="flex items-center space-x-3">
+                  <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
+                  <span className="text-sm font-bold">{item.label}</span>
+                </div>
+                {isActive && <ChevronRight className="h-4 w-4" />}
+              </button>
+            );
+          })}
+        </nav>
 
-          <TabsContent value="overview" className="focus-visible:outline-none">
-            <AdminOverview />
-          </TabsContent>
+        <div className="p-4 border-t border-border/30">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleSignOut} 
+            className="w-full justify-start text-red-500 font-bold hover:bg-red-50 hover:text-red-600 rounded-xl"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            EXIT PANEL
+          </Button>
+        </div>
+      </aside>
 
-          <TabsContent value="products" className="focus-visible:outline-none">
-            <ProductManagement />
-          </TabsContent>
+      {/* Main Content */}
+      <main className="flex-1 p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+        <header className="mb-8">
+          <h2 className="text-3xl font-black italic uppercase">
+            {menuItems.find(i => i.id === activeTab)?.label}
+          </h2>
+          <p className="text-muted-foreground text-sm font-medium">Manage and monitor your business operations here.</p>
+        </header>
 
-          <TabsContent value="banners" className="focus-visible:outline-none">
-            <BannerManagement />
-          </TabsContent>
-
-          <TabsContent value="orders" className="focus-visible:outline-none">
-            <OrderManagement />
-          </TabsContent>
-        </Tabs>
+        {renderContent()}
       </main>
     </div>
   );
