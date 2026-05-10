@@ -57,7 +57,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                 {/* Wishlist Button */}
                 <button 
                   onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-4 left-4 z-10 p-2.5 rounded-full bg-white/90 shadow-xl backdrop-blur-sm active:scale-75 transition-all"
+                  className="absolute top-4 left-4 z-10 p-2.5 rounded-full bg-white/90 shadow-xl backdrop-blur-sm active:scale-75 transition-all hover:bg-white hover:text-primary"
                 >
                   <Heart className={cn("h-4 w-4 transition-colors", liked ? "fill-primary text-primary" : "text-gray-300")} />
                 </button>
@@ -92,7 +92,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     {quantity === 0 ? (
                       <button 
                         onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-11 bg-white text-primary border-2 border-primary shadow-[0_10px_20px_rgba(220,38,38,0.15)] font-black text-[10px] uppercase tracking-widest rounded-2xl active:scale-95 transition-all"
+                        className="w-full h-11 bg-white text-primary border-2 border-primary shadow-[0_10px_20px_rgba(220,38,38,0.15)] font-black text-[10px] uppercase tracking-widest rounded-2xl active:scale-95 hover:bg-primary hover:text-white transition-all"
                       >
                         ADD TO BAG
                       </button>
