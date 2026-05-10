@@ -50,7 +50,7 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-40">
       <div className="px-6 pt-12 pb-4">
-        <h1 className="text-4xl font-bold text-foreground">Menu</h1>
+        <h1 className="text-4xl font-black italic uppercase tracking-tighter">Menu</h1>
       </div>
       
       <div className="px-6 mb-6">
@@ -60,7 +60,7 @@ export default function MenuPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder='Search menu...' 
-            className="pl-12 h-14 bg-[#F0F0F0] border-none rounded-2xl text-lg focus-visible:ring-0"
+            className="pl-12 h-14 bg-white border-none rounded-2xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
           />
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function MenuPage() {
             >
               <div className={cn(
                 "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
-                isActive ? "border-transparent" : "border-transparent bg-white shadow-sm"
+                isActive ? "border-primary scale-110 shadow-lg" : "border-transparent bg-white shadow-sm"
               )}>
                 <img
                   src={img?.imageUrl || "https://picsum.photos/seed/cat/100/100"}
@@ -92,14 +92,11 @@ export default function MenuPage() {
                 )}
               </div>
               <span className={cn(
-                "text-sm font-bold transition-colors",
-                isActive ? "text-foreground" : "text-muted-foreground"
+                "text-[10px] font-black uppercase tracking-widest transition-colors",
+                isActive ? "text-primary" : "text-muted-foreground"
               )}>
                 {cat.name}
               </span>
-              {isActive && (
-                <div className="absolute -bottom-1 w-6 h-1 bg-primary rounded-full" />
-              )}
             </button>
           );
         })}
@@ -116,7 +113,7 @@ export default function MenuPage() {
             return (
               <div 
                 key={product.id}
-                className="bg-white rounded-[2rem] p-5 flex justify-between items-center shadow-sm border border-black/5 active:bg-muted/10 transition-colors"
+                className="premium-card p-5 flex justify-between items-center"
               >
                 <Link href={`/product/${product.id}`} className="flex-1 pr-4">
                   <div className="mb-2">
@@ -124,8 +121,8 @@ export default function MenuPage() {
                       <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg leading-tight mb-2 text-foreground">{product.name}</h3>
-                  <div className="text-xl font-bold">₹{product.price.toFixed(2)}</div>
+                  <h3 className="font-black text-xl italic tracking-tight leading-tight mb-2 text-foreground">{product.name}</h3>
+                  <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{product.price.toFixed(2)}</div>
                 </Link>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
@@ -141,9 +138,9 @@ export default function MenuPage() {
                     {quantity === 0 ? (
                       <button 
                         onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
-                        className="w-full h-10 bg-white text-primary border border-primary/20 shadow-lg font-bold text-xs rounded-xl active:scale-95 transition-all"
+                        className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all"
                       >
-                        ADD +
+                        ADD TO BAG
                       </button>
                     ) : (
                       <div className="flex items-center justify-between w-full h-10 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
@@ -153,7 +150,7 @@ export default function MenuPage() {
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="text-xs font-bold min-w-[20px] text-center">{quantity}</span>
+                        <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
                         <button 
                           onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
                           className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
@@ -168,8 +165,8 @@ export default function MenuPage() {
             );
           })
         ) : (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">No products found.</p>
+          <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed">
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No matches found</p>
           </div>
         )}
       </div>

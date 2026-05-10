@@ -73,11 +73,11 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border border-border/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
+  @apply bg-white rounded-[2rem] border-[1.5px] border-[#C5A021]/30 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
 }
 
 .premium-card:hover {
-  @apply shadow-[0_25px_50px_rgba(0,0,0,0.1)] -translate-y-1.5 border-primary/20;
+  @apply shadow-[0_25px_50px_rgba(197,160,33,0.15)] -translate-y-1.5 border-[#C5A021];
 }
 
 .premium-card:active {
