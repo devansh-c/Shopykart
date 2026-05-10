@@ -24,7 +24,7 @@ export function OfferSlider() {
             const img = PlaceHolderImages.find(p => p.id === banner.imageId);
             return (
               <CarouselItem key={banner.id}>
-                <div className="relative h-[210px] rounded-[2.5rem] overflow-hidden shadow-md">
+                <div className="relative h-[210px] rounded-3xl overflow-hidden shadow-md">
                   <Image
                     src={img?.imageUrl || "https://picsum.photos/seed/default/800/400"}
                     alt={banner.title}

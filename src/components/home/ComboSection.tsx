@@ -45,7 +45,7 @@ export function ComboSection() {
           return (
             <div 
               key={combo.id} 
-              className="min-w-[210px] max-w-[210px] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-border/40 pb-4"
+              className="min-w-[210px] max-w-[210px] bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 pb-4"
             >
               <div className="relative h-36 w-full">
                 <img 

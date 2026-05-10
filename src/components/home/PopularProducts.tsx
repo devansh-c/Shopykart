@@ -96,7 +96,7 @@ export function PopularProducts({ searchQuery = '' }: PopularProductsProps) {
             return (
               <div 
                 key={product.id}
-                className="bg-white rounded-[2rem] p-4 flex justify-between items-center group active:scale-[0.99] transition-all shadow-sm border border-border/40"
+                className="bg-white rounded-2xl p-4 flex justify-between items-center group active:scale-[0.99] transition-all shadow-sm border border-border/40"
               >
                 <div className="flex-1 pr-4">
                   <div className="mb-2">

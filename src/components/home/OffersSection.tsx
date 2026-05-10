@@ -46,7 +46,7 @@ export function OffersSection() {
         {coupons.map((coupon) => (
           <div 
             key={coupon.id}
-            className={`min-w-[280px] h-32 rounded-[2rem] bg-gradient-to-r ${coupon.gradient} p-5 flex text-white shadow-md relative overflow-hidden`}
+            className={`min-w-[280px] h-32 rounded-2xl bg-gradient-to-r ${coupon.gradient} p-5 flex text-white shadow-md relative overflow-hidden`}
           >
             <div className="flex-1 flex flex-col justify-between relative z-10">
               <div>
