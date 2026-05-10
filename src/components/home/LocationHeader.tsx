@@ -158,14 +158,14 @@ export function LocationHeader({
 
   return (
     <div className="sticky top-0 z-50 px-4 pt-4">
-      <div className="bg-[#0B0B0B] px-4 py-5 flex flex-col gap-5 rounded-[2.5rem] shadow-2xl border border-white/5">
-        <div className="flex items-center justify-between gap-3">
+      <div className="bg-[#0B0B0B] px-4 py-6 flex flex-col gap-6 rounded-[2.5rem] shadow-2xl border border-white/5">
+        <div className="flex items-center justify-between gap-2">
           <Logo className="flex-shrink-0" />
 
           <div className="flex items-center gap-2">
             <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
               <DialogTrigger asChild>
-                <button className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
+                <button className="h-11 w-11 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
                   <PlusCircle className="h-5 w-5" />
                 </button>
               </DialogTrigger>
@@ -201,18 +201,18 @@ export function LocationHeader({
             </Dialog>
 
             <Link href="/wishlist">
-              <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+              <div className="h-11 w-11 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
                 <Heart className="h-5 w-5" />
               </div>
             </Link>
 
             <Link href="/cart">
               <div className="relative">
-                <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+                <div className="h-11 w-11 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 {totalItems > 0 && (
-                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-in zoom-in">
+                  <div className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-in zoom-in">
                     <span className="text-[10px] font-black text-primary-foreground">
                       {totalItems}
                     </span>
@@ -223,7 +223,7 @@ export function LocationHeader({
 
             <Sheet>
               <SheetTrigger asChild>
-                <button className="h-10 w-10 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
+                <button className="h-11 w-11 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
                   <Menu className="h-5 w-5 text-white" />
                 </button>
               </SheetTrigger>
@@ -276,7 +276,7 @@ export function LocationHeader({
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search favorites..."
-              className="h-12 bg-[#1A1A1A] border-none rounded-2xl pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+              className="h-14 bg-[#1A1A1A] border-none rounded-[1.2rem] pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-white'}`}>

@@ -23,15 +23,15 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-transform px-5 py-2 border border-[#C5A021]/40 rounded-2xl bg-black/40 backdrop-blur-md shadow-[0_0_20px_rgba(197,160,33,0.15)]", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-transform px-4 py-2 border border-[#C5A021]/30 rounded-[1.8rem] bg-black/40 backdrop-blur-md shadow-[0_0_20px_rgba(197,160,33,0.1)]", 
         className
       )}
     >
-      <h1 className="flex items-center text-xl font-black italic tracking-tighter leading-none">
+      <h1 className="flex items-center text-lg font-black italic tracking-tighter leading-none">
         <span className="text-white">SHOPY</span>
         <span className="text-[#C5A021]">KART</span>
       </h1>
-      <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/50 mt-1">
+      <span className="text-[7px] font-black uppercase tracking-[0.25em] text-white/40 mt-1.5">
         QUALITY FIRST
       </span>
     </div>
