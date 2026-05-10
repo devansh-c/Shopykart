@@ -50,6 +50,12 @@
       "imageHint": "french fries"
     },
     {
+      "id": "category-drinks",
+      "description": "Beverages category",
+      "imageUrl": "https://picsum.photos/seed/cat-5/100/100",
+      "imageHint": "cold drink"
+    },
+    {
       "id": "prod-fries",
       "description": "Cheese loaded French fries",
       "imageUrl": "https://picsum.photos/seed/fries1/300/300",
@@ -66,6 +72,24 @@
       "description": "Penne Arrabiata (White Sauce) Pasta",
       "imageUrl": "https://picsum.photos/seed/pasta2/300/300",
       "imageHint": "white pasta"
+    },
+    {
+      "id": "prod-burger-classic",
+      "description": "Classic Veggie Burger",
+      "imageUrl": "https://picsum.photos/seed/burg1/300/300",
+      "imageHint": "veg burger"
+    },
+    {
+      "id": "prod-pizza-margherita",
+      "description": "Double Cheese Margherita",
+      "imageUrl": "https://picsum.photos/seed/piz1/300/300",
+      "imageHint": "margherita pizza"
+    },
+    {
+      "id": "prod-drink-mojito",
+      "description": "Fresh Mint Virgin Mojito",
+      "imageUrl": "https://picsum.photos/seed/drink1/300/300",
+      "imageHint": "virgin mojito"
     }
   ]
 }

@@ -11,7 +11,8 @@ const categories = [
   { id: 'pizza', name: 'Pizza', imageId: 'category-pizza', badge: '🍕' },
   { id: 'burgers', name: 'Burgers', imageId: 'category-burger', badge: '🍔' },
   { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },
-  { id: 'fries', name: 'French Fries', imageId: 'category-fries', badge: '🍟' },
+  { id: 'fries', name: 'Fries', imageId: 'category-fries', badge: '🍟' },
+  { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
 ];
 
 export function CategoryList() {
@@ -20,7 +21,7 @@ export function CategoryList() {
   return (
     <div className="py-4">
       <div className="flex items-center justify-between px-4 mb-4">
-        <h2 className="text-xl font-black">Categories</h2>
+        <h2 className="text-xl font-black">Collections</h2>
         <button className="text-primary text-xs font-bold">See all</button>
       </div>
       <div className="flex overflow-x-auto space-x-6 px-4 no-scrollbar">
@@ -35,7 +36,7 @@ export function CategoryList() {
               className="flex flex-col items-center space-y-2 min-w-[70px] relative group"
             >
               <div className={cn(
-                "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
+                "relative h-14 w-14 rounded-full overflow-hidden border-2 transition-all duration-300",
                 isActive ? "border-primary ring-2 ring-primary/20" : "border-transparent bg-muted/30"
               )}>
                 <Image
@@ -51,13 +52,13 @@ export function CategoryList() {
                 )}
               </div>
               <span className={cn(
-                "text-xs font-bold transition-colors",
+                "text-[10px] font-bold transition-colors uppercase tracking-tight",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}>
                 {cat.name}
               </span>
               {isActive && (
-                <div className="h-1 w-6 bg-primary rounded-full mt-1" />
+                <div className="h-0.5 w-4 bg-primary rounded-full mt-0.5" />
               )}
             </button>
           );
