@@ -35,7 +35,7 @@ const offerSuggestionPrompt = ai.definePrompt({
   name: 'personalizedOfferSuggestionPrompt',
   input: { schema: PersonalizedOfferSuggestionsInputSchema },
   output: { schema: PersonalizedOfferSuggestionsOutputSchema },
-  prompt: `You are an AI assistant for a food delivery app called FeastFlow. Your task is to generate personalized food offers and promotions for a user based on their past orders and browsing history. The offers should be appealing, relevant, and in line with typical food delivery promotions. Ensure the output is a JSON object matching the provided schema.
+  prompt: `You are an AI assistant for a food delivery app called ShopyKart. Your task is to generate personalized food offers and promotions for a user based on their past orders and browsing history. The offers should be appealing, relevant, and in line with typical food delivery promotions. Ensure the output is a JSON object matching the provided schema.
 
 User ID: {{{userId}}}
 Past Orders Summary: {{{pastOrdersSummary}}}

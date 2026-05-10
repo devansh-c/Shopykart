@@ -29,9 +29,9 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-12 pb-4">
-        <h1 className="text-4xl font-black text-primary italic leading-none">The Full</h1>
-        <h1 className="text-4xl font-black italic leading-none">Collection</h1>
-        <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-2">ShopyKart Premium Catalog</p>
+        <h1 className="text-4xl font-black text-primary italic leading-none">ShopyKart</h1>
+        <h1 className="text-4xl font-black italic leading-none">Catalog</h1>
+        <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-2">Premium Collection</p>
       </div>
       
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
