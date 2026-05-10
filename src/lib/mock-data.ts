@@ -2,62 +2,72 @@
 export const allProducts = [
   { 
     id: 'p1', 
-    name: 'Cheese loaded French fries', 
-    price: 199.00, 
-    imageId: 'prod-fries', 
-    isVeg: true, 
-    category: 'fries',
-    restaurantName: 'The Fry Co.',
-    description: 'Crispy golden fries smothered in our secret triple-cheese blend.'
-  },
-  { 
-    id: 'p2', 
-    name: 'Chilli Attack Pasta', 
-    price: 249.00, 
-    imageId: 'prod-pasta-red', 
-    isVeg: true, 
-    category: 'pasta',
-    restaurantName: 'Pasta Paradise',
-    description: 'Spicy red sauce penne with bird eye chillies and bell peppers.'
-  },
-  { 
-    id: 'p3', 
-    name: 'Penne Arrabiata (White Sauce) Pasta', 
-    price: 219.00, 
-    imageId: 'prod-pasta-white', 
-    isVeg: true, 
-    category: 'pasta',
-    restaurantName: 'Pasta Paradise',
-    description: 'Classic creamy white sauce pasta with Italian herbs and garlic.'
-  },
-  { 
-    id: 'p4', 
-    name: 'Classic Veggie Burger', 
-    price: 149.00, 
+    name: 'ShopyKart Signature Burger', 
+    price: 299.00, 
     imageId: 'prod-burger-classic', 
     isVeg: true, 
     category: 'burgers',
-    restaurantName: 'Bun Burst',
-    description: 'Juicy vegetable patty with lettuce, tomatoes, and house mayo.'
+    restaurantName: 'ShopyKart Eats',
+    description: 'Our award-winning veggie patty layered with molten cheddar, caramelized onions, and our secret Shopy sauce.'
   },
   { 
-    id: 'p5', 
-    name: 'Double Cheese Margherita', 
-    price: 399.00, 
+    id: 'p2', 
+    name: 'Loaded Peri-Peri Fries', 
+    price: 189.00, 
+    imageId: 'prod-fries', 
+    isVeg: true, 
+    category: 'fries',
+    restaurantName: 'ShopyKart Eats',
+    description: 'Golden crispy fries tossed in hot peri-peri seasoning and drizzled with cheesy jalapeño sauce.'
+  },
+  { 
+    id: 'p3', 
+    name: 'Pink Sauce Penne Pasta', 
+    price: 349.00, 
+    imageId: 'prod-pasta-red', 
+    isVeg: true, 
+    category: 'pasta',
+    restaurantName: 'ShopyKart Eats',
+    description: 'A perfect blend of creamy white and tangy red sauce, tossed with exotic vegetables and Italian herbs.'
+  },
+  { 
+    id: 'p4', 
+    name: 'Exotic Paneer Tikka Pizza', 
+    price: 499.00, 
     imageId: 'prod-pizza-margherita', 
     isVeg: true, 
     category: 'pizza',
-    restaurantName: 'Pizza Point',
-    description: 'A thin-crust delight with extra mozzarella and fresh basil.'
+    restaurantName: 'ShopyKart Eats',
+    description: 'Hand-stretched dough topped with smoky paneer tikka, bell peppers, and 100% mozzarella cheese.'
+  },
+  { 
+    id: 'p5', 
+    name: 'Penne White Truffle Pasta', 
+    price: 319.00, 
+    imageId: 'prod-pasta-white', 
+    isVeg: true, 
+    category: 'pasta',
+    restaurantName: 'ShopyKart Eats',
+    description: 'Rich and creamy penne pasta infused with white truffle oil and topped with fresh parmesan flakes.'
   },
   { 
     id: 'p6', 
-    name: 'Virgin Mojito', 
-    price: 129.00, 
+    name: 'Virgin Mojito Crush', 
+    price: 149.00, 
     imageId: 'prod-drink-mojito', 
     isVeg: true, 
     category: 'drinks',
-    restaurantName: 'Liquid Lounge',
-    description: 'Refreshing lime and mint cooler served over crushed ice.'
+    restaurantName: 'ShopyKart Eats',
+    description: 'A refreshing mix of fresh mint leaves, zesty lime, and sparkling soda served chilled over crushed ice.'
   },
+  { 
+    id: 'p7', 
+    name: 'Hazelnut Cold Coffee', 
+    price: 199.00, 
+    imageId: 'category-drinks', 
+    isVeg: true, 
+    category: 'drinks',
+    restaurantName: 'ShopyKart Eats',
+    description: 'Premium Arabica coffee blended with smooth hazelnut syrup and creamy milk for the perfect kick.'
+  }
 ];

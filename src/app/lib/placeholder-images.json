@@ -3,93 +3,87 @@
   "placeholderImages": [
     {
       "id": "hero-burger",
-      "description": "Buy 1 Get 1 Barbeque Burger Banner",
-      "imageUrl": "https://picsum.photos/seed/hero-1/800/400",
-      "imageHint": "burger barbeque"
+      "description": "ShopyKart Signature Selection Banner",
+      "imageUrl": "https://picsum.photos/seed/shopy-hero/800/400",
+      "imageHint": "gourmet burger"
     },
     {
       "id": "starter-combo",
-      "description": "Starter Combo meal with burger and drink",
-      "imageUrl": "https://picsum.photos/seed/combo-1/400/400",
-      "imageHint": "burger combo"
-    },
-    {
-      "id": "couple-combo",
-      "description": "Couple Bite Combo with two burgers and drinks",
-      "imageUrl": "https://picsum.photos/seed/combo-2/400/400",
-      "imageHint": "double burger combo"
+      "description": "ShopyKart Mega Combo",
+      "imageUrl": "https://picsum.photos/seed/shopy-combo/400/400",
+      "imageHint": "food combo"
     },
     {
       "id": "category-all",
-      "description": "All category",
-      "imageUrl": "https://picsum.photos/seed/cat-all/100/100",
-      "imageHint": "cutlery icon"
+      "description": "Full Menu",
+      "imageUrl": "https://picsum.photos/seed/shopy-all/100/100",
+      "imageHint": "restaurant menu"
     },
     {
       "id": "category-pizza",
-      "description": "Pizza category",
-      "imageUrl": "https://picsum.photos/seed/cat-1/100/100",
-      "imageHint": "pizza"
+      "description": "Artisanal Pizzas",
+      "imageUrl": "https://picsum.photos/seed/shopy-piz/100/100",
+      "imageHint": "pizza oven"
     },
     {
       "id": "category-burger",
-      "description": "Burger category",
-      "imageUrl": "https://picsum.photos/seed/cat-2/100/100",
-      "imageHint": "burger"
+      "description": "Premium Burgers",
+      "imageUrl": "https://picsum.photos/seed/shopy-burg/100/100",
+      "imageHint": "burger patty"
     },
     {
       "id": "category-pasta",
-      "description": "Pasta category",
-      "imageUrl": "https://picsum.photos/seed/cat-3/100/100",
-      "imageHint": "pasta"
+      "description": "Italian Pastas",
+      "imageUrl": "https://picsum.photos/seed/shopy-pasta/100/100",
+      "imageHint": "pasta dish"
     },
     {
       "id": "category-fries",
-      "description": "Fries category",
-      "imageUrl": "https://picsum.photos/seed/cat-4/100/100",
+      "description": "Sides & Fries",
+      "imageUrl": "https://picsum.photos/seed/shopy-fries/100/100",
       "imageHint": "french fries"
     },
     {
       "id": "category-drinks",
-      "description": "Beverages category",
-      "imageUrl": "https://picsum.photos/seed/cat-5/100/100",
-      "imageHint": "cold drink"
+      "description": "Coolers & Shakes",
+      "imageUrl": "https://picsum.photos/seed/shopy-drink/100/100",
+      "imageHint": "beverages"
     },
     {
       "id": "prod-fries",
-      "description": "Cheese loaded French fries",
-      "imageUrl": "https://picsum.photos/seed/fries1/300/300",
-      "imageHint": "french fries"
+      "description": "Loaded Peri-Peri Fries",
+      "imageUrl": "https://picsum.photos/seed/shopy-fries-1/300/300",
+      "imageHint": "peri peri fries"
     },
     {
       "id": "prod-pasta-red",
-      "description": "Chilli Attack Pasta",
-      "imageUrl": "https://picsum.photos/seed/pasta1/300/300",
-      "imageHint": "red pasta"
+      "description": "Pink Sauce Pasta",
+      "imageUrl": "https://picsum.photos/seed/shopy-pasta-1/300/300",
+      "imageHint": "red penne pasta"
     },
     {
       "id": "prod-pasta-white",
-      "description": "Penne Arrabiata (White Sauce) Pasta",
-      "imageUrl": "https://picsum.photos/seed/pasta2/300/300",
-      "imageHint": "white pasta"
+      "description": "Truffle White Pasta",
+      "imageUrl": "https://picsum.photos/seed/shopy-pasta-2/300/300",
+      "imageHint": "creamy pasta"
     },
     {
       "id": "prod-burger-classic",
-      "description": "Classic Veggie Burger",
-      "imageUrl": "https://picsum.photos/seed/burg1/300/300",
-      "imageHint": "veg burger"
+      "description": "Signature Burger",
+      "imageUrl": "https://picsum.photos/seed/shopy-burg-1/300/300",
+      "imageHint": "veggie burger"
     },
     {
       "id": "prod-pizza-margherita",
-      "description": "Double Cheese Margherita",
-      "imageUrl": "https://picsum.photos/seed/piz1/300/300",
-      "imageHint": "margherita pizza"
+      "description": "Exotic Paneer Pizza",
+      "imageUrl": "https://picsum.photos/seed/shopy-pizza-1/300/300",
+      "imageHint": "paneer pizza"
     },
     {
       "id": "prod-drink-mojito",
-      "description": "Fresh Mint Virgin Mojito",
-      "imageUrl": "https://picsum.photos/seed/drink1/300/300",
-      "imageHint": "virgin mojito"
+      "description": "Virgin Mojito Crush",
+      "imageUrl": "https://picsum.photos/seed/shopy-mojito/300/300",
+      "imageHint": "mojito drink"
     }
   ]
 }
