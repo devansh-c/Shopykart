@@ -17,14 +17,14 @@ export function OfferSlider() {
   ];
 
   return (
-    <div className="px-4 py-2">
+    <div className="px-4 py-1">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
           {banners.map((banner) => {
             const img = PlaceHolderImages.find(p => p.id === banner.imageId);
             return (
               <CarouselItem key={banner.id}>
-                <div className="relative h-[210px] rounded-3xl overflow-hidden shadow-md">
+                <div className="relative h-[160px] rounded-[2rem] overflow-hidden shadow-sm">
                   <Image
                     src={img?.imageUrl || "https://picsum.photos/seed/default/800/400"}
                     alt={banner.title}
@@ -32,16 +32,16 @@ export function OfferSlider() {
                     className="object-cover"
                     data-ai-hint={img?.imageHint}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6">
-                    <h3 className="text-white text-3xl font-black italic tracking-tighter leading-none mb-1">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
+                    <h3 className="text-white text-2xl font-black italic tracking-tighter leading-none mb-0.5">
                       {banner.title}
                     </h3>
-                    <p className="text-primary font-black text-lg italic tracking-tight mb-4">
+                    <p className="text-primary font-black text-sm italic tracking-tight mb-2">
                       {banner.subtitle}
                     </p>
                     <div className="flex items-center">
-                      <span className="bg-black/60 backdrop-blur-md text-[10px] text-white px-3 py-1 rounded-full border border-white/20 font-bold flex items-center">
-                        <span className="mr-2 h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
+                      <span className="bg-black/60 backdrop-blur-md text-[9px] text-white px-2.5 py-0.5 rounded-full border border-white/20 font-bold flex items-center">
+                        <span className="mr-1.5 h-1 w-1 bg-primary rounded-full animate-pulse" />
                         {banner.tag}
                       </span>
                     </div>
