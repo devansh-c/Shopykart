@@ -3,13 +3,12 @@
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, ChevronLeft } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, ChevronLeft, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
-  const { cart, addToCart, removeFromCart, totalPrice, totalItems } = useCart();
+  const { cart, addToCart, removeFromCart, totalPrice, totalItems, customRequest, removeCustomRequest } = useCart();
   const router = useRouter();
 
   if (totalItems === 0) {
@@ -28,8 +27,13 @@ export default function CartPage() {
     );
   }
 
+  const hasCustomRequest = customRequest.trim().length > 0;
+  const deliveryFee = hasCustomRequest ? 20 : 0;
+  const taxes = totalPrice * 0.05;
+  const grandTotal = totalPrice + deliveryFee + taxes;
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32">
+    <div className="min-h-screen bg-[#F9FAFB] pb-40">
       <div className="bg-white sticky top-0 z-10 border-b border-border/50 px-4 py-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted">
           <ChevronLeft className="h-6 w-6" />
@@ -39,6 +43,7 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Standard Items */}
         {cart.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-border/40 transition-all active:scale-[0.98]">
             <div className="relative h-20 w-20 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
@@ -66,7 +71,7 @@ export default function CartPage() {
             </div>
             <button 
               onClick={() => {
-                // In a real app, logic to remove all of this item
+                // Remove all of this item
                 for(let i=0; i<item.quantity; i++) removeFromCart(item.id);
               }}
               className="text-muted-foreground hover:text-red-500 p-2"
@@ -75,6 +80,35 @@ export default function CartPage() {
             </button>
           </div>
         ))}
+
+        {/* Custom Request Item */}
+        {hasCustomRequest && (
+          <div className="bg-[#0B0B0B] rounded-[2rem] p-5 shadow-xl relative overflow-hidden border border-white/5">
+            <div className="absolute top-0 right-0 p-4">
+              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="h-3 w-3 border border-green-500 rounded-sm flex items-center justify-center p-0.5">
+                    <div className="h-full w-full bg-green-500 rounded-full" />
+                  </div>
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Special Request</span>
+                </div>
+                <h3 className="text-white font-black italic text-lg leading-tight truncate">{customRequest}</h3>
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                  Price to be determined by restaurant
+                </p>
+              </div>
+              <button 
+                onClick={removeCustomRequest}
+                className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-4">
@@ -85,19 +119,28 @@ export default function CartPage() {
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-bold">₹{totalPrice.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm items-center">
               <span className="text-muted-foreground">Delivery Fee</span>
-              <span className="font-bold text-green-600">FREE</span>
+              {hasCustomRequest ? (
+                <span className="font-black text-primary">₹20.00</span>
+              ) : (
+                <span className="font-bold text-green-600">FREE</span>
+              )}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Taxes</span>
-              <span className="font-bold">₹{(totalPrice * 0.05).toFixed(2)}</span>
+              <span className="font-bold">₹{taxes.toFixed(2)}</span>
             </div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-lg font-black uppercase italic">Total</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-black uppercase italic">Total</span>
+              {hasCustomRequest && (
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Includes Custom Handling</span>
+              )}
+            </div>
             <span className="text-2xl font-black text-primary italic tracking-tight">
-              ₹{(totalPrice * 1.05).toFixed(2)}
+              ₹{grandTotal.toFixed(2)}
             </span>
           </div>
         </div>

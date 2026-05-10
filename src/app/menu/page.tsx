@@ -1,15 +1,16 @@
-
 "use client"
 
 import { useState, useMemo } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import { allProducts } from '@/lib/mock-data';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -23,7 +24,9 @@ const categories = [
 export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const { cart, addToCart, removeFromCart } = useCart();
+  const [requestText, setRequestText] = useState('');
+  const { cart, addToCart, removeFromCart, addCustomRequest } = useCart();
+  const { toast } = useToast();
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter(product => {
@@ -34,8 +37,18 @@ export default function MenuPage() {
     });
   }, [searchQuery, activeCategory]);
 
+  const handleCustomRequest = () => {
+    if (!requestText.trim()) return;
+    addCustomRequest(requestText);
+    setRequestText('');
+    toast({
+      title: "Request Sent",
+      description: "Custom Veg dish added to your cart with ₹20 delivery charge.",
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8F8F8] pb-24">
+    <div className="min-h-screen bg-[#F8F8F8] pb-40">
       <div className="px-6 pt-12 pb-4">
         <h1 className="text-4xl font-bold text-foreground">Menu</h1>
       </div>
@@ -159,6 +172,41 @@ export default function MenuPage() {
             <p className="text-muted-foreground">No products found.</p>
           </div>
         )}
+      </div>
+
+      {/* Special Request Section */}
+      <div className="px-6 mt-12 mb-10">
+        <div className="bg-gradient-to-br from-[#0B0B0B] to-[#1A1A1A] rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4">
+            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+          </div>
+          <div className="relative z-10">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">Can't find it?</h2>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-6 leading-relaxed">
+              Tell us your favorite <span className="text-primary italic">Veg Dish</span> & we'll bring it to you!
+            </p>
+            
+            <div className="flex gap-2">
+              <Input 
+                value={requestText}
+                onChange={(e) => setRequestText(e.target.value)}
+                placeholder="Type your veg dish name..." 
+                className="h-14 bg-white/10 border-none rounded-2xl px-6 text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50"
+              />
+              <Button 
+                onClick={handleCustomRequest}
+                disabled={!requestText.trim()}
+                className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center justify-center shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+            <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-4 flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 bg-primary rounded-full" />
+              Note: ₹20 Delivery charge applies for custom requests
+            </p>
+          </div>
+        </div>
       </div>
 
       <BottomNav />
