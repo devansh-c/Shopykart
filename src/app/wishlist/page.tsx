@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -6,16 +7,8 @@ import { Heart, Plus, ShoppingBag, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-// Combined mock products for wishlist lookup
-const allProducts = [
-  { id: 'p1', name: 'Cheese loaded French fries', price: 199.00, imageId: 'prod-fries', category: 'fries' },
-  { id: 'p2', name: 'Chilli Attack Pasta', price: 249.00, imageId: 'prod-pasta-red', category: 'pasta' },
-  { id: 'p3', name: 'Penne Arrabiata Pasta', price: 219.00, imageId: 'prod-pasta-white', category: 'pasta' },
-  { id: 'p4', name: 'Classic Veggie Burger', price: 149.00, imageId: 'prod-burger-classic', category: 'burgers' },
-  { id: 'p5', name: 'Double Cheese Margherita', price: 399.00, imageId: 'prod-pizza-margherita', category: 'pizza' },
-  { id: 'p6', name: 'Virgin Mojito', price: 129.00, imageId: 'prod-drink-mojito', category: 'drinks' },
-];
+import { allProducts } from '@/lib/mock-data';
+import Link from 'next/link';
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
@@ -60,7 +53,9 @@ export default function WishlistPage() {
           return (
             <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300">
               <div className="relative aspect-square">
-                <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" />
+                <Link href={`/product/${product.id}`}>
+                  <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" />
+                </Link>
                 <button 
                   onClick={() => toggleWishlist(product.id)}
                   className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm text-primary"
@@ -69,10 +64,10 @@ export default function WishlistPage() {
                 </button>
               </div>
               <div className="p-3 flex-1 flex flex-col justify-between">
-                <div>
+                <Link href={`/product/${product.id}`}>
                   <h3 className="font-bold text-xs line-clamp-2 min-h-[2rem] leading-tight mb-1">{product.name}</h3>
                   <p className="text-primary font-black text-sm">₹{product.price.toFixed(2)}</p>
-                </div>
+                </Link>
                 <button 
                   onClick={() => addToCart({ ...product, imageUrl })}
                   className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"

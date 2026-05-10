@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from 'react';
@@ -7,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
+import { allProducts } from '@/lib/mock-data';
+import Link from 'next/link';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -15,15 +18,6 @@ const categories = [
   { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },
   { id: 'fries', name: 'Fries', imageId: 'category-fries', badge: '🍟' },
   { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
-];
-
-const allProducts = [
-  { id: 'p1', name: 'Cheese loaded French fries', price: 199.00, imageId: 'prod-fries', isVeg: true, category: 'fries' },
-  { id: 'p2', name: 'Chilli Attack Pasta', price: 249.00, imageId: 'prod-pasta-red', isVeg: true, category: 'pasta' },
-  { id: 'p3', name: 'Penne Arrabiata (White Sauce) Pasta', price: 219.00, imageId: 'prod-pasta-white', isVeg: true, category: 'pasta' },
-  { id: 'p4', name: 'Classic Veggie Burger', price: 149.00, imageId: 'prod-burger-classic', isVeg: true, category: 'burgers' },
-  { id: 'p5', name: 'Double Cheese Margherita', price: 399.00, imageId: 'prod-pizza-margherita', isVeg: true, category: 'pizza' },
-  { id: 'p6', name: 'Virgin Mojito', price: 129.00, imageId: 'prod-drink-mojito', isVeg: true, category: 'drinks' },
 ];
 
 export default function MenuPage() {
@@ -109,9 +103,9 @@ export default function MenuPage() {
             return (
               <div 
                 key={product.id}
-                className="bg-white rounded-[2rem] p-5 flex justify-between items-center shadow-sm border border-black/5"
+                className="bg-white rounded-[2rem] p-5 flex justify-between items-center shadow-sm border border-black/5 active:bg-muted/10 transition-colors"
               >
-                <div className="flex-1 pr-4">
+                <Link href={`/product/${product.id}`} className="flex-1 pr-4">
                   <div className="mb-2">
                     <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                       <div className="h-full w-full bg-green-600 rounded-full" />
@@ -119,17 +113,17 @@ export default function MenuPage() {
                   </div>
                   <h3 className="font-bold text-lg leading-tight mb-2 text-foreground">{product.name}</h3>
                   <div className="text-xl font-bold">₹{product.price.toFixed(2)}</div>
-                </div>
+                </Link>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
-                  <div className="w-full h-full rounded-2xl overflow-hidden bg-muted">
+                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                  </div>
+                  </Link>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
                     {quantity === 0 ? (
                       <button 

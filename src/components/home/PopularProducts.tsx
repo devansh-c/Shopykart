@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo } from 'react';
@@ -5,63 +6,8 @@ import { Zap, Plus, Minus, Heart } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
-
-const popularProducts = [
-  {
-    id: 'p1',
-    name: 'Cheese loaded French fries',
-    price: 199.00,
-    imageId: 'prod-fries',
-    isVeg: true,
-    category: 'fries',
-    description: 'Crispy golden fries smothered in our secret triple-cheese blend.'
-  },
-  {
-    id: 'p2',
-    name: 'Chilli Attack Pasta',
-    price: 249.00,
-    imageId: 'prod-pasta-red',
-    isVeg: true,
-    category: 'pasta',
-    description: 'Spicy red sauce penne with bird eye chillies and bell peppers.'
-  },
-  {
-    id: 'p3',
-    name: 'Penne Arrabiata (White Sauce)',
-    price: 219.00,
-    imageId: 'prod-pasta-white',
-    isVeg: true,
-    category: 'pasta',
-    description: 'Classic creamy white sauce pasta with Italian herbs and garlic.'
-  },
-  {
-    id: 'p4',
-    name: 'Classic Veggie Burger',
-    price: 149.00,
-    imageId: 'prod-burger-classic',
-    isVeg: true,
-    category: 'burgers',
-    description: 'Juicy vegetable patty with lettuce, tomatoes, and house mayo.'
-  },
-  {
-    id: 'p5',
-    name: 'Double Cheese Margherita',
-    price: 399.00,
-    imageId: 'prod-pizza-margherita',
-    isVeg: true,
-    category: 'pizza',
-    description: 'A thin-crust delight with extra mozzarella and fresh basil.'
-  },
-  {
-    id: 'p6',
-    name: 'Virgin Mojito',
-    price: 129.00,
-    imageId: 'prod-drink-mojito',
-    isVeg: true,
-    category: 'drinks',
-    description: 'Refreshing lime and mint cooler served over crushed ice.'
-  }
-];
+import { allProducts } from '@/lib/mock-data';
+import Link from 'next/link';
 
 type PopularProductsProps = {
   searchQuery?: string;
@@ -72,7 +18,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
 
   const filteredProducts = useMemo(() => {
-    return popularProducts.filter(product => {
+    return allProducts.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           product.category.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = category === 'all' || product.category === category;
@@ -89,7 +35,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           </div>
           <h2 className="text-2xl font-black italic tracking-tighter">Trending Now</h2>
         </div>
-        <button className="text-primary text-[11px] font-black uppercase tracking-widest underline underline-offset-4 decoration-2">See Catalog</button>
+        <Link href="/menu" className="text-primary text-[11px] font-black uppercase tracking-widest underline underline-offset-4 decoration-2">See Catalog</Link>
       </div>
 
       <div className="space-y-5">
@@ -113,7 +59,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                   <Heart className={cn("h-4 w-4 transition-colors", liked ? "fill-primary text-primary" : "text-gray-300")} />
                 </button>
 
-                <div className="flex-1 pr-4">
+                <Link href={`/product/${product.id}`} className="flex-1 pr-4">
                   <div className="mb-2">
                     <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                       <div className="h-full w-full bg-green-600 rounded-full" />
@@ -121,17 +67,17 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                   </div>
                   <h3 className="font-bold text-lg leading-tight mb-2 text-foreground">{product.name}</h3>
                   <div className="text-xl font-bold">₹{product.price.toFixed(2)}</div>
-                </div>
+                </Link>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
-                  <div className="w-full h-full rounded-2xl overflow-hidden bg-muted border border-border/20">
+                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted border border-border/20">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       loading="lazy"
                     />
-                  </div>
+                  </Link>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
                     {quantity === 0 ? (
                       <button 
