@@ -9,6 +9,11 @@ import {
   Mic,
   Loader2,
   PlusCircle,
+  User,
+  Package,
+  Gift,
+  ChevronRight,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -25,8 +30,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'next/navigation';
 
 type LocationHeaderProps = {
   searchValue: string;
@@ -44,6 +57,7 @@ export function LocationHeader({
   const [customReqOpen, setCustomReqOpen] = useState(false);
   const [customText, setCustomText] = useState('');
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleCameraClick = () => {
     fileInputRef.current?.click();
@@ -135,6 +149,13 @@ export function LocationHeader({
     });
   };
 
+  const menuItems = [
+    { label: 'My Profile', icon: User, href: '/profile' },
+    { label: 'My Orders', icon: Package, href: '/orders' },
+    { label: 'Rewards & Coupons', icon: Gift, href: '/rewards' },
+    { label: 'My Wishlist', icon: Heart, href: '/wishlist' },
+  ];
+
   return (
     <div className="bg-[#0B0B0B] px-4 py-4 flex flex-col gap-4 sticky top-0 z-50 shadow-2xl">
       <div className="flex items-center justify-between gap-3">
@@ -204,10 +225,53 @@ export function LocationHeader({
             </div>
           </Link>
 
-          {/* Menu Button */}
-          <div className="h-10 w-10 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
-            <Menu className="h-5 w-5 text-white" />
-          </div>
+          {/* Menu Button (Active) */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="h-10 w-10 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
+                <Menu className="h-5 w-5 text-white" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
+              <SheetHeader className="p-8 border-b border-white/5">
+                <Logo className="justify-start" />
+                <SheetTitle className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] mt-2">Menu Navigation</SheetTitle>
+              </SheetHeader>
+              <div className="p-6 space-y-2">
+                {menuItems.map((item) => (
+                  <Link key={item.label} href={item.href}>
+                    <button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white/5 p-3 rounded-xl group-hover:bg-primary/20 transition-colors">
+                          <item.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-primary transition-colors" />
+                    </button>
+                  </Link>
+                ))}
+                
+                <div className="pt-8">
+                  <button 
+                    onClick={() => {
+                      toast({ title: "Signed Out", description: "Come back soon!" });
+                      router.push('/');
+                    }}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-colors"
+                  >
+                    <div className="bg-red-500/10 p-3 rounded-xl">
+                      <LogOut className="h-5 w-5" />
+                    </div>
+                    <span className="font-bold text-sm tracking-tight">Sign Out</span>
+                  </button>
+                </div>
+              </div>
+              <div className="absolute bottom-8 left-0 right-0 px-8">
+                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center">ShopyKart v1.0.2 Premium</p>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
