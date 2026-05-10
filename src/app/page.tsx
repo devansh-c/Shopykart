@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -15,15 +16,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] pb-24">
-      {/* Top Header */}
+      {/* Top Header - Now Dark with Logo on Left */}
       <LocationHeader />
       
-      {/* Search Bar */}
+      {/* Search Bar - Now overlaid on header */}
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
       {/* Only show Hero content if not searching */}
       {!searchQuery ? (
-        <>
+        <div className="mt-4">
           {/* Hero Offer Banner */}
           <OfferSlider />
 
@@ -32,7 +33,7 @@ export default function Home() {
 
           {/* Offers & Coupons Section */}
           <OffersSection />
-        </>
+        </div>
       ) : null}
 
       {/* Categories Horizontal Scroll */}

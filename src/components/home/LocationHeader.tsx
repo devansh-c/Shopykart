@@ -1,36 +1,47 @@
+
 "use client"
 
-import { MapPin, ChevronDown, Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { MapPin, ChevronDown, ShoppingBag } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useCart } from '@/components/cart/CartProvider';
 
 export function LocationHeader() {
+  const { totalItems } = useCart();
+
   return (
-    <div className="bg-primary px-4 pt-6 pb-4 rounded-b-[2.5rem] shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="bg-white/20 p-2 rounded-2xl backdrop-blur-md">
-            <MapPin className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-1">
-              <span className="text-[10px] font-medium text-white/80 uppercase tracking-widest">Deliver to</span>
-              <ChevronDown className="h-3 w-3 text-white/80" />
-            </div>
-            <h2 className="text-sm font-bold text-white truncate max-w-[150px]">Times Square, NY</h2>
+    <div className="bg-[#121212] px-4 pt-8 pb-6 rounded-b-[2rem]">
+      <div className="flex items-center justify-between">
+        {/* Left Side: Logo */}
+        <Logo className="scale-90 origin-left" />
+
+        {/* Middle: Store Location */}
+        <div className="flex flex-col items-start ml-2">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1">
+            Store Location
+          </span>
+          <div className="flex items-center space-x-1">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span className="text-sm font-bold text-white truncate max-w-[100px]">Bun Bur...</span>
+            <ChevronDown className="h-3 w-3 text-gray-400" />
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-2xl bg-white/10 text-white border border-white/10">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 bg-amber-400 rounded-full border-2 border-primary" />
-          </Button>
+        {/* Right Side: Actions */}
+        <div className="flex items-center space-x-3">
+          <div className="relative h-12 w-12 rounded-full bg-white/10 flex items-center justify-center border border-white/5">
+            <ShoppingBag className="h-6 w-6 text-white" />
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-[#121212]">
+                {totalItems}
+              </span>
+            )}
+          </div>
+          <Avatar className="h-12 w-12 border-2 border-white/10">
+            <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
+            <AvatarFallback>JD</AvatarFallback>
+          </Avatar>
         </div>
-      </div>
-
-      <div className="flex justify-center py-2">
-        <Logo className="scale-110" />
       </div>
     </div>
   );
