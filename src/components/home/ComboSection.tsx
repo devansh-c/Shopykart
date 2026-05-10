@@ -35,7 +35,7 @@ export function ComboSection() {
     <div className="py-4">
       <div className="flex items-center px-4 mb-3">
         <span className="text-xl mr-2">🎁</span>
-        <h2 className="text-xl font-black">Combos</h2>
+        <h2 className="text-xl font-bold">Combos</h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-4 no-scrollbar">
         {combos.map((combo) => {
@@ -44,25 +44,25 @@ export function ComboSection() {
           return (
             <div 
               key={combo.id} 
-              className="min-w-[210px] max-w-[210px] bg-white rounded-[1.75rem] overflow-hidden shadow-sm border border-border/40"
+              className="min-w-[200px] max-w-[200px] bg-white rounded-xl overflow-hidden shadow-sm border border-border/40"
             >
-              <div className="relative h-36 w-full">
+              <div className="relative h-32 w-full">
                 <img 
                   src={imageUrl} 
                   alt={combo.name} 
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="p-4">
+              <div className="p-3">
                 <h3 className="font-bold text-sm text-foreground line-clamp-1">{combo.name}</h3>
-                <p className="text-muted-foreground text-[10px] truncate mb-3">{combo.desc}</p>
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-base font-black text-foreground">₹{combo.price}</span>
+                <p className="text-muted-foreground text-[10px] truncate mb-2">{combo.desc}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-bold text-foreground">₹{combo.price}</span>
                   <button 
                     onClick={() => addToCart({ id: combo.id, name: combo.name, price: combo.price, imageUrl })}
-                    className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-lg flex items-center hover:bg-primary/90 active:scale-95 transition-all"
+                    className="bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-primary/90 active:scale-95 transition-all"
                   >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Add
                   </button>
                 </div>

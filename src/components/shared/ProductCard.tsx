@@ -20,8 +20,8 @@ export function ProductCard({ id, name, price, imageUrl, isVeg = true, descripti
   const quantity = cart.find(item => item.id === id)?.quantity || 0;
 
   return (
-    <div className="premium-card overflow-hidden group">
-      <div className="relative h-44 w-full overflow-hidden">
+    <div className="premium-card overflow-hidden group border border-border/40">
+      <div className="relative h-40 w-full">
         <Image
           src={imageUrl}
           alt={name}
@@ -29,53 +29,51 @@ export function ProductCard({ id, name, price, imageUrl, isVeg = true, descripti
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           data-ai-hint="food dish"
         />
-        <div className="absolute top-3 left-3 flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm">
+        <div className="absolute top-2 left-2 flex items-center bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm">
           <div className={cn(
-            "h-2.5 w-2.5 rounded-full mr-1.5",
+            "h-2 w-2 rounded-sm mr-1",
             isVeg ? "bg-green-500" : "bg-red-500"
           )} />
-          <span className="text-[10px] font-bold text-gray-700">{isVeg ? "VEG" : "NON-VEG"}</span>
+          <span className="text-[8px] font-bold text-gray-700">{isVeg ? "VEG" : "NON-VEG"}</span>
         </div>
       </div>
       
-      <div className="p-4 flex flex-col justify-between">
-        <div>
-          <h3 className="font-semibold text-base line-clamp-1">{name}</h3>
-          <p className="text-muted-foreground text-xs line-clamp-2 mt-1 min-h-[2rem]">
-            {description || "A delicious meal prepared with the finest ingredients."}
-          </p>
-        </div>
+      <div className="p-3">
+        <h3 className="font-bold text-sm line-clamp-1">{name}</h3>
+        <p className="text-muted-foreground text-[10px] line-clamp-2 mt-0.5 min-h-[1.5rem]">
+          {description || "Premium ingredients."}
+        </p>
         
-        <div className="flex items-center justify-between mt-4">
-          <span className="text-lg font-bold text-primary">${price.toFixed(2)}</span>
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-base font-bold text-primary">₹{price.toFixed(2)}</span>
           
           {quantity === 0 ? (
             <Button 
               size="sm" 
-              className="rounded-full px-4 h-9 font-bold bg-primary hover:bg-primary/90 shadow-md active:scale-95 transition-all"
+              className="rounded-md px-3 h-8 font-bold text-[10px] bg-primary hover:bg-primary/90 shadow-sm active:scale-95 transition-all"
               onClick={() => addToCart({ id, name, price, imageUrl })}
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-3 w-3 mr-1" />
               ADD
             </Button>
           ) : (
-            <div className="flex items-center bg-primary text-primary-foreground rounded-full p-0.5 shadow-md">
+            <div className="flex items-center bg-primary text-primary-foreground rounded-md p-0.5 shadow-sm">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-full text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+                className="h-7 w-7 rounded-sm text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
                 onClick={() => removeFromCart(id)}
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-3 w-3" />
               </Button>
-              <span className="mx-2 font-bold min-w-[1rem] text-center">{quantity}</span>
+              <span className="mx-1.5 font-bold text-xs min-w-[1rem] text-center">{quantity}</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-full text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+                className="h-7 w-7 rounded-sm text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
                 onClick={() => addToCart({ id, name, price, imageUrl })}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           )}

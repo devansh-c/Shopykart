@@ -1,4 +1,3 @@
-
 "use client"
 
 import { MapPin, ChevronDown, ShoppingBag } from 'lucide-react';
@@ -10,12 +9,10 @@ export function LocationHeader() {
   const { totalItems } = useCart();
 
   return (
-    <div className="bg-[#121212] px-4 pt-8 pb-10 rounded-b-[2rem]">
+    <div className="bg-[#121212] px-4 pt-8 pb-10 rounded-b-xl">
       <div className="flex items-center justify-between">
-        {/* Left Side: Logo */}
         <Logo className="scale-90 origin-left" />
 
-        {/* Middle: Store Location */}
         <div className="flex flex-col items-start ml-2">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1">
             Store Location
@@ -27,17 +24,16 @@ export function LocationHeader() {
           </div>
         </div>
         
-        {/* Right Side: Actions */}
         <div className="flex items-center space-x-3">
-          <div className="relative h-12 w-12 rounded-full bg-white/10 flex items-center justify-center border border-white/5">
-            <ShoppingBag className="h-6 w-6 text-white" />
+          <div className="relative h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center border border-white/5">
+            <ShoppingBag className="h-5 w-5 text-white" />
             {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center border-2 border-[#121212]">
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold h-4 w-4 rounded-md flex items-center justify-center border-2 border-[#121212]">
                 {totalItems}
               </span>
             )}
           </div>
-          <Avatar className="h-12 w-12 border-2 border-white/10">
+          <Avatar className="h-10 w-10 rounded-lg border-2 border-white/10">
             <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
             <AvatarFallback>JD</AvatarFallback>
           </Avatar>
