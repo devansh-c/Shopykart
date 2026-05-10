@@ -1,4 +1,3 @@
-
 "use client"
 
 import { cn } from "@/lib/utils";
@@ -24,13 +23,17 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex items-center cursor-pointer select-none active:scale-95 transition-transform px-4 py-1.5 border border-[#C5A021]/40 rounded-xl bg-black/20 backdrop-blur-sm shadow-[0_0_15px_rgba(197,160,33,0.1)]", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-transform px-5 py-2 border border-[#C5A021]/40 rounded-2xl bg-black/40 backdrop-blur-md shadow-[0_0_20px_rgba(197,160,33,0.15)]", 
         className
       )}
     >
-      <h1 className="text-white font-black italic text-xl tracking-tighter">
-        SHOPYKART
+      <h1 className="flex items-center text-xl font-black italic tracking-tighter leading-none">
+        <span className="text-white">SHOPY</span>
+        <span className="text-[#C5A021]">KART</span>
       </h1>
+      <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/50 mt-1">
+        QUALITY FIRST
+      </span>
     </div>
   );
 }

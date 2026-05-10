@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -40,12 +39,16 @@ export function SplashScreen() {
           "transition-all duration-1000 transform flex flex-col items-center",
           isVisible ? "scale-100 opacity-100" : "scale-110 opacity-0"
         )}>
-          <div className="px-10 py-4 border-2 border-[#C5A021]/30 rounded-[2.5rem] bg-black/40 backdrop-blur-md shadow-[0_0_50px_rgba(197,160,33,0.15)]">
-            <h1 className="text-white font-black italic text-5xl tracking-tighter text-center">
-              SHOPYKART
+          <div className="px-12 py-6 border-2 border-[#C5A021]/30 rounded-[3rem] bg-black/40 backdrop-blur-md shadow-[0_0_60px_rgba(197,160,33,0.2)] flex flex-col items-center">
+            <h1 className="flex items-center text-5xl font-black italic tracking-tighter leading-none text-center">
+              <span className="text-white">SHOPY</span>
+              <span className="text-[#C5A021]">KART</span>
             </h1>
+            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mt-3">
+              QUALITY FIRST
+            </span>
           </div>
-          <p className="text-center mt-6 text-[10px] text-[#C5A021] font-black uppercase tracking-[0.5em] opacity-80">
+          <p className="text-center mt-8 text-[9px] text-[#C5A021] font-black uppercase tracking-[0.3em] opacity-80">
             Premium Food Delivery
           </p>
         </div>
