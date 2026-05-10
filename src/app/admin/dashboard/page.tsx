@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -30,11 +29,13 @@ import { ProductManagement } from '@/components/admin/ProductManagement';
 import { BannerManagement } from '@/components/admin/BannerManagement';
 import { OrderManagement } from '@/components/admin/OrderManagement';
 import { ReviewManagement } from '@/components/admin/ReviewManagement';
+import { DiscountManagement } from '@/components/admin/DiscountManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'catalog', label: 'Catalog', icon: Layers },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
+  { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'design', label: 'Design', icon: Feather },
   { id: 'stores', label: 'Stores', icon: Store },
@@ -42,7 +43,6 @@ const menuItems = [
   { id: 'mission', label: 'Mission Control', icon: Rocket },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'reports', label: 'Reports', icon: LineChart },
-  { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'plugins', label: 'Plugins', icon: Zap },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -82,6 +82,8 @@ export default function AdminDashboard() {
         return <OrderManagement />;
       case 'reviews':
         return <ReviewManagement />;
+      case 'discounts':
+        return <DiscountManagement />;
       default: {
         const activeItem = menuItems.find(i => i.id === activeTab);
         const Icon = activeItem?.icon;

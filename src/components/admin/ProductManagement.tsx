@@ -1,13 +1,12 @@
-
 "use client"
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
@@ -89,11 +88,12 @@ export function ProductManagement() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-2xl max-w-lg">
-            <DialogHeader>
+          <DialogContent className="rounded-2xl max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <DialogHeader className="p-6 pb-2">
               <DialogTitle className="font-black text-xl italic uppercase">Add New Product</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
+            
+            <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6 no-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Product Name</label>
@@ -116,62 +116,71 @@ export function ProductManagement() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Product Image</label>
-                <div className="flex gap-3">
-                  <div className="h-20 w-20 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
-                    {selectedImage ? (
-                      <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                    )}
-                  </div>
-                  <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 h-20 rounded-xl border-dashed border-2 hover:bg-muted/50 flex flex-col gap-1">
-                        <ImageIcon className="h-5 w-5" />
-                        <span className="text-[10px] font-black uppercase tracking-tight">Open Gallery</span>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-24 w-24 rounded-2xl bg-muted border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0">
+                      {selectedImage ? (
+                        <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Select a premium high-quality food image from our curated gallery.</p>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsGalleryOpen(!isGalleryOpen)}
+                        className="w-full rounded-xl border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] h-10"
+                      >
+                        {isGalleryOpen ? "Close Gallery" : "Open Gallery"}
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl rounded-3xl">
-                      <DialogHeader>
-                        <DialogTitle className="font-black italic uppercase">Select From Gallery</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 py-4 max-h-[60vh] overflow-y-auto no-scrollbar">
+                    </div>
+                  </div>
+
+                  {isGalleryOpen && (
+                    <div className="bg-muted/30 p-4 rounded-2xl border border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto no-scrollbar p-1">
                         {PlaceHolderImages.map((img) => (
                           <button
                             key={img.id}
-                            onClick={() => {
-                              setSelectedImage(img.imageUrl);
-                              setIsGalleryOpen(false);
-                            }}
+                            onClick={() => setSelectedImage(img.imageUrl)}
                             className={cn(
-                              "relative aspect-square rounded-2xl overflow-hidden border-2 transition-all group",
+                              "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
                               selectedImage === img.imageUrl ? "border-primary scale-95" : "border-transparent"
                             )}
                           >
                             <img src={img.imageUrl} alt={img.description} className="h-full w-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <span className="text-[10px] text-white font-black uppercase">Select</span>
-                            </div>
                             {selectedImage === img.imageUrl && (
-                              <div className="absolute top-1 right-1 bg-primary text-white p-1 rounded-full shadow-lg">
-                                <Check className="h-3 w-3" />
+                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <Check className="h-5 w-5 text-white drop-shadow-lg" />
                               </div>
                             )}
                           </button>
                         ))}
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="isVeg" checked={isVeg} onChange={e => setIsVeg(e.target.checked)} className="rounded-sm accent-primary" />
-                <label htmlFor="isVeg" className="text-sm font-bold">Vegetarian Item</label>
+              <div className="flex items-center space-x-3 bg-muted/20 p-4 rounded-2xl">
+                <input 
+                  type="checkbox" 
+                  id="isVeg" 
+                  checked={isVeg} 
+                  onChange={e => setIsVeg(e.target.checked)} 
+                  className="h-5 w-5 rounded-md accent-primary" 
+                />
+                <label htmlFor="isVeg" className="text-sm font-black uppercase italic tracking-tight">Pure Vegetarian Item</label>
               </div>
-              <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic py-6 rounded-2xl">Save Product</Button>
+            </div>
+
+            <div className="p-6 border-t bg-muted/10">
+              <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic py-7 rounded-2xl shadow-xl shadow-primary/20 text-lg tracking-tighter">
+                Confirm & Add Product
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
