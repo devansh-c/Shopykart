@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -10,7 +11,6 @@ export function FloatingCart() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Hide on cart, login, and admin pages
   const isHidden = ['/cart', '/admin', '/login'].some(path => pathname?.startsWith(path));
   
   if (isHidden || totalItems === 0) return null;

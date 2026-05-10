@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -89,5 +90,5 @@
 }
 
 .text-headline {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', sans-serif;
 }
