@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -11,19 +12,37 @@ import { useFirestore, useCollection } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
+const MOCK_BANNERS = [
+  {
+    id: 'mock-1',
+    title: '50% OFF',
+    subtitle: 'ON YOUR FIRST ORDER',
+    tag: 'Limited Offer',
+    imageUrl: 'https://picsum.photos/seed/shopy-hero/800/400'
+  },
+  {
+    id: 'mock-2',
+    title: 'FREE DELIVERY',
+    subtitle: 'ON ORDERS ABOVE ₹499',
+    tag: 'Weekend Special',
+    imageUrl: 'https://picsum.photos/seed/shopy-combo/800/400'
+  }
+];
+
 export function OfferSlider() {
   const firestore = useFirestore();
-  const { data: banners, loading } = useCollection(firestore ? collection(firestore, 'banners') : null);
+  const { data: dbBanners, loading } = useCollection(firestore ? collection(firestore, 'banners') : null);
 
-  if (loading) {
+  // Use DB data if available, otherwise fallback to mock data for prototype visibility
+  const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
+
+  if (loading && !dbBanners) {
     return (
       <div className="w-full px-4 flex justify-center py-10">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (!banners || banners.length === 0) return null;
 
   return (
     <div className="w-full px-4">

@@ -55,17 +55,17 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-2 min-w-0">
+        <div className="flex items-center space-x-1.5 min-w-0">
           <div className="text-amber-500 shrink-0">
-            <Zap className="h-5 w-5 fill-current" />
+            <Zap className="h-4 w-4 fill-current" />
           </div>
-          <h2 className="text-lg font-bold tracking-tight text-[#1C1C1C] whitespace-nowrap overflow-hidden text-ellipsis">Popular Right Now</h2>
+          <h2 className="text-base font-black tracking-tight text-[#1C1C1C] whitespace-nowrap">Popular Right Now</h2>
         </div>
         
         <div className="shrink-0 ml-2">
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[110px] h-9 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[9px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
-              <SlidersHorizontal className="h-3 w-3 mr-2" />
+            <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[8px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
+              <SlidersHorizontal className="h-3 w-3 mr-1.5" />
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl border-none shadow-2xl">
