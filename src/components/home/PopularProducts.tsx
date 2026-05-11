@@ -1,12 +1,20 @@
+
 "use client"
 
-import { useMemo } from 'react';
-import { Zap, Plus, Minus, Heart, Star } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Zap, Plus, Minus, Heart, Star, SlidersHorizontal } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import { allProducts } from '@/lib/mock-data';
 import Link from 'next/link';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type PopularProductsProps = {
   searchQuery?: string;
@@ -15,15 +23,34 @@ type PopularProductsProps = {
 
 export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
+  const [sortBy, setSortBy] = useState('recommended');
 
-  const filteredProducts = useMemo(() => {
-    return allProducts.filter(product => {
+  const filteredAndSortedProducts = useMemo(() => {
+    let result = allProducts.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           product.category.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = category === 'all' || product.category === category;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, category]);
+
+    // Sorting logic
+    switch (sortBy) {
+      case 'price-low':
+        result = [...result].sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        result = [...result].sort((a, b) => b.price - a.price);
+        break;
+      case 'name':
+        result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      default:
+        // 'recommended' - stay as is
+        break;
+    }
+
+    return result;
+  }, [searchQuery, category, sortBy]);
 
   return (
     <div className="px-4 py-8">
@@ -37,12 +64,27 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           </div>
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Our most ordered delights</p>
         </div>
-        <Link href="/menu" className="text-primary text-[11px] font-black uppercase tracking-widest underline underline-offset-8 decoration-2 hover:text-primary/80 transition-colors">See Catalog</Link>
+        
+        {/* Sort By Dropdown instead of See Catalog */}
+        <div className="shrink-0">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[115px] h-9 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[9px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
+              <SlidersHorizontal className="h-3 w-3 mr-2" />
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-none shadow-2xl">
+              <SelectItem value="recommended" className="text-[10px] font-black uppercase">Recommended</SelectItem>
+              <SelectItem value="price-low" className="text-[10px] font-black uppercase">Price: Low-High</SelectItem>
+              <SelectItem value="price-high" className="text-[10px] font-black uppercase">Price: High-Low</SelectItem>
+              <SelectItem value="name" className="text-[10px] font-black uppercase">A-Z Name</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {filteredProducts.length > 0 ? (
-          filteredProducts.map((product) => {
+        {filteredAndSortedProducts.length > 0 ? (
+          filteredAndSortedProducts.map((product) => {
             const img = PlaceHolderImages.find(p => p.id === product.imageId);
             const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
             const cartItem = cart.find(item => item.id === product.id);
