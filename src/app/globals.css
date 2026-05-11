@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,7 +11,7 @@
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 268 62% 38%; /* PhonePe Purple */
+    --primary: 268 62% 38%; /* PhonePe Purple - #5f259f */
     --primary-foreground: 0 0% 100%;
     --secondary: 268 62% 96%;
     --secondary-foreground: 268 62% 20%;
@@ -33,7 +34,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
   }
 }
@@ -78,8 +79,4 @@
 
 .premium-card:hover {
   @apply shadow-[0_20px_40px_rgba(95,37,159,0.08)] -translate-y-1;
-}
-
-.glass {
-  @apply bg-white/70 backdrop-blur-lg border border-white/20;
 }

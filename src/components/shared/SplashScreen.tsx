@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -8,7 +9,6 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // PhonePe style splash duration
     const timer = setTimeout(() => {
       setIsVisible(false);
     }, 2500);
@@ -39,12 +39,12 @@ export function SplashScreen() {
         )}>
           {/* Minimalist Logo for Splash */}
           <div className="flex flex-col items-center">
-            <h1 className="flex items-center text-6xl font-black italic tracking-tighter leading-none text-white">
+            <h1 className="flex items-center text-5xl font-black italic tracking-tighter leading-none text-white">
               <span>SHOPY</span>
               <span className="text-[#fdbb12] ml-1">KART</span>
             </h1>
-            <div className="w-24 h-0.5 bg-white/20 mt-10 rounded-full overflow-hidden">
-               <div className="h-full bg-white animate-pulse" style={{ width: '60%' }} />
+            <div className="w-16 h-0.5 bg-white/20 mt-10 rounded-full overflow-hidden">
+               <div className="h-full bg-white/60 animate-pulse" style={{ width: '100%' }} />
             </div>
           </div>
         </div>
@@ -57,11 +57,6 @@ export function SplashScreen() {
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/80">
           Handcrafted in India
         </p>
-        <div className="flex gap-2 mt-4">
-           <div className="h-1 w-1 bg-white/40 rounded-full" />
-           <div className="h-1 w-1 bg-white/40 rounded-full" />
-           <div className="h-1 w-1 bg-white/40 rounded-full" />
-        </div>
       </div>
     </div>
   );
