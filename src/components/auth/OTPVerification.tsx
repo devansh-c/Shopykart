@@ -16,7 +16,7 @@ import {
 export function OTPVerification() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']); // Firebase uses 6 digits usually
+  const [otp, setOtp] = useState(['', '', '', '', '', '']); 
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
@@ -26,10 +26,24 @@ export function OTPVerification() {
 
   useEffect(() => {
     if (auth && !recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-      });
+      try {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            // reCAPTCHA solved, allow signInWithPhoneNumber.
+          }
+        });
+      } catch (error) {
+        console.error("Recaptcha initialization failed", error);
+      }
     }
+    
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+    };
   }, [auth]);
 
   const handleSendOTP = async () => {
@@ -42,7 +56,14 @@ export function OTPVerification() {
       return;
     }
     
-    if (!auth || !recaptchaVerifierRef.current) return;
+    if (!auth || !recaptchaVerifierRef.current) {
+      toast({
+        variant: "destructive",
+        title: "Auth Error",
+        description: "Authentication system is not ready. Please refresh.",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -59,8 +80,13 @@ export function OTPVerification() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: err.message || "Failed to send OTP. Please try again.",
+        description: err.message || "Failed to send OTP. Ensure Phone Auth is enabled in Firebase Console.",
       });
+      // Reset recaptcha on error
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      }
     } finally {
       setLoading(false);
     }
