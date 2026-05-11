@@ -9,13 +9,15 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
+    // Show splash for 2.5 seconds as requested
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 3000);
+    }, 2500);
 
+    // Completely remove from DOM after fade animation
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 3800);
+    }, 3300);
 
     return () => {
       clearTimeout(timer);
