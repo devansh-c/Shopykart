@@ -1,8 +1,10 @@
+
 "use client"
 
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -20,10 +22,12 @@ type CategoryListProps = {
 
 export function CategoryList({ activeCategory = 'all', onCategoryChange }: CategoryListProps) {
   return (
-    <div className="py-6">
+    <div className="py-4">
       <div className="flex items-center justify-between px-4 mb-5">
-        <h2 className="text-2xl font-black tracking-tight">Categories</h2>
-        <button className="text-primary text-sm font-black hover:underline">See all</button>
+        <h2 className="text-2xl font-black italic tracking-tighter uppercase">Categories</h2>
+        <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline">
+          See all
+        </Link>
       </div>
       <div className="flex overflow-x-auto space-x-6 px-4 no-scrollbar">
         {categories.map((cat) => {
@@ -41,7 +45,7 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: Categ
                 isActive ? "border-primary ring-4 ring-primary/10 scale-105" : "border-transparent bg-muted/30"
               )}>
                 <Image
-                  src={img?.imageUrl || "https://picsum.photos/seed/cat/100/100"}
+                  src={img?.imageUrl || `https://picsum.photos/seed/${cat.id}/100/100`}
                   alt={cat.name}
                   fill
                   className="object-cover"
@@ -53,7 +57,7 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: Categ
                 )}
               </div>
               <span className={cn(
-                "text-[11px] font-black transition-colors uppercase tracking-tight",
+                "text-[10px] font-black transition-colors uppercase tracking-tight",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}>
                 {cat.name}
