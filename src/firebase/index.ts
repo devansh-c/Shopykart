@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -11,22 +10,14 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  // Check if API key is provided and not the placeholder
-  const hasKey = firebaseConfig && 
-                 firebaseConfig.apiKey && 
-                 firebaseConfig.apiKey.trim().length > 0 && 
-                 !firebaseConfig.apiKey.includes('YOUR_API_KEY');
-
-  if (!hasKey) {
-    console.warn("Firebase configuration is missing or invalid. Please update your .env file.");
-    return { firebaseApp: null, firestore: null, auth: null };
-  }
+  // Use the config provided directly
+  const config = firebaseConfig;
 
   try {
     let firebaseApp: FirebaseApp;
     
     if (!getApps().length) {
-      firebaseApp = initializeApp(firebaseConfig);
+      firebaseApp = initializeApp(config);
     } else {
       firebaseApp = getApp();
     }
