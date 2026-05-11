@@ -11,11 +11,11 @@ export function SplashScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 800);
+    }, 1000);
 
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 1300);
+    }, 2000);
 
     return () => {
       clearTimeout(timer);

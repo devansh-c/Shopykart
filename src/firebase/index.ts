@@ -11,23 +11,29 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  if (!firebaseConfig.apiKey) {
-    console.warn("Firebase configuration is missing. Authentication and database features will be disabled until a valid API key is provided.");
+  // Robust check for API key to prevent SDK crashes
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === '') {
+    console.warn("Firebase configuration is missing or invalid. Authentication features will be disabled until a valid API key is set in environment variables.");
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
   let firebaseApp: FirebaseApp;
   
-  if (!getApps().length) {
-    firebaseApp = initializeApp(firebaseConfig);
-  } else {
-    firebaseApp = getApp();
+  try {
+    if (!getApps().length) {
+      firebaseApp = initializeApp(firebaseConfig);
+    } else {
+      firebaseApp = getApp();
+    }
+
+    const firestore = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+
+    return { firebaseApp, firestore, auth };
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+    return { firebaseApp: null, firestore: null, auth: null };
   }
-
-  const firestore = getFirestore(firebaseApp);
-  const auth = getAuth(firebaseApp);
-
-  return { firebaseApp, firestore, auth };
 }
 
 export * from './provider';
