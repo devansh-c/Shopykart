@@ -73,14 +73,18 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border border-border shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 relative overflow-hidden;
-}
-
-.premium-card::before {
-  content: '';
-  @apply absolute top-0 left-0 right-0 h-[3px] bg-[#C5A021] z-10 opacity-80;
+  @apply bg-white rounded-[2rem] border border-[#C5A021]/30 shadow-[0_8px_30px_rgba(0,0,0,0.02)] transition-all duration-300 relative overflow-hidden;
 }
 
 .premium-card:hover {
-  @apply shadow-[0_20px_40px_rgba(95,37,159,0.08)] -translate-y-1;
+  @apply border-[#C5A021] shadow-[0_20px_40px_rgba(197,160,33,0.15)] -translate-y-1.5;
+}
+
+.premium-card::after {
+  content: '';
+  @apply absolute inset-0 pointer-events-none rounded-[2rem] border border-transparent transition-colors duration-300;
+}
+
+.premium-card:hover::after {
+  @apply border-[#C5A021]/20;
 }
