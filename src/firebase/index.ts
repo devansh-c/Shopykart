@@ -10,17 +10,17 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  // Check for API key to prevent SDK crashes
-  const isValidConfig = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
+  // Robust API key check
+  const hasKey = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey.trim().length > 0;
 
-  if (!isValidConfig) {
-    console.warn("Firebase configuration is missing. Authentication features will be disabled.");
+  if (!hasKey) {
+    console.warn("Firebase API Key is missing. Login will be unavailable until keys are provided in environment variables.");
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  let firebaseApp: FirebaseApp;
-  
   try {
+    let firebaseApp: FirebaseApp;
+    
     if (!getApps().length) {
       firebaseApp = initializeApp(firebaseConfig);
     } else {
@@ -32,7 +32,7 @@ export function initializeFirebase() {
 
     return { firebaseApp, firestore, auth };
   } catch (error) {
-    console.error("Firebase initialization failed:", error);
+    console.error("Firebase Initialization Error:", error);
     return { firebaseApp: null, firestore: null, auth: null };
   }
 }
