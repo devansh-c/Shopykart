@@ -1,21 +1,38 @@
 
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Phone, ArrowRight, ShieldCheck, Loader2, ChevronLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
+import { 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber, 
+  ConfirmationResult 
+} from 'firebase/auth';
 
-export function OTPVerification({ onVerify }: { onVerify: () => void }) {
+export function OTPVerification() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']); // Firebase uses 6 digits usually
   const [loading, setLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  
   const { toast } = useToast();
+  const auth = useAuth();
 
-  const handleSendOTP = () => {
+  useEffect(() => {
+    if (auth && !recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+    }
+  }, [auth]);
+
+  const handleSendOTP = async () => {
     if (phone.length < 10) {
       toast({
         variant: "destructive",
@@ -24,38 +41,53 @@ export function OTPVerification({ onVerify }: { onVerify: () => void }) {
       });
       return;
     }
+    
+    if (!auth || !recaptchaVerifierRef.current) return;
+
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const formattedPhone = `+91${phone}`;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifierRef.current);
+      setConfirmationResult(result);
       setStep('otp');
       toast({
         title: "OTP Sent",
-        description: "A 4-digit verification code has been sent to your number.",
+        description: "A verification code has been sent to your number.",
       });
-    }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to send OTP. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     const code = otp.join('');
-    if (code.length < 4) return;
+    if (code.length < 6 || !confirmationResult) return;
 
     setLoading(true);
-    // Simulate verification
-    setTimeout(() => {
+    try {
+      await confirmationResult.confirm(code);
+      toast({
+        title: "Success",
+        description: "Verification complete. Welcome to ShopyKart!",
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Verification Failed",
+        description: "Invalid OTP code. Please try again.",
+      });
+      setOtp(['', '', '', '', '', '']);
+    } finally {
       setLoading(false);
-      if (code === '1234') { // Mock success for demo
-        localStorage.setItem('shopykart_verified', 'true');
-        onVerify();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Verification Failed",
-          description: "The OTP entered is incorrect. Try 1234 for demo.",
-        });
-        setOtp(['', '', '', '']);
-      }
-    }, 1500);
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -64,8 +96,7 @@ export function OTPVerification({ onVerify }: { onVerify: () => void }) {
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
 
-    // Auto-focus next input
-    if (value && index < 3) {
+    if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
     }
@@ -73,7 +104,7 @@ export function OTPVerification({ onVerify }: { onVerify: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[110] bg-[#0B0B0B] flex flex-col items-center justify-center p-6">
-      {/* Background Glow */}
+      <div id="recaptcha-container" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm aspect-square bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-sm space-y-8 relative z-10">
@@ -126,7 +157,7 @@ export function OTPVerification({ onVerify }: { onVerify: () => void }) {
           </div>
         ) : (
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2">
               {otp.map((digit, idx) => (
                 <input
                   key={idx}
@@ -135,14 +166,14 @@ export function OTPVerification({ onVerify }: { onVerify: () => void }) {
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  className="w-14 h-16 bg-white/5 border-none rounded-2xl text-center text-2xl font-black text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  className="w-10 h-14 bg-white/5 border-none rounded-2xl text-center text-xl font-black text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                 />
               ))}
             </div>
             <div className="space-y-3">
               <Button
                 onClick={handleVerifyOTP}
-                disabled={loading || otp.join('').length < 4}
+                disabled={loading || otp.join('').length < 6}
                 className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl shadow-primary/20"
               >
                 {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'VERIFY & ENTER'}

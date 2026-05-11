@@ -45,7 +45,7 @@
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": ["password", "phone"]
   },
   "firestore": {
     "/products/{productId}": {
