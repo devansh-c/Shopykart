@@ -1,22 +1,32 @@
 
-import type {Metadata} from 'next';
-import './globals.css';
-import {CartProvider} from '@/components/cart/CartProvider';
-import {Toaster} from '@/components/ui/toaster';
-import {FloatingCart} from '@/components/shared/FloatingCart';
-import {SplashScreen} from '@/components/shared/SplashScreen';
-import { FirebaseClientProvider } from '@/firebase';
+"use client"
 
-export const metadata: Metadata = {
-  title: 'ShopyKart | Premium Food Delivery',
-  description: 'Gourmet meals delivered to your doorstep with ShopyKart.',
-};
+import type { Metadata } from 'next';
+import './globals.css';
+import { CartProvider } from '@/components/cart/CartProvider';
+import { Toaster } from '@/components/ui/toaster';
+import { FloatingCart } from '@/components/shared/FloatingCart';
+import { SplashScreen } from '@/components/shared/SplashScreen';
+import { FirebaseClientProvider } from '@/firebase';
+import { OTPVerification } from '@/components/auth/OTPVerification';
+import { useState, useEffect } from 'react';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isVerified, setIsVerified] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const verified = localStorage.getItem('shopykart_verified');
+    if (verified === 'true') {
+      setIsVerified(true);
+    }
+    setCheckingAuth(false);
+  }, []);
+
   return (
     <html lang="en">
       <head>
@@ -28,6 +38,9 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <CartProvider>
             <SplashScreen />
+            {!checkingAuth && !isVerified && (
+              <OTPVerification onVerify={() => setIsVerified(true)} />
+            )}
             <div className="relative min-h-screen">
               {children}
               <FloatingCart />
