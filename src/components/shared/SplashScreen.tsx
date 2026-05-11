@@ -8,13 +8,14 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
+    // Reduced delay from 2.5s to 0.8s for faster perceived loading
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 2500);
+    }, 800);
 
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 3200);
+    }, 1300);
 
     return () => {
       clearTimeout(timer);
@@ -27,7 +28,7 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[100] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-700 ease-in-out",
+        "fixed inset-0 z-[100] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-500 ease-in-out",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
@@ -36,7 +37,7 @@ export function SplashScreen() {
         <div className="absolute inset-0 bg-[#C5A021]/10 blur-[100px] animate-pulse rounded-full" />
         
         <div className={cn(
-          "transition-all duration-1000 transform flex flex-col items-center",
+          "transition-all duration-700 transform flex flex-col items-center",
           isVisible ? "scale-100 opacity-100" : "scale-105 opacity-0"
         )}>
           <div className="px-8 py-4 border border-[#C5A021]/30 rounded-[2rem] bg-black/40 backdrop-blur-md shadow-[0_0_40px_rgba(197,160,33,0.15)] flex flex-col items-center">
