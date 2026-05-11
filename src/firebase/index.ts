@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -11,9 +10,11 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  // Robust check for API key to prevent SDK crashes
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === '') {
-    console.warn("Firebase configuration is missing or invalid. Authentication features will be disabled until a valid API key is set in environment variables.");
+  // Check for API key to prevent SDK crashes
+  const isValidConfig = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
+
+  if (!isValidConfig) {
+    console.warn("Firebase configuration is missing. Authentication features will be disabled.");
     return { firebaseApp: null, firestore: null, auth: null };
   }
 

@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 268 62% 38%; /* PhonePe inspired purple */
+    --primary: 268 62% 38%; /* PhonePe Purple */
     --primary-foreground: 0 0% 100%;
     --secondary: 268 62% 96%;
     --secondary-foreground: 268 62% 20%;
@@ -51,15 +51,6 @@
   100% { transform: translateX(100%); }
 }
 
-@keyframes jump {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.animate-jump {
-  animation: jump 0.8s ease-in-out infinite;
-}
-
 .animate-shimmer {
   position: relative;
   overflow: hidden;
@@ -82,11 +73,11 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border-[1.5px] border-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
+  @apply bg-white rounded-[2rem] border border-border shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300;
 }
 
 .premium-card:hover {
-  @apply shadow-[0_25px_50px_rgba(95,37,159,0.12)] -translate-y-1.5 border-primary/20;
+  @apply shadow-[0_20px_40px_rgba(95,37,159,0.08)] -translate-y-1;
 }
 
 .glass {
