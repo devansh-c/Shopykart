@@ -27,7 +27,7 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-all duration-700 ease-in-out",
+        "fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center transition-all duration-1000 ease-in-out",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
@@ -37,13 +37,13 @@ export function SplashScreen() {
           isVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
         )}>
           <div className="flex flex-col items-center">
-            <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none text-center">
+            <h1 className="flex items-center text-4xl font-extralight tracking-tighter leading-none text-center">
               <span className="text-foreground">SHOPY</span>
-              <span className="text-primary">KART</span>
+              <span className="text-primary font-bold">KART</span>
             </h1>
-            <div className="w-12 h-[1px] bg-primary mt-4 opacity-30" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.5em] text-muted-foreground mt-4">
-              Premium Dining
+            <div className="w-8 h-[0.5px] bg-primary/30 mt-6" />
+            <span className="text-[8px] font-medium uppercase tracking-[0.6em] text-muted-foreground mt-6">
+              ESTABLISHED 2024
             </span>
           </div>
         </div>
