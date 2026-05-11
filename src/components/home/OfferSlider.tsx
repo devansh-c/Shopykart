@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -35,18 +36,10 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners, loading } = useCollection(bannersQuery);
+  const { data: dbBanners } = useCollection(bannersQuery);
 
-  // Fallback to mock banners if db is empty
+  // Always show mock data first, replace with DB data if it exists
   const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
-
-  if (loading && !dbBanners) {
-    return (
-      <div className="w-full px-4 flex justify-center py-10">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="w-full px-4">

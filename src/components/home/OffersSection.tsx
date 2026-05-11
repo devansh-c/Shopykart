@@ -1,6 +1,7 @@
+
 "use client"
 
-import { Copy, Loader2, Tag } from 'lucide-react';
+import { Copy, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -32,9 +33,9 @@ export function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection(couponsQuery);
+  const { data: dbCoupons } = useCollection(couponsQuery);
 
-  // Fallback to mock coupons if db is empty
+  // Fallback to mock coupons immediately to avoid stuck loading
   const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
 
   const handleCopy = (code: string) => {
@@ -46,14 +47,6 @@ export function OffersSection() {
       });
     }
   };
-
-  if (loading && !dbCoupons) {
-    return (
-      <div className="flex items-center justify-center px-4 h-32">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="py-4">
