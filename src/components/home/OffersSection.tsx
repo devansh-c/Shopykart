@@ -3,7 +3,7 @@
 
 import { Copy, Loader2, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
 const MOCK_COUPONS = [
@@ -28,7 +28,12 @@ const MOCK_COUPONS = [
 export function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { data: dbCoupons, loading } = useCollection(firestore ? collection(firestore, 'coupons') : null);
+  const couponsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'coupons');
+  }, [firestore]);
+
+  const { data: dbCoupons, loading } = useCollection(couponsQuery);
 
   const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
 

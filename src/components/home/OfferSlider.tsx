@@ -8,7 +8,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel"
-import { useFirestore, useCollection } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
@@ -31,9 +31,13 @@ const MOCK_BANNERS = [
 
 export function OfferSlider() {
   const firestore = useFirestore();
-  const { data: dbBanners, loading } = useCollection(firestore ? collection(firestore, 'banners') : null);
+  const bannersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'banners');
+  }, [firestore]);
 
-  // Use DB data if available, otherwise fallback to mock data for prototype visibility
+  const { data: dbBanners, loading } = useCollection(bannersQuery);
+
   const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
 
   if (loading && !dbBanners) {

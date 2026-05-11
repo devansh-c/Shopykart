@@ -9,7 +9,7 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // Show splash for 2.5 seconds as requested
+    // Set to 2.5 seconds as requested
     const timer = setTimeout(() => {
       setIsVisible(false);
     }, 2500);
@@ -39,8 +39,8 @@ export function SplashScreen() {
           "transition-all duration-1000 transform flex flex-col items-center",
           isVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}>
-          {/* Screenshot Style Capsule Logo */}
-          <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-sm shadow-[0_0_30px_rgba(197,160,33,0.15)] flex flex-col items-center">
+          {/* Pill-shaped Branding from Screenshot */}
+          <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-sm shadow-[0_0_40px_rgba(197,160,33,0.2)] flex flex-col items-center">
             <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
               <span className="text-white">SHOPY</span>
               <span className="text-[#C5A021]">KART</span>
@@ -52,11 +52,12 @@ export function SplashScreen() {
         </div>
       </div>
       
-      {/* Subtle bottom detail */}
+      {/* Handcrafted Detail at bottom */}
       <div className={cn(
-        "absolute bottom-12 transition-all duration-1000 delay-500",
+        "absolute bottom-12 transition-all duration-1000 delay-500 flex flex-col items-center gap-2",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted in India</p>
         <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-[#C5A021]/30 to-transparent" />
       </div>
     </div>

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import {
   Select,
@@ -38,7 +38,12 @@ export default function MenuPage() {
   const { toast } = useToast();
   
   const firestore = useFirestore();
-  const { data: dbProducts, loading } = useCollection(firestore ? collection(firestore, 'products') : null);
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
+  
+  const { data: dbProducts, loading } = useCollection(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
@@ -63,7 +68,6 @@ export default function MenuPage() {
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        // 'recommended' - currently stays as fetched (could be sorted by createdAt or featured badge)
         break;
     }
 
