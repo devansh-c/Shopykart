@@ -19,14 +19,15 @@ export default function Home() {
       {/* Top Header with Integrated Search */}
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
-      {/* Category Selection - Moved up for immediate visibility */}
-      <div className="bg-white mt-4 py-2 rounded-[2rem] mx-4 shadow-sm border border-border/40">
-        <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-      </div>
-
       {!searchQuery && (
         <div className="mt-6 space-y-6">
           <OfferSlider />
+          
+          {/* Categories moved back to its original standard position */}
+          <div className="bg-white py-2 rounded-[2rem] mx-4 shadow-sm border border-border/40">
+            <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+          </div>
+
           <ComboSection />
           <OffersSection />
         </div>

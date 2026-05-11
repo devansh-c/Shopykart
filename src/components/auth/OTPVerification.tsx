@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2, ShieldCheck, ChevronLeft, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { 
@@ -28,9 +29,6 @@ export function OTPVerification() {
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
-          callback: () => {
-            console.log('Recaptcha resolved');
-          }
         });
         recaptchaVerifierRef.current = verifier;
       } catch (error) {
@@ -40,9 +38,7 @@ export function OTPVerification() {
     
     return () => {
       if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch(e) {}
+        try { recaptchaVerifierRef.current.clear(); } catch(e) {}
         recaptchaVerifierRef.current = null;
       }
     };
@@ -50,49 +46,23 @@ export function OTPVerification() {
 
   const handleSendOTP = async () => {
     if (phone.length < 10) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Number",
-        description: "Please enter your 10-digit mobile number.",
-      });
+      toast({ variant: "destructive", title: "Invalid Number", description: "Enter 10-digit number." });
       return;
     }
     
-    if (!auth) {
-      toast({
-        variant: "destructive",
-        title: "Configuration Error",
-        description: "Firebase Auth not ready. Please wait or check your keys.",
-      });
-      return;
-    }
-
-    if (!recaptchaVerifierRef.current) {
-      toast({
-        variant: "destructive",
-        title: "Security Initialization",
-        description: "Recaptcha is still initializing. Please wait.",
-      });
+    if (!auth || !recaptchaVerifierRef.current) {
+      toast({ variant: "destructive", title: "Wait", description: "System initializing..." });
       return;
     }
 
     setLoading(true);
     try {
-      const formattedPhone = `+91${phone}`;
-      const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifierRef.current);
+      const result = await signInWithPhoneNumber(auth, `+91${phone}`, recaptchaVerifierRef.current);
       setConfirmationResult(result);
       setStep('otp');
-      toast({
-        title: "Code Sent",
-        description: "OTP sent to +91 " + phone,
-      });
+      toast({ title: "OTP Sent", description: `Sent to +91 ${phone}` });
     } catch (err: any) {
-      console.error('OTP Send Error:', err);
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: err.message || "Something went wrong. Try again.",
-      });
+      toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -105,16 +75,8 @@ export function OTPVerification() {
     setLoading(true);
     try {
       await confirmationResult.confirm(code);
-      toast({
-        title: "Verified",
-        description: "Welcome back!",
-      });
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Invalid OTP",
-        description: "The code you entered is incorrect.",
-      });
+      toast({ variant: "destructive", title: "Invalid OTP", description: "Code is incorrect." });
       setOtp(['', '', '', '', '', '']);
     } finally {
       setLoading(false);
@@ -126,57 +88,43 @@ export function OTPVerification() {
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
-
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
+    if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
   };
 
   return (
-    <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8 animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-[110] bg-white flex flex-col p-10 animate-in fade-in duration-700">
       <div id="recaptcha-container" className="hidden" />
       
       <div className="mt-4">
         {step === 'otp' && (
-          <button 
-            onClick={() => setStep('phone')}
-            className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center transition-transform active:scale-90"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-400" />
+          <button onClick={() => setStep('phone')} className="h-10 w-10 flex items-center justify-center text-gray-400">
+            <ChevronLeft className="h-6 w-6" />
           </button>
         )}
       </div>
 
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-        <div className="space-y-4 mb-14">
-          <h1 className="text-5xl font-black italic tracking-tighter leading-none text-foreground">
-            {step === 'phone' ? (
-              <>Premium<br /><span className="text-primary">Dining</span></>
-            ) : (
-              <>Verify<br /><span className="text-primary">Identity</span></>
-            )}
+        <div className="mb-16">
+          <h1 className="text-4xl font-black italic tracking-tighter leading-none mb-3">
+            {step === 'phone' ? 'Hello.' : 'Verify.'}
           </h1>
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.25em]">
-            {step === 'phone' 
-              ? 'Enter your mobile to continue' 
-              : `Code sent to +91 ${phone}`}
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.3em]">
+            {step === 'phone' ? 'Login with mobile' : `OTP sent to +91 ${phone}`}
           </p>
         </div>
 
         {step === 'phone' ? (
           <div className="space-y-12">
-            <div className="border-b-2 border-gray-100 focus-within:border-primary transition-all pb-3">
+            <div className="border-b border-gray-100 pb-4">
               <div className="flex items-center">
-                <span className="text-2xl font-black italic text-gray-300 mr-4">+91</span>
+                <span className="text-2xl font-black text-gray-200 mr-4">+91</span>
                 <input
                   type="tel"
-                  placeholder="00000 00000"
+                  placeholder="Mobile Number"
                   value={phone}
                   autoFocus
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendOTP()}
-                  className="w-full bg-transparent border-none text-3xl font-black italic tracking-tight focus:outline-none placeholder:text-gray-100"
+                  className="w-full bg-transparent border-none text-2xl font-black tracking-tight focus:outline-none placeholder:text-gray-100"
                 />
               </div>
             </div>
@@ -184,21 +132,14 @@ export function OTPVerification() {
             <Button
               onClick={handleSendOTP}
               disabled={loading || phone.length < 10}
-              className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] font-black uppercase italic text-lg shadow-2xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+              className="w-full h-14 bg-[#5f259f] hover:bg-[#4a1d7d] text-white rounded-2xl font-black uppercase italic shadow-lg active:scale-[0.98] transition-all"
             >
-              {loading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="h-5 w-5" />
-                </>
-              )}
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Continue'}
             </Button>
           </div>
         ) : (
           <div className="space-y-12">
-            <div className="flex justify-between gap-3">
+            <div className="flex justify-between gap-2">
               {otp.map((digit, idx) => (
                 <input
                   key={idx}
@@ -208,38 +149,25 @@ export function OTPVerification() {
                   value={digit}
                   autoFocus={idx === 0}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  className="w-full h-14 bg-gray-50 border-b-2 border-transparent rounded-xl text-center text-2xl font-black italic text-foreground outline-none focus:border-primary focus:bg-white transition-all"
+                  className="w-full h-12 border-b-2 border-gray-100 text-center text-2xl font-black outline-none focus:border-[#5f259f] transition-all"
                 />
               ))}
             </div>
             
-            <div className="space-y-6">
-              <Button
-                onClick={handleVerifyOTP}
-                disabled={loading || otp.join('').length < 6}
-                className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] font-black uppercase italic text-lg shadow-2xl shadow-primary/20 transition-all active:scale-[0.98]"
-              >
-                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Confirm OTP'}
-              </Button>
-              
-              <button 
-                onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); }}
-                className="w-full text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors text-center"
-              >
-                Change Number
-              </button>
-            </div>
+            <Button
+              onClick={handleVerifyOTP}
+              disabled={loading || otp.join('').length < 6}
+              className="w-full h-14 bg-[#5f259f] hover:bg-[#4a1d7d] text-white rounded-2xl font-black uppercase italic shadow-lg active:scale-[0.98] transition-all"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Verify OTP'}
+            </Button>
           </div>
         )}
       </div>
 
-      <div className="mt-auto text-center pb-8">
-        <div className="flex items-center justify-center gap-2">
-           <ShieldCheck className="h-4 w-4 text-primary opacity-40" />
-           <p className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-400">
-             Premium Secure Access
-           </p>
-        </div>
+      <div className="mt-auto text-center pb-8 flex items-center justify-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-[#5f259f] opacity-30" />
+        <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gray-300">Secure Premium Access</p>
       </div>
     </div>
   );
