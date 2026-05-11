@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState } from 'react';
@@ -7,6 +8,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import { allProducts } from '@/lib/mock-data';
 import Link from 'next/link';
+import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import {
   Select,
   SelectContent,
@@ -32,7 +34,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       return matchesSearch && matchesCategory;
     });
 
-    // Sorting logic
     switch (sortBy) {
       case 'price-low':
         result = [...result].sort((a, b) => a.price - b.price);
@@ -44,7 +45,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
         result = [...result].sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        // 'recommended' - stay as is
         break;
     }
 
@@ -58,7 +58,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           <div className="text-amber-500 shrink-0">
             <Zap className="h-4 w-4 fill-current" />
           </div>
-          <h2 className="text-base font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular Right Now</h2>
+          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular Right Now</h2>
         </div>
         
         <div className="shrink-0 ml-2">
@@ -79,7 +79,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
       <div className="grid grid-cols-1 gap-6">
         {filteredAndSortedProducts.length > 0 ? (
-          filteredAndSortedProducts.map((product) => {
+          filteredAndSortedProducts.map((product, index) => {
             const img = PlaceHolderImages.find(p => p.id === product.imageId);
             const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
             const cartItem = cart.find(item => item.id === product.id);
@@ -87,68 +87,67 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             const liked = isInWishlist(product.id);
 
             return (
-              <div 
-                key={product.id}
-                className="premium-card p-6 flex justify-between items-start"
-              >
-                <div className="flex-1 pr-4">
-                  <div className="mb-2">
-                    <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                      <div className="h-full w-full bg-green-600 rounded-full" />
+              <ScrollReveal key={product.id} delay={index * 100} direction="up">
+                <div className="premium-card p-6 flex justify-between items-start">
+                  <div className="flex-1 pr-4">
+                    <div className="mb-2">
+                      <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                        <div className="h-full w-full bg-green-600 rounded-full" />
+                      </div>
                     </div>
+                    <Link href={`/product/${product.id}`}>
+                      <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
+                      <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{product.price.toFixed(2)}</div>
+                      <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
+                    </Link>
                   </div>
-                  <Link href={`/product/${product.id}`}>
-                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
-                    <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{product.price.toFixed(2)}</div>
-                    <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
-                  </Link>
-                </div>
-                
-                <div className="relative w-32 h-32 flex-shrink-0">
-                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
-                    <img 
-                      src={imageUrl} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </Link>
                   
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
-                    {quantity === 0 ? (
-                      <button 
-                        onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
-                      >
-                        ADD <span className="text-lg font-light">+</span>
-                      </button>
-                    ) : (
-                      <div className="flex items-center justify-between w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] rounded-xl shadow-md overflow-hidden">
-                        <button 
-                          onClick={() => removeFromCart(product.id)}
-                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
+                  <div className="relative w-32 h-32 flex-shrink-0">
+                    <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
+                      <img 
+                        src={imageUrl} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </Link>
+                    
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
+                      {quantity === 0 ? (
                         <button 
                           onClick={() => addToCart({ ...product, imageUrl })}
-                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
+                          className="w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
                         >
-                          <Plus className="h-4 w-4" />
+                          ADD <span className="text-lg font-light">+</span>
                         </button>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="flex items-center justify-between w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] rounded-xl shadow-md overflow-hidden">
+                          <button 
+                            onClick={() => removeFromCart(product.id)}
+                            className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
+                          <button 
+                            onClick={() => addToCart({ ...product, imageUrl })}
+                            className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-                  <button 
-                    onClick={() => toggleWishlist(product.id)}
-                    className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20"
-                  >
-                    <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
-                  </button>
+                    <button 
+                      onClick={() => toggleWishlist(product.id)}
+                      className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20"
+                    >
+                      <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </ScrollReveal>
             );
           })
         ) : (

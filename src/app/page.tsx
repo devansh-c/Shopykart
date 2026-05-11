@@ -9,33 +9,46 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
+import { ScrollReveal } from '@/components/shared/ScrollReveal';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-32">
+    <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
       {/* Top Header with Integrated Search */}
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
       {!searchQuery && (
         <div className="mt-6 space-y-6">
-          <OfferSlider />
-          <ComboSection />
-          <OffersSection />
+          <ScrollReveal direction="up">
+            <OfferSlider />
+          </ScrollReveal>
+          
+          <ScrollReveal direction="up" delay={200}>
+            <ComboSection />
+          </ScrollReveal>
+          
+          <ScrollReveal direction="up" delay={300}>
+            <OffersSection />
+          </ScrollReveal>
         </div>
       )}
 
       {/* Categories moved to be right above Trending Now (PopularProducts) */}
       {!searchQuery && (
-        <div className="bg-white py-2 rounded-[2rem] mx-4 mt-6 shadow-sm border border-border/40">
-          <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-        </div>
+        <ScrollReveal direction="up" delay={400} className="mx-4 mt-6">
+          <div className="bg-white py-2 rounded-[2rem] shadow-sm border border-border/40">
+            <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+          </div>
+        </ScrollReveal>
       )}
 
       {/* Filtered Trending Products */}
-      <PopularProducts searchQuery={searchQuery} category={activeCategory} />
+      <ScrollReveal direction="up" delay={500}>
+        <PopularProducts searchQuery={searchQuery} category={activeCategory} />
+      </ScrollReveal>
 
       <BottomNav />
     </div>
