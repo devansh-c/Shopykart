@@ -2,7 +2,7 @@
 "use client"
 
 import { useMemo, useState } from 'react';
-import { Zap, Plus, Minus, Heart, Star, SlidersHorizontal } from 'lucide-react';
+import { Zap, Plus, Minus, Heart, SlidersHorizontal } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -55,16 +55,16 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-2">
-          <div className="text-amber-500">
-            <Zap className="h-6 w-6 fill-current" />
+        <div className="flex items-center space-x-2 min-w-0">
+          <div className="text-amber-500 shrink-0">
+            <Zap className="h-5 w-5 fill-current" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-[#1C1C1C]">Popular Right Now</h2>
+          <h2 className="text-lg font-bold tracking-tight text-[#1C1C1C] whitespace-nowrap overflow-hidden text-ellipsis">Popular Right Now</h2>
         </div>
         
-        <div className="shrink-0">
+        <div className="shrink-0 ml-2">
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[115px] h-9 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[9px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
+            <SelectTrigger className="w-[110px] h-9 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[9px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
               <SlidersHorizontal className="h-3 w-3 mr-2" />
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
@@ -115,7 +115,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     />
                   </Link>
                   
-                  {/* ADD Button Styling - Matching Screenshot */}
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[85%]">
                     {quantity === 0 ? (
                       <button 
@@ -143,7 +142,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     )}
                   </div>
 
-                  {/* Wishlist Button moved to small icon */}
                   <button 
                     onClick={() => toggleWishlist(product.id)}
                     className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all"
