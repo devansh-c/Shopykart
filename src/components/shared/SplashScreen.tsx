@@ -27,35 +27,26 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-all duration-500 ease-in-out",
+        "fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-all duration-700 ease-in-out",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div className="relative flex flex-col items-center">
-        {/* Subtle Light Glow */}
-        <div className="absolute inset-0 bg-primary/5 blur-[100px] animate-pulse rounded-full" />
-        
         <div className={cn(
-          "transition-all duration-700 transform flex flex-col items-center",
-          isVisible ? "scale-100 opacity-100" : "scale-105 opacity-0"
+          "transition-all duration-1000 transform flex flex-col items-center",
+          isVisible ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"
         )}>
-          <div className="px-8 py-4 border border-border rounded-[2rem] bg-white/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col items-center">
-            <h1 className="flex items-center text-3xl font-black italic tracking-tighter leading-none text-center">
+          <div className="flex flex-col items-center">
+            <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none text-center">
               <span className="text-foreground">SHOPY</span>
               <span className="text-primary">KART</span>
             </h1>
-            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-muted-foreground mt-2">
-              QUALITY FIRST
+            <div className="w-12 h-[1px] bg-primary mt-4 opacity-30" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.5em] text-muted-foreground mt-4">
+              Premium Dining
             </span>
           </div>
-          <p className="text-center mt-6 text-[8px] text-primary font-black uppercase tracking-[0.3em] opacity-70">
-            Premium Food Delivery
-          </p>
         </div>
-      </div>
-
-      <div className="absolute bottom-20 w-32 h-[2px] bg-muted overflow-hidden rounded-full">
-        <div className="h-full bg-primary animate-[shimmer_2s_infinite] w-full" />
       </div>
     </div>
   );
