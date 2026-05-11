@@ -55,17 +55,13 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div className="flex flex-col">
-          <div className="flex items-center space-x-2">
-            <div className="text-amber-500">
-              <Zap className="h-6 w-6 fill-current" />
-            </div>
-            <h2 className="text-3xl font-black italic tracking-tighter text-headline">Trending Now</h2>
+        <div className="flex items-center space-x-2">
+          <div className="text-amber-500">
+            <Zap className="h-6 w-6 fill-current" />
           </div>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Our most ordered delights</p>
+          <h2 className="text-2xl font-bold tracking-tight text-[#1C1C1C]">Popular Right Now</h2>
         </div>
         
-        {/* Sort By Dropdown instead of See Catalog */}
         <div className="shrink-0">
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[115px] h-9 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[9px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
@@ -94,35 +90,23 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             return (
               <div 
                 key={product.id}
-                className="premium-card p-6 flex justify-between items-center group relative overflow-hidden"
+                className="bg-white p-6 rounded-[1.5rem] flex justify-between items-start border border-gray-100 shadow-sm relative overflow-hidden group"
               >
-                {/* Wishlist Button */}
-                <button 
-                  onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-4 left-4 z-10 p-2.5 rounded-full bg-white/90 shadow-xl backdrop-blur-sm active:scale-75 transition-all hover:bg-white hover:text-primary"
-                >
-                  <Heart className={cn("h-4 w-4 transition-colors", liked ? "fill-primary text-primary" : "text-gray-300")} />
-                </button>
-
-                <div className="flex-1 pr-6">
-                  <div className="mb-3 flex items-center gap-2">
+                <div className="flex-1 pr-4">
+                  <div className="mb-2">
                     <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                       <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
-                    <div className="flex items-center text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
-                      <Star className="h-3 w-3 fill-current mr-1" />
-                      4.9 (1.2k)
-                    </div>
                   </div>
                   <Link href={`/product/${product.id}`}>
-                    <h3 className="font-black text-xl leading-tight mb-2 text-foreground group-hover:text-primary transition-colors italic tracking-tight">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground line-clamp-1 mb-4 font-medium">{product.description}</p>
-                    <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{product.price.toFixed(2)}</div>
+                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
+                    <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{product.price.toFixed(2)}</div>
+                    <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
                   </Link>
                 </div>
                 
-                <div className="relative w-36 h-36 flex-shrink-0">
-                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-3xl overflow-hidden bg-muted shadow-inner">
+                <div className="relative w-32 h-32 flex-shrink-0">
+                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
@@ -130,32 +114,42 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                       loading="lazy"
                     />
                   </Link>
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[85%]">
+                  
+                  {/* ADD Button Styling - Matching Screenshot */}
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[85%]">
                     {quantity === 0 ? (
                       <button 
                         onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-11 bg-white text-primary border-2 border-primary shadow-[0_10px_20px_rgba(220,38,38,0.15)] font-black text-[10px] uppercase tracking-widest rounded-2xl active:scale-95 hover:bg-primary hover:text-white transition-all"
+                        className="w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] shadow-md font-bold text-sm uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
                       >
-                        ADD TO BAG
+                        ADD <span className="text-lg font-light">+</span>
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between w-full h-11 bg-primary text-primary-foreground rounded-2xl shadow-xl shadow-primary/20 overflow-hidden">
+                      <div className="flex items-center justify-between w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] rounded-xl shadow-md overflow-hidden">
                         <button 
                           onClick={() => removeFromCart(product.id)}
-                          className="flex-1 flex items-center justify-center hover:bg-white/10 h-full transition-colors"
+                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
                         >
                           <Minus className="h-4 w-4" />
                         </button>
-                        <span className="text-sm font-black min-w-[30px] text-center">{quantity}</span>
+                        <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
                         <button 
                           onClick={() => addToCart({ ...product, imageUrl })}
-                          className="flex-1 flex items-center justify-center hover:bg-white/10 h-full transition-colors"
+                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
                       </div>
                     )}
                   </div>
+
+                  {/* Wishlist Button moved to small icon */}
+                  <button 
+                    onClick={() => toggleWishlist(product.id)}
+                    className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all"
+                  >
+                    <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                  </button>
                 </div>
               </div>
             );
