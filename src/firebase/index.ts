@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -6,6 +7,15 @@ import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 export function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return { firebaseApp: null, firestore: null, auth: null };
+  }
+
+  if (!firebaseConfig.apiKey) {
+    console.warn("Firebase configuration is missing. Authentication and database features will be disabled until a valid API key is provided.");
+    return { firebaseApp: null, firestore: null, auth: null };
+  }
+
   let firebaseApp: FirebaseApp;
   
   if (!getApps().length) {

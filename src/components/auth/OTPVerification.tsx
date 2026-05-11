@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2, ChevronLeft, Shield } from 'lucide-react';
+import { ArrowRight, Loader2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { 
@@ -77,7 +78,7 @@ export function OTPVerification() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not send OTP. Please check your network.",
+        description: err.message || "Could not send OTP. Please check your network.",
       });
     } finally {
       setLoading(false);
