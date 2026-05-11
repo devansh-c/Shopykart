@@ -3,13 +3,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, ChevronLeft, Phone } from 'lucide-react';
+import { Loader2, ShieldCheck, ChevronLeft, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { 
   RecaptchaVerifier, 
   signInWithPhoneNumber, 
-  ConfirmationResult 
+  ConfirmationResult,
+  signInAnonymously
 } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ export function OTPVerification() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']); 
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [billingError, setBillingError] = useState(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   
   const { toast } = useToast();
@@ -61,6 +63,7 @@ export function OTPVerification() {
     }
 
     setLoading(true);
+    setBillingError(false);
     try {
       const formattedPhone = `+91${phone}`;
       const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifierRef.current);
@@ -68,8 +71,30 @@ export function OTPVerification() {
       setStep('otp');
       toast({ title: "OTP Sent", description: `Sent to +91 ${phone}` });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      if (err.code === 'auth/billing-not-enabled') {
+        setBillingError(true);
+        toast({ 
+          variant: "destructive", 
+          title: "Billing Required", 
+          description: "SMS requires Firebase Blaze Plan. Use Demo Access to test." 
+        });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: err.message });
+      }
       console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    if (!auth) return;
+    setLoading(true);
+    try {
+      await signInAnonymously(auth);
+      toast({ title: "Demo Mode", description: "Logged in via anonymous access for testing." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -121,7 +146,7 @@ export function OTPVerification() {
         </div>
 
         {step === 'phone' ? (
-          <div className="space-y-10">
+          <div className="space-y-6">
             <div className="relative border-b-2 border-muted focus-within:border-primary transition-colors pb-4">
               <div className="flex items-center">
                 <span className="text-2xl font-black text-muted-foreground mr-4">+91</span>
@@ -136,13 +161,31 @@ export function OTPVerification() {
               </div>
             </div>
             
-            <Button
-              onClick={handleSendOTP}
-              disabled={loading || phone.length < 10}
-              className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
-            >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Continue'}
-            </Button>
+            <div className="space-y-4">
+              <Button
+                onClick={handleSendOTP}
+                disabled={loading || phone.length < 10}
+                className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Continue'}
+              </Button>
+
+              {billingError && (
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 text-amber-700 mb-3">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">SMS Not Available</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleDemoLogin}
+                    className="w-full h-10 border-amber-300 text-amber-800 hover:bg-amber-100 rounded-xl font-bold text-xs uppercase"
+                  >
+                    Enter with Demo Access
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-10">
