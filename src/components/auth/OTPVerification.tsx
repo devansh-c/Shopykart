@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
@@ -26,10 +27,13 @@ export function OTPVerification() {
   useEffect(() => {
     if (auth && !recaptchaVerifierRef.current) {
       try {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
-          callback: () => {}
+          callback: () => {
+            console.log('Recaptcha resolved');
+          }
         });
+        recaptchaVerifierRef.current = verifier;
       } catch (error) {
         console.error("Recaptcha initialization failed", error);
       }
@@ -37,7 +41,9 @@ export function OTPVerification() {
     
     return () => {
       if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch(e) {}
         recaptchaVerifierRef.current = null;
       }
     };
@@ -53,11 +59,20 @@ export function OTPVerification() {
       return;
     }
     
-    if (!auth || !recaptchaVerifierRef.current) {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Auth Error",
+        description: "Firebase Auth is not initialized. Check your API keys.",
+      });
+      return;
+    }
+
+    if (!recaptchaVerifierRef.current) {
       toast({
         variant: "destructive",
         title: "Setup Pending",
-        description: "Authentication service is starting. Try in a moment.",
+        description: "Security check is initializing. Please wait a second.",
       });
       return;
     }
@@ -65,19 +80,20 @@ export function OTPVerification() {
     setLoading(true);
     try {
       const formattedPhone = `+91${phone}`;
+      console.log('Sending OTP to:', formattedPhone);
       const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifierRef.current);
       setConfirmationResult(result);
       setStep('otp');
       toast({
         title: "OTP Sent",
-        description: "A verification code has been sent to your number.",
+        description: "Verification code sent to your number.",
       });
     } catch (err: any) {
-      console.error(err);
+      console.error('OTP Send Error:', err);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: err.message || "Something went wrong. Please try again.",
+        title: "Failed to send OTP",
+        description: err.message || "Please check your network or Firebase configuration.",
       });
     } finally {
       setLoading(false);
@@ -93,14 +109,14 @@ export function OTPVerification() {
       await confirmationResult.confirm(code);
       toast({
         title: "Success",
-        description: "Your phone number is now verified.",
+        description: "Verified successfully.",
       });
     } catch (err: any) {
-      console.error(err);
+      console.error('Verify Error:', err);
       toast({
         variant: "destructive",
         title: "Wrong OTP",
-        description: "The code you entered is incorrect. Please try again.",
+        description: "The code you entered is incorrect.",
       });
       setOtp(['', '', '', '', '', '']);
     } finally {
@@ -124,39 +140,38 @@ export function OTPVerification() {
     <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8">
       <div id="recaptcha-container" />
       
-      {/* Top Action */}
       {step === 'otp' && (
         <button 
           onClick={() => setStep('phone')}
-          className="h-12 w-12 rounded-full bg-gray-50 flex items-center justify-center mb-8"
+          className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center mb-8"
         >
-          <ChevronLeft className="h-6 w-6 text-gray-400" />
+          <ChevronLeft className="h-5 w-5 text-gray-400" />
         </button>
       )}
 
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#5f259f]/10 text-[#5f259f] text-[10px] font-black uppercase tracking-widest mb-4">
             <ShieldCheck className="h-3.5 w-3.5" />
             SECURE ACCESS
           </div>
           <h1 className="text-4xl font-black italic tracking-tighter leading-tight">
             {step === 'phone' ? (
-              <>Welcome to <br /> <span className="text-primary">ShopyKart</span></>
+              <>Hello, <br /> <span className="text-[#5f259f]">Welcome</span></>
             ) : (
-              <>Enter the <br /> <span className="text-primary">Secret Code</span></>
+              <>Verify <br /> <span className="text-[#5f259f]">Account</span></>
             )}
           </h1>
-          <p className="text-sm text-muted-foreground font-medium">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
             {step === 'phone' 
-              ? 'Enter your mobile number to get started with our premium treats.' 
-              : `We've sent a 6-digit verification code to +91 ${phone}`}
+              ? 'Enter number to continue' 
+              : `Code sent to +91 ${phone}`}
           </p>
         </div>
 
         {step === 'phone' ? (
           <div className="space-y-10">
-            <div className="relative group border-b-2 border-gray-100 focus-within:border-primary transition-all pb-4">
+            <div className="relative group border-b border-gray-100 focus-within:border-[#5f259f] transition-all pb-4">
               <div className="flex items-center">
                 <span className="text-xl font-black italic text-gray-300 mr-4">+91</span>
                 <input
@@ -164,7 +179,7 @@ export function OTPVerification() {
                   placeholder="Mobile number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="w-full bg-transparent border-none text-2xl font-black italic tracking-tight focus:outline-none placeholder:text-gray-200"
+                  className="w-full bg-transparent border-none text-2xl font-black italic tracking-tight focus:outline-none placeholder:text-gray-100"
                 />
               </div>
             </div>
@@ -172,21 +187,21 @@ export function OTPVerification() {
             <Button
               onClick={handleSendOTP}
               disabled={loading || phone.length < 10}
-              className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-3xl font-black uppercase italic text-lg shadow-2xl shadow-primary/20 transition-all group"
+              className="w-full h-14 bg-[#5f259f] hover:bg-[#4d1e82] text-white rounded-2xl font-black uppercase italic shadow-xl shadow-[#5f259f]/20 transition-all active:scale-95 flex items-center justify-center gap-3"
             >
               {loading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <span className="flex items-center gap-3">
+                <>
                   CONTINUE
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </span>
+                  <ArrowRight className="h-4 w-4" />
+                </>
               )}
             </Button>
           </div>
         ) : (
           <div className="space-y-12">
-            <div className="flex justify-between gap-3">
+            <div className="flex justify-between gap-2">
               {otp.map((digit, idx) => (
                 <input
                   key={idx}
@@ -195,7 +210,7 @@ export function OTPVerification() {
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  className="w-full h-14 bg-gray-50 border-none rounded-2xl text-center text-2xl font-black italic text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full h-12 bg-gray-50 border-none rounded-xl text-center text-xl font-black italic text-foreground outline-none focus:ring-1 focus:ring-[#5f259f]/20 transition-all"
                 />
               ))}
             </div>
@@ -204,16 +219,16 @@ export function OTPVerification() {
               <Button
                 onClick={handleVerifyOTP}
                 disabled={loading || otp.join('').length < 6}
-                className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-3xl font-black uppercase italic text-lg shadow-2xl shadow-primary/20"
+                className="w-full h-14 bg-[#5f259f] hover:bg-[#4d1e82] text-white rounded-2xl font-black uppercase italic shadow-xl shadow-[#5f259f]/20 transition-all active:scale-95"
               >
-                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'VERIFY CODE'}
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'VERIFY CODE'}
               </Button>
               
               <button 
                 onClick={() => setStep('phone')}
-                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+                className="w-full text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-[#5f259f] transition-colors"
               >
-                RESEND OTP IN 00:30
+                REQUEST NEW CODE
               </button>
             </div>
           </div>
@@ -221,7 +236,7 @@ export function OTPVerification() {
       </div>
 
       <div className="mt-auto text-center pb-8 opacity-20">
-        <p className="text-[10px] font-black uppercase tracking-[0.5em]">ShopyKart Secure</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Platform</p>
       </div>
     </div>
   );

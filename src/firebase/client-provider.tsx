@@ -14,23 +14,22 @@ interface FirebaseClientProviderProps {
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [instances, setInstances] = useState<{
-    app: FirebaseApp;
-    firestore: Firestore;
-    auth: Auth;
+    firebaseApp: FirebaseApp | null;
+    firestore: Firestore | null;
+    auth: Auth | null;
   } | null>(null);
 
   useEffect(() => {
     // Initialize Firebase only on the client
-    setInstances(initializeFirebase());
+    const results = initializeFirebase();
+    setInstances(results as any);
   }, []);
 
-  // During SSR or before hydration, instances will be null.
-  // The provider handles null values gracefully via its context.
   return (
     <FirebaseProvider 
-      firebaseApp={instances?.app as any} 
-      firestore={instances?.firestore as any} 
-      auth={instances?.auth as any}
+      firebaseApp={instances?.firebaseApp || null} 
+      firestore={instances?.firestore || null} 
+      auth={instances?.auth || null}
     >
       {children}
     </FirebaseProvider>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -8,14 +9,14 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // Show splash for 1.2 seconds to give a premium feel
+    // PhonePe style splash duration
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 1200);
+    }, 1500);
 
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 2000);
+    }, 2200);
 
     return () => {
       clearTimeout(timer);
@@ -44,16 +45,16 @@ export function SplashScreen() {
               <span className="opacity-60 ml-0.5">KART</span>
             </h1>
             <div className="w-12 h-1 bg-white/20 mt-6 rounded-full overflow-hidden">
-               <div className="h-full bg-white animate-shimmer" style={{ width: '40%' }} />
+               <div className="h-full bg-white animate-pulse" style={{ width: '100%' }} />
             </div>
           </div>
         </div>
       </div>
       
-      {/* Bottom Footer like PhonePe */}
+      {/* PhonePe Style Footer */}
       <div className={cn(
         "absolute bottom-12 transition-all duration-1000 delay-300",
-        isVisible ? "opacity-40 translate-y-0" : "opacity-0 translate-y-4"
+        isVisible ? "opacity-60 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">
           Made in India
