@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Copy, Loader2, Tag } from 'lucide-react';
@@ -35,6 +34,7 @@ export function OffersSection() {
 
   const { data: dbCoupons, loading } = useCollection(couponsQuery);
 
+  // Fallback to mock coupons if db is empty
   const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
 
   const handleCopy = (code: string) => {

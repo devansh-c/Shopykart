@@ -73,18 +73,14 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border border-[#C5A021]/30 shadow-[0_8px_30px_rgba(0,0,0,0.02)] transition-all duration-300 relative overflow-hidden;
+  @apply bg-white rounded-[2rem] border-2 border-[#C5A021] shadow-[0_12px_40px_rgba(197,160,33,0.18)] transition-all duration-300 relative overflow-hidden;
 }
 
-.premium-card:hover {
-  @apply border-[#C5A021] shadow-[0_20px_40px_rgba(197,160,33,0.15)] -translate-y-1.5;
+.premium-card:active {
+  @apply shadow-[0_20px_60px_rgba(197,160,33,0.25)] -translate-y-1;
 }
 
 .premium-card::after {
   content: '';
   @apply absolute inset-0 pointer-events-none rounded-[2rem] border border-transparent transition-colors duration-300;
-}
-
-.premium-card:hover::after {
-  @apply border-[#C5A021]/20;
 }

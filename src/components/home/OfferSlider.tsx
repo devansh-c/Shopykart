@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -38,6 +37,7 @@ export function OfferSlider() {
 
   const { data: dbBanners, loading } = useCollection(bannersQuery);
 
+  // Fallback to mock banners if db is empty
   const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
 
   if (loading && !dbBanners) {

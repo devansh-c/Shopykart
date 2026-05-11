@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -9,7 +8,7 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // Set to 2.5 seconds as requested
+    // Set to 2.5 seconds exactly as requested
     const timer = setTimeout(() => {
       setIsVisible(false);
     }, 2500);
