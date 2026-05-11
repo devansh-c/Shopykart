@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,13 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
@@ -25,6 +32,7 @@ const categories = [
 export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('recommended');
   const [requestText, setRequestText] = useState('');
   const { cart, addToCart, removeFromCart, addCustomRequest } = useCart();
   const { toast } = useToast();
@@ -32,15 +40,35 @@ export default function MenuPage() {
   const firestore = useFirestore();
   const { data: dbProducts, loading } = useCollection(firestore ? collection(firestore, 'products') : null);
 
-  const filteredProducts = useMemo(() => {
+  const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
-    return dbProducts.filter((product: any) => {
+    
+    // Filtering
+    let result = dbProducts.filter((product: any) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, activeCategory, dbProducts]);
+
+    // Sorting
+    switch (sortBy) {
+      case 'price-low':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case 'name':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      default:
+        // 'recommended' - currently stays as fetched (could be sorted by createdAt or featured badge)
+        break;
+    }
+
+    return result;
+  }, [searchQuery, activeCategory, sortBy, dbProducts]);
 
   const handleCustomRequest = () => {
     if (!requestText.trim()) return;
@@ -54,7 +82,7 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-40">
-      <div className="px-6 pt-12 pb-4">
+      <div className="px-6 pt-12 pb-4 flex items-center justify-between">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">Menu</h1>
       </div>
       
@@ -65,41 +93,58 @@ export default function MenuPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder='Search menu...' 
-            className="pl-12 h-14 bg-white border-none rounded-2xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
+            className="pl-12 h-14 bg-white border-none rounded-full text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
           />
         </div>
       </div>
 
-      <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar mb-8">
-        {categories.map((cat) => (
-          <button 
-            key={cat.id} 
-            onClick={() => setActiveCategory(cat.id)}
-            className="flex flex-col items-center space-y-2 min-w-[70px] relative"
-          >
-            <div className={cn(
-              "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
-              activeCategory === cat.id ? "border-primary scale-110 shadow-lg" : "border-transparent bg-white shadow-sm"
-            )}>
-              <img
-                src={`https://picsum.photos/seed/${cat.id}/100/100`}
-                alt={cat.name}
-                className="w-full h-full object-cover"
-              />
-              {cat.badge && activeCategory === cat.id && (
-                 <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm translate-x-1 translate-y-1">
-                  <span className="text-[10px]">{cat.badge}</span>
-                </div>
-              )}
-            </div>
-            <span className={cn(
-              "text-[10px] font-black uppercase tracking-widest transition-colors",
-              activeCategory === cat.id ? "text-primary" : "text-muted-foreground"
-            )}>
-              {cat.name}
-            </span>
-          </button>
-        ))}
+      <div className="flex items-center justify-between px-6 mb-4">
+        <div className="flex overflow-x-auto space-x-6 no-scrollbar flex-1 mr-4">
+          {categories.map((cat) => (
+            <button 
+              key={cat.id} 
+              onClick={() => setActiveCategory(cat.id)}
+              className="flex flex-col items-center space-y-2 min-w-[70px] relative"
+            >
+              <div className={cn(
+                "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
+                activeCategory === cat.id ? "border-primary scale-110 shadow-lg" : "border-transparent bg-white shadow-sm"
+              )}>
+                <img
+                  src={`https://picsum.photos/seed/${cat.id}/100/100`}
+                  alt={cat.name}
+                  className="w-full h-full object-cover"
+                />
+                {cat.badge && activeCategory === cat.id && (
+                  <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm translate-x-1 translate-y-1">
+                    <span className="text-[10px]">{cat.badge}</span>
+                  </div>
+                )}
+              </div>
+              <span className={cn(
+                "text-[10px] font-black uppercase tracking-widest transition-colors",
+                activeCategory === cat.id ? "text-primary" : "text-muted-foreground"
+              )}>
+                {cat.name}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="shrink-0">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[120px] h-10 rounded-xl bg-white border-none shadow-sm font-black text-[10px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20">
+              <SlidersHorizontal className="h-3 w-3 mr-2" />
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-none shadow-2xl">
+              <SelectItem value="recommended" className="text-[10px] font-black uppercase">Recommended</SelectItem>
+              <SelectItem value="price-low" className="text-[10px] font-black uppercase">Price: Low-High</SelectItem>
+              <SelectItem value="price-high" className="text-[10px] font-black uppercase">Price: High-Low</SelectItem>
+              <SelectItem value="name" className="text-[10px] font-black uppercase">Name: A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="px-6 space-y-4">
@@ -107,8 +152,8 @@ export default function MenuPage() {
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : filteredProducts.length > 0 ? (
-          filteredProducts.map((product: any) => {
+        ) : filteredAndSortedProducts.length > 0 ? (
+          filteredAndSortedProducts.map((product: any) => {
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const imageUrl = product.imageUrl || "https://picsum.photos/400/300";
