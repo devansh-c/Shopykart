@@ -11,11 +11,11 @@ export function SplashScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 2800);
+    }, 3000);
 
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 3500);
+    }, 3800);
 
     return () => {
       clearTimeout(timer);
@@ -28,35 +28,34 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[200] bg-[#5f259f] flex flex-col items-center justify-center transition-all duration-700 ease-in-out",
+        "fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-1000 ease-in-out",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div className="relative flex flex-col items-center">
         <div className={cn(
           "transition-all duration-1000 transform flex flex-col items-center",
-          isVisible ? "scale-100 opacity-100" : "scale-110 opacity-0"
+          isVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}>
-          {/* PhonePe Style Minimalist Logo */}
-          <div className="flex flex-col items-center">
-            <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none text-white">
-              <span>SHOPY</span>
-              <span className="text-white/40 ml-1">KART</span>
+          {/* Screenshot Style Capsule Logo */}
+          <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-sm shadow-[0_0_30px_rgba(197,160,33,0.15)] flex flex-col items-center">
+            <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
+              <span className="text-white">SHOPY</span>
+              <span className="text-[#C5A021]">KART</span>
             </h1>
-            <div className="mt-6 w-8 h-1 bg-white/20 rounded-full overflow-hidden">
-               <div className="h-full bg-white animate-shimmer" style={{ width: '100%' }} />
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mt-4">
+              QUALITY FIRST
+            </span>
           </div>
         </div>
       </div>
       
+      {/* Subtle bottom detail */}
       <div className={cn(
-        "absolute bottom-12 transition-all duration-1000 delay-300 flex flex-col items-center",
+        "absolute bottom-12 transition-all duration-1000 delay-500",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">
-          Handcrafted in India
-        </p>
+        <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-[#C5A021]/30 to-transparent" />
       </div>
     </div>
   );
