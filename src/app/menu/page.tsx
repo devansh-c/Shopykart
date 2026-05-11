@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from 'react';
@@ -151,7 +150,7 @@ export default function MenuPage() {
         </div>
       </div>
 
-      <div className="px-6 space-y-4">
+      <div className="px-6 space-y-6">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -186,7 +185,7 @@ export default function MenuPage() {
                       loading="lazy"
                     />
                   </Link>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2">
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2 z-20">
                     {quantity === 0 ? (
                       <button 
                         onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}

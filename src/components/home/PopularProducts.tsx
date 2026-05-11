@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from 'react';
@@ -59,7 +58,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           <div className="text-amber-500 shrink-0">
             <Zap className="h-4 w-4 fill-current" />
           </div>
-          <h2 className="text-base font-black tracking-tight text-[#1C1C1C] whitespace-nowrap">Popular Right Now</h2>
+          <h2 className="text-base font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular Right Now</h2>
         </div>
         
         <div className="shrink-0 ml-2">
@@ -90,7 +89,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             return (
               <div 
                 key={product.id}
-                className="bg-white p-6 rounded-[1.5rem] flex justify-between items-start border border-gray-100 shadow-sm relative overflow-hidden group"
+                className="premium-card p-6 flex justify-between items-start"
               >
                 <div className="flex-1 pr-4">
                   <div className="mb-2">
@@ -115,11 +114,11 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     />
                   </Link>
                   
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[85%]">
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                     {quantity === 0 ? (
                       <button 
                         onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] shadow-md font-bold text-sm uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
+                        className="w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
                       >
                         ADD <span className="text-lg font-light">+</span>
                       </button>
@@ -144,7 +143,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
                   <button 
                     onClick={() => toggleWishlist(product.id)}
-                    className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all"
+                    className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20"
                   >
                     <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
                   </button>

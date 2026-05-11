@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,7 +73,12 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border border-border shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300;
+  @apply bg-white rounded-[2rem] border border-border shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 relative overflow-hidden;
+}
+
+.premium-card::before {
+  content: '';
+  @apply absolute top-0 left-0 right-0 h-[3px] bg-[#C5A021] z-10 opacity-80;
 }
 
 .premium-card:hover {
