@@ -7,21 +7,21 @@ import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { FirebaseClientProvider, useUser } from '@/firebase';
-import { OTPVerification } from '@/components/auth/OTPVerification';
+import { EmailAuth } from '@/components/auth/EmailAuth';
 import { usePathname } from 'next/navigation';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const pathname = usePathname();
 
-  // Don't show OTP on admin pages or during initial auth check
+  // Don't show Auth on admin pages or during initial auth check
   const isAdminPage = pathname?.startsWith('/admin');
-  const showOTP = !authLoading && !user && !isAdminPage;
+  const showAuth = !authLoading && !user && !isAdminPage;
 
   return (
     <div className="relative min-h-screen">
-      {showOTP && <OTPVerification />}
-      <div className={showOTP ? "hidden" : ""}>
+      {showAuth && <EmailAuth />}
+      <div className={showAuth ? "hidden" : ""}>
         {children}
         <FloatingCart />
       </div>
