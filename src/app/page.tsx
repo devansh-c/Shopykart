@@ -22,14 +22,15 @@ export default function Home() {
       {!searchQuery && (
         <div className="mt-6 space-y-6">
           <OfferSlider />
-          
-          {/* Categories moved back to its original standard position */}
-          <div className="bg-white py-2 rounded-[2rem] mx-4 shadow-sm border border-border/40">
-            <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-          </div>
-
           <ComboSection />
           <OffersSection />
+        </div>
+      )}
+
+      {/* Categories moved to be right above Trending Now (PopularProducts) */}
+      {!searchQuery && (
+        <div className="bg-white py-2 rounded-[2rem] mx-4 mt-6 shadow-sm border border-border/40">
+          <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
         </div>
       )}
 
