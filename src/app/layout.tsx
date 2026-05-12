@@ -9,12 +9,12 @@ import { SplashScreen } from '@/components/shared/SplashScreen';
 import { FirebaseClientProvider, useUser } from '@/firebase';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { usePathname } from 'next/navigation';
+import { LocationRequest } from '@/components/shared/LocationRequest';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const pathname = usePathname();
 
-  // Don't show Auth on admin pages or during initial auth check
   const isAdminPage = pathname?.startsWith('/admin');
   const showAuth = !authLoading && !user && !isAdminPage;
 
@@ -22,6 +22,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen">
       {showAuth && <EmailAuth />}
       <div className={showAuth ? "hidden" : ""}>
+        <LocationRequest />
         {children}
         <FloatingCart />
       </div>

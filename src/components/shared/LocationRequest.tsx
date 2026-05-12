@@ -23,9 +23,14 @@ export function LocationRequest() {
     // Check if location is already in localStorage to avoid repeated prompts
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
-      const timer = setTimeout(() => setOpen(true), 1500); // Small delay after splash
+      const timer = setTimeout(() => setOpen(true), 1500);
       return () => clearTimeout(timer);
     }
+
+    // Listen for manual trigger to change location
+    const handleOpen = () => setOpen(true);
+    window.addEventListener('open-location-picker', handleOpen);
+    return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
   const handleGetLocation = async () => {
@@ -44,7 +49,6 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
 
         try {
-          // Reverse geocoding using OpenStreetMap (Free, no key required)
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
@@ -73,14 +77,14 @@ export function LocationRequest() {
                 errorEmitter.emit('permission-error', permissionError);
               });
 
-            // Save human-readable address for the UI
             localStorage.setItem('user_address', address);
             localStorage.setItem('user_location_set', 'true');
             
             setSuccess(true);
             setTimeout(() => {
               setOpen(false);
-              window.location.reload(); // Refresh to update header address
+              setSuccess(false);
+              window.location.reload(); 
             }, 1500);
           }
         } catch (error) {
@@ -106,7 +110,7 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-[2.5rem] max-w-sm border-none shadow-2xl overflow-hidden">
+      <DialogContent className="rounded-[2.5rem] max-w-sm border-none shadow-2xl overflow-hidden z-[150]">
         <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
         <DialogHeader className="pt-6">
           <div className="mx-auto bg-primary/10 h-20 w-20 rounded-full flex items-center justify-center mb-4">

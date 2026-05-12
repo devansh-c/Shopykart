@@ -65,11 +65,14 @@ export function LocationHeader({
   useEffect(() => {
     const savedAddress = localStorage.getItem('user_address');
     if (savedAddress) {
-      // Show only city or neighborhood for a cleaner header
       const parts = savedAddress.split(',');
       setCurrentAddress(parts[0] || savedAddress);
     }
   }, []);
+
+  const handleChangeLocation = () => {
+    window.dispatchEvent(new CustomEvent('open-location-picker'));
+  };
 
   const handleCameraClick = () => {
     fileInputRef.current?.click();
@@ -170,7 +173,6 @@ export function LocationHeader({
 
   return (
     <div className="w-full">
-      {/* Address Bar */}
       <div className="bg-[#0B0B0B] px-4 pt-3 pb-1 flex items-center justify-between">
         <div className="flex items-center gap-2 max-w-[70%]">
           <div className="bg-primary/20 p-1.5 rounded-lg">
@@ -181,7 +183,10 @@ export function LocationHeader({
             <span className="text-white text-[11px] font-bold truncate tracking-tight">{currentAddress}</span>
           </div>
         </div>
-        <button className="text-primary text-[10px] font-black uppercase tracking-widest hover:bg-white/5 px-2 py-1 rounded-lg">
+        <button 
+          onClick={handleChangeLocation}
+          className="text-primary text-[10px] font-black uppercase tracking-widest hover:bg-white/5 px-2 py-1 rounded-lg transition-colors"
+        >
           Change
         </button>
       </div>
