@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -65,7 +64,6 @@ export function LocationHeader({
   useEffect(() => {
     const savedAddress = localStorage.getItem('user_address');
     if (savedAddress) {
-      // Show first part of address for cleanliness
       const parts = savedAddress.split(',');
       setCurrentAddress(parts[0] || savedAddress);
     } else {
@@ -74,7 +72,6 @@ export function LocationHeader({
   }, []);
 
   const handleChangeLocation = () => {
-    // Trigger the global LocationRequest dialog
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
@@ -308,18 +305,18 @@ export function LocationHeader({
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search favorites..."
-              className="h-10 bg-[#1A1A1A] border-none rounded-full pl-11 pr-20 text-sm text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+              className="h-10 bg-white border-none rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-white'}`}>
+              <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-primary'}`}>
                 <Mic className="h-3.5 w-3.5" />
               </button>
-              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-white rounded-xl transition-all active:scale-90 disabled:opacity-50">
+              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-primary rounded-xl transition-all active:scale-90 disabled:opacity-50">
                 {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
             </div>
