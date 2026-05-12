@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from 'react';
@@ -116,12 +115,12 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                       {quantity === 0 ? (
                         <button 
                           onClick={() => addToCart({ ...product, imageUrl })}
-                          className="w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
+                          className="w-full h-10 bg-white text-primary border-[1.5px] border-primary shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
                         >
                           ADD <span className="text-lg font-light">+</span>
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between w-full h-10 bg-white text-[#E12B3B] border-[1.5px] border-[#E12B3B] rounded-xl shadow-md overflow-hidden">
+                        <div className="flex items-center justify-between w-full h-10 bg-white text-primary border-[1.5px] border-primary rounded-xl shadow-md overflow-hidden">
                           <button 
                             onClick={() => removeFromCart(product.id)}
                             className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
