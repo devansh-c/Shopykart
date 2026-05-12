@@ -67,14 +67,7 @@ export default function ProductDetailsPage() {
       url: typeof window !== 'undefined' ? window.location.href : '',
     };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.error('Error sharing:', err);
-      }
-    } else {
-      // Fallback: Copy to clipboard
+    const copyToClipboard = async () => {
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast({
@@ -88,6 +81,18 @@ export default function ProductDetailsPage() {
           description: "Could not copy the link.",
         });
       }
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // Fallback if permission is denied or sharing fails
+        await copyToClipboard();
+      }
+    } else {
+      // Fallback if sharing is not supported
+      await copyToClipboard();
     }
   };
 
