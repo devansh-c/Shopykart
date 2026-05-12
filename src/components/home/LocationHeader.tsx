@@ -321,7 +321,7 @@ export function LocationHeader({
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={`Search for "${SEARCH_SUGGESTIONS[suggestionIndex]}"`}
-              className="h-10 bg-white border-none rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all animate-in fade-in duration-500"
+              className="h-10 bg-white border border-gray-100 rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all animate-in fade-in duration-500"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-primary'}`}>
