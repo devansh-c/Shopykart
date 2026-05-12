@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
 import { allProducts } from '@/lib/mock-data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ChevronLeft, Minus, Plus, Star } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
@@ -60,6 +60,37 @@ export default function ProductDetailsPage() {
     toast({ title: "Added to Cart", description: `${product.name} added successfully.` });
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: `Check out this delicious ${product.name} on ShopyKart!`,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copied",
+          description: "Product link has been copied to your clipboard.",
+        });
+      } catch (err) {
+        toast({
+          variant: "destructive",
+          title: "Failed to Copy",
+          description: "Could not copy the link.",
+        });
+      }
+    }
+  };
+
   const handleSubmitReview = () => {
     if (userRating === 0) {
       toast({ variant: "destructive", title: "Error", description: "Please select a rating." });
@@ -77,7 +108,10 @@ export default function ProductDetailsPage() {
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors">
           <ChevronLeft className="h-6 w-6" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight mr-10">Item Details</h1>
+        <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">Item Details</h1>
+        <button onClick={handleShare} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors">
+          <Share2 className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Product Image Section */}
