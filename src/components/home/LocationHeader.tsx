@@ -47,7 +47,7 @@ type LocationHeaderProps = {
   onSearchChange: (val: string) => void;
 };
 
-const SEARCH_SUGGESTIONS = ["Pizza", "Burger", "Pasta", "Grossly", "Shopykart"];
+const SEARCH_SUGGESTIONS = ["Pizza", "Burger", "Chowmin", "Glossary"];
 
 export function LocationHeader({
   searchValue,
@@ -60,7 +60,13 @@ export function LocationHeader({
   const [customReqOpen, setCustomReqOpen] = useState(false);
   const [customText, setCustomText] = useState('');
   const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
+  
+  // Typewriter States
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [typingSpeed, setTypingSpeed] = useState(150);
+
   const { toast } = useToast();
   const router = useRouter();
 
@@ -74,13 +80,37 @@ export function LocationHeader({
     }
   }, []);
 
-  // Animated Placeholder Logic
+  // Typewriter Logic
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSuggestionIndex((prev) => (prev + 1) % SEARCH_SUGGESTIONS.length);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
+    const handleTyping = () => {
+      const fullText = SEARCH_SUGGESTIONS[suggestionIndex];
+      
+      if (!isDeleting) {
+        // Typing
+        setDisplayText(fullText.substring(0, displayText.length + 1));
+        setTypingSpeed(150);
+        
+        if (displayText === fullText) {
+          // Pause at the end of the word
+          setTypingSpeed(1500); 
+          setIsDeleting(true);
+        }
+      } else {
+        // Deleting
+        setDisplayText(fullText.substring(0, displayText.length - 1));
+        setTypingSpeed(75);
+        
+        if (displayText === '') {
+          setIsDeleting(false);
+          setSuggestionIndex((prev) => (prev + 1) % SEARCH_SUGGESTIONS.length);
+          setTypingSpeed(200); // Small pause before next word starts
+        }
+      }
+    };
+
+    const timer = setTimeout(handleTyping, typingSpeed);
+    return () => clearTimeout(timer);
+  }, [displayText, isDeleting, suggestionIndex, typingSpeed]);
 
   const handleChangeLocation = () => {
     window.dispatchEvent(new CustomEvent('open-location-picker'));
@@ -320,8 +350,8 @@ export function LocationHeader({
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={`Search for "${SEARCH_SUGGESTIONS[suggestionIndex]}"`}
-              className="h-10 bg-white border border-gray-100 rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all animate-in fade-in duration-500"
+              placeholder={`Search for "${displayText}"`}
+              className="h-10 bg-white border border-gray-100 rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-primary'}`}>
