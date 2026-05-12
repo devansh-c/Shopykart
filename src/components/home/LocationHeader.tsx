@@ -47,6 +47,8 @@ type LocationHeaderProps = {
   onSearchChange: (val: string) => void;
 };
 
+const SEARCH_SUGGESTIONS = ["Pizza", "Burger", "Pasta", "Grossly", "Shopykart"];
+
 export function LocationHeader({
   searchValue,
   onSearchChange,
@@ -58,6 +60,7 @@ export function LocationHeader({
   const [customReqOpen, setCustomReqOpen] = useState(false);
   const [customText, setCustomText] = useState('');
   const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -69,6 +72,14 @@ export function LocationHeader({
     } else {
       setCurrentAddress('Select Location');
     }
+  }, []);
+
+  // Animated Placeholder Logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSuggestionIndex((prev) => (prev + 1) % SEARCH_SUGGESTIONS.length);
+    }, 2500);
+    return () => clearInterval(interval);
   }, []);
 
   const handleChangeLocation = () => {
@@ -309,8 +320,8 @@ export function LocationHeader({
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search favorites..."
-              className="h-10 bg-white border-none rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+              placeholder={`Search for "${SEARCH_SUGGESTIONS[suggestionIndex]}"`}
+              className="h-10 bg-white border-none rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all animate-in fade-in duration-500"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-primary'}`}>
