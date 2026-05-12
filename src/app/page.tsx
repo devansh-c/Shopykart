@@ -10,6 +10,7 @@ import { ComboSection } from '@/components/home/ComboSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
+import { LocationRequest } from '@/components/shared/LocationRequest';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +18,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
+      <LocationRequest />
+      
       {/* Top Header with Integrated Search */}
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       

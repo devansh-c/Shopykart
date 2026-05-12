@@ -15,12 +15,13 @@ import {
   Gift,
   ChevronRight,
   LogOut,
+  MapPin,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { identifyFood } from '@/ai/flows/visual-search-flow';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -57,8 +58,18 @@ export function LocationHeader({
   const [isListening, setIsListening] = useState(false);
   const [customReqOpen, setCustomReqOpen] = useState(false);
   const [customText, setCustomText] = useState('');
+  const [currentAddress, setCurrentAddress] = useState('Select Location');
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    const savedAddress = localStorage.getItem('user_address');
+    if (savedAddress) {
+      // Show only city or neighborhood for a cleaner header
+      const parts = savedAddress.split(',');
+      setCurrentAddress(parts[0] || savedAddress);
+    }
+  }, []);
 
   const handleCameraClick = () => {
     fileInputRef.current?.click();
@@ -159,6 +170,22 @@ export function LocationHeader({
 
   return (
     <div className="w-full">
+      {/* Address Bar */}
+      <div className="bg-[#0B0B0B] px-4 pt-3 pb-1 flex items-center justify-between">
+        <div className="flex items-center gap-2 max-w-[70%]">
+          <div className="bg-primary/20 p-1.5 rounded-lg">
+            <MapPin className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <div className="flex flex-col truncate">
+            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Delivering to</span>
+            <span className="text-white text-[11px] font-bold truncate tracking-tight">{currentAddress}</span>
+          </div>
+        </div>
+        <button className="text-primary text-[10px] font-black uppercase tracking-widest hover:bg-white/5 px-2 py-1 rounded-lg">
+          Change
+        </button>
+      </div>
+
       <div className="bg-[#0B0B0B] p-3 flex flex-col gap-3 rounded-none shadow-2xl border-b border-white/5">
         <div className="flex items-center justify-between gap-2">
           <Logo className="flex-shrink-0" />

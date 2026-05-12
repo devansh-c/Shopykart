@@ -42,6 +42,23 @@
         "status": { "type": "string", "enum": ["Preparing", "Out for Delivery", "Delivered"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Extended information about the user including location",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" },
+            "address": { "type": "string" },
+            "updatedAt": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -59,6 +76,10 @@
     "/orders/{orderId}": {
       "schema": "#/entities/Order",
       "description": "Collection of customer orders"
+    },
+    "/users/{userId}/profile": {
+      "schema": "#/entities/UserProfile",
+      "description": "User specific data and location"
     },
     "/stats/summary": {
       "schema": "object",
