@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
+import { MapPin, Navigation, Loader2, CheckCircle2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore } from '@/firebase';
@@ -23,7 +23,7 @@ export function LocationRequest() {
     // Check if location is already in localStorage to avoid repeated prompts
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
-      const timer = setTimeout(() => setOpen(true), 1500);
+      const timer = setTimeout(() => setOpen(true), 2000);
       return () => clearTimeout(timer);
     }
 
@@ -49,6 +49,7 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
 
         try {
+          // Using Nominatim (OpenStreetMap) for reverse geocoding
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
@@ -67,6 +68,7 @@ export function LocationRequest() {
               updatedAt: serverTimestamp(),
             };
 
+            // Save to Firestore
             setDoc(userRef, locationData, { merge: true })
               .catch(async (err) => {
                 const permissionError = new FirestorePermissionError({
@@ -77,21 +79,27 @@ export function LocationRequest() {
                 errorEmitter.emit('permission-error', permissionError);
               });
 
+            // Save to LocalStorage for immediate UI feedback
             localStorage.setItem('user_address', address);
             localStorage.setItem('user_location_set', 'true');
             
             setSuccess(true);
+            toast({
+              title: "Location Updated",
+              description: "We've detected your address accurately.",
+            });
+
             setTimeout(() => {
               setOpen(false);
               setSuccess(false);
               window.location.reload(); 
-            }, 1500);
+            }, 1000);
           }
         } catch (error) {
           toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'Could not fetch your address.',
+            description: 'Could not fetch your address. Please try manual entry.',
           });
         } finally {
           setLoading(false);
@@ -110,48 +118,60 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-[2.5rem] max-w-sm border-none shadow-2xl overflow-hidden z-[150]">
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
-        <DialogHeader className="pt-6">
-          <div className="mx-auto bg-primary/10 h-20 w-20 rounded-full flex items-center justify-center mb-4">
+      <DialogContent className="rounded-[2.5rem] max-w-sm border-none shadow-2xl overflow-hidden z-[150] bg-white p-0">
+        <div className="bg-primary h-1.5 w-full" />
+        
+        <div className="p-8">
+          <div className="mx-auto bg-primary/10 h-24 w-24 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner rotate-3 transition-transform hover:rotate-0">
             {success ? (
-              <CheckCircle2 className="h-10 w-10 text-green-500 animate-in zoom-in" />
+              <CheckCircle2 className="h-12 w-12 text-green-500 animate-in zoom-in" />
             ) : (
-              <MapPin className="h-10 w-10 text-primary animate-bounce" />
+              <MapPin className="h-12 w-12 text-primary animate-bounce" />
             )}
           </div>
-          <DialogTitle className="text-2xl font-black italic uppercase text-center tracking-tighter">
-            Where should we deliver?
-          </DialogTitle>
-          <DialogDescription className="text-center font-medium text-muted-foreground px-4">
-            Grant location access to see the best restaurants and deals near you.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex flex-col gap-3 pb-4">
-          <Button
-            onClick={handleGetLocation}
-            disabled={loading || success}
-            className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20"
-          >
-            {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : success ? (
-              'Location Set!'
-            ) : (
-              <>
-                <Navigation className="h-4 w-4 mr-2" />
-                USE CURRENT LOCATION
-              </>
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setOpen(false)}
-            className="w-full h-10 text-xs font-bold uppercase tracking-widest text-muted-foreground"
-          >
-            Enter location manually
-          </Button>
-        </DialogFooter>
+
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-3xl font-black italic uppercase text-center tracking-tighter leading-tight">
+              Where to <br /><span className="text-primary">Deliver?</span>
+            </DialogTitle>
+            <DialogDescription className="text-center font-medium text-muted-foreground px-2 text-sm">
+              We need your location to show you the best restaurants and active deals in your area.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-8 space-y-3">
+            <Button
+              onClick={handleGetLocation}
+              disabled={loading || success}
+              className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+            >
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : success ? (
+                'LOCATION DETECTED!'
+              ) : (
+                <>
+                  <Navigation className="h-4 w-4 mr-2" />
+                  USE MY CURRENT LOCATION
+                </>
+              )}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              onClick={() => setOpen(false)}
+              className="w-full h-12 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted/50 rounded-xl"
+            >
+              Enter Address Manually
+            </Button>
+          </div>
+        </div>
+
+        <div className="bg-muted/30 p-4 text-center">
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+            Privacy Guaranteed • Encrypted Connection
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

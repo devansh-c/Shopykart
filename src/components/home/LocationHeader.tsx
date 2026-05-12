@@ -58,19 +58,23 @@ export function LocationHeader({
   const [isListening, setIsListening] = useState(false);
   const [customReqOpen, setCustomReqOpen] = useState(false);
   const [customText, setCustomText] = useState('');
-  const [currentAddress, setCurrentAddress] = useState('Select Location');
+  const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     const savedAddress = localStorage.getItem('user_address');
     if (savedAddress) {
+      // Show first part of address for cleanliness
       const parts = savedAddress.split(',');
       setCurrentAddress(parts[0] || savedAddress);
+    } else {
+      setCurrentAddress('Select Location');
     }
   }, []);
 
   const handleChangeLocation = () => {
+    // Trigger the global LocationRequest dialog
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
