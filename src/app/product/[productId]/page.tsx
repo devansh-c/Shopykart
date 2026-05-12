@@ -10,7 +10,6 @@ import Image from 'next/image';
 import { useState, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { PopularProducts } from '@/components/home/PopularProducts';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -72,7 +71,7 @@ export default function ProductDetailsPage() {
         await navigator.clipboard.writeText(window.location.href);
         toast({
           title: "Link Copied",
-          description: "Product link has been copied to your clipboard.",
+          description: "Product link has been copied to your clipboard. Share it anywhere!",
         });
       } catch (err) {
         toast({
@@ -83,15 +82,18 @@ export default function ProductDetailsPage() {
       }
     };
 
+    // Try native share first (like Amazon/Flipkart)
     if (navigator.share) {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        // Fallback if permission is denied or sharing fails
-        await copyToClipboard();
+        // If user cancelled, do nothing. For other errors (like permission denied), fallback to copy.
+        if (err instanceof Error && err.name !== 'AbortError') {
+          await copyToClipboard();
+        }
       }
     } else {
-      // Fallback if sharing is not supported
+      // Fallback for browsers that don't support Web Share API
       await copyToClipboard();
     }
   };
@@ -114,7 +116,10 @@ export default function ProductDetailsPage() {
           <ChevronLeft className="h-6 w-6" />
         </button>
         <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">Item Details</h1>
-        <button onClick={handleShare} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors">
+        <button 
+          onClick={handleShare} 
+          className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors text-foreground active:scale-90"
+        >
           <Share2 className="h-5 w-5" />
         </button>
       </div>
