@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 const categories = [
   { id: 'all', name: 'All', imageId: 'category-all' },
+  { id: 'snacks', name: 'Snacks', imageId: 'category-snacks', badge: '🥟' },
   { id: 'pizza', name: 'Pizza', imageId: 'category-pizza', badge: '🍕' },
   { id: 'burgers', name: 'Burgers', imageId: 'category-burger', badge: '🍔' },
   { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },

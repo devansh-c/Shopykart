@@ -8,106 +8,40 @@
       "imageHint": "gourmet burger"
     },
     {
-      "id": "starter-combo",
-      "description": "ShopyKart Mega Combo",
-      "imageUrl": "https://picsum.photos/seed/shopy-combo/400/400",
-      "imageHint": "food combo"
-    },
-    {
-      "id": "category-all",
-      "description": "Full Menu",
-      "imageUrl": "https://picsum.photos/seed/shopy-all/100/100",
-      "imageHint": "restaurant menu"
+      "id": "category-snacks",
+      "description": "Local Snacks",
+      "imageUrl": "https://picsum.photos/seed/snacks-cat/100/100",
+      "imageHint": "indian snacks"
     },
     {
       "id": "category-pizza",
       "description": "Artisanal Pizzas",
       "imageUrl": "https://picsum.photos/seed/shopy-piz/100/100",
-      "imageHint": "pizza oven"
+      "imageHint": "pizza"
     },
     {
       "id": "category-burger",
       "description": "Premium Burgers",
       "imageUrl": "https://picsum.photos/seed/shopy-burg/100/100",
-      "imageHint": "burger patty"
+      "imageHint": "burger"
     },
     {
       "id": "category-pasta",
       "description": "Italian Pastas",
       "imageUrl": "https://picsum.photos/seed/shopy-pasta/100/100",
-      "imageHint": "pasta dish"
+      "imageHint": "pasta"
     },
     {
       "id": "category-fries",
       "description": "Sides & Fries",
       "imageUrl": "https://picsum.photos/seed/shopy-fries/100/100",
-      "imageHint": "french fries"
+      "imageHint": "fries"
     },
     {
       "id": "category-drinks",
       "description": "Coolers & Shakes",
       "imageUrl": "https://picsum.photos/seed/shopy-drink/100/100",
       "imageHint": "beverages"
-    },
-    {
-      "id": "prod-fries",
-      "description": "Loaded Peri-Peri Fries",
-      "imageUrl": "https://picsum.photos/seed/shopy-fries-1/300/300",
-      "imageHint": "peri peri fries"
-    },
-    {
-      "id": "prod-pasta-red",
-      "description": "Pink Sauce Pasta",
-      "imageUrl": "https://picsum.photos/seed/shopy-pasta-1/300/300",
-      "imageHint": "red penne pasta"
-    },
-    {
-      "id": "prod-pasta-white",
-      "description": "Truffle White Pasta",
-      "imageUrl": "https://picsum.photos/seed/shopy-pasta-2/300/300",
-      "imageHint": "creamy pasta"
-    },
-    {
-      "id": "prod-burger-classic",
-      "description": "Signature Burger",
-      "imageUrl": "https://picsum.photos/seed/shopy-burg-1/300/300",
-      "imageHint": "veggie burger"
-    },
-    {
-      "id": "prod-pizza-margherita",
-      "description": "Exotic Paneer Pizza",
-      "imageUrl": "https://picsum.photos/seed/shopy-pizza-1/300/300",
-      "imageHint": "paneer pizza"
-    },
-    {
-      "id": "prod-drink-mojito",
-      "description": "Virgin Mojito Crush",
-      "imageUrl": "https://picsum.photos/seed/shopy-mojito/300/300",
-      "imageHint": "mojito drink"
-    },
-    {
-      "id": "store-1",
-      "description": "The Gourmet Kitchen",
-      "imageUrl": "https://picsum.photos/seed/store1/600/400",
-      "imageHint": "luxury restaurant"
-    },
-    {
-      "id": "store-2",
-      "description": "Bun Burst Burgers",
-      "imageUrl": "https://picsum.photos/seed/store2/600/400",
-      "imageHint": "burger shop"
-    },
-    {
-      "id": "store-3",
-      "description": "Pizza Paradise",
-      "imageUrl": "https://picsum.photos/seed/store3/600/400",
-      "imageHint": "pizza house"
-    },
-    {
-      "id": "store-4",
-      "description": "Sweet Tooth Hub",
-      "imageUrl": "https://picsum.photos/seed/store4/600/400",
-      "imageHint": "dessert parlor"
     }
   ]
 }

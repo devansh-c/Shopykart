@@ -49,8 +49,12 @@ function MenuContent() {
   const { data: dbProducts, loading } = useCollection(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    if (!dbProducts) return [];
-    let result = dbProducts.filter((product: any) => {
+    // Fallback to mock data if Firestore is empty
+    const baseProducts = (dbProducts && dbProducts.length > 0) 
+      ? dbProducts 
+      : require('@/lib/mock-data').allProducts;
+
+    let result = baseProducts.filter((product: any) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
@@ -79,12 +83,13 @@ function MenuContent() {
   };
 
   const categories = [
-    { id: 'all', name: 'All', imageId: 'category-all' },
-    { id: 'pizza', name: 'Pizza', imageId: 'category-pizza', badge: '🍕' },
-    { id: 'burgers', name: 'Burgers', imageId: 'category-burger', badge: '🍔' },
-    { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },
-    { id: 'fries', name: 'Fries', imageId: 'category-fries', badge: '🍟' },
-    { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
+    { id: 'all', name: 'All' },
+    { id: 'snacks', name: 'Snacks', badge: '🥟' },
+    { id: 'pizza', name: 'Pizza', badge: '🍕' },
+    { id: 'burgers', name: 'Burgers', badge: '🍔' },
+    { id: 'pasta', name: 'Pasta', badge: '🍝' },
+    { id: 'fries', name: 'Fries', badge: '🍟' },
+    { id: 'drinks', name: 'Drinks', badge: '🥤' },
   ];
 
   return (
