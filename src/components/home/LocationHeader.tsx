@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -71,13 +72,28 @@ export function LocationHeader({
   const router = useRouter();
 
   useEffect(() => {
-    const savedAddress = localStorage.getItem('user_address');
-    if (savedAddress) {
-      const parts = savedAddress.split(',');
-      setCurrentAddress(parts[0] || savedAddress);
-    } else {
-      setCurrentAddress('Select Location');
-    }
+    const updateAddress = () => {
+      const savedAddress = localStorage.getItem('user_address');
+      if (savedAddress) {
+        // Show only the first part of the address in the header for cleanliness
+        const parts = savedAddress.split(',');
+        setCurrentAddress(parts[0].trim() || savedAddress);
+      } else {
+        setCurrentAddress('Select Location');
+      }
+    };
+
+    updateAddress();
+
+    // Listen for custom address update event
+    window.addEventListener('user-address-updated', updateAddress);
+    // Also listen for standard storage event (for cross-tab sync)
+    window.addEventListener('storage', updateAddress);
+
+    return () => {
+      window.removeEventListener('user-address-updated', updateAddress);
+      window.removeEventListener('storage', updateAddress);
+    };
   }, []);
 
   // Typewriter Logic
@@ -86,24 +102,21 @@ export function LocationHeader({
       const fullText = SEARCH_SUGGESTIONS[suggestionIndex];
       
       if (!isDeleting) {
-        // Typing
         setDisplayText(fullText.substring(0, displayText.length + 1));
         setTypingSpeed(150);
         
         if (displayText === fullText) {
-          // Pause at the end of the word
           setTypingSpeed(1500); 
           setIsDeleting(true);
         }
       } else {
-        // Deleting
         setDisplayText(fullText.substring(0, displayText.length - 1));
         setTypingSpeed(75);
         
         if (displayText === '') {
           setIsDeleting(false);
           setSuggestionIndex((prev) => (prev + 1) % SEARCH_SUGGESTIONS.length);
-          setTypingSpeed(200); // Small pause before next word starts
+          setTypingSpeed(200);
         }
       }
     };

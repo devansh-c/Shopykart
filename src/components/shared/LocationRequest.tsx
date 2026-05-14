@@ -48,20 +48,20 @@ export function LocationRequest() {
   }, [user]);
 
   const saveLocationToDB = async (location: any) => {
-    // 1. Instant Local Update (Optimistic)
+    // 1. Instant Local Update
     localStorage.setItem('user_address', location.address);
     localStorage.setItem('user_location_set', 'true');
     setSuccess(true);
     
-    // Trigger global UI update immediately
-    window.dispatchEvent(new Event('storage'));
+    // Dispatch custom event for real-time header update
+    window.dispatchEvent(new CustomEvent('user-address-updated', { detail: location.address }));
     
-    // Close dialog almost instantly for 2-second feel
+    // Close dialog quickly
     setTimeout(() => {
       setOpen(false);
       setSuccess(false);
       setLoading(false);
-    }, 600);
+    }, 800);
 
     // 2. Background Database Sync
     if (user && firestore) {
@@ -75,7 +75,7 @@ export function LocationRequest() {
         .catch(async (err) => {
           const permissionError = new FirestorePermissionError({
             path: userRef.path,
-            operation: 'update',
+            operation: 'write',
             requestResourceData: finalData,
           });
           errorEmitter.emit('permission-error', permissionError);
@@ -91,11 +91,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Top-tier apps use low accuracy for instant results via Wi-Fi/Cell
+    // High speed mode
     const geoOptions = {
       enableHighAccuracy: false, 
-      timeout: 3000, // Hard 3s limit
-      maximumAge: 1000 * 60 * 5 // Use location cached within last 5 mins
+      timeout: 3000,
+      maximumAge: Infinity 
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -103,9 +103,8 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Fast reverse geocode with 1.5s timeout
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -114,26 +113,23 @@ export function LocationRequest() {
           
           clearTimeout(timeoutId);
           const data = await response.json();
-          // Extract short, meaningful address parts
-          const address = data.address.suburb || data.address.neighbourhood || data.address.city || data.display_name.split(',')[0];
-          const fullAddress = `${address}, ${data.address.city || ''}`;
+          const address = data.address.suburb || data.address.neighbourhood || data.address.city_district || data.address.city || data.display_name.split(',')[0];
+          const fullAddress = `${address}, ${data.address.city || data.address.state || ''}`;
           
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
-          // Fallback if geocoding fails or is slow
           saveLocationToDB({ 
             latitude, 
             longitude, 
-            address: `Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
+            address: `Detected Area (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
             type: 'detected' 
           });
         }
       },
       (error) => {
         setLoading(false);
-        // If user blocked or GPS failed, switch to manual instantly
         setView('manual');
-        toast({ variant: 'destructive', title: 'Location Error', description: 'Permission denied or signal weak.' });
+        toast({ variant: 'destructive', title: 'Location Error', description: 'Please enter address manually.' });
       },
       geoOptions
     );
@@ -181,7 +177,7 @@ export function LocationRequest() {
                   </div>
                 ) : (
                   <div className="bg-green-100 p-2.5 rounded-full mx-2">
-                    <LocateFixed className="h-5 w-5" />
+                    <LocateFixed className="h-5 w-5 text-green-600" />
                   </div>
                 )}
                 <div className="flex flex-col items-start text-left">
@@ -189,7 +185,7 @@ export function LocationRequest() {
                     {success ? 'Location Detected!' : 'Use my current location'}
                   </span>
                   <span className="text-[10px] opacity-60 font-medium italic">
-                    {success ? 'Redirecting you now...' : 'Instant detection (2 seconds)'}
+                    {success ? 'Updating your delivery address...' : 'Fast detection (under 2s)'}
                   </span>
                 </div>
               </button>
@@ -201,7 +197,7 @@ export function LocationRequest() {
                 className="flex items-center gap-3 text-gray-700 font-bold text-sm py-3 hover:bg-gray-50 rounded-xl transition-all w-full"
               >
                 <div className="bg-gray-100 p-2 rounded-full mx-2">
-                  <PlusCircle className="h-4 w-4" />
+                  <PlusCircle className="h-4 w-4 text-gray-600" />
                 </div>
                 <span className="text-sm font-black uppercase tracking-tight">Add New Address</span>
               </button>
