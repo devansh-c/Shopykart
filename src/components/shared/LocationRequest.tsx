@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -48,7 +49,7 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  // Auto-fetch Town/State from Pincode with refined mapping
+  // Auto-fetch Town/State from Pincode with smart selection
   useEffect(() => {
     if (manualData.pincode.length === 6) {
       const fetchPincodeDetails = async () => {
@@ -58,22 +59,22 @@ export function LocationRequest() {
           const data = await response.json();
           
           if (data[0].Status === "Success") {
-            const details = data[0].PostOffice[0];
+            const postOffices = data[0].PostOffice;
             
-            // Priority: Name is the most specific town/locality name (e.g., Ranipur)
-            // Block is often the larger tehsil/block head (e.g., Mauranipur)
-            // We use Name to ensure 284205 shows Ranipur specifically.
-            const townName = details.Name;
+            // Smart Selection: Prioritize 'Sub Post Office' (Main Towns) over 'Branch Post Office' (Villages)
+            // This ensures 284205 picks Ranipur instead of small villages like Amanpura.
+            const mainTown = postOffices.find((po: any) => po.BranchType === "Sub Post Office") || postOffices[0];
+            const townName = mainTown.Name;
             
             setManualData(prev => ({
               ...prev,
               city: townName,
-              state: details.State
+              state: mainTown.State
             }));
             
             toast({
               title: "Town Detected",
-              description: `${townName}, ${details.State}`
+              description: `${townName}, ${mainTown.State}`
             });
           } else {
             toast({
@@ -93,22 +94,18 @@ export function LocationRequest() {
   }, [manualData.pincode, toast]);
 
   const saveLocationToDB = async (location: any) => {
-    // 1. Instant Local Update
     localStorage.setItem('user_address', location.address);
     localStorage.setItem('user_location_set', 'true');
     setSuccess(true);
     
-    // Dispatch custom event for real-time header update
     window.dispatchEvent(new CustomEvent('user-address-updated', { detail: location.address }));
     
-    // Close dialog quickly
     setTimeout(() => {
       setOpen(false);
       setSuccess(false);
       setLoading(false);
     }, 800);
 
-    // 2. Background Database Sync
     if (user && firestore) {
       const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
       const finalData = {
@@ -136,7 +133,6 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Fast Track Mode: High accuracy false for instant detection
     const geoOptions = {
       enableHighAccuracy: false, 
       timeout: 4000, 
@@ -260,7 +256,7 @@ export function LocationRequest() {
                 <div className="relative">
                   <Input 
                     placeholder="Enter Pincode" 
-                    className="rounded-xl h-12 bg-gray-50 border-none pl-4 pr-10" 
+                    className="rounded-xl h-12 bg-gray-50 border-none pl-4 pr-10 text-lg font-bold" 
                     value={manualData.pincode} 
                     maxLength={6}
                     onChange={(e) => setManualData({...manualData, pincode: e.target.value.replace(/\D/g, '')})} 
@@ -276,11 +272,11 @@ export function LocationRequest() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">Town/City</label>
-                    <Input placeholder="Town" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.city} onChange={(e) => setManualData({...manualData, city: e.target.value})} required />
+                    <Input placeholder="Town" className="rounded-xl h-12 bg-gray-50 border-none font-bold" value={manualData.city} onChange={(e) => setManualData({...manualData, city: e.target.value})} required />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">State</label>
-                    <Input placeholder="State" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.state} onChange={(e) => setManualData({...manualData, state: e.target.value})} required />
+                    <Input placeholder="State" className="rounded-xl h-12 bg-gray-50 border-none font-bold" value={manualData.state} onChange={(e) => setManualData({...manualData, state: e.target.value})} required />
                   </div>
                 </div>
 
