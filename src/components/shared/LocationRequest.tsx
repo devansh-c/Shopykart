@@ -59,16 +59,19 @@ export function LocationRequest() {
           
           if (data[0].Status === "Success") {
             const details = data[0].PostOffice[0];
-            // Prioritize Name (Town) and Block over District (City)
-            const townName = details.Name || details.Block || details.District;
+            // Prioritize Block (Town) as it is usually the more recognizable area name
+            // Fallback to Name if Block is not available
+            const townName = details.Block && details.Block !== "NA" ? details.Block : details.Name;
+            
             setManualData(prev => ({
               ...prev,
-              city: townName,
+              city: townName || details.District,
               state: details.State
             }));
+            
             toast({
-              title: "Town Detected",
-              description: `Located: ${townName}, ${details.State}`
+              title: "Location Detected",
+              description: `${townName || details.District}, ${details.State}`
             });
           } else {
             toast({
@@ -131,7 +134,6 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Fast Track Mode: High accuracy false for instant results from cell/wifi
     const geoOptions = {
       enableHighAccuracy: false, 
       timeout: 3000,
@@ -143,7 +145,6 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // 2s Timeout for geocoding
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2000);
 
@@ -159,7 +160,6 @@ export function LocationRequest() {
           
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
-          // If geocoding is slow or fails, save coordinates with generic name to stay under 4s
           saveLocationToDB({ 
             latitude, 
             longitude, 
@@ -207,27 +207,20 @@ export function LocationRequest() {
                 onClick={handleGetLocation}
                 disabled={loading}
                 className={cn(
-                  "flex items-center gap-3 font-bold text-sm py-4 rounded-2xl transition-all w-full disabled:opacity-80 border",
-                  success ? "bg-green-50 border-green-200 text-green-600" : "bg-white border-green-100 text-green-600 hover:bg-green-50"
+                  "flex items-center gap-3 font-bold text-sm py-2 transition-all w-full disabled:opacity-80",
+                  success ? "text-green-600" : "text-green-600 hover:bg-green-50 rounded-xl"
                 )}
               >
-                {loading && !success ? (
-                  <Loader2 className="h-5 w-5 animate-spin mx-4 text-green-600" />
-                ) : success ? (
-                  <div className="bg-green-600 p-2.5 rounded-full mx-2 animate-in zoom-in">
-                    <CheckCircle2 className="h-5 w-5 text-white" />
-                  </div>
-                ) : (
-                  <div className="bg-green-100 p-2.5 rounded-full mx-2">
+                <div className="bg-green-100 p-2.5 rounded-full mx-2 flex items-center justify-center">
+                  {loading && !success ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                  ) : (
                     <LocateFixed className="h-5 w-5 text-green-600" />
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="flex flex-col items-start text-left">
                   <span className="text-sm font-black uppercase tracking-tight">
                     {success ? 'Location Detected!' : 'Use my current location'}
-                  </span>
-                  <span className="text-[10px] opacity-60 font-medium italic">
-                    {success ? 'Updating your delivery address...' : 'Fast detection (under 2s)'}
                   </span>
                 </div>
               </button>
@@ -236,7 +229,7 @@ export function LocationRequest() {
 
               <button
                 onClick={() => setView('manual')}
-                className="flex items-center gap-3 text-gray-700 font-bold text-sm py-3 hover:bg-gray-50 rounded-xl transition-all w-full"
+                className="flex items-center gap-3 text-gray-700 font-bold text-sm py-2 hover:bg-gray-50 rounded-xl transition-all w-full"
               >
                 <div className="bg-gray-100 p-2 rounded-full mx-2">
                   <PlusCircle className="h-4 w-4 text-gray-600" />
