@@ -6,7 +6,7 @@ import { BottomNav } from '@/components/shared/BottomNav';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
-import { ComboSection } from '@/components/home/ComboSection';
+import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
@@ -27,7 +27,7 @@ export default function Home() {
           </ScrollReveal>
           
           <ScrollReveal direction="up" delay={200}>
-            <ComboSection />
+            <StoreSection />
           </ScrollReveal>
           
           <ScrollReveal direction="up" delay={300}>

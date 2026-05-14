@@ -12,12 +12,27 @@
         "category": { "type": "string" },
         "imageUrl": { "type": "string" },
         "isVeg": { "type": "boolean" },
+        "vendorId": { "type": "string" },
         "badges": {
           "type": "array",
           "items": { "type": "string", "enum": ["Best Seller", "Featured", "Trending"] }
         }
       },
       "required": ["name", "price", "category"]
+    },
+    "Store": {
+      "title": "Vendor Store",
+      "description": "Information about a restaurant or store vendor",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "rating": { "type": "number" },
+        "deliveryTime": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "isOpen": { "type": "boolean" }
+      },
+      "required": ["name", "imageUrl"]
     },
     "Banner": {
       "title": "Homepage Banner",
@@ -68,6 +83,10 @@
     "/products/{productId}": {
       "schema": "#/entities/Product",
       "description": "Collection of menu items"
+    },
+    "/stores/{storeId}": {
+      "schema": "#/entities/Store",
+      "description": "Collection of vendor stores"
     },
     "/banners/{bannerId}": {
       "schema": "#/entities/Banner",
