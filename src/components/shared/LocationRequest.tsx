@@ -59,19 +59,20 @@ export function LocationRequest() {
           
           if (data[0].Status === "Success") {
             const details = data[0].PostOffice[0];
-            // Prioritize Block (Town) as it is usually the more recognizable area name
-            // Fallback to Name if Block is not available
-            const townName = details.Block && details.Block !== "NA" ? details.Block : details.Name;
+            
+            // Priority: Name (Specific Town/Locality) > Block > District
+            // This ensures 284205 shows Ranipur and 284204 shows Mauranipur correctly
+            const townName = details.Name || details.Block || details.District;
             
             setManualData(prev => ({
               ...prev,
-              city: townName || details.District,
+              city: townName,
               state: details.State
             }));
             
             toast({
               title: "Location Detected",
-              description: `${townName || details.District}, ${details.State}`
+              description: `${townName}, ${details.State}`
             });
           } else {
             toast({
@@ -134,10 +135,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
+    // Fast Track Mode: High accuracy false for instant detection from wifi/cell towers
     const geoOptions = {
       enableHighAccuracy: false, 
-      timeout: 3000,
-      maximumAge: Infinity 
+      timeout: 4000, // Hard 4-second limit
+      maximumAge: Infinity // Use cached location if available for instant result
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -145,6 +147,7 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
+          // Rapid Reverse Geocoding
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2000);
 
@@ -160,6 +163,7 @@ export function LocationRequest() {
           
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
+          // Fallback to coordinates if API is slow
           saveLocationToDB({ 
             latitude, 
             longitude, 
