@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { allProducts as fallbackProducts } from '@/lib/mock-data';
 import {
   Select,
   SelectContent,
@@ -35,9 +36,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    if (!dbProducts) return [];
+    // Combine DB products with fallback products if needed
+    const baseProducts = (dbProducts && dbProducts.length > 0) ? dbProducts : fallbackProducts;
     
-    let result = dbProducts.filter(product => {
+    let result = baseProducts.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = category === 'all' || product.category === category;
