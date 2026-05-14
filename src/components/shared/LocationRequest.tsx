@@ -70,7 +70,7 @@ export function LocationRequest() {
           setOpen(false);
           setSuccess(false);
           setLoading(false);
-        }, 800);
+        }, 500);
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -91,19 +91,21 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Fast settings for results
+    // Super fast settings: No high accuracy (faster lock), 4s timeout
     const geoOptions = {
       enableHighAccuracy: false,
-      timeout: 10000,
-      maximumAge: 60000
+      timeout: 4000, 
+      maximumAge: 300000 // Use cache up to 5 mins old
     };
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        
         try {
+          // Strict 2-second timeout for the address lookup API
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -112,25 +114,26 @@ export function LocationRequest() {
           
           clearTimeout(timeoutId);
           const data = await response.json();
-          const address = data.display_name?.split(',').slice(0, 3).join(',') || `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+          const address = data.display_name?.split(',').slice(0, 2).join(',') || `Current Location (${latitude.toFixed(2)})`;
           
           saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
+          // Fallback immediately if API is slow or fails
           saveLocationToDB({ 
             latitude, 
             longitude, 
-            address: `Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
+            address: `Current Location (${latitude.toFixed(3)}, ${longitude.toFixed(3)})`, 
             type: 'detected' 
           });
         }
       },
       (error) => {
         setLoading(false);
-        let msg = 'Location access denied.';
-        if (error.code === error.TIMEOUT) msg = 'Location request timed out.';
-        
-        toast({ variant: 'destructive', title: 'Location Error', description: msg });
+        // If user denies or it times out, go to manual
         setView('manual');
+        if (error.code !== error.PERMISSION_DENIED) {
+          toast({ variant: 'destructive', title: 'Speed Alert', description: 'GPS was slow, please enter address manually.' });
+        }
       },
       geoOptions
     );
@@ -162,25 +165,34 @@ export function LocationRequest() {
                 </DialogDescription>
               </div>
 
-              {/* Use My Current Location Link */}
               <button
                 onClick={handleGetLocation}
                 disabled={loading}
-                className="flex items-center gap-2 text-green-600 font-bold text-sm py-2 hover:opacity-80 transition-opacity w-fit disabled:opacity-50"
+                className="flex items-center gap-3 text-green-600 font-bold text-sm py-3 hover:bg-green-50 rounded-xl transition-all w-full disabled:opacity-50"
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <LocateFixed className="h-5 w-5" />}
-                {loading ? 'Detecting Location...' : 'Use my current location'}
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <LocateFixed className="h-4 w-4" />
+                  </div>
+                )}
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-black uppercase tracking-tight">Use my current location</span>
+                  <span className="text-[10px] opacity-60 font-medium italic">Instant 4-second detection</span>
+                </div>
               </button>
 
               <div className="h-px bg-gray-100 w-full" />
 
-              {/* Add New Address Link */}
               <button
                 onClick={() => setView('manual')}
-                className="flex items-center gap-2 text-green-600 font-bold text-sm py-2 hover:opacity-80 transition-opacity w-fit"
+                className="flex items-center gap-3 text-gray-700 font-bold text-sm py-3 hover:bg-gray-50 rounded-xl transition-all w-full"
               >
-                <PlusCircle className="h-5 w-5" />
-                Add New Address
+                <div className="bg-gray-100 p-2 rounded-full">
+                  <PlusCircle className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-black uppercase tracking-tight">Add New Address</span>
               </button>
             </div>
           ) : (
