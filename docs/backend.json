@@ -13,66 +13,48 @@
         "imageUrl": { "type": "string" },
         "isVeg": { "type": "boolean" },
         "vendorId": { "type": "string" },
-        "badges": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["Best Seller", "Featured", "Trending"] }
-        }
+        "badges": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["name", "price", "category"]
-    },
-    "Store": {
-      "title": "Vendor Store",
-      "description": "Information about a restaurant or store vendor",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "rating": { "type": "number" },
-        "deliveryTime": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "category": { "type": "string" },
-        "isOpen": { "type": "boolean" }
-      },
-      "required": ["name", "imageUrl"]
-    },
-    "Banner": {
-      "title": "Homepage Banner",
-      "description": "Promotional banners for the slider",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "subtitle": { "type": "string" },
-        "tag": { "type": "string" },
-        "imageUrl": { "type": "string" }
-      },
-      "required": ["title", "imageUrl"]
+      "required": ["name", "price", "vendorId"]
     },
     "Order": {
-      "title": "Customer Order",
-      "description": "Details of a placed order",
+      "title": "Order",
+      "description": "Customer order details and status",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
+        "vendorId": { "type": "string" },
+        "deliveryPartnerId": { "type": "string" },
         "items": { "type": "array" },
         "total": { "type": "number" },
-        "status": { "type": "string", "enum": ["Preparing", "Out for Delivery", "Delivered"] },
+        "status": { 
+          "type": "string", 
+          "enum": ["Placed", "Accepted", "Preparing", "Ready for Pickup", "Picked Up", "Out for Delivery", "Delivered"] 
+        },
+        "address": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "UserProfile": {
-      "title": "User Profile",
-      "description": "Extended information about the user including location",
+    "Vendor": {
+      "title": "Vendor",
+      "description": "Store owner details",
       "type": "object",
       "properties": {
+        "name": { "type": "string" },
         "email": { "type": "string" },
-        "location": {
-          "type": "object",
-          "properties": {
-            "latitude": { "type": "number" },
-            "longitude": { "type": "number" },
-            "address": { "type": "string" },
-            "updatedAt": { "type": "string", "format": "date-time" }
-          }
-        }
+        "storeName": { "type": "string" },
+        "rating": { "type": "number" },
+        "walletBalance": { "type": "number" }
+      }
+    },
+    "DeliveryPartner": {
+      "title": "Delivery Partner",
+      "description": "Delivery executive details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["Online", "Offline"] },
+        "currentOrderId": { "type": "string" }
       }
     }
   },
@@ -80,29 +62,10 @@
     "providers": ["email"]
   },
   "firestore": {
-    "/products/{productId}": {
-      "schema": "#/entities/Product",
-      "description": "Collection of menu items"
-    },
-    "/stores/{storeId}": {
-      "schema": "#/entities/Store",
-      "description": "Collection of vendor stores"
-    },
-    "/banners/{bannerId}": {
-      "schema": "#/entities/Banner",
-      "description": "Collection of homepage promotional banners"
-    },
-    "/orders/{orderId}": {
-      "schema": "#/entities/Order",
-      "description": "Collection of customer orders"
-    },
-    "/users/{userId}/profile": {
-      "schema": "#/entities/UserProfile",
-      "description": "User specific data and location"
-    },
-    "/stats/summary": {
-      "schema": "object",
-      "description": "Global statistics for the admin dashboard"
-    }
+    "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
+    "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders collection" },
+    "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
+    "/delivery_partners/{partnerId}": { "schema": "#/entities/DeliveryPartner", "description": "Delivery staff" },
+    "/users/{userId}/profile": { "schema": "object", "description": "User profile and role data" }
   }
 }
