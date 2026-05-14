@@ -8,6 +8,30 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
+// Fallback vendor for professional look
+const FALLBACK_VENDORS = [
+  {
+    id: 's1',
+    storeName: 'Rajaram Sweets & Snacks',
+    category: 'Local Snacks • Sweets',
+    rating: 4.8,
+    deliveryTime: '20 min',
+    address: 'Main Market, City',
+    description: 'Home of the legendary Special Patize and Bhel Puri.',
+    imageUrl: 'https://picsum.photos/seed/rajaram/600/400'
+  },
+  {
+    id: 's2',
+    storeName: 'ShopyKart Signature',
+    category: 'Gourmet • Continental',
+    rating: 4.9,
+    deliveryTime: '25 min',
+    address: 'Elite Hub',
+    description: 'Our in-house premium selection of fine dining delicacies.',
+    imageUrl: 'https://picsum.photos/seed/shopy-store/600/400'
+  }
+];
+
 export function StoreSection() {
   const firestore = useFirestore();
   const vendorsQuery = useMemoFirebase(() => {
@@ -15,17 +39,8 @@ export function StoreSection() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: vendors, loading } = useCollection<any>(vendorsQuery);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!vendors || vendors.length === 0) return null;
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+  const vendors = (dbVendors && dbVendors.length > 0) ? dbVendors : FALLBACK_VENDORS;
 
   return (
     <div className="py-6">
@@ -33,6 +48,7 @@ export function StoreSection() {
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
           <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores</h2>
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-primary ml-3" />}
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
           View All
@@ -40,7 +56,7 @@ export function StoreSection() {
       </div>
 
       <div className="flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4">
-        {vendors.map((store) => {
+        {vendors.map((store: any) => {
           const imageUrl = store.imageUrl || `https://picsum.photos/seed/${store.id}/600/400`;
           return (
             <Link 

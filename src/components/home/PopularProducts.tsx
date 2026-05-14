@@ -36,7 +36,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // Combine DB products with fallback products if needed
     const baseProducts = (dbProducts && dbProducts.length > 0) ? dbProducts : fallbackProducts;
     
     let result = baseProducts.filter(product => {
@@ -63,14 +62,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     return result;
   }, [searchQuery, category, sortBy, dbProducts]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-8">
@@ -81,7 +72,8 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular Right Now</h2>
         </div>
         
-        <div className="shrink-0 ml-2">
+        <div className="shrink-0 ml-2 flex items-center gap-2">
+          {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[8px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
               <SlidersHorizontal className="h-3 w-3 mr-1.5" />
