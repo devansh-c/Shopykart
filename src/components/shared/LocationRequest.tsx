@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2, X, Home, PlusCircle, LocateFixed } from 'lucide-react';
+import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2, X, Home, PlusCircle, LocateFixed, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,7 +70,7 @@ export function LocationRequest() {
           setOpen(false);
           setSuccess(false);
           setLoading(false);
-        }, 500);
+        }, 800);
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -91,11 +91,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Optimized for speed: High Accuracy false and Infinity maximumAge to get last known location instantly
+    // Prioritize actual current location even if slow
     const geoOptions = {
-      enableHighAccuracy: false,
-      timeout: 6000, 
-      maximumAge: Infinity 
+      enableHighAccuracy: true,
+      timeout: 20000, // Wait up to 20 seconds for slow GPS
+      maximumAge: 0 // Don't use cached location, get fresh one
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -103,9 +103,9 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Reverse geocode with a tight timeout
+          // Reverse geocode with a slightly longer timeout for slow networks
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2500);
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
           
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -114,22 +114,29 @@ export function LocationRequest() {
           
           clearTimeout(timeoutId);
           const data = await response.json();
-          const address = data.display_name?.split(',').slice(0, 2).join(',') || `Current Location (${latitude.toFixed(2)})`;
+          // Extract meaningful part of address
+          const address = data.display_name?.split(',').slice(0, 3).join(',') || `📍 Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
           
           saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
+          // Even if geocoding fails, save the coordinates
           saveLocationToDB({ 
             latitude, 
             longitude, 
-            address: `Current Location (${latitude.toFixed(3)}, ${longitude.toFixed(3)})`, 
+            address: `📍 Detected Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, 
             type: 'detected' 
           });
         }
       },
       (error) => {
         setLoading(false);
-        // Silently switch to manual entry if GPS fails or times out
-        setView('manual');
+        if (error.code === error.PERMISSION_DENIED) {
+          toast({ variant: 'destructive', title: 'Permission Denied', description: 'Please enable location access in settings.' });
+          setView('manual');
+        } else {
+          toast({ variant: 'destructive', title: 'Location Error', description: 'Unable to get location. Please try adding manually.' });
+          setView('manual');
+        }
       },
       geoOptions
     );
@@ -164,18 +171,18 @@ export function LocationRequest() {
               <button
                 onClick={handleGetLocation}
                 disabled={loading}
-                className="flex items-center gap-3 text-green-600 font-bold text-sm py-3 hover:bg-green-50 rounded-xl transition-all w-full disabled:opacity-50"
+                className="flex items-center gap-3 text-green-600 font-bold text-sm py-4 hover:bg-green-50 rounded-2xl transition-all w-full disabled:opacity-50 border border-green-100"
               >
                 {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin mx-2" />
                 ) : (
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <LocateFixed className="h-4 w-4" />
+                  <div className="bg-green-100 p-2.5 rounded-full mx-2">
+                    <LocateFixed className="h-5 w-5" />
                   </div>
                 )}
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-black uppercase tracking-tight">Use my current location</span>
-                  <span className="text-[10px] opacity-60 font-medium italic">Instant detection</span>
+                  <span className="text-[10px] opacity-60 font-medium italic">Fetching actual GPS location...</span>
                 </div>
               </button>
 
@@ -185,7 +192,7 @@ export function LocationRequest() {
                 onClick={() => setView('manual')}
                 className="flex items-center gap-3 text-gray-700 font-bold text-sm py-3 hover:bg-gray-50 rounded-xl transition-all w-full"
               >
-                <div className="bg-gray-100 p-2 rounded-full">
+                <div className="bg-gray-100 p-2 rounded-full mx-2">
                   <PlusCircle className="h-4 w-4" />
                 </div>
                 <span className="text-sm font-black uppercase tracking-tight">Add New Address</span>
