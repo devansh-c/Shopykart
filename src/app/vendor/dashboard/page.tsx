@@ -20,6 +20,9 @@ export default function VendorDashboard() {
   const { user } = useUser();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
 
   // Vendor Profile Data
@@ -112,7 +115,29 @@ export default function VendorDashboard() {
     const reader = new FileReader();
     reader.onloadend = () => {
       setNewProduct({ ...newProduct, imageUrl: reader.result as string });
-      toast({ title: "Image Selected", description: "Your photo has been uploaded successfully." });
+      toast({ title: "Image Selected", description: "Product photo ready." });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setStoreData({ ...storeData, imageUrl: reader.result as string });
+      toast({ title: "Logo Uploaded", description: "Click save to apply changes." });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setStoreData({ ...storeData, bannerUrl: reader.result as string });
+      toast({ title: "Banner Uploaded", description: "Click save to apply changes." });
     };
     reader.readAsDataURL(file);
   };
@@ -140,7 +165,7 @@ export default function VendorDashboard() {
       .then(() => {
         setIsAddOpen(false);
         setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, badges: [] });
-        toast({ title: "Product Added", description: "Your item is now live for customers." });
+        toast({ title: "Product Added", description: "Your item is now live." });
       })
       .catch((e) => {
         const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
@@ -240,8 +265,6 @@ export default function VendorDashboard() {
                 <DialogContent className="rounded-[2.5rem] max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-black italic uppercase text-xl">Add New Product</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-4">
-                    
-                    {/* Image Selection Section */}
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Image</label>
                       <div 
@@ -335,7 +358,22 @@ export default function VendorDashboard() {
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Banner</label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div 
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="relative aspect-video rounded-2xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    {storeData.bannerUrl ? (
+                      <img src={storeData.bannerUrl} className="h-full w-full object-cover" alt="Banner" />
+                    ) : (
+                      <div className="text-center p-4">
+                        <Upload className="h-6 w-6 text-primary mx-auto mb-2" />
+                        <span className="text-[8px] font-black uppercase tracking-widest">Upload Banner from Gallery</span>
+                      </div>
+                    )}
+                  </div>
+                  <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={handleBannerUpload} />
+                  
+                  <div className="grid grid-cols-4 gap-2 mt-2">
                     {PlaceHolderImages.filter(img => img.id.includes('hero')).slice(0, 4).map((img) => (
                       <button
                         key={img.id}
@@ -346,7 +384,6 @@ export default function VendorDashboard() {
                         )}
                       >
                         <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
-                        {storeData.bannerUrl === img.imageUrl && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="text-white h-4 w-4" /></div>}
                       </button>
                     ))}
                   </div>
@@ -354,20 +391,33 @@ export default function VendorDashboard() {
 
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Logo/Image</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {PlaceHolderImages.filter(img => img.id.includes('store')).map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => setStoreData({...storeData, imageUrl: img.imageUrl})}
-                        className={cn(
-                          "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                          storeData.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
-                        )}
-                      >
-                        <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
-                        {storeData.imageUrl === img.imageUrl && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="text-white h-4 w-4" /></div>}
-                      </button>
-                    ))}
+                  <div className="flex gap-4 items-center">
+                    <div 
+                      onClick={() => logoInputRef.current?.click()}
+                      className="h-24 w-24 rounded-2xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30 hover:bg-muted/50 transition-colors shrink-0"
+                    >
+                      {storeData.imageUrl ? (
+                        <img src={storeData.imageUrl} className="h-full w-full object-cover" alt="Logo" />
+                      ) : (
+                        <Camera className="h-6 w-6 text-primary" />
+                      )}
+                    </div>
+                    <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                    
+                    <div className="grid grid-cols-4 gap-2 flex-1">
+                      {PlaceHolderImages.filter(img => img.id.includes('store')).map((img) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setStoreData({...storeData, imageUrl: img.imageUrl})}
+                          className={cn(
+                            "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                            storeData.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
+                          )}
+                        >
+                          <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
