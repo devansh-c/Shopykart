@@ -1,13 +1,14 @@
+
 "use client"
 
 import { useMemo, useState } from 'react';
-import { Zap, Plus, Minus, Heart, SlidersHorizontal } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
-import { allProducts } from '@/lib/mock-data';
 import Link from 'next/link';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -24,11 +25,21 @@ type PopularProductsProps = {
 export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
+  
+  const firestore = useFirestore();
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
+  
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    let result = allProducts.filter(product => {
+    if (!dbProducts) return [];
+    
+    let result = dbProducts.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.category.toLowerCase().includes(searchQuery.toLowerCase());
+                          (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = category === 'all' || product.category === category;
       return matchesSearch && matchesCategory;
     });
@@ -48,7 +59,15 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     }
 
     return result;
-  }, [searchQuery, category, sortBy]);
+  }, [searchQuery, category, sortBy, dbProducts]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-8">
@@ -79,15 +98,14 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       <div className="grid grid-cols-1 gap-6">
         {filteredAndSortedProducts.length > 0 ? (
           filteredAndSortedProducts.map((product, index) => {
-            const img = PlaceHolderImages.find(p => p.id === product.imageId);
-            const imageUrl = img?.imageUrl || "https://picsum.photos/seed/food/300/300";
+            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/300/300`;
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const liked = isInWishlist(product.id);
 
             return (
               <ScrollReveal key={product.id} delay={index * 100} direction="up">
-                <div className="premium-card p-6 flex justify-between items-start">
+                <div className="premium-card p-6 flex justify-between items-start bg-white">
                   <div className="flex-1 pr-4">
                     <div className="mb-2">
                       <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">

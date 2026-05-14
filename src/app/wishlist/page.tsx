@@ -3,18 +3,30 @@
 
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Heart, Plus, ShoppingCart, ChevronLeft } from 'lucide-react';
+import { Heart, Plus, ChevronLeft, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { allProducts } from '@/lib/mock-data';
 import Link from 'next/link';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
   const router = useRouter();
 
-  const favoriteProducts = allProducts.filter(p => wishlist.includes(p.id));
+  const firestore = useFirestore();
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
+  
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+
+  const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id)) || [];
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
 
   if (favoriteProducts.length === 0) {
     return (
@@ -47,8 +59,7 @@ export default function WishlistPage() {
 
       <div className="grid grid-cols-2 gap-4 p-4">
         {favoriteProducts.map((product) => {
-          const img = PlaceHolderImages.find(pi => pi.id === product.imageId);
-          const imageUrl = img?.imageUrl || "https://picsum.photos/400/400";
+          const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
 
           return (
             <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300">
