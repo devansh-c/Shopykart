@@ -48,7 +48,7 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  // Auto-fetch Town/State from Pincode
+  // Auto-fetch Town/State from Pincode with refined mapping
   useEffect(() => {
     if (manualData.pincode.length === 6) {
       const fetchPincodeDetails = async () => {
@@ -60,9 +60,10 @@ export function LocationRequest() {
           if (data[0].Status === "Success") {
             const details = data[0].PostOffice[0];
             
-            // Priority: Name (Specific Town/Locality) > Block > District
-            // This ensures 284205 shows Ranipur and 284204 shows Mauranipur correctly
-            const townName = details.Name || details.Block || details.District;
+            // Priority: Name is the most specific town/locality name (e.g., Ranipur)
+            // Block is often the larger tehsil/block head (e.g., Mauranipur)
+            // We use Name to ensure 284205 shows Ranipur specifically.
+            const townName = details.Name;
             
             setManualData(prev => ({
               ...prev,
@@ -71,7 +72,7 @@ export function LocationRequest() {
             }));
             
             toast({
-              title: "Location Detected",
+              title: "Town Detected",
               description: `${townName}, ${details.State}`
             });
           } else {
@@ -135,11 +136,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Fast Track Mode: High accuracy false for instant detection from wifi/cell towers
+    // Fast Track Mode: High accuracy false for instant detection
     const geoOptions = {
       enableHighAccuracy: false, 
-      timeout: 4000, // Hard 4-second limit
-      maximumAge: Infinity // Use cached location if available for instant result
+      timeout: 4000, 
+      maximumAge: Infinity 
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -147,7 +148,6 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Rapid Reverse Geocoding
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2000);
 
@@ -163,7 +163,6 @@ export function LocationRequest() {
           
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
-          // Fallback to coordinates if API is slow
           saveLocationToDB({ 
             latitude, 
             longitude, 
