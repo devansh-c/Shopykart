@@ -1,8 +1,10 @@
+
 "use client"
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Store } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -11,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { allProducts } from '@/lib/mock-data';
 import {
   Select,
   SelectContent,
@@ -19,16 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const categories = [
-  { id: 'all', name: 'All', imageId: 'category-all' },
-  { id: 'pizza', name: 'Pizza', imageId: 'category-pizza', badge: '🍕' },
-  { id: 'burgers', name: 'Burgers', imageId: 'category-burger', badge: '🍔' },
-  { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },
-  { id: 'fries', name: 'Fries', imageId: 'category-fries', badge: '🍟' },
-  { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
-];
-
-export default function MenuPage() {
+function MenuContent() {
+  const searchParams = useSearchParams();
+  const vendorIdParam = searchParams.get('vendor');
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState('recommended');
@@ -44,15 +41,23 @@ export default function MenuPage() {
   
   const { data: dbProducts, loading } = useCollection(productsQuery);
 
+  // Combine DB products and Mock products
+  const combinedProducts = useMemo(() => {
+    const dbItems = dbProducts || [];
+    // We add vendorId to mock products if they don't have it, but they do now.
+    return [...allProducts, ...dbItems];
+  }, [dbProducts]);
+
   const filteredAndSortedProducts = useMemo(() => {
-    if (!dbProducts) return [];
-    
-    // Filtering
-    let result = dbProducts.filter((product: any) => {
+    let result = combinedProducts.filter((product: any) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
-      return matchesSearch && matchesCategory;
+      
+      // Filter by vendor if parameter is present
+      const matchesVendor = !vendorIdParam || product.vendorId === vendorIdParam;
+      
+      return matchesSearch && matchesCategory && matchesVendor;
     });
 
     // Sorting
@@ -71,7 +76,13 @@ export default function MenuPage() {
     }
 
     return result;
-  }, [searchQuery, activeCategory, sortBy, dbProducts]);
+  }, [searchQuery, activeCategory, sortBy, combinedProducts, vendorIdParam]);
+
+  const currentStoreName = useMemo(() => {
+    if (!vendorIdParam) return null;
+    const prod = combinedProducts.find((p: any) => p.vendorId === vendorIdParam);
+    return prod?.restaurantName || 'Selected Store';
+  }, [vendorIdParam, combinedProducts]);
 
   const handleCustomRequest = () => {
     if (!requestText.trim()) return;
@@ -83,11 +94,41 @@ export default function MenuPage() {
     });
   };
 
+  const categories = [
+    { id: 'all', name: 'All', imageId: 'category-all' },
+    { id: 'pizza', name: 'Pizza', imageId: 'category-pizza', badge: '🍕' },
+    { id: 'burgers', name: 'Burgers', imageId: 'category-burger', badge: '🍔' },
+    { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },
+    { id: 'fries', name: 'Fries', imageId: 'category-fries', badge: '🍟' },
+    { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
+  ];
+
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-40">
       <div className="px-6 pt-12 pb-4 flex items-center justify-between">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">Menu</h1>
       </div>
+
+      {vendorIdParam && (
+        <div className="mx-6 mb-4 animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2 rounded-xl">
+                <Store className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Showing items for</p>
+                <h2 className="font-black italic uppercase text-sm tracking-tight">{currentStoreName}</h2>
+              </div>
+            </div>
+            <Link href="/menu">
+              <button className="h-8 w-8 bg-white rounded-full shadow-sm flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
       
       <div className="px-6 mb-6">
         <div className="relative">
@@ -95,7 +136,7 @@ export default function MenuPage() {
           <Input 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder='Search menu...' 
+            placeholder='Search items...' 
             className="pl-12 h-14 bg-white border-none rounded-full text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20"
           />
         </div>
@@ -159,12 +200,12 @@ export default function MenuPage() {
           filteredAndSortedProducts.map((product: any) => {
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
-            const imageUrl = product.imageUrl || "https://picsum.photos/400/300";
+            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
             return (
               <div 
                 key={product.id}
-                className="premium-card p-5 flex justify-between items-center"
+                className="premium-card p-5 flex justify-between items-center bg-white"
               >
                 <Link href={`/product/${product.id}`} className="flex-1 pr-4">
                   <div className="mb-2">
@@ -172,7 +213,8 @@ export default function MenuPage() {
                       <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
                   </div>
-                  <h3 className="font-black text-xl italic tracking-tight leading-tight mb-2 text-foreground">{product.name}</h3>
+                  <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
                   <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{product.price.toFixed(2)}</div>
                 </Link>
                 
@@ -217,7 +259,12 @@ export default function MenuPage() {
           })
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed">
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No matches found</p>
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No items found</p>
+            {vendorIdParam && (
+              <Button variant="link" onClick={() => window.location.href = '/menu'} className="text-primary mt-4 font-bold uppercase text-[10px]">
+                Browse all stores
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -254,5 +301,13 @@ export default function MenuPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function MenuPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>}>
+      <MenuContent />
+    </Suspense>
   );
 }
