@@ -91,11 +91,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Super fast settings: No high accuracy (faster lock), 4s timeout
+    // Optimized for speed: High Accuracy false and Infinity maximumAge to get last known location instantly
     const geoOptions = {
       enableHighAccuracy: false,
-      timeout: 4000, 
-      maximumAge: 300000 // Use cache up to 5 mins old
+      timeout: 6000, 
+      maximumAge: Infinity 
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -103,9 +103,9 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Strict 2-second timeout for the address lookup API
+          // Reverse geocode with a tight timeout
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
           
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -118,7 +118,6 @@ export function LocationRequest() {
           
           saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
-          // Fallback immediately if API is slow or fails
           saveLocationToDB({ 
             latitude, 
             longitude, 
@@ -129,11 +128,8 @@ export function LocationRequest() {
       },
       (error) => {
         setLoading(false);
-        // If user denies or it times out, go to manual
+        // Silently switch to manual entry if GPS fails or times out
         setView('manual');
-        if (error.code !== error.PERMISSION_DENIED) {
-          toast({ variant: 'destructive', title: 'Speed Alert', description: 'GPS was slow, please enter address manually.' });
-        }
       },
       geoOptions
     );
@@ -179,7 +175,7 @@ export function LocationRequest() {
                 )}
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-black uppercase tracking-tight">Use my current location</span>
-                  <span className="text-[10px] opacity-60 font-medium italic">Instant 4-second detection</span>
+                  <span className="text-[10px] opacity-60 font-medium italic">Instant detection</span>
                 </div>
               </button>
 
@@ -206,7 +202,9 @@ export function LocationRequest() {
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                   Enter <span className="text-primary">Details</span>
                 </DialogTitle>
-                <DialogDescription className="hidden">Manual address entry form</DialogDescription>
+                <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                  Enter your address manually
+                </DialogDescription>
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-4">
