@@ -8,15 +8,15 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // Set to 2.5 seconds exactly as requested
+    // Set to 2 seconds exactly as requested
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 2500);
+    }, 2000);
 
     // Completely remove from DOM after fade animation
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 3300);
+    }, 2800);
 
     return () => {
       clearTimeout(timer);
@@ -57,7 +57,9 @@ export function SplashScreen() {
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted in India</p>
-        <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-[#C5A021]/30 to-transparent" />
+        <div className="w-24 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
+        </div>
       </div>
     </div>
   );

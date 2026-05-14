@@ -51,6 +51,11 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes running-line {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 .animate-shimmer {
   position: relative;
   overflow: hidden;
@@ -72,9 +77,12 @@
   animation: shimmer 1.5s infinite;
 }
 
+.animate-running-line {
+  animation: running-line 2s infinite linear;
+}
+
 .premium-card {
   @apply bg-white rounded-[2rem] border-2 border-[#C5A021] shadow-[0_12px_40px_rgba(197,160,33,0.18)] transition-all duration-300 relative overflow-hidden;
-  /* Persistent Glow & Border as requested */
 }
 
 .premium-card:active {
