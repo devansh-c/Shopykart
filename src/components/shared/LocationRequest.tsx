@@ -35,7 +35,7 @@ export function LocationRequest() {
   useEffect(() => {
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
-      const timer = setTimeout(() => setOpen(true), 1500);
+      const timer = setTimeout(() => setOpen(true), 1000);
       return () => clearTimeout(timer);
     }
 
@@ -47,40 +47,40 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  const saveLocationToDB = (location: any) => {
-    if (!user || !firestore) {
+  const saveLocationToDB = async (location: any) => {
+    // 1. Instant Local Update (Optimistic)
+    localStorage.setItem('user_address', location.address);
+    localStorage.setItem('user_location_set', 'true');
+    setSuccess(true);
+    
+    // Trigger global UI update immediately
+    window.dispatchEvent(new Event('storage'));
+    
+    // Close dialog almost instantly for 2-second feel
+    setTimeout(() => {
+      setOpen(false);
+      setSuccess(false);
       setLoading(false);
-      return;
-    }
+    }, 600);
 
-    const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
-    const finalData = {
-      location,
-      updatedAt: serverTimestamp(),
-    };
+    // 2. Background Database Sync
+    if (user && firestore) {
+      const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
+      const finalData = {
+        location,
+        updatedAt: serverTimestamp(),
+      };
 
-    setDoc(userRef, finalData, { merge: true })
-      .then(() => {
-        localStorage.setItem('user_address', location.address);
-        localStorage.setItem('user_location_set', 'true');
-        setSuccess(true);
-        window.dispatchEvent(new Event('storage'));
-
-        setTimeout(() => {
-          setOpen(false);
-          setSuccess(false);
-          setLoading(false);
-        }, 800);
-      })
-      .catch(async (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: userRef.path,
-          operation: 'update',
-          requestResourceData: finalData,
+      setDoc(userRef, finalData, { merge: true })
+        .catch(async (err) => {
+          const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: finalData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
         });
-        errorEmitter.emit('permission-error', permissionError);
-        setLoading(false);
-      });
+    }
   };
 
   const handleGetLocation = () => {
@@ -91,11 +91,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Optimized for 2-second speed like top food apps
+    // Top-tier apps use low accuracy for instant results via Wi-Fi/Cell
     const geoOptions = {
-      enableHighAccuracy: false, // Disabling this makes it instant via Wi-Fi/Cell
-      timeout: 5000, 
-      maximumAge: Infinity // Use cached location if available for instant result
+      enableHighAccuracy: false, 
+      timeout: 3000, // Hard 3s limit
+      maximumAge: 1000 * 60 * 5 // Use location cached within last 5 mins
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -103,9 +103,9 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Ultra-fast reverse geocode
+          // Fast reverse geocode with 1.5s timeout
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second limit for address
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
           
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -114,23 +114,26 @@ export function LocationRequest() {
           
           clearTimeout(timeoutId);
           const data = await response.json();
-          const address = data.display_name?.split(',').slice(0, 3).join(',') || `📍 Detected Location`;
+          // Extract short, meaningful address parts
+          const address = data.address.suburb || data.address.neighbourhood || data.address.city || data.display_name.split(',')[0];
+          const fullAddress = `${address}, ${data.address.city || ''}`;
           
-          saveLocationToDB({ latitude, longitude, address, type: 'detected' });
+          saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
-          // If geocoding is slow, save coordinates anyway to avoid waiting
+          // Fallback if geocoding fails or is slow
           saveLocationToDB({ 
             latitude, 
             longitude, 
-            address: `📍 Detected Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
+            address: `Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
             type: 'detected' 
           });
         }
       },
       (error) => {
         setLoading(false);
+        // If user blocked or GPS failed, switch to manual instantly
         setView('manual');
-        toast({ variant: 'destructive', title: 'Location Error', description: 'Please enter details manually.' });
+        toast({ variant: 'destructive', title: 'Location Error', description: 'Permission denied or signal weak.' });
       },
       geoOptions
     );
@@ -165,18 +168,29 @@ export function LocationRequest() {
               <button
                 onClick={handleGetLocation}
                 disabled={loading}
-                className="flex items-center gap-3 text-green-600 font-bold text-sm py-4 hover:bg-green-50 rounded-2xl transition-all w-full disabled:opacity-50 border border-green-100"
+                className={cn(
+                  "flex items-center gap-3 font-bold text-sm py-4 rounded-2xl transition-all w-full disabled:opacity-80 border",
+                  success ? "bg-green-50 border-green-200 text-green-600" : "bg-white border-green-100 text-green-600 hover:bg-green-50"
+                )}
               >
-                {loading ? (
+                {loading && !success ? (
                   <Loader2 className="h-5 w-5 animate-spin mx-4 text-green-600" />
+                ) : success ? (
+                  <div className="bg-green-600 p-2.5 rounded-full mx-2 animate-in zoom-in">
+                    <CheckCircle2 className="h-5 w-5 text-white" />
+                  </div>
                 ) : (
                   <div className="bg-green-100 p-2.5 rounded-full mx-2">
                     <LocateFixed className="h-5 w-5" />
                   </div>
                 )}
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-black uppercase tracking-tight">Use my current location</span>
-                  <span className="text-[10px] opacity-60 font-medium italic">Instant detection via GPS/Network</span>
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-sm font-black uppercase tracking-tight">
+                    {success ? 'Location Detected!' : 'Use my current location'}
+                  </span>
+                  <span className="text-[10px] opacity-60 font-medium italic">
+                    {success ? 'Redirecting you now...' : 'Instant detection (2 seconds)'}
+                  </span>
                 </div>
               </button>
 
