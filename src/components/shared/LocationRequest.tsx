@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2, X } from 'lucide-react';
+import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2, X, Home, PlusCircle, LocateFixed } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,12 @@ export function LocationRequest() {
     address: '',
     apartment: '',
   });
+
+  // Mock Saved Locations (as seen in screenshot)
+  const savedLocations = [
+    { id: '1', title: 'Home', address: '64QM+G2X, Mauranipur, Roni, Uttar Pradesh 284204, I...' },
+    { id: '2', title: 'Home', address: '7535+JPR, NH 75, Madha, Mauranipur, Uttar Pradesh 2...' },
+  ];
 
   useEffect(() => {
     const hasLocation = localStorage.getItem('user_location_set');
@@ -61,8 +67,6 @@ export function LocationRequest() {
         localStorage.setItem('user_address', location.address);
         localStorage.setItem('user_location_set', 'true');
         setSuccess(true);
-        
-        // Instant feedback - Dispatch event so header updates immediately
         window.dispatchEvent(new Event('storage'));
 
         setTimeout(() => {
@@ -89,46 +93,27 @@ export function LocationRequest() {
     }
 
     setLoading(true);
-    
-    // Faster location options: No high accuracy (faster lock), use cached location if available
     const geoOptions = {
-      enableHighAccuracy: false, 
-      timeout: 5000, 
-      maximumAge: 300000 // 5 minutes cache
+      enableHighAccuracy: false,
+      timeout: 5000,
+      maximumAge: 300000
     };
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // Fast reverse geocoding
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
-            signal: AbortSignal.timeout(4000) // Don't wait too long for address
-          });
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await response.json();
           const address = data.display_name?.split(',').slice(0, 3).join(',') || 'Detected Location';
-          
-          saveLocationToDB({
-            latitude,
-            longitude,
-            address,
-            type: 'detected'
-          });
+          saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
-          // If geocoding fails, at least save coordinates quickly
-          saveLocationToDB({
-            latitude,
-            longitude,
-            address: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
-            type: 'detected'
-          });
+          saveLocationToDB({ latitude, longitude, address: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`, type: 'detected' });
         }
       },
       (error) => {
         setLoading(false);
-        let msg = 'Location access denied.';
-        if (error.code === error.TIMEOUT) msg = 'Location request timed out.';
-        toast({ variant: 'destructive', title: 'Error', description: msg });
+        toast({ variant: 'destructive', title: 'Error', description: 'Location access denied.' });
         setView('manual');
       },
       geoOptions
@@ -137,178 +122,93 @@ export function LocationRequest() {
 
   const handleManualSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualData.pincode || !manualData.state || !manualData.address) {
-      toast({ variant: 'destructive', title: 'Missing Info', description: 'Please fill required fields.' });
-      return;
-    }
-
     setLoading(true);
     const fullAddressString = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}, ${manualData.state} - ${manualData.pincode}`;
-    
-    saveLocationToDB({
-      ...manualData,
-      address: fullAddressString,
-      type: 'manual'
-    });
+    saveLocationToDB({ ...manualData, address: fullAddressString, type: 'manual' });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-[2.5rem] max-w-[90%] sm:max-w-sm border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none">
-        <div className="bg-primary h-1.5 w-full" />
-        
-        <div className="absolute right-6 top-6">
-          <DialogClose className="opacity-40 hover:opacity-100 transition-opacity">
-            <X className="h-5 w-5" />
-          </DialogClose>
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-transform duration-300">
+        <div className="flex items-center justify-center pt-3 sm:hidden">
+          <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
 
-        <div className="px-8 pt-10 pb-12">
+        <div className="px-6 py-8">
           {view === 'prompt' ? (
-            <div className="flex flex-col items-center">
-              <div className="bg-[#FFF1F1] h-28 w-28 rounded-[2rem] flex items-center justify-center mb-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                <div className="bg-white p-4 rounded-2xl shadow-sm">
-                   <MapPin className="h-10 w-10 text-primary" />
-                </div>
-              </div>
-
-              <div className="space-y-4 text-center mb-12">
-                <DialogTitle className="text-[2.5rem] font-black italic uppercase leading-[1] tracking-tighter">
-                  WHERE TO <br />
-                  <span className="text-primary italic">DELIVER?</span>
+            <div className="flex flex-col space-y-6">
+              <div className="space-y-1">
+                <DialogTitle className="text-lg font-bold text-black leading-tight">
+                  Hey Welcome Back!
                 </DialogTitle>
-                <DialogDescription className="text-gray-400 font-medium px-4 text-sm leading-relaxed">
-                  We need your location to show the best restaurants in your area.
+                <DialogDescription className="text-base font-bold text-black leading-tight">
+                  Which location do you want to select?
                 </DialogDescription>
               </div>
 
-              <div className="w-full space-y-6">
-                <Button
-                  onClick={handleGetLocation}
-                  disabled={loading || success}
-                  className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all text-sm px-6"
-                >
-                  {success ? (
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 animate-in zoom-in" />
-                      LOCATION SET!
+              {/* Use My Current Location Link */}
+              <button
+                onClick={handleGetLocation}
+                disabled={loading}
+                className="flex items-center gap-2 text-green-600 font-bold text-sm py-2 hover:opacity-80 transition-opacity w-fit"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <LocateFixed className="h-5 w-5" />}
+                {loading ? 'Fetching location...' : 'Use my current location'}
+              </button>
+
+              {/* Saved Locations List */}
+              <div className="bg-green-50/40 rounded-3xl p-4 space-y-6">
+                {savedLocations.map((loc) => (
+                  <div key={loc.id} className="flex gap-4 items-start group cursor-pointer" onClick={() => saveLocationToDB({ address: loc.address, type: 'manual' })}>
+                    <div className="p-1 rounded-md text-green-500 mt-1">
+                      <Home className="h-6 w-6 fill-current" />
                     </div>
-                  ) : loading ? (
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      DETECTING...
+                    <div className="space-y-0.5">
+                      <h4 className="font-bold text-base text-black">{loc.title}</h4>
+                      <p className="text-xs text-gray-400 font-medium line-clamp-1 leading-relaxed">
+                        {loc.address}
+                      </p>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-3">
-                      <Navigation className="h-4 w-4" />
-                      USE MY CURRENT LOCATION
-                    </div>
-                  )}
-                </Button>
-                
-                <button
-                  onClick={() => setView('manual')}
-                  className="w-full text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-foreground transition-colors py-2"
-                >
-                  ENTER ADDRESS MANUALLY
-                </button>
+                  </div>
+                ))}
               </div>
+
+              {/* Add New Address Link */}
+              <button
+                onClick={() => setView('manual')}
+                className="flex items-center gap-2 text-green-600 font-bold text-sm py-2 hover:opacity-80 transition-opacity w-fit"
+              >
+                <PlusCircle className="h-5 w-5" />
+                Add New Address
+              </button>
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <button 
-                onClick={() => setView('prompt')}
-                className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-6 group"
-              >
-                <ChevronLeft className="h-3 w-3 mr-1 group-hover:-translate-x-1 transition-transform" />
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <button onClick={() => setView('prompt')} className="flex items-center text-green-600 text-[10px] font-black uppercase tracking-widest mb-6 group">
+                <ChevronLeft className="h-3 w-3 mr-1" />
                 Back
               </button>
 
-              <div className="mb-8">
+              <div className="mb-6">
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                   Enter <span className="text-primary">Details</span>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-                  Fill in your delivery address manually.
-                </DialogDescription>
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pincode *</label>
-                    <Input 
-                      placeholder="110001" 
-                      className="rounded-xl h-11 border-muted bg-muted/20"
-                      value={manualData.pincode}
-                      onChange={(e) => setManualData({...manualData, pincode: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">State *</label>
-                    <Input 
-                      placeholder="Delhi" 
-                      className="rounded-xl h-11 border-muted bg-muted/20"
-                      value={manualData.state}
-                      onChange={(e) => setManualData({...manualData, state: e.target.value})}
-                      required
-                    />
-                  </div>
+                  <Input placeholder="Pincode" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.pincode} onChange={(e) => setManualData({...manualData, pincode: e.target.value})} required />
+                  <Input placeholder="State" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.state} onChange={(e) => setManualData({...manualData, state: e.target.value})} required />
                 </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">House / Street / Area *</label>
-                  <Input 
-                    placeholder="E.g. 123, Skyline Apartments" 
-                    className="rounded-xl h-11 border-muted bg-muted/20"
-                    value={manualData.address}
-                    onChange={(e) => setManualData({...manualData, address: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Apartment (Optional)</label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-                    <Input 
-                      placeholder="E.g. Floor 4, Flat 402" 
-                      className="rounded-xl h-11 border-muted pl-10 bg-muted/20"
-                      value={manualData.apartment}
-                      onChange={(e) => setManualData({...manualData, apartment: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading || success}
-                  className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 mt-4 active:scale-95 transition-all"
-                >
-                  {success ? (
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 animate-in zoom-in" />
-                      ADDRESS SAVED
-                    </div>
-                  ) : loading ? (
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      SAVING...
-                    </div>
-                  ) : (
-                    'SAVE ADDRESS'
-                  )}
+                <Input placeholder="House / Street / Area" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.address} onChange={(e) => setManualData({...manualData, address: e.target.value})} required />
+                <Input placeholder="Apartment (Optional)" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.apartment} onChange={(e) => setManualData({...manualData, apartment: e.target.value})} />
+                
+                <Button type="submit" disabled={loading} className="w-full h-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-green-600/20 mt-4 transition-all">
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'SAVE ADDRESS'}
                 </Button>
               </form>
             </div>
           )}
-        </div>
-
-        <div className="bg-gray-50/50 py-5 text-center border-t border-gray-100">
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-            PRIVACY GUARANTEED • ENCRYPTED CONNECTION
-          </p>
         </div>
       </DialogContent>
     </Dialog>
