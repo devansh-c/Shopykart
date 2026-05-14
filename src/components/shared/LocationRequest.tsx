@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore } from '@/firebase';
@@ -11,6 +11,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 type ViewState = 'prompt' | 'manual';
 
@@ -34,7 +35,7 @@ export function LocationRequest() {
   useEffect(() => {
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
-      const timer = setTimeout(() => setOpen(true), 2000);
+      const timer = setTimeout(() => setOpen(true), 1500);
       return () => clearTimeout(timer);
     }
 
@@ -55,7 +56,6 @@ export function LocationRequest() {
       updatedAt: serverTimestamp(),
     };
 
-    // Follow mutation best practices (no await)
     setDoc(userRef, finalData, { merge: true })
       .then(() => {
         localStorage.setItem('user_address', location.address);
@@ -65,8 +65,9 @@ export function LocationRequest() {
         setTimeout(() => {
           setOpen(false);
           setSuccess(false);
-          window.location.reload();
-        }, 1000);
+          // Refresh components that depend on location
+          window.dispatchEvent(new Event('storage'));
+        }, 800);
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -75,11 +76,6 @@ export function LocationRequest() {
           requestResourceData: finalData,
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error Saving',
-          description: 'Please try again later.',
-        });
         setLoading(false);
       });
   };
@@ -91,13 +87,29 @@ export function LocationRequest() {
     }
 
     setLoading(true);
+    
+    // Set a safety timeout for geolocation
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Request Timeout', 
+          description: 'Taking too long. Please enter address manually.' 
+        });
+        setView('manual');
+      }
+    }, 10000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        clearTimeout(timeoutId);
         const { latitude, longitude } = position.coords;
         try {
+          // Faster reverse geocoding approach or simple coords
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await response.json();
-          const address = data.display_name || 'Detected Location';
+          const address = data.display_name?.split(',').slice(0, 3).join(',') || 'Detected Location';
           
           saveLocationToDB({
             latitude,
@@ -106,14 +118,23 @@ export function LocationRequest() {
             type: 'detected'
           });
         } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch address.' });
-          setLoading(false);
+          saveLocationToDB({
+            latitude,
+            longitude,
+            address: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
+            type: 'detected'
+          });
         }
       },
-      () => {
+      (error) => {
+        clearTimeout(timeoutId);
         setLoading(false);
-        toast({ variant: 'destructive', title: 'Denied', description: 'Location access denied.' });
-      }
+        let msg = 'Location access denied.';
+        if (error.code === error.TIMEOUT) msg = 'Location request timed out.';
+        toast({ variant: 'destructive', title: 'Error', description: msg });
+        setView('manual');
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
@@ -136,50 +157,62 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-[2.5rem] max-w-sm border-none shadow-2xl overflow-hidden z-[150] bg-white p-0">
+      <DialogContent className="rounded-[2.5rem] max-w-[90%] sm:max-w-sm border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none">
+        {/* Brand Bar */}
         <div className="bg-primary h-1.5 w-full" />
         
-        <div className="p-8">
+        {/* Close Button UI matches screenshot */}
+        <div className="absolute right-6 top-6">
+          <DialogClose className="opacity-40 hover:opacity-100 transition-opacity">
+            <X className="h-5 w-5" />
+          </DialogClose>
+        </div>
+
+        <div className="px-8 pt-10 pb-12">
           {view === 'prompt' ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mx-auto bg-primary/10 h-24 w-24 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner">
-                {success ? (
-                  <CheckCircle2 className="h-12 w-12 text-green-500 animate-in zoom-in" />
-                ) : (
-                  <MapPin className="h-12 w-12 text-primary animate-bounce" />
-                )}
+            <div className="flex flex-col items-center">
+              {/* Central Pin Icon Card */}
+              <div className="bg-[#FFF1F1] h-28 w-28 rounded-[2rem] flex items-center justify-center mb-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                <div className="bg-white p-4 rounded-2xl shadow-sm">
+                   <MapPin className="h-10 w-10 text-primary" />
+                </div>
               </div>
 
-              <DialogHeader className="space-y-2">
-                <DialogTitle className="text-3xl font-black italic uppercase text-center tracking-tighter leading-tight">
-                  Where to <br /><span className="text-primary">Deliver?</span>
-                </DialogTitle>
-                <DialogDescription className="text-center font-medium text-muted-foreground px-2 text-sm">
+              <div className="space-y-4 text-center mb-12">
+                <h2 className="text-[2.5rem] font-black italic uppercase leading-[1] tracking-tighter">
+                  WHERE TO <br />
+                  <span className="text-primary italic">DELIVER?</span>
+                </h2>
+                <p className="text-gray-400 font-medium px-4 text-sm leading-relaxed">
                   We need your location to show the best restaurants in your area.
-                </DialogDescription>
-              </DialogHeader>
+                </p>
+              </div>
 
-              <div className="mt-8 space-y-3">
+              <div className="w-full space-y-6">
                 <Button
                   onClick={handleGetLocation}
                   disabled={loading || success}
-                  className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20"
+                  className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all text-sm px-6"
                 >
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                    <>
-                      <Navigation className="h-4 w-4 mr-2" />
+                  {loading ? (
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      FINDING LOCATION...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-3">
+                      <Navigation className="h-4 w-4" />
                       USE MY CURRENT LOCATION
-                    </>
+                    </div>
                   )}
                 </Button>
                 
-                <Button
-                  variant="ghost"
+                <button
                   onClick={() => setView('manual')}
-                  className="w-full h-12 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted/50 rounded-xl"
+                  className="w-full text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-foreground transition-colors py-2"
                 >
-                  Enter Address Manually
-                </Button>
+                  ENTER ADDRESS MANUALLY
+                </button>
               </div>
             </div>
           ) : (
@@ -192,11 +225,11 @@ export function LocationRequest() {
                 Back
               </button>
 
-              <DialogHeader className="mb-6">
-                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
+              <div className="mb-8">
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter">
                   Enter <span className="text-primary">Details</span>
-                </DialogTitle>
-              </DialogHeader>
+                </h2>
+              </div>
 
               <form onSubmit={handleManualSave} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -204,7 +237,7 @@ export function LocationRequest() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pincode *</label>
                     <Input 
                       placeholder="110001" 
-                      className="rounded-xl h-11 border-muted"
+                      className="rounded-xl h-11 border-muted bg-muted/20"
                       value={manualData.pincode}
                       onChange={(e) => setManualData({...manualData, pincode: e.target.value})}
                       required
@@ -214,7 +247,7 @@ export function LocationRequest() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">State *</label>
                     <Input 
                       placeholder="Delhi" 
-                      className="rounded-xl h-11 border-muted"
+                      className="rounded-xl h-11 border-muted bg-muted/20"
                       value={manualData.state}
                       onChange={(e) => setManualData({...manualData, state: e.target.value})}
                       required
@@ -226,7 +259,7 @@ export function LocationRequest() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">House / Street / Area *</label>
                   <Input 
                     placeholder="E.g. 123, Skyline Apartments" 
-                    className="rounded-xl h-11 border-muted"
+                    className="rounded-xl h-11 border-muted bg-muted/20"
                     value={manualData.address}
                     onChange={(e) => setManualData({...manualData, address: e.target.value})}
                     required
@@ -234,12 +267,12 @@ export function LocationRequest() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Apartment / Suite (Optional)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Apartment (Optional)</label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                     <Input 
                       placeholder="E.g. Floor 4, Flat 402" 
-                      className="rounded-xl h-11 border-muted pl-10"
+                      className="rounded-xl h-11 border-muted pl-10 bg-muted/20"
                       value={manualData.apartment}
                       onChange={(e) => setManualData({...manualData, apartment: e.target.value})}
                     />
@@ -249,7 +282,7 @@ export function LocationRequest() {
                 <Button
                   type="submit"
                   disabled={loading || success}
-                  className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 mt-4"
+                  className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 mt-4 active:scale-95 transition-all"
                 >
                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'SAVE ADDRESS'}
                 </Button>
@@ -258,9 +291,10 @@ export function LocationRequest() {
           )}
         </div>
 
-        <div className="bg-muted/30 p-4 text-center">
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-            Privacy Guaranteed • Encrypted Connection
+        {/* Legal Trust Footer */}
+        <div className="bg-gray-50/50 py-5 text-center border-t border-gray-100">
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+            PRIVACY GUARANTEED • ENCRYPTED CONNECTION
           </p>
         </div>
       </DialogContent>
