@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -49,7 +48,7 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  // Auto-fetch City/State from Pincode
+  // Auto-fetch Town/State from Pincode
   useEffect(() => {
     if (manualData.pincode.length === 6) {
       const fetchPincodeDetails = async () => {
@@ -60,14 +59,16 @@ export function LocationRequest() {
           
           if (data[0].Status === "Success") {
             const details = data[0].PostOffice[0];
+            // Prioritize Name (Town) and Block over District (City)
+            const townName = details.Name || details.Block || details.District;
             setManualData(prev => ({
               ...prev,
-              city: details.District || details.Block || details.Name,
+              city: townName,
               state: details.State
             }));
             toast({
-              title: "Details Detected",
-              description: `Located: ${details.District}, ${details.State}`
+              title: "Town Detected",
+              description: `Located: ${townName}, ${details.State}`
             });
           } else {
             toast({
@@ -130,6 +131,7 @@ export function LocationRequest() {
 
     setLoading(true);
     
+    // Fast Track Mode: High accuracy false for instant results from cell/wifi
     const geoOptions = {
       enableHighAccuracy: false, 
       timeout: 3000,
@@ -141,20 +143,27 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
+          // 2s Timeout for geocoding
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            { signal: controller.signal }
           );
           
+          clearTimeout(timeoutId);
           const data = await response.json();
           const address = data.address.suburb || data.address.neighbourhood || data.address.city_district || data.address.city || data.display_name.split(',')[0];
           const fullAddress = `${address}, ${data.address.city || data.address.state || ''}`;
           
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
+          // If geocoding is slow or fails, save coordinates with generic name to stay under 4s
           saveLocationToDB({ 
             latitude, 
             longitude, 
-            address: `Detected Area (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
+            address: `Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
             type: 'detected' 
           });
         }
@@ -270,8 +279,8 @@ export function LocationRequest() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">City/District</label>
-                    <Input placeholder="City" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.city} onChange={(e) => setManualData({...manualData, city: e.target.value})} required />
+                    <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">Town/City</label>
+                    <Input placeholder="Town" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.city} onChange={(e) => setManualData({...manualData, city: e.target.value})} required />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">State</label>
