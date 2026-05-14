@@ -106,7 +106,6 @@ export function LocationRequest() {
         clearTimeout(timeoutId);
         const { latitude, longitude } = position.coords;
         try {
-          // Faster reverse geocoding approach or simple coords
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await response.json();
           const address = data.display_name?.split(',').slice(0, 3).join(',') || 'Detected Location';
@@ -158,10 +157,8 @@ export function LocationRequest() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="rounded-[2.5rem] max-w-[90%] sm:max-w-sm border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none">
-        {/* Brand Bar */}
         <div className="bg-primary h-1.5 w-full" />
         
-        {/* Close Button UI matches screenshot */}
         <div className="absolute right-6 top-6">
           <DialogClose className="opacity-40 hover:opacity-100 transition-opacity">
             <X className="h-5 w-5" />
@@ -171,7 +168,6 @@ export function LocationRequest() {
         <div className="px-8 pt-10 pb-12">
           {view === 'prompt' ? (
             <div className="flex flex-col items-center">
-              {/* Central Pin Icon Card */}
               <div className="bg-[#FFF1F1] h-28 w-28 rounded-[2rem] flex items-center justify-center mb-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <div className="bg-white p-4 rounded-2xl shadow-sm">
                    <MapPin className="h-10 w-10 text-primary" />
@@ -179,13 +175,13 @@ export function LocationRequest() {
               </div>
 
               <div className="space-y-4 text-center mb-12">
-                <h2 className="text-[2.5rem] font-black italic uppercase leading-[1] tracking-tighter">
+                <DialogTitle className="text-[2.5rem] font-black italic uppercase leading-[1] tracking-tighter">
                   WHERE TO <br />
                   <span className="text-primary italic">DELIVER?</span>
-                </h2>
-                <p className="text-gray-400 font-medium px-4 text-sm leading-relaxed">
+                </DialogTitle>
+                <DialogDescription className="text-gray-400 font-medium px-4 text-sm leading-relaxed">
                   We need your location to show the best restaurants in your area.
-                </p>
+                </DialogDescription>
               </div>
 
               <div className="w-full space-y-6">
@@ -226,9 +222,12 @@ export function LocationRequest() {
               </button>
 
               <div className="mb-8">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                   Enter <span className="text-primary">Details</span>
-                </h2>
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Fill in your delivery address manually.
+                </DialogDescription>
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-4">
@@ -291,7 +290,6 @@ export function LocationRequest() {
           )}
         </div>
 
-        {/* Legal Trust Footer */}
         <div className="bg-gray-50/50 py-5 text-center border-t border-gray-100">
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
             PRIVACY GUARANTEED • ENCRYPTED CONNECTION
