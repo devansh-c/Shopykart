@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,12 +31,6 @@ export function LocationRequest() {
     address: '',
     apartment: '',
   });
-
-  // Mock Saved Locations (as seen in screenshot)
-  const savedLocations = [
-    { id: '1', title: 'Home', address: '64QM+G2X, Mauranipur, Roni, Uttar Pradesh 284204, I...' },
-    { id: '2', title: 'Work', address: '7535+JPR, NH 75, Madha, Mauranipur, Uttar Pradesh 2...' },
-  ];
 
   useEffect(() => {
     const hasLocation = localStorage.getItem('user_location_set');
@@ -96,9 +91,9 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Use fast settings for haal-ke-haal results
+    // Fast settings for results
     const geoOptions = {
-      enableHighAccuracy: false, // Much faster
+      enableHighAccuracy: false,
       timeout: 10000,
       maximumAge: 60000
     };
@@ -107,7 +102,6 @@ export function LocationRequest() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // Fast lookup with a shorter timeout for the fetch itself
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
           
@@ -122,7 +116,6 @@ export function LocationRequest() {
           
           saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
-          // If address lookup fails, save with coordinates so it's not stuck
           saveLocationToDB({ 
             latitude, 
             longitude, 
@@ -137,7 +130,7 @@ export function LocationRequest() {
         if (error.code === error.TIMEOUT) msg = 'Location request timed out.';
         
         toast({ variant: 'destructive', title: 'Location Error', description: msg });
-        setView('manual'); // Switch to manual if automatic fails
+        setView('manual');
       },
       geoOptions
     );
@@ -179,26 +172,7 @@ export function LocationRequest() {
                 {loading ? 'Detecting Location...' : 'Use my current location'}
               </button>
 
-              {/* Saved Locations List */}
-              <div className="bg-green-50/40 rounded-3xl p-4 space-y-6">
-                {savedLocations.map((loc) => (
-                  <div 
-                    key={loc.id} 
-                    className="flex gap-4 items-start group cursor-pointer active:scale-95 transition-transform" 
-                    onClick={() => saveLocationToDB({ address: loc.address, type: 'manual' })}
-                  >
-                    <div className="p-1 rounded-md text-green-500 mt-1">
-                      <Home className="h-6 w-6 fill-current" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <h4 className="font-bold text-base text-black">{loc.title}</h4>
-                      <p className="text-xs text-gray-400 font-medium line-clamp-1 leading-relaxed">
-                        {loc.address}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <div className="h-px bg-gray-100 w-full" />
 
               {/* Add New Address Link */}
               <button
