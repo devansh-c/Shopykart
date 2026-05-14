@@ -2,12 +2,12 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
-import { Loader2, ShoppingBag, Store, Tag, PlusCircle, UserCircle, Save, Trash2, Plus, Image as ImageIcon, MapPin, Clock, Info, Check } from 'lucide-react';
+import { collection, doc, updateDoc, query, where, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { Loader2, ShoppingBag, Store, Tag, PlusCircle, UserCircle, Save, Trash2, Plus, Image as ImageIcon, MapPin, Clock, Info, Check, Upload, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ export default function VendorDashboard() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
 
   // Vendor Profile Data
@@ -82,7 +83,7 @@ export default function VendorDashboard() {
       ...storeData,
       updatedAt: serverTimestamp()
     }).then(() => {
-      toast({ title: "Profile Updated", description: "Your store details are now live and synced in real-time." });
+      toast({ title: "Profile Updated", description: "Your store details are now live." });
     });
   };
 
@@ -99,12 +100,28 @@ export default function VendorDashboard() {
     price: '',
     description: '',
     category: '',
+    imageUrl: '',
     isVeg: true,
     badges: [] as string[]
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewProduct({ ...newProduct, imageUrl: reader.result as string });
+      toast({ title: "Image Selected", description: "Your photo has been uploaded successfully." });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddProduct = () => {
-    if (!firestore || !user || !newProduct.name || !newProduct.price) return;
+    if (!firestore || !user || !newProduct.name || !newProduct.price) {
+      toast({ variant: "destructive", title: "Error", description: "Please fill all required fields." });
+      return;
+    }
 
     const productData = {
       name: newProduct.name,
@@ -113,7 +130,7 @@ export default function VendorDashboard() {
       category: newProduct.category || 'General',
       isVeg: newProduct.isVeg,
       vendorId: user.uid,
-      imageUrl: `https://picsum.photos/seed/${newProduct.name}/400/300`,
+      imageUrl: newProduct.imageUrl || `https://picsum.photos/seed/${newProduct.name}/400/300`,
       createdAt: serverTimestamp(),
       restaurantName: storeData.storeName || 'My Store',
       badges: newProduct.badges
@@ -122,7 +139,7 @@ export default function VendorDashboard() {
     addDoc(collection(firestore, 'products'), productData)
       .then(() => {
         setIsAddOpen(false);
-        setNewProduct({ name: '', price: '', description: '', category: '', isVeg: true, badges: [] });
+        setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, badges: [] });
         toast({ title: "Product Added", description: "Your item is now live for customers." });
       })
       .catch((e) => {
@@ -220,13 +237,42 @@ export default function VendorDashboard() {
               <h2 className="text-xl font-black italic uppercase">Store Catalog</h2>
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogTrigger asChild><Button className="bg-primary rounded-xl font-black uppercase text-xs h-10"><Plus className="mr-1 h-4 w-4" /> Add Item</Button></DialogTrigger>
-                <DialogContent className="rounded-[2.5rem] max-w-md">
+                <DialogContent className="rounded-[2.5rem] max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle className="font-black italic uppercase text-xl">Add New Product</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-4">
+                    
+                    {/* Image Selection Section */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Image</label>
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-40 w-full rounded-2xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        {newProduct.imageUrl ? (
+                          <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="Preview" />
+                        ) : (
+                          <>
+                            <div className="bg-white p-3 rounded-xl shadow-sm mb-2 text-primary">
+                              <Camera className="h-6 w-6" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Tap to open Gallery</span>
+                          </>
+                        )}
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleFileChange} 
+                      />
+                    </div>
+
                     <Input placeholder="Product Name" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} />
                     <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} />
                     <Input placeholder="Category" value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} />
                     <Textarea placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} />
+                    
                     <div className="flex gap-2">
                       {['Bestseller', 'Featured', 'Trending'].map(badge => (
                         <button
@@ -279,7 +325,7 @@ export default function VendorDashboard() {
         )}
 
         {activeTab === 'profile' && (
-          <div className="space-y-8 max-w-lg mx-auto bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+          <div className="space-y-8 max-w-lg mx-auto bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
             <div className="text-center">
               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Store Profile</h2>
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Real-time sync enabled</p>
