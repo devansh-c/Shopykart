@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +34,7 @@ export function LocationRequest() {
   // Mock Saved Locations (as seen in screenshot)
   const savedLocations = [
     { id: '1', title: 'Home', address: '64QM+G2X, Mauranipur, Roni, Uttar Pradesh 284204, I...' },
-    { id: '2', title: 'Home', address: '7535+JPR, NH 75, Madha, Mauranipur, Uttar Pradesh 2...' },
+    { id: '2', title: 'Work', address: '7535+JPR, NH 75, Madha, Mauranipur, Uttar Pradesh 2...' },
   ];
 
   useEffect(() => {
@@ -54,7 +53,10 @@ export function LocationRequest() {
   }, [user]);
 
   const saveLocationToDB = (location: any) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore) {
+      setLoading(false);
+      return;
+    }
 
     const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
     const finalData = {
@@ -73,7 +75,7 @@ export function LocationRequest() {
           setOpen(false);
           setSuccess(false);
           setLoading(false);
-        }, 600);
+        }, 800);
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -86,35 +88,56 @@ export function LocationRequest() {
       });
   };
 
-  const handleGetLocation = async () => {
+  const handleGetLocation = () => {
     if (!navigator.geolocation) {
       toast({ variant: 'destructive', title: 'Not Supported', description: 'Geolocation is not supported.' });
       return;
     }
 
     setLoading(true);
+    
+    // Use fast settings for haal-ke-haal results
     const geoOptions = {
-      enableHighAccuracy: false,
-      timeout: 5000,
-      maximumAge: 300000
+      enableHighAccuracy: false, // Much faster
+      timeout: 10000,
+      maximumAge: 60000
     };
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+          // Fast lookup with a shorter timeout for the fetch itself
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            { signal: controller.signal }
+          );
+          
+          clearTimeout(timeoutId);
           const data = await response.json();
-          const address = data.display_name?.split(',').slice(0, 3).join(',') || 'Detected Location';
+          const address = data.display_name?.split(',').slice(0, 3).join(',') || `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+          
           saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
-          saveLocationToDB({ latitude, longitude, address: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`, type: 'detected' });
+          // If address lookup fails, save with coordinates so it's not stuck
+          saveLocationToDB({ 
+            latitude, 
+            longitude, 
+            address: `Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
+            type: 'detected' 
+          });
         }
       },
       (error) => {
         setLoading(false);
-        toast({ variant: 'destructive', title: 'Error', description: 'Location access denied.' });
-        setView('manual');
+        let msg = 'Location access denied.';
+        if (error.code === error.TIMEOUT) msg = 'Location request timed out.';
+        
+        toast({ variant: 'destructive', title: 'Location Error', description: msg });
+        setView('manual'); // Switch to manual if automatic fails
       },
       geoOptions
     );
@@ -150,16 +173,20 @@ export function LocationRequest() {
               <button
                 onClick={handleGetLocation}
                 disabled={loading}
-                className="flex items-center gap-2 text-green-600 font-bold text-sm py-2 hover:opacity-80 transition-opacity w-fit"
+                className="flex items-center gap-2 text-green-600 font-bold text-sm py-2 hover:opacity-80 transition-opacity w-fit disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <LocateFixed className="h-5 w-5" />}
-                {loading ? 'Fetching location...' : 'Use my current location'}
+                {loading ? 'Detecting Location...' : 'Use my current location'}
               </button>
 
               {/* Saved Locations List */}
               <div className="bg-green-50/40 rounded-3xl p-4 space-y-6">
                 {savedLocations.map((loc) => (
-                  <div key={loc.id} className="flex gap-4 items-start group cursor-pointer" onClick={() => saveLocationToDB({ address: loc.address, type: 'manual' })}>
+                  <div 
+                    key={loc.id} 
+                    className="flex gap-4 items-start group cursor-pointer active:scale-95 transition-transform" 
+                    onClick={() => saveLocationToDB({ address: loc.address, type: 'manual' })}
+                  >
                     <div className="p-1 rounded-md text-green-500 mt-1">
                       <Home className="h-6 w-6 fill-current" />
                     </div>
@@ -193,6 +220,7 @@ export function LocationRequest() {
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                   Enter <span className="text-primary">Details</span>
                 </DialogTitle>
+                <DialogDescription className="hidden">Manual address entry form</DialogDescription>
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-4">
