@@ -65,5 +65,49 @@ export const allProducts = [
     isVeg: true,
     restaurantName: 'ShopyKart Signature',
     badges: ['Trending']
+  },
+  {
+    id: 'shopy-7',
+    name: 'Double Cheese Margherita',
+    price: 299,
+    description: 'Classic Italian pizza with double mozzarella cheese and fresh basil leaves.',
+    category: 'pizza',
+    imageUrl: 'https://picsum.photos/seed/shopy-piz-2/400/300',
+    isVeg: true,
+    restaurantName: 'ShopyKart Signature',
+    badges: ['Bestseller']
+  },
+  {
+    id: 'shopy-8',
+    name: 'Paneer Tikka Kathi Roll',
+    price: 149,
+    description: 'Soft rumali roti stuffed with marinated paneer cubes, onions, and mint chutney.',
+    category: 'burgers',
+    imageUrl: 'https://picsum.photos/seed/shopy-roll/400/300',
+    isVeg: true,
+    restaurantName: 'ShopyKart Signature',
+    badges: ['Trending']
+  },
+  {
+    id: 'shopy-9',
+    name: 'Chocolate Oreo Shake',
+    price: 159,
+    description: 'Thick and creamy milkshake blended with Oreo cookies and chocolate syrup.',
+    category: 'drinks',
+    imageUrl: 'https://picsum.photos/seed/shopy-shake/400/300',
+    isVeg: true,
+    restaurantName: 'ShopyKart Signature',
+    badges: ['Bestseller']
+  },
+  {
+    id: 'shopy-10',
+    name: 'Veg Loaded Club Sandwich',
+    price: 179,
+    description: 'Triple layer sandwich packed with fresh veggies, cheese, and spicy herb butter.',
+    category: 'burgers',
+    imageUrl: 'https://picsum.photos/seed/shopy-sand/400/300',
+    isVeg: true,
+    restaurantName: 'ShopyKart Signature',
+    badges: ['Featured']
   }
 ];
