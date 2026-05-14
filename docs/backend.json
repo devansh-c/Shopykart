@@ -13,7 +13,14 @@
         "imageUrl": { "type": "string" },
         "isVeg": { "type": "boolean" },
         "vendorId": { "type": "string" },
-        "badges": { "type": "array", "items": { "type": "string" } }
+        "restaurantName": { "type": "string" },
+        "badges": { 
+          "type": "array", 
+          "items": { 
+            "type": "string",
+            "enum": ["Bestseller", "Featured", "Trending"]
+          } 
+        }
       },
       "required": ["name", "price", "vendorId"]
     },
@@ -40,10 +47,14 @@
       "description": "Store owner details",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string" },
         "storeName": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "bannerUrl": { "type": "string" },
         "rating": { "type": "number" },
+        "deliveryTime": { "type": "string" },
+        "address": { "type": "string" },
         "walletBalance": { "type": "number" }
       }
     },
@@ -66,6 +77,8 @@
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders collection" },
     "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
     "/delivery_partners/{partnerId}": { "schema": "#/entities/DeliveryPartner", "description": "Delivery staff" },
-    "/users/{userId}/profile": { "schema": "object", "description": "User profile and role data" }
+    "/users/{userId}/profile": { "schema": "object", "description": "User profile and role data" },
+    "/banners/{bannerId}": { "schema": "object", "description": "App-wide promotional banners" },
+    "/coupons/{couponId}": { "schema": "object", "description": "Discount codes" }
   }
 }

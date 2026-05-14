@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
-import { Loader2, ShoppingBag, CheckCircle, Flame, Clock, Truck, Plus, Package, Trash2, Store, Tag, PlusCircle, LayoutDashboard, UserCircle, Image as ImageIcon, Check, Save } from 'lucide-react';
+import { Loader2, ShoppingBag, Store, Tag, PlusCircle, UserCircle, Save, Trash2, Plus, Image as ImageIcon, MapPin, Clock, Info, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -56,6 +56,10 @@ export default function VendorDashboard() {
     storeName: '',
     category: '',
     imageUrl: '',
+    bannerUrl: '',
+    description: '',
+    deliveryTime: '',
+    address: '',
   });
 
   useEffect(() => {
@@ -64,6 +68,10 @@ export default function VendorDashboard() {
         storeName: vendorProfile.storeName || '',
         category: vendorProfile.category || '',
         imageUrl: vendorProfile.imageUrl || '',
+        bannerUrl: vendorProfile.bannerUrl || '',
+        description: vendorProfile.description || '',
+        deliveryTime: vendorProfile.deliveryTime || '',
+        address: vendorProfile.address || '',
       });
     }
   }, [vendorProfile]);
@@ -74,7 +82,7 @@ export default function VendorDashboard() {
       ...storeData,
       updatedAt: serverTimestamp()
     }).then(() => {
-      toast({ title: "Profile Updated", description: "Your store details are now live." });
+      toast({ title: "Profile Updated", description: "Your store details are now live and synced in real-time." });
     });
   };
 
@@ -91,7 +99,8 @@ export default function VendorDashboard() {
     price: '',
     description: '',
     category: '',
-    isVeg: true
+    isVeg: true,
+    badges: [] as string[]
   });
 
   const handleAddProduct = () => {
@@ -106,13 +115,14 @@ export default function VendorDashboard() {
       vendorId: user.uid,
       imageUrl: `https://picsum.photos/seed/${newProduct.name}/400/300`,
       createdAt: serverTimestamp(),
-      restaurantName: storeData.storeName || 'My Store'
+      restaurantName: storeData.storeName || 'My Store',
+      badges: newProduct.badges
     };
 
     addDoc(collection(firestore, 'products'), productData)
       .then(() => {
         setIsAddOpen(false);
-        setNewProduct({ name: '', price: '', description: '', category: '', isVeg: true });
+        setNewProduct({ name: '', price: '', description: '', category: '', isVeg: true, badges: [] });
         toast({ title: "Product Added", description: "Your item is now live for customers." });
       })
       .catch((e) => {
@@ -127,7 +137,7 @@ export default function VendorDashboard() {
       .then(() => toast({ title: "Removed", description: "Product deleted successfully." }));
   };
 
-  if (!user) return <div className="min-h-screen flex items-center justify-center font-black">PLEASE SIGN IN TO ACCESS VENDOR PANEL</div>;
+  if (!user) return <div className="min-h-screen flex items-center justify-center font-black uppercase">PLEASE SIGN IN TO ACCESS VENDOR PANEL</div>;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-24">
@@ -135,7 +145,7 @@ export default function VendorDashboard() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tighter">Vendor Panel</h1>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Live Store Management</p>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Real-time Multi-Vendor Sync</p>
           </div>
           <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center">
             <Store className="h-6 w-6 text-primary" />
@@ -199,7 +209,7 @@ export default function VendorDashboard() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-20 opacity-30"><Package className="mx-auto mb-4" /><p className="font-black">No live orders</p></div>
+              <div className="text-center py-20 opacity-30"><ShoppingBag className="mx-auto mb-4 h-12 w-12" /><p className="font-black italic uppercase">No live orders</p></div>
             )}
           </div>
         )}
@@ -207,30 +217,61 @@ export default function VendorDashboard() {
         {activeTab === 'catalog' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-black italic uppercase">Product Catalog</h2>
+              <h2 className="text-xl font-black italic uppercase">Store Catalog</h2>
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogTrigger asChild><Button className="bg-primary rounded-xl font-black uppercase text-xs h-10"><Plus className="mr-1" /> Add Item</Button></DialogTrigger>
-                <DialogContent className="rounded-[2.5rem]">
+                <DialogTrigger asChild><Button className="bg-primary rounded-xl font-black uppercase text-xs h-10"><Plus className="mr-1 h-4 w-4" /> Add Item</Button></DialogTrigger>
+                <DialogContent className="rounded-[2.5rem] max-w-md">
                   <DialogHeader><DialogTitle className="font-black italic uppercase text-xl">Add New Product</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-4">
                     <Input placeholder="Product Name" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} />
                     <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} />
                     <Input placeholder="Category" value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} />
                     <Textarea placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} />
+                    <div className="flex gap-2">
+                      {['Bestseller', 'Featured', 'Trending'].map(badge => (
+                        <button
+                          key={badge}
+                          onClick={() => {
+                            const exists = newProduct.badges.includes(badge);
+                            setNewProduct({
+                              ...newProduct,
+                              badges: exists 
+                                ? newProduct.badges.filter(b => b !== badge)
+                                : [...newProduct.badges, badge]
+                            });
+                          }}
+                          className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-black uppercase border transition-all",
+                            newProduct.badges.includes(badge) ? "bg-primary text-white border-primary" : "bg-transparent text-muted-foreground border-border"
+                          )}
+                        >
+                          {badge}
+                        </button>
+                      ))}
+                    </div>
                     <Button onClick={handleAddProduct} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">Publish Product</Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              {products?.map((product: any) => (
-                <div key={product.id} className="bg-white p-4 rounded-2xl border flex items-center gap-4 shadow-sm">
-                  <div className="h-16 w-16 bg-muted rounded-xl overflow-hidden shrink-0"><img src={product.imageUrl} className="h-full w-full object-cover" /></div>
+              {productsLoading ? (
+                <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              ) : products?.map((product: any) => (
+                <div key={product.id} className="bg-white p-4 rounded-2xl border flex items-center gap-4 shadow-sm group">
+                  <div className="h-16 w-16 bg-muted rounded-xl overflow-hidden shrink-0">
+                    <img src={product.imageUrl} className="h-full w-full object-cover" alt="" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-sm">{product.name}</h3>
-                    <p className="text-sm font-black text-primary italic">₹{product.price}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-sm font-black text-primary italic">₹{product.price}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold">• {product.category}</span>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product.id)} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -241,37 +282,85 @@ export default function VendorDashboard() {
           <div className="space-y-8 max-w-lg mx-auto bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm animate-in fade-in slide-in-from-bottom-4">
             <div className="text-center">
               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Store Profile</h2>
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Manage your brand presence</p>
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Real-time sync enabled</p>
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Image</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {PlaceHolderImages.filter(img => img.id.includes('store')).map((img) => (
-                    <button
-                      key={img.id}
-                      onClick={() => setStoreData({...storeData, imageUrl: img.imageUrl})}
-                      className={cn(
-                        "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                        storeData.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
-                      )}
-                    >
-                      <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
-                      {storeData.imageUrl === img.imageUrl && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="text-white h-5 w-5" /></div>}
-                    </button>
-                  ))}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Banner</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PlaceHolderImages.filter(img => img.id.includes('hero')).slice(0, 4).map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setStoreData({...storeData, bannerUrl: img.imageUrl})}
+                        className={cn(
+                          "relative aspect-video rounded-xl overflow-hidden border-2 transition-all",
+                          storeData.bannerUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
+                        )}
+                      >
+                        <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
+                        {storeData.bannerUrl === img.imageUrl && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="text-white h-4 w-4" /></div>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Logo/Image</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PlaceHolderImages.filter(img => img.id.includes('store')).map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setStoreData({...storeData, imageUrl: img.imageUrl})}
+                        className={cn(
+                          "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                          storeData.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
+                        )}
+                      >
+                        <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
+                        {storeData.imageUrl === img.imageUrl && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="text-white h-4 w-4" /></div>}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Display Name</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                    <Store className="h-3 w-3" /> Display Name
+                  </label>
                   <Input placeholder="e.g. The Gourmet Kitchen" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} />
                 </div>
+                
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categories (e.g. Italian • Fast Food)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                    <Tag className="h-3 w-3" /> Categories
+                  </label>
                   <Input placeholder="e.g. Italian • North Indian" value={storeData.category} onChange={(e) => setStoreData({...storeData, category: e.target.value})} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" /> Store Description
+                  </label>
+                  <Textarea placeholder="Tell customers about your store..." value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="h-20" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Delivery Time
+                    </label>
+                    <Input placeholder="e.g. 20-30 min" value={storeData.deliveryTime} onChange={(e) => setStoreData({...storeData, deliveryTime: e.target.value})} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> Address
+                    </label>
+                    <Input placeholder="e.g. Mumbai, India" value={storeData.address} onChange={(e) => setStoreData({...storeData, address: e.target.value})} />
+                  </div>
                 </div>
               </div>
 

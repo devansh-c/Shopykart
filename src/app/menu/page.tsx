@@ -4,16 +4,15 @@
 import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Store } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Store, Clock, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { allProducts } from '@/lib/mock-data';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -34,55 +33,40 @@ function MenuContent() {
   const { toast } = useToast();
   
   const firestore = useFirestore();
+
+  // Fetch Vendor Profile for real-time store details
+  const vendorRef = useMemoFirebase(() => {
+    if (!firestore || !vendorIdParam) return null;
+    return doc(firestore, 'vendors', vendorIdParam);
+  }, [firestore, vendorIdParam]);
+  const { data: vendorProfile } = useDoc<any>(vendorRef);
+
+  // Fetch Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
-  
   const { data: dbProducts, loading } = useCollection(productsQuery);
 
-  // Combine DB products and Mock products
-  const combinedProducts = useMemo(() => {
-    const dbItems = dbProducts || [];
-    // We add vendorId to mock products if they don't have it, but they do now.
-    return [...allProducts, ...dbItems];
-  }, [dbProducts]);
-
   const filteredAndSortedProducts = useMemo(() => {
-    let result = combinedProducts.filter((product: any) => {
+    if (!dbProducts) return [];
+    let result = dbProducts.filter((product: any) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
-      
-      // Filter by vendor if parameter is present
       const matchesVendor = !vendorIdParam || product.vendorId === vendorIdParam;
-      
       return matchesSearch && matchesCategory && matchesVendor;
     });
 
-    // Sorting
     switch (sortBy) {
-      case 'price-low':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      default:
-        break;
+      case 'price-low': result.sort((a: any, b: any) => a.price - b.price); break;
+      case 'price-high': result.sort((a: any, b: any) => b.price - a.price); break;
+      case 'name': result.sort((a: any, b: any) => a.name.localeCompare(b.name)); break;
+      default: break;
     }
 
     return result;
-  }, [searchQuery, activeCategory, sortBy, combinedProducts, vendorIdParam]);
-
-  const currentStoreName = useMemo(() => {
-    if (!vendorIdParam) return null;
-    const prod = combinedProducts.find((p: any) => p.vendorId === vendorIdParam);
-    return prod?.restaurantName || 'Selected Store';
-  }, [vendorIdParam, combinedProducts]);
+  }, [searchQuery, activeCategory, sortBy, dbProducts, vendorIdParam]);
 
   const handleCustomRequest = () => {
     if (!requestText.trim()) return;
@@ -105,31 +89,38 @@ function MenuContent() {
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-40">
+      {/* Dynamic Store Header */}
+      {vendorIdParam && vendorProfile && (
+        <div className="relative h-64 w-full">
+          <img 
+            src={vendorProfile.bannerUrl || `https://picsum.photos/seed/${vendorIdParam}/800/400`} 
+            className="w-full h-full object-cover" 
+            alt="Banner" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-6">
+            <Link href="/menu" className="absolute top-6 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
+              <X className="h-5 w-5" />
+            </Link>
+            <div className="flex items-end gap-4">
+              <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0">
+                <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="Logo" />
+              </div>
+              <div className="flex-1 pb-1">
+                <h1 className="text-3xl font-black italic uppercase text-white tracking-tighter leading-none mb-2">{vendorProfile.storeName}</h1>
+                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-primary italic">
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {vendorProfile.deliveryTime || '20 min'}</span>
+                  <span className="flex items-center gap-1 text-white/60"><MapPin className="h-3 w-3" /> {vendorProfile.address || 'Nearby'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-6 pt-12 pb-4 flex items-center justify-between">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">Menu</h1>
       </div>
 
-      {vendorIdParam && (
-        <div className="mx-6 mb-4 animate-in fade-in slide-in-from-top-2 duration-500">
-          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-xl">
-                <Store className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Showing items for</p>
-                <h2 className="font-black italic uppercase text-sm tracking-tight">{currentStoreName}</h2>
-              </div>
-            </div>
-            <Link href="/menu">
-              <button className="h-8 w-8 bg-white rounded-full shadow-sm flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
-                <X className="h-4 w-4" />
-              </button>
-            </Link>
-          </div>
-        </div>
-      )}
-      
       <div className="px-6 mb-6">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -159,11 +150,6 @@ function MenuContent() {
                   alt={cat.name}
                   className="w-full h-full object-cover"
                 />
-                {cat.badge && activeCategory === cat.id && (
-                  <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm translate-x-1 translate-y-1">
-                    <span className="text-[10px]">{cat.badge}</span>
-                  </div>
-                )}
               </div>
               <span className={cn(
                 "text-[10px] font-black uppercase tracking-widest transition-colors",
@@ -208,10 +194,15 @@ function MenuContent() {
                 className="premium-card p-5 flex justify-between items-center bg-white"
               >
                 <Link href={`/product/${product.id}`} className="flex-1 pr-4">
-                  <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                       <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
+                    {product.badges?.map((badge: string) => (
+                      <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                        {badge}
+                      </span>
+                    ))}
                   </div>
                   <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
                   <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
@@ -260,11 +251,6 @@ function MenuContent() {
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed">
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No items found</p>
-            {vendorIdParam && (
-              <Button variant="link" onClick={() => window.location.href = '/menu'} className="text-primary mt-4 font-bold uppercase text-[10px]">
-                Browse all stores
-              </Button>
-            )}
           </div>
         )}
       </div>
