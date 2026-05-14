@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -45,7 +46,7 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  const saveLocationToDB = async (location: any) => {
+  const saveLocationToDB = (location: any) => {
     if (!user || !firestore) return;
 
     const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
@@ -54,30 +55,33 @@ export function LocationRequest() {
       updatedAt: serverTimestamp(),
     };
 
-    try {
-      await setDoc(userRef, finalData, { merge: true });
-      localStorage.setItem('user_address', location.address);
-      localStorage.setItem('user_location_set', 'true');
-      setSuccess(true);
-      
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess(false);
-        window.location.reload();
-      }, 1000);
-    } catch (err) {
-      const permissionError = new FirestorePermissionError({
-        path: userRef.path,
-        operation: 'update',
-        requestResourceData: finalData,
+    // Follow mutation best practices (no await)
+    setDoc(userRef, finalData, { merge: true })
+      .then(() => {
+        localStorage.setItem('user_address', location.address);
+        localStorage.setItem('user_location_set', 'true');
+        setSuccess(true);
+        
+        setTimeout(() => {
+          setOpen(false);
+          setSuccess(false);
+          window.location.reload();
+        }, 1000);
+      })
+      .catch(async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'update',
+          requestResourceData: finalData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error Saving',
+          description: 'Please try again later.',
+        });
+        setLoading(false);
       });
-      errorEmitter.emit('permission-error', permissionError);
-      toast({
-        variant: 'destructive',
-        title: 'Error Saving',
-        description: 'Please try again later.',
-      });
-    }
   };
 
   const handleGetLocation = async () => {
@@ -95,7 +99,7 @@ export function LocationRequest() {
           const data = await response.json();
           const address = data.display_name || 'Detected Location';
           
-          await saveLocationToDB({
+          saveLocationToDB({
             latitude,
             longitude,
             address,
@@ -103,7 +107,6 @@ export function LocationRequest() {
           });
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch address.' });
-        } finally {
           setLoading(false);
         }
       },
@@ -114,7 +117,7 @@ export function LocationRequest() {
     );
   };
 
-  const handleManualSave = async (e: React.FormEvent) => {
+  const handleManualSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualData.pincode || !manualData.state || !manualData.address) {
       toast({ variant: 'destructive', title: 'Missing Info', description: 'Please fill required fields.' });
@@ -124,12 +127,11 @@ export function LocationRequest() {
     setLoading(true);
     const fullAddressString = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}, ${manualData.state} - ${manualData.pincode}`;
     
-    await saveLocationToDB({
+    saveLocationToDB({
       ...manualData,
       address: fullAddressString,
       type: 'manual'
     });
-    setLoading(false);
   };
 
   return (

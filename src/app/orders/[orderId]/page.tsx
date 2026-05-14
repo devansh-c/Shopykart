@@ -27,7 +27,7 @@ export default function OrderDetailsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [placedAt] = useState(new Date());
+  const [placedAt, setPlacedAt] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState(120);
   const [canCancel, setCanCancel] = useState(true);
   const [isCancelled, setIsCancelled] = useState(false);
@@ -35,9 +35,13 @@ export default function OrderDetailsPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   useEffect(() => {
+    // Avoid hydration mismatch by setting date after mount
+    const startTime = new Date();
+    setPlacedAt(startTime);
+
     const timer = setInterval(() => {
       const now = new Date();
-      const diffInSeconds = Math.floor((now.getTime() - placedAt.getTime()) / 1000);
+      const diffInSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
       const remaining = 120 - diffInSeconds;
       
       if (remaining <= 0) {
@@ -50,7 +54,7 @@ export default function OrderDetailsPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [placedAt]);
+  }, []);
 
   const handleCancelOrder = () => {
     if (!cancelReason.trim()) {

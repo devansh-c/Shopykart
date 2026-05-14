@@ -84,6 +84,30 @@
       "description": "Virgin Mojito Crush",
       "imageUrl": "https://picsum.photos/seed/shopy-mojito/300/300",
       "imageHint": "mojito drink"
+    },
+    {
+      "id": "store-1",
+      "description": "The Gourmet Kitchen",
+      "imageUrl": "https://picsum.photos/seed/store1/600/400",
+      "imageHint": "luxury restaurant"
+    },
+    {
+      "id": "store-2",
+      "description": "Bun Burst Burgers",
+      "imageUrl": "https://picsum.photos/seed/store2/600/400",
+      "imageHint": "burger shop"
+    },
+    {
+      "id": "store-3",
+      "description": "Pizza Paradise",
+      "imageUrl": "https://picsum.photos/seed/store3/600/400",
+      "imageHint": "pizza house"
+    },
+    {
+      "id": "store-4",
+      "description": "Sweet Tooth Hub",
+      "imageUrl": "https://picsum.photos/seed/store4/600/400",
+      "imageHint": "dessert parlor"
     }
   ]
 }
