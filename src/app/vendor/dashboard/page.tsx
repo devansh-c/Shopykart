@@ -1,26 +1,35 @@
 
 "use client"
 
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { Loader2, ShoppingBag, CheckCircle, Flame, Clock, Truck, Plus, Package, Trash2, Store, Tag, PlusCircle, LayoutDashboard } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, doc, updateDoc, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
+import { Loader2, ShoppingBag, CheckCircle, Flame, Clock, Truck, Plus, Package, Trash2, Store, Tag, PlusCircle, LayoutDashboard, UserCircle, Image as ImageIcon, Check, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'orders' | 'catalog'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
 
-  // Orders Query - Only show orders for this vendor
+  // Vendor Profile Data
+  const vendorRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  // Orders Query
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -30,7 +39,7 @@ export default function VendorDashboard() {
     );
   }, [firestore, user]);
 
-  // Products Query - Only show products for this vendor
+  // Products Query
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -41,6 +50,33 @@ export default function VendorDashboard() {
 
   const { data: orders, loading: ordersLoading } = useCollection<any>(ordersQuery);
   const { data: products, loading: productsLoading } = useCollection<any>(productsQuery);
+
+  // Store Profile State
+  const [storeData, setStoreData] = useState({
+    storeName: '',
+    category: '',
+    imageUrl: '',
+  });
+
+  useEffect(() => {
+    if (vendorProfile) {
+      setStoreData({
+        storeName: vendorProfile.storeName || '',
+        category: vendorProfile.category || '',
+        imageUrl: vendorProfile.imageUrl || '',
+      });
+    }
+  }, [vendorProfile]);
+
+  const handleUpdateProfile = () => {
+    if (!vendorRef) return;
+    updateDoc(vendorRef, {
+      ...storeData,
+      updatedAt: serverTimestamp()
+    }).then(() => {
+      toast({ title: "Profile Updated", description: "Your store details are now live." });
+    });
+  };
 
   const updateStatus = (orderId: string, nextStatus: string) => {
     if (!firestore) return;
@@ -70,7 +106,7 @@ export default function VendorDashboard() {
       vendorId: user.uid,
       imageUrl: `https://picsum.photos/seed/${newProduct.name}/400/300`,
       createdAt: serverTimestamp(),
-      restaurantName: 'My Store' // In real app, fetch from vendor profile
+      restaurantName: storeData.storeName || 'My Store'
     };
 
     addDoc(collection(firestore, 'products'), productData)
@@ -115,7 +151,7 @@ export default function VendorDashboard() {
             )}
           >
             <ShoppingBag className="h-4 w-4" />
-            Live Orders ({orders?.length || 0})
+            Orders
           </button>
           <button 
             onClick={() => setActiveTab('catalog')}
@@ -125,13 +161,23 @@ export default function VendorDashboard() {
             )}
           >
             <PlusCircle className="h-4 w-4" />
-            My Catalog ({products?.length || 0})
+            Catalog
+          </button>
+          <button 
+            onClick={() => setActiveTab('profile')}
+            className={cn(
+              "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+              activeTab === 'profile' ? "bg-white shadow-sm text-foreground" : "text-muted-foreground"
+            )}
+          >
+            <UserCircle className="h-4 w-4" />
+            Profile
           </button>
         </div>
       </header>
 
       <main className="p-6">
-        {activeTab === 'orders' ? (
+        {activeTab === 'orders' && (
           <div className="space-y-4">
             {ordersLoading ? (
               <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -144,139 +190,95 @@ export default function VendorDashboard() {
                       <h3 className="font-black italic text-lg leading-none mt-1">Order #{order.id.slice(-4)}</h3>
                       <p className="text-xs text-muted-foreground mt-1 font-medium">{order.items?.length} Items • ₹{order.total}</p>
                     </div>
-                    <div className="bg-muted p-3 rounded-2xl"><ShoppingBag className="h-5 w-5 text-muted-foreground" /></div>
                   </div>
-
-                  <div className="space-y-2 mb-6 bg-muted/30 p-4 rounded-2xl">
-                    {order.items?.map((item: any, i: number) => (
-                      <div key={i} className="text-sm font-bold flex justify-between">
-                        <span>{item.quantity}x {item.name}</span>
-                        <span className="text-muted-foreground">₹{item.price}</span>
-                      </div>
-                    ))}
-                  </div>
-
                   <div className="grid grid-cols-1 gap-3">
-                    {order.status === 'Placed' && (
-                      <Button onClick={() => updateStatus(order.id, 'Accepted')} className="w-full bg-green-500 hover:bg-green-600 rounded-xl font-black uppercase italic h-12">Accept Order</Button>
-                    )}
-                    {order.status === 'Accepted' && (
-                      <Button onClick={() => updateStatus(order.id, 'Preparing')} className="w-full bg-primary rounded-xl font-black uppercase italic h-12"><Flame className="mr-2 h-4 w-4" /> Start Preparing</Button>
-                    )}
-                    {order.status === 'Preparing' && (
-                      <Button onClick={() => updateStatus(order.id, 'Ready for Pickup')} className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl font-black uppercase italic h-12">Mark Ready</Button>
-                    )}
+                    {order.status === 'Placed' && <Button onClick={() => updateStatus(order.id, 'Accepted')} className="w-full bg-green-500 rounded-xl font-black uppercase h-12">Accept Order</Button>}
+                    {order.status === 'Accepted' && <Button onClick={() => updateStatus(order.id, 'Preparing')} className="w-full bg-primary rounded-xl font-black uppercase h-12">Start Preparing</Button>}
+                    {order.status === 'Preparing' && <Button onClick={() => updateStatus(order.id, 'Ready for Pickup')} className="w-full bg-blue-500 rounded-xl font-black uppercase h-12">Mark Ready</Button>}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-20 bg-white rounded-[2rem] border border-dashed border-muted-foreground/20">
-                <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No live orders</p>
-              </div>
+              <div className="text-center py-20 opacity-30"><Package className="mx-auto mb-4" /><p className="font-black">No live orders</p></div>
             )}
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'catalog' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-black italic uppercase tracking-tight">Product Catalog</h2>
+              <h2 className="text-xl font-black italic uppercase">Product Catalog</h2>
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-primary hover:bg-primary/90 rounded-xl font-black uppercase italic text-xs h-10">
-                    <Plus className="h-4 w-4 mr-1" /> Add Item
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="rounded-[2.5rem] max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="font-black italic uppercase text-xl tracking-tighter">Add New Product</DialogTitle>
-                  </DialogHeader>
+                <DialogTrigger asChild><Button className="bg-primary rounded-xl font-black uppercase text-xs h-10"><Plus className="mr-1" /> Add Item</Button></DialogTrigger>
+                <DialogContent className="rounded-[2.5rem]">
+                  <DialogHeader><DialogTitle className="font-black italic uppercase text-xl">Add New Product</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Name</label>
-                      <Input 
-                        placeholder="e.g. Exotic Paneer Pizza" 
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Price (₹)</label>
-                        <Input 
-                          type="number"
-                          placeholder="0.00"
-                          value={newProduct.price}
-                          onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category</label>
-                        <Input 
-                          placeholder="e.g. Pizza"
-                          value={newProduct.category}
-                          onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</label>
-                      <Textarea 
-                        placeholder="Brief details about the dish..." 
-                        value={newProduct.description}
-                        onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                      />
-                    </div>
-                    <div className="flex items-center gap-3 bg-muted/50 p-4 rounded-2xl">
-                      <input 
-                        type="checkbox" 
-                        id="isVeg" 
-                        checked={newProduct.isVeg}
-                        onChange={(e) => setNewProduct({...newProduct, isVeg: e.target.checked})}
-                        className="h-5 w-5 rounded-md accent-primary"
-                      />
-                      <label htmlFor="isVeg" className="text-sm font-black uppercase italic tracking-tighter">Pure Vegetarian</label>
-                    </div>
-                    <Button onClick={handleAddProduct} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic tracking-tighter shadow-lg shadow-primary/20">
-                      Publish Product
-                    </Button>
+                    <Input placeholder="Product Name" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} />
+                    <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} />
+                    <Input placeholder="Category" value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} />
+                    <Textarea placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} />
+                    <Button onClick={handleAddProduct} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">Publish Product</Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
-
             <div className="grid grid-cols-1 gap-4">
-              {productsLoading ? (
-                <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-              ) : products && products.length > 0 ? (
-                products.map((product: any) => (
-                  <div key={product.id} className="bg-white p-4 rounded-2xl border border-border/40 flex items-center gap-4 shadow-sm">
-                    <div className="h-16 w-16 bg-muted rounded-xl overflow-hidden flex-shrink-0">
-                      <img src={product.imageUrl} className="h-full w-full object-cover" alt={product.name} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="font-bold text-sm truncate">{product.name}</h3>
-                        {product.isVeg && <div className="h-2 w-2 rounded-full bg-green-500" />}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{product.category}</p>
-                      <p className="text-sm font-black text-primary italic mt-1">₹{product.price}</p>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDeleteProduct(product.id)}
-                      className="text-muted-foreground hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+              {products?.map((product: any) => (
+                <div key={product.id} className="bg-white p-4 rounded-2xl border flex items-center gap-4 shadow-sm">
+                  <div className="h-16 w-16 bg-muted rounded-xl overflow-hidden shrink-0"><img src={product.imageUrl} className="h-full w-full object-cover" /></div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-sm">{product.name}</h3>
+                    <p className="text-sm font-black text-primary italic">₹{product.price}</p>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-20 bg-white rounded-[2rem] border border-dashed border-muted-foreground/20">
-                  <LayoutDashboard className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No products in catalog</p>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product.id)} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
                 </div>
-              )}
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="space-y-8 max-w-lg mx-auto bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+            <div className="text-center">
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter">Store Profile</h2>
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Manage your brand presence</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Image</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {PlaceHolderImages.filter(img => img.id.includes('store')).map((img) => (
+                    <button
+                      key={img.id}
+                      onClick={() => setStoreData({...storeData, imageUrl: img.imageUrl})}
+                      className={cn(
+                        "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                        storeData.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
+                      )}
+                    >
+                      <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
+                      {storeData.imageUrl === img.imageUrl && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="text-white h-5 w-5" /></div>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Display Name</label>
+                  <Input placeholder="e.g. The Gourmet Kitchen" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categories (e.g. Italian • Fast Food)</label>
+                  <Input placeholder="e.g. Italian • North Indian" value={storeData.category} onChange={(e) => setStoreData({...storeData, category: e.target.value})} />
+                </div>
+              </div>
+
+              <Button onClick={handleUpdateProfile} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-lg shadow-primary/20">
+                <Save className="mr-2 h-5 w-5" />
+                SAVE STORE PROFILE
+              </Button>
             </div>
           </div>
         )}
@@ -284,4 +286,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-
