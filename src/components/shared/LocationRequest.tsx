@@ -62,12 +62,14 @@ export function LocationRequest() {
         localStorage.setItem('user_location_set', 'true');
         setSuccess(true);
         
+        // Instant feedback - Dispatch event so header updates immediately
+        window.dispatchEvent(new Event('storage'));
+
         setTimeout(() => {
           setOpen(false);
           setSuccess(false);
-          // Refresh components that depend on location
-          window.dispatchEvent(new Event('storage'));
-        }, 800);
+          setLoading(false);
+        }, 600);
       })
       .catch(async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -88,25 +90,21 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Set a safety timeout for geolocation
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        setLoading(false);
-        toast({ 
-          variant: 'destructive', 
-          title: 'Request Timeout', 
-          description: 'Taking too long. Please enter address manually.' 
-        });
-        setView('manual');
-      }
-    }, 10000);
+    // Faster location options: No high accuracy (faster lock), use cached location if available
+    const geoOptions = {
+      enableHighAccuracy: false, 
+      timeout: 5000, 
+      maximumAge: 300000 // 5 minutes cache
+    };
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        clearTimeout(timeoutId);
         const { latitude, longitude } = position.coords;
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          // Fast reverse geocoding
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+            signal: AbortSignal.timeout(4000) // Don't wait too long for address
+          });
           const data = await response.json();
           const address = data.display_name?.split(',').slice(0, 3).join(',') || 'Detected Location';
           
@@ -117,6 +115,7 @@ export function LocationRequest() {
             type: 'detected'
           });
         } catch (error) {
+          // If geocoding fails, at least save coordinates quickly
           saveLocationToDB({
             latitude,
             longitude,
@@ -126,14 +125,13 @@ export function LocationRequest() {
         }
       },
       (error) => {
-        clearTimeout(timeoutId);
         setLoading(false);
         let msg = 'Location access denied.';
         if (error.code === error.TIMEOUT) msg = 'Location request timed out.';
         toast({ variant: 'destructive', title: 'Error', description: msg });
         setView('manual');
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      geoOptions
     );
   };
 
@@ -190,10 +188,15 @@ export function LocationRequest() {
                   disabled={loading || success}
                   className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all text-sm px-6"
                 >
-                  {loading ? (
+                  {success ? (
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 animate-in zoom-in" />
+                      LOCATION SET!
+                    </div>
+                  ) : loading ? (
                     <div className="flex items-center gap-3">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      FINDING LOCATION...
+                      DETECTING...
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3">
@@ -225,7 +228,7 @@ export function LocationRequest() {
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                   Enter <span className="text-primary">Details</span>
                 </DialogTitle>
-                <DialogDescription className="sr-only">
+                <DialogDescription className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
                   Fill in your delivery address manually.
                 </DialogDescription>
               </div>
@@ -283,7 +286,19 @@ export function LocationRequest() {
                   disabled={loading || success}
                   className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-primary/20 mt-4 active:scale-95 transition-all"
                 >
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'SAVE ADDRESS'}
+                  {success ? (
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 animate-in zoom-in" />
+                      ADDRESS SAVED
+                    </div>
+                  ) : loading ? (
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      SAVING...
+                    </div>
+                  ) : (
+                    'SAVE ADDRESS'
+                  )}
                 </Button>
               </form>
             </div>
