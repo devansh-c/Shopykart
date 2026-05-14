@@ -91,11 +91,11 @@ export function LocationRequest() {
 
     setLoading(true);
     
-    // Prioritize actual current location even if slow
+    // Optimized for 2-second speed like top food apps
     const geoOptions = {
-      enableHighAccuracy: true,
-      timeout: 20000, // Wait up to 20 seconds for slow GPS
-      maximumAge: 0 // Don't use cached location, get fresh one
+      enableHighAccuracy: false, // Disabling this makes it instant via Wi-Fi/Cell
+      timeout: 5000, 
+      maximumAge: Infinity // Use cached location if available for instant result
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -103,9 +103,9 @@ export function LocationRequest() {
         const { latitude, longitude } = position.coords;
         
         try {
-          // Reverse geocode with a slightly longer timeout for slow networks
+          // Ultra-fast reverse geocode
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second limit for address
           
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -114,29 +114,23 @@ export function LocationRequest() {
           
           clearTimeout(timeoutId);
           const data = await response.json();
-          // Extract meaningful part of address
-          const address = data.display_name?.split(',').slice(0, 3).join(',') || `📍 Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+          const address = data.display_name?.split(',').slice(0, 3).join(',') || `📍 Detected Location`;
           
           saveLocationToDB({ latitude, longitude, address, type: 'detected' });
         } catch (error) {
-          // Even if geocoding fails, save the coordinates
+          // If geocoding is slow, save coordinates anyway to avoid waiting
           saveLocationToDB({ 
             latitude, 
             longitude, 
-            address: `📍 Detected Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, 
+            address: `📍 Detected Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
             type: 'detected' 
           });
         }
       },
       (error) => {
         setLoading(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          toast({ variant: 'destructive', title: 'Permission Denied', description: 'Please enable location access in settings.' });
-          setView('manual');
-        } else {
-          toast({ variant: 'destructive', title: 'Location Error', description: 'Unable to get location. Please try adding manually.' });
-          setView('manual');
-        }
+        setView('manual');
+        toast({ variant: 'destructive', title: 'Location Error', description: 'Please enter details manually.' });
       },
       geoOptions
     );
@@ -174,7 +168,7 @@ export function LocationRequest() {
                 className="flex items-center gap-3 text-green-600 font-bold text-sm py-4 hover:bg-green-50 rounded-2xl transition-all w-full disabled:opacity-50 border border-green-100"
               >
                 {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin mx-2" />
+                  <Loader2 className="h-5 w-5 animate-spin mx-4 text-green-600" />
                 ) : (
                   <div className="bg-green-100 p-2.5 rounded-full mx-2">
                     <LocateFixed className="h-5 w-5" />
@@ -182,7 +176,7 @@ export function LocationRequest() {
                 )}
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-black uppercase tracking-tight">Use my current location</span>
-                  <span className="text-[10px] opacity-60 font-medium italic">Fetching actual GPS location...</span>
+                  <span className="text-[10px] opacity-60 font-medium italic">Instant detection via GPS/Network</span>
                 </div>
               </button>
 
