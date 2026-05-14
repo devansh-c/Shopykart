@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, where, orderBy, addDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { Loader2, ShoppingBag, Store, Tag, PlusCircle, UserCircle, Save, Trash2, Plus, Image as ImageIcon, MapPin, Clock, Info, Check, Upload, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -81,19 +81,34 @@ export default function VendorDashboard() {
   }, [vendorProfile]);
 
   const handleUpdateProfile = () => {
-    if (!vendorRef) return;
-    updateDoc(vendorRef, {
+    if (!vendorRef || !firestore) {
+      toast({ variant: "destructive", title: "Error", description: "Unable to update profile. Please try again." });
+      return;
+    }
+
+    const dataToSave = {
       ...storeData,
       updatedAt: serverTimestamp()
-    }).then(() => {
-      toast({ title: "Profile Updated", description: "Your store details are now live." });
-    });
+    };
+
+    setDoc(vendorRef, dataToSave, { merge: true })
+      .then(() => {
+        toast({ title: "Profile Updated", description: "Your store details are now live." });
+      })
+      .catch(async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: vendorRef.path,
+          operation: 'write',
+          requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   const updateStatus = (orderId: string, nextStatus: string) => {
     if (!firestore) return;
     const ref = doc(firestore, 'orders', orderId);
-    updateDoc(ref, { status: nextStatus })
+    setDoc(ref, { status: nextStatus }, { merge: true })
       .then(() => toast({ title: "Status Updated", description: `Order is now ${nextStatus}` }));
   };
 
