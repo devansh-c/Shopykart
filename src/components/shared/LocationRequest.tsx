@@ -15,6 +15,9 @@ import { cn } from '@/lib/utils';
 
 type ViewState = 'prompt' | 'manual';
 
+const ALLOWED_PINCODES = ['284205', '284204'];
+const SERVICEABLE_AREAS = ['Ranipur', 'Mauranipur'];
+
 export function LocationRequest() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -49,9 +52,18 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  // Auto-fetch Town/State from Pincode with smart selection
+  // Auto-fetch Town/State from Pincode with strict service area check
   useEffect(() => {
     if (manualData.pincode.length === 6) {
+      if (!ALLOWED_PINCODES.includes(manualData.pincode)) {
+        toast({
+          variant: "destructive",
+          title: "Service Not Available",
+          description: "We currently only serve Ranipur and Mauranipur."
+        });
+        return;
+      }
+
       const fetchPincodeDetails = async () => {
         setFetchingDetails(true);
         try {
@@ -61,8 +73,7 @@ export function LocationRequest() {
           if (data[0].Status === "Success") {
             const postOffices = data[0].PostOffice;
             
-            // Smart Selection: Prioritize 'Sub Post Office' (Main Towns) over 'Branch Post Office' (Villages)
-            // This ensures 284205 picks Ranipur instead of small villages like Amanpura.
+            // Strictly find the main Town Office for these specific pincodes
             const mainTown = postOffices.find((po: any) => po.BranchType === "Sub Post Office") || postOffices[0];
             const townName = mainTown.Name;
             
@@ -73,14 +84,8 @@ export function LocationRequest() {
             }));
             
             toast({
-              title: "Town Detected",
-              description: `${townName}, ${mainTown.State}`
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Invalid Pincode",
-              description: "Please check the code or enter manually."
+              title: "Serviceable Area Detected",
+              description: `Welcome! We deliver in ${townName}.`
             });
           }
         } catch (error) {
@@ -94,6 +99,21 @@ export function LocationRequest() {
   }, [manualData.pincode, toast]);
 
   const saveLocationToDB = async (location: any) => {
+    // Check if the location is serviceable
+    const isServiceable = 
+      ALLOWED_PINCODES.includes(location.pincode) || 
+      SERVICEABLE_AREAS.some(area => location.address?.toLowerCase().includes(area.toLowerCase()));
+
+    if (!isServiceable && location.type !== 'detected') {
+      toast({
+        variant: "destructive",
+        title: "Outside Service Area",
+        description: "Please select an address within Ranipur or Mauranipur."
+      });
+      setLoading(false);
+      return;
+    }
+
     localStorage.setItem('user_address', location.address);
     localStorage.setItem('user_location_set', 'true');
     setSuccess(true);
@@ -154,17 +174,31 @@ export function LocationRequest() {
           
           clearTimeout(timeoutId);
           const data = await response.json();
-          const address = data.address.suburb || data.address.neighbourhood || data.address.city_district || data.address.city || data.display_name.split(',')[0];
-          const fullAddress = `${address}, ${data.address.city || data.address.state || ''}`;
+          const addressPart = data.address.suburb || data.address.neighbourhood || data.address.city_district || data.address.city || data.display_name.split(',')[0];
           
+          // Verify if detected location is within Ranipur or Mauranipur
+          const isAllowed = SERVICEABLE_AREAS.some(area => 
+            data.display_name.toLowerCase().includes(area.toLowerCase())
+          );
+
+          if (!isAllowed) {
+            setLoading(false);
+            setView('manual');
+            toast({ 
+              variant: 'destructive', 
+              title: 'Outside Service Area', 
+              description: 'We currently only deliver in Ranipur and Mauranipur.' 
+            });
+            return;
+          }
+
+          const fullAddress = `${addressPart}, ${data.address.city || data.address.state || ''}`;
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
-          saveLocationToDB({ 
-            latitude, 
-            longitude, 
-            address: `Current Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`, 
-            type: 'detected' 
-          });
+          // If reverse geocoding fails, we can't be sure of the area, so ask for manual
+          setLoading(false);
+          setView('manual');
+          toast({ variant: 'destructive', title: 'Verification Required', description: 'Please enter your address manually.' });
         }
       },
       (error) => {
@@ -178,6 +212,16 @@ export function LocationRequest() {
 
   const handleManualSave = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!ALLOWED_PINCODES.includes(manualData.pincode)) {
+      toast({
+        variant: "destructive",
+        title: "Sorry!",
+        description: "We don't deliver here yet. Try Ranipur or Mauranipur."
+      });
+      return;
+    }
+
     setLoading(true);
     const fullAddressString = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}, ${manualData.city}, ${manualData.state} - ${manualData.pincode}`;
     saveLocationToDB({ ...manualData, address: fullAddressString, type: 'manual' });
@@ -221,6 +265,7 @@ export function LocationRequest() {
                   <span className="text-sm font-black uppercase tracking-tight">
                     {success ? 'Location Detected!' : 'Use my current location'}
                   </span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Fast Detection Active</span>
                 </div>
               </button>
 
@@ -235,6 +280,10 @@ export function LocationRequest() {
                 </div>
                 <span className="text-sm font-black uppercase tracking-tight">Add New Address</span>
               </button>
+              
+              <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] text-center bg-primary/5 py-2 rounded-lg">
+                Delivering only in Ranipur & Mauranipur
+              </p>
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
@@ -248,14 +297,14 @@ export function LocationRequest() {
                   Enter <span className="text-primary">Details</span>
                 </DialogTitle>
                 <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                  Enter your address manually
+                  Manual Entry for Ranipur/Mauranipur
                 </DialogDescription>
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-4">
                 <div className="relative">
                   <Input 
-                    placeholder="Enter Pincode" 
+                    placeholder="Enter Pincode (284205/284204)" 
                     className="rounded-xl h-12 bg-gray-50 border-none pl-4 pr-10 text-lg font-bold" 
                     value={manualData.pincode} 
                     maxLength={6}
@@ -271,18 +320,18 @@ export function LocationRequest() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">Town/City</label>
-                    <Input placeholder="Town" className="rounded-xl h-12 bg-gray-50 border-none font-bold" value={manualData.city} onChange={(e) => setManualData({...manualData, city: e.target.value})} required />
+                    <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">Town</label>
+                    <Input placeholder="Town" className="rounded-xl h-12 bg-gray-50 border-none font-bold" value={manualData.city} onChange={(e) => setManualData({...manualData, city: e.target.value})} readOnly />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">State</label>
-                    <Input placeholder="State" className="rounded-xl h-12 bg-gray-50 border-none font-bold" value={manualData.state} onChange={(e) => setManualData({...manualData, state: e.target.value})} required />
+                    <Input placeholder="State" className="rounded-xl h-12 bg-gray-50 border-none font-bold" value={manualData.state} onChange={(e) => setManualData({...manualData, state: e.target.value})} readOnly />
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">House / Street / Area</label>
-                  <Input placeholder="Street name and area" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.address} onChange={(e) => setManualData({...manualData, address: e.target.value})} required />
+                  <Input placeholder="E.g. Near Main Market" className="rounded-xl h-12 bg-gray-50 border-none" value={manualData.address} onChange={(e) => setManualData({...manualData, address: e.target.value})} required />
                 </div>
 
                 <div className="space-y-1">
