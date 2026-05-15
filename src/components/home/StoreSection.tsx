@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
-// Fallback vendor for professional look
+// Fallback vendors for professional look
 const FALLBACK_VENDORS = [
   {
     id: 's1',
@@ -17,6 +18,7 @@ const FALLBACK_VENDORS = [
     rating: 4.8,
     deliveryTime: '20 min',
     address: 'Main Market, City',
+    town: 'Ranipur',
     description: 'Home of the legendary Special Patize and Bhel Puri.',
     imageUrl: 'https://picsum.photos/seed/rajaram/600/400'
   },
@@ -27,27 +29,47 @@ const FALLBACK_VENDORS = [
     rating: 4.9,
     deliveryTime: '25 min',
     address: 'Elite Hub',
+    town: 'Mauranipur',
     description: 'Our in-house premium selection of fine dining delicacies.',
     imageUrl: 'https://picsum.photos/seed/shopy-store/600/400'
   }
 ];
 
 export function StoreSection() {
+  const [currentTown, setCurrentTown] = useState<string | null>(null);
   const firestore = useFirestore();
+
+  useEffect(() => {
+    const savedTown = localStorage.getItem('user_town');
+    setCurrentTown(savedTown);
+
+    const handleUpdate = () => {
+      setCurrentTown(localStorage.getItem('user_town'));
+    };
+    window.addEventListener('user-address-updated', handleUpdate);
+    return () => window.removeEventListener('user-address-updated', handleUpdate);
+  }, []);
+
   const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'vendors');
-  }, [firestore]);
+    if (!firestore || !currentTown) return null;
+    return query(
+      collection(firestore, 'vendors'),
+      where('town', '==', currentTown)
+    );
+  }, [firestore, currentTown]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
-  const vendors = (dbVendors && dbVendors.length > 0) ? dbVendors : FALLBACK_VENDORS;
+  
+  const vendors = (dbVendors && dbVendors.length > 0) 
+    ? dbVendors 
+    : FALLBACK_VENDORS.filter(v => !currentTown || v.town === currentTown);
 
   return (
     <div className="py-6">
       <div className="flex items-center justify-between px-6 mb-5">
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
-          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores</h2>
+          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores in {currentTown || 'Area'}</h2>
           {loading && <Loader2 className="h-4 w-4 animate-spin text-primary ml-3" />}
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
@@ -108,6 +130,13 @@ export function StoreSection() {
             </Link>
           );
         })}
+
+        {vendors.length === 0 && !loading && (
+          <div className="min-w-[300px] flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
+            <Store className="h-10 w-10 text-muted-foreground mb-2" />
+            <p className="text-xs font-black uppercase text-muted-foreground text-center">No stores found in {currentTown}</p>
+          </div>
+        )}
       </div>
     </div>
   );

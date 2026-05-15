@@ -99,12 +99,15 @@ export function LocationRequest() {
   }, [manualData.pincode, toast]);
 
   const saveLocationToDB = async (location: any) => {
-    // Check if the location is serviceable
-    const isServiceable = 
-      ALLOWED_PINCODES.includes(location.pincode) || 
-      SERVICEABLE_AREAS.some(area => location.address?.toLowerCase().includes(area.toLowerCase()));
+    // Determine user_town based on address or manual city
+    let townName = '';
+    if (location.pincode === '284205' || location.address?.includes('Ranipur')) {
+      townName = 'Ranipur';
+    } else if (location.pincode === '284204' || location.address?.includes('Mauranipur')) {
+      townName = 'Mauranipur';
+    }
 
-    if (!isServiceable && location.type !== 'detected') {
+    if (!townName) {
       toast({
         variant: "destructive",
         title: "Outside Service Area",
@@ -115,10 +118,11 @@ export function LocationRequest() {
     }
 
     localStorage.setItem('user_address', location.address);
+    localStorage.setItem('user_town', townName);
     localStorage.setItem('user_location_set', 'true');
     setSuccess(true);
     
-    window.dispatchEvent(new CustomEvent('user-address-updated', { detail: location.address }));
+    window.dispatchEvent(new CustomEvent('user-address-updated', { detail: { address: location.address, town: townName } }));
     
     setTimeout(() => {
       setOpen(false);
@@ -129,7 +133,7 @@ export function LocationRequest() {
     if (user && firestore) {
       const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
       const finalData = {
-        location,
+        location: { ...location, town: townName },
         updatedAt: serverTimestamp(),
       };
 
@@ -176,12 +180,10 @@ export function LocationRequest() {
           const data = await response.json();
           const addressPart = data.address.suburb || data.address.neighbourhood || data.address.city_district || data.address.city || data.display_name.split(',')[0];
           
-          // Verify if detected location is within Ranipur or Mauranipur
-          const isAllowed = SERVICEABLE_AREAS.some(area => 
-            data.display_name.toLowerCase().includes(area.toLowerCase())
-          );
+          const isRanipur = data.display_name.toLowerCase().includes('ranipur');
+          const isMauranipur = data.display_name.toLowerCase().includes('mauranipur');
 
-          if (!isAllowed) {
+          if (!isRanipur && !isMauranipur) {
             setLoading(false);
             setView('manual');
             toast({ 
@@ -195,7 +197,6 @@ export function LocationRequest() {
           const fullAddress = `${addressPart}, ${data.address.city || data.address.state || ''}`;
           saveLocationToDB({ latitude, longitude, address: fullAddress, type: 'detected' });
         } catch (error) {
-          // If reverse geocoding fails, we can't be sure of the area, so ask for manual
           setLoading(false);
           setView('manual');
           toast({ variant: 'destructive', title: 'Verification Required', description: 'Please enter your address manually.' });

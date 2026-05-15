@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, query, where, orderBy, addDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { Loader2, ShoppingBag, Store, Tag, PlusCircle, UserCircle, Save, Trash2, Plus, Image as ImageIcon, MapPin, Clock, Info, Check, Upload, Camera } from 'lucide-react';
+import { Loader2, ShoppingBag, Store, Tag, PlusCircle, UserCircle, Save, Trash2, Plus, Image as ImageIcon, MapPin, Clock, Info, Check, Upload, Camera, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -64,6 +71,7 @@ export default function VendorDashboard() {
     description: '',
     deliveryTime: '',
     address: '',
+    town: 'Ranipur',
   });
 
   useEffect(() => {
@@ -76,6 +84,7 @@ export default function VendorDashboard() {
         description: vendorProfile.description || '',
         deliveryTime: vendorProfile.deliveryTime || '',
         address: vendorProfile.address || '',
+        town: vendorProfile.town || 'Ranipur',
       });
     }
   }, [vendorProfile]);
@@ -170,6 +179,7 @@ export default function VendorDashboard() {
       category: newProduct.category || 'General',
       isVeg: newProduct.isVeg,
       vendorId: user.uid,
+      town: storeData.town,
       imageUrl: newProduct.imageUrl || `https://picsum.photos/seed/${newProduct.name}/400/300`,
       createdAt: serverTimestamp(),
       restaurantName: storeData.storeName || 'My Store',
@@ -443,6 +453,21 @@ export default function VendorDashboard() {
                     <Store className="h-3 w-3" /> Display Name
                   </label>
                   <Input placeholder="e.g. The Gourmet Kitchen" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} />
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                    <Globe className="h-3 w-3" /> Town Assignment
+                  </label>
+                  <Select value={storeData.town} onValueChange={(val) => setStoreData({...storeData, town: val})}>
+                    <SelectTrigger className="rounded-xl h-10 border-none bg-muted/50 font-bold">
+                      <SelectValue placeholder="Select Town" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="Ranipur">Ranipur (284205)</SelectItem>
+                      <SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-1">

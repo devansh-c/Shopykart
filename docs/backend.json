@@ -14,6 +14,7 @@
         "isVeg": { "type": "boolean" },
         "vendorId": { "type": "string" },
         "restaurantName": { "type": "string" },
+        "town": { "type": "string", "enum": ["Ranipur", "Mauranipur"] },
         "badges": { 
           "type": "array", 
           "items": { 
@@ -22,7 +23,7 @@
           } 
         }
       },
-      "required": ["name", "price", "vendorId"]
+      "required": ["name", "price", "vendorId", "town"]
     },
     "Order": {
       "title": "Order",
@@ -55,6 +56,7 @@
         "rating": { "type": "number" },
         "deliveryTime": { "type": "string" },
         "address": { "type": "string" },
+        "town": { "type": "string", "enum": ["Ranipur", "Mauranipur"] },
         "walletBalance": { "type": "number" }
       }
     },

@@ -1,14 +1,14 @@
 
 "use client"
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Zap, Plus, Minus, Heart, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { allProducts as fallbackProducts } from '@/lib/mock-data';
 import {
   Select,
@@ -26,17 +26,36 @@ type PopularProductsProps = {
 export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
+  const [currentTown, setCurrentTown] = useState<string | null>(null);
   
   const firestore = useFirestore();
+
+  useEffect(() => {
+    const savedTown = localStorage.getItem('user_town');
+    setCurrentTown(savedTown);
+
+    const handleUpdate = () => {
+      setCurrentTown(localStorage.getItem('user_town'));
+    };
+    window.addEventListener('user-address-updated', handleUpdate);
+    return () => window.removeEventListener('user-address-updated', handleUpdate);
+  }, []);
+
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'products');
-  }, [firestore]);
+    if (!firestore || !currentTown) return null;
+    return query(
+      collection(firestore, 'products'),
+      where('town', '==', currentTown)
+    );
+  }, [firestore, currentTown]);
   
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    const baseProducts = (dbProducts && dbProducts.length > 0) ? dbProducts : fallbackProducts;
+    // If we have town-filtered data, use it. Otherwise fallback but only if no town is set (for demo)
+    const baseProducts = (dbProducts && dbProducts.length > 0) 
+      ? dbProducts 
+      : (currentTown ? [] : fallbackProducts);
     
     let result = baseProducts.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -60,7 +79,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts]);
+  }, [searchQuery, category, sortBy, dbProducts, currentTown]);
 
   return (
     <div className="px-4 py-8">
@@ -69,7 +88,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           <div className="text-amber-500 shrink-0">
             <Zap className="h-4 w-4 fill-current" />
           </div>
-          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular Right Now</h2>
+          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular in {currentTown || 'Your Area'}</h2>
         </div>
         
         <div className="shrink-0 ml-2 flex items-center gap-2">
@@ -163,7 +182,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           })
         ) : (
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No culinary matches found</p>
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No culinary matches in {currentTown}</p>
           </div>
         )}
       </div>
