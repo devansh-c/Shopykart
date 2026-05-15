@@ -43,7 +43,6 @@ export default function VendorDashboard() {
 
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // Security Guard: Redirect if not logged in or not approved
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/vendor/login');
@@ -241,7 +240,7 @@ export default function VendorDashboard() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tighter">Vendor Panel</h1>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Real-time Multi-Vendor Sync</p>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Direct Gallery Sync Active</p>
           </div>
           <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center">
             <Store className="h-6 w-6 text-primary" />
@@ -411,7 +410,7 @@ export default function VendorDashboard() {
           <div className="space-y-8 max-w-lg mx-auto bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
             <div className="text-center">
               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Store Profile</h2>
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Real-time sync enabled</p>
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">Update Logo & Banner from Gallery</p>
             </div>
 
             <div className="space-y-6">
@@ -427,26 +426,11 @@ export default function VendorDashboard() {
                     ) : (
                       <div className="text-center p-4">
                         <Upload className="h-6 w-6 text-primary mx-auto mb-2" />
-                        <span className="text-[8px] font-black uppercase tracking-widest">Upload Banner from Gallery</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest">Open Gallery</span>
                       </div>
                     )}
                   </div>
                   <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={handleBannerUpload} />
-                  
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {PlaceHolderImages.filter(img => img.id.includes('hero')).slice(0, 4).map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => setStoreData({...storeData, bannerUrl: img.imageUrl})}
-                        className={cn(
-                          "relative aspect-video rounded-xl overflow-hidden border-2 transition-all",
-                          storeData.bannerUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
-                        )}
-                      >
-                        <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -462,22 +446,18 @@ export default function VendorDashboard() {
                         <Camera className="h-6 w-6 text-primary" />
                       )}
                     </div>
-                    <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                    
-                    <div className="grid grid-cols-4 gap-2 flex-1">
-                      {PlaceHolderImages.filter(img => img.id.includes('store')).map((img) => (
-                        <button
-                          key={img.id}
-                          onClick={() => setStoreData({...storeData, imageUrl: img.imageUrl})}
-                          className={cn(
-                            "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                            storeData.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
-                          )}
-                        >
-                          <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
-                        </button>
-                      ))}
+                    <div className="flex-1">
+                       <p className="text-[9px] font-bold text-muted-foreground uppercase leading-tight">Tap the box to select your store logo from your device's gallery.</p>
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         onClick={() => logoInputRef.current?.click()}
+                         className="mt-2 text-[8px] font-black uppercase h-7 rounded-lg"
+                       >
+                         UPLOAD NEW LOGO
+                       </Button>
                     </div>
+                    <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
                   </div>
                 </div>
               </div>

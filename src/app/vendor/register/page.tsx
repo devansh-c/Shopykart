@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,8 @@ import {
   Loader2,
   CheckCircle2,
   ShieldCheck,
-  Info
+  Info,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -41,17 +42,20 @@ export default function VendorRegistrationPage() {
   const firestore = useFirestore();
   const auth = useAuth();
   
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   const [step, setStep] = useState<Step>('category');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    category: '', // Food or Grocery
+    category: '', 
     storeName: '',
     logo: '',
     cover: '',
-    zone: '', // Ranipur or Mauranipur
+    zone: '', 
     lat: '',
     lng: '',
-    fssai: '', // Optional
+    fssai: '', 
     firstName: '',
     lastName: '',
     phone: '',
@@ -62,6 +66,18 @@ export default function VendorRegistrationPage() {
 
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateFormData(type, reader.result as string);
+      toast({ title: "Image Added", description: `${type === 'logo' ? 'Logo' : 'Cover'} selected successfully.` });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleGetLocation = () => {
@@ -95,30 +111,24 @@ export default function VendorRegistrationPage() {
     setLoading(true);
 
     try {
-      // 1. Create Firebase Auth User
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // 2. Prepare Application Data (Store as Vendor with status 'pending')
       const vendorData = {
         ...formData,
         id: user.uid,
         status: 'pending',
         createdAt: serverTimestamp(),
+        // We use 'storeName' and 'imageUrl' (logo) to match common entity properties
+        imageUrl: formData.logo,
+        bannerUrl: formData.cover
       };
 
-      // 3. Save to vendors collection
       await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
-
-      // 4. Save to applications collection for Admin View
       await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
 
-      // 5. Sign out immediately (they can only login once approved)
       await auth.signOut();
-
       setStep('success');
-      const audio = new Audio('/success.mp3'); 
-      audio.play().catch(() => {}); 
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
@@ -180,16 +190,38 @@ export default function VendorRegistrationPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Logo</label>
-                  <div className="h-24 w-full border-2 border-dashed rounded-xl flex items-center justify-center bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <Camera className="h-6 w-6 text-muted-foreground" />
+                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Upload Logo</label>
+                  <div 
+                    onClick={() => logoInputRef.current?.click()}
+                    className="h-28 w-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
+                  >
+                    {formData.logo ? (
+                      <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" />
+                    ) : (
+                      <>
+                        <Camera className="h-6 w-6 text-muted-foreground mb-1" />
+                        <span className="text-[8px] font-black uppercase text-muted-foreground">Gallery</span>
+                      </>
+                    )}
                   </div>
+                  <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Cover Image</label>
-                  <div className="h-24 w-full border-2 border-dashed rounded-xl flex items-center justify-center bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <Camera className="h-6 w-6 text-muted-foreground" />
+                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Upload Cover</label>
+                  <div 
+                    onClick={() => coverInputRef.current?.click()}
+                    className="h-28 w-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
+                  >
+                    {formData.cover ? (
+                      <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" />
+                    ) : (
+                      <>
+                        <ImageIcon className="h-6 w-6 text-muted-foreground mb-1" />
+                        <span className="text-[8px] font-black uppercase text-muted-foreground">Gallery</span>
+                      </>
+                    )}
                   </div>
+                  <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} />
                 </div>
               </div>
 
@@ -208,14 +240,14 @@ export default function VendorRegistrationPage() {
 
               <div className="bg-muted/20 p-4 rounded-2xl space-y-4 border border-border/50">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground">Store Location (GPS)</label>
-                  <Button variant="ghost" size="sm" onClick={handleGetLocation} className="text-[10px] font-black uppercase text-primary">
-                    <LocateFixed className="h-3 w-3 mr-1" /> FETCH CURRENT
+                  <label className="text-[10px] font-black uppercase text-muted-foreground">Set Store Location (GPS)</label>
+                  <Button variant="ghost" size="sm" onClick={handleGetLocation} className="text-[10px] font-black uppercase text-primary h-7">
+                    <LocateFixed className="h-3 w-3 mr-1" /> FETCH
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Latitude" value={formData.lat} readOnly className="h-10 rounded-lg bg-white/50" />
-                  <Input placeholder="Longitude" value={formData.lng} readOnly className="h-10 rounded-lg bg-white/50" />
+                  <Input placeholder="Latitude" value={formData.lat} readOnly className="h-10 rounded-lg bg-white/50 text-[10px] font-bold" />
+                  <Input placeholder="Longitude" value={formData.lng} readOnly className="h-10 rounded-lg bg-white/50 text-[10px] font-bold" />
                 </div>
               </div>
 
@@ -258,7 +290,7 @@ export default function VendorRegistrationPage() {
                 onClick={() => setStep('commission')}
                 className="h-14 rounded-2xl flex-[2] bg-primary font-black uppercase italic"
               >
-                SUBMIT APPLICATION
+                SUBMIT
               </Button>
             </div>
           </div>
@@ -271,37 +303,26 @@ export default function VendorRegistrationPage() {
               <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShieldCheck className="h-10 w-10 text-primary" />
               </div>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Final Step</h2>
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Agreement</h2>
             </div>
 
             <div className="bg-gradient-to-br from-[#0B0B0B] to-[#1A1A1A] rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-10">
-                <Utensils className="h-20 w-20" />
-              </div>
               <div className="relative z-10 space-y-6">
                 <div className="bg-primary/20 self-start px-4 py-1.5 rounded-full border border-primary/30">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Service Agreement</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">₹5 COMMISSION</span>
                 </div>
                 
-                <div className="space-y-2">
-                  <div className="text-4xl font-black italic text-primary">₹5 COMMISSION</div>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
-                    Store will pay ₹5 commission to ShopyKart from each successful order.
-                  </p>
-                </div>
+                <p className="text-xs text-gray-300 font-bold uppercase tracking-widest leading-relaxed">
+                  Restaurant will pay ₹5 commission to Shopykart from each order. You will get access of all features in vendor panel and user interaction.
+                </p>
 
-                <div className="space-y-3 pt-4 border-t border-white/10">
-                  {[
-                    "Full Vendor Panel Access",
-                    "Real-time Inventory Sync",
-                    "Instant Order Notifications",
-                    "Customer Chat Integration"
-                  ].map((feat, i) => (
-                    <div key={i} className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-gray-300">
-                      <div className="h-1.5 w-1.5 bg-primary rounded-full" />
-                      {feat}
-                    </div>
-                  ))}
+                <div className="space-y-2 pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-gray-400">
+                    <CheckCircle2 className="h-3 w-3 text-primary" /> Full Access to Panel
+                  </div>
+                  <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-gray-400">
+                    <CheckCircle2 className="h-3 w-3 text-primary" /> Real-time Store Visibility
+                  </div>
                 </div>
               </div>
             </div>
@@ -327,13 +348,13 @@ export default function VendorRegistrationPage() {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Application Sent!</h2>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">SUBMITTED SUCCESSFULLY</p>
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter">SUBMITTED SUCCESSFULLY</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Form Received</p>
             </div>
 
             <div className="bg-muted/30 p-6 rounded-3xl border border-dashed border-muted-foreground/30">
               <p className="text-xs font-bold leading-relaxed text-muted-foreground">
-                Your form has been submitted for review. <br />
+                Your form has been submitted. <br />
                 <span className="text-black font-black uppercase">You can login within 12 hours</span> after approval.
               </p>
             </div>
@@ -360,7 +381,7 @@ export default function VendorRegistrationPage() {
       {step !== 'success' && (
         <div className="mt-8 flex items-center gap-3 opacity-30">
           <Info className="h-4 w-4" />
-          <span className="text-[8px] font-black uppercase tracking-[0.3em]">Official ShopyKart Onboarding Portal</span>
+          <span className="text-[8px] font-black uppercase tracking-[0.3em]">Official Onboarding Portal</span>
         </div>
       )}
     </div>
