@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +64,11 @@ export default function VendorRegistrationPage() {
     confirmPassword: '',
   });
 
+  // Reset loading state when step changes to prevent stuck spinners from previous steps
+  useEffect(() => {
+    setLoading(false);
+  }, [step]);
+
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
@@ -100,6 +105,13 @@ export default function VendorRegistrationPage() {
     );
   };
 
+  const playSuccessSound = () => {
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+      audio.play().catch(() => {}); // Catch if browser blocks auto-play
+    } catch (e) {}
+  };
+
   const handleSubmit = async () => {
     if (!firestore || !auth) return;
     
@@ -119,7 +131,6 @@ export default function VendorRegistrationPage() {
         id: user.uid,
         status: 'pending',
         createdAt: serverTimestamp(),
-        // We use 'storeName' and 'imageUrl' (logo) to match common entity properties
         imageUrl: formData.logo,
         bannerUrl: formData.cover
       };
@@ -128,6 +139,7 @@ export default function VendorRegistrationPage() {
       await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
 
       await auth.signOut();
+      playSuccessSound();
       setStep('success');
     } catch (err: any) {
       toast({ 
@@ -135,7 +147,6 @@ export default function VendorRegistrationPage() {
         title: "Registration Error", 
         description: err.message || "Failed to submit application." 
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -241,8 +252,8 @@ export default function VendorRegistrationPage() {
               <div className="bg-muted/20 p-4 rounded-2xl space-y-4 border border-border/50">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-black uppercase text-muted-foreground">Set Store Location (GPS)</label>
-                  <Button variant="ghost" size="sm" onClick={handleGetLocation} className="text-[10px] font-black uppercase text-primary h-7">
-                    <LocateFixed className="h-3 w-3 mr-1" /> FETCH
+                  <Button variant="ghost" size="sm" onClick={handleGetLocation} disabled={loading} className="text-[10px] font-black uppercase text-primary h-7">
+                    {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <LocateFixed className="h-3 w-3 mr-1" />} FETCH
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -330,9 +341,14 @@ export default function VendorRegistrationPage() {
             <Button 
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20"
+              className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20 flex items-center justify-center"
             >
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "I AGREE & SUBMIT"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  SUBMITTING...
+                </>
+              ) : "I AGREE & SUBMIT"}
             </Button>
           </div>
         );
