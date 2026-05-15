@@ -31,15 +31,16 @@ import { BannerManagement } from '@/components/admin/BannerManagement';
 import { OrderManagement } from '@/components/admin/OrderManagement';
 import { ReviewManagement } from '@/components/admin/ReviewManagement';
 import { DiscountManagement } from '@/components/admin/DiscountManagement';
+import { StoreManagement } from '@/components/admin/StoreManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'stores', label: 'Stores', icon: Store },
   { id: 'catalog', label: 'Catalog', icon: Layers },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'design', label: 'Design', icon: Feather },
-  { id: 'stores', label: 'Stores', icon: Store },
   { id: 'fleet', label: 'Delivery Fleet', icon: Bike },
   { id: 'mission', label: 'Mission Control', icon: Rocket },
   { id: 'customers', label: 'Customers', icon: Users },
@@ -75,6 +76,8 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'dashboard':
         return <AdminOverview />;
+      case 'stores':
+        return <StoreManagement />;
       case 'catalog':
         return <ProductManagement />;
       case 'design':
