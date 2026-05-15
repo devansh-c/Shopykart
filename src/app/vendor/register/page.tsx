@@ -119,10 +119,10 @@ export default function VendorRegistrationPage() {
         createdAt: serverTimestamp(),
         imageUrl: formData.logo,
         bannerUrl: formData.cover,
-        town: formData.zone // Sync zone with town for filtering
+        town: formData.zone 
       };
 
-      // Initiate writes
+      // Initiate writes without awaiting to take advantage of latency compensation
       setDoc(doc(firestore, 'vendors', user.uid), vendorData)
         .catch(async () => {
            errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -140,7 +140,11 @@ export default function VendorRegistrationPage() {
       await auth.signOut();
       setStep('success');
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      let msg = err.message;
+      if (err.code === 'auth/operation-not-allowed') {
+        msg = "Email/Password sign-in is not enabled in your Firebase Console. Please go to Authentication > Sign-in method and enable it.";
+      }
+      toast({ variant: "destructive", title: "Error", description: msg });
       setLoading(false);
     }
   };
@@ -171,10 +175,10 @@ export default function VendorRegistrationPage() {
             <Input placeholder={formData.category === 'Food' ? 'Restaurant Name' : 'Store Name'} value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} />
             <div className="grid grid-cols-2 gap-4">
               <div onClick={() => logoInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" /> : <><Camera className="h-6 text-muted-foreground" /><span className="text-[8px] font-black uppercase">Logo</span></>}
+                {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" /> : <><Camera className="h-6 text-muted-foreground" /><span className="text-[8px] font-black uppercase">Logo</span></>}
               </div>
               <div onClick={() => coverInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" /> : <><ImageIcon className="h-6 text-muted-foreground" /><span className="text-[8px] font-black uppercase">Cover</span></>}
+                {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" /> : <><ImageIcon className="h-6 text-muted-foreground" /><span className="text-[8px] font-black uppercase">Cover</span></>}
               </div>
               <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} />
               <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} />
@@ -210,7 +214,9 @@ export default function VendorRegistrationPage() {
               <span className="text-[10px] font-black uppercase tracking-widest text-primary">₹5 COMMISSION</span>
               <p className="text-xs font-bold leading-relaxed text-gray-300 uppercase">Restaurant will pay ₹5 commission to Shopykart from each order. Access all features of vendor panel and user interaction.</p>
             </div>
-            <Button onClick={handleSubmit} disabled={loading} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">{loading ? "SUBMITTING..." : "I AGREE & SUBMIT"}</Button>
+            <Button onClick={handleSubmit} disabled={loading} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">
+              {loading ? <div className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" /> SUBMITTING...</div> : "I AGREE & SUBMIT"}
+            </Button>
           </div>
         );
       case 'success':

@@ -40,7 +40,7 @@ export default function VendorLoginPage() {
         toast({ 
           variant: "destructive", 
           title: "Account Pending", 
-          description: "Your store is still under review. Please wait up to 12 hours." 
+          description: "Your store is still under review. Please wait for approval." 
         });
         await auth.signOut();
       } else {
@@ -48,7 +48,11 @@ export default function VendorLoginPage() {
         await auth.signOut();
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Login Failed", description: "Invalid credentials or network error." });
+      let msg = "Invalid credentials or network error.";
+      if (err.code === 'auth/operation-not-allowed') {
+        msg = "Email/Password sign-in is not enabled in Firebase Console.";
+      }
+      toast({ variant: "destructive", title: "Login Failed", description: msg });
     } finally {
       setLoading(false);
     }

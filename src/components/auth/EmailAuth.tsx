@@ -43,6 +43,9 @@ export function EmailAuth() {
       if (err.code === 'auth/user-not-found') msg = "No account found with this email.";
       if (err.code === 'auth/wrong-password') msg = "Incorrect password.";
       if (err.code === 'auth/email-already-in-use') msg = "An account already exists with this email.";
+      if (err.code === 'auth/operation-not-allowed') {
+        msg = "Email/Password sign-in is not enabled in Firebase Console. Please enable it in Authentication settings.";
+      }
       
       toast({ variant: "destructive", title: "Auth Error", description: msg });
     } finally {
