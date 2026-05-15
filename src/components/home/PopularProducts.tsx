@@ -31,14 +31,18 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const firestore = useFirestore();
 
   useEffect(() => {
-    const savedTown = localStorage.getItem('user_town');
-    setCurrentTown(savedTown);
+    // Initial load
+    setCurrentTown(localStorage.getItem('user_town'));
 
     const handleUpdate = () => {
       setCurrentTown(localStorage.getItem('user_town'));
     };
     window.addEventListener('user-address-updated', handleUpdate);
-    return () => window.removeEventListener('user-address-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('user-address-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
@@ -52,27 +56,32 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // If we have town-filtered data in DB, use it. Otherwise use town-filtered mock data.
+    // Determine base products: use DB if available, else fallback to mock
+    // If currentTown is set, we filter mock data. If not, we show all mock data.
     const baseProducts = (dbProducts && dbProducts.length > 0) 
       ? dbProducts 
-      : (currentTown ? fallbackProducts.filter(p => p.town === currentTown) : fallbackProducts);
+      : (currentTown 
+          ? fallbackProducts.filter(p => p.town === currentTown) 
+          : fallbackProducts);
     
     let result = baseProducts.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = category === 'all' || product.category === category;
+      const name = product.name || '';
+      const cat = product.category || '';
+      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          cat.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = category === 'all' || cat === category;
       return matchesSearch && matchesCategory;
     });
 
     switch (sortBy) {
       case 'price-low':
-        result = [...result].sort((a, b) => a.price - b.price);
+        result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0));
         break;
       case 'price-high':
-        result = [...result].sort((a, b) => b.price - a.price);
+        result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0));
         break;
       case 'name':
-        result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+        result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         break;
       default:
         break;
@@ -88,7 +97,9 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           <div className="text-amber-500 shrink-0">
             <Zap className="h-4 w-4 fill-current" />
           </div>
-          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">Popular in {currentTown || 'Your Area'}</h2>
+          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">
+            Popular in {currentTown || 'Your Area'}
+          </h2>
         </div>
         
         <div className="shrink-0 ml-2 flex items-center gap-2">
@@ -111,7 +122,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       <div className="grid grid-cols-1 gap-6">
         {filteredAndSortedProducts.length > 0 ? (
           filteredAndSortedProducts.map((product, index) => {
-            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/300/300`;
+            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const liked = isInWishlist(product.id);
@@ -127,9 +138,9 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     </div>
                     <Link href={`/product/${product.id}`}>
                       <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
-                      <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{product.price.toFixed(2)}</div>
+                      <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{(product.price || 0).toFixed(2)}</div>
                       <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold mt-2">from {product.restaurantName}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold mt-2">from {product.restaurantName || 'Local Kitchen'}</p>
                     </Link>
                   </div>
                   
@@ -183,7 +194,9 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           })
         ) : (
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No culinary matches in {currentTown}</p>
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
+              {loading ? "Searching..." : `No culinary matches in ${currentTown || 'Your Area'}`}
+            </p>
           </div>
         )}
       </div>

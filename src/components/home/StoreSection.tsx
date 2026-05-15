@@ -15,14 +15,17 @@ export function StoreSection() {
   const firestore = useFirestore();
 
   useEffect(() => {
-    const savedTown = localStorage.getItem('user_town');
-    setCurrentTown(savedTown);
+    setCurrentTown(localStorage.getItem('user_town'));
 
     const handleUpdate = () => {
       setCurrentTown(localStorage.getItem('user_town'));
     };
     window.addEventListener('user-address-updated', handleUpdate);
-    return () => window.removeEventListener('user-address-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('user-address-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -35,7 +38,8 @@ export function StoreSection() {
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
   
-  // Use DB vendors if available, otherwise filter mock stores by current town
+  // Logic: If Firestore data exists, use it. Otherwise, fallback to mock stores.
+  // If currentTown is set, filter mock stores. If not, show all mock stores for testing.
   const vendors = (dbVendors && dbVendors.length > 0) 
     ? dbVendors 
     : mockStores.filter(v => !currentTown || v.town === currentTown);
@@ -45,7 +49,7 @@ export function StoreSection() {
       <div className="flex items-center justify-between px-6 mb-5">
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
-          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores in {currentTown || 'Area'}</h2>
+          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores in {currentTown || 'Your Area'}</h2>
           {loading && <Loader2 className="h-4 w-4 animate-spin text-primary ml-3" />}
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
@@ -110,7 +114,7 @@ export function StoreSection() {
         {vendors.length === 0 && !loading && (
           <div className="min-w-[300px] flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
             <StoreIcon className="h-10 w-10 text-muted-foreground mb-2" />
-            <p className="text-xs font-black uppercase text-muted-foreground text-center">No stores found in {currentTown}</p>
+            <p className="text-xs font-black uppercase text-muted-foreground text-center">No stores found in {currentTown || 'Your Area'}</p>
           </div>
         )}
       </div>
