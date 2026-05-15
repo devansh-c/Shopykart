@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Store, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function VendorLoginPage() {
@@ -27,30 +27,40 @@ export default function VendorLoginPage() {
     setLoading(true);
 
     try {
+      // 1. First, attempt to sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Check if vendor is approved
+      // 2. Immediately check vendor status in Firestore
       const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
       
-      if (vendorDoc.exists() && vendorDoc.data().status === 'approved') {
-        toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
-        router.push('/vendor/dashboard');
-      } else if (vendorDoc.exists() && vendorDoc.data().status === 'pending') {
-        toast({ 
-          variant: "destructive", 
-          title: "Account Pending", 
-          description: "Your store is still under review. Please wait for approval." 
-        });
-        await auth.signOut();
+      if (vendorDoc.exists()) {
+        const data = vendorDoc.data();
+        if (data.status === 'approved') {
+          toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
+          router.push('/vendor/dashboard');
+        } else if (data.status === 'pending') {
+          // Block access if still pending
+          toast({ 
+            variant: "destructive", 
+            title: "Account Pending", 
+            description: "Your store is still under review by Admin. Please wait for approval." 
+          });
+          await signOut(auth);
+        } else {
+          toast({ variant: "destructive", title: "Access Denied", description: "This account has been rejected or disabled." });
+          await signOut(auth);
+        }
       } else {
-        toast({ variant: "destructive", title: "Access Denied", description: "This account is not registered as a vendor." });
-        await auth.signOut();
+        toast({ variant: "destructive", title: "Not a Vendor", description: "This account is not registered as a vendor." });
+        await signOut(auth);
       }
     } catch (err: any) {
       let msg = "Invalid credentials or network error.";
       if (err.code === 'auth/operation-not-allowed') {
-        msg = "Email/Password sign-in is not enabled in Firebase Console.";
+        msg = "Email/Password provider is disabled in Firebase Console. Please enable it to allow logins.";
+      } else if (err.code === 'auth/invalid-credential') {
+        msg = "Wrong email or password.";
       }
       toast({ variant: "destructive", title: "Login Failed", description: msg });
     } finally {
