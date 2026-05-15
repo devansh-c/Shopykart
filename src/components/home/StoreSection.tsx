@@ -1,39 +1,14 @@
 
 "use client"
 
-import { Star, Clock, Tag, MapPin, Loader2, Info } from 'lucide-react';
+import { Star, Clock, Tag, MapPin, Loader2, Info, Store as StoreIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-
-// Fallback vendors for professional look
-const FALLBACK_VENDORS = [
-  {
-    id: 's1',
-    storeName: 'Rajaram Sweets & Snacks',
-    category: 'Local Snacks • Sweets',
-    rating: 4.8,
-    deliveryTime: '20 min',
-    address: 'Main Market, City',
-    town: 'Ranipur',
-    description: 'Home of the legendary Special Patize and Bhel Puri.',
-    imageUrl: 'https://picsum.photos/seed/rajaram/600/400'
-  },
-  {
-    id: 's2',
-    storeName: 'ShopyKart Signature',
-    category: 'Gourmet • Continental',
-    rating: 4.9,
-    deliveryTime: '25 min',
-    address: 'Elite Hub',
-    town: 'Mauranipur',
-    description: 'Our in-house premium selection of fine dining delicacies.',
-    imageUrl: 'https://picsum.photos/seed/shopy-store/600/400'
-  }
-];
+import { mockStores } from '@/lib/mock-data';
 
 export function StoreSection() {
   const [currentTown, setCurrentTown] = useState<string | null>(null);
@@ -60,9 +35,10 @@ export function StoreSection() {
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
   
+  // Use DB vendors if available, otherwise filter mock stores by current town
   const vendors = (dbVendors && dbVendors.length > 0) 
     ? dbVendors 
-    : FALLBACK_VENDORS.filter(v => !currentTown || v.town === currentTown);
+    : mockStores.filter(v => !currentTown || v.town === currentTown);
 
   return (
     <div className="py-6">
@@ -133,7 +109,7 @@ export function StoreSection() {
 
         {vendors.length === 0 && !loading && (
           <div className="min-w-[300px] flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
-            <Store className="h-10 w-10 text-muted-foreground mb-2" />
+            <StoreIcon className="h-10 w-10 text-muted-foreground mb-2" />
             <p className="text-xs font-black uppercase text-muted-foreground text-center">No stores found in {currentTown}</p>
           </div>
         )}

@@ -52,10 +52,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // If we have town-filtered data, use it. Otherwise fallback but only if no town is set (for demo)
+    // If we have town-filtered data in DB, use it. Otherwise use town-filtered mock data.
     const baseProducts = (dbProducts && dbProducts.length > 0) 
       ? dbProducts 
-      : (currentTown ? [] : fallbackProducts);
+      : (currentTown ? fallbackProducts.filter(p => p.town === currentTown) : fallbackProducts);
     
     let result = baseProducts.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,7 +117,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             const liked = isInWishlist(product.id);
 
             return (
-              <ScrollReveal key={product.id} delay={index * 100} direction="up">
+              <ScrollReveal key={product.id} delay={index * 50} direction="up">
                 <div className="premium-card p-6 flex justify-between items-start bg-white">
                   <div className="flex-1 pr-4">
                     <div className="mb-2">
@@ -129,6 +129,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                       <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
                       <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{product.price.toFixed(2)}</div>
                       <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold mt-2">from {product.restaurantName}</p>
                     </Link>
                   </div>
                   
