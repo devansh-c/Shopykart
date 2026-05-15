@@ -22,7 +22,8 @@ import {
   Info
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -38,6 +39,7 @@ export default function VendorRegistrationPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const auth = useAuth();
   
   const [step, setStep] = useState<Step>('category');
   const [loading, setLoading] = useState(false);
@@ -83,23 +85,46 @@ export default function VendorRegistrationPage() {
   };
 
   const handleSubmit = async () => {
-    if (!firestore) return;
+    if (!firestore || !auth) return;
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast({ variant: "destructive", title: "Password Mismatch", description: "Passwords do not match." });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const applicationData = {
+      // 1. Create Firebase Auth User
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      // 2. Prepare Application Data (Store as Vendor with status 'pending')
+      const vendorData = {
         ...formData,
+        id: user.uid,
         status: 'pending',
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(firestore, 'vendor_applications'), applicationData);
+      // 3. Save to vendors collection
+      await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
+
+      // 4. Save to applications collection for Admin View
+      await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
+
+      // 5. Sign out immediately (they can only login once approved)
+      await auth.signOut();
+
       setStep('success');
-      // Simulated Sound
-      const audio = new Audio('/success.mp3'); // Fallback if exists
+      const audio = new Audio('/success.mp3'); 
       audio.play().catch(() => {}); 
-    } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to submit application." });
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Registration Error", 
+        description: err.message || "Failed to submit application." 
+      });
     } finally {
       setLoading(false);
     }

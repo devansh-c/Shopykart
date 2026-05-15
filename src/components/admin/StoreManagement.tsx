@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
 
 export function StoreManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  // Querying from 'vendors' where status is 'pending'
   const applicationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendor_applications'), orderBy('createdAt', 'desc'));
@@ -25,20 +25,15 @@ export function StoreManagement() {
     if (!firestore) return;
     
     try {
-      // In a real production app, we would use a Cloud Function to create the auth user
-      // For this MVP, we will move the data to 'vendors' and set status to 'approved'
-      // Note: The vendor will still need an Auth account. 
-      // We will suggest the admin to inform them to sign up with the same email if not already done,
-      // or we simulate the "Assignment".
-      
+      // The 'app.id' is the Auth UID assigned during registration
       const vendorRef = doc(firestore, 'vendors', app.id);
       await setDoc(vendorRef, {
         ...app,
         status: 'approved',
         updatedAt: new Date(),
-      });
+      }, { merge: true });
 
-      // Remove from applications
+      // Remove from applications view
       await deleteDoc(doc(firestore, 'vendor_applications', app.id));
 
       toast({ 
@@ -52,7 +47,9 @@ export function StoreManagement() {
 
   const handleReject = async (id: string) => {
     if (!firestore) return;
+    // We should probably remove the auth user too, but for MVP we just remove the application
     await deleteDoc(doc(firestore, 'vendor_applications', id));
+    await updateDoc(doc(firestore, 'vendors', id), { status: 'rejected' });
     toast({ title: "Application Removed", description: "The request has been declined." });
   };
 

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,8 +25,9 @@ import {
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,26 @@ export default function VendorDashboard() {
   }, [firestore, user]);
 
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  // Security Guard: Redirect if not logged in or not approved
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/vendor/login');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (!profileLoading && user && (!vendorProfile || vendorProfile.status !== 'approved')) {
+      toast({ 
+        variant: "destructive", 
+        title: "Access Restricted", 
+        description: vendorProfile?.status === 'pending' 
+          ? "Your account is awaiting approval." 
+          : "Authorized vendors only." 
+      });
+      router.push('/vendor/login');
+    }
+  }, [vendorProfile, profileLoading, user, router, toast]);
 
   // Orders Query
   const ordersQuery = useMemoFirebase(() => {
@@ -174,7 +196,7 @@ export default function VendorDashboard() {
     }
 
     setIsSubmitting(true);
-    setIsAddOpen(false); // Close immediately as requested ("back ho")
+    setIsAddOpen(false);
 
     const productData = {
       name: newProduct.name,
@@ -209,7 +231,9 @@ export default function VendorDashboard() {
       .then(() => toast({ title: "Removed", description: "Product deleted successfully." }));
   };
 
-  if (!user) return <div className="min-h-screen flex items-center justify-center font-black uppercase">PLEASE SIGN IN TO ACCESS VENDOR PANEL</div>;
+  if (authLoading || profileLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+
+  if (!user || !vendorProfile || vendorProfile.status !== 'approved') return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-24">
