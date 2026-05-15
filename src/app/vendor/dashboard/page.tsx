@@ -31,6 +31,7 @@ export default function VendorDashboard() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Vendor Profile Data
   const vendorRef = useMemoFirebase(() => {
@@ -167,10 +168,13 @@ export default function VendorDashboard() {
   };
 
   const handleAddProduct = () => {
-    if (!firestore || !user || !newProduct.name || !newProduct.price) {
-      toast({ variant: "destructive", title: "Error", description: "Please fill all required fields." });
+    if (!firestore || !user || !newProduct.name || !newProduct.price || isSubmitting) {
+      if (!isSubmitting) toast({ variant: "destructive", title: "Error", description: "Please fill all required fields." });
       return;
     }
+
+    setIsSubmitting(true);
+    setIsAddOpen(false); // Close immediately as requested ("back ho")
 
     const productData = {
       name: newProduct.name,
@@ -188,13 +192,14 @@ export default function VendorDashboard() {
 
     addDoc(collection(firestore, 'products'), productData)
       .then(() => {
-        setIsAddOpen(false);
         setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, badges: [] });
         toast({ title: "Product Added", description: "Your item is now live." });
+        setIsSubmitting(false);
       })
       .catch((e) => {
         const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
         errorEmitter.emit('permission-error', err);
+        setIsSubmitting(false);
       });
   };
 
@@ -343,7 +348,13 @@ export default function VendorDashboard() {
                         </button>
                       ))}
                     </div>
-                    <Button onClick={handleAddProduct} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">Publish Product</Button>
+                    <Button 
+                      onClick={handleAddProduct} 
+                      disabled={isSubmitting}
+                      className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic"
+                    >
+                      {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Publish Product"}
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
