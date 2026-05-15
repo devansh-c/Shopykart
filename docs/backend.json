@@ -57,17 +57,8 @@
         "deliveryTime": { "type": "string" },
         "address": { "type": "string" },
         "town": { "type": "string", "enum": ["Ranipur", "Mauranipur"] },
-        "walletBalance": { "type": "number" }
-      }
-    },
-    "DeliveryPartner": {
-      "title": "Delivery Partner",
-      "description": "Delivery executive details",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "status": { "type": "string", "enum": ["Online", "Offline"] },
-        "currentOrderId": { "type": "string" }
+        "walletBalance": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
       }
     }
   },
@@ -78,7 +69,7 @@
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders collection" },
     "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
-    "/delivery_partners/{partnerId}": { "schema": "#/entities/DeliveryPartner", "description": "Delivery staff" },
+    "/vendor_applications/{vendorId}": { "schema": "#/entities/Vendor", "description": "Pending vendor requests for admin review" },
     "/users/{userId}/profile": { "schema": "object", "description": "User profile and role data" },
     "/banners/{bannerId}": { "schema": "object", "description": "App-wide promotional banners" },
     "/coupons/{couponId}": { "schema": "object", "description": "Discount codes" }

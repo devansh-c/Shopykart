@@ -10,6 +10,7 @@ import { FirebaseClientProvider, useUser } from '@/firebase';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-[#FAFAFA] text-foreground">
         <FirebaseClientProvider>
+          <FirebaseErrorListener />
           <CartProvider>
             <SplashScreen />
             <AppContent>
