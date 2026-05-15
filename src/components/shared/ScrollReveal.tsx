@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useRef, useState, ReactNode } from 'react';
@@ -60,7 +59,7 @@ export function ScrollReveal({
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
       className={cn(
-        "transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
+        "transition-all duration-1000 ease-premium",
         isVisible ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]",
         getDirectionClasses(),
         className
