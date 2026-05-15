@@ -9,7 +9,6 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
-import { ScrollReveal } from '@/components/shared/ScrollReveal';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,31 +21,21 @@ export default function Home() {
       
       {!searchQuery && (
         <div className="mt-6 space-y-6">
-          <ScrollReveal direction="up">
-            <OfferSlider />
-          </ScrollReveal>
-          
-          <ScrollReveal direction="up" delay={200}>
-            <StoreSection />
-          </ScrollReveal>
-          
-          <ScrollReveal direction="up" delay={300}>
-            <OffersSection />
-          </ScrollReveal>
+          <OfferSlider />
+          <StoreSection />
+          <OffersSection />
         </div>
       )}
 
       {!searchQuery && (
-        <ScrollReveal direction="up" delay={400} className="mx-4 mt-6">
+        <div className="mx-4 mt-6">
           <div className="bg-white py-2 rounded-[2rem] shadow-sm border border-border/40">
             <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
           </div>
-        </ScrollReveal>
+        </div>
       )}
 
-      <ScrollReveal direction="up" delay={500}>
-        <PopularProducts searchQuery={searchQuery} category={activeCategory} />
-      </ScrollReveal>
+      <PopularProducts searchQuery={searchQuery} category={activeCategory} />
 
       <BottomNav />
     </div>

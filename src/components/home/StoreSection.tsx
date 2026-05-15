@@ -8,24 +8,25 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { mockStores } from '@/lib/mock-data';
+import * as fallbackData from '@/lib/mock-data';
 
 export function StoreSection() {
   const [currentTown, setCurrentTown] = useState<string | null>(null);
   const firestore = useFirestore();
 
   useEffect(() => {
-    setCurrentTown(localStorage.getItem('user_town'));
-
-    const handleUpdate = () => {
+    if (typeof window !== 'undefined') {
       setCurrentTown(localStorage.getItem('user_town'));
-    };
-    window.addEventListener('user-address-updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
-    return () => {
-      window.removeEventListener('user-address-updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
-    };
+      const handleUpdate = () => {
+        setCurrentTown(localStorage.getItem('user_town'));
+      };
+      window.addEventListener('user-address-updated', handleUpdate);
+      window.addEventListener('storage', handleUpdate);
+      return () => {
+        window.removeEventListener('user-address-updated', handleUpdate);
+        window.removeEventListener('storage', handleUpdate);
+      };
+    }
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -40,6 +41,7 @@ export function StoreSection() {
   
   // Logic: If Firestore data exists, use it. Otherwise, fallback to mock stores.
   // If currentTown is set, filter mock stores. If not, show all mock stores for testing.
+  const mockStores = fallbackData.mockStores || [];
   const vendors = (dbVendors && dbVendors.length > 0) 
     ? dbVendors 
     : mockStores.filter(v => !currentTown || v.town === currentTown);

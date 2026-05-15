@@ -6,10 +6,9 @@ import { Zap, Plus, Minus, Heart, SlidersHorizontal, Loader2 } from 'lucide-reac
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { allProducts as fallbackProducts } from '@/lib/mock-data';
+import * as fallbackData from '@/lib/mock-data';
 import {
   Select,
   SelectContent,
@@ -31,18 +30,18 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const firestore = useFirestore();
 
   useEffect(() => {
-    // Initial load
-    setCurrentTown(localStorage.getItem('user_town'));
-
-    const handleUpdate = () => {
+    if (typeof window !== 'undefined') {
       setCurrentTown(localStorage.getItem('user_town'));
-    };
-    window.addEventListener('user-address-updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
-    return () => {
-      window.removeEventListener('user-address-updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
-    };
+      const handleUpdate = () => {
+        setCurrentTown(localStorage.getItem('user_town'));
+      };
+      window.addEventListener('user-address-updated', handleUpdate);
+      window.addEventListener('storage', handleUpdate);
+      return () => {
+        window.removeEventListener('user-address-updated', handleUpdate);
+        window.removeEventListener('storage', handleUpdate);
+      };
+    }
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
@@ -58,6 +57,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const filteredAndSortedProducts = useMemo(() => {
     // Determine base products: use DB if available, else fallback to mock
     // If currentTown is set, we filter mock data. If not, we show all mock data.
+    const fallbackProducts = fallbackData.allProducts || [];
     const baseProducts = (dbProducts && dbProducts.length > 0) 
       ? dbProducts 
       : (currentTown 
@@ -121,75 +121,73 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
       <div className="grid grid-cols-1 gap-6">
         {filteredAndSortedProducts.length > 0 ? (
-          filteredAndSortedProducts.map((product, index) => {
+          filteredAndSortedProducts.map((product) => {
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const liked = isInWishlist(product.id);
 
             return (
-              <ScrollReveal key={product.id} delay={index * 50} direction="up">
-                <div className="premium-card p-6 flex justify-between items-start bg-white">
-                  <div className="flex-1 pr-4">
-                    <div className="mb-2">
-                      <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                        <div className="h-full w-full bg-green-600 rounded-full" />
-                      </div>
+              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white">
+                <div className="flex-1 pr-4">
+                  <div className="mb-2">
+                    <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                      <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
-                    <Link href={`/product/${product.id}`}>
-                      <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
-                      <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{(product.price || 0).toFixed(2)}</div>
-                      <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold mt-2">from {product.restaurantName || 'Local Kitchen'}</p>
-                    </Link>
                   </div>
+                  <Link href={`/product/${product.id}`}>
+                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
+                    <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{(product.price || 0).toFixed(2)}</div>
+                    <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mt-2">from {product.restaurantName || 'Local Kitchen'}</p>
+                  </Link>
+                </div>
+                
+                <div className="relative w-32 h-32 flex-shrink-0">
+                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
+                    <img 
+                      src={imageUrl} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </Link>
                   
-                  <div className="relative w-32 h-32 flex-shrink-0">
-                    <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
-                      <img 
-                        src={imageUrl} 
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </Link>
-                    
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
-                      {quantity === 0 ? (
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
+                    {quantity === 0 ? (
+                      <button 
+                        onClick={() => addToCart({ ...product, imageUrl })}
+                        className="w-full h-10 bg-white text-primary border-[1.5px] border-primary shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
+                      >
+                        ADD <span className="text-lg font-light">+</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center justify-between w-full h-10 bg-white text-primary border-[1.5px] border-primary rounded-xl shadow-md overflow-hidden">
+                        <button 
+                          onClick={() => removeFromCart(product.id)}
+                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
                         <button 
                           onClick={() => addToCart({ ...product, imageUrl })}
-                          className="w-full h-10 bg-white text-primary border-[1.5px] border-primary shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
+                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
                         >
-                          ADD <span className="text-lg font-light">+</span>
+                          <Plus className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <div className="flex items-center justify-between w-full h-10 bg-white text-primary border-[1.5px] border-primary rounded-xl shadow-md overflow-hidden">
-                          <button 
-                            onClick={() => removeFromCart(product.id)}
-                            className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
-                          <button 
-                            onClick={() => addToCart({ ...product, imageUrl })}
-                            className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <button 
-                      onClick={() => toggleWishlist(product.id)}
-                      className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20"
-                    >
-                      <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
-                    </button>
+                      </div>
+                    )}
                   </div>
+
+                  <button 
+                    onClick={() => toggleWishlist(product.id)}
+                    className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20"
+                  >
+                    <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                  </button>
                 </div>
-              </ScrollReveal>
+              </div>
             );
           })
         ) : (
