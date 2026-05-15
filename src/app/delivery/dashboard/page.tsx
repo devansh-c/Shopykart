@@ -3,16 +3,28 @@
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, updateDoc, query, where } from 'firebase/firestore';
-import { Loader2, Navigation, Package, CheckCircle, MapPin } from 'lucide-react';
+import { Loader2, Navigation, Package, CheckCircle, MapPin, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 export default function DeliveryDashboard() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const auth = useAuth();
+  const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
+  const router = useRouter();
   
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/delivery/login');
+    }
+  }, [user, authLoading, router]);
+
   const tasksQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'orders'), where('status', 'in', ['Ready for Pickup', 'Picked Up', 'Out for Delivery']));
@@ -29,18 +41,28 @@ export default function DeliveryDashboard() {
     }).then(() => toast({ title: "Updated", description: `Order is now ${status}` }));
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  const handleSignOut = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    router.push('/delivery/login');
+  };
+
+  if (authLoading || loading) return <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-white p-6 pb-24">
-      <header className="mb-8">
-        <div className="flex justify-between items-center">
+      <header className="mb-8 flex justify-between items-center">
+        <div>
           <h1 className="text-3xl font-black italic uppercase tracking-tighter">Delivery Hub</h1>
-          <div className="bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 flex items-center gap-2">
+          <div className="bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 flex items-center gap-2 mt-2 w-fit">
             <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Online</span>
           </div>
         </div>
+        <button onClick={handleSignOut} className="p-3 bg-white/5 rounded-2xl text-red-500 border border-white/5 active:scale-90 transition-all">
+          <LogOut className="h-5 w-5" />
+        </button>
       </header>
 
       <div className="space-y-4">

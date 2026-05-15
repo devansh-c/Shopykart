@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { FirebaseClientProvider, useUser } from '@/firebase';
-import { EmailAuth } from '@/components/auth/EmailAuth';
+import { OTPVerification } from '@/components/auth/OTPVerification';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
@@ -16,16 +16,17 @@ function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const pathname = usePathname();
 
-  const isAdminPage = pathname?.startsWith('/admin');
-  const showAuth = !authLoading && !user && !isAdminPage;
+  // Paths that should NOT trigger the main customer OTP gate
+  const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
+  const showAuth = !authLoading && !user && !isExcludedPath;
 
   return (
     <div className="relative min-h-screen">
-      {showAuth && <EmailAuth />}
+      {showAuth && <OTPVerification />}
       <div className={showAuth ? "hidden" : ""}>
-        <LocationRequest />
+        {!isExcludedPath && <LocationRequest />}
         {children}
-        <FloatingCart />
+        {!isExcludedPath && <FloatingCart />}
       </div>
     </div>
   );

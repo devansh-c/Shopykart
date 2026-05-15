@@ -63,7 +63,7 @@
     }
   },
   "auth": {
-    "providers": ["email"]
+    "providers": ["email", "phone"]
   },
   "firestore": {
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
