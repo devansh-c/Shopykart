@@ -162,7 +162,7 @@ export function EmailAuth() {
               <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
                   <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Setup Instructions</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Helpful Tips</span>
                 </div>
                 
                 <div className="space-y-4">
@@ -170,15 +170,15 @@ export function EmailAuth() {
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Inbox & Spam</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Gmail link ko Spam ya Promotions tab mein daal sakta hai, wahan check karein.</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">If you don't see the email, wait 2-3 minutes and check your Spam folder.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Registered Email Only</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Agar aapka account nahi bana hai, toh link nahi aayegi. Pehle Signup karein.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Registered Users Only</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase only sends links to registered email addresses. Ensure you've signed up first.</p>
                     </div>
                   </div>
                 </div>
