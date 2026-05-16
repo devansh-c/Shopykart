@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -23,6 +23,7 @@ type AuthView = 'login' | 'signup' | 'forgot';
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(false);
+  const [isResetSent, setIsResetSent] = useState(false);
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -83,21 +84,27 @@ export function EmailAuth() {
         if (!email) throw new Error("Please enter your registered email identity.");
         
         await sendPasswordResetEmail(auth, email);
+        setIsResetSent(true);
         toast({ 
           title: "Reset Link Sent", 
-          description: "If this email is registered, a reset key has been sent. Please check your SPAM folder too." 
+          description: "Check your email (and Spam folder) for the reset key." 
         });
-        setView('login');
       }
     } catch (err: any) {
       let message = err.message;
       if (err.code === 'auth/user-not-found') message = "This identity is not recognized in our database.";
       if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
+      if (err.code === 'auth/invalid-email') message = "Invalid email format.";
       
       toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    setIsResetSent(false);
+    setView('login');
   };
 
   return (
@@ -111,166 +118,188 @@ export function EmailAuth() {
       </div>
 
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-black italic tracking-tighter leading-tight text-foreground uppercase">
-            {view === 'login' && 'Premium Access'}
-            {view === 'signup' && 'Join the Elite'}
-            {view === 'forgot' && 'Reset Security'}
-          </h1>
-          <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.4em] opacity-60">
-            {view === 'login' && 'Unlock your signature experience'}
-            {view === 'signup' && 'Create your gourmet identity'}
-            {view === 'forgot' && 'Re-verify your credentials'}
-          </p>
-        </div>
-
-        <form onSubmit={handleAuth} className="space-y-6">
-          <div className="space-y-4">
-            {view === 'signup' && (
-              <>
-                <div className="relative group">
-                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Full Name</label>
-                  <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                    <User className="h-4 w-4 text-gray-400 mr-3" />
-                    <input
-                      type="text"
-                      placeholder="Enter Full Name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="relative group">
-                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Mobile Identity</label>
-                  <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                    <Phone className="h-4 w-4 text-gray-400 mr-3" />
-                    <input
-                      type="tel"
-                      placeholder="00000 00000"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      required
-                      className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="relative group">
-              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Email Identity</label>
-              <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                <Mail className="h-4 w-4 text-gray-400 mr-3" />
-                <input
-                  type="email"
-                  placeholder="elite@shopykart.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                />
-              </div>
+        {isResetSent ? (
+          <div className="text-center space-y-6 animate-in zoom-in duration-500">
+            <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100">
+              <CheckCircle2 className="h-10 w-10 text-green-500" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK SENT!</h2>
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest px-4 leading-relaxed">
+                Check your inbox at <span className="text-foreground">{email}</span>. Don't forget to check the <span className="text-primary italic">Spam Folder</span>.
+              </p>
+            </div>
+            <Button 
+              onClick={handleBackToLogin}
+              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter"
+            >
+              BACK TO LOGIN
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="text-center space-y-2">
+              <h1 className="text-4xl font-black italic tracking-tighter leading-tight text-foreground uppercase">
+                {view === 'login' && 'Premium Access'}
+                {view === 'signup' && 'Join the Elite'}
+                {view === 'forgot' && 'Reset Security'}
+              </h1>
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.4em] opacity-60">
+                {view === 'login' && 'Unlock your signature experience'}
+                {view === 'signup' && 'Create your gourmet identity'}
+                {view === 'forgot' && 'Re-verify your credentials'}
+              </p>
             </div>
 
-            {view !== 'forgot' && (
-              <>
+            <form onSubmit={handleAuth} className="space-y-6">
+              <div className="space-y-4">
+                {view === 'signup' && (
+                  <>
+                    <div className="relative group">
+                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Full Name</label>
+                      <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                        <User className="h-4 w-4 text-gray-400 mr-3" />
+                        <input
+                          type="text"
+                          placeholder="Enter Full Name"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          required
+                          className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="relative group">
+                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Mobile Identity</label>
+                      <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                        <Phone className="h-4 w-4 text-gray-400 mr-3" />
+                        <input
+                          type="tel"
+                          placeholder="00000 00000"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          required
+                          className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 <div className="relative group">
-                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key (Password)</label>
+                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Email Identity</label>
                   <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                    <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                    <Mail className="h-4 w-4 text-gray-400 mr-3" />
                     <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      type="email"
+                      placeholder="elite@shopykart.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                       className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
                     />
                   </div>
                 </div>
 
-                {view === 'signup' && (
-                  <div className="relative group">
-                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key</label>
-                    <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                      <Lock className="h-4 w-4 text-gray-400 mr-3" />
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                      />
+                {view !== 'forgot' && (
+                  <>
+                    <div className="relative group">
+                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key (Password)</label>
+                      <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                        <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                        />
+                      </div>
                     </div>
+
+                    {view === 'signup' && (
+                      <div className="relative group">
+                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key</label>
+                        <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                          <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                          <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                            className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {view === 'login' && (
+                <div className="flex justify-end">
+                  <button 
+                    type="button" 
+                    onClick={() => setView('forgot')}
+                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:opacity-80"
+                  >
+                    Forgotten Security Key?
+                  </button>
+                </div>
+              )}
+              
+              <div className="space-y-4 pt-4">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
+                >
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                    <div className="flex items-center gap-2">
+                      {view === 'login' && 'ENTER HUB'}
+                      {view === 'signup' && 'CREATE ACCOUNT'}
+                      {view === 'forgot' && 'SEND RESET LINK'}
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  )}
+                </Button>
+
+                {view === 'forgot' && (
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
+                    <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
+                      Reset link will be sent only if the email is already in our system. Please check your **Spam** folder if you don't see it.
+                    </p>
                   </div>
                 )}
-              </>
-            )}
-          </div>
 
-          {view === 'login' && (
-            <div className="flex justify-end">
-              <button 
-                type="button" 
-                onClick={() => setView('forgot')}
-                className="text-[9px] font-black uppercase tracking-widest text-primary hover:opacity-80"
-              >
-                Forgotten Security Key?
-              </button>
-            </div>
-          )}
-          
-          <div className="space-y-4 pt-4">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
-            >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                <div className="flex items-center gap-2">
-                  {view === 'login' && 'ENTER HUB'}
-                  {view === 'signup' && 'CREATE ACCOUNT'}
-                  {view === 'forgot' && 'SEND RESET LINK'}
-                  <ArrowRight className="h-4 w-4" />
+                <div className="flex flex-col items-center gap-6">
+                  {view === 'login' ? (
+                    <button 
+                      type="button"
+                      onClick={() => setView('signup')}
+                      className="text-[9px] font-black uppercase tracking-[0.2em] text-primary underline underline-offset-8"
+                    >
+                      New to ShopyKart? Join Elite
+                    </button>
+                  ) : (
+                    <button 
+                      type="button"
+                      onClick={() => setView('login')}
+                      className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                      Back to Hub Login
+                    </button>
+                  )}
                 </div>
-              )}
-            </Button>
-
-            {view === 'forgot' && (
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
-                <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
-                  Reset link will be sent only if the email is already in our system. Please check your **Spam** folder if you don't see it.
-                </p>
               </div>
-            )}
-
-            <div className="flex flex-col items-center gap-6">
-              {view === 'login' ? (
-                <button 
-                  type="button"
-                  onClick={() => setView('signup')}
-                  className="text-[9px] font-black uppercase tracking-[0.2em] text-primary underline underline-offset-8"
-                >
-                  New to ShopyKart? Join Elite
-                </button>
-              ) : (
-                <button 
-                  type="button"
-                  onClick={() => setView('login')}
-                  className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1"
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                  Back to Hub Login
-                </button>
-              )}
-            </div>
-          </div>
-        </form>
+            </form>
+          </>
+        )}
       </div>
 
       <div className="mt-auto text-center pb-8 pt-10">
