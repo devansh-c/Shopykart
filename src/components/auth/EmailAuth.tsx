@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -9,9 +10,11 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -40,6 +43,40 @@ export function EmailAuth() {
       .match(
         /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
       );
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth || !firestore) return;
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if profile exists, if not create it
+      const profileRef = doc(firestore, 'users', user.uid, 'profile', 'data');
+      const profileSnap = await getDoc(profileRef);
+
+      if (!profileSnap.exists()) {
+        const profileData = {
+          fullName: user.displayName || 'Google User',
+          email: user.email,
+          phoneNumber: user.phoneNumber || '',
+          createdAt: serverTimestamp(),
+          role: 'customer',
+          authProvider: 'google'
+        };
+        await setDoc(profileRef, profileData);
+      }
+
+      toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
+    } catch (err: any) {
+      console.error("Google Auth Error:", err);
+      toast({ variant: "destructive", title: "Sign-in Failed", description: "Google authentication was cancelled or failed." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -84,7 +121,7 @@ export function EmailAuth() {
           };
           const profileRef = doc(firestore, 'users', user.uid, 'profile', 'data');
           
-          setDoc(profileRef, profileData).catch(err => {
+          await setDoc(profileRef, profileData).catch(err => {
              errorEmitter.emit('permission-error', new FirestorePermissionError({
                path: profileRef.path,
                operation: 'write',
@@ -111,17 +148,16 @@ export function EmailAuth() {
       console.error("Auth Error:", err);
       let message = err.message;
       
-      // Handle Firebase v10 generic error
       if (err.code === 'auth/invalid-credential') {
-        message = "Wrong email or password. If you are new, please sign up first.";
+        message = "Wrong email or password. Please check your credentials.";
       } else if (err.code === 'auth/user-not-found') {
-        message = "This email identity is not recognized. Please sign up first.";
+        message = "No account found with this email. Please sign up.";
       } else if (err.code === 'auth/wrong-password') {
-        message = "Incorrect security key provided.";
+        message = "Incorrect password provided.";
       } else if (err.code === 'auth/too-many-requests') {
-        message = "Access blocked due to many failed attempts. Try later.";
+        message = "Access temporarily blocked. Please try again later.";
       } else if (err.code === 'auth/email-already-in-use') {
-        message = "This email is already in our elite database.";
+        message = "This email identity is already registered.";
       }
       
       toast({ variant: "destructive", title: "Access Denied", description: message });
@@ -156,31 +192,19 @@ export function EmailAuth() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-black">LINK DISPATCHED!</h2>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Check your email inbox or spam folder</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Identity verification link sent</p>
               </div>
               
-              <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
+              <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-4 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
                   <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Helpful Tips</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Next Steps</span>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Inbox & Spam</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">If you don't see the email, wait 2-3 minutes and check your Spam folder.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Registered Users Only</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase only sends links to registered email addresses. Ensure you've signed up first.</p>
-                    </div>
-                  </div>
+                <div className="space-y-3">
+                   <p className="text-[9px] text-muted-foreground font-bold leading-relaxed">1. Check your <span className="text-foreground">Spam / Junk</span> folder.</p>
+                   <p className="text-[9px] text-muted-foreground font-bold leading-relaxed">2. Click the verification link in the email.</p>
+                   <p className="text-[9px] text-muted-foreground font-bold leading-relaxed">3. Reset your secret key on the Firebase page.</p>
                 </div>
               </div>
             </div>
@@ -307,7 +331,7 @@ export function EmailAuth() {
                 </div>
               )}
               
-              <div className="space-y-4 pt-4">
+              <div className="space-y-4 pt-2">
                 <Button
                   type="submit"
                   disabled={loading}
@@ -323,7 +347,31 @@ export function EmailAuth() {
                   )}
                 </Button>
 
-                <div className="flex flex-col items-center gap-6">
+                {/* Social Divider */}
+                <div className="relative flex items-center py-2">
+                  <div className="flex-grow border-t border-gray-100"></div>
+                  <span className="flex-shrink mx-4 text-[8px] font-black text-muted-foreground uppercase tracking-widest">Or login with</span>
+                  <div className="flex-grow border-t border-gray-100"></div>
+                </div>
+
+                {/* Google Sign In Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                  className="w-full h-14 border-2 border-gray-100 bg-white hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/>
+                    <path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/>
+                    <path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/>
+                  </svg>
+                  <span className="text-sm font-bold text-gray-700 tracking-tight">Continue with Google</span>
+                </Button>
+
+                <div className="flex flex-col items-center gap-6 pt-4">
                   {view === 'login' ? (
                     <button 
                       type="button"
