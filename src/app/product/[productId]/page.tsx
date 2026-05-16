@@ -3,7 +3,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2 } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import * as mockData from '@/lib/mock-data';
 
 export default function ProductDetailsPage() {
   const { productId } = useParams();
@@ -34,7 +33,7 @@ export default function ProductDetailsPage() {
     return doc(firestore, 'products', productId as string);
   }, [firestore, productId]);
 
-  const { data: dbProduct, loading: dbLoading } = useDoc<any>(productRef);
+  const { data: product, loading: dbLoading } = useDoc<any>(productRef);
   
   // Products Query for Related Items
   const productsQuery = useMemoFirebase(() => {
@@ -42,15 +41,6 @@ export default function ProductDetailsPage() {
     return collection(firestore, 'products');
   }, [firestore]);
   const { data: allDbProducts } = useCollection<any>(productsQuery);
-
-  // Combine DB and Mock Data for the current product
-  const product = useMemo(() => {
-    if (dbProduct) return dbProduct;
-    return mockData.allProducts.find((p: any) => p.id === productId);
-  }, [dbProduct, productId]);
-
-  // Combined loading state: only show spinner if we have NO data at all
-  const loading = dbLoading && !product;
 
   const cartItem = cart.find(item => item.id === productId);
   const [localQuantity, setLocalQuantity] = useState(1);
@@ -61,13 +51,14 @@ export default function ProductDetailsPage() {
     { id: 'r2', user: 'Sara S.', rating: 4, comment: 'Very fresh and hot. Loved the packaging.', date: '5 days ago' },
   ]);
 
-  if (loading) {
+  if (dbLoading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
 
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center flex-col">
+        <Utensils className="h-16 w-16 text-muted-foreground/20 mb-4" />
         <h2 className="text-2xl font-black uppercase italic">Product Not Found</h2>
         <p className="text-muted-foreground mt-2 mb-6">The item you are looking for doesn't exist.</p>
         <Button onClick={() => router.push('/menu')} className="bg-primary rounded-2xl h-12 px-8 font-bold">Back to Menu</Button>
@@ -120,9 +111,9 @@ export default function ProductDetailsPage() {
   };
 
   const relatedProducts = useMemo(() => {
-    const baseItems = (allDbProducts && allDbProducts.length > 0) ? allDbProducts : mockData.allProducts;
-    return baseItems.filter((p: any) => p.id !== productId).slice(0, 8);
-  }, [allDbProducts, productId]);
+    if (!allDbProducts) return [];
+    return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
+  }, [allDbProducts, productId, product.category]);
 
   return (
     <div className="min-h-screen bg-white pb-40">
@@ -146,6 +137,7 @@ export default function ProductDetailsPage() {
           fill 
           className="object-cover"
           priority
+          data-ai-hint="food photo"
         />
       </div>
 
@@ -163,7 +155,7 @@ export default function ProductDetailsPage() {
           )}
         </div>
 
-        <div className="text-2xl font-black text-primary mb-6">₹{product.price.toFixed(2)}</div>
+        <div className="text-2xl font-black text-primary mb-6">₹{(product.price || 0).toFixed(2)}</div>
 
         <div className="space-y-4 mb-8">
           <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
@@ -285,7 +277,7 @@ export default function ProductDetailsPage() {
                       </div>
                       <h4 className="font-bold text-sm truncate">{prod.name}</h4>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="font-black text-primary">₹{prod.price}</span>
+                        <span className="font-black text-primary">₹{(prod.price || 0).toFixed(2)}</span>
                         <div className="bg-primary/10 text-primary p-2 rounded-xl">
                           <Plus className="h-4 w-4" />
                         </div>

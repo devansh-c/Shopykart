@@ -2,13 +2,12 @@
 "use client"
 
 import { useMemo, useState, useEffect } from 'react';
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Loader2, Utensils } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import * as fallbackData from '@/lib/mock-data';
 import {
   Select,
   SelectContent,
@@ -52,18 +51,12 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     );
   }, [firestore, currentTown]);
   
-  const { data: dbProducts } = useCollection<any>(productsQuery);
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // Speed optimization: Use DB data if available and not empty, otherwise use mock data instantly
-    const fallbackProducts = fallbackData.allProducts || [];
-    const baseProducts = (dbProducts && dbProducts.length > 0) 
-      ? dbProducts 
-      : (currentTown 
-          ? fallbackProducts.filter(p => p.town === currentTown) 
-          : fallbackProducts);
+    if (!dbProducts) return [];
     
-    let result = baseProducts.filter(product => {
+    let result = dbProducts.filter(product => {
       const name = product.name || '';
       const cat = product.category || '';
       const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -87,7 +80,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, currentTown]);
+  }, [searchQuery, category, sortBy, dbProducts]);
 
   return (
     <div className="px-4 py-8">
@@ -97,7 +90,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             <Zap className="h-4 w-4 fill-current" />
           </div>
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">
-            Popular in {currentTown || 'Your Area'}
+            {currentTown ? `Popular in ${currentTown}` : 'Select Location'}
           </h2>
         </div>
         
@@ -118,7 +111,11 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {filteredAndSortedProducts.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredAndSortedProducts.length > 0 ? (
           filteredAndSortedProducts.map((product) => {
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
             const cartItem = cart.find(item => item.id === product.id);
@@ -189,9 +186,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             );
           })
         ) : (
-          <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
+          <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted/50">
+            <Utensils className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
-              No culinary matches found.
+              No products found in {currentTown || 'your area'}
             </p>
           </div>
         )}

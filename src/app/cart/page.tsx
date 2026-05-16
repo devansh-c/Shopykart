@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +37,6 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
-import * as mockData from '@/lib/mock-data';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
 export default function CartPage() {
@@ -52,6 +51,13 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
   const [address, setAddress] = useState(typeof window !== 'undefined' ? localStorage.getItem('user_address') || '' : '');
+
+  // Fetch some items for complete meal recommendations
+  const prodsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
+  const { data: dbProducts } = useCollection<any>(prodsQuery);
 
   // Calculate costs
   const packagingFee = 10;
@@ -81,7 +87,6 @@ export default function CartPage() {
       return;
     }
 
-    // 1. Pre-generate Document Reference for instant redirect
     const ordersCol = collection(firestore, 'orders');
     const newOrderRef = doc(ordersCol);
     const orderId = newOrderRef.id;
@@ -97,10 +102,9 @@ export default function CartPage() {
       instructions,
       address: address || 'Store Pickup',
       createdAt: serverTimestamp(),
-      vendorId: cart[0]?.vendorId || 's1'
+      vendorId: cart[0]?.vendorId || 'unknown'
     };
 
-    // 2. Fire and Forget (Optimistic UI)
     setDoc(newOrderRef, orderData)
       .catch(async (err) => {
         const pErr = new FirestorePermissionError({ 
@@ -111,10 +115,8 @@ export default function CartPage() {
         errorEmitter.emit('permission-error', pErr);
       });
 
-    // 3. Show Success Animation Immediately
     setShowSuccess(true);
     
-    // 4. Clear and Redirect after animation plays
     setTimeout(() => {
       clearCart();
       router.push(`/orders/${orderId}`);
@@ -125,7 +127,7 @@ export default function CartPage() {
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
-  const recommendations = mockData.allProducts.slice(10, 15);
+  const recommendations = dbProducts ? dbProducts.filter((p: any) => !cart.find(c => c.id === p.id)).slice(0, 5) : [];
 
   return (
     <div className="min-h-screen bg-[#F5F6F7] pb-40">
@@ -147,7 +149,7 @@ export default function CartPage() {
               <ShoppingBag className="h-4 w-4 text-gray-400" />
               <h2 className="text-sm font-bold uppercase tracking-tight text-gray-700">Your Order</h2>
             </div>
-            <span className="text-xs font-bold text-gray-400">{totalItems} item</span>
+            <span className="text-xs font-bold text-gray-400">{totalItems} items</span>
           </div>
 
           <div className="space-y-6">
@@ -171,7 +173,7 @@ export default function CartPage() {
                       <button onClick={() => addToCart(item)} className="w-8 h-full flex items-center justify-center font-bold text-lg">+</button>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-sm text-gray-800">₹{item.price.toFixed(2)}</span>
+                      <span className="font-bold text-sm text-gray-800">₹{(item.price * item.quantity).toFixed(2)}</span>
                       <button onClick={() => removeFromCart(item.id)} className="text-red-200 hover:text-red-500">
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -201,32 +203,33 @@ export default function CartPage() {
         </div>
 
         {/* Recommendations */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-             <Image src="https://placehold.co/40x40/png?text=🍽️" alt="" width={16} height={16} />
-             <h3 className="text-sm font-bold text-gray-700">Complete your meal</h3>
-          </div>
-          <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
-            {recommendations.map((prod) => (
-              <div key={prod.id} className="min-w-[120px] max-w-[120px] bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-                <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
-                  <Image src={`https://picsum.photos/seed/${prod.id}/200/200`} alt={prod.name} fill className="object-cover" />
-                  <button 
-                    onClick={() => addToCart({ ...prod, imageUrl: `https://picsum.photos/seed/${prod.id}/200/200` })}
-                    className="absolute bottom-1 right-1 h-6 w-6 bg-white rounded-full flex items-center justify-center shadow-md text-red-500"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+        {recommendations.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+               <h3 className="text-sm font-bold text-gray-700">Complete your meal</h3>
+            </div>
+            <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
+              {recommendations.map((prod) => (
+                <div key={prod.id} className="min-w-[120px] max-w-[120px] bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+                  <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
+                    <Image src={prod.imageUrl || `https://picsum.photos/seed/${prod.id}/200/200`} alt={prod.name} fill className="object-cover" />
+                    <button 
+                      onClick={() => addToCart({ ...prod, imageUrl: prod.imageUrl || `https://picsum.photos/seed/${prod.id}/200/200` })}
+                      className="absolute bottom-1 right-1 h-6 w-6 bg-white rounded-full flex items-center justify-center shadow-md text-red-500"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1 mb-0.5">
+                     <div className="h-2 w-2 bg-green-600 rounded-full" />
+                     <span className="text-[10px] font-bold text-gray-800 truncate">{prod.name}</span>
+                  </div>
+                  <div className="text-[10px] font-bold text-gray-400">₹{prod.price}</div>
                 </div>
-                <div className="flex items-center gap-1 mb-0.5">
-                   <div className="h-2 w-2 bg-green-600 rounded-full" />
-                   <span className="text-[10px] font-bold text-gray-800 truncate">{prod.name}</span>
-                </div>
-                <div className="text-[10px] font-bold text-gray-400">₹{prod.price}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Order Type */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">

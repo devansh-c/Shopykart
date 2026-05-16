@@ -8,7 +8,6 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import * as fallbackData from '@/lib/mock-data';
 
 export function StoreSection() {
   const [currentTown, setCurrentTown] = useState<string | null>(null);
@@ -33,17 +32,14 @@ export function StoreSection() {
     if (!firestore || !currentTown) return null;
     return query(
       collection(firestore, 'vendors'),
-      where('town', '==', currentTown)
+      where('town', '==', currentTown),
+      where('status', '==', 'approved')
     );
   }, [firestore, currentTown]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery);
-  
-  // Logic: Show mock stores immediately, sync Firestore background
-  const mockStores = fallbackData.mockStores || [];
-  const vendors = (dbVendors && dbVendors.length > 0) 
-    ? dbVendors 
-    : mockStores.filter(v => !currentTown || v.town === currentTown);
+  const { data: vendors, loading } = useCollection<any>(vendorsQuery);
+
+  if (loading) return null;
 
   return (
     <div className="py-6">
@@ -58,64 +54,65 @@ export function StoreSection() {
       </div>
 
       <div className="flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4">
-        {vendors.map((store: any) => {
-          const imageUrl = store.imageUrl || `https://picsum.photos/seed/${store.id}/600/400`;
-          return (
-            <Link 
-              href={`/menu?vendor=${store.id}`}
-              key={store.id} 
-              className="min-w-[300px] max-w-[300px] flex flex-col group active:scale-[0.98] transition-all duration-300"
-            >
-              <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden shadow-lg border border-border/40 mb-3 bg-muted group-hover:shadow-xl transition-all">
-                <Image 
-                  src={imageUrl} 
-                  alt={store.storeName} 
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  loading="eager"
-                />
-                
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center shadow-md border border-black/5 z-20">
-                  <span className="text-xs font-black mr-1">{store.rating || '4.5'}</span>
-                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                </div>
+        {vendors && vendors.length > 0 ? (
+          vendors.map((store: any) => {
+            const imageUrl = store.imageUrl || `https://picsum.photos/seed/${store.id}/600/400`;
+            return (
+              <Link 
+                href={`/menu?vendor=${store.id}`}
+                key={store.id} 
+                className="min-w-[300px] max-w-[300px] flex flex-col group active:scale-[0.98] transition-all duration-300"
+              >
+                <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden shadow-lg border border-border/40 mb-3 bg-muted group-hover:shadow-xl transition-all">
+                  <Image 
+                    src={imageUrl} 
+                    alt={store.storeName} 
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    loading="eager"
+                    data-ai-hint="restaurant storefront"
+                  />
+                  
+                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center shadow-md border border-black/5 z-20">
+                    <span className="text-xs font-black mr-1">{store.rating || '4.5'}</span>
+                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                  </div>
 
-                {store.deliveryTime && (
-                  <div className="absolute bottom-4 left-4 z-20">
-                    <div className="bg-[#0B0B0B]/80 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 border border-white/10">
-                      <Clock className="h-3 w-3 text-primary" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-tight">{store.deliveryTime}</span>
+                  {store.deliveryTime && (
+                    <div className="absolute bottom-4 left-4 z-20">
+                      <div className="bg-[#0B0B0B]/80 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 border border-white/10">
+                        <Clock className="h-3 w-3 text-primary" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-tight">{store.deliveryTime}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="px-2">
-                <div className="flex justify-between items-start mb-0.5">
-                  <h3 className="font-black text-xl text-foreground line-clamp-1 italic tracking-tight">{store.storeName}</h3>
+                  )}
                 </div>
-                
-                <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-tight mb-2 line-clamp-1">
-                  {store.category || 'Multicuisine'} • {store.address || 'Local Area'}
-                </p>
 
-                {store.description && (
-                  <div className="flex items-start gap-1.5 text-gray-400">
-                    <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                    <p className="text-[10px] font-medium line-clamp-2 leading-relaxed italic">
-                      {store.description}
-                    </p>
+                <div className="px-2">
+                  <div className="flex justify-between items-start mb-0.5">
+                    <h3 className="font-black text-xl text-foreground line-clamp-1 italic tracking-tight">{store.storeName}</h3>
                   </div>
-                )}
-              </div>
-            </Link>
-          );
-        })}
+                  
+                  <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-tight mb-2 line-clamp-1">
+                    {store.category || 'Multicuisine'} • {store.address || 'Local Area'}
+                  </p>
 
-        {vendors.length === 0 && (
-          <div className="min-w-[300px] flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
-            <StoreIcon className="h-10 w-10 text-muted-foreground mb-2" />
-            <p className="text-xs font-black uppercase text-muted-foreground text-center">No stores found in {currentTown || 'Your Area'}</p>
+                  {store.description && (
+                    <div className="flex items-start gap-1.5 text-gray-400">
+                      <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                      <p className="text-[10px] font-medium line-clamp-2 leading-relaxed italic">
+                        {store.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            );
+          })
+        ) : (
+          <div className="w-full flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed mx-6">
+            <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
+            <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores registered in {currentTown || 'this area'} yet.</p>
           </div>
         )}
       </div>

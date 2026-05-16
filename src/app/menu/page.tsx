@@ -4,7 +4,7 @@
 import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Clock, MapPin } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Clock, MapPin, Utensils } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import * as mockData from '@/lib/mock-data';
 import {
   Select,
   SelectContent,
@@ -35,7 +34,7 @@ function MenuContent() {
   
   const firestore = useFirestore();
 
-  // Fetch Vendor Profile for real-time store details
+  // Fetch Vendor Profile
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !vendorIdParam) return null;
     return doc(firestore, 'vendors', vendorIdParam);
@@ -50,13 +49,10 @@ function MenuContent() {
   const { data: dbProducts, loading: dbLoading } = useCollection(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // Fallback logic
-    const baseProducts = (dbProducts && dbProducts.length > 0) 
-      ? dbProducts 
-      : mockData.allProducts;
+    if (!dbProducts) return [];
 
-    let result = baseProducts.filter((product: any) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    let result = dbProducts.filter((product: any) => {
+      const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
       const matchesVendor = !vendorIdParam || product.vendorId === vendorIdParam;
@@ -64,9 +60,9 @@ function MenuContent() {
     });
 
     switch (sortBy) {
-      case 'price-low': result.sort((a: any, b: any) => a.price - b.price); break;
-      case 'price-high': result.sort((a: any, b: any) => b.price - a.price); break;
-      case 'name': result.sort((a: any, b: any) => a.name.localeCompare(b.name)); break;
+      case 'price-low': result.sort((a: any, b: any) => (a.price || 0) - (b.price || 0)); break;
+      case 'price-high': result.sort((a: any, b: any) => (b.price || 0) - (a.price || 0)); break;
+      case 'name': result.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')); break;
       default: break;
     }
 
@@ -79,18 +75,18 @@ function MenuContent() {
     setRequestText('');
     toast({
       title: "Request Sent",
-      description: "Custom Veg dish added to your cart with ₹20 delivery charge.",
+      description: "Custom Veg dish added to your cart with ₹20 preparation charge.",
     });
   };
 
   const categories = [
     { id: 'all', name: 'All' },
-    { id: 'snacks', name: 'Snacks', badge: '🥟' },
-    { id: 'pizza', name: 'Pizza', badge: '🍕' },
-    { id: 'burgers', name: 'Burgers', badge: '🍔' },
-    { id: 'pasta', name: 'Pasta', badge: '🍝' },
-    { id: 'fries', name: 'Fries', badge: '🍟' },
-    { id: 'drinks', name: 'Drinks', badge: '🥤' },
+    { id: 'snacks', name: 'Snacks' },
+    { id: 'pizza', name: 'Pizza' },
+    { id: 'burgers', name: 'Burgers' },
+    { id: 'pasta', name: 'Pasta' },
+    { id: 'fries', name: 'Fries' },
+    { id: 'drinks', name: 'Drinks' },
   ];
 
   return (
@@ -140,29 +136,17 @@ function MenuContent() {
       </div>
 
       <div className="flex items-center justify-between px-6 mb-4">
-        <div className="flex overflow-x-auto space-x-6 no-scrollbar flex-1 mr-4">
+        <div className="flex overflow-x-auto space-x-4 no-scrollbar flex-1 mr-4">
           {categories.map((cat) => (
             <button 
               key={cat.id} 
               onClick={() => setActiveCategory(cat.id)}
-              className="flex flex-col items-center space-y-2 min-w-[70px] relative"
+              className={cn(
+                "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                activeCategory === cat.id ? "bg-primary text-white shadow-lg" : "bg-white text-muted-foreground shadow-sm"
+              )}
             >
-              <div className={cn(
-                "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
-                activeCategory === cat.id ? "border-primary scale-110 shadow-lg" : "border-transparent bg-white shadow-sm"
-              )}>
-                <img
-                  src={`https://picsum.photos/seed/${cat.id}/100/100`}
-                  alt={cat.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span className={cn(
-                "text-[10px] font-black uppercase tracking-widest transition-colors",
-                activeCategory === cat.id ? "text-primary" : "text-muted-foreground"
-              )}>
-                {cat.name}
-              </span>
+              {cat.name}
             </button>
           ))}
         </div>
@@ -184,7 +168,7 @@ function MenuContent() {
       </div>
 
       <div className="px-6 space-y-6">
-        {dbLoading && filteredAndSortedProducts.length === 0 ? (
+        {dbLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -213,7 +197,7 @@ function MenuContent() {
                     </div>
                     <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
-                    <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{product.price.toFixed(2)}</div>
+                    <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{(product.price || 0).toFixed(2)}</div>
                   </Link>
                 </div>
                 
@@ -257,7 +241,8 @@ function MenuContent() {
             );
           })
         ) : (
-          <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed">
+          <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-muted/50">
+            <Utensils className="h-12 w-12 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No items found</p>
           </div>
         )}
