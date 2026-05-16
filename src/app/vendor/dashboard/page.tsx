@@ -6,22 +6,13 @@ import { collection, doc, query, where, addDoc, setDoc, serverTimestamp, deleteD
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
-  Store, 
   Tag, 
-  PlusCircle, 
-  UserCircle, 
   Trash2, 
   Plus, 
   Camera, 
-  Globe, 
-  Clock, 
-  Info, 
   Save, 
-  Upload, 
   Phone, 
   MessageCircle, 
-  Mail,
-  MapPin,
   LogOut,
   Lock
 } from 'lucide-react';
@@ -33,8 +24,6 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import {
   Select,
   SelectContent,
@@ -46,20 +35,13 @@ import {
 export default function VendorDashboard() {
   const firestore = useFirestore();
   const auth = useAuth();
-  const { user, loading: authLoading } = useUser();
+  const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Redirect if definitely logged out
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/vendor/login');
-    }
-  }, [user, authLoading, router]);
 
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -113,7 +95,6 @@ export default function VendorDashboard() {
 
   const handleUpdateProfile = () => {
     if (!vendorRef) return;
-    // Only update allowed fields: storeName, description
     const data = { 
       storeName: storeData.storeName,
       description: storeData.description,
@@ -141,14 +122,16 @@ export default function VendorDashboard() {
   const handleAddProduct = () => {
     if (!firestore || !user || !newProduct.name || !newProduct.price || isSubmitting) return;
     setIsSubmitting(true);
+    
     const productData = { 
       ...newProduct, 
       price: parseFloat(newProduct.price), 
       vendorId: user.uid, 
-      town: storeData.town, 
+      town: vendorProfile?.town || storeData.town, 
       createdAt: serverTimestamp(), 
-      restaurantName: storeData.storeName 
+      restaurantName: vendorProfile?.storeName || storeData.storeName 
     };
+
     addDoc(collection(firestore, 'products'), productData).then(() => {
       setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
       setIsSubmitting(false);
@@ -163,9 +146,7 @@ export default function VendorDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tighter text-black">Vendor Panel</h1>
-            {user && (
-              <p className="text-[10px] font-black text-amber-500 uppercase mt-1">Status: {vendorProfile?.status || 'Active'}</p>
-            )}
+            <p className="text-[10px] font-black text-amber-500 uppercase mt-1">Status: {vendorProfile?.status || 'Active'}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="icon" onClick={() => window.open(`tel:${storeData.phone}`)} className="text-blue-500 bg-blue-50 rounded-xl"><Phone className="h-4 w-4" /></Button>
@@ -219,7 +200,7 @@ export default function VendorDashboard() {
                  )}
                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10 text-white">
                    <Lock className="h-3 w-3" />
-                   <span className="text-[8px] font-black uppercase tracking-widest">Banner Locked</span>
+                   <span className="text-[8px] font-black uppercase tracking-widest">Locked Field</span>
                  </div>
                </div>
                

@@ -21,7 +21,8 @@
             "type": "string",
             "enum": ["Bestseller", "Featured", "Trending"]
           } 
-        }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price", "vendorId", "town"]
     },
@@ -58,7 +59,11 @@
         "address": { "type": "string" },
         "town": { "type": "string", "enum": ["Ranipur", "Mauranipur"] },
         "walletBalance": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "lat": { "type": "string" },
+        "lng": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" }
       }
     }
   },
@@ -69,9 +74,7 @@
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders collection" },
     "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
-    "/vendor_applications/{vendorId}": { "schema": "#/entities/Vendor", "description": "Pending vendor requests for admin review" },
-    "/users/{userId}/profile": { "schema": "object", "description": "User profile and role data" },
-    "/banners/{bannerId}": { "schema": "object", "description": "App-wide promotional banners" },
-    "/coupons/{couponId}": { "schema": "object", "description": "Discount codes" }
+    "/vendor_applications/{vendorId}": { "schema": "#/entities/Vendor", "description": "Application tracking" },
+    "/users/{userId}/profile": { "schema": "object", "description": "User profile data" }
   }
 }

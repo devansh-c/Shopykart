@@ -1,27 +1,20 @@
 
 "use client"
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Store, 
   Utensils, 
   ShoppingBag, 
-  ChevronRight, 
   ChevronLeft, 
   Camera, 
-  MapPin, 
-  LocateFixed,
-  Loader2,
   CheckCircle2,
   ShieldCheck,
-  Info,
   ImageIcon,
-  Lock,
   Eye,
   EyeOff,
   Map as MapIcon
@@ -98,10 +91,6 @@ export default function VendorRegistrationPage() {
     );
   };
 
-  const isPasswordStrong = (pw: string) => {
-    return pw.length >= 6;
-  };
-
   const validateStep = () => {
     if (step === 'category') return !!formData.category;
     if (step === 'store-info') {
@@ -112,7 +101,7 @@ export default function VendorRegistrationPage() {
       if (!basic) return false;
       if (formData.phone.length !== 10) return false;
       if (formData.password !== formData.confirmPassword) return false;
-      return isPasswordStrong(formData.password);
+      return formData.password.length >= 6;
     }
     return true;
   };
@@ -127,7 +116,7 @@ export default function VendorRegistrationPage() {
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play().catch(() => {});
 
-    // Save to Firestore and Auth in the background
+    // Backend work happens in background
     createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password)
       .then(async (userCredential) => {
         const user = userCredential.user;
@@ -152,24 +141,21 @@ export default function VendorRegistrationPage() {
           walletBalance: 0
         };
 
-        // Write to BOTH collections for visibility and application tracking
-        await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
-        await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
+        // Write to collections
+        setDoc(doc(firestore, 'vendors', user.uid), vendorData);
+        setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
         
         // Immediate sign out so session is clean for login
-        await signOut(auth);
+        signOut(auth);
       })
       .catch((err: any) => {
-        console.error("Registration failed", err);
-        // If it failed, we should probably warn them even if we showed success
         if (err.code === 'auth/email-already-in-use') {
           toast({ variant: "destructive", title: "Registration Error", description: "Email already exists." });
-          setStep('owner-info'); // Go back so they can fix it
+          setStep('owner-info'); 
         }
       });
   };
 
-  // Map Embed URL
   const mapUrl = (formData.lat && formData.lng) 
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(formData.lng)-0.005}%2C${parseFloat(formData.lat)-0.005}%2C${parseFloat(formData.lng)+0.005}%2C${parseFloat(formData.lat)+0.005}&layer=mapnik&marker=${formData.lat}%2C${formData.lng}`
     : `https://www.openstreetmap.org/export/embed.html?bbox=78.3%2C25.2%2C78.6%2C25.4&layer=mapnik`;
@@ -224,7 +210,6 @@ export default function VendorRegistrationPage() {
                 </SelectContent>
               </Select>
 
-              {/* Map Preview Section */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">
                   <MapIcon className="h-3 w-3" /> Location Preview

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Star, Clock, Tag, MapPin, Loader2, Info, Store as StoreIcon } from 'lucide-react';
+import { Star, Clock, MapPin, Loader2, Store as StoreIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -34,8 +34,7 @@ export function StoreSection() {
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // If town is selected, filter by it. 
-    // Otherwise show all approved stores to ensure persistence is visible
+    // Always show approved stores, filter by town if selected
     if (currentTown) {
       return query(
         collection(firestore, 'vendors'),
@@ -46,7 +45,7 @@ export function StoreSection() {
     return query(collection(firestore, 'vendors'), where('status', '==', 'approved'));
   }, [firestore, currentTown]);
 
-  const { data: vendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
 
   return (
     <div className="py-6">
@@ -119,14 +118,8 @@ export function StoreSection() {
           })
         ) : (
           <div className="w-full flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed mx-6">
-            {loading ? (
-               <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-            ) : (
-              <>
-                <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores found. Go to Vendor Panel to register.</p>
-              </>
-            )}
+            <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
+            <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores found. Go to Vendor Panel to register.</p>
           </div>
         )}
       </div>
