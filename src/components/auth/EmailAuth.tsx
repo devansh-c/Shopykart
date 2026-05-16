@@ -86,7 +86,7 @@ export function EmailAuth() {
       } else if (view === 'forgot') {
         if (!email) throw new Error("Please enter your registered email identity.");
         
-        // Use standard Firebase Reset method
+        // Firebase Password Reset
         await sendPasswordResetEmail(auth, email);
         setIsResetSent(true);
         toast({ 
@@ -102,7 +102,9 @@ export function EmailAuth() {
       if (err.code === 'auth/user-not-found') message = "This email identity is not recognized.";
       if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
       if (err.code === 'auth/invalid-email') message = "The email format is invalid.";
-      if (err.code === 'auth/operation-not-allowed') message = "Email/Password login is not enabled in Firebase Console.";
+      if (err.code === 'auth/operation-not-allowed') {
+        message = "Email/Password sign-in is disabled in Firebase Console. Please enable it in Authentication > Sign-in method.";
+      }
       if (err.code === 'auth/too-many-requests') message = "Access blocked due to many failed attempts. Try later.";
       
       toast({ variant: "destructive", title: "Access Denied", description: message });
