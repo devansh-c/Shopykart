@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -31,6 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -43,6 +44,7 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // No more loading checks - let data flow in background
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
@@ -89,7 +91,6 @@ export default function VendorDashboard() {
   const handleSignOut = async () => {
     if (!auth) return;
     await signOut(auth);
-    toast({ title: "Logged Out", description: "Come back soon!" });
     router.push('/vendor/login');
   };
 
@@ -100,14 +101,21 @@ export default function VendorDashboard() {
       description: storeData.description,
       updatedAt: serverTimestamp() 
     };
-    setDoc(vendorRef, data, { merge: true });
-    toast({ title: "Updated", description: "Profile saved successfully." });
+    setDoc(vendorRef, data, { merge: true }).catch(async (e) => {
+      const err = new FirestorePermissionError({ path: vendorRef.path, operation: 'update', requestResourceData: data });
+      errorEmitter.emit('permission-error', err);
+    });
+    toast({ title: "Updated" });
   };
 
   const updateStatus = (orderId: string, nextStatus: string) => {
     if (!firestore) return;
-    setDoc(doc(firestore, 'orders', orderId), { status: nextStatus }, { merge: true });
-    toast({ title: "Updated", description: `Order is now ${nextStatus}` });
+    const oRef = doc(firestore, 'orders', orderId);
+    setDoc(oRef, { status: nextStatus }, { merge: true }).catch(async (e) => {
+      const err = new FirestorePermissionError({ path: oRef.path, operation: 'update', requestResourceData: { status: nextStatus } });
+      errorEmitter.emit('permission-error', err);
+    });
+    toast({ title: "Updated" });
   };
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -136,7 +144,11 @@ export default function VendorDashboard() {
       setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
       setIsSubmitting(false);
       setIsAddOpen(false);
-      toast({ title: "Product Added" });
+      toast({ title: "Added" });
+    }).catch(async (e) => {
+      setIsSubmitting(false);
+      const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
+      errorEmitter.emit('permission-error', err);
     });
   };
 
@@ -200,7 +212,7 @@ export default function VendorDashboard() {
                  )}
                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10 text-white">
                    <Lock className="h-3 w-3" />
-                   <span className="text-[8px] font-black uppercase tracking-widest">Locked Field</span>
+                   <span className="text-[8px] font-black uppercase tracking-widest">Locked</span>
                  </div>
                </div>
                
@@ -222,20 +234,12 @@ export default function VendorDashboard() {
                  </div>
 
                  <div className="space-y-1">
-                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Town / Pincode <Lock className="h-2 w-2" /></label>
-                   <Select value={storeData.town} disabled>
-                      <SelectTrigger className="rounded-xl h-12 bg-muted/20 border-none text-black opacity-60"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="Ranipur">Ranipur (284205)</SelectItem><SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem></SelectContent>
-                   </Select>
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-3 p-4 bg-muted/10 rounded-2xl border border-dashed opacity-60">
-                   <div><label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Latitude <Lock className="h-2 w-2" /></label><Input value={storeData.lat} readOnly className="bg-white border-none h-10 mt-1 text-black" /></div>
-                   <div><label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Longitude <Lock className="h-2 w-2" /></label><Input value={storeData.lng} readOnly className="bg-white border-none h-10 mt-1 text-black" /></div>
+                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Town <Lock className="h-2 w-2" /></label>
+                   <Input value={storeData.town} readOnly className="rounded-xl h-12 bg-muted/20 border-none text-black opacity-60" />
                  </div>
 
                  <div className="space-y-1">
-                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Store Description</label>
+                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Description</label>
                    <Textarea placeholder="Store Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl text-black" />
                  </div>
 
@@ -245,7 +249,7 @@ export default function VendorDashboard() {
           </div>
         )}
 
-        {activeTab === 'catalog' && (
+        {activeTab === 'catalog' && ( activeTab === 'catalog' && (
            <div className="space-y-4">
               <div className="p-2">
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -265,15 +269,9 @@ export default function VendorDashboard() {
                 {products?.map((p: any) => (
                   <div key={p.id} className="bg-white p-4 rounded-2xl border flex items-center justify-between"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-12 w-12 rounded-xl object-cover" alt={p.name} /><div><h4 className="font-bold text-sm text-black">{p.name}</h4><p className="text-primary font-black text-xs">₹{p.price}</p></div></div><Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'products', p.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button></div>
                 ))}
-                {(!products || products.length === 0) && (
-                  <div className="text-center py-20 opacity-20 flex flex-col items-center">
-                    <Tag className="h-16 w-16 mb-4 text-black" />
-                    <p className="font-black italic uppercase tracking-widest text-sm text-black">No items in catalog</p>
-                  </div>
-                )}
               </div>
            </div>
-        )}
+        ))}
       </main>
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
     </div>

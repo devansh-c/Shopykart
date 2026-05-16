@@ -1,13 +1,12 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from 'react';
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Loader2, Utensils } from 'lucide-react';
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -49,20 +48,16 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    
-    // Always fetch products to ensure visibility. 
-    // Filter locally or via query if town is set.
     if (currentTown) {
       return query(
         collection(firestore, 'products'),
         where('town', '==', currentTown)
       );
     }
-    
     return query(collection(firestore, 'products'));
   }, [firestore, currentTown]);
   
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+  const { data: dbProducts } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
@@ -77,17 +72,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     });
 
     switch (sortBy) {
-      case 'price-low':
-        result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0));
-        break;
-      case 'price-high':
-        result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0));
-        break;
-      case 'name':
-        result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        break;
-      default:
-        break;
+      case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case 'price-high': result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case 'name': result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
+      default: break;
     }
 
     return result;
@@ -154,7 +142,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                       loading="lazy"
                     />
                   </Link>
-                  
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                     {quantity === 0 ? (
                       <button 
@@ -165,47 +152,20 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                       </button>
                     ) : (
                       <div className="flex items-center justify-between w-full h-10 bg-white text-primary border-[1.5px] border-primary rounded-xl shadow-md overflow-hidden">
-                        <button 
-                          onClick={() => removeFromCart(product.id)}
-                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
+                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-red-50 h-full"><Minus className="h-4 w-4" /></button>
                         <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
-                        <button 
-                          onClick={() => addToCart({ ...product, imageUrl })}
-                          className="flex-1 flex items-center justify-center hover:bg-red-50 h-full transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
+                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-red-50 h-full"><Plus className="h-4 w-4" /></button>
                       </div>
                     )}
                   </div>
-
-                  <button 
-                    onClick={() => toggleWishlist(product.id)}
-                    className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20"
-                  >
+                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20">
                     <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
                   </button>
                 </div>
               </div>
             );
           })
-        ) : (
-          <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted/50">
-            {loading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20 mx-auto" />
-            ) : (
-              <>
-                <Utensils className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
-                <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
-                  No products found in {currentTown || 'your area'}.
-                </p>
-              </>
-            )}
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

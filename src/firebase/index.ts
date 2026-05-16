@@ -10,7 +10,6 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  // Use the config provided directly
   const config = firebaseConfig;
 
   try {
@@ -27,7 +26,7 @@ export function initializeFirebase() {
 
     return { firebaseApp, firestore, auth };
   } catch (error) {
-    console.error("Firebase Initialization Error:", error);
+    // Silently handle init errors to prevent app crash
     return { firebaseApp: null, firestore: null, auth: null };
   }
 }

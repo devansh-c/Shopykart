@@ -1,7 +1,6 @@
-
 "use client"
 
-import { Star, Clock, MapPin, Loader2, Store as StoreIcon } from 'lucide-react';
+import { Star, Clock, MapPin, Store as StoreIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -34,7 +33,6 @@ export function StoreSection() {
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Always show approved stores, filter by town if selected
     if (currentTown) {
       return query(
         collection(firestore, 'vendors'),
@@ -78,7 +76,6 @@ export function StoreSection() {
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="eager"
-                    data-ai-hint="restaurant storefront"
                   />
                   
                   <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center shadow-md border border-black/5 z-20">
@@ -97,31 +94,15 @@ export function StoreSection() {
                 </div>
 
                 <div className="px-2">
-                  <div className="flex justify-between items-start mb-0.5">
-                    <h3 className="font-black text-xl text-foreground line-clamp-1 italic tracking-tight">{store.storeName}</h3>
-                  </div>
-                  
+                  <h3 className="font-black text-xl text-foreground line-clamp-1 italic tracking-tight">{store.storeName}</h3>
                   <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-tight mb-2 line-clamp-1">
                     {store.category || 'Multicuisine'} • {store.address || store.town || 'Local Area'}
                   </p>
-
-                  {store.description && (
-                    <div className="flex items-start gap-1.5 text-gray-400">
-                      <p className="text-[10px] font-medium line-clamp-2 leading-relaxed italic">
-                        {store.description}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </Link>
             );
           })
-        ) : (
-          <div className="w-full flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed mx-6">
-            <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
-            <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores found. Go to Vendor Panel to register.</p>
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

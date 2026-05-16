@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef } from 'react';
@@ -30,6 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success';
 
@@ -86,7 +87,7 @@ export default function VendorRegistrationPage() {
         toast({ title: "Location Captured" });
       },
       () => {
-        toast({ variant: "destructive", title: "GPS Error", description: "Please enter coordinates manually." });
+        toast({ variant: "destructive", title: "GPS Error" });
       }
     );
   };
@@ -109,7 +110,7 @@ export default function VendorRegistrationPage() {
   const handleSubmit = () => {
     if (!firestore || !auth) return;
 
-    // Transition to success immediately for "instant" feel
+    // Show success screen IMMEDIATELY for "instant" feel
     setStep('success');
 
     // Play success ring
@@ -118,7 +119,7 @@ export default function VendorRegistrationPage() {
 
     // Backend work happens in background
     createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password)
-      .then(async (userCredential) => {
+      .then((userCredential) => {
         const user = userCredential.user;
 
         const vendorData = {
@@ -142,15 +143,24 @@ export default function VendorRegistrationPage() {
         };
 
         // Write to collections
-        setDoc(doc(firestore, 'vendors', user.uid), vendorData);
-        setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
+        const vRef = doc(firestore, 'vendors', user.uid);
+        const appRef = doc(firestore, 'vendor_applications', user.uid);
+
+        setDoc(vRef, vendorData).catch(async (e) => {
+          const err = new FirestorePermissionError({ path: vRef.path, operation: 'create', requestResourceData: vendorData });
+          errorEmitter.emit('permission-error', err);
+        });
+
+        setDoc(appRef, vendorData).catch(async (e) => {
+          const err = new FirestorePermissionError({ path: appRef.path, operation: 'create', requestResourceData: vendorData });
+          errorEmitter.emit('permission-error', err);
+        });
         
-        // Immediate sign out so session is clean for login
         signOut(auth);
       })
       .catch((err: any) => {
         if (err.code === 'auth/email-already-in-use') {
-          toast({ variant: "destructive", title: "Registration Error", description: "Email already exists." });
+          toast({ variant: "destructive", title: "Error", description: "Email already exists." });
           setStep('owner-info'); 
         }
       });
@@ -168,7 +178,6 @@ export default function VendorRegistrationPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Business Type</h2>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">All fields are mandatory</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <button onClick={() => updateFormData('category', 'Food')} className={cn("p-8 rounded-[2rem] border-2 flex flex-col items-center gap-4 transition-all active:scale-95", formData.category === 'Food' ? "border-primary bg-primary/5" : "border-border")}>
@@ -190,110 +199,47 @@ export default function VendorRegistrationPage() {
                 <button onClick={() => setStep('category')} className="p-2 bg-muted rounded-xl"><ChevronLeft className="h-4 w-4" /></button>
                 <h2 className="text-xl font-black italic uppercase">Store Info</h2>
               </div>
-              
-              <Input placeholder="Store / Restaurant Name *" value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} className="h-12 rounded-xl" />
-              
+              <Input placeholder="Store Name *" value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} className="h-12 rounded-xl" />
               <div className="grid grid-cols-2 gap-4">
                 <div onClick={() => logoInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                  {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" /> : <><Camera className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Store Logo *</span></>}
+                  {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" /> : <><Camera className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Logo *</span></>}
                 </div>
                 <div onClick={() => coverInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                  {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" /> : <><ImageIcon className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Banner Image *</span></>}
+                  {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" /> : <><ImageIcon className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Banner *</span></>}
                 </div>
               </div>
-
               <Select value={formData.zone} onValueChange={(val) => updateFormData('zone', val)}>
-                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none"><SelectValue placeholder="Select Town / Zone *" /></SelectTrigger>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none"><SelectValue placeholder="Town / Zone *" /></SelectTrigger>
                 <SelectContent className="rounded-2xl">
                   <SelectItem value="Ranipur">Ranipur (284205)</SelectItem>
                   <SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem>
                 </SelectContent>
               </Select>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">
-                  <MapIcon className="h-3 w-3" /> Location Preview
-                </label>
-                <div className="w-full h-40 rounded-2xl overflow-hidden border border-border shadow-inner bg-muted relative">
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight={0} 
-                    marginWidth={0} 
-                    src={mapUrl}
-                    className="grayscale-[0.2] contrast-[1.1]"
-                  />
-                  {!formData.lat && (
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center text-center p-4">
-                      <p className="text-white text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                        Location not set<br/>Click "GET GPS" below to show on map
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div className="w-full h-32 rounded-2xl overflow-hidden border border-border shadow-inner bg-muted">
+                <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={mapUrl} className="grayscale-[0.2]" />
               </div>
-
-              <div className="bg-muted/20 p-4 rounded-2xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground">GPS Coordinates *</label>
-                  <Button variant="ghost" size="sm" onClick={handleGetLocation} className="h-6 text-[10px] text-primary font-black">GET GPS</Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input placeholder="Lat" value={formData.lat} onChange={(e) => updateFormData('lat', e.target.value)} className="h-10 text-xs bg-white" />
-                  <Input placeholder="Lng" value={formData.lng} onChange={(e) => updateFormData('lng', e.target.value)} className="h-10 text-xs bg-white" />
-                </div>
-              </div>
-
-              <Input placeholder="FSSAI License (Optional)" value={formData.fssai} onChange={(e) => updateFormData('fssai', e.target.value)} className="h-12 rounded-xl" />
-
-              <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4">NEXT STEP</Button>
+              <Button variant="ghost" onClick={handleGetLocation} className="w-full text-primary font-black uppercase text-[10px]">CAPTURE CURRENT GPS</Button>
+              <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">NEXT STEP</Button>
             </div>
           )}
 
           {step === 'owner-info' && (
             <div className="space-y-4">
-               <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2">
                 <button onClick={() => setStep('store-info')} className="p-2 bg-muted rounded-xl"><ChevronLeft className="h-4 w-4" /></button>
                 <h2 className="text-xl font-black italic uppercase">Owner Details</h2>
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <Input placeholder="First Name *" value={formData.firstName} onChange={(e) => updateFormData('firstName', e.target.value)} className="h-12 rounded-xl" />
                 <Input placeholder="Last Name *" value={formData.lastName} onChange={(e) => updateFormData('lastName', e.target.value)} className="h-12 rounded-xl" />
               </div>
-
-              <Input 
-                placeholder="Phone Number (10 Digits) *" 
-                value={formData.phone} 
-                onChange={(e) => updateFormData('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
-                className="h-12 rounded-xl" 
-                maxLength={10}
-              />
+              <Input placeholder="Phone Number *" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className="h-12 rounded-xl" maxLength={10} />
               <Input placeholder="Email Address *" type="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)} className="h-12 rounded-xl" />
-              
               <div className="relative">
-                <Input 
-                  placeholder="Create Password *" 
-                  type={showPassword ? "text" : "password"} 
-                  value={formData.password} 
-                  onChange={(e) => updateFormData('password', e.target.value)} 
-                  className="h-12 rounded-xl pr-10" 
-                />
-                <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                <Input placeholder="Password *" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} className="h-12 rounded-xl pr-10" />
+                <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
               </div>
-
-              <Input 
-                placeholder="Confirm Password *" 
-                type="password" 
-                value={formData.confirmPassword} 
-                onChange={(e) => updateFormData('confirmPassword', e.target.value)} 
-                className="h-12 rounded-xl" 
-              />
-
+              <Input placeholder="Confirm Password *" type="password" value={formData.confirmPassword} onChange={(e) => updateFormData('confirmPassword', e.target.value)} className="h-12 rounded-xl" />
               <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4">REVIEW & SUBMIT</Button>
             </div>
           )}
@@ -301,17 +247,11 @@ export default function VendorRegistrationPage() {
           {step === 'commission' && (
             <div className="space-y-6 text-center">
               <div className="bg-primary/10 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-2"><ShieldCheck className="h-10 w-10 text-primary" /></div>
-              <div className="bg-black text-white p-8 rounded-[2.5rem] space-y-4 shadow-2xl">
-                <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">₹5 COMMISSION</span>
-                <p className="text-sm font-bold leading-relaxed text-gray-300 uppercase tracking-tight">Per successful order commission will be charged. Full panel access included.</p>
+              <div className="bg-black text-white p-8 rounded-[2.5rem] space-y-4">
+                <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase">₹5 COMMISSION</span>
+                <p className="text-sm font-bold leading-relaxed text-gray-300">PER SUCCESSFUL ORDER CHARGED.</p>
               </div>
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/30"
-              >
-                I AGREE & SUBMIT
-              </Button>
-              <button onClick={() => setStep('owner-info')} className="text-xs font-black uppercase text-muted-foreground">Go Back</button>
+              <Button onClick={handleSubmit} className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl">I AGREE & SUBMIT</Button>
             </div>
           )}
 
@@ -320,25 +260,12 @@ export default function VendorRegistrationPage() {
               <div className="relative mx-auto w-24 h-24 mb-8">
                 <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20" />
                 <div className="relative bg-blue-600 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-blue-200">
-                  <CheckCircle2 className="h-14 w-14 text-white animate-in zoom-in duration-300" />
+                  <CheckCircle2 className="h-14 w-14 text-white" />
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-blue-600">LIVE NOW!</h2>
-                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest px-4 leading-relaxed">
-                  Your account is activated. You can now login and start selling your products instantly.
-                </p>
-              </div>
-
-              <div className="pt-4">
-                <Button 
-                  onClick={() => router.push('/vendor/login')} 
-                  className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200 transition-all active:scale-95"
-                >
-                  LOGIN NOW
-                </Button>
-              </div>
+              <h2 className="text-3xl font-black italic uppercase text-blue-600">LIVE NOW!</h2>
+              <p className="text-xs font-black text-muted-foreground uppercase px-4">Account activated. Start selling instantly.</p>
+              <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg">LOGIN NOW</Button>
             </div>
           )}
         </CardContent>
