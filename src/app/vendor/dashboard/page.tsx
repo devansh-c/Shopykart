@@ -46,7 +46,7 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Data flows in background
+  // Use simple queries without multiple where clauses to avoid index requirements in prototype
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
@@ -133,6 +133,7 @@ export default function VendorDashboard() {
     if (!firestore || !user || !newProduct.name || !newProduct.price || isSubmitting) return;
     setIsSubmitting(true);
     
+    // Crucial: Use current values from vendor profile to ensure persistence in the right town
     const currentTown = vendorProfile?.town || storeData.town || 'Ranipur';
     const currentStoreName = vendorProfile?.storeName || storeData.storeName || 'My Store';
 
@@ -311,7 +312,7 @@ export default function VendorDashboard() {
                            <h4 className="font-black text-base text-black italic">{p.name}</h4>
                            {p.isVeg && <div className="h-2 w-2 rounded-full bg-green-500" />}
                         </div>
-                        <p className="text-primary font-black text-sm italic">₹{p.price.toFixed(2)}</p>
+                        <p className="text-primary font-black text-sm italic">₹{(p.price || 0).toFixed(2)}</p>
                         <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{p.category}</p>
                       </div>
                     </div>

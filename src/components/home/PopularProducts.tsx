@@ -7,7 +7,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -49,7 +49,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Always fetch everything initially, we will filter locally for speed and persistence
+    // Always fetch everything, filter client-side for zero-delay and no index issues
     return collection(firestore, 'products');
   }, [firestore]);
   
@@ -58,27 +58,28 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
     
+    // First, filter by search and category
     let result = dbProducts.filter(product => {
-      const name = product.name || '';
-      const cat = product.category || '';
-      const prodTown = product.town || '';
+      const name = (product.name || '').toLowerCase();
+      const cat = (product.category || '').toLowerCase();
       
-      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          cat.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = name.includes(searchQuery.toLowerCase()) ||
+                          cat.includes(searchQuery.toLowerCase());
       
-      const matchesCategory = category === 'all' || cat === category;
-      
-      // If a town is selected, prioritize it, but if user hasn't selected a location, show everything
-      const matchesTown = !currentTown || prodTown === currentTown;
+      const matchesCategory = category === 'all' || product.category === category;
 
-      return matchesSearch && matchesCategory && matchesTown;
+      return matchesSearch && matchesCategory;
     });
 
-    // Fallback: If no items found in specific town, show global items to avoid "empty" feel
-    if (result.length === 0 && currentTown && !searchQuery && category === 'all') {
-       result = dbProducts.slice(0, 10);
+    // Then, attempt to filter by town, but fallback if nothing found
+    if (currentTown && !searchQuery && category === 'all') {
+      const townMatch = result.filter(p => p.town === currentTown);
+      if (townMatch.length > 0) {
+        result = townMatch;
+      }
     }
 
+    // Default sorting
     switch (sortBy) {
       case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
       case 'price-high': result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0)); break;
@@ -180,13 +181,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           </div>
         )}
       </div>
-      
-      {filteredAndSortedProducts.length > 0 && dbProducts && filteredAndSortedProducts.length < dbProducts.length && (
-         <div className="mt-8 flex items-center justify-center gap-2 p-4 bg-muted/30 rounded-2xl border border-dashed">
-            <Info className="h-3 w-3 text-muted-foreground" />
-            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Only showing items in {currentTown}</p>
-         </div>
-      )}
     </div>
   );
 }
