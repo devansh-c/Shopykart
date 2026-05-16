@@ -54,7 +54,6 @@ export function EmailAuth() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if profile exists, if not create it
       const profileRef = doc(firestore, 'users', user.uid, 'profile', 'data');
       const profileSnap = await getDoc(profileRef);
 
@@ -72,21 +71,13 @@ export function EmailAuth() {
 
       toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
     } catch (err: any) {
-      console.error("Google Auth Error:", err);
-      
       let errorMessage = "Google authentication failed.";
-      
       if (err.code === 'auth/unauthorized-domain') {
-        errorMessage = "Domain not authorized. Add your current domain to 'Authorized Domains' in Firebase Console (Authentication > Settings).";
+        errorMessage = "Domain not authorized. Please add this URL in Firebase Console > Authentication > Authorized domains.";
       } else if (err.code === 'auth/popup-closed-by-user') {
-        errorMessage = "Sign-in window was closed before completion.";
+        errorMessage = "Sign-in window was closed.";
       }
-
-      toast({ 
-        variant: "destructive", 
-        title: "Sign-in Error", 
-        description: errorMessage 
-      });
+      toast({ variant: "destructive", title: "Sign-in Error", description: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -94,10 +85,7 @@ export function EmailAuth() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
-      toast({ variant: "destructive", title: "Internal Error", description: "Firebase Auth is not initialized." });
-      return;
-    }
+    if (!auth) return;
 
     const trimmedEmail = email.trim().toLowerCase();
 
@@ -109,14 +97,11 @@ export function EmailAuth() {
     setLoading(true);
     try {
       if (view === 'signup') {
-        if (!fullName.trim() || !phoneNumber.trim() || !trimmedEmail || !password || !confirmPassword) {
-          throw new Error("All fields are mandatory for registration.");
+        if (!fullName.trim() || phoneNumber.length !== 10 || password.length < 6) {
+          throw new Error("Please fill all fields correctly. Phone must be 10 digits.");
         }
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match.");
-        }
-        if (password.length < 6) {
-          throw new Error("Secret key must be at least 6 characters.");
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
@@ -133,14 +118,7 @@ export function EmailAuth() {
             role: 'customer'
           };
           const profileRef = doc(firestore, 'users', user.uid, 'profile', 'data');
-          
-          await setDoc(profileRef, profileData).catch(err => {
-             errorEmitter.emit('permission-error', new FirestorePermissionError({
-               path: profileRef.path,
-               operation: 'write',
-               requestResourceData: profileData
-             }));
-          });
+          await setDoc(profileRef, profileData);
         }
 
         toast({ title: "Welcome!", description: `Account created for ${fullName}.` });
@@ -148,29 +126,18 @@ export function EmailAuth() {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified", description: "Accessing your signature experience." });
       } else if (view === 'forgot') {
-        if (!trimmedEmail) throw new Error("Please enter your registered email.");
-        
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
-        toast({ 
-          title: "Request Dispatched", 
-          description: "A verification link has been sent to your email." 
-        });
       }
     } catch (err: any) {
-      console.error("Auth Error:", err);
       let message = err.message;
-      
       if (err.code === 'auth/invalid-credential') {
-        message = "Wrong email or password. Please check your credentials.";
-      } else if (err.code === 'auth/user-not-found') {
-        message = "No account found with this email. Please sign up.";
-      } else if (err.code === 'auth/too-many-requests') {
-        message = "Access temporarily blocked. Please try again later.";
+        message = "Wrong email or password identity.";
       } else if (err.code === 'auth/email-already-in-use') {
-        message = "This email identity is already registered.";
+        message = "This email is already registered.";
+      } else if (err.code === 'auth/too-many-requests') {
+        message = "Account temporarily locked due to multiple failed attempts.";
       }
-      
       toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
       setLoading(false);
@@ -195,37 +162,14 @@ export function EmailAuth() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
         {isResetSent ? (
           <div className="text-center space-y-6 animate-in zoom-in duration-500 pb-10">
-            <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100 relative">
-              <div className="absolute inset-0 bg-green-200/20 rounded-full animate-ping" />
-              <CheckCircle2 className="h-10 w-10 text-green-500 relative z-10" />
+            <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100">
+              <CheckCircle2 className="h-10 w-10 text-green-500" />
             </div>
-            
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-black">LINK DISPATCHED!</h2>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Identity verification link sent</p>
-              </div>
-              
-              <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-4 text-left shadow-xl shadow-red-500/5">
-                <div className="flex gap-2 items-center text-primary">
-                  <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Next Steps</span>
-                </div>
-                
-                <div className="space-y-3">
-                   <p className="text-[9px] text-muted-foreground font-bold leading-relaxed">1. Check your <span className="text-foreground">Spam / Junk</span> folder.</p>
-                   <p className="text-[9px] text-muted-foreground font-bold leading-relaxed">2. Click the verification link in the email.</p>
-                   <p className="text-[9px] text-muted-foreground font-bold leading-relaxed">3. Reset your secret key on the Firebase page.</p>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-black">LINK DISPATCHED!</h2>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Identity verification link sent</p>
             </div>
-
-            <Button 
-              onClick={handleBackToLogin}
-              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl"
-            >
-              BACK TO LOGIN
-            </Button>
+            <Button onClick={handleBackToLogin} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl">BACK TO LOGIN</Button>
           </div>
         ) : (
           <>
@@ -250,29 +194,14 @@ export function EmailAuth() {
                       <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Full Name *</label>
                       <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                         <User className="h-4 w-4 text-gray-400 mr-3" />
-                        <input
-                          type="text"
-                          placeholder="Enter Full Name"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          required
-                          className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                        />
+                        <input type="text" placeholder="Enter Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
                       </div>
                     </div>
-
                     <div className="relative group">
                       <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Mobile Identity *</label>
                       <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                         <Phone className="h-4 w-4 text-gray-400 mr-3" />
-                        <input
-                          type="tel"
-                          placeholder="00000 00000"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          required
-                          className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                        />
+                        <input type="tel" placeholder="10-digit Number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
                       </div>
                     </div>
                   </>
@@ -282,128 +211,59 @@ export function EmailAuth() {
                   <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Email Identity *</label>
                   <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                     <Mail className="h-4 w-4 text-gray-400 mr-3" />
-                    <input
-                      type="email"
-                      placeholder="elite@shopykart.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                    />
+                    <input type="email" placeholder="elite@shopykart.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
                   </div>
                 </div>
 
                 {view !== 'forgot' && (
-                  <>
-                    <div className="relative group">
-                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key (Password) *</label>
-                      <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                        <Lock className="h-4 w-4 text-gray-400 mr-3" />
-                        <input
-                          type="password"
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                        />
-                      </div>
+                  <div className="relative group">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key *</label>
+                    <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                      <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                      <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
                     </div>
-
-                    {view === 'signup' && (
-                      <div className="relative group">
-                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key *</label>
-                        <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                          <Lock className="h-4 w-4 text-gray-400 mr-3" />
-                          <input
-                            type="password"
-                            placeholder="••••••••"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  </div>
+                )}
+                
+                {view === 'signup' && (
+                  <div className="relative group">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key *</label>
+                    <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                      <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                      <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
+                    </div>
+                  </div>
                 )}
               </div>
 
               {view === 'login' && (
                 <div className="flex justify-end">
-                  <button 
-                    type="button" 
-                    onClick={() => setView('forgot')}
-                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:opacity-80"
-                  >
-                    Forgotten Security Key?
-                  </button>
+                  <button type="button" onClick={() => setView('forgot')} className="text-[9px] font-black uppercase tracking-widest text-primary">Forgotten Security Key?</button>
                 </div>
               )}
               
               <div className="space-y-4 pt-2">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
-                >
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                    <div className="flex items-center gap-2">
-                      {view === 'login' && 'ENTER HUB'}
-                      {view === 'signup' && 'CREATE ACCOUNT'}
-                      {view === 'forgot' && 'REQUEST RESET LINK'}
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  )}
+                <Button type="submit" disabled={loading} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 text-lg tracking-tighter">
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <div className="flex items-center gap-2">{view === 'login' && 'ENTER HUB'}{view === 'signup' && 'CREATE ACCOUNT'}{view === 'forgot' && 'SEND RESET LINK'}<ArrowRight className="h-4 w-4" /></div>}
                 </Button>
 
-                {/* Social Divider */}
                 <div className="relative flex items-center py-2">
                   <div className="flex-grow border-t border-gray-100"></div>
                   <span className="flex-shrink mx-4 text-[8px] font-black text-muted-foreground uppercase tracking-widest">Or login with</span>
                   <div className="flex-grow border-t border-gray-100"></div>
                 </div>
 
-                {/* Google Sign In Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="w-full h-14 border-2 border-gray-100 bg-white hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
-                >
+                <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={loading} className="w-full h-14 border-2 border-gray-100 bg-white rounded-2xl flex items-center justify-center gap-3">
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/>
-                    <path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/>
-                    <path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/>
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/><path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/><path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/>
                   </svg>
-                  <span className="text-sm font-bold text-gray-700 tracking-tight">Continue with Google</span>
+                  <span className="text-sm font-bold text-gray-700">Continue with Google</span>
                 </Button>
 
                 <div className="flex flex-col items-center gap-6 pt-4">
-                  {view === 'login' ? (
-                    <button 
-                      type="button"
-                      onClick={() => setView('signup')}
-                      className="text-[9px] font-black uppercase tracking-[0.2em] text-primary underline underline-offset-8"
-                    >
-                      New to ShopyKart? Join Elite
-                    </button>
-                  ) : (
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setIsResetSent(false);
-                        setView('login');
-                      }}
-                      className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1"
-                    >
-                      <ChevronLeft className="h-3 w-3" />
-                      Back to Hub Login
-                    </button>
-                  )}
+                  <button type="button" onClick={() => setView(view === 'login' ? 'signup' : 'login')} className="text-[9px] font-black uppercase tracking-[0.2em] text-primary underline underline-offset-8">
+                    {view === 'login' ? 'New to ShopyKart? Join Elite' : 'Already Elite? Back to Hub'}
+                  </button>
                 </div>
               </div>
             </form>
@@ -412,11 +272,9 @@ export function EmailAuth() {
       </div>
 
       <div className="mt-auto text-center pb-8 pt-10">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground/30">
-            <ShieldCheck className="h-4 w-4" />
-            <p className="text-[8px] font-black uppercase tracking-[0.5em]">Secure Infrastructure</p>
-          </div>
+        <div className="flex items-center justify-center gap-2 text-muted-foreground/30">
+          <ShieldCheck className="h-4 w-4" />
+          <p className="text-[8px] font-black uppercase tracking-[0.5em]">Secure Infrastructure</p>
         </div>
       </div>
     </div>
