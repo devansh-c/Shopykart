@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -35,6 +35,14 @@ export function EmailAuth() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  const validateEmail = (email: string) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
@@ -42,18 +50,28 @@ export function EmailAuth() {
       return;
     }
 
+    const trimmedEmail = email.trim();
+
+    if (!validateEmail(trimmedEmail)) {
+      toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email identity." });
+      return;
+    }
+
     setLoading(true);
     try {
       if (view === 'signup') {
-        if (!fullName || !phoneNumber || !email || !password || !confirmPassword) {
-          throw new Error("Please fill all elite registration fields.");
+        if (!fullName || !phoneNumber || !trimmedEmail || !password || !confirmPassword) {
+          throw new Error("All elite registration fields are mandatory.");
         }
         if (password !== confirmPassword) {
-          throw new Error("Secret keys (passwords) do not match.");
+          throw new Error("Secret keys do not match.");
+        }
+        if (password.length < 6) {
+          throw new Error("Security key must be at least 6 characters.");
         }
 
         // 1. Create User
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
 
         // 2. Update Auth Profile
@@ -64,7 +82,7 @@ export function EmailAuth() {
           const profileData = {
             fullName,
             phoneNumber,
-            email,
+            email: trimmedEmail,
             createdAt: serverTimestamp(),
             role: 'customer'
           };
@@ -81,17 +99,17 @@ export function EmailAuth() {
 
         toast({ title: "Welcome to Elite Circle", description: `Account created for ${fullName}.` });
       } else if (view === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified", description: "Accessing your signature experience." });
       } else if (view === 'forgot') {
-        if (!email) throw new Error("Please enter your registered email identity.");
+        if (!trimmedEmail) throw new Error("Please enter your registered email identity.");
         
         // Firebase Password Reset
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
         toast({ 
           title: "Reset Link Sent", 
-          description: `A security key has been dispatched to ${email}.` 
+          description: `Check your inbox and SPAM folder.` 
         });
       }
     } catch (err: any) {
@@ -99,13 +117,11 @@ export function EmailAuth() {
       let message = err.message;
       
       // Map Firebase errors to user-friendly messages
-      if (err.code === 'auth/user-not-found') message = "This email identity is not recognized.";
+      if (err.code === 'auth/user-not-found') message = "This email identity is not recognized. Please check or sign up.";
       if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
       if (err.code === 'auth/invalid-email') message = "The email format is invalid.";
-      if (err.code === 'auth/operation-not-allowed') {
-        message = "Email/Password sign-in is disabled in Firebase Console. Please enable it in Authentication > Sign-in method.";
-      }
       if (err.code === 'auth/too-many-requests') message = "Access blocked due to many failed attempts. Try later.";
+      if (err.code === 'auth/email-already-in-use') message = "This email is already in our elite database.";
       
       toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
@@ -132,18 +148,25 @@ export function EmailAuth() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
         {isResetSent ? (
           <div className="text-center space-y-6 animate-in zoom-in duration-500">
-            <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100">
-              <CheckCircle2 className="h-10 w-10 text-green-500" />
+            <div className="mx-auto bg-green-50 h-24 w-24 rounded-full flex items-center justify-center border border-green-100 relative">
+              <div className="absolute inset-0 bg-green-200/20 rounded-full animate-ping" />
+              <CheckCircle2 className="h-12 w-12 text-green-500 relative z-10" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK SENT!</h2>
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest px-4 leading-relaxed">
-                We've sent a link to <span className="text-foreground">{email}</span>. Please check your **Spam** or **Junk** folder if it doesn't appear in 2 minutes.
+            <div className="space-y-3">
+              <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK DISPATCHED!</h2>
+              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3 items-start">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-700 font-bold uppercase tracking-tight text-left leading-relaxed">
+                  IMPORTANT: If you don't see the email in 1 minute, check your <span className="underline decoration-2 text-primary">SPAM / JUNK</span> folder. Some providers block reset links by default.
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-4 leading-relaxed">
+                Reset link sent to: <span className="text-foreground">{email}</span>
               </p>
             </div>
             <Button 
               onClick={handleBackToLogin}
-              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter"
+              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl"
             >
               BACK TO LOGIN
             </Button>
@@ -283,7 +306,7 @@ export function EmailAuth() {
                   <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
-                      If your email is registered, we'll send a reset link. If you don't see it, check your **Spam** folder or ensure you used the correct email.
+                      We'll send a link to your email. Ensure the email matches your registration. If not found, always check your Spam folder.
                     </p>
                   </div>
                 )}
