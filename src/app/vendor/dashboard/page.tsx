@@ -4,7 +4,6 @@
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, query, where, addDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { 
-  Loader2, 
   ShoppingBag, 
   Store, 
   Tag, 
@@ -140,7 +139,7 @@ export default function VendorDashboard() {
     });
   };
 
-  if (authLoading || profileLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 animate-spin text-primary" /></div>;
+  if (authLoading || profileLoading) return null;
   if (!user || !vendorProfile || vendorProfile.status !== 'approved') return null;
 
   return (
@@ -186,7 +185,7 @@ export default function VendorDashboard() {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-[2.5rem] border space-y-6">
                <div className="relative aspect-video rounded-3xl overflow-hidden bg-muted group">
-                 <img src={storeData.bannerUrl} className="w-full h-full object-cover" />
+                 <img src={storeData.bannerUrl} className="w-full h-full object-cover" alt="Banner" />
                  <button onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Upload className="h-6 w-6 mr-2" /> Change Banner</button>
                </div>
                
@@ -220,21 +219,25 @@ export default function VendorDashboard() {
 
         {activeTab === 'catalog' && (
            <div className="space-y-4">
-              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogTrigger asChild><Button className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic"><Plus className="mr-2" /> Add Menu Item</Button></DialogTrigger>
-                <DialogContent className="rounded-[2.5rem]">
-                  <DialogHeader><DialogTitle className="font-black uppercase italic">New Product</DialogTitle></DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div onClick={() => fileInputRef.current?.click()} className="h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <Camera />}</div>
-                    <Input placeholder="Item Name *" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} />
-                    <Input type="number" placeholder="Price (₹) *" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} />
-                    <Button onClick={handleAddProduct} className="w-full h-12 bg-primary font-black uppercase italic rounded-xl">Publish to Store</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              {products?.map((p: any) => (
-                <div key={p.id} className="bg-white p-4 rounded-2xl border flex items-center justify-between"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-12 w-12 rounded-xl object-cover" /><div><h4 className="font-bold text-sm">{p.name}</h4><p className="text-primary font-black text-xs">₹{p.price}</p></div></div><Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'products', p.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button></div>
-              ))}
+              <div className="p-2">
+                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                  <DialogTrigger asChild><Button className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic"><Plus className="mr-2" /> Add Menu Item</Button></DialogTrigger>
+                  <DialogContent className="rounded-[2.5rem]">
+                    <DialogHeader><DialogTitle className="font-black uppercase italic">New Product</DialogTitle></DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div onClick={() => fileInputRef.current?.click()} className="h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">{newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="Product" /> : <Camera />}</div>
+                      <Input placeholder="Item Name *" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} />
+                      <Input type="number" placeholder="Price (₹) *" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} />
+                      <Button onClick={handleAddProduct} className="w-full h-12 bg-primary font-black uppercase italic rounded-xl">Publish to Store</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="space-y-2">
+                {products?.map((p: any) => (
+                  <div key={p.id} className="bg-white p-4 rounded-2xl border flex items-center justify-between"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-12 w-12 rounded-xl object-cover" alt={p.name} /><div><h4 className="font-bold text-sm">{p.name}</h4><p className="text-primary font-black text-xs">₹{p.price}</p></div></div><Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'products', p.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button></div>
+                ))}
+              </div>
            </div>
         )}
       </main>

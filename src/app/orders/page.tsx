@@ -2,7 +2,7 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2 } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, MapPin, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
@@ -32,9 +32,7 @@ export default function OrdersPage() {
       </div>
 
       <div className="px-4 space-y-5">
-        {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div>
-        ) : orders && orders.length > 0 ? (
+        {loading && !orders ? null : orders && orders.length > 0 ? (
           orders.map((order) => (
             <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-border/40 shadow-sm active:scale-[0.98] transition-all group">
               <div className="flex items-center justify-between mb-5">

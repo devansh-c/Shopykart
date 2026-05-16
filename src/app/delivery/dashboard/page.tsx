@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, updateDoc, query, where } from 'firebase/firestore';
-import { Loader2, Navigation, Package, CheckCircle, MapPin, LogOut, BellRing, Volume2, VolumeX } from 'lucide-react';
+import { Navigation, Package, CheckCircle, MapPin, LogOut, BellRing, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -78,7 +78,7 @@ export default function DeliveryDashboard() {
     router.push('/delivery/login');
   };
 
-  if (authLoading || loading) return <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (authLoading || loading) return null;
   if (!user) return null;
 
   const pendingPickupsCount = tasks?.filter(t => t.status === 'Ready for Pickup').length || 0;

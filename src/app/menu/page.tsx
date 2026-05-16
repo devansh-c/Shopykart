@@ -4,7 +4,7 @@
 import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Clock, MapPin, Utensils } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, SlidersHorizontal, X, Clock, MapPin, Utensils } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -168,11 +168,7 @@ function MenuContent() {
       </div>
 
       <div className="px-6 space-y-6">
-        {dbLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filteredAndSortedProducts.length > 0 ? (
+        {dbLoading ? null : filteredAndSortedProducts.length > 0 ? (
           filteredAndSortedProducts.map((product: any) => {
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
@@ -285,7 +281,7 @@ function MenuContent() {
 
 export default function MenuPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary h-12 w-12" /></div>}>
+    <Suspense fallback={null}>
       <MenuContent />
     </Suspense>
   );
