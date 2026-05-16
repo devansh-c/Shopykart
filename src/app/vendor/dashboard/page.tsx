@@ -1,8 +1,9 @@
 
 "use client"
 
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
 import { collection, doc, query, where, addDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
   Store, 
@@ -20,7 +21,8 @@ import {
   Phone, 
   MessageCircle, 
   Mail,
-  MapPin
+  MapPin,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +44,7 @@ import {
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
@@ -51,7 +54,7 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Robust Auth Check: Only redirect if definitely logged out
+  // Redirect if definitely logged out
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/vendor/login');
@@ -100,6 +103,13 @@ export default function VendorDashboard() {
       });
     }
   }, [vendorProfile]);
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    toast({ title: "Logged Out", description: "Come back soon!" });
+    router.push('/vendor/login');
+  };
 
   const handleUpdateProfile = () => {
     if (!vendorRef) return;
@@ -155,6 +165,7 @@ export default function VendorDashboard() {
           <div className="flex gap-2">
             <Button variant="ghost" size="icon" onClick={() => window.open(`tel:${storeData.phone}`)} className="text-blue-500 bg-blue-50 rounded-xl"><Phone className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={() => window.open(`https://wa.me/91${storeData.phone}`)} className="text-green-500 bg-green-50 rounded-xl"><MessageCircle className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-red-500 bg-red-50 rounded-xl ml-2"><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
         <div className="flex bg-muted p-1 rounded-2xl mt-4">
@@ -267,3 +278,4 @@ export default function VendorDashboard() {
     </div>
   );
 }
+
