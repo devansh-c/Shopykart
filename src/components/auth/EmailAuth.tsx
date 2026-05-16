@@ -154,13 +154,15 @@ export function EmailAuth() {
               <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 space-y-3">
                 <div className="flex gap-2 items-center text-amber-700">
                   <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Action Required</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Deliverability Checklist</span>
                 </div>
                 <ul className="text-[9px] text-amber-800 font-bold uppercase tracking-tight text-left space-y-2 leading-relaxed list-disc ml-4">
+                  <li>Domain connect karna <span className="text-primary font-black">ZAROORI NAHI HAI</span>.</li>
                   <li>Check <span className="text-primary underline decoration-2">SPAM / JUNK</span> folder immediately.</li>
                   <li>In Gmail, check <span className="text-primary">"Promotions"</span> tab.</li>
-                  <li>Verify that <span className="text-primary">Email Templates</span> are enabled in Firebase Console.</li>
-                  <li>Make sure you already signed up with this email.</li>
+                  <li>Go to Firebase Console &gt; <span className="font-black">Authentication &gt; Templates</span>.</li>
+                  <li>Verify "Password Reset" status is <span className="text-green-600 font-black">ON</span>.</li>
+                  <li>Confirm "Public-facing name" is set in Settings.</li>
                 </ul>
               </div>
 
@@ -228,7 +230,7 @@ export function EmailAuth() {
                           type="tel"
                           placeholder="00000 00000"
                           value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
                           required
                           className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
                         />
@@ -321,7 +323,7 @@ export function EmailAuth() {
                   <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
-                      We'll send a link if the email matches our records. Ensure you've registered first. Check your Spam folder if not found within 1 minute.
+                      Bina custom domain ke bhi link aati hai. Ek baar Spam folder aur Firebase Console mein templates zaroor check karein.
                     </p>
                   </div>
                 )}
