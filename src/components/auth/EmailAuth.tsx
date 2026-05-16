@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -8,8 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signInAnonymously
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
@@ -47,19 +45,6 @@ export function EmailAuth() {
       if (err.code === 'auth/email-already-in-use') msg = "This email is already part of our elite circle.";
       
       toast({ variant: "destructive", title: "Authentication Error", description: msg });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    if (!auth) return;
-    setLoading(true);
-    try {
-      await signInAnonymously(auth);
-      toast({ title: "Exclusive Entry", description: "Logged in via VIP Anonymous access." });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Access Error", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -150,21 +135,6 @@ export function EmailAuth() {
                 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:tracking-[0.25em] transition-all duration-300 underline-offset-8 decoration-1 underline"
               >
                 {isSignUp ? 'Already a member? Sign In' : 'New to ShopyKart? Register Now'}
-              </button>
-              
-              <div className="w-full flex items-center gap-6">
-                <div className="h-[1px] bg-gray-100 flex-1" />
-                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.5em]">OR</span>
-                <div className="h-[1px] bg-gray-100 flex-1" />
-              </div>
-
-              <button 
-                type="button"
-                onClick={handleDemoLogin}
-                className="group flex items-center gap-3 px-8 py-4 bg-black rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.25em] text-white hover:bg-zinc-800 transition-all active:scale-95 shadow-xl shadow-black/10"
-              >
-                <Sparkles className="h-4 w-4 text-amber-400 group-hover:animate-pulse" />
-                VIP DEMO PASS
               </button>
             </div>
           </div>
