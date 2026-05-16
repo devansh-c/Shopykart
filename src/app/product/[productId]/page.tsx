@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
 import { ChevronLeft, Minus, Plus, Star, Share2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
