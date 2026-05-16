@@ -37,7 +37,10 @@ export function EmailAuth() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth) {
+      toast({ variant: "destructive", title: "Internal Error", description: "Firebase Auth is not initialized." });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -83,18 +86,24 @@ export function EmailAuth() {
       } else if (view === 'forgot') {
         if (!email) throw new Error("Please enter your registered email identity.");
         
+        // Use standard Firebase Reset method
         await sendPasswordResetEmail(auth, email);
         setIsResetSent(true);
         toast({ 
           title: "Reset Link Sent", 
-          description: "Check your email (and Spam folder) for the reset key." 
+          description: `A security key has been dispatched to ${email}.` 
         });
       }
     } catch (err: any) {
+      console.error("Auth Error:", err);
       let message = err.message;
-      if (err.code === 'auth/user-not-found') message = "This identity is not recognized in our database.";
+      
+      // Map Firebase errors to user-friendly messages
+      if (err.code === 'auth/user-not-found') message = "This email identity is not recognized.";
       if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
-      if (err.code === 'auth/invalid-email') message = "Invalid email format.";
+      if (err.code === 'auth/invalid-email') message = "The email format is invalid.";
+      if (err.code === 'auth/operation-not-allowed') message = "Email/Password login is not enabled in Firebase Console.";
+      if (err.code === 'auth/too-many-requests') message = "Access blocked due to many failed attempts. Try later.";
       
       toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
@@ -105,6 +114,7 @@ export function EmailAuth() {
   const handleBackToLogin = () => {
     setIsResetSent(false);
     setView('login');
+    setEmail('');
   };
 
   return (
@@ -126,7 +136,7 @@ export function EmailAuth() {
             <div className="space-y-2">
               <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK SENT!</h2>
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest px-4 leading-relaxed">
-                Check your inbox at <span className="text-foreground">{email}</span>. Don't forget to check the <span className="text-primary italic">Spam Folder</span>.
+                We've sent a link to <span className="text-foreground">{email}</span>. Please check your **Spam** or **Junk** folder if it doesn't appear in 2 minutes.
               </p>
             </div>
             <Button 
@@ -271,7 +281,7 @@ export function EmailAuth() {
                   <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
-                      Reset link will be sent only if the email is already in our system. Please check your **Spam** folder if you don't see it.
+                      If your email is registered, we'll send a reset link. If you don't see it, check your **Spam** folder or ensure you used the correct email.
                     </p>
                   </div>
                 )}
