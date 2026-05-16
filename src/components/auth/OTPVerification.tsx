@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, ChevronLeft, AlertCircle } from 'lucide-react';
+import { Loader2, ShieldCheck, ChevronLeft, AlertCircle, Mail, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { 
@@ -13,8 +13,10 @@ import {
   signInAnonymously
 } from 'firebase/auth';
 import { cn } from '@/lib/utils';
+import { EmailAuth } from './EmailAuth';
 
 export function OTPVerification() {
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']); 
@@ -27,7 +29,7 @@ export function OTPVerification() {
   const auth = useAuth();
 
   useEffect(() => {
-    if (auth && !recaptchaVerifierRef.current) {
+    if (auth && !recaptchaVerifierRef.current && authMethod === 'phone') {
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
@@ -44,7 +46,7 @@ export function OTPVerification() {
         recaptchaVerifierRef.current = null;
       }
     };
-  }, [auth]);
+  }, [auth, authMethod]);
 
   const handleSendOTP = async () => {
     if (phone.length < 10) {
@@ -71,12 +73,12 @@ export function OTPVerification() {
       setStep('otp');
       toast({ title: "OTP Sent", description: `Sent to +91 ${phone}` });
     } catch (err: any) {
-      if (err.code === 'auth/billing-not-enabled') {
+      if (err.code === 'auth/billing-not-enabled' || err.message.includes('billing')) {
         setBillingError(true);
         toast({ 
           variant: "destructive", 
-          title: "Billing Required", 
-          description: "SMS requires Firebase Blaze Plan. Use Demo Access to test." 
+          title: "SMS Billing Required", 
+          description: "Firebase Spark plan doesn't support real SMS. Use Email or Demo Access." 
         });
       } else {
         toast({ variant: "destructive", title: "Error", description: err.message });
@@ -92,7 +94,7 @@ export function OTPVerification() {
     setLoading(true);
     try {
       await signInAnonymously(auth);
-      toast({ title: "Demo Mode", description: "Logged in via anonymous access for testing." });
+      toast({ title: "Demo Mode", description: "Logged in via anonymous access." });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
@@ -123,16 +125,38 @@ export function OTPVerification() {
     if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
   };
 
+  if (authMethod === 'email') {
+    return (
+      <div className="fixed inset-0 z-[110] bg-white flex flex-col animate-in fade-in duration-500">
+        <div className="p-8">
+          <button onClick={() => setAuthMethod('phone')} className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-6">
+            <ChevronLeft className="h-3 w-3 mr-1" />
+            Back to Phone Auth
+          </button>
+        </div>
+        <EmailAuth />
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8 animate-in fade-in duration-500">
       <div id="recaptcha-container" className="hidden" />
       
-      <div className="mt-4">
-        {step === 'otp' && (
+      <div className="mt-4 flex justify-between items-center">
+        {step === 'otp' ? (
           <button onClick={() => setStep('phone')} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
             <ChevronLeft className="h-6 w-6 text-foreground" />
           </button>
-        )}
+        ) : <div />}
+        
+        <button 
+          onClick={() => setAuthMethod('email')}
+          className="bg-muted px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+        >
+          <Mail className="h-3 w-3" />
+          Use Email
+        </button>
       </div>
 
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12">
@@ -170,20 +194,39 @@ export function OTPVerification() {
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Continue'}
               </Button>
 
-              {billingError && (
-                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 animate-in slide-in-from-top-2">
-                  <div className="flex items-center gap-2 text-amber-700 mb-3">
+              {billingError ? (
+                <div className="p-5 bg-red-50 rounded-[2rem] border border-red-100 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 text-red-700 mb-3">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">SMS Not Available</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Free Plan Limitation</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={handleDemoLogin}
-                    className="w-full h-10 border-amber-300 text-amber-800 hover:bg-amber-100 rounded-xl font-bold text-xs uppercase"
-                  >
-                    Enter with Demo Access
-                  </Button>
+                  <p className="text-[10px] text-red-600/70 font-medium leading-relaxed mb-4 uppercase">
+                    Firebase Free Plan par real SMS nahi jaate. Aap <span className="font-black">Email Login</span> use karein ya <span className="font-black">Demo Mode</span> se enter karein.
+                  </p>
+                  <div className="grid gap-2">
+                    <Button
+                      onClick={handleDemoLogin}
+                      className="w-full h-12 bg-black text-white rounded-xl font-black text-xs uppercase italic tracking-tighter shadow-lg"
+                    >
+                      Enter via Demo Mode (Instant)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setAuthMethod('email')}
+                      className="w-full h-12 border-red-200 text-red-700 hover:bg-red-100 rounded-xl font-black text-xs uppercase"
+                    >
+                      <Mail className="h-3 w-3 mr-2" />
+                      Switch to Email Login
+                    </Button>
+                  </div>
                 </div>
+              ) : (
+                <button 
+                  onClick={handleDemoLogin}
+                  className="w-full text-center text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Skip for testing (Demo Access)
+                </button>
               )}
             </div>
           </div>
@@ -230,4 +273,3 @@ export function OTPVerification() {
       </div>
     </div>
   );
-}
