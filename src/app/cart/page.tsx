@@ -30,7 +30,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -47,12 +47,11 @@ export default function CartPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderType, setOrderType] = useState('Delivery');
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
-  const [address, setAddress] = useState(localStorage.getItem('user_address') || '');
+  const [address, setAddress] = useState(typeof window !== 'undefined' ? localStorage.getItem('user_address') || '' : '');
 
   // Calculate costs
   const packagingFee = 10;
@@ -82,7 +81,11 @@ export default function CartPage() {
       return;
     }
 
-    setIsPlacing(true);
+    // 1. Pre-generate Document Reference for instant redirect
+    const ordersCol = collection(firestore, 'orders');
+    const newOrderRef = doc(ordersCol);
+    const orderId = newOrderRef.id;
+
     const orderData = {
       userId: user.uid,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
@@ -97,22 +100,25 @@ export default function CartPage() {
       vendorId: cart[0]?.vendorId || 's1'
     };
 
-    addDoc(collection(firestore, 'orders'), orderData)
-      .then((docRef) => {
-        // Show Success Animation & Play Sound
-        setShowSuccess(true);
-        
-        // Wait for animation to play before redirect
-        setTimeout(() => {
-          clearCart();
-          router.push(`/orders/${docRef.id}`);
-        }, 3000);
-      })
+    // 2. Fire and Forget (Optimistic UI)
+    setDoc(newOrderRef, orderData)
       .catch(async (err) => {
-        const pErr = new FirestorePermissionError({ path: 'orders', operation: 'create', requestResourceData: orderData });
+        const pErr = new FirestorePermissionError({ 
+          path: `orders/${orderId}`, 
+          operation: 'create', 
+          requestResourceData: orderData 
+        });
         errorEmitter.emit('permission-error', pErr);
-        setIsPlacing(false);
       });
+
+    // 3. Show Success Animation Immediately
+    setShowSuccess(true);
+    
+    // 4. Clear and Redirect after animation plays
+    setTimeout(() => {
+      clearCart();
+      router.push(`/orders/${orderId}`);
+    }, 2500);
   };
 
   const handleAddAddress = () => {
@@ -377,15 +383,11 @@ export default function CartPage() {
           
           <div className="flex-1 flex flex-col items-end gap-2">
             <Button 
-              disabled={isPlacing || (!address && orderType === 'Delivery')}
+              disabled={!address && orderType === 'Delivery'}
               onClick={handleCheckout}
               className="w-full h-14 rounded-2xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-black text-lg shadow-xl shadow-red-200 active:scale-[0.98] transition-all"
             >
-              {isPlacing ? (
-                <div className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" /> PLACING...</div>
-              ) : (
-                "Place Order"
-              )}
+              Place Order
             </Button>
           </div>
         </div>
