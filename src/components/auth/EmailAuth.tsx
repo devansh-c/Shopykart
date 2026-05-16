@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw, Settings2, HelpCircle } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, CheckCircle2, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -59,7 +59,6 @@ export function EmailAuth() {
     setLoading(true);
     try {
       if (view === 'signup') {
-        // Strict Validation for Registration
         if (!fullName.trim() || !phoneNumber.trim() || !trimmedEmail || !password || !confirmPassword) {
           throw new Error("All fields are mandatory for registration.");
         }
@@ -73,10 +72,8 @@ export function EmailAuth() {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
 
-        // Update Auth Profile
         await updateProfile(user, { displayName: fullName });
 
-        // Save Extended Profile to Firestore
         if (firestore) {
           const profileData = {
             fullName,
@@ -152,21 +149,21 @@ export function EmailAuth() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-black">LINK DISPATCHED!</h2>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Agar email nahi aayi, toh ye settings check karein</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Check your email inbox or spam folder</p>
               </div>
               
               <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
                   <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Firebase Console Fix</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Setup Confirmation</span>
                 </div>
                 
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Support Email Error</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase Project Settings &rarr; General mein jaakar <b>Support Email</b> select karein. Iske bina Reset Link nahi jayegi.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Support Email</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Aapne Support Email set kar diya hai, toh link ab 100% aayegi.</p>
                     </div>
                   </div>
 
@@ -174,15 +171,15 @@ export function EmailAuth() {
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-foreground mb-1">Public Name</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Project Settings mein <b>Public-facing name</b> ko "ShopyKart" zaroor likhein taaki sender identity lock na ho.</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase Console mein &quot;Public-facing name&quot; ko &quot;ShopyKart&quot; set kar dein taaki email block na ho.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Users List</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Check karein ki kya registered users list mein aapka email hai? Signup ke bina reset nahi hoga.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Spam Check</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Gmail links ko Spam ya Promotions tab mein daal sakta hai, wahan check karein.</p>
                     </div>
                   </div>
                 </div>
