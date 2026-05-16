@@ -34,7 +34,8 @@ export function StoreSection() {
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // If town is selected, filter by it. Otherwise show all to prevent "empty" feeling
+    // If town is selected, filter by it. 
+    // Otherwise show all approved stores to ensure persistence is visible
     if (currentTown) {
       return query(
         collection(firestore, 'vendors'),
@@ -46,12 +47,6 @@ export function StoreSection() {
   }, [firestore, currentTown]);
 
   const { data: vendors, loading } = useCollection<any>(vendorsQuery);
-
-  if (loading && !vendors) return (
-    <div className="flex justify-center py-10">
-      <Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" />
-    </div>
-  );
 
   return (
     <div className="py-6">
@@ -108,7 +103,7 @@ export function StoreSection() {
                   </div>
                   
                   <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-tight mb-2 line-clamp-1">
-                    {store.category || 'Multicuisine'} • {store.address || 'Local Area'}
+                    {store.category || 'Multicuisine'} • {store.address || store.town || 'Local Area'}
                   </p>
 
                   {store.description && (
@@ -124,8 +119,14 @@ export function StoreSection() {
           })
         ) : (
           <div className="w-full flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed mx-6">
-            <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
-            <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores found. Go to Vendor Panel to register.</p>
+            {loading ? (
+               <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+            ) : (
+              <>
+                <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores found. Go to Vendor Panel to register.</p>
+              </>
+            )}
           </div>
         )}
       </div>

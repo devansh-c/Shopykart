@@ -50,8 +50,8 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     
-    // If town is set, filter by town to show local favorites. 
-    // Otherwise show all items.
+    // Always fetch products to ensure visibility. 
+    // Filter locally or via query if town is set.
     if (currentTown) {
       return query(
         collection(firestore, 'products'),
@@ -122,11 +122,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {loading && !dbProducts ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filteredAndSortedProducts.length > 0 ? (
+        {filteredAndSortedProducts.length > 0 ? (
           filteredAndSortedProducts.map((product) => {
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
             const cartItem = cart.find(item => item.id === product.id);
@@ -198,10 +194,16 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           })
         ) : (
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted/50">
-            <Utensils className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
-              No products found in {currentTown || 'your area'}.
-            </p>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20 mx-auto" />
+            ) : (
+              <>
+                <Utensils className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
+                <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
+                  No products found in {currentTown || 'your area'}.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

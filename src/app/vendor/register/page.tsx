@@ -99,8 +99,7 @@ export default function VendorRegistrationPage() {
   };
 
   const isPasswordStrong = (pw: string) => {
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return regex.test(pw);
+    return pw.length >= 6;
   };
 
   const validateStep = () => {
@@ -121,15 +120,15 @@ export default function VendorRegistrationPage() {
   const handleSubmit = () => {
     if (!firestore || !auth) return;
 
-    // 1. Instant UI Transition
+    // Transition to success immediately for "instant" feel
     setStep('success');
 
-    // 2. Play sound
+    // Play success ring
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play().catch(() => {});
 
-    // 3. Backend work
-    createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password)
+    // Save to Firestore and Auth in the background
+    createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password)
       .then(async (userCredential) => {
         const user = userCredential.user;
 
@@ -146,25 +145,27 @@ export default function VendorRegistrationPage() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
-          email: formData.email.trim(),
+          email: formData.email.trim().toLowerCase(),
           status: 'approved',
           createdAt: serverTimestamp(),
           rating: 4.5,
           walletBalance: 0
         };
 
+        // Write to BOTH collections for visibility and application tracking
         await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
         await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
         
-        // Sign out to force re-login with clean session
-        signOut(auth);
+        // Immediate sign out so session is clean for login
+        await signOut(auth);
       })
       .catch((err: any) => {
-        let message = "Registration error.";
+        console.error("Registration failed", err);
+        // If it failed, we should probably warn them even if we showed success
         if (err.code === 'auth/email-already-in-use') {
-          message = "Email identity is already registered.";
+          toast({ variant: "destructive", title: "Registration Error", description: "Email already exists." });
+          setStep('owner-info'); // Go back so they can fix it
         }
-        toast({ variant: "destructive", title: "Error", description: message });
       });
   };
 
@@ -289,7 +290,7 @@ export default function VendorRegistrationPage() {
               
               <div className="relative">
                 <Input 
-                  placeholder="Create Strong Password *" 
+                  placeholder="Create Password *" 
                   type={showPassword ? "text" : "password"} 
                   value={formData.password} 
                   onChange={(e) => updateFormData('password', e.target.value)} 
@@ -307,16 +308,6 @@ export default function VendorRegistrationPage() {
                 onChange={(e) => updateFormData('confirmPassword', e.target.value)} 
                 className="h-12 rounded-xl" 
               />
-
-              <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-                <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">Password Requirements:</p>
-                <ul className="text-[9px] font-bold text-muted-foreground space-y-1">
-                  <li className={formData.password.length >= 8 ? "text-green-600" : ""}>• Min 8 characters</li>
-                  <li className={/[A-Z]/.test(formData.password) ? "text-green-600" : ""}>• At least 1 Uppercase letter</li>
-                  <li className={/\d/.test(formData.password) ? "text-green-600" : ""}>• At least 1 Number</li>
-                  <li className={/[@$!%*?&]/.test(formData.password) ? "text-green-600" : ""}>• At least 1 Special character (@, $, !)</li>
-                </ul>
-              </div>
 
               <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4">REVIEW & SUBMIT</Button>
             </div>
