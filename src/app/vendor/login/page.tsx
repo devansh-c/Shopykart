@@ -7,65 +7,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Store, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
-import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { Store, Mail, Lock, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function VendorLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const firestore = useFirestore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) return;
-    setLoading(true);
+    if (!auth) return;
 
-    try {
-      // 1. First, attempt to sign in
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // 2. Immediately check vendor status in Firestore
-      const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
-      
-      if (vendorDoc.exists()) {
-        const data = vendorDoc.data();
-        if (data.status === 'approved') {
-          toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
-          router.push('/vendor/dashboard');
-        } else if (data.status === 'pending') {
-          // Block access if still pending
-          toast({ 
-            variant: "destructive", 
-            title: "Account Pending", 
-            description: "Your store is still under review by Admin. Please wait for approval." 
-          });
-          await signOut(auth);
-        } else {
-          toast({ variant: "destructive", title: "Access Denied", description: "This account has been rejected or disabled." });
-          await signOut(auth);
+    // Direct transition to provide "no loading" feel
+    signInWithEmailAndPassword(auth, email.trim(), password)
+      .then(() => {
+        toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
+        router.push('/vendor/dashboard');
+      })
+      .catch((err: any) => {
+        let msg = "Invalid credentials or network error.";
+        if (err.code === 'auth/invalid-credential') {
+          msg = "Wrong email or password.";
         }
-      } else {
-        toast({ variant: "destructive", title: "Not a Vendor", description: "This account is not registered as a vendor." });
-        await signOut(auth);
-      }
-    } catch (err: any) {
-      let msg = "Invalid credentials or network error.";
-      if (err.code === 'auth/operation-not-allowed') {
-        msg = "Email/Password provider is disabled in Firebase Console. Please enable it to allow logins.";
-      } else if (err.code === 'auth/invalid-credential') {
-        msg = "Wrong email or password.";
-      }
-      toast({ variant: "destructive", title: "Login Failed", description: msg });
-    } finally {
-      setLoading(false);
-    }
+        toast({ variant: "destructive", title: "Login Failed", description: msg });
+      });
   };
 
   return (
@@ -111,9 +80,8 @@ export default function VendorLoginPage() {
             <Button 
               type="submit" 
               className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20"
-              disabled={loading}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "SIGN IN"}
+              SIGN IN
             </Button>
             
             <div className="relative py-4">
