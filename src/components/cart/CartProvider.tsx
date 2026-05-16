@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
@@ -9,6 +10,7 @@ export type CartItem = {
   quantity: number;
   imageUrl: string;
   isCustom?: boolean;
+  vendorId?: string;
 };
 
 type CartContextType = {
@@ -32,6 +34,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [customRequest, setCustomRequest] = useState<string>('');
+
+  const CUSTOM_REQUEST_PRICE = 20;
 
   const addToCart = useCallback((product: any) => {
     setCart((prev) => {
@@ -81,7 +85,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const isInWishlist = useCallback((productId: string) => wishlist.includes(productId), [wishlist]);
 
   const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0) + (customRequest ? 1 : 0), [cart, customRequest]);
-  const totalPrice = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
+  
+  const totalPrice = useMemo(() => {
+    const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const customTotal = customRequest ? CUSTOM_REQUEST_PRICE : 0;
+    return itemsTotal + customTotal;
+  }, [cart, customRequest]);
 
   const value = useMemo(() => ({
     cart, 

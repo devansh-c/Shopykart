@@ -4,7 +4,7 @@
 import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Store, Clock, MapPin } from 'lucide-react';
+import { Search, Plus, Minus, Send, Sparkles, Loader2, SlidersHorizontal, X, Clock, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import * as mockData from '@/lib/mock-data';
 import {
   Select,
   SelectContent,
@@ -46,13 +47,13 @@ function MenuContent() {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
-  const { data: dbProducts, loading } = useCollection(productsQuery);
+  const { data: dbProducts, loading: dbLoading } = useCollection(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // Fallback to mock data if Firestore is empty
+    // Fallback logic
     const baseProducts = (dbProducts && dbProducts.length > 0) 
       ? dbProducts 
-      : require('@/lib/mock-data').allProducts;
+      : mockData.allProducts;
 
     let result = baseProducts.filter((product: any) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -95,10 +96,10 @@ function MenuContent() {
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-40">
       {/* Dynamic Store Header */}
-      {vendorIdParam && vendorProfile && (
+      {vendorIdParam && (
         <div className="relative h-64 w-full">
           <img 
-            src={vendorProfile.bannerUrl || `https://picsum.photos/seed/${vendorIdParam}/800/400`} 
+            src={vendorProfile?.bannerUrl || `https://picsum.photos/seed/${vendorIdParam}/800/400`} 
             className="w-full h-full object-cover" 
             alt="Banner" 
           />
@@ -108,13 +109,13 @@ function MenuContent() {
             </Link>
             <div className="flex items-end gap-4">
               <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0">
-                <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="Logo" />
+                <img src={vendorProfile?.imageUrl || `https://picsum.photos/seed/${vendorIdParam}/200/200`} className="h-full w-full object-cover" alt="Logo" />
               </div>
               <div className="flex-1 pb-1">
-                <h1 className="text-3xl font-black italic uppercase text-white tracking-tighter leading-none mb-2">{vendorProfile.storeName}</h1>
+                <h1 className="text-3xl font-black italic uppercase text-white tracking-tighter leading-none mb-2">{vendorProfile?.storeName || 'Store Details'}</h1>
                 <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-primary italic">
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {vendorProfile.deliveryTime || '20 min'}</span>
-                  <span className="flex items-center gap-1 text-white/60"><MapPin className="h-3 w-3" /> {vendorProfile.address || 'Nearby'}</span>
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {vendorProfile?.deliveryTime || '20 min'}</span>
+                  <span className="flex items-center gap-1 text-white/60"><MapPin className="h-3 w-3" /> {vendorProfile?.address || 'Nearby'}</span>
                 </div>
               </div>
             </div>
@@ -183,7 +184,7 @@ function MenuContent() {
       </div>
 
       <div className="px-6 space-y-6">
-        {loading ? (
+        {dbLoading && filteredAndSortedProducts.length === 0 ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -198,21 +199,23 @@ function MenuContent() {
                 key={product.id}
                 className="premium-card p-5 flex justify-between items-center bg-white"
               >
-                <Link href={`/product/${product.id}`} className="flex-1 pr-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                      <div className="h-full w-full bg-green-600 rounded-full" />
+                <div className="flex-1 pr-4">
+                  <Link href={`/product/${product.id}`} className="block">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                        <div className="h-full w-full bg-green-600 rounded-full" />
+                      </div>
+                      {product.badges?.map((badge: string) => (
+                        <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                          {badge}
+                        </span>
+                      ))}
                     </div>
-                    {product.badges?.map((badge: string) => (
-                      <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                        {badge}
-                      </span>
-                    ))}
-                  </div>
-                  <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
-                  <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{product.price.toFixed(2)}</div>
-                </Link>
+                    <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
+                    <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{product.price.toFixed(2)}</div>
+                  </Link>
+                </div>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
                   <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
@@ -226,7 +229,7 @@ function MenuContent() {
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2 z-20">
                     {quantity === 0 ? (
                       <button 
-                        onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
+                        onClick={() => addToCart({ ...product, imageUrl })}
                         className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all"
                       >
                         ADD TO BAG
@@ -241,7 +244,7 @@ function MenuContent() {
                         </button>
                         <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
                         <button 
-                          onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, imageUrl })}
+                          onClick={() => addToCart({ ...product, imageUrl })}
                           className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
                         >
                           <Plus className="h-3 w-3" />

@@ -2,14 +2,18 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, Settings, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useUser();
+  const auth = useAuth();
   
   const mainItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
@@ -36,6 +40,13 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    toast({ title: "Signed Out", description: "Come back soon!" });
+    router.push('/');
+  };
+
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
       {/* Profile Header */}
@@ -43,18 +54,17 @@ export default function ProfilePage() {
         <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
         <div className="relative group">
           <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-transform">
-            <AvatarImage src="https://picsum.photos/seed/user-avatar/200/200" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarImage src={`https://picsum.photos/seed/${user?.uid || 'user'}/200/200`} />
+            <AvatarFallback>{user?.phoneNumber?.slice(-2) || 'JD'}</AvatarFallback>
           </Avatar>
-          <div className="absolute inset-0 bg-black/20 rounded-full z-20 translate-y-6 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-            <span className="text-white text-[10px] font-bold uppercase">Edit</span>
-          </div>
         </div>
       </div>
 
       <div className="px-4 text-center mt-10">
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter">John Doe</h2>
-        <p className="text-muted-foreground text-sm font-medium">Gold Member since 2023</p>
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter">
+          {user?.displayName || user?.phoneNumber || 'Premium User'}
+        </h2>
+        <p className="text-muted-foreground text-sm font-medium">Member since 2024</p>
       </div>
 
       <div className="px-4 mt-8 space-y-6">
@@ -100,10 +110,7 @@ export default function ProfilePage() {
         </div>
 
         <button 
-          onClick={() => {
-            toast({ title: "Signed Out", description: "Come back soon!" });
-            router.push('/');
-          }}
+          onClick={handleSignOut}
           className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 hover:bg-red-50 transition-colors mt-6"
         >
           <div className="bg-red-50 p-2.5 rounded-xl">
