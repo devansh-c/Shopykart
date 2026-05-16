@@ -37,10 +37,9 @@ export function StoreSection() {
     );
   }, [firestore, currentTown]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors } = useCollection<any>(vendorsQuery);
   
-  // Logic: If Firestore data exists, use it. Otherwise, fallback to mock stores.
-  // If currentTown is set, filter mock stores. If not, show all mock stores for testing.
+  // Logic: Show mock stores immediately, sync Firestore background
   const mockStores = fallbackData.mockStores || [];
   const vendors = (dbVendors && dbVendors.length > 0) 
     ? dbVendors 
@@ -52,7 +51,6 @@ export function StoreSection() {
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
           <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores in {currentTown || 'Your Area'}</h2>
-          {loading && <Loader2 className="h-4 w-4 animate-spin text-primary ml-3" />}
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
           View All
@@ -74,6 +72,7 @@ export function StoreSection() {
                   alt={store.storeName} 
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  loading="eager"
                 />
                 
                 <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center shadow-md border border-black/5 z-20">
@@ -113,7 +112,7 @@ export function StoreSection() {
           );
         })}
 
-        {vendors.length === 0 && !loading && (
+        {vendors.length === 0 && (
           <div className="min-w-[300px] flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
             <StoreIcon className="h-10 w-10 text-muted-foreground mb-2" />
             <p className="text-xs font-black uppercase text-muted-foreground text-center">No stores found in {currentTown || 'Your Area'}</p>

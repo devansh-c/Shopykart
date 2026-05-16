@@ -52,11 +52,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     );
   }, [firestore, currentTown]);
   
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+  const { data: dbProducts } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    // Determine base products: use DB if available, else fallback to mock
-    // If currentTown is set, we filter mock data. If not, we show all mock data.
+    // Speed optimization: Use DB data if available and not empty, otherwise use mock data instantly
     const fallbackProducts = fallbackData.allProducts || [];
     const baseProducts = (dbProducts && dbProducts.length > 0) 
       ? dbProducts 
@@ -103,7 +102,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
         </div>
         
         <div className="shrink-0 ml-2 flex items-center gap-2">
-          {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[8px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
               <SlidersHorizontal className="h-3 w-3 mr-1.5" />
@@ -193,7 +191,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
         ) : (
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
-              {loading ? "Searching..." : `No culinary matches in ${currentTown || 'Your Area'}`}
+              No culinary matches found.
             </p>
           </div>
         )}
