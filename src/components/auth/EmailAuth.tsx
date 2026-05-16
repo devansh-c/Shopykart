@@ -32,6 +32,7 @@ export function EmailAuth() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const validateEmail = (email: string) => {
     return String(email)
@@ -59,6 +60,7 @@ export function EmailAuth() {
     setLoading(true);
     try {
       if (view === 'signup') {
+        // Strict Validation for Registration
         if (!fullName || !phoneNumber || !trimmedEmail || !password || !confirmPassword) {
           throw new Error("All registration fields are mandatory.");
         }
@@ -72,8 +74,10 @@ export function EmailAuth() {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
 
+        // Update Auth Profile
         await updateProfile(user, { displayName: fullName });
 
+        // Save Extended Profile to Firestore
         if (firestore) {
           const profileData = {
             fullName,
@@ -98,13 +102,14 @@ export function EmailAuth() {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified", description: "Accessing your signature experience." });
       } else if (view === 'forgot') {
-        if (!trimmedEmail) throw new Error("Please enter your registered email identity.");
+        if (!trimmedEmail) throw new Error("Please enter your registered email.");
         
+        // Firebase strictly requires email link for security
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
         toast({ 
           title: "Request Dispatched", 
-          description: `If ${trimmedEmail} is registered, a link will arrive soon.` 
+          description: "A verification link has been sent to your email to confirm the password change." 
         });
       }
     } catch (err: any) {
@@ -148,38 +153,30 @@ export function EmailAuth() {
             
             <div className="space-y-6">
               <div>
-                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">LINK DISPATCHED!</h2>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Email request successfully sent to Firebase</p>
+                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">VERIFICATION SENT!</h2>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Check your email to confirm new password</p>
               </div>
               
               <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
                   <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">CRITICAL CONFIG CHECKLIST</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">WHY THE EMAIL LINK?</span>
                 </div>
                 
                 <div className="space-y-4">
                   <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">!</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Set Support Email</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Console &rarr; Project Settings mein <b>Support Email</b> select karein. Iske bina email block rehti hai.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Elite Security</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Bina email link ke koi bhi hacker aapka password badal sakta tha. Link confirm karke hum ye ensure karte hain ki aap hi owner hain.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">?</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Public-Facing Name</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Console &rarr; Settings mein <b>Public-facing name</b> ko &quot;ShopyKart&quot; set karke save karein.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Spam/Junk</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Agar settings sahi hain, toh link hamesha <b>Spam</b> folder mein milegi. &quot;noreply&quot; search karein.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Spam Folder</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Agar email inbox mein nahi hai, toh <b>Spam</b> ya <b>Junk</b> folder zaroor check karein. Firebase link wahin bhejta hai.</p>
                     </div>
                   </div>
                 </div>
@@ -193,13 +190,6 @@ export function EmailAuth() {
               >
                 BACK TO LOGIN
               </Button>
-              <button 
-                onClick={() => setIsResetSent(false)}
-                className="flex items-center justify-center gap-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors"
-              >
-                <RefreshCcw className="h-3 w-3" />
-                Try another email
-              </button>
             </div>
           </div>
         ) : (
@@ -213,7 +203,7 @@ export function EmailAuth() {
               <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.4em] opacity-60">
                 {view === 'login' && 'Unlock your signature experience'}
                 {view === 'signup' && 'Create your gourmet identity'}
-                {view === 'forgot' && 'Re-verify your credentials'}
+                {view === 'forgot' && 'Identity Verification Required'}
               </p>
             </div>
 
@@ -222,7 +212,7 @@ export function EmailAuth() {
                 {view === 'signup' && (
                   <>
                     <div className="relative group">
-                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Full Name</label>
+                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Full Name *</label>
                       <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                         <User className="h-4 w-4 text-gray-400 mr-3" />
                         <input
@@ -237,7 +227,7 @@ export function EmailAuth() {
                     </div>
 
                     <div className="relative group">
-                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Mobile Identity</label>
+                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Mobile Identity *</label>
                       <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                         <Phone className="h-4 w-4 text-gray-400 mr-3" />
                         <input
@@ -254,7 +244,7 @@ export function EmailAuth() {
                 )}
 
                 <div className="relative group">
-                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Email Identity</label>
+                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Email Identity *</label>
                   <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                     <Mail className="h-4 w-4 text-gray-400 mr-3" />
                     <input
@@ -268,10 +258,28 @@ export function EmailAuth() {
                   </div>
                 </div>
 
+                {view === 'forgot' && (
+                  <div className="relative group">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Enter New Password *</label>
+                    <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                      <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                      />
+                    </div>
+                    <p className="text-[8px] text-primary font-bold uppercase mt-2 ml-1 italic opacity-70">Hum aapko is badlav ko confirm karne ke liye email link bhejenge.</p>
+                  </div>
+                )}
+
                 {view !== 'forgot' && (
                   <>
                     <div className="relative group">
-                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key (Password)</label>
+                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key (Password) *</label>
                       <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                         <Lock className="h-4 w-4 text-gray-400 mr-3" />
                         <input
@@ -287,7 +295,7 @@ export function EmailAuth() {
 
                     {view === 'signup' && (
                       <div className="relative group">
-                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key</label>
+                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key *</label>
                         <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
                           <Lock className="h-4 w-4 text-gray-400 mr-3" />
                           <input
@@ -327,7 +335,7 @@ export function EmailAuth() {
                     <div className="flex items-center gap-2">
                       {view === 'login' && 'ENTER HUB'}
                       {view === 'signup' && 'CREATE ACCOUNT'}
-                      {view === 'forgot' && 'SEND RESET LINK'}
+                      {view === 'forgot' && 'REQUEST NEW KEY'}
                       <ArrowRight className="h-4 w-4" />
                     </div>
                   )}
