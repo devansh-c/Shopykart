@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -84,7 +84,7 @@ export function EmailAuth() {
           };
           const profileRef = doc(firestore, 'users', user.uid, 'profile', 'data');
           
-          await setDoc(profileRef, profileData).catch(err => {
+          setDoc(profileRef, profileData).catch(err => {
              errorEmitter.emit('permission-error', new FirestorePermissionError({
                path: profileRef.path,
                operation: 'write',
@@ -141,18 +141,21 @@ export function EmailAuth() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
         {isResetSent ? (
           <div className="text-center space-y-6 animate-in zoom-in duration-500 pb-10">
-            <div className="mx-auto bg-green-50 h-24 w-24 rounded-full flex items-center justify-center border border-green-100 relative">
+            <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100 relative">
               <div className="absolute inset-0 bg-green-200/20 rounded-full animate-ping" />
-              <CheckCircle2 className="h-12 w-12 text-green-500 relative z-10" />
+              <CheckCircle2 className="h-10 w-10 text-green-500 relative z-10" />
             </div>
             
-            <div className="space-y-4">
-              <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">LINK DISPATCHED!</h2>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">LINK DISPATCHED!</h2>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Email request successfully sent to Firebase</p>
+              </div>
               
-              <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-4 text-left">
+              <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">CRITICAL SETUP CHECKLIST</span>
+                  <Settings2 className="h-4 w-4 shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">CRITICAL CONFIG CHECKLIST</span>
                 </div>
                 
                 <div className="space-y-4">
@@ -160,7 +163,7 @@ export function EmailAuth() {
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-foreground mb-1">Set Support Email</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Project Settings (Gear icon) &rarr; General mein jaakar <b>Support Email</b> select karein. Iske bina Firebase email block kar deta hai.</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Console &rarr; Project Settings mein <b>Support Email</b> select karein. Iske bina email block rehti hai.</p>
                     </div>
                   </div>
 
@@ -168,15 +171,15 @@ export function EmailAuth() {
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-foreground mb-1">Public-Facing Name</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Settings &rarr; General mein <b>Public-facing name</b> ko &quot;ShopyKart&quot; set karein. Tabhi email trigger hogi.</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Console &rarr; Settings mein <b>Public-facing name</b> ko &quot;ShopyKart&quot; set karke save karein.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Promotions/Spam</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Agar settings sahi hain, toh link hamesha <b>Spam</b> ya <b>Promotions</b> folder mein milegi.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Spam/Junk</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Agar settings sahi hain, toh link hamesha <b>Spam</b> folder mein milegi. &quot;noreply&quot; search karein.</p>
                     </div>
                   </div>
                 </div>
