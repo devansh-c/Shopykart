@@ -23,14 +23,15 @@ export default function VendorLoginPage() {
     if (!auth) return;
 
     // Direct transition to provide "no loading" feel
-    signInWithEmailAndPassword(auth, email.trim(), password)
+    signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
       .then(() => {
         toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
-        router.push('/vendor/dashboard');
+        // Immediate redirect
+        router.replace('/vendor/dashboard');
       })
       .catch((err: any) => {
         let msg = "Invalid credentials or network error.";
-        if (err.code === 'auth/invalid-credential') {
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
           msg = "Wrong email or password.";
         }
         toast({ variant: "destructive", title: "Login Failed", description: msg });
@@ -39,7 +40,7 @@ export default function VendorLoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden">
+      <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
         <CardHeader className="text-center pt-10">
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4">
             <Store className="h-8 w-8 text-primary" />
@@ -79,7 +80,7 @@ export default function VendorLoginPage() {
             </div>
             <Button 
               type="submit" 
-              className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20"
+              className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-all"
             >
               SIGN IN
             </Button>

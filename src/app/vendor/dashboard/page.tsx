@@ -58,16 +58,12 @@ export default function VendorDashboard() {
 
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  // Authentication redirect - Only if definitely not logged in
   useEffect(() => {
-    if (!authLoading && !user) router.push('/vendor/login');
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (!profileLoading && user && (!vendorProfile || vendorProfile.status !== 'approved')) {
-      if (vendorProfile?.status === 'pending') toast({ title: "Account Pending", description: "Reviewing your application." });
+    if (!authLoading && !user) {
       router.push('/vendor/login');
     }
-  }, [vendorProfile, profileLoading, user, router, toast]);
+  }, [user, authLoading, router]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -139,14 +135,17 @@ export default function VendorDashboard() {
     });
   };
 
-  if (authLoading || profileLoading) return null;
-  if (!user || !vendorProfile || vendorProfile.status !== 'approved') return null;
-
+  // No more "return null" for loading. The page should show up immediately.
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-24">
       <header className="bg-white border-b p-6 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-black italic uppercase tracking-tighter">Vendor Panel</h1>
+          <div>
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter">Vendor Panel</h1>
+            {vendorProfile?.status !== 'approved' && user && !profileLoading && (
+              <p className="text-[10px] font-black text-amber-500 uppercase mt-1">Status: {vendorProfile?.status || 'Pending Verification'}</p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="icon" onClick={() => window.open(`tel:${storeData.phone}`)} className="text-blue-500 bg-blue-50 rounded-xl"><Phone className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={() => window.open(`https://wa.me/91${storeData.phone}`)} className="text-green-500 bg-green-50 rounded-xl"><MessageCircle className="h-4 w-4" /></Button>
@@ -178,6 +177,12 @@ export default function VendorDashboard() {
                 </div>
               </div>
             ))}
+            {(!orders || orders.length === 0) && (
+              <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                <ShoppingBag className="h-16 w-16 mb-4" />
+                <p className="font-black italic uppercase tracking-widest text-sm">No orders yet</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -185,18 +190,22 @@ export default function VendorDashboard() {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-[2.5rem] border space-y-6">
                <div className="relative aspect-video rounded-3xl overflow-hidden bg-muted group">
-                 <img src={storeData.bannerUrl} className="w-full h-full object-cover" alt="Banner" />
+                 {storeData.bannerUrl ? (
+                   <img src={storeData.bannerUrl} className="w-full h-full object-cover" alt="Banner" />
+                 ) : (
+                   <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 font-black uppercase text-xs">No Banner Set</div>
+                 )}
                  <button onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Upload className="h-6 w-6 mr-2" /> Change Banner</button>
                </div>
                
                <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-muted/20 rounded-2xl">
                     <span className="text-[8px] font-black text-muted-foreground uppercase block mb-1">Phone Number</span>
-                    <p className="text-sm font-bold">{storeData.phone}</p>
+                    <p className="text-sm font-bold">{storeData.phone || 'N/A'}</p>
                   </div>
                   <div className="p-4 bg-muted/20 rounded-2xl">
                     <span className="text-[8px] font-black text-muted-foreground uppercase block mb-1">Email Address</span>
-                    <p className="text-sm font-bold truncate">{storeData.email}</p>
+                    <p className="text-sm font-bold truncate">{storeData.email || 'N/A'}</p>
                   </div>
                </div>
 
@@ -237,6 +246,12 @@ export default function VendorDashboard() {
                 {products?.map((p: any) => (
                   <div key={p.id} className="bg-white p-4 rounded-2xl border flex items-center justify-between"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-12 w-12 rounded-xl object-cover" alt={p.name} /><div><h4 className="font-bold text-sm">{p.name}</h4><p className="text-primary font-black text-xs">₹{p.price}</p></div></div><Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'products', p.id))} className="text-red-500"><Trash2 className="h-4 w-4" /></Button></div>
                 ))}
+                {(!products || products.length === 0) && (
+                  <div className="text-center py-20 opacity-20 flex flex-col items-center">
+                    <Tag className="h-16 w-16 mb-4" />
+                    <p className="font-black italic uppercase tracking-widest text-sm">No items in catalog</p>
+                  </div>
+                )}
               </div>
            </div>
         )}
