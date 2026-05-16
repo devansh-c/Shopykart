@@ -31,22 +31,24 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import * as mockData from '@/lib/mock-data';
+import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
 export default function CartPage() {
-  const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
+  const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart, customRequest } = useCart();
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
   const [isPlacing, setIsPlacing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [orderType, setOrderType] = useState('Delivery');
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
@@ -55,10 +57,10 @@ export default function CartPage() {
   // Calculate costs
   const packagingFee = 10;
   const gst = totalPrice * 0.05;
-  const deliveryFee = orderType === 'Delivery' ? 0 : 0; // Keeping free for now as per UI
+  const deliveryFee = orderType === 'Delivery' ? 0 : 0; 
   const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
-  if (totalItems === 0) {
+  if (totalItems === 0 && !showSuccess) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-muted h-32 w-32 rounded-full flex items-center justify-center mb-6">
@@ -84,6 +86,7 @@ export default function CartPage() {
     const orderData = {
       userId: user.uid,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
+      customRequest: customRequest || null,
       total: grandTotal,
       status: 'Placed',
       orderType,
@@ -96,9 +99,14 @@ export default function CartPage() {
 
     addDoc(collection(firestore, 'orders'), orderData)
       .then((docRef) => {
-        clearCart();
-        toast({ title: "Order Placed!", description: "Vendor will accept your order soon." });
-        router.push(`/orders/${docRef.id}`);
+        // Show Success Animation & Play Sound
+        setShowSuccess(true);
+        
+        // Wait for animation to play before redirect
+        setTimeout(() => {
+          clearCart();
+          router.push(`/orders/${docRef.id}`);
+        }, 3000);
       })
       .catch(async (err) => {
         const pErr = new FirestorePermissionError({ path: 'orders', operation: 'create', requestResourceData: orderData });
@@ -115,6 +123,8 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F7] pb-40">
+      <OrderSuccessOverlay isVisible={showSuccess} />
+
       {/* Header */}
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100">
@@ -164,6 +174,15 @@ export default function CartPage() {
                 </div>
               </div>
             ))}
+            {customRequest && (
+               <div className="flex gap-4 bg-muted/20 p-3 rounded-xl border border-dashed">
+                 <div className="h-16 w-16 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black uppercase text-[10px]">VEG</div>
+                 <div className="flex-1">
+                    <h3 className="font-bold text-sm text-gray-800">Custom: {customRequest}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold mt-1">₹20 Preparation Charge</p>
+                 </div>
+               </div>
+            )}
           </div>
 
           <button 
@@ -230,11 +249,6 @@ export default function CartPage() {
               </button>
             ))}
           </div>
-          {orderType === 'Delivery' && (
-            <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
-              <Info className="h-3 w-3" /> ~35 min • Free
-            </p>
-          )}
         </div>
 
         {/* Delivery Address */}
@@ -260,49 +274,6 @@ export default function CartPage() {
               Add delivery address
             </button>
           )}
-        </div>
-
-        {/* Coupons & Rewards */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all">
-            <div className="flex items-center gap-3">
-              <div className="bg-orange-50 p-2 rounded-full">
-                <TicketPercent className="h-5 w-5 text-orange-400" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-gray-800 leading-none">View all coupons</h4>
-                <p className="text-[10px] font-bold text-gray-400 mt-1">2 offers available</p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-300" />
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-yellow-50 p-2 rounded-full">
-                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-gray-800 leading-none">3364 Reward Points</h4>
-                <p className="text-[10px] font-bold text-gray-400 mt-1">Tap to redeem — save up to ₹336</p>
-              </div>
-            </div>
-            <div className="h-6 w-6 rounded-full border-2 border-gray-100" />
-          </div>
-        </div>
-
-        {/* Special Instructions */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-orange-400" />
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Special Instructions</h3>
-          </div>
-          <Textarea 
-            placeholder="Any special requests? (optional)" 
-            className="rounded-xl bg-gray-50 border-none min-h-[60px] text-xs font-bold"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-          />
         </div>
 
         {/* Bill Details */}
@@ -392,14 +363,6 @@ export default function CartPage() {
             </button>
           </div>
         </div>
-
-        {/* Policy */}
-        <div className="bg-gray-100 rounded-2xl p-5 space-y-2">
-          <h4 className="text-[10px] font-black uppercase text-gray-800">CANCELLATION POLICY</h4>
-          <p className="text-[10px] font-bold text-gray-400 leading-relaxed uppercase">
-            Help us reduce food waste by avoiding cancellations after placing your order. Orders once placed cannot be cancelled.
-          </p>
-        </div>
       </div>
 
       {/* Fixed Footer Bar */}
@@ -408,14 +371,11 @@ export default function CartPage() {
           <div>
             <div className="text-xl font-black text-gray-800">₹{grandTotal.toFixed(2)}</div>
             <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase">
-              ⚡ {paymentMethod === 'Online' ? 'Online Payment' : 'Cash on Delivery'} • incl. taxes
+              ⚡ {paymentMethod === 'Online' ? 'Online' : 'COD'} • incl. taxes
             </p>
           </div>
           
           <div className="flex-1 flex flex-col items-end gap-2">
-            <p className="text-[10px] font-bold text-gray-800 flex items-center gap-1 uppercase">
-               <Bike className="h-3 w-3 text-orange-400" /> ~35 min
-            </p>
             <Button 
               disabled={isPlacing || (!address && orderType === 'Delivery')}
               onClick={handleCheckout}
