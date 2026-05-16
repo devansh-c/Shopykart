@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
+import * as mockData from '@/lib/mock-data';
 
 export default function ProductDetailsPage() {
   const { productId } = useParams();
@@ -32,19 +33,28 @@ export default function ProductDetailsPage() {
     return doc(firestore, 'products', productId as string);
   }, [firestore, productId]);
 
-  const { data: product, loading } = useDoc<any>(productRef);
+  const { data: dbProduct, loading: dbLoading } = useDoc<any>(productRef);
   
-  // Also fetch some related products
+  // Products Query for Related Items
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
   const { data: allDbProducts } = useCollection<any>(productsQuery);
 
+  // Combine DB and Mock Data for the current product
+  const product = useMemo(() => {
+    if (dbProduct) return dbProduct;
+    return mockData.allProducts.find((p: any) => p.id === productId);
+  }, [dbProduct, productId]);
+
+  // Combined loading state: only show spinner if we have NO data at all
+  const loading = dbLoading && !product;
+
   const cartItem = cart.find(item => item.id === productId);
   const [localQuantity, setLocalQuantity] = useState(1);
 
-  // Mocked global reviews for the product
+  // Mocked global reviews
   const [mockReviews] = useState([
     { id: 'r1', user: 'Amit K.', rating: 5, comment: 'Absolutely delicious! The best in town.', date: '2 days ago' },
     { id: 'r2', user: 'Sara S.', rating: 4, comment: 'Very fresh and hot. Loved the packaging.', date: '5 days ago' },
@@ -56,19 +66,18 @@ export default function ProductDetailsPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen flex items-center justify-center p-6 text-center flex-col">
         <h2 className="text-2xl font-black uppercase italic">Product Not Found</h2>
-        <Button onClick={() => router.push('/menu')} className="mt-4">Back to Menu</Button>
+        <p className="text-muted-foreground mt-2 mb-6">The item you are looking for doesn't exist.</p>
+        <Button onClick={() => router.push('/menu')} className="bg-primary rounded-2xl h-12 px-8 font-bold">Back to Menu</Button>
       </div>
     );
   }
 
-  const imageUrl = product.imageUrl || "https://picsum.photos/800/600";
+  const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
 
   const handleAddToCart = () => {
-    for(let i = 0; i < localQuantity; i++) {
-      addToCart({ ...product, imageUrl });
-    }
+    addToCart({ ...product, imageUrl, quantity: localQuantity });
     toast({ title: "Added to Cart", description: `${product.name} added successfully.` });
   };
 
@@ -82,16 +91,9 @@ export default function ProductDetailsPage() {
     const copyToClipboard = async () => {
       try {
         await navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: "Link Copied",
-          description: "Product link has been copied to your clipboard.",
-        });
+        toast({ title: "Link Copied", description: "Product link copied." });
       } catch (err) {
-        toast({
-          variant: "destructive",
-          title: "Failed to Copy",
-          description: "Could not copy the link.",
-        });
+        toast({ variant: "destructive", title: "Failed to Copy" });
       }
     };
 
@@ -99,9 +101,7 @@ export default function ProductDetailsPage() {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        if (err instanceof Error && err.name !== 'AbortError') {
-          await copyToClipboard();
-        }
+        if (err instanceof Error && err.name !== 'AbortError') await copyToClipboard();
       }
     } else {
       await copyToClipboard();
@@ -118,7 +118,10 @@ export default function ProductDetailsPage() {
     toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
   };
 
-  const relatedProducts = allDbProducts?.filter(p => p.id !== productId).slice(0, 5) || [];
+  const relatedProducts = useMemo(() => {
+    const baseItems = (allDbProducts && allDbProducts.length > 0) ? allDbProducts : mockData.allProducts;
+    return baseItems.filter((p: any) => p.id !== productId).slice(0, 8);
+  }, [allDbProducts, productId]);
 
   return (
     <div className="min-h-screen bg-white pb-40">
@@ -241,7 +244,7 @@ export default function ProductDetailsPage() {
             <div className="space-y-4">
               {mockReviews.map((rev) => (
                 <div key={rev.id} className="flex gap-4 items-start border-b border-muted pb-4 last:border-0">
-                  <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                  <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0 flex items-center justify-center font-bold text-xs uppercase">
                     {rev.user.charAt(0)}
                   </div>
                   <div className="flex-1">
@@ -269,26 +272,25 @@ export default function ProductDetailsPage() {
             </div>
             <div className="overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
               <div className="flex space-x-4">
-                {relatedProducts.map(prod => (
-                  <div key={prod.id} className="min-w-[200px] bg-white rounded-3xl border border-border/40 p-3 shadow-sm flex flex-col">
-                    <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
-                      <img 
-                        src={prod.imageUrl || "https://picsum.photos/seed/food/300/300"} 
-                        alt={prod.name}
-                        className="object-cover w-full h-full"
-                      />
+                {relatedProducts.map((prod: any) => (
+                  <Link key={prod.id} href={`/product/${prod.id}`}>
+                    <div className="min-w-[200px] bg-white rounded-3xl border border-border/40 p-3 shadow-sm flex flex-col group active:scale-95 transition-all">
+                      <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
+                        <img 
+                          src={prod.imageUrl || `https://picsum.photos/seed/${prod.id}/300/300`} 
+                          alt={prod.name}
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <h4 className="font-bold text-sm truncate">{prod.name}</h4>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="font-black text-primary">₹{prod.price}</span>
+                        <div className="bg-primary/10 text-primary p-2 rounded-xl">
+                          <Plus className="h-4 w-4" />
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="font-bold text-sm truncate">{prod.name}</h4>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="font-black text-primary">₹{prod.price}</span>
-                      <button 
-                        onClick={() => addToCart({ ...prod, imageUrl: prod.imageUrl })}
-                        className="bg-primary/10 text-primary p-2 rounded-xl active:scale-90"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
