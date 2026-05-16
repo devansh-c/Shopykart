@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -44,7 +45,7 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // No more loading checks - let data flow in background
+  // Data flows in background, no spinners
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
@@ -192,12 +193,6 @@ export default function VendorDashboard() {
                 </div>
               </div>
             ))}
-            {(!orders || orders.length === 0) && (
-              <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                <ShoppingBag className="h-16 w-16 mb-4 text-black" />
-                <p className="font-black italic uppercase tracking-widest text-sm text-black">No orders yet</p>
-              </div>
-            )}
           </div>
         )}
 
@@ -249,7 +244,7 @@ export default function VendorDashboard() {
           </div>
         )}
 
-        {activeTab === 'catalog' && ( activeTab === 'catalog' && (
+        {activeTab === 'catalog' && (
            <div className="space-y-4">
               <div className="p-2">
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -271,7 +266,7 @@ export default function VendorDashboard() {
                 ))}
               </div>
            </div>
-        ))}
+        )}
       </main>
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
     </div>

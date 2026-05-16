@@ -6,7 +6,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ export default function ProductDetailsPage() {
   const [userReview, setUserReview] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [localQuantity, setLocalQuantity] = useState(1);
 
   const firestore = useFirestore();
   const productRef = useMemoFirebase(() => {
@@ -42,8 +43,12 @@ export default function ProductDetailsPage() {
   }, [firestore]);
   const { data: allDbProducts } = useCollection<any>(productsQuery);
 
+  const relatedProducts = useMemo(() => {
+    if (!allDbProducts || !product) return [];
+    return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
+  }, [allDbProducts, productId, product]);
+
   const cartItem = cart.find(item => item.id === productId);
-  const [localQuantity, setLocalQuantity] = useState(1);
 
   // Mocked global reviews
   const [mockReviews] = useState([
@@ -51,29 +56,15 @@ export default function ProductDetailsPage() {
     { id: 'r2', user: 'Sara S.', rating: 4, comment: 'Very fresh and hot. Loved the packaging.', date: '5 days ago' },
   ]);
 
-  if (dbLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center flex-col">
-        <Utensils className="h-16 w-16 text-muted-foreground/20 mb-4" />
-        <h2 className="text-2xl font-black uppercase italic">Product Not Found</h2>
-        <p className="text-muted-foreground mt-2 mb-6">The item you are looking for doesn't exist.</p>
-        <Button onClick={() => router.push('/menu')} className="bg-primary rounded-2xl h-12 px-8 font-bold">Back to Menu</Button>
-      </div>
-    );
-  }
-
-  const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
-
   const handleAddToCart = () => {
+    if (!product) return;
+    const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
     addToCart({ ...product, imageUrl, quantity: localQuantity });
     toast({ title: "Added to Cart", description: `${product.name} added successfully.` });
   };
 
   const handleShare = async () => {
+    if (!product) return;
     const shareData = {
       title: product.name,
       text: `Check out this delicious ${product.name} on ShopyKart!`,
@@ -110,10 +101,21 @@ export default function ProductDetailsPage() {
     toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
   };
 
-  const relatedProducts = useMemo(() => {
-    if (!allDbProducts) return [];
-    return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
-  }, [allDbProducts, productId, product.category]);
+  if (!product && !dbLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center flex-col">
+        <Utensils className="h-16 w-16 text-muted-foreground/20 mb-4" />
+        <h2 className="text-2xl font-black uppercase italic">Product Not Found</h2>
+        <p className="text-muted-foreground mt-2 mb-6">The item you are looking for doesn't exist.</p>
+        <Button onClick={() => router.push('/menu')} className="bg-primary rounded-2xl h-12 px-8 font-bold">Back to Menu</Button>
+      </div>
+    );
+  }
+
+  // Placeholder while loading but without showing a spinner
+  if (!product) return <div className="min-h-screen bg-white" />;
+
+  const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
 
   return (
     <div className="min-h-screen bg-white pb-40">
