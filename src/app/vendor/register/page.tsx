@@ -103,7 +103,6 @@ export default function VendorRegistrationPage() {
     );
   };
 
-  // Strong Password Validation: 8 chars, 1 Upper, 1 Number, 1 Special
   const isPasswordStrong = (pw: string) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return regex.test(pw);
@@ -146,7 +145,17 @@ export default function VendorRegistrationPage() {
       await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
       await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
       await signOut(auth);
-      setStep('success');
+      
+      // Play success ring sound
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(() => {});
+
+      // Short delay for visual polish
+      setTimeout(() => {
+        setStep('success');
+        setLoading(false);
+      }, 1000);
+      
     } catch (err: any) {
       toast({ variant: "destructive", title: "Registration Error", description: err.message });
       setLoading(false);
@@ -286,10 +295,31 @@ export default function VendorRegistrationPage() {
 
           {step === 'success' && (
             <div className="text-center space-y-6 py-10 animate-in zoom-in duration-500">
-              <div className="bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl mx-auto"><CheckCircle2 className="h-14 w-14 text-white" /></div>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">SUBMITTED!</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest px-4">Admin review takes approx 12-24 hours. You can login with your credentials after approval.</p>
-              <Button onClick={() => router.push('/vendor/login')} className="w-full h-14 rounded-2xl bg-black font-black uppercase italic mt-4">BACK TO LOGIN</Button>
+              <div className="relative mx-auto w-24 h-24 mb-8">
+                <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20" />
+                <div className="relative bg-blue-600 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-blue-200">
+                  <CheckCircle2 className="h-14 w-14 text-white animate-in zoom-in duration-300" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-blue-600">SUBMITTED!</h2>
+                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest px-4 leading-relaxed">
+                  Admin review takes approx 12-24 hours. You can login with your credentials after approval.
+                </p>
+              </div>
+
+              <div className="pt-4">
+                <Button 
+                  onClick={() => router.push('/vendor/login')} 
+                  className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200 transition-all active:scale-95"
+                >
+                  LOGIN NOW
+                </Button>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-4">
+                  Redirecting is faster than a snack delivery!
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
