@@ -73,7 +73,20 @@ export function EmailAuth() {
       toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
     } catch (err: any) {
       console.error("Google Auth Error:", err);
-      toast({ variant: "destructive", title: "Sign-in Failed", description: "Google authentication was cancelled or failed." });
+      
+      let errorMessage = "Google authentication failed.";
+      
+      if (err.code === 'auth/unauthorized-domain') {
+        errorMessage = "Domain not authorized. Add your current domain to 'Authorized Domains' in Firebase Console (Authentication > Settings).";
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in window was closed before completion.";
+      }
+
+      toast({ 
+        variant: "destructive", 
+        title: "Sign-in Error", 
+        description: errorMessage 
+      });
     } finally {
       setLoading(false);
     }
@@ -152,8 +165,6 @@ export function EmailAuth() {
         message = "Wrong email or password. Please check your credentials.";
       } else if (err.code === 'auth/user-not-found') {
         message = "No account found with this email. Please sign up.";
-      } else if (err.code === 'auth/wrong-password') {
-        message = "Incorrect password provided.";
       } else if (err.code === 'auth/too-many-requests') {
         message = "Access temporarily blocked. Please try again later.";
       } else if (err.code === 'auth/email-already-in-use') {
