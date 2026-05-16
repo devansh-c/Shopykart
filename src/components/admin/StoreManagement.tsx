@@ -2,13 +2,12 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, setDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { 
   Store, 
   User, 
   Phone, 
   MapPin, 
-  Globe, 
   CheckCircle, 
   Trash2, 
   Loader2, 
@@ -16,7 +15,7 @@ import {
   ShoppingBag,
   MessageCircle,
   Mail,
-  Navigation
+  Map as MapIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +51,16 @@ export function StoreManagement() {
     toast({ title: "Rejected", description: "Application declined." });
   };
 
+  const getMapUrl = (lat: string, lng: string) => {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    if (isNaN(latitude) || isNaN(longitude)) {
+      // Default center if no coordinates
+      return `https://www.openstreetmap.org/export/embed.html?bbox=78.3%2C25.2%2C78.6%2C25.4&layer=mapnik`;
+    }
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${longitude-0.005}%2C${latitude-0.005}%2C${longitude+0.005}%2C${latitude+0.005}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
@@ -72,7 +81,7 @@ export function StoreManagement() {
           applications.map((app: any) => (
             <div key={app.id} className="bg-white rounded-[2.5rem] p-8 border border-border/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
               <div className="absolute top-0 right-0 p-4">
-                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary bg-primary/5">{app.zone}</Badge>
+                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary bg-primary/5">{app.town || app.zone}</Badge>
               </div>
 
               <div className="flex items-center gap-4 mb-6">
@@ -83,13 +92,33 @@ export function StoreManagement() {
                 </div>
               </div>
 
+              {/* Map Preview Section */}
+              <div className="mb-6 space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                   <MapIcon className="h-3 w-3 text-primary" />
+                   <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Live Location Preview</span>
+                </div>
+                <div className="w-full h-32 rounded-2xl overflow-hidden border border-border bg-muted">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    scrolling="no" 
+                    marginHeight={0} 
+                    marginWidth={0} 
+                    src={getMapUrl(app.lat, app.lng)}
+                    className="grayscale-[0.4] contrast-[1.2]"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-3 mb-8 bg-muted/20 p-5 rounded-3xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-bold"><User className="h-3 w-3 text-primary" />{app.firstName}</div>
+                  <div className="flex items-center gap-2 text-sm font-bold"><User className="h-3 w-3 text-primary" />{app.firstName} {app.lastName}</div>
                   <div className="flex gap-2">
-                    <button onClick={() => window.open(`tel:${app.phone}`)} className="p-1.5 bg-blue-100 text-blue-600 rounded-lg"><Phone className="h-3 w-3" /></button>
-                    <button onClick={() => window.open(`https://wa.me/91${app.phone}`)} className="p-1.5 bg-green-100 text-green-600 rounded-lg"><MessageCircle className="h-3 w-3" /></button>
-                    <button onClick={() => window.open(`mailto:${app.email}`)} className="p-1.5 bg-amber-100 text-amber-600 rounded-lg"><Mail className="h-3 w-3" /></button>
+                    <button onClick={() => window.open(`tel:${app.phone}`)} className="p-1.5 bg-blue-100 text-blue-600 rounded-lg active:scale-90 transition-transform"><Phone className="h-3 w-3" /></button>
+                    <button onClick={() => window.open(`https://wa.me/91${app.phone}`)} className="p-1.5 bg-green-100 text-green-600 rounded-lg active:scale-90 transition-transform"><MessageCircle className="h-3 w-3" /></button>
+                    <button onClick={() => window.open(`mailto:${app.email}`)} className="p-1.5 bg-amber-100 text-amber-600 rounded-lg active:scale-90 transition-transform"><Mail className="h-3 w-3" /></button>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pt-3 border-t border-white/50">
@@ -117,3 +146,4 @@ export function StoreManagement() {
     </div>
   );
 }
+
