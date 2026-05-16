@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw, Settings2, Users2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -13,7 +13,6 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
-import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -153,23 +152,23 @@ export function EmailAuth() {
               <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-4 text-left">
                 <div className="flex gap-2 items-center text-primary">
                   <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Final Action Checklist</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">CRITICAL SETUP CHECKLIST</span>
                 </div>
                 
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Firebase &quot;Users&quot; Tab</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase Console mein Authentication &rarr; Users mein jayein. Kya <span className="font-black text-foreground">{email.toLowerCase()}</span> wahan dikh raha hai? Agar nahi, toh pehle Signup karein.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Set Support Email</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Project Settings (Gear icon) &rarr; General mein jaakar <b>Support Email</b> select karein. Iske bina Firebase email block kar deta hai.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Project Settings</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Settings (gear icon) &rarr; General mein jayein. &quot;Public-facing name&quot; mein <span className="font-black text-foreground">ShopyKart</span> zaroor likhein.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Public-Facing Name</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Settings &rarr; General mein <b>Public-facing name</b> ko &quot;ShopyKart&quot; set karein. Tabhi email trigger hogi.</p>
                     </div>
                   </div>
 
@@ -177,7 +176,7 @@ export function EmailAuth() {
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Promotions/Spam</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Gmail mein &quot;Promotions&quot; tab aur Spam folder check karein. Firebase noreply emails wahan jaate hain.</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Agar settings sahi hain, toh link hamesha <b>Spam</b> ya <b>Promotions</b> folder mein milegi.</p>
                     </div>
                   </div>
                 </div>
