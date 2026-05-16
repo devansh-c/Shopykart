@@ -51,13 +51,13 @@ export default function VendorDashboard() {
   useEffect(() => {
     if (!profileLoading && user && (!vendorProfile || vendorProfile.status !== 'approved')) {
       if (vendorProfile?.status === 'pending') {
-        toast({ title: "Account Pending", description: "Your store is under review." });
+        toast({ title: "Account Pending", description: "Your store is under review by Admin." });
       }
       router.push('/vendor/login');
     }
   }, [vendorProfile, profileLoading, user, router, toast]);
 
-  // Orders Query (Simplified for compatibility)
+  // Orders Query
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
@@ -136,6 +136,7 @@ export default function VendorDashboard() {
       .then(() => {
         setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, badges: [] });
         setIsSubmitting(false);
+        toast({ title: "Product Added", description: "Item is now live in your town menu." });
       })
       .catch((e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -151,7 +152,12 @@ export default function VendorDashboard() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-24">
       <header className="bg-white border-b p-6 sticky top-0 z-10">
-        <h1 className="text-3xl font-black italic uppercase tracking-tighter">Vendor Panel</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-black italic uppercase tracking-tighter">Vendor Panel</h1>
+          <div className="bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+             <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Active: {storeData.town}</span>
+          </div>
+        </div>
         <div className="flex bg-muted p-1 rounded-2xl mt-4">
           <button onClick={() => setActiveTab('orders')} className={cn("flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all flex items-center justify-center gap-2", activeTab === 'orders' ? "bg-white shadow-sm" : "text-muted-foreground")}>
             <ShoppingBag className="h-4" /> Orders
@@ -184,6 +190,12 @@ export default function VendorDashboard() {
                 </div>
               </div>
             ))}
+            {(!orders || orders.length === 0) && (
+              <div className="text-center py-20 opacity-30">
+                <ShoppingBag className="h-12 w-12 mx-auto mb-2" />
+                <p className="font-black uppercase text-xs tracking-widest">No orders yet</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -233,10 +245,16 @@ export default function VendorDashboard() {
                <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => { const reader = new FileReader(); reader.onloadend = () => setStoreData({...storeData, bannerUrl: reader.result as string}); if(e.target.files?.[0]) reader.readAsDataURL(e.target.files[0])}} />
                
                <Input placeholder="Display Name" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} />
-               <Select value={storeData.town} onValueChange={(val) => setStoreData({...storeData, town: val})}>
-                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                 <SelectContent><SelectItem value="Ranipur">Ranipur (284205)</SelectItem><SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem></SelectContent>
-               </Select>
+               <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest ml-1">Assigned Town (Auto-linked to menu)</label>
+                  <Select value={storeData.town} onValueChange={(val) => setStoreData({...storeData, town: val})}>
+                    <SelectTrigger className="rounded-xl h-12 bg-muted/20 border-none"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                      <SelectItem value="Ranipur" className="font-bold">Ranipur (284205)</SelectItem>
+                      <SelectItem value="Mauranipur" className="font-bold">Mauranipur (284204)</SelectItem>
+                    </SelectContent>
+                  </Select>
+               </div>
                <Input placeholder="Categories" value={storeData.category} onChange={(e) => setStoreData({...storeData, category: e.target.value})} />
                <Textarea placeholder="Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} />
                <Button onClick={handleUpdateProfile} className="w-full h-14 bg-primary font-black uppercase italic rounded-2xl"><Save className="mr-2 h-5" /> SAVE PROFILE</Button>

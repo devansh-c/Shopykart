@@ -7,7 +7,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -30,10 +30,14 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setCurrentTown(localStorage.getItem('user_town'));
+      const savedTown = localStorage.getItem('user_town');
+      if (savedTown) setCurrentTown(savedTown);
+
       const handleUpdate = () => {
-        setCurrentTown(localStorage.getItem('user_town'));
+        const updatedTown = localStorage.getItem('user_town');
+        if (updatedTown) setCurrentTown(updatedTown);
       };
+
       window.addEventListener('user-address-updated', handleUpdate);
       window.addEventListener('storage', handleUpdate);
       return () => {
@@ -44,11 +48,18 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
-    if (!firestore || !currentTown) return null;
-    return query(
-      collection(firestore, 'products'),
-      where('town', '==', currentTown)
-    );
+    if (!firestore) return null;
+    
+    // If town is set, filter by town to show local favorites. 
+    // Otherwise show all items.
+    if (currentTown) {
+      return query(
+        collection(firestore, 'products'),
+        where('town', '==', currentTown)
+      );
+    }
+    
+    return query(collection(firestore, 'products'));
   }, [firestore, currentTown]);
   
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
@@ -90,7 +101,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             <Zap className="h-4 w-4 fill-current" />
           </div>
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">
-            {currentTown ? `Popular in ${currentTown}` : 'Select Location'}
+            {currentTown ? `Popular in ${currentTown}` : 'Trending Items'}
           </h2>
         </div>
         
@@ -111,7 +122,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {loading ? (
+        {loading && !dbProducts ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -189,7 +200,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted/50">
             <Utensils className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
-              No products found in {currentTown || 'your area'}
+              No products found in {currentTown || 'your area'}.
             </p>
           </div>
         )}

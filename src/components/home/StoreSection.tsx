@@ -15,10 +15,14 @@ export function StoreSection() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setCurrentTown(localStorage.getItem('user_town'));
+      const savedTown = localStorage.getItem('user_town');
+      if (savedTown) setCurrentTown(savedTown);
+
       const handleUpdate = () => {
-        setCurrentTown(localStorage.getItem('user_town'));
+        const updatedTown = localStorage.getItem('user_town');
+        if (updatedTown) setCurrentTown(updatedTown);
       };
+      
       window.addEventListener('user-address-updated', handleUpdate);
       window.addEventListener('storage', handleUpdate);
       return () => {
@@ -29,24 +33,34 @@ export function StoreSection() {
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore || !currentTown) return null;
-    return query(
-      collection(firestore, 'vendors'),
-      where('town', '==', currentTown),
-      where('status', '==', 'approved')
-    );
+    if (!firestore) return null;
+    // If town is selected, filter by it. Otherwise show all to prevent "empty" feeling
+    if (currentTown) {
+      return query(
+        collection(firestore, 'vendors'),
+        where('town', '==', currentTown),
+        where('status', '==', 'approved')
+      );
+    }
+    return query(collection(firestore, 'vendors'), where('status', '==', 'approved'));
   }, [firestore, currentTown]);
 
   const { data: vendors, loading } = useCollection<any>(vendorsQuery);
 
-  if (loading) return null;
+  if (loading && !vendors) return (
+    <div className="flex justify-center py-10">
+      <Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" />
+    </div>
+  );
 
   return (
     <div className="py-6">
       <div className="flex items-center justify-between px-6 mb-5">
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
-          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">Top Stores in {currentTown || 'Your Area'}</h2>
+          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
+            {currentTown ? `Top Stores in ${currentTown}` : 'All Stores'}
+          </h2>
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
           View All
@@ -66,7 +80,7 @@ export function StoreSection() {
                 <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden shadow-lg border border-border/40 mb-3 bg-muted group-hover:shadow-xl transition-all">
                   <Image 
                     src={imageUrl} 
-                    alt={store.storeName} 
+                    alt={store.storeName || 'Store'} 
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="eager"
@@ -99,7 +113,6 @@ export function StoreSection() {
 
                   {store.description && (
                     <div className="flex items-start gap-1.5 text-gray-400">
-                      <Info className="h-3 w-3 mt-0.5 shrink-0" />
                       <p className="text-[10px] font-medium line-clamp-2 leading-relaxed italic">
                         {store.description}
                       </p>
@@ -112,7 +125,7 @@ export function StoreSection() {
         ) : (
           <div className="w-full flex flex-col items-center justify-center p-10 bg-muted/20 rounded-[2.5rem] border-2 border-dashed mx-6">
             <StoreIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
-            <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores registered in {currentTown || 'this area'} yet.</p>
+            <p className="text-xs font-black uppercase text-muted-foreground/50 text-center">No stores found. Go to Vendor Panel to register.</p>
           </div>
         )}
       </div>
