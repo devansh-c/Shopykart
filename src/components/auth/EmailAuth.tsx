@@ -50,7 +50,7 @@ export function EmailAuth() {
       return;
     }
 
-    const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim().toLowerCase();
 
     if (!validateEmail(trimmedEmail)) {
       toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email identity." });
@@ -70,14 +70,11 @@ export function EmailAuth() {
           throw new Error("Security key must be at least 6 characters.");
         }
 
-        // 1. Create User
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
 
-        // 2. Update Auth Profile
         await updateProfile(user, { displayName: fullName });
 
-        // 3. Save to Firestore Profile
         if (firestore) {
           const profileData = {
             fullName,
@@ -104,7 +101,6 @@ export function EmailAuth() {
       } else if (view === 'forgot') {
         if (!trimmedEmail) throw new Error("Please enter your registered email identity.");
         
-        // Firebase Password Reset
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
         toast({ 
@@ -116,7 +112,6 @@ export function EmailAuth() {
       console.error("Auth Error:", err);
       let message = err.message;
       
-      // Map Firebase errors to user-friendly messages
       if (err.code === 'auth/user-not-found') message = "This email identity is not recognized. Please check or sign up.";
       if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
       if (err.code === 'auth/invalid-email') message = "The email format is invalid.";
@@ -161,7 +156,8 @@ export function EmailAuth() {
                 </p>
               </div>
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-4 leading-relaxed">
-                Reset link sent to: <span className="text-foreground">{email}</span>
+                RESET LINK SENT TO:<br />
+                <span className="text-foreground break-all">{email.toUpperCase()}</span>
               </p>
             </div>
             <Button 
@@ -323,7 +319,10 @@ export function EmailAuth() {
                   ) : (
                     <button 
                       type="button"
-                      onClick={() => setView('login')}
+                      onClick={() => {
+                        setIsResetSent(false);
+                        setView('login');
+                      }}
                       className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1"
                     >
                       <ChevronLeft className="h-3 w-3" />
