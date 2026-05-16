@@ -133,7 +133,6 @@ export default function VendorDashboard() {
     if (!firestore || !user || !newProduct.name || !newProduct.price || isSubmitting) return;
     setIsSubmitting(true);
     
-    // Explicitly use the vendor's town and name for 100% persistence matching
     const currentTown = vendorProfile?.town || storeData.town || 'Ranipur';
     const currentStoreName = vendorProfile?.storeName || storeData.storeName || 'My Store';
 

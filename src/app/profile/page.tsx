@@ -1,3 +1,4 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -12,17 +13,16 @@ import { doc } from 'firebase/firestore';
 export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, loading: authLoading } = useUser();
+  const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
 
-  // Fetch saved profile details from Firestore
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid, 'profile', 'data');
   }, [firestore, user]);
 
-  const { data: profile, loading: profileLoading } = useDoc<any>(profileRef);
+  const { data: profile } = useDoc<any>(profileRef);
   
   const mainItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
@@ -51,12 +51,13 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     if (!auth) return;
-    await signOut(auth);
-    toast({ title: "Signed Out", description: "Come back soon!" });
-    router.push('/');
+    signOut(auth).then(() => {
+      toast({ title: "Signed Out", description: "Come back soon!" });
+      router.push('/');
+    }).catch(() => {
+      router.push('/');
+    });
   };
-
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
   const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Identity Verified';

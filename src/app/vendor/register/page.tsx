@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef } from 'react';
@@ -19,7 +20,7 @@ import {
   Map as MapIcon
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
@@ -110,14 +111,13 @@ export default function VendorRegistrationPage() {
   const handleSubmit = () => {
     if (!firestore || !auth) return;
 
-    // Show success screen IMMEDIATELY for "instant" feel
+    // Show success screen immediately
     setStep('success');
 
     // Play success ring
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play().catch(() => {});
 
-    // Backend work happens in background
     createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password)
       .then((userCredential) => {
         const user = userCredential.user;
@@ -142,10 +142,10 @@ export default function VendorRegistrationPage() {
           walletBalance: 0
         };
 
-        // Write to collections
         const vRef = doc(firestore, 'vendors', user.uid);
         const appRef = doc(firestore, 'vendor_applications', user.uid);
 
+        // DO NOT signOut here - it kills the session and stops background Firestore sync
         setDoc(vRef, vendorData).catch(async (e) => {
           const err = new FirestorePermissionError({ path: vRef.path, operation: 'create', requestResourceData: vendorData });
           errorEmitter.emit('permission-error', err);
@@ -155,8 +155,6 @@ export default function VendorRegistrationPage() {
           const err = new FirestorePermissionError({ path: appRef.path, operation: 'create', requestResourceData: vendorData });
           errorEmitter.emit('permission-error', err);
         });
-        
-        signOut(auth);
       })
       .catch((err: any) => {
         if (err.code === 'auth/email-already-in-use') {
@@ -265,7 +263,7 @@ export default function VendorRegistrationPage() {
               </div>
               <h2 className="text-3xl font-black italic uppercase text-blue-600">LIVE NOW!</h2>
               <p className="text-xs font-black text-muted-foreground uppercase px-4">Account activated. Start selling instantly.</p>
-              <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg">LOGIN NOW</Button>
+              <Button onClick={() => router.push('/vendor/dashboard')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg">ENTER DASHBOARD</Button>
             </div>
           )}
         </CardContent>
