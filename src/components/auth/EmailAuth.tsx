@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -79,12 +80,21 @@ export function EmailAuth() {
         await signInWithEmailAndPassword(auth, email, password);
         toast({ title: "Identity Verified", description: "Accessing your signature experience." });
       } else if (view === 'forgot') {
+        if (!email) throw new Error("Please enter your registered email identity.");
+        
         await sendPasswordResetEmail(auth, email);
-        toast({ title: "Reset Link Sent", description: "Check your inbox for a secret reset key." });
+        toast({ 
+          title: "Reset Link Sent", 
+          description: "If this email is registered, a reset key has been sent. Please check your SPAM folder too." 
+        });
         setView('login');
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Access Denied", description: err.message });
+      let message = err.message;
+      if (err.code === 'auth/user-not-found') message = "This identity is not recognized in our database.";
+      if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
+      
+      toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
       setLoading(false);
     }
@@ -229,6 +239,15 @@ export function EmailAuth() {
                 </div>
               )}
             </Button>
+
+            {view === 'forgot' && (
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
+                <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
+                  Reset link will be sent only if the email is already in our system. Please check your **Spam** folder if you don't see it.
+                </p>
+              </div>
+            )}
 
             <div className="flex flex-col items-center gap-6">
               {view === 'login' ? (
