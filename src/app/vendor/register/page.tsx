@@ -49,7 +49,6 @@ export default function VendorRegistrationPage() {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>('category');
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -118,53 +117,54 @@ export default function VendorRegistrationPage() {
     return true;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!firestore || !auth) return;
-    setLoading(true);
 
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
+    // 1. Instant UI Transition - Go to success immediately
+    setStep('success');
 
-      const vendorData = {
-        ...formData,
-        id: user.uid,
-        status: 'approved', // Auto-approval for fast experience
-        createdAt: serverTimestamp(),
-        imageUrl: formData.logo,
-        bannerUrl: formData.cover,
-        town: formData.zone,
-        rating: 4.5,
-        walletBalance: 0
-      };
+    // 2. Play success ring sound immediately
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.play().catch(() => {});
 
-      await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
-      await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
-      await signOut(auth);
+    // 3. Perform Backend Work in background
+    createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password)
+      .then(async (userCredential) => {
+        const user = userCredential.user;
 
-      // Play success ring sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => {});
+        const vendorData = {
+          ...formData,
+          id: user.uid,
+          status: 'approved', // Auto-approval
+          createdAt: serverTimestamp(),
+          imageUrl: formData.logo,
+          bannerUrl: formData.cover,
+          town: formData.zone,
+          rating: 4.5,
+          walletBalance: 0
+        };
 
-      // Success transition
-      setStep('success');
-      
-    } catch (err: any) {
-      let message = "Registration failed. Please try again.";
-      if (err.code === 'auth/email-already-in-use') {
-        message = "This email identity is already registered as a vendor.";
-      } else if (err.code === 'auth/weak-password') {
-        message = "The password is too weak.";
-      }
-      
-      toast({ 
-        variant: "destructive", 
-        title: "Registration Failed", 
-        description: message 
+        // Save to Firestore
+        setDoc(doc(firestore, 'vendors', user.uid), vendorData);
+        setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
+        
+        // Sign out immediately to allow login with new credentials
+        signOut(auth);
+      })
+      .catch((err: any) => {
+        // Only show error if it fails in background
+        let message = "Registration error.";
+        if (err.code === 'auth/email-already-in-use') {
+          message = "Email identity is already registered.";
+        }
+        toast({ 
+          variant: "destructive", 
+          title: "Error", 
+          description: message 
+        });
+        // Optionally move back to owner-info if registration fails
+        // setStep('owner-info');
       });
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -299,10 +299,9 @@ export default function VendorRegistrationPage() {
               </div>
               <Button 
                 onClick={handleSubmit} 
-                disabled={loading}
                 className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/30"
               >
-                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "I AGREE & SUBMIT"}
+                I AGREE & SUBMIT
               </Button>
               <button onClick={() => setStep('owner-info')} className="text-xs font-black uppercase text-muted-foreground">Go Back</button>
             </div>
