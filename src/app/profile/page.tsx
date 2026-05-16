@@ -2,7 +2,7 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard, Loader2 } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard, Loader2, Phone } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -60,7 +60,7 @@ export default function ProfilePage() {
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
-  const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Member since 2024';
+  const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Identity Verified';
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
@@ -79,9 +79,12 @@ export default function ProfilePage() {
         <h2 className="text-3xl font-black italic uppercase tracking-tighter">
           {displayName}
         </h2>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1 opacity-60">
-          {displayPhone}
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-2 opacity-60">
+           <Phone className="h-3 w-3 text-muted-foreground" />
+           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
+             {displayPhone}
+           </p>
+        </div>
       </div>
 
       <div className="px-4 mt-8 space-y-6">

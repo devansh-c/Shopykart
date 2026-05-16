@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw, Settings2, Users2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -38,6 +37,7 @@ export function EmailAuth() {
   const validateEmail = (email: string) => {
     return String(email)
       .toLowerCase()
+      .trim()
       .match(
         /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
       );
@@ -61,10 +61,10 @@ export function EmailAuth() {
     try {
       if (view === 'signup') {
         if (!fullName || !phoneNumber || !trimmedEmail || !password || !confirmPassword) {
-          throw new Error("All elite registration fields are mandatory.");
+          throw new Error("All registration fields are mandatory.");
         }
         if (password !== confirmPassword) {
-          throw new Error("Secret keys do not match.");
+          throw new Error("Passwords do not match.");
         }
         if (password.length < 6) {
           throw new Error("Security key must be at least 6 characters.");
@@ -94,18 +94,17 @@ export function EmailAuth() {
           });
         }
 
-        toast({ title: "Welcome to Elite Circle", description: `Account created for ${fullName}.` });
+        toast({ title: "Welcome!", description: `Account created for ${fullName}.` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified", description: "Accessing your signature experience." });
       } else if (view === 'forgot') {
         if (!trimmedEmail) throw new Error("Please enter your registered email identity.");
         
-        // Firebase sendPasswordResetEmail returns success even if user not found for security
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
         toast({ 
-          title: "Request Processed", 
+          title: "Request Dispatched", 
           description: `If ${trimmedEmail} is registered, a link will arrive soon.` 
         });
       }
@@ -142,7 +141,7 @@ export function EmailAuth() {
 
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
         {isResetSent ? (
-          <div className="text-center space-y-6 animate-in zoom-in duration-500">
+          <div className="text-center space-y-6 animate-in zoom-in duration-500 pb-10">
             <div className="mx-auto bg-green-50 h-24 w-24 rounded-full flex items-center justify-center border border-green-100 relative">
               <div className="absolute inset-0 bg-green-200/20 rounded-full animate-ping" />
               <CheckCircle2 className="h-12 w-12 text-green-500 relative z-10" />
@@ -151,24 +150,37 @@ export function EmailAuth() {
             <div className="space-y-4">
               <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">LINK DISPATCHED!</h2>
               
-              <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 space-y-3">
-                <div className="flex gap-2 items-center text-amber-700">
+              <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-4 text-left">
+                <div className="flex gap-2 items-center text-primary">
                   <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Deliverability Checklist</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Final Action Checklist</span>
                 </div>
-                <ul className="text-[9px] text-amber-800 font-bold uppercase tracking-tight text-left space-y-2 leading-relaxed list-disc ml-4">
-                  <li>Domain connect karna <span className="text-primary font-black">ZAROORI NAHI HAI</span>.</li>
-                  <li>Check <span className="text-primary underline decoration-2">SPAM / JUNK</span> folder immediately.</li>
-                  <li>In Gmail, check <span className="text-primary">"Promotions"</span> tab.</li>
-                  <li>Go to Firebase Console &gt; <span className="font-black">Authentication &gt; Templates</span>.</li>
-                  <li>Verify "Password Reset" status is <span className="text-green-600 font-black">ON</span>.</li>
-                  <li>Confirm "Public-facing name" is set in Settings.</li>
-                </ul>
-              </div>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Firebase &quot;Users&quot; Tab</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase Console mein Authentication &rarr; Users mein jayein. Kya <span className="font-black text-foreground">{email.toLowerCase()}</span> wahan dikh raha hai? Agar nahi, toh pehle Signup karein.</p>
+                    </div>
+                  </div>
 
-              <div className="pt-2">
-                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">Target Identity:</p>
-                 <p className="text-xs font-black text-foreground break-all bg-muted/30 p-2 rounded-lg">{email.toLowerCase()}</p>
+                  <div className="flex gap-3">
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Project Settings</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Settings (gear icon) &rarr; General mein jayein. &quot;Public-facing name&quot; mein <span className="font-black text-foreground">ShopyKart</span> zaroor likhein.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Promotions/Spam</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Gmail mein &quot;Promotions&quot; tab aur Spam folder check karein. Firebase noreply emails wahan jaate hain.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -318,15 +330,6 @@ export function EmailAuth() {
                     </div>
                   )}
                 </Button>
-
-                {view === 'forgot' && (
-                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
-                    <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
-                      Bina custom domain ke bhi link aati hai. Ek baar Spam folder aur Firebase Console mein templates zaroor check karein.
-                    </p>
-                  </div>
-                )}
 
                 <div className="flex flex-col items-center gap-6">
                   {view === 'login' ? (
