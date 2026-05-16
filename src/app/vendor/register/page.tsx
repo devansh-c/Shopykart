@@ -31,10 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
-type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success' | 'loading';
+type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success';
 
 export default function VendorRegistrationPage() {
   const router = useRouter();
@@ -144,21 +142,15 @@ export default function VendorRegistrationPage() {
         walletBalance: 0
       };
 
-      // 3. Guaranteed Writes to Firestore (Await both)
+      // 3. Save to Firestore (Wait for completion)
       const vRef = doc(firestore, 'vendors', user.uid);
+      await setDoc(vRef, vendorData);
+
       const appRef = doc(firestore, 'vendor_applications', user.uid);
+      await setDoc(appRef, vendorData);
 
-      await Promise.all([
-        setDoc(vRef, vendorData),
-        setDoc(appRef, vendorData)
-      ]);
-
-      // 4. Play success ring and transition
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => {});
-      
       setStep('success');
-      toast({ title: "Store Live!", description: "Your vendor account is now fully active." });
+      toast({ title: "Account Active!", description: "Store is now fully live." });
 
     } catch (err: any) {
       console.error("Registration failed:", err);
@@ -166,7 +158,7 @@ export default function VendorRegistrationPage() {
         toast({ variant: "destructive", title: "Error", description: "Email already exists." });
         setStep('owner-info'); 
       } else {
-        toast({ variant: "destructive", title: "Save Failed", description: "Connection issue. Please try again." });
+        toast({ variant: "destructive", title: "Connection Issue", description: "Could not save data. Please try again." });
       }
     } finally {
       setIsProcessing(false);

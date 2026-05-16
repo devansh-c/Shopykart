@@ -33,8 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -61,27 +59,22 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: orders } = useCollection<any>(ordersQuery);
 
-  // Products Sub-collection Stream (Permanent Storage)
+  // Products Sub-collection Stream
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // New Path: vendors/{vendorId}/products
     return collection(firestore, 'vendors', user.uid, 'products');
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
   const [storeData, setStoreData] = useState({
-    storeName: '', category: '', imageUrl: '', bannerUrl: '', description: '', town: '', phone: ''
+    storeName: '', description: '', phone: ''
   });
 
   useEffect(() => {
     if (vendorProfile) {
       setStoreData({
         storeName: vendorProfile.storeName || '',
-        category: vendorProfile.category || '',
-        imageUrl: vendorProfile.imageUrl || '',
-        bannerUrl: vendorProfile.bannerUrl || '',
         description: vendorProfile.description || '',
-        town: vendorProfile.town || 'Ranipur',
         phone: vendorProfile.phone || ''
       });
     }
@@ -127,34 +120,46 @@ export default function VendorDashboard() {
   };
 
   const handleAddProduct = async () => {
-    if (!firestore || !user || !newProduct.name || !newProduct.price || isSubmitting) return;
+    if (!firestore || !user || !vendorProfile || isSubmitting) {
+      if (!vendorProfile) toast({ title: "Wait", description: "Loading store profile..." });
+      return;
+    }
+    
+    if (!newProduct.name || !newProduct.price) {
+      toast({ variant: "destructive", title: "Missing Info", description: "Please enter name and price." });
+      return;
+    }
+
     setIsSubmitting(true);
     
     const productData = { 
-      ...newProduct, 
-      price: parseFloat(newProduct.price), 
+      name: newProduct.name,
+      price: parseFloat(newProduct.price),
+      description: newProduct.description,
+      category: newProduct.category,
+      isVeg: newProduct.isVeg,
       vendorId: user.uid, 
-      town: vendorProfile?.town || 'Ranipur', 
-      restaurantName: vendorProfile?.storeName || 'My Store',
+      town: vendorProfile.town || 'Ranipur', 
+      restaurantName: vendorProfile.storeName || 'My Store',
       createdAt: serverTimestamp(),
       imageUrl: newProduct.imageUrl || `https://picsum.photos/seed/${Date.now()}/400/400`
     };
 
     try {
-      // Saving to sub-collection for architecture and flat products for global search
+      // 1. Save to Vendor's sub-collection
       const subColRef = collection(firestore, 'vendors', user.uid, 'products');
+      await addDoc(subColRef, productData);
+
+      // 2. Save to Global products collection for search
       const globalColRef = collection(firestore, 'products');
-      
-      await Promise.all([
-        addDoc(subColRef, productData),
-        addDoc(globalColRef, productData)
-      ]);
+      await addDoc(globalColRef, productData);
 
       setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
       setIsAddOpen(false);
-      toast({ title: "Product Published", description: "Successfully saved to Firestore." });
+      toast({ title: "Product Published", description: "Saved permanently to Firestore." });
     } catch (e) {
-      toast({ variant: "destructive", title: "Save Failed", description: "Could not persist data." });
+      console.error("Error saving product:", e);
+      toast({ variant: "destructive", title: "Save Failed", description: "Check your connection." });
     } finally {
       setIsSubmitting(false);
     }
@@ -193,6 +198,12 @@ export default function VendorDashboard() {
                 </div>
               </div>
             ))}
+            {(!orders || orders.length === 0) && (
+              <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                <ShoppingBag className="h-16 w-16 mb-4" />
+                <p className="font-black italic uppercase tracking-widest text-sm">No orders yet</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -201,13 +212,30 @@ export default function VendorDashboard() {
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogTrigger asChild><Button className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-lg"><Plus className="mr-2 h-5 w-5" /> Add Menu Item</Button></DialogTrigger>
                 <DialogContent className="rounded-[2.5rem] bg-white">
+                  <DialogHeader>
+                    <DialogTitle className="font-black italic uppercase text-xl tracking-tighter">New Menu Item</DialogTitle>
+                  </DialogHeader>
                   <div className="space-y-4 py-4">
-                    <div onClick={() => fileInputRef.current?.click()} className="h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden">
-                      {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <Camera className="text-muted-foreground h-8 w-8" />}
+                    <div onClick={() => fileInputRef.current?.click()} className="h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20">
+                      {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <><Camera className="text-muted-foreground h-8 w-8" /><span className="text-[10px] font-black uppercase mt-2">Upload Photo</span></>}
                     </div>
-                    <Input placeholder="Dish Name" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="rounded-xl h-12" />
+                    <Input placeholder="Dish Name (e.g. Cheese Pizza)" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="rounded-xl h-12" />
                     <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} className="rounded-xl h-12" />
-                    <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-14 bg-primary font-black rounded-2xl text-white">
+                    <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
+                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        <SelectItem value="snacks">Snacks</SelectItem>
+                        <SelectItem value="pizza">Pizza</SelectItem>
+                        <SelectItem value="burgers">Burgers</SelectItem>
+                        <SelectItem value="pasta">Pasta</SelectItem>
+                        <SelectItem value="drinks">Drinks</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center space-x-2 bg-muted/20 p-3 rounded-xl">
+                      <input type="checkbox" id="isVeg" checked={newProduct.isVeg} onChange={(e) => setNewProduct({...newProduct, isVeg: e.target.checked})} className="h-4 w-4 accent-primary" />
+                      <label htmlFor="isVeg" className="text-xs font-black uppercase italic">Pure Veg Item</label>
+                    </div>
+                    <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-14 bg-primary font-black rounded-2xl text-white shadow-xl shadow-primary/20">
                       {isSubmitting ? "SAVING TO CLOUD..." : "PUBLISH PERMANENTLY"}
                     </Button>
                   </div>
@@ -216,22 +244,20 @@ export default function VendorDashboard() {
               
               <div className="space-y-3">
                 {products?.map((p: any) => (
-                  <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between">
+                  <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-4">
-                      <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover shrink-0" />
+                      <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover shrink-0" alt="" />
                       <div>
-                        <h4 className="font-black italic">{p.name}</h4>
-                        <p className="text-primary font-black text-sm">₹{p.price}</p>
+                        <h4 className="font-black italic text-sm">{p.name}</h4>
+                        <p className="text-primary font-black text-xs">₹{p.price}</p>
+                        <span className="text-[8px] font-bold uppercase text-muted-foreground">{p.category}</span>
                       </div>
                     </div>
                     <Button variant="ghost" onClick={async () => {
                       if(confirm("Delete permanently?")) {
                         await deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id));
-                        // Also delete from global products if synced
-                        const globalRef = query(collection(firestore!, 'products'), where('name', '==', p.name), where('vendorId', '==', user!.uid));
-                        // (Usually you'd store the global ID too for cleaner deletion)
                       }
-                    }} className="text-red-300"><Trash2 className="h-4 w-4" /></Button>
+                    }} className="text-red-200 hover:text-red-500 transition-colors"><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
               </div>
@@ -239,10 +265,19 @@ export default function VendorDashboard() {
         )}
 
         {activeTab === 'profile' && (
-          <div className="bg-white p-6 rounded-[2.5rem] border space-y-4">
-             <Input placeholder="Store Name" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} className="h-12 rounded-xl" />
-             <Textarea placeholder="Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl" />
-             <Button onClick={handleUpdateProfile} disabled={isSubmitting} className="w-full h-14 bg-primary font-black rounded-2xl text-white">SAVE PROFILE</Button>
+          <div className="bg-white p-6 rounded-[2.5rem] border space-y-4 shadow-sm">
+             <div className="space-y-1">
+               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store Name</label>
+               <Input placeholder="Store Name" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} className="h-12 rounded-xl" />
+             </div>
+             <div className="space-y-1">
+               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">About Store</label>
+               <Textarea placeholder="Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl h-32" />
+             </div>
+             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed text-center">
+               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Logo, Banner & Location are locked. Contact support to change.</p>
+             </div>
+             <Button onClick={handleUpdateProfile} disabled={isSubmitting} className="w-full h-14 bg-primary font-black rounded-2xl text-white shadow-xl shadow-primary/20">SAVE PROFILE</Button>
           </div>
         )}
       </main>
