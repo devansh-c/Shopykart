@@ -111,11 +111,18 @@ export function EmailAuth() {
       console.error("Auth Error:", err);
       let message = err.message;
       
-      if (err.code === 'auth/user-not-found') message = "This email identity is not recognized. Please sign up first.";
-      if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
-      if (err.code === 'auth/invalid-email') message = "The email format is invalid.";
-      if (err.code === 'auth/too-many-requests') message = "Access blocked due to many failed attempts. Try later.";
-      if (err.code === 'auth/email-already-in-use') message = "This email is already in our elite database.";
+      // Handle Firebase v10 generic error
+      if (err.code === 'auth/invalid-credential') {
+        message = "Wrong email or password. If you are new, please sign up first.";
+      } else if (err.code === 'auth/user-not-found') {
+        message = "This email identity is not recognized. Please sign up first.";
+      } else if (err.code === 'auth/wrong-password') {
+        message = "Incorrect security key provided.";
+      } else if (err.code === 'auth/too-many-requests') {
+        message = "Access blocked due to many failed attempts. Try later.";
+      } else if (err.code === 'auth/email-already-in-use') {
+        message = "This email is already in our elite database.";
+      }
       
       toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
@@ -155,31 +162,23 @@ export function EmailAuth() {
               <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
                   <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Setup Confirmation</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Setup Instructions</span>
                 </div>
                 
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Support Email</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Aapne Support Email set kar diya hai, toh link ab 100% aayegi.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Inbox & Spam</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Gmail link ko Spam ya Promotions tab mein daal sakta hai, wahan check karein.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Public Name</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase Console mein &quot;Public-facing name&quot; ko &quot;ShopyKart&quot; set kar dein taaki email block na ho.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Spam Check</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Gmail links ko Spam ya Promotions tab mein daal sakta hai, wahan check karein.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Registered Email Only</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Agar aapka account nahi bana hai, toh link nahi aayegi. Pehle Signup karein.</p>
                     </div>
                   </div>
                 </div>
