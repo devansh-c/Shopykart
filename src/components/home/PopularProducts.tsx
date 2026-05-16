@@ -30,26 +30,23 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedTown = localStorage.getItem('user_town');
-      if (savedTown) setCurrentTown(savedTown);
-
-      const handleUpdate = () => {
-        const updatedTown = localStorage.getItem('user_town');
-        if (updatedTown) setCurrentTown(updatedTown);
+      const updateTown = () => {
+        const savedTown = localStorage.getItem('user_town');
+        setCurrentTown(savedTown);
       };
-
-      window.addEventListener('user-address-updated', handleUpdate);
-      window.addEventListener('storage', handleUpdate);
+      
+      updateTown();
+      window.addEventListener('user-address-updated', updateTown);
+      window.addEventListener('storage', updateTown);
       return () => {
-        window.removeEventListener('user-address-updated', handleUpdate);
-        window.removeEventListener('storage', handleUpdate);
+        window.removeEventListener('user-address-updated', updateTown);
+        window.removeEventListener('storage', updateTown);
       };
     }
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Always fetch everything, filter client-side for zero-delay and no index issues
     return collection(firestore, 'products');
   }, [firestore]);
   
@@ -58,20 +55,15 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
     
-    // First, filter by search and category
     let result = dbProducts.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
-      
-      const matchesSearch = name.includes(searchQuery.toLowerCase()) ||
-                          cat.includes(searchQuery.toLowerCase());
-      
+      const matchesSearch = name.includes(searchQuery.toLowerCase()) || cat.includes(searchQuery.toLowerCase());
       const matchesCategory = category === 'all' || product.category === category;
-
       return matchesSearch && matchesCategory;
     });
 
-    // Then, attempt to filter by town, but fallback if nothing found
+    // Smart Fallback: Filter by town ONLY if matches exist, otherwise show all to prevent empty screen
     if (currentTown && !searchQuery && category === 'all') {
       const townMatch = result.filter(p => p.town === currentTown);
       if (townMatch.length > 0) {
@@ -79,7 +71,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       }
     }
 
-    // Default sorting
     switch (sortBy) {
       case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
       case 'price-high': result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0)); break;

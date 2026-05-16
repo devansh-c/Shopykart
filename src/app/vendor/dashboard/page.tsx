@@ -15,7 +15,8 @@ import {
   MessageCircle, 
   LogOut,
   Lock,
-  Utensils
+  Utensils,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -46,7 +47,6 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use simple queries without multiple where clauses to avoid index requirements in prototype
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
@@ -96,28 +96,35 @@ export default function VendorDashboard() {
     router.push('/vendor/login');
   };
 
-  const handleUpdateProfile = () => {
-    if (!vendorRef) return;
+  const handleUpdateProfile = async () => {
+    if (!vendorRef || isSubmitting) return;
+    setIsSubmitting(true);
     const data = { 
       storeName: storeData.storeName,
       description: storeData.description,
       updatedAt: serverTimestamp() 
     };
-    setDoc(vendorRef, data, { merge: true }).catch(async (e) => {
+    try {
+      await setDoc(vendorRef, data, { merge: true });
+      toast({ title: "Profile Updated" });
+    } catch (e) {
       const err = new FirestorePermissionError({ path: vendorRef.path, operation: 'update', requestResourceData: data });
       errorEmitter.emit('permission-error', err);
-    });
-    toast({ title: "Profile Updated" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const updateStatus = (orderId: string, nextStatus: string) => {
+  const updateStatus = async (orderId: string, nextStatus: string) => {
     if (!firestore) return;
     const oRef = doc(firestore, 'orders', orderId);
-    setDoc(oRef, { status: nextStatus }, { merge: true }).catch(async (e) => {
+    try {
+      await setDoc(oRef, { status: nextStatus }, { merge: true });
+      toast({ title: "Order Status Updated" });
+    } catch (e) {
       const err = new FirestorePermissionError({ path: oRef.path, operation: 'update', requestResourceData: { status: nextStatus } });
       errorEmitter.emit('permission-error', err);
-    });
-    toast({ title: "Order Status Updated" });
+    }
   };
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -129,11 +136,10 @@ export default function VendorDashboard() {
     if (e.target.files?.[0]) reader.readAsDataURL(e.target.files[0]);
   };
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (!firestore || !user || !newProduct.name || !newProduct.price || isSubmitting) return;
     setIsSubmitting(true);
     
-    // Crucial: Use current values from vendor profile to ensure persistence in the right town
     const currentTown = vendorProfile?.town || storeData.town || 'Ranipur';
     const currentStoreName = vendorProfile?.storeName || storeData.storeName || 'My Store';
 
@@ -147,16 +153,17 @@ export default function VendorDashboard() {
       imageUrl: newProduct.imageUrl || `https://picsum.photos/seed/${Date.now()}/400/400`
     };
 
-    addDoc(collection(firestore, 'products'), productData).then(() => {
+    try {
+      await addDoc(collection(firestore, 'products'), productData);
       setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
-      setIsSubmitting(false);
       setIsAddOpen(false);
       toast({ title: "Product Published", description: "Your item is now live!" });
-    }).catch(async (e) => {
-      setIsSubmitting(false);
+    } catch (e) {
       const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
       errorEmitter.emit('permission-error', err);
-    });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -244,7 +251,13 @@ export default function VendorDashboard() {
                    <Textarea placeholder="Tell customers about your store..." value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl text-black min-h-[100px]" />
                  </div>
 
-                 <Button onClick={handleUpdateProfile} className="w-full h-14 bg-primary font-black uppercase italic rounded-2xl shadow-xl shadow-primary/10 text-white"><Save className="mr-2 h-5" /> SAVE PROFILE</Button>
+                 <Button 
+                   onClick={handleUpdateProfile} 
+                   disabled={isSubmitting}
+                   className="w-full h-14 bg-primary font-black uppercase italic rounded-2xl shadow-xl shadow-primary/10 text-white"
+                 >
+                   {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="mr-2 h-5" /> SAVE PROFILE</>}
+                 </Button>
                </div>
             </div>
           </div>
@@ -316,8 +329,8 @@ export default function VendorDashboard() {
                         <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{p.category}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      if(confirm("Are you sure?")) deleteDoc(doc(firestore!, 'products', p.id));
+                    <Button variant="ghost" size="icon" onClick={async () => {
+                      if(confirm("Are you sure?")) await deleteDoc(doc(firestore!, 'products', p.id));
                     }} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl">
                       <Trash2 className="h-4 w-4" />
                     </Button>

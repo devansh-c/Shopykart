@@ -17,7 +17,8 @@ import {
   ImageIcon,
   Eye,
   EyeOff,
-  Map as MapIcon
+  Map as MapIcon,
+  Loader2
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -33,7 +34,7 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success';
+type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success' | 'loading';
 
 export default function VendorRegistrationPage() {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function VendorRegistrationPage() {
 
   const [step, setStep] = useState<Step>('category');
   const [showPassword, setShowPassword] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [formData, setFormData] = useState({
     category: '', 
@@ -108,60 +110,67 @@ export default function VendorRegistrationPage() {
     return true;
   };
 
-  const handleSubmit = () => {
-    if (!firestore || !auth) return;
+  const handleSubmit = async () => {
+    if (!firestore || !auth || isProcessing) return;
+    setIsProcessing(true);
 
-    // Show success screen immediately
-    setStep('success');
+    try {
+      // 1. Create Auth Account
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        formData.email.trim().toLowerCase(), 
+        formData.password
+      );
+      const user = userCredential.user;
 
-    // Play success ring
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audio.play().catch(() => {});
+      // 2. Prepare Data
+      const vendorData = {
+        id: user.uid,
+        storeName: formData.storeName,
+        category: formData.category,
+        imageUrl: formData.logo,
+        bannerUrl: formData.cover,
+        town: formData.zone,
+        lat: formData.lat,
+        lng: formData.lng,
+        fssai: formData.fssai,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        email: formData.email.trim().toLowerCase(),
+        status: 'approved',
+        createdAt: serverTimestamp(),
+        rating: 4.5,
+        walletBalance: 0
+      };
 
-    createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password)
-      .then((userCredential) => {
-        const user = userCredential.user;
+      // 3. Guaranteed Writes to Firestore (Await both)
+      const vRef = doc(firestore, 'vendors', user.uid);
+      const appRef = doc(firestore, 'vendor_applications', user.uid);
 
-        const vendorData = {
-          id: user.uid,
-          storeName: formData.storeName,
-          category: formData.category,
-          imageUrl: formData.logo,
-          bannerUrl: formData.cover,
-          town: formData.zone,
-          lat: formData.lat,
-          lng: formData.lng,
-          fssai: formData.fssai,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-          email: formData.email.trim().toLowerCase(),
-          status: 'approved',
-          createdAt: serverTimestamp(),
-          rating: 4.5,
-          walletBalance: 0
-        };
+      await Promise.all([
+        setDoc(vRef, vendorData),
+        setDoc(appRef, vendorData)
+      ]);
 
-        const vRef = doc(firestore, 'vendors', user.uid);
-        const appRef = doc(firestore, 'vendor_applications', user.uid);
+      // 4. Play success ring and transition
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(() => {});
+      
+      setStep('success');
+      toast({ title: "Store Live!", description: "Your vendor account is now fully active." });
 
-        // DO NOT signOut here - it kills the session and stops background Firestore sync
-        setDoc(vRef, vendorData).catch(async (e) => {
-          const err = new FirestorePermissionError({ path: vRef.path, operation: 'create', requestResourceData: vendorData });
-          errorEmitter.emit('permission-error', err);
-        });
-
-        setDoc(appRef, vendorData).catch(async (e) => {
-          const err = new FirestorePermissionError({ path: appRef.path, operation: 'create', requestResourceData: vendorData });
-          errorEmitter.emit('permission-error', err);
-        });
-      })
-      .catch((err: any) => {
-        if (err.code === 'auth/email-already-in-use') {
-          toast({ variant: "destructive", title: "Error", description: "Email already exists." });
-          setStep('owner-info'); 
-        }
-      });
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      if (err.code === 'auth/email-already-in-use') {
+        toast({ variant: "destructive", title: "Error", description: "Email already exists." });
+        setStep('owner-info'); 
+      } else {
+        toast({ variant: "destructive", title: "Save Failed", description: "Connection issue. Please try again." });
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const mapUrl = (formData.lat && formData.lng) 
@@ -249,7 +258,13 @@ export default function VendorRegistrationPage() {
                 <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase">₹5 COMMISSION</span>
                 <p className="text-sm font-bold leading-relaxed text-gray-300">PER SUCCESSFUL ORDER CHARGED.</p>
               </div>
-              <Button onClick={handleSubmit} className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl">I AGREE & SUBMIT</Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isProcessing}
+                className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl"
+              >
+                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "I AGREE & SUBMIT"}
+              </Button>
             </div>
           )}
 
