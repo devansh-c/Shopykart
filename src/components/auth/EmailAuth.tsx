@@ -182,7 +182,7 @@ export function EmailAuth() {
                     <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-foreground mb-1">Users List</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed">Check karein ki kya <b>shopykarttt@gmail.com</b> Users list mein hai? Registration ke bina reset nahi hoga.</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Check karein ki kya registered users list mein aapka email hai? Signup ke bina reset nahi hoga.</p>
                     </div>
                   </div>
                 </div>
