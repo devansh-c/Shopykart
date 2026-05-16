@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw, Settings2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw, Settings2, HelpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -32,7 +32,6 @@ export function EmailAuth() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [newPassword, setNewPassword] = useState('');
 
   const validateEmail = (email: string) => {
     return String(email)
@@ -61,14 +60,14 @@ export function EmailAuth() {
     try {
       if (view === 'signup') {
         // Strict Validation for Registration
-        if (!fullName || !phoneNumber || !trimmedEmail || !password || !confirmPassword) {
-          throw new Error("All registration fields are mandatory.");
+        if (!fullName.trim() || !phoneNumber.trim() || !trimmedEmail || !password || !confirmPassword) {
+          throw new Error("All fields are mandatory for registration.");
         }
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match.");
         }
         if (password.length < 6) {
-          throw new Error("Security key must be at least 6 characters.");
+          throw new Error("Secret key must be at least 6 characters.");
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
@@ -104,12 +103,11 @@ export function EmailAuth() {
       } else if (view === 'forgot') {
         if (!trimmedEmail) throw new Error("Please enter your registered email.");
         
-        // Firebase strictly requires email link for security
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
         toast({ 
           title: "Request Dispatched", 
-          description: "A verification link has been sent to your email to confirm the password change." 
+          description: "A verification link has been sent to your email." 
         });
       }
     } catch (err: any) {
@@ -153,44 +151,50 @@ export function EmailAuth() {
             
             <div className="space-y-6">
               <div>
-                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">VERIFICATION SENT!</h2>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Check your email to confirm new password</p>
+                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-black">LINK DISPATCHED!</h2>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Agar email nahi aayi, toh ye settings check karein</p>
               </div>
               
               <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 space-y-5 text-left shadow-xl shadow-red-500/5">
                 <div className="flex gap-2 items-center text-primary">
                   <Settings2 className="h-4 w-4 shrink-0" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">WHY THE EMAIL LINK?</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Firebase Console Fix</span>
                 </div>
                 
                 <div className="space-y-4">
                   <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">!</div>
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Elite Security</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Bina email link ke koi bhi hacker aapka password badal sakta tha. Link confirm karke hum ye ensure karte hain ki aap hi owner hain.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Support Email Error</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Firebase Project Settings &rarr; General mein jaakar <b>Support Email</b> select karein. Iske bina Reset Link nahi jayegi.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
-                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">?</div>
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">2</div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Check Spam Folder</p>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">Agar email inbox mein nahi hai, toh <b>Spam</b> ya <b>Junk</b> folder zaroor check karein. Firebase link wahin bhejta hai.</p>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Public Name</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Project Settings mein <b>Public-facing name</b> ko "ShopyKart" zaroor likhein taaki sender identity lock na ho.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0">3</div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-foreground mb-1">Users List</p>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">Check karein ki kya <b>shopykarttt@gmail.com</b> Users list mein hai? Registration ke bina reset nahi hoga.</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <Button 
-                onClick={handleBackToLogin}
-                className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl"
-              >
-                BACK TO LOGIN
-              </Button>
-            </div>
+            <Button 
+              onClick={handleBackToLogin}
+              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl"
+            >
+              BACK TO LOGIN
+            </Button>
           </div>
         ) : (
           <>
@@ -234,7 +238,7 @@ export function EmailAuth() {
                           type="tel"
                           placeholder="00000 00000"
                           value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                          onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           required
                           className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
                         />
@@ -257,24 +261,6 @@ export function EmailAuth() {
                     />
                   </div>
                 </div>
-
-                {view === 'forgot' && (
-                  <div className="relative group">
-                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Enter New Password *</label>
-                    <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
-                      <Lock className="h-4 w-4 text-gray-400 mr-3" />
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        required
-                        className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
-                      />
-                    </div>
-                    <p className="text-[8px] text-primary font-bold uppercase mt-2 ml-1 italic opacity-70">Hum aapko is badlav ko confirm karne ke liye email link bhejenge.</p>
-                  </div>
-                )}
 
                 {view !== 'forgot' && (
                   <>
@@ -335,7 +321,7 @@ export function EmailAuth() {
                     <div className="flex items-center gap-2">
                       {view === 'login' && 'ENTER HUB'}
                       {view === 'signup' && 'CREATE ACCOUNT'}
-                      {view === 'forgot' && 'REQUEST NEW KEY'}
+                      {view === 'forgot' && 'REQUEST RESET LINK'}
                       <ArrowRight className="h-4 w-4" />
                     </div>
                   )}
