@@ -22,7 +22,8 @@ import {
   MessageCircle, 
   Mail,
   MapPin,
-  LogOut
+  LogOut,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +49,6 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const bannerInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
@@ -113,7 +113,12 @@ export default function VendorDashboard() {
 
   const handleUpdateProfile = () => {
     if (!vendorRef) return;
-    const data = { ...storeData, updatedAt: serverTimestamp() };
+    // Only update allowed fields: storeName, description
+    const data = { 
+      storeName: storeData.storeName,
+      description: storeData.description,
+      updatedAt: serverTimestamp() 
+    };
     setDoc(vendorRef, data, { merge: true });
     toast({ title: "Updated", description: "Profile saved successfully." });
   };
@@ -212,7 +217,10 @@ export default function VendorDashboard() {
                  ) : (
                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 font-black uppercase text-xs">No Banner Set</div>
                  )}
-                 <button onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Upload className="h-6 w-6 mr-2" /> Change Banner</button>
+                 <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10 text-white">
+                   <Lock className="h-3 w-3" />
+                   <span className="text-[8px] font-black uppercase tracking-widest">Banner Locked</span>
+                 </div>
                </div>
                
                <div className="grid grid-cols-2 gap-4">
@@ -227,16 +235,29 @@ export default function VendorDashboard() {
                </div>
 
                <div className="space-y-4">
-                 <Input placeholder="Store Name" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} className="text-black" />
-                 <Select value={storeData.town} onValueChange={(val) => setStoreData({...storeData, town: val})}>
-                    <SelectTrigger className="rounded-xl h-12 bg-muted/20 border-none text-black"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Ranipur">Ranipur (284205)</SelectItem><SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem></SelectContent>
-                 </Select>
-                 <div className="grid grid-cols-2 gap-3 p-4 bg-muted/10 rounded-2xl border border-dashed">
-                   <div><label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Latitude</label><Input value={storeData.lat} onChange={(e) => setStoreData({...storeData, lat: e.target.value})} className="bg-white border-none h-10 mt-1 text-black" /></div>
-                   <div><label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Longitude</label><Input value={storeData.lng} onChange={(e) => setStoreData({...storeData, lng: e.target.value})} className="bg-white border-none h-10 mt-1 text-black" /></div>
+                 <div className="space-y-1">
+                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Store Name</label>
+                   <Input placeholder="Store Name" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} className="text-black h-12 rounded-xl" />
                  </div>
-                 <Textarea placeholder="Store Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl text-black" />
+
+                 <div className="space-y-1">
+                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Town / Pincode <Lock className="h-2 w-2" /></label>
+                   <Select value={storeData.town} disabled>
+                      <SelectTrigger className="rounded-xl h-12 bg-muted/20 border-none text-black opacity-60"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="Ranipur">Ranipur (284205)</SelectItem><SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem></SelectContent>
+                   </Select>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-3 p-4 bg-muted/10 rounded-2xl border border-dashed opacity-60">
+                   <div><label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Latitude <Lock className="h-2 w-2" /></label><Input value={storeData.lat} readOnly className="bg-white border-none h-10 mt-1 text-black" /></div>
+                   <div><label className="text-[8px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">Longitude <Lock className="h-2 w-2" /></label><Input value={storeData.lng} readOnly className="bg-white border-none h-10 mt-1 text-black" /></div>
+                 </div>
+
+                 <div className="space-y-1">
+                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Store Description</label>
+                   <Textarea placeholder="Store Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl text-black" />
+                 </div>
+
                  <Button onClick={handleUpdateProfile} className="w-full h-14 bg-primary font-black uppercase italic rounded-2xl shadow-xl shadow-primary/10 text-white"><Save className="mr-2 h-5" /> SAVE SETTINGS</Button>
                </div>
             </div>
@@ -247,7 +268,7 @@ export default function VendorDashboard() {
            <div className="space-y-4">
               <div className="p-2">
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                  <DialogTrigger asChild><Button className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic"><Plus className="mr-2" /> Add Menu Item</Button></DialogTrigger>
+                  <DialogTrigger asChild><Button className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic"><Plus className="mr-2" /> Add Menu Item</Button></DialogTrigger>
                   <DialogContent className="rounded-[2.5rem] bg-white">
                     <DialogHeader><DialogTitle className="font-black uppercase italic text-black">New Product</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-4">
@@ -273,9 +294,7 @@ export default function VendorDashboard() {
            </div>
         )}
       </main>
-      <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => { const r = new FileReader(); r.onloadend = () => setStoreData({...storeData, bannerUrl: r.result as string}); if(e.target.files?.[0]) r.readAsDataURL(e.target.files[0]) }} />
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
     </div>
   );
 }
-

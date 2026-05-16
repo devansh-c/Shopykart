@@ -120,50 +120,49 @@ export default function VendorRegistrationPage() {
   const handleSubmit = () => {
     if (!firestore || !auth) return;
 
-    // 1. Instant UI Transition - Go to success immediately
+    // 1. Instant UI Transition
     setStep('success');
 
-    // 2. Play success ring sound immediately
+    // 2. Play sound
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play().catch(() => {});
 
-    // 3. Perform Backend Work in background
+    // 3. Backend work
     createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password)
       .then(async (userCredential) => {
         const user = userCredential.user;
 
         const vendorData = {
-          ...formData,
           id: user.uid,
-          status: 'approved', // Auto-approval
-          createdAt: serverTimestamp(),
+          storeName: formData.storeName,
+          category: formData.category,
           imageUrl: formData.logo,
           bannerUrl: formData.cover,
           town: formData.zone,
+          lat: formData.lat,
+          lng: formData.lng,
+          fssai: formData.fssai,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          email: formData.email.trim(),
+          status: 'approved',
+          createdAt: serverTimestamp(),
           rating: 4.5,
           walletBalance: 0
         };
 
-        // Save to Firestore
-        setDoc(doc(firestore, 'vendors', user.uid), vendorData);
-        setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
+        await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
+        await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
         
-        // Sign out immediately to allow login with new credentials
         signOut(auth);
       })
       .catch((err: any) => {
-        // Only show error if it fails in background
         let message = "Registration error.";
         if (err.code === 'auth/email-already-in-use') {
           message = "Email identity is already registered.";
         }
-        toast({ 
-          variant: "destructive", 
-          title: "Error", 
-          description: message 
-        });
-        // Optionally move back to owner-info if registration fails
-        // setStep('owner-info');
+        toast({ variant: "destructive", title: "Error", description: message });
       });
   };
 
