@@ -4,23 +4,59 @@
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, ChevronLeft, Sparkles, X, Loader2 } from 'lucide-react';
+import { 
+  Minus, 
+  Plus, 
+  Trash2, 
+  ChevronLeft, 
+  ShoppingBag, 
+  X, 
+  Loader2, 
+  PlusCircle, 
+  Bike, 
+  Store, 
+  Utensils, 
+  Car, 
+  MapPin, 
+  ChevronRight, 
+  TicketPercent, 
+  Star, 
+  FileText, 
+  Wallet, 
+  Banknote,
+  CheckCircle2,
+  Info
+} from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
+import * as mockData from '@/lib/mock-data';
 
 export default function CartPage() {
-  const { cart, addToCart, removeFromCart, totalPrice, totalItems, customRequest, removeCustomRequest, clearCart } = useCart();
+  const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
   const [isPlacing, setIsPlacing] = useState(false);
+  const [orderType, setOrderType] = useState('Delivery');
+  const [paymentMethod, setPaymentMethod] = useState('Online');
+  const [instructions, setInstructions] = useState('');
+  const [address, setAddress] = useState(localStorage.getItem('user_address') || '');
+
+  // Calculate costs
+  const packagingFee = 10;
+  const gst = totalPrice * 0.05;
+  const deliveryFee = orderType === 'Delivery' ? 0 : 0; // Keeping free for now as per UI
+  const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
   if (totalItems === 0) {
     return (
@@ -48,12 +84,14 @@ export default function CartPage() {
     const orderData = {
       userId: user.uid,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
-      total: totalPrice + (customRequest ? 20 : 0) + (totalPrice * 0.05),
+      total: grandTotal,
       status: 'Placed',
-      customRequest: customRequest,
-      address: localStorage.getItem('user_address') || 'Home Address',
+      orderType,
+      paymentMethod,
+      instructions,
+      address: address || 'Store Pickup',
       createdAt: serverTimestamp(),
-      vendorId: 's1' // In real app, derived from cart items
+      vendorId: cart[0]?.vendorId || 's1'
     };
 
     addDoc(collection(firestore, 'orders'), orderData)
@@ -69,92 +107,329 @@ export default function CartPage() {
       });
   };
 
-  const hasCustomRequest = customRequest.trim().length > 0;
-  const deliveryFee = hasCustomRequest ? 20 : 0;
-  const taxes = totalPrice * 0.05;
-  const grandTotal = totalPrice + deliveryFee + taxes;
+  const handleAddAddress = () => {
+    window.dispatchEvent(new CustomEvent('open-location-picker'));
+  };
+
+  const recommendations = mockData.allProducts.slice(10, 15);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-40">
-      <div className="bg-white sticky top-0 z-10 border-b border-border/50 px-4 py-4 flex items-center justify-between">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted">
+    <div className="min-h-screen bg-[#F5F6F7] pb-40">
+      {/* Header */}
+      <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100">
           <ChevronLeft className="h-6 w-6" />
         </button>
-        <h1 className="text-lg font-black italic uppercase tracking-tight">MY CART ({totalItems})</h1>
-        <div className="w-10" />
+        <h1 className="text-lg font-bold text-gray-800">Your Cart</h1>
       </div>
 
       <div className="p-4 space-y-4">
-        {cart.map((item) => (
-          <div key={item.id} className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-border/40">
-            <div className="relative h-20 w-20 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
-              <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+        {/* Order Items Section */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-bold uppercase tracking-tight text-gray-700">Your Order</h2>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-sm text-foreground line-clamp-1">{item.name}</h3>
-              <p className="text-primary font-black text-base">₹{item.price.toFixed(2)}</p>
-              <div className="flex items-center mt-2 bg-secondary/30 rounded-lg w-fit p-1">
-                <button onClick={() => removeFromCart(item.id)} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-white"><Minus className="h-4 w-4" /></button>
-                <span className="w-8 text-center text-xs font-black">{item.quantity}</span>
-                <button onClick={() => addToCart(item)} className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-white"><Plus className="h-4 w-4" /></button>
-              </div>
-            </div>
-            <button onClick={() => removeFromCart(item.id)} className="text-muted-foreground hover:text-red-500 p-2"><Trash2 className="h-5 w-5" /></button>
+            <span className="text-xs font-bold text-gray-400">{totalItems} item</span>
           </div>
-        ))}
 
-        {hasCustomRequest && (
-          <div className="bg-[#0B0B0B] rounded-[2rem] p-5 shadow-xl relative overflow-hidden border border-white/5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="h-3 w-3 border border-green-500 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-500 rounded-full" /></div>
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Special Request</span>
+          <div className="space-y-6">
+            {cart.map((item) => (
+              <div key={item.id} className="flex gap-4">
+                <div className="relative h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
+                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                 </div>
-                <h3 className="text-white font-black italic text-lg leading-tight truncate">{customRequest}</h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-3.5 w-3.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                      <div className="h-full w-full bg-green-600 rounded-full" />
+                    </div>
+                    <h3 className="font-bold text-sm text-gray-800 truncate">{item.name}</h3>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center bg-red-500 text-white rounded-lg p-0.5 h-8">
+                      <button onClick={() => removeFromCart(item.id)} className="w-8 h-full flex items-center justify-center font-bold text-lg">-</button>
+                      <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
+                      <button onClick={() => addToCart(item)} className="w-8 h-full flex items-center justify-center font-bold text-lg">+</button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-sm text-gray-800">₹{item.price.toFixed(2)}</span>
+                      <button onClick={() => removeFromCart(item.id)} className="text-red-200 hover:text-red-500">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button onClick={removeCustomRequest} className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
+            ))}
+          </div>
+
+          <button 
+            onClick={() => router.push('/menu')}
+            className="w-full mt-6 py-3 border-2 border-dashed border-red-200 rounded-xl text-red-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Add more items
+          </button>
+        </div>
+
+        {/* Recommendations */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+             <Image src="https://placehold.co/40x40/png?text=🍽️" alt="" width={16} height={16} />
+             <h3 className="text-sm font-bold text-gray-700">Complete your meal</h3>
+          </div>
+          <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
+            {recommendations.map((prod) => (
+              <div key={prod.id} className="min-w-[120px] max-w-[120px] bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
+                <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
+                  <Image src={`https://picsum.photos/seed/${prod.id}/200/200`} alt={prod.name} fill className="object-cover" />
+                  <button 
+                    onClick={() => addToCart({ ...prod, imageUrl: `https://picsum.photos/seed/${prod.id}/200/200` })}
+                    className="absolute bottom-1 right-1 h-6 w-6 bg-white rounded-full flex items-center justify-center shadow-md text-red-500"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1 mb-0.5">
+                   <div className="h-2 w-2 bg-green-600 rounded-full" />
+                   <span className="text-[10px] font-bold text-gray-800 truncate">{prod.name}</span>
+                </div>
+                <div className="text-[10px] font-bold text-gray-400">₹{prod.price}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Order Type */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-gray-800">Order Type</h3>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { id: 'Delivery', icon: Bike, label: 'Delivery' },
+              { id: 'Pickup', icon: Store, label: 'Pickup' },
+              { id: 'Dine In', icon: Utensils, label: 'Dine In' },
+              { id: 'In Car', icon: Car, label: 'In Car' },
+            ].map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setOrderType(type.id)}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all",
+                  orderType === type.id ? "border-green-500 bg-green-50/50" : "border-gray-100 bg-white"
+                )}
+              >
+                <div className={cn("p-1.5 rounded-lg", orderType === type.id ? "text-green-600" : "text-gray-400")}>
+                  <type.icon className="h-5 w-5" />
+                </div>
+                <span className={cn("text-[10px] font-bold", orderType === type.id ? "text-green-700" : "text-gray-500")}>
+                  {type.label}
+                </span>
+              </button>
+            ))}
+          </div>
+          {orderType === 'Delivery' && (
+            <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
+              <Info className="h-3 w-3" /> ~35 min • Free
+            </p>
+          )}
+        </div>
+
+        {/* Delivery Address */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-red-500" />
+            <h3 className="text-sm font-bold text-gray-800">Delivery Address</h3>
+          </div>
+          {address ? (
+            <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between group">
+              <div className="flex-1 truncate pr-4">
+                <span className="text-[10px] font-black text-primary uppercase">Deliver to</span>
+                <p className="text-xs font-bold text-gray-700 truncate">{address}</p>
+              </div>
+              <button onClick={handleAddAddress} className="text-blue-500 text-[10px] font-bold">CHANGE</button>
+            </div>
+          ) : (
+            <button 
+              onClick={handleAddAddress}
+              className="w-full py-3 border-2 border-dashed border-red-200 rounded-xl text-red-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Add delivery address
+            </button>
+          )}
+        </div>
+
+        {/* Coupons & Rewards */}
+        <div className="space-y-3">
+          <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-50 p-2 rounded-full">
+                <TicketPercent className="h-5 w-5 text-orange-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-800 leading-none">View all coupons</h4>
+                <p className="text-[10px] font-bold text-gray-400 mt-1">2 offers available</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-300" />
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-yellow-50 p-2 rounded-full">
+                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-800 leading-none">3364 Reward Points</h4>
+                <p className="text-[10px] font-bold text-gray-400 mt-1">Tap to redeem — save up to ₹336</p>
+              </div>
+            </div>
+            <div className="h-6 w-6 rounded-full border-2 border-gray-100" />
+          </div>
+        </div>
+
+        {/* Special Instructions */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-orange-400" />
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Special Instructions</h3>
+          </div>
+          <Textarea 
+            placeholder="Any special requests? (optional)" 
+            className="rounded-xl bg-gray-50 border-none min-h-[60px] text-xs font-bold"
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+          />
+        </div>
+
+        {/* Bill Details */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="bg-blue-50 p-1.5 rounded-lg">
+              <FileText className="h-4 w-4 text-blue-500" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Bill Details</h3>
+          </div>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between font-bold text-gray-600">
+              <span>Item Total</span>
+              <span>₹{totalPrice.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-green-600">
+              <span>Delivery Fee</span>
+              <span>Free</span>
+            </div>
+            <div className="flex justify-between font-bold text-gray-600">
+              <span>Packaging Fee</span>
+              <span>₹{packagingFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-gray-600">
+              <span>GST (5%)</span>
+              <span>₹{gst.toFixed(2)}</span>
             </div>
           </div>
-        )}
-      </div>
 
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-border/40 space-y-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">Order Summary</h2>
-          <div className="space-y-2 border-b border-dashed border-border pb-4">
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span className="font-bold">₹{totalPrice.toFixed(2)}</span></div>
-            <div className="flex justify-between text-sm items-center"><span className="text-muted-foreground">Delivery Fee</span>{hasCustomRequest ? <span className="font-black text-primary">₹20.00</span> : <span className="font-bold text-green-600">FREE</span>}</div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Taxes</span><span className="font-bold">₹{taxes.toFixed(2)}</span></div>
+          <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
+            <span className="text-base font-black text-gray-800">Total Payable</span>
+            <span className="text-xl font-black text-red-500">₹{grandTotal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-black uppercase italic">Total</span>
-            <span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span>
+        </div>
+
+        {/* Pay Using */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💳</span>
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Pay Using</h3>
           </div>
+
+          <div className="space-y-3">
+            <button 
+              onClick={() => setPaymentMethod('Online')}
+              className={cn(
+                "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+                paymentMethod === 'Online' ? "border-green-500 bg-green-50/30" : "border-gray-50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Wallet className="h-5 w-5 text-green-500" />
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-gray-800">Pay Online</h4>
+                  <p className="text-[10px] text-gray-400 font-bold">UPI, Debit / Credit Card, Netbanking</p>
+                </div>
+              </div>
+              <div className={cn(
+                "h-5 w-5 rounded-full border-2 flex items-center justify-center",
+                paymentMethod === 'Online' ? "border-green-500" : "border-gray-200"
+              )}>
+                {paymentMethod === 'Online' && <div className="h-2.5 w-2.5 bg-green-500 rounded-full" />}
+              </div>
+            </button>
+
+            <button 
+              onClick={() => setPaymentMethod('Cash')}
+              className={cn(
+                "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+                paymentMethod === 'Cash' ? "border-green-500 bg-green-50/30" : "border-gray-50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Banknote className="h-5 w-5 text-gray-400" />
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-gray-800">Pay with Cash</h4>
+                  <p className="text-[10px] text-gray-400 font-bold">Pay when your order arrives</p>
+                </div>
+              </div>
+              <div className={cn(
+                "h-5 w-5 rounded-full border-2 flex items-center justify-center",
+                paymentMethod === 'Cash' ? "border-green-500" : "border-gray-200"
+              )}>
+                {paymentMethod === 'Cash' && <div className="h-2.5 w-2.5 bg-green-500 rounded-full" />}
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Policy */}
+        <div className="bg-gray-100 rounded-2xl p-5 space-y-2">
+          <h4 className="text-[10px] font-black uppercase text-gray-800">CANCELLATION POLICY</h4>
+          <p className="text-[10px] font-bold text-gray-400 leading-relaxed uppercase">
+            Help us reduce food waste by avoiding cancellations after placing your order. Orders once placed cannot be cancelled.
+          </p>
         </div>
       </div>
 
-      <div className="fixed bottom-20 left-4 right-4 z-20">
-        <Button 
-          disabled={isPlacing}
-          onClick={handleCheckout}
-          className="w-full h-14 rounded-2xl shadow-xl shadow-primary/30 flex items-center justify-between px-6 bg-primary hover:bg-primary/90"
-        >
-          {isPlacing ? (
-            <div className="flex items-center gap-2 mx-auto"><Loader2 className="h-5 w-5 animate-spin" /> PLACING ORDER...</div>
-          ) : (
-            <>
-              <div className="flex flex-col items-start">
-                <span className="text-[10px] opacity-80 font-bold uppercase tracking-widest">Proceed to</span>
-                <span className="text-lg font-black uppercase italic tracking-tighter">Checkout</span>
-              </div>
-              <ArrowRight className="h-6 w-6" />
-            </>
-          )}
-        </Button>
+      {/* Fixed Footer Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
+          <div>
+            <div className="text-xl font-black text-gray-800">₹{grandTotal.toFixed(2)}</div>
+            <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase">
+              ⚡ {paymentMethod === 'Online' ? 'Online Payment' : 'Cash on Delivery'} • incl. taxes
+            </p>
+          </div>
+          
+          <div className="flex-1 flex flex-col items-end gap-2">
+            <p className="text-[10px] font-bold text-gray-800 flex items-center gap-1 uppercase">
+               <Bike className="h-3 w-3 text-orange-400" /> ~35 min
+            </p>
+            <Button 
+              disabled={isPlacing || (!address && orderType === 'Delivery')}
+              onClick={handleCheckout}
+              className="w-full h-14 rounded-2xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-black text-lg shadow-xl shadow-red-200 active:scale-[0.98] transition-all"
+            >
+              {isPlacing ? (
+                <div className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" /> PLACING...</div>
+              ) : (
+                "Place Order"
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 }
