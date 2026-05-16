@@ -23,7 +23,8 @@ import {
   ImageIcon,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Map as MapIcon
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -155,6 +156,7 @@ export default function VendorRegistrationPage() {
         await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
         await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
         
+        // Sign out to force re-login with clean session
         signOut(auth);
       })
       .catch((err: any) => {
@@ -165,6 +167,11 @@ export default function VendorRegistrationPage() {
         toast({ variant: "destructive", title: "Error", description: message });
       });
   };
+
+  // Map Embed URL
+  const mapUrl = (formData.lat && formData.lng) 
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(formData.lng)-0.005}%2C${parseFloat(formData.lat)-0.005}%2C${parseFloat(formData.lng)+0.005}%2C${parseFloat(formData.lat)+0.005}&layer=mapnik&marker=${formData.lat}%2C${formData.lng}`
+    : `https://www.openstreetmap.org/export/embed.html?bbox=78.3%2C25.2%2C78.6%2C25.4&layer=mapnik`;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
@@ -201,10 +208,10 @@ export default function VendorRegistrationPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div onClick={() => logoInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                  {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" /> : <><Camera className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Store Logo *</span></>}
+                  {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" /> : <><Camera className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Store Logo *</span></>}
                 </div>
                 <div onClick={() => coverInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                  {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" /> : <><ImageIcon className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Banner Image *</span></>}
+                  {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" /> : <><ImageIcon className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Banner Image *</span></>}
                 </div>
               </div>
 
@@ -215,6 +222,32 @@ export default function VendorRegistrationPage() {
                   <SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Map Preview Section */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1">
+                  <MapIcon className="h-3 w-3" /> Location Preview
+                </label>
+                <div className="w-full h-40 rounded-2xl overflow-hidden border border-border shadow-inner bg-muted relative">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    scrolling="no" 
+                    marginHeight={0} 
+                    marginWidth={0} 
+                    src={mapUrl}
+                    className="grayscale-[0.2] contrast-[1.1]"
+                  />
+                  {!formData.lat && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center text-center p-4">
+                      <p className="text-white text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                        Location not set<br/>Click "GET GPS" below to show on map
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="bg-muted/20 p-4 rounded-2xl space-y-3">
                 <div className="flex justify-between items-center">
