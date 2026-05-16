@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from 'react';
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils } from 'lucide-react';
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, Info } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -48,14 +49,9 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    if (currentTown) {
-      return query(
-        collection(firestore, 'products'),
-        where('town', '==', currentTown)
-      );
-    }
-    return query(collection(firestore, 'products'));
-  }, [firestore, currentTown]);
+    // Always fetch everything initially, we will filter locally for speed and persistence
+    return collection(firestore, 'products');
+  }, [firestore]);
   
   const { data: dbProducts } = useCollection<any>(productsQuery);
 
@@ -65,11 +61,23 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     let result = dbProducts.filter(product => {
       const name = product.name || '';
       const cat = product.category || '';
+      const prodTown = product.town || '';
+      
       const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           cat.toLowerCase().includes(searchQuery.toLowerCase());
+      
       const matchesCategory = category === 'all' || cat === category;
-      return matchesSearch && matchesCategory;
+      
+      // If a town is selected, prioritize it, but if user hasn't selected a location, show everything
+      const matchesTown = !currentTown || prodTown === currentTown;
+
+      return matchesSearch && matchesCategory && matchesTown;
     });
+
+    // Fallback: If no items found in specific town, show global items to avoid "empty" feel
+    if (result.length === 0 && currentTown && !searchQuery && category === 'all') {
+       result = dbProducts.slice(0, 10);
+    }
 
     switch (sortBy) {
       case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
@@ -79,7 +87,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts]);
+  }, [searchQuery, category, sortBy, dbProducts, currentTown]);
 
   return (
     <div className="px-4 py-8">
@@ -118,7 +126,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             const liked = isInWishlist(product.id);
 
             return (
-              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white">
+              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div className="flex-1 pr-4">
                   <div className="mb-2">
                     <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
@@ -126,15 +134,15 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     </div>
                   </div>
                   <Link href={`/product/${product.id}`}>
-                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight">{product.name}</h3>
-                    <div className="text-xl font-bold text-[#1C1C1C] mb-2">₹{(product.price || 0).toFixed(2)}</div>
-                    <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold mt-2">from {product.restaurantName || 'Local Kitchen'}</p>
+                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight italic tracking-tight">{product.name}</h3>
+                    <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
+                    <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description || "Freshly prepared signature dish."}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black mt-2 tracking-widest italic opacity-60">from {product.restaurantName || 'Local Kitchen'}</p>
                   </Link>
                 </div>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
-                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
+                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted shadow-sm">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
@@ -146,27 +154,39 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                     {quantity === 0 ? (
                       <button 
                         onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-10 bg-white text-primary border-[1.5px] border-primary shadow-md font-bold text-xs uppercase rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
+                        className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
                       >
-                        ADD <span className="text-lg font-light">+</span>
+                        ADD TO BAG
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between w-full h-10 bg-white text-primary border-[1.5px] border-primary rounded-xl shadow-md overflow-hidden">
-                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-red-50 h-full"><Minus className="h-4 w-4" /></button>
-                        <span className="text-sm font-bold min-w-[24px] text-center">{quantity}</span>
-                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-red-50 h-full"><Plus className="h-4 w-4" /></button>
+                      <div className="flex items-center justify-between w-full h-10 bg-primary text-white border-2 border-primary rounded-xl shadow-lg overflow-hidden">
+                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Minus className="h-3 w-3" /></button>
+                        <span className="text-xs font-black min-w-[24px] text-center">{quantity}</span>
+                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm active:scale-75 transition-all z-20">
-                    <Heart className={cn("h-3 w-3", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md active:scale-75 transition-all z-20">
+                    <Heart className={cn("h-4 w-4", liked ? "fill-primary text-primary" : "text-gray-300")} />
                   </button>
                 </div>
               </div>
             );
           })
-        ) : null}
+        ) : (
+          <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed opacity-40">
+             <Utensils className="h-12 w-12 mx-auto mb-4" />
+             <p className="font-black italic uppercase text-sm">No items found</p>
+          </div>
+        )}
       </div>
+      
+      {filteredAndSortedProducts.length > 0 && dbProducts && filteredAndSortedProducts.length < dbProducts.length && (
+         <div className="mt-8 flex items-center justify-center gap-2 p-4 bg-muted/30 rounded-2xl border border-dashed">
+            <Info className="h-3 w-3 text-muted-foreground" />
+            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Only showing items in {currentTown}</p>
+         </div>
+      )}
     </div>
   );
 }
