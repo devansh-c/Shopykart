@@ -116,6 +116,7 @@ export default function VendorRegistrationPage() {
     if (step === 'owner-info') {
       const basic = !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.email && !!formData.password;
       if (!basic) return false;
+      if (formData.phone.length !== 10) return false;
       if (formData.password !== formData.confirmPassword) return false;
       return isPasswordStrong(formData.password);
     }
@@ -241,7 +242,13 @@ export default function VendorRegistrationPage() {
                 <Input placeholder="Last Name *" value={formData.lastName} onChange={(e) => updateFormData('lastName', e.target.value)} className="h-12 rounded-xl" />
               </div>
 
-              <Input placeholder="Phone Number *" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value)} className="h-12 rounded-xl" />
+              <Input 
+                placeholder="Phone Number (10 Digits) *" 
+                value={formData.phone} 
+                onChange={(e) => updateFormData('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                className="h-12 rounded-xl" 
+                maxLength={10}
+              />
               <Input placeholder="Email Address *" type="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)} className="h-12 rounded-xl" />
               
               <div className="relative">
