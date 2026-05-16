@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Info, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -101,18 +101,19 @@ export function EmailAuth() {
       } else if (view === 'forgot') {
         if (!trimmedEmail) throw new Error("Please enter your registered email identity.");
         
+        // Firebase sendPasswordResetEmail returns success even if user not found for security
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
         toast({ 
-          title: "Reset Link Sent", 
-          description: `Check your inbox and SPAM folder.` 
+          title: "Request Processed", 
+          description: `If ${trimmedEmail} is registered, a link will arrive soon.` 
         });
       }
     } catch (err: any) {
       console.error("Auth Error:", err);
       let message = err.message;
       
-      if (err.code === 'auth/user-not-found') message = "This email identity is not recognized. Please check or sign up.";
+      if (err.code === 'auth/user-not-found') message = "This email identity is not recognized. Please sign up first.";
       if (err.code === 'auth/wrong-password') message = "Incorrect security key provided.";
       if (err.code === 'auth/invalid-email') message = "The email format is invalid.";
       if (err.code === 'auth/too-many-requests') message = "Access blocked due to many failed attempts. Try later.";
@@ -127,7 +128,6 @@ export function EmailAuth() {
   const handleBackToLogin = () => {
     setIsResetSent(false);
     setView('login');
-    setEmail('');
   };
 
   return (
@@ -147,25 +147,44 @@ export function EmailAuth() {
               <div className="absolute inset-0 bg-green-200/20 rounded-full animate-ping" />
               <CheckCircle2 className="h-12 w-12 text-green-500 relative z-10" />
             </div>
-            <div className="space-y-3">
-              <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK DISPATCHED!</h2>
-              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3 items-start">
-                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-amber-700 font-bold uppercase tracking-tight text-left leading-relaxed">
-                  IMPORTANT: If you don't see the email in 1 minute, check your <span className="underline decoration-2 text-primary">SPAM / JUNK</span> folder. Some providers block reset links by default.
-                </p>
+            
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">LINK DISPATCHED!</h2>
+              
+              <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 space-y-3">
+                <div className="flex gap-2 items-center text-amber-700">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Action Required</span>
+                </div>
+                <ul className="text-[9px] text-amber-800 font-bold uppercase tracking-tight text-left space-y-2 leading-relaxed list-disc ml-4">
+                  <li>Check <span className="text-primary underline decoration-2">SPAM / JUNK</span> folder immediately.</li>
+                  <li>In Gmail, check <span className="text-primary">"Promotions"</span> tab.</li>
+                  <li>Verify that <span className="text-primary">Email Templates</span> are enabled in Firebase Console.</li>
+                  <li>Make sure you already signed up with this email.</li>
+                </ul>
               </div>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest px-4 leading-relaxed">
-                RESET LINK SENT TO:<br />
-                <span className="text-foreground break-all">{email.toUpperCase()}</span>
-              </p>
+
+              <div className="pt-2">
+                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">Target Identity:</p>
+                 <p className="text-xs font-black text-foreground break-all bg-muted/30 p-2 rounded-lg">{email.toLowerCase()}</p>
+              </div>
             </div>
-            <Button 
-              onClick={handleBackToLogin}
-              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl"
-            >
-              BACK TO LOGIN
-            </Button>
+
+            <div className="flex flex-col gap-3">
+              <Button 
+                onClick={handleBackToLogin}
+                className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-xl"
+              >
+                BACK TO LOGIN
+              </Button>
+              <button 
+                onClick={() => setIsResetSent(false)}
+                className="flex items-center justify-center gap-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary transition-colors"
+              >
+                <RefreshCcw className="h-3 w-3" />
+                Try another email
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -302,7 +321,7 @@ export function EmailAuth() {
                   <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start animate-in zoom-in duration-300">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-blue-700 font-medium leading-relaxed uppercase">
-                      We'll send a link to your email. Ensure the email matches your registration. If not found, always check your Spam folder.
+                      We'll send a link if the email matches our records. Ensure you've registered first. Check your Spam folder if not found within 1 minute.
                     </p>
                   </div>
                 )}
