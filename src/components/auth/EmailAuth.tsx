@@ -2,49 +2,89 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
+import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile
 } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
+type AuthView = 'login' | 'signup' | 'forgot';
 
 export function EmailAuth() {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [view, setView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(false);
-  
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
+
+  // Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
-    if (!email || !password) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Please enter both email and password." });
-      return;
-    }
 
     setLoading(true);
     try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        toast({ title: "Account Created", description: "Welcome to the world of ShopyKart Elite!" });
-      } else {
+      if (view === 'signup') {
+        if (!fullName || !phoneNumber || !email || !password || !confirmPassword) {
+          throw new Error("Please fill all elite registration fields.");
+        }
+        if (password !== confirmPassword) {
+          throw new Error("Secret keys (passwords) do not match.");
+        }
+
+        // 1. Create User
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 2. Update Auth Profile
+        await updateProfile(user, { displayName: fullName });
+
+        // 3. Save to Firestore Profile
+        if (firestore) {
+          const profileData = {
+            fullName,
+            phoneNumber,
+            email,
+            createdAt: serverTimestamp(),
+            role: 'customer'
+          };
+          const profileRef = doc(firestore, 'users', user.uid, 'profile', 'data');
+          
+          await setDoc(profileRef, profileData).catch(err => {
+             errorEmitter.emit('permission-error', new FirestorePermissionError({
+               path: profileRef.path,
+               operation: 'write',
+               requestResourceData: profileData
+             }));
+          });
+        }
+
+        toast({ title: "Welcome to Elite Circle", description: `Account created for ${fullName}.` });
+      } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, email, password);
-        toast({ title: "Welcome Back", description: "Your premium access is now active." });
+        toast({ title: "Identity Verified", description: "Accessing your signature experience." });
+      } else if (view === 'forgot') {
+        await sendPasswordResetEmail(auth, email);
+        toast({ title: "Reset Link Sent", description: "Check your inbox for a secret reset key." });
+        setView('login');
       }
     } catch (err: any) {
-      let msg = err.message;
-      if (err.code === 'auth/user-not-found') msg = "No elite account found with this email.";
-      if (err.code === 'auth/wrong-password') msg = "The password provided is incorrect.";
-      if (err.code === 'auth/email-already-in-use') msg = "This email is already part of our elite circle.";
-      
-      toast({ variant: "destructive", title: "Authentication Error", description: msg });
+      toast({ variant: "destructive", title: "Access Denied", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -52,102 +92,174 @@ export function EmailAuth() {
 
   return (
     <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8 animate-in fade-in duration-700 overflow-y-auto no-scrollbar">
-      {/* Top Decoration */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-20" />
 
-      <div className="flex justify-center mt-12 mb-16">
-        <div className="scale-125">
+      <div className="flex justify-center mt-6 mb-10">
+        <div className="scale-110">
           <Logo />
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12">
-        <div className="text-center space-y-3">
-          <h1 className="text-5xl font-black italic tracking-tighter leading-tight text-foreground">
-            {isSignUp ? 'JOIN THE ELITE.' : 'PREMIUM ACCESS.'}
+      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-black italic tracking-tighter leading-tight text-foreground uppercase">
+            {view === 'login' && 'Premium Access'}
+            {view === 'signup' && 'Join the Elite'}
+            {view === 'forgot' && 'Reset Security'}
           </h1>
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.4em] mt-3 opacity-60">
-            {isSignUp ? 'Create your gourmet identity' : 'Unlock your signature experience'}
+          <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.4em] opacity-60">
+            {view === 'login' && 'Unlock your signature experience'}
+            {view === 'signup' && 'Create your gourmet identity'}
+            {view === 'forgot' && 'Re-verify your credentials'}
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-8">
-          <div className="space-y-6">
-            <div className="relative group">
-               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-2 block">Identity (Email)</label>
-               <div className={cn(
-                 "relative flex items-center bg-gray-50 rounded-2xl p-5 border-2 border-transparent transition-all duration-300",
-                 "focus-within:bg-white focus-within:border-primary/20 focus-within:shadow-xl focus-within:shadow-primary/5"
-               )}>
-                  <Mail className="h-5 w-5 text-gray-400 mr-4 group-focus-within:text-primary transition-colors" />
-                  <input
-                    type="email"
-                    placeholder="elite@shopykart.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full bg-transparent border-none text-base font-bold tracking-tight focus:outline-none placeholder:text-gray-300"
-                  />
-               </div>
-            </div>
+        <form onSubmit={handleAuth} className="space-y-6">
+          <div className="space-y-4">
+            {view === 'signup' && (
+              <>
+                <div className="relative group">
+                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Full Name</label>
+                  <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                    <User className="h-4 w-4 text-gray-400 mr-3" />
+                    <input
+                      type="text"
+                      placeholder="Enter Full Name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="relative group">
+                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Mobile Identity</label>
+                  <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                    <Phone className="h-4 w-4 text-gray-400 mr-3" />
+                    <input
+                      type="tel"
+                      placeholder="00000 00000"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      required
+                      className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="relative group">
-               <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-2 block">Secret Key (Password)</label>
-               <div className={cn(
-                 "relative flex items-center bg-gray-50 rounded-2xl p-5 border-2 border-transparent transition-all duration-300",
-                 "focus-within:bg-white focus-within:border-primary/20 focus-within:shadow-xl focus-within:shadow-primary/5"
-               )}>
-                  <Lock className="h-5 w-5 text-gray-400 mr-4 group-focus-within:text-primary transition-colors" />
-                  <input
-                    type="password"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full bg-transparent border-none text-base font-bold tracking-tight focus:outline-none placeholder:text-gray-300"
-                  />
-               </div>
+              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Email Identity</label>
+              <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                <Mail className="h-4 w-4 text-gray-400 mr-3" />
+                <input
+                  type="email"
+                  placeholder="elite@shopykart.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                />
+              </div>
             </div>
+
+            {view !== 'forgot' && (
+              <>
+                <div className="relative group">
+                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Secret Key (Password)</label>
+                  <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                    <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {view === 'signup' && (
+                  <div className="relative group">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 mb-1.5 block">Confirm Secret Key</label>
+                    <div className="relative flex items-center bg-gray-50 rounded-xl p-4 border-2 border-transparent transition-all focus-within:bg-white focus-within:border-primary/20">
+                      <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        className="w-full bg-transparent border-none text-sm font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
+
+          {view === 'login' && (
+            <div className="flex justify-end">
+              <button 
+                type="button" 
+                onClick={() => setView('forgot')}
+                className="text-[9px] font-black uppercase tracking-widest text-primary hover:opacity-80"
+              >
+                Forgotten Security Key?
+              </button>
+            </div>
+          )}
           
-          <div className="space-y-6 pt-4">
+          <div className="space-y-4 pt-4">
             <Button
               type="submit"
               disabled={loading}
-              className={cn(
-                "w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl shadow-primary/30",
-                "active:scale-[0.98] transition-all text-xl tracking-tighter relative overflow-hidden group"
-              )}
+              className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
             >
-              <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <div className="flex items-center gap-2">
-                  {isSignUp ? 'CREATE ACCOUNT' : 'ENTER HUB'}
-                  <ArrowRight className="h-5 w-5 ml-1" />
+                  {view === 'login' && 'ENTER HUB'}
+                  {view === 'signup' && 'CREATE ACCOUNT'}
+                  {view === 'forgot' && 'SEND RESET LINK'}
+                  <ArrowRight className="h-4 w-4" />
                 </div>
               )}
             </Button>
 
-            <div className="flex flex-col items-center gap-8">
-              <button 
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:tracking-[0.25em] transition-all duration-300 underline-offset-8 decoration-1 underline"
-              >
-                {isSignUp ? 'Already a member? Sign In' : 'New to ShopyKart? Register Now'}
-              </button>
+            <div className="flex flex-col items-center gap-6">
+              {view === 'login' ? (
+                <button 
+                  type="button"
+                  onClick={() => setView('signup')}
+                  className="text-[9px] font-black uppercase tracking-[0.2em] text-primary underline underline-offset-8"
+                >
+                  New to ShopyKart? Join Elite
+                </button>
+              ) : (
+                <button 
+                  type="button"
+                  onClick={() => setView('login')}
+                  className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                  Back to Hub Login
+                </button>
+              )}
             </div>
           </div>
         </form>
       </div>
 
-      <div className="mt-auto text-center pb-12 pt-16">
+      <div className="mt-auto text-center pb-8 pt-10">
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center justify-center gap-2 text-muted-foreground/30">
             <ShieldCheck className="h-4 w-4" />
-            <p className="text-[8px] font-black uppercase tracking-[0.5em]">Secure Elite Infrastructure</p>
+            <p className="text-[8px] font-black uppercase tracking-[0.5em]">Secure Infrastructure</p>
           </div>
-          <div className="h-1 w-1 bg-primary rounded-full opacity-20" />
         </div>
       </div>
     </div>

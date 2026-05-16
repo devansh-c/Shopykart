@@ -1,19 +1,28 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
 export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
+
+  // Fetch saved profile details from Firestore
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid, 'profile', 'data');
+  }, [firestore, user]);
+
+  const { data: profile, loading: profileLoading } = useDoc<any>(profileRef);
   
   const mainItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
@@ -47,6 +56,11 @@ export default function ProfilePage() {
     router.push('/');
   };
 
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+
+  const displayName = profile?.fullName || user?.displayName || 'Premium User';
+  const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Member since 2024';
+
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
       {/* Profile Header */}
@@ -55,16 +69,18 @@ export default function ProfilePage() {
         <div className="relative group">
           <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-transform">
             <AvatarImage src={`https://picsum.photos/seed/${user?.uid || 'user'}/200/200`} />
-            <AvatarFallback>{user?.phoneNumber?.slice(-2) || 'JD'}</AvatarFallback>
+            <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
           </Avatar>
         </div>
       </div>
 
       <div className="px-4 text-center mt-10">
         <h2 className="text-3xl font-black italic uppercase tracking-tighter">
-          {user?.displayName || user?.phoneNumber || 'Premium User'}
+          {displayName}
         </h2>
-        <p className="text-muted-foreground text-sm font-medium">Member since 2024</p>
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1 opacity-60">
+          {displayPhone}
+        </p>
       </div>
 
       <div className="px-4 mt-8 space-y-6">
