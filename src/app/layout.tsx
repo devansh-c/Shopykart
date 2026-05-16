@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { FirebaseClientProvider, useUser } from '@/firebase';
-import { OTPVerification } from '@/components/auth/OTPVerification';
+import { EmailAuth } from '@/components/auth/EmailAuth';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
@@ -16,13 +16,13 @@ function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const pathname = usePathname();
 
-  // Paths that should NOT trigger the main customer OTP gate
+  // Paths that should NOT trigger the main customer auth gate
   const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
   const showAuth = !authLoading && !user && !isExcludedPath;
 
   return (
     <div className="relative min-h-screen">
-      {showAuth && <OTPVerification />}
+      {showAuth && <EmailAuth />}
       <div className={showAuth ? "hidden" : ""}>
         {!isExcludedPath && <LocationRequest />}
         {children}
