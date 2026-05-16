@@ -134,7 +134,7 @@ export default function VendorRegistrationPage() {
       const vendorData = {
         ...formData,
         id: user.uid,
-        status: 'pending',
+        status: 'approved', // Auto-approve instantly
         createdAt: serverTimestamp(),
         imageUrl: formData.logo,
         bannerUrl: formData.cover,
@@ -144,18 +144,18 @@ export default function VendorRegistrationPage() {
       };
 
       await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
+      // Optional: keep application for record
       await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
+      
       await signOut(auth);
       
       // Play success ring sound
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.play().catch(() => {});
 
-      // Short delay for visual polish
-      setTimeout(() => {
-        setStep('success');
-        setLoading(false);
-      }, 1000);
+      // Instant transition to success
+      setStep('success');
+      setLoading(false);
       
     } catch (err: any) {
       toast({ variant: "destructive", title: "Registration Error", description: err.message });
@@ -310,9 +310,9 @@ export default function VendorRegistrationPage() {
               </div>
               
               <div className="space-y-2">
-                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-blue-600">SUBMITTED!</h2>
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-blue-600">LIVE NOW!</h2>
                 <p className="text-xs font-black text-muted-foreground uppercase tracking-widest px-4 leading-relaxed">
-                  Admin review takes approx 12-24 hours. You can login with your credentials after approval.
+                  Your account is activated. You can now login and start selling your products instantly.
                 </p>
               </div>
 
@@ -323,9 +323,6 @@ export default function VendorRegistrationPage() {
                 >
                   LOGIN NOW
                 </Button>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-4">
-                  Redirecting is faster than a snack delivery!
-                </p>
               </div>
             </div>
           )}
