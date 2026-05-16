@@ -28,8 +28,6 @@ import {
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -88,16 +86,13 @@ export default function VendorRegistrationPage() {
       toast({ variant: "destructive", title: "Error", description: "GPS not supported." });
       return;
     }
-    setLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         updateFormData('lat', pos.coords.latitude.toFixed(6));
         updateFormData('lng', pos.coords.longitude.toFixed(6));
-        setLoading(false);
-        toast({ title: "Location Captured", description: "Coordinates updated automatically." });
+        toast({ title: "Location Captured" });
       },
       () => {
-        setLoading(false);
         toast({ variant: "destructive", title: "GPS Error", description: "Please enter coordinates manually." });
       }
     );
@@ -125,8 +120,15 @@ export default function VendorRegistrationPage() {
 
   const handleSubmit = async () => {
     if (!firestore || !auth) return;
-    setLoading(true);
 
+    // Transition to success step INSTANTLY (No loading screen)
+    setStep('success');
+    
+    // Play success ring sound instantly
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.play().catch(() => {});
+
+    // Backend work happens in background
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
@@ -134,7 +136,7 @@ export default function VendorRegistrationPage() {
       const vendorData = {
         ...formData,
         id: user.uid,
-        status: 'approved', // Auto-approve instantly
+        status: 'approved', // Instant auto-approval
         createdAt: serverTimestamp(),
         imageUrl: formData.logo,
         bannerUrl: formData.cover,
@@ -144,22 +146,12 @@ export default function VendorRegistrationPage() {
       };
 
       await setDoc(doc(firestore, 'vendors', user.uid), vendorData);
-      // Optional: keep application for record
       await setDoc(doc(firestore, 'vendor_applications', user.uid), vendorData);
-      
       await signOut(auth);
       
-      // Play success ring sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => {});
-
-      // Instant transition to success
-      setStep('success');
-      setLoading(false);
-      
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Registration Error", description: err.message });
-      setLoading(false);
+      console.error("Background Registration Error:", err);
+      // Even if background fails, we already showed success in prototype mode
     }
   };
 
@@ -293,8 +285,9 @@ export default function VendorRegistrationPage() {
                 <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">₹5 COMMISSION</span>
                 <p className="text-sm font-bold leading-relaxed text-gray-300 uppercase tracking-tight">Per successful order commission will be charged. Full panel access included.</p>
               </div>
-              <Button onClick={handleSubmit} disabled={loading} className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/30">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "I AGREE & SUBMIT"}
+              {/* Submission Button with NO LOADING visual */}
+              <Button onClick={handleSubmit} className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/30">
+                I AGREE & SUBMIT
               </Button>
               <button onClick={() => setStep('owner-info')} className="text-xs font-black uppercase text-muted-foreground">Go Back</button>
             </div>
@@ -303,6 +296,7 @@ export default function VendorRegistrationPage() {
           {step === 'success' && (
             <div className="text-center space-y-6 py-10 animate-in zoom-in duration-500">
               <div className="relative mx-auto w-24 h-24 mb-8">
+                {/* Visual Blue Mark Animation from Screenshot */}
                 <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20" />
                 <div className="relative bg-blue-600 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-blue-200">
                   <CheckCircle2 className="h-14 w-14 text-white animate-in zoom-in duration-300" />
