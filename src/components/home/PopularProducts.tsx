@@ -7,7 +7,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -34,20 +34,16 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
         const savedTown = localStorage.getItem('user_town');
         setCurrentTown(savedTown);
       };
-      
       updateTown();
       window.addEventListener('user-address-updated', updateTown);
-      window.addEventListener('storage', updateTown);
-      return () => {
-        window.removeEventListener('user-address-updated', updateTown);
-        window.removeEventListener('storage', updateTown);
-      };
+      return () => window.removeEventListener('user-address-updated', updateTown);
     }
   }, []);
 
+  // Stream-based fetching from global products collection
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'products');
+    return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(50));
   }, [firestore]);
   
   const { data: dbProducts } = useCollection<any>(productsQuery);
@@ -63,12 +59,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       return matchesSearch && matchesCategory;
     });
 
-    // Smart Fallback: Filter by town ONLY if matches exist, otherwise show all to prevent empty screen
+    // Smart Fallback for location persistence
     if (currentTown && !searchQuery && category === 'all') {
       const townMatch = result.filter(p => p.town === currentTown);
-      if (townMatch.length > 0) {
-        result = townMatch;
-      }
+      if (townMatch.length > 0) result = townMatch;
     }
 
     switch (sortBy) {
@@ -84,35 +78,29 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-1.5 min-w-0">
-          <div className="text-amber-500 shrink-0">
-            <Zap className="h-4 w-4 fill-current" />
-          </div>
-          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] whitespace-nowrap uppercase">
+        <div className="flex items-center space-x-1.5">
+          <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
+          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase">
             {currentTown ? `Popular in ${currentTown}` : 'Trending Items'}
           </h2>
         </div>
         
-        <div className="shrink-0 ml-2 flex items-center gap-2">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 shadow-sm font-black text-[8px] uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all active:scale-95">
-              <SlidersHorizontal className="h-3 w-3 mr-1.5" />
-              <SelectValue placeholder="Sort" />
-            </SelectTrigger>
-            <SelectContent className="rounded-2xl border-none shadow-2xl">
-              <SelectItem value="recommended" className="text-[10px] font-black uppercase">Recommended</SelectItem>
-              <SelectItem value="price-low" className="text-[10px] font-black uppercase">Price: Low-High</SelectItem>
-              <SelectItem value="price-high" className="text-[10px] font-black uppercase">Price: High-Low</SelectItem>
-              <SelectItem value="name" className="text-[10px] font-black uppercase">A-Z Name</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase">
+            <SlidersHorizontal className="h-3 w-3 mr-1.5" />
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl border-none shadow-2xl">
+            <SelectItem value="recommended" className="text-[10px] font-black uppercase">Recommended</SelectItem>
+            <SelectItem value="price-low" className="text-[10px] font-black uppercase">Low-High</SelectItem>
+            <SelectItem value="price-high" className="text-[10px] font-black uppercase">High-Low</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         {filteredAndSortedProducts.length > 0 ? (
           filteredAndSortedProducts.map((product) => {
-            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const liked = isInWishlist(product.id);
@@ -120,45 +108,37 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             return (
               <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div className="flex-1 pr-4">
-                  <div className="mb-2">
-                    <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                      <div className="h-full w-full bg-green-600 rounded-full" />
-                    </div>
+                  <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
+                    <div className="h-full w-full bg-green-600 rounded-full" />
                   </div>
                   <Link href={`/product/${product.id}`}>
-                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 leading-tight italic tracking-tight">{product.name}</h3>
-                    <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
-                    <p className="text-sm text-gray-500 line-clamp-2 font-medium leading-snug">{product.description || "Freshly prepared signature dish."}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-black mt-2 tracking-widest italic opacity-60">from {product.restaurantName || 'Local Kitchen'}</p>
+                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight">{product.name}</h3>
+                    <div className="text-xl font-black text-primary mb-2 italic">₹{product.price?.toFixed(2)}</div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p>
                   </Link>
                 </div>
                 
-                <div className="relative w-32 h-32 flex-shrink-0">
-                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted shadow-sm">
-                    <img 
-                      src={imageUrl} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                <div className="relative w-32 h-32 shrink-0">
+                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                   </Link>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                     {quantity === 0 ? (
                       <button 
-                        onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 hover:bg-red-50 transition-all flex items-center justify-center gap-1"
+                        onClick={() => addToCart({ ...product, imageUrl: product.imageUrl })}
+                        className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl"
                       >
                         ADD TO BAG
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between w-full h-10 bg-primary text-white border-2 border-primary rounded-xl shadow-lg overflow-hidden">
+                      <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
                         <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Minus className="h-3 w-3" /></button>
                         <span className="text-xs font-black min-w-[24px] text-center">{quantity}</span>
-                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
+                        <button onClick={() => addToCart({ ...product, imageUrl: product.imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md active:scale-75 transition-all z-20">
+                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20">
                     <Heart className={cn("h-4 w-4", liked ? "fill-primary text-primary" : "text-gray-300")} />
                   </button>
                 </div>

@@ -1,7 +1,8 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
@@ -24,9 +25,18 @@ export function initializeFirebase() {
     const firestore = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
 
+    // Enable Offline Persistence for Data Reliability
+    enableIndexedDbPersistence(firestore).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore Persistence: Multiple tabs open, persistence disabled.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore Persistence: Browser not supported.');
+      }
+    });
+
     return { firebaseApp, firestore, auth };
   } catch (error) {
-    // Silently handle init errors to prevent app crash
+    console.error('Firebase initialization error:', error);
     return { firebaseApp: null, firestore: null, auth: null };
   }
 }

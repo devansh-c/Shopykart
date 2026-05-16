@@ -14,67 +14,16 @@
         "isVeg": { "type": "boolean" },
         "vendorId": { "type": "string" },
         "restaurantName": { "type": "string" },
-        "town": { "type": "string", "enum": ["Ranipur", "Mauranipur"] },
-        "badges": { 
-          "type": "array", 
-          "items": { 
-            "type": "string",
-            "enum": ["Bestseller", "Featured", "Trending"]
-          } 
-        },
+        "town": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "price", "vendorId", "town"]
-    },
-    "Order": {
-      "title": "Order",
-      "description": "Customer order details and status",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "vendorId": { "type": "string" },
-        "deliveryPartnerId": { "type": "string" },
-        "items": { "type": "array" },
-        "total": { "type": "number" },
-        "status": { 
-          "type": "string", 
-          "enum": ["Placed", "Accepted", "Preparing", "Ready for Pickup", "Picked Up", "Out for Delivery", "Delivered"] 
-        },
-        "address": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Vendor": {
-      "title": "Vendor",
-      "description": "Store owner details",
-      "type": "object",
-      "properties": {
-        "storeName": { "type": "string" },
-        "description": { "type": "string" },
-        "category": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "bannerUrl": { "type": "string" },
-        "rating": { "type": "number" },
-        "deliveryTime": { "type": "string" },
-        "address": { "type": "string" },
-        "town": { "type": "string", "enum": ["Ranipur", "Mauranipur"] },
-        "walletBalance": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "lat": { "type": "string" },
-        "lng": { "type": "string" },
-        "phone": { "type": "string" },
-        "email": { "type": "string" }
-      }
+      "required": ["name", "price", "vendorId"]
     }
   },
-  "auth": {
-    "providers": ["email", "phone"]
-  },
   "firestore": {
-    "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
-    "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders collection" },
-    "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
-    "/vendor_applications/{vendorId}": { "schema": "#/entities/Vendor", "description": "Application tracking" },
-    "/users/{userId}/profile": { "schema": "object", "description": "User profile data" }
+    "/vendors/{vendorId}": { "schema": "object", "description": "Store profiles" },
+    "/vendors/{vendorId}/products/{productId}": { "schema": "#/entities/Product", "description": "Vendor specific products" },
+    "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
+    "/orders/{orderId}": { "schema": "object", "description": "Global orders" }
   }
 }
