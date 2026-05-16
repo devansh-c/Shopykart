@@ -22,14 +22,12 @@ export default function VendorLoginPage() {
     e.preventDefault();
     if (!auth) return;
 
-    // Direct transition to provide "no loading" feel
+    // Direct sign in attempt
     signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
       .then(() => {
         toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
-        // Give Firebase a split second to update user state before moving
-        setTimeout(() => {
-          router.push('/vendor/dashboard');
-        }, 100);
+        // Immediate redirect
+        router.push('/vendor/dashboard');
       })
       .catch((err: any) => {
         let msg = "Invalid credentials or network error.";
