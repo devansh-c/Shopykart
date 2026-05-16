@@ -6,7 +6,7 @@ import { Plus, Trash2, Tag, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -16,7 +16,13 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 export function BannerManagement() {
   const firestore = useFirestore();
-  const { data: banners, loading } = useCollection(firestore ? collection(firestore, 'banners') : null);
+  
+  const bannersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'banners');
+  }, [firestore]);
+
+  const { data: banners, loading } = useCollection(bannersQuery);
   const { toast } = useToast();
   
   const [isAddOpen, setIsAddOpen] = useState(false);

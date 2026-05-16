@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, MessageSquare, Phone, Clock, FileText, Send, XCircle, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useFirestore, useDoc } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -25,7 +25,12 @@ export default function OrderDetailsPage() {
   const { orderId } = useParams();
   const router = useRouter();
   const firestore = useFirestore();
-  const orderRef = orderId ? doc(firestore!, 'orders', orderId as string) : null;
+
+  const orderRef = useMemoFirebase(() => {
+    if (!firestore || !orderId) return null;
+    return doc(firestore, 'orders', orderId as string);
+  }, [firestore, orderId]);
+
   const { data: order, loading } = useDoc<any>(orderRef);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -85,7 +90,7 @@ export default function OrderDetailsPage() {
             ))}
             <div className="pt-3 border-t border-dashed flex justify-between items-center">
               <span className="text-base font-black uppercase italic">Total Paid</span>
-              <span className="text-xl font-black text-primary italic">₹{order.total.toFixed(2)}</span>
+              <span className="text-xl font-black text-primary italic">₹{order.total?.toFixed(2)}</span>
             </div>
           </div>
         </div>

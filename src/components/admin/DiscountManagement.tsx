@@ -6,7 +6,7 @@ import { Plus, Trash2, Copy, Percent, Loader2, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -22,7 +22,13 @@ const gradients = [
 
 export function DiscountManagement() {
   const firestore = useFirestore();
-  const { data: coupons, loading } = useCollection(firestore ? collection(firestore, 'coupons') : null);
+  
+  const couponsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'coupons');
+  }, [firestore]);
+
+  const { data: coupons, loading } = useCollection(couponsQuery);
   const { toast } = useToast();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
