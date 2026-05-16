@@ -26,8 +26,10 @@ export default function VendorLoginPage() {
     signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
       .then(() => {
         toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
-        // Immediate redirect
-        router.replace('/vendor/dashboard');
+        // Give Firebase a split second to update user state before moving
+        setTimeout(() => {
+          router.push('/vendor/dashboard');
+        }, 100);
       })
       .catch((err: any) => {
         let msg = "Invalid credentials or network error.";
@@ -45,7 +47,7 @@ export default function VendorLoginPage() {
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4">
             <Store className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter">Vendor Login</CardTitle>
+          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">Vendor Login</CardTitle>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Manage your ShopyKart business</p>
         </CardHeader>
         <CardContent className="px-8 pb-10">
@@ -59,7 +61,7 @@ export default function VendorLoginPage() {
                   placeholder="name@store.com" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none"
+                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black"
                   required
                 />
               </div>
@@ -73,7 +75,7 @@ export default function VendorLoginPage() {
                   placeholder="••••••••" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none"
+                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black"
                   required
                 />
               </div>
