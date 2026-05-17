@@ -1,8 +1,12 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore, enableIndexedDbPersistence, terminate, clearIndexedDbPersistence } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  Firestore, 
+  enableIndexedDbPersistence, 
+  CACHE_SIZE_UNLIMITED 
+} from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
@@ -20,15 +24,19 @@ export function initializeFirebase() {
       firebaseApp = getApp();
     }
 
-    const firestore = getFirestore(firebaseApp);
+    // Using initializeFirestore with custom settings to handle network timeouts in virtual environments
+    const firestore = initializeFirestore(firebaseApp, {
+      experimentalForceLongPolling: true,
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED
+    });
+    
     const auth = getAuth(firebaseApp);
 
-    // Persistence is handled but we don't await it to prevent blocking initialization
-    // For cloud environments, we keep it simple to avoid multi-tab locks
+    // Persistence is handled asynchronously to prevent blocking initialization
     if (typeof window !== 'undefined') {
       enableIndexedDbPersistence(firestore).catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn('Firestore Persistence: Multiple tabs open, using single-tab persistence.');
+          console.warn('Firestore Persistence: Multiple tabs open, using memory cache.');
         } else if (err.code === 'unimplemented') {
           console.warn('Firestore Persistence: Browser not supported.');
         }
