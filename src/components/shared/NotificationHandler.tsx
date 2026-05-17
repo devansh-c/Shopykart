@@ -17,7 +17,6 @@ export function NotificationHandler() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [showPrompt, setShowPrompt] = useState(false);
 
-  // VAPID Key provided by user
   const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
   useEffect(() => {
@@ -38,7 +37,6 @@ export function NotificationHandler() {
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
-        // Foreground Listener
         onMessage(messaging, (payload) => {
           toast({
             title: payload.notification?.title || 'ShopyKart Update',
@@ -49,19 +47,11 @@ export function NotificationHandler() {
               </Button>
             ),
           });
-          
-          try {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.play().catch(() => {});
-          } catch (e) {
-            // Audio fail is silent
-          }
         });
 
         await saveToken(messaging);
       } catch (err) {
-        // Silently catch registration/push service errors to prevent red screen
-        console.warn('FCM Setup background wait or error:', err);
+        console.warn('Messaging setup failed:', err);
       }
     };
 
@@ -71,19 +61,18 @@ export function NotificationHandler() {
   const saveToken = async (messaging: any) => {
     try {
       const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-
       if (token && user && firestore) {
         const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
+        // Using setDoc with catch to avoid unhandled permission errors crashing the UI
         await setDoc(tokenRef, {
           token,
           deviceType: 'web',
           lastUpdated: serverTimestamp(),
           userId: user.uid
-        }, { merge: true });
+        }, { merge: true }).catch(e => console.warn("Failed to save token to Firestore:", e.message));
       }
     } catch (err) {
-      // AbortError is caught here, preventing the Next.js error overlay
-      console.warn('Failed to get FCM token (Push service registration failed):', err);
+      console.warn('Token retrieval failed:', err);
     }
   };
 
@@ -92,18 +81,12 @@ export function NotificationHandler() {
     try {
       const status = await Notification.requestPermission();
       setPermission(status);
-      
       if (status === 'granted') {
         const messaging = await getFirebaseMessaging();
         if (messaging) await saveToken(messaging);
-        toast({
-          title: "Notifications Enabled",
-          description: "You'll now receive order and offer updates!",
-        });
       }
     } catch (err) {
       console.warn('Permission request failed:', err);
-      setPermission('denied');
     }
   };
 
@@ -113,7 +96,6 @@ export function NotificationHandler() {
     <div className="fixed top-20 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-        
         <div className="flex items-center gap-3">
           <div className="bg-primary/20 p-2 rounded-xl">
             <BellRing className="h-5 w-5 text-primary animate-bounce" />
@@ -123,10 +105,9 @@ export function NotificationHandler() {
             <span className="text-xs font-bold leading-tight">Get real-time order updates.</span>
           </div>
         </div>
-        
         <div className="flex gap-2 items-center">
-           <button onClick={() => setShowPrompt(false)} className="text-[10px] font-black uppercase text-gray-500 px-2 hover:text-white transition-colors">Later</button>
-           <Button onClick={requestPermission} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-4 font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-primary/20">
+           <button onClick={() => setShowPrompt(false)} className="text-[10px] font-black uppercase text-gray-500 px-2">Later</button>
+           <Button onClick={requestPermission} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-4 font-black uppercase italic text-[10px] tracking-widest shadow-lg">
              ALLOW
            </Button>
         </div>

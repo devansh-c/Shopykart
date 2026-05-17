@@ -12,23 +12,19 @@ export function FirebaseErrorListener() {
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
       // Log the structured error for developer visibility
-      console.error('Firestore Permission Error Detected:', {
+      console.warn('Firestore Permission Denied:', {
         path: error.context.path,
         operation: error.context.operation,
-        data: error.context.requestResourceData,
       });
 
-      // Show a detailed toast to the user/developer
+      // Show a toast to the user but don't crash the app
       toast({
         variant: 'destructive',
-        title: 'Database Access Error',
-        description: `Insufficient permissions for ${error.context.operation} at ${error.context.path}. Please check your Security Rules.`,
+        title: 'Access Restricted',
+        description: `You don't have permission to access ${error.context.path}. Please check your Firebase Security Rules.`,
       });
-
-      // In development mode, we throw it to trigger the Next.js error overlay
-      if (process.env.NODE_ENV === 'development') {
-        throw error;
-      }
+      
+      // We removed the 'throw error' line here to prevent the Next.js Red Error Screen
     };
 
     errorEmitter.on('permission-error', handlePermissionError);
