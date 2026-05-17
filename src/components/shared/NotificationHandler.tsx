@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -49,13 +50,18 @@ export function NotificationHandler() {
             ),
           });
           
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-          audio.play().catch(() => {});
+          try {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(() => {});
+          } catch (e) {
+            // Audio fail is silent
+          }
         });
 
-        saveToken(messaging);
+        await saveToken(messaging);
       } catch (err) {
-        console.warn('FCM Setup background wait:', err);
+        // Silently catch registration/push service errors to prevent red screen
+        console.warn('FCM Setup background wait or error:', err);
       }
     };
 
@@ -76,7 +82,8 @@ export function NotificationHandler() {
         }, { merge: true });
       }
     } catch (err) {
-      console.error('Failed to get FCM token:', err);
+      // AbortError is caught here, preventing the Next.js error overlay
+      console.warn('Failed to get FCM token (Push service registration failed):', err);
     }
   };
 
@@ -88,13 +95,14 @@ export function NotificationHandler() {
       
       if (status === 'granted') {
         const messaging = await getFirebaseMessaging();
-        if (messaging) saveToken(messaging);
+        if (messaging) await saveToken(messaging);
         toast({
           title: "Notifications Enabled",
           description: "You'll now receive order and offer updates!",
         });
       }
     } catch (err) {
+      console.warn('Permission request failed:', err);
       setPermission('denied');
     }
   };
