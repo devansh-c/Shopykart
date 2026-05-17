@@ -65,7 +65,6 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
-  // Fetch Categories from Firestore (Dynamic)
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
@@ -160,12 +159,20 @@ export default function VendorDashboard() {
     setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
 
     if (tempEditingId) {
+      // Sync update in both collections
       const vProdRef = doc(firestore, 'vendors', user.uid, 'products', tempEditingId);
+      const rootProdRef = doc(firestore, 'products', tempEditingId);
       updateDoc(vProdRef, productData);
+      updateDoc(rootProdRef, productData);
       toast({ title: "Product Updated" });
     } else {
-      addDoc(collection(firestore, 'vendors', user.uid, 'products'), productData);
-      addDoc(collection(firestore, 'products'), productData);
+      // Create new doc with same ID in both collections
+      const rootProdRef = doc(collection(firestore, 'products'));
+      const productId = rootProdRef.id;
+      const vProdRef = doc(firestore, 'vendors', user.uid, 'products', productId);
+      
+      setDoc(vProdRef, productData);
+      setDoc(rootProdRef, productData);
       toast({ title: "Product Published" });
     }
   };
@@ -173,6 +180,7 @@ export default function VendorDashboard() {
   const handleDeleteProduct = (id: string) => {
     if (!firestore || !user) return;
     deleteDoc(doc(firestore, 'vendors', user.uid, 'products', id));
+    deleteDoc(doc(firestore, 'products', id));
     toast({ title: "Product Deleted" });
   };
 

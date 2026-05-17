@@ -12,23 +12,6 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const MOCK_BANNERS = [
-  {
-    id: 'mock-1',
-    title: '50% OFF',
-    subtitle: 'ON YOUR FIRST ORDER',
-    tag: 'Limited Offer',
-    imageUrl: 'https://picsum.photos/seed/shopy-hero/800/400'
-  },
-  {
-    id: 'mock-2',
-    title: 'FREE DELIVERY',
-    subtitle: 'ON ORDERS ABOVE ₹499',
-    tag: 'Weekend Special',
-    imageUrl: 'https://picsum.photos/seed/shopy-combo/800/400'
-  }
-];
-
 export function OfferSlider() {
   const firestore = useFirestore();
   const bannersQuery = useMemoFirebase(() => {
@@ -46,19 +29,20 @@ export function OfferSlider() {
     );
   }
 
-  // Use real data if available, otherwise fallback to mock ONLY after loading is finished
-  const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
+  if (!dbBanners || dbBanners.length === 0) {
+    return null; // Don't show anything if no banners exist
+  }
 
   return (
     <div className="w-full px-4">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
-          {banners.map((banner: any, index: number) => (
+          {dbBanners.map((banner: any, index: number) => (
             <CarouselItem key={banner.id}>
               <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl">
                 <Image
                   src={banner.imageUrl}
-                  alt={banner.title}
+                  alt={banner.title || 'Offer'}
                   fill
                   className="object-cover"
                   priority={index === 0}
@@ -74,7 +58,7 @@ export function OfferSlider() {
                   <div className="flex items-center">
                     <span className="bg-black/60 backdrop-blur-md text-[9px] text-white px-3 py-1 rounded-full border border-white/20 font-black flex items-center uppercase tracking-widest">
                       <span className="mr-1.5 h-1 w-1 bg-primary rounded-full animate-pulse" />
-                      {banner.tag}
+                      {banner.tag || 'Special Offer'}
                     </span>
                   </div>
                 </div>

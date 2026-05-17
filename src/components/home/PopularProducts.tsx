@@ -17,39 +17,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 
-const MOCK_PRODUCTS = [
-  {
-    id: 'prod-1',
-    name: 'Supreme Margherita Pizza',
-    price: 349,
-    restaurantName: 'The Pizza Studio',
-    imageUrl: 'https://picsum.photos/seed/pizza1/400/300',
-    category: 'pizza',
-    isVeg: true,
-    vendorId: 'store-2'
-  },
-  {
-    id: 'prod-2',
-    name: 'Classic Veggie Crunch',
-    price: 149,
-    restaurantName: 'Bun Burst Burgers',
-    imageUrl: 'https://picsum.photos/seed/burger1/400/300',
-    category: 'burgers',
-    isVeg: true,
-    vendorId: 'store-1'
-  },
-  {
-    id: 'prod-3',
-    name: 'Spicy Paneer Tikka',
-    price: 259,
-    restaurantName: 'Indian Spices',
-    imageUrl: 'https://picsum.photos/seed/paneer1/400/300',
-    category: 'snacks',
-    isVeg: true,
-    vendorId: 'store-1'
-  }
-];
-
 export function PopularProducts({ searchQuery = '', category = 'all' }: { searchQuery?: string, category?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
@@ -65,7 +32,11 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
       };
       updateTown();
       window.addEventListener('user-address-updated', updateTown);
-      return () => window.removeEventListener('user-address-updated', updateTown);
+      window.addEventListener('storage', updateTown);
+      return () => {
+        window.removeEventListener('user-address-updated', updateTown);
+        window.removeEventListener('storage', updateTown);
+      };
     }
   }, []);
 
@@ -82,14 +53,11 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    if (loading) return [];
+    if (!dbProducts) return [];
     
-    let result = dbProducts || [];
+    let result = [...dbProducts];
     
-    if (result.length === 0) {
-      result = MOCK_PRODUCTS;
-    }
-    
+    // Search & Category Filter
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
@@ -98,20 +66,23 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
       return matchesSearch && matchesCategory;
     });
 
-    if (currentTown && !searchQuery && category === 'all' && dbProducts?.length) {
-      const townMatch = result.filter(p => p.town === currentTown);
+    // Town Filtering (Only if no active search)
+    if (currentTown && !searchQuery && category === 'all') {
+      const normalizedTown = currentTown.toLowerCase();
+      const townMatch = result.filter(p => p.town && p.town.toLowerCase().includes(normalizedTown));
       if (townMatch.length > 0) result = townMatch;
     }
 
+    // Sorting
     switch (sortBy) {
-      case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
-      case 'price-high': result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0)); break;
-      case 'name': result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
+      case 'price-low': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case 'price-high': result.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case 'name': result.sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
       default: break;
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, currentTown, loading]);
+  }, [searchQuery, category, sortBy, dbProducts, currentTown]);
 
   if (loading) {
     return (
@@ -207,8 +178,8 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
           })
         ) : (
           <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed opacity-40">
-             <Utensils className="h-12 w-12 mx-auto mb-4" />
-             <p className="font-black italic uppercase text-sm">No items found</p>
+             <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+             <p className="font-black italic uppercase text-sm">No items found in database</p>
           </div>
         )}
       </div>
