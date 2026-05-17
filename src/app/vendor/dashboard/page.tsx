@@ -30,17 +30,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from '@/components/ui/switch';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
@@ -55,7 +48,6 @@ export default function VendorDashboard() {
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderStatus>('Preparing');
-  const [isOnline, setIsOnline] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
@@ -66,6 +58,26 @@ export default function VendorDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
+
+  // Sync Online status from DB
+  const [isOnline, setIsOnline] = useState(true);
+  useEffect(() => {
+    if (vendorProfile) {
+      setIsOnline(vendorProfile.isOnline !== false);
+    }
+  }, [vendorProfile]);
+
+  const handleOnlineToggle = async (checked: boolean) => {
+    setIsOnline(checked);
+    if (firestore && user) {
+      const vRef = doc(firestore, 'vendors', user.uid);
+      await updateDoc(vRef, { isOnline: checked });
+      toast({ 
+        title: checked ? "Store is Online" : "Store is Offline",
+        description: checked ? "You are now accepting new orders." : "New orders are now paused."
+      });
+    }
+  };
 
   // Orders Stream
   const ordersQuery = useMemoFirebase(() => {
@@ -242,7 +254,6 @@ export default function VendorDashboard() {
     if (activeMainTab === 'account') {
       return (
         <div className="flex flex-col bg-[#F3F4F6] min-h-full pb-32">
-          {/* Account Header Sync */}
           <div className="bg-white p-4 flex items-center gap-4 mb-4">
             <button onClick={() => setActiveMainTab('orders')} className="p-2 hover:bg-gray-100 rounded-full">
               <ChevronLeft className="h-5 w-5" />
@@ -251,7 +262,6 @@ export default function VendorDashboard() {
           </div>
 
           <div className="px-4 space-y-4">
-            {/* Banner Section */}
             <div className="relative h-48 w-full rounded-2xl overflow-hidden shadow-sm bg-muted">
               <img 
                 src={vendorProfile?.bannerUrl || 'https://picsum.photos/seed/kfc/800/400'} 
@@ -263,22 +273,20 @@ export default function VendorDashboard() {
               </div>
             </div>
 
-            {/* Rating Card */}
             <div className="bg-white rounded-2xl p-6 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-bold flex items-center gap-1.5">
-                  {vendorProfile?.rating || '4.7'} <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
+                  {vendorProfile?.rating || '4.5'} <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-400">5120 ratings</span>
+                  <span className="text-sm font-bold text-gray-400">Total Ratings</span>
                 </div>
               </div>
               <button className="text-sm font-bold text-gray-400 flex items-center gap-1">
-                View all ratings <ChevronRight className="h-4 w-4" />
+                View all <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Details Card */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold">Account Details</h3>
@@ -301,7 +309,6 @@ export default function VendorDashboard() {
               </div>
             </div>
 
-            {/* Logout Button */}
             <button 
               onClick={handleSignOut}
               className="w-full h-14 bg-red-50 text-red-500 rounded-2xl font-bold text-base mt-4 border border-red-100 active:scale-[0.98] transition-all"
@@ -323,20 +330,18 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
-      {/* Top System Icons Bar */}
       <div className="bg-black text-white px-4 py-2 flex items-center justify-between text-sm">
          <div className="flex items-center gap-4">
             <X className="h-5 w-5" />
             <ChevronLeft className="h-5 w-5" />
          </div>
-         <span className="font-medium tracking-tight">pppp.zepio.io</span>
+         <span className="font-medium tracking-tight">partner.shopykart.com</span>
          <div className="flex items-center gap-4">
             <Share2 className="h-4 w-4" />
             <MoreVertical className="h-4 w-4" />
          </div>
       </div>
 
-      {/* Header Section - Hide on Account tab as it has its own header */}
       {activeMainTab !== 'account' && (
         <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -363,19 +368,17 @@ export default function VendorDashboard() {
              </span>
              <Switch 
               checked={isOnline} 
-              onCheckedChange={setIsOnline} 
+              onCheckedChange={handleOnlineToggle} 
               className="data-[state=checked]:bg-green-500 scale-90"
              />
           </div>
         </header>
       )}
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col bg-[#F3F4F6] overflow-y-auto no-scrollbar">
         {renderContent()}
       </main>
 
-      {/* Dark Bottom Navigation Bar */}
       <nav className="bg-[#0F172A] pt-4 pb-8 px-4 flex items-center justify-between border-t border-white/5">
         {[
           { id: 'orders', label: 'Orders', icon: LayoutDashboard },

@@ -70,14 +70,17 @@ export function StoreSection() {
 
       <div className="flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4">
         {filteredVendors.map((store: any) => {
-          // Priority: Registration Banner > Registration Logo > Placeholder
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/600/400`;
+          const isOffline = store.isOnline === false;
           
           return (
             <Link 
               href={`/menu?vendor=${store.id}`}
               key={store.id} 
-              className="min-w-[300px] max-w-[300px] flex flex-col group active:scale-[0.98] transition-all duration-300"
+              className={cn(
+                "min-w-[300px] max-w-[300px] flex flex-col group active:scale-[0.98] transition-all duration-300",
+                isOffline && "pointer-events-none opacity-80"
+              )}
             >
               <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden shadow-lg border border-border/40 mb-3 bg-muted group-hover:shadow-xl transition-all">
                 <Image 
@@ -88,6 +91,13 @@ export function StoreSection() {
                   loading="eager"
                 />
                 
+                {/* Closed Now Overlay */}
+                {isOffline && (
+                  <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
+                    <span className="text-white font-black text-3xl uppercase italic tracking-tighter shadow-2xl">Closed Now</span>
+                  </div>
+                )}
+
                 <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center shadow-md border border-black/5 z-20">
                   <span className="text-xs font-black mr-1">{store.rating || '4.5'}</span>
                   <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
@@ -120,4 +130,8 @@ export function StoreSection() {
       </div>
     </div>
   );
+}
+
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(' ');
 }

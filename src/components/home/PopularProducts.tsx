@@ -2,7 +2,7 @@
 "use client"
 
 import { useMemo, useState, useEffect } from 'react';
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, Info } from 'lucide-react';
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -40,12 +40,18 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     }
   }, []);
 
-  // Stream-based fetching from global products collection
+  // Fetch Vendors to check online status
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
+
+  // Fetch Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(50));
   }, [firestore]);
-  
   const { data: dbProducts } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
@@ -59,7 +65,6 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       return matchesSearch && matchesCategory;
     });
 
-    // Smart Fallback for location persistence
     if (currentTown && !searchQuery && category === 'all') {
       const townMatch = result.filter(p => p.town === currentTown);
       if (townMatch.length > 0) result = townMatch;
@@ -67,7 +72,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
     switch (sortBy) {
       case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
-      case 'price-high': result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case 'price-high': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
       case 'name': result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
       default: break;
     }
@@ -104,14 +109,16 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const liked = isInWishlist(product.id);
+            const vendor = vendors?.find(v => v.id === product.vendorId);
+            const isOffline = vendor?.isOnline === false;
 
             return (
-              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden relative">
                 <div className="flex-1 pr-4">
                   <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
                     <div className="h-full w-full bg-green-600 rounded-full" />
                   </div>
-                  <Link href={`/product/${product.id}`}>
+                  <Link href={`/product/${product.id}`} className={cn(isOffline && "pointer-events-none")}>
                     <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight">{product.name}</h3>
                     <div className="text-xl font-black text-primary mb-2 italic">₹{product.price?.toFixed(2)}</div>
                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p>
@@ -119,16 +126,26 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
                 </div>
                 
                 <div className="relative w-32 h-32 shrink-0">
-                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                  </Link>
+                    {isOffline && (
+                      <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
+                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed Now</span>
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                     {quantity === 0 ? (
                       <button 
+                        disabled={isOffline}
                         onClick={() => addToCart({ ...product, imageUrl: product.imageUrl })}
-                        className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl"
+                        className={cn(
+                          "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all",
+                          isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none"
+                        )}
                       >
-                        ADD TO BAG
+                        {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>
                     ) : (
                       <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden">

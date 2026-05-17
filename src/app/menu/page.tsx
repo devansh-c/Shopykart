@@ -41,6 +41,8 @@ function MenuContent() {
   }, [firestore, vendorIdParam]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
+  const isOffline = vendorProfile?.isOnline === false;
+
   // Fetch Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -103,6 +105,14 @@ function MenuContent() {
             <Link href="/menu" className="absolute top-6 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
               <X className="h-5 w-5" />
             </Link>
+            
+            {/* Closed Now Overlay for Menu Page */}
+            {isOffline && (
+               <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
+                  <span className="text-white font-black text-4xl uppercase italic tracking-tighter">Closed Now</span>
+               </div>
+            )}
+
             <div className="flex items-end gap-4">
               <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0">
                 <img src={vendorProfile?.imageUrl || `https://picsum.photos/seed/${vendorIdParam}/200/200`} className="h-full w-full object-cover" alt="Logo" />
@@ -177,10 +187,10 @@ function MenuContent() {
             return (
               <div 
                 key={product.id}
-                className="premium-card p-5 flex justify-between items-center bg-white"
+                className="premium-card p-5 flex justify-between items-center bg-white relative overflow-hidden"
               >
                 <div className="flex-1 pr-4">
-                  <Link href={`/product/${product.id}`} className="block">
+                  <Link href={`/product/${product.id}`} className={cn("block", isOffline && "pointer-events-none")}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                         <div className="h-full w-full bg-green-600 rounded-full" />
@@ -198,21 +208,30 @@ function MenuContent() {
                 </div>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
-                  <Link href={`/product/${product.id}`} className="block w-full h-full rounded-2xl overflow-hidden bg-muted">
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <img 
                       src={imageUrl} 
                       alt={product.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                  </Link>
+                    {isOffline && (
+                      <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
+                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2 z-20">
                     {quantity === 0 ? (
                       <button 
+                        disabled={isOffline}
                         onClick={() => addToCart({ ...product, imageUrl })}
-                        className="w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all"
+                        className={cn(
+                          "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all",
+                          isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none"
+                        )}
                       >
-                        ADD TO BAG
+                        {isOffline ? 'CLOSED' : 'ADD TO BAG'}
                       </button>
                     ) : (
                       <div className="flex items-center justify-between w-full h-10 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
@@ -264,7 +283,7 @@ function MenuContent() {
               />
               <Button 
                 onClick={handleCustomRequest}
-                disabled={!requestText.trim()}
+                disabled={!requestText.trim() || isOffline}
                 className="h-14 w-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center justify-center shrink-0"
               >
                 <Send className="h-5 w-5" />
