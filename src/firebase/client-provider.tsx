@@ -20,16 +20,22 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   } | null>(null);
 
   useEffect(() => {
-    // Initialize Firebase only on the client
+    // Initialize Firebase only once on mount
     const results = initializeFirebase();
-    setInstances(results as any);
+    setInstances(results);
   }, []);
+
+  // Show a blank screen or basic loader while Firebase instances are being prepared
+  // This prevents hooks from firing with null instances and prematurely ending loading states
+  if (!instances) {
+    return <div className="min-h-screen bg-white" />;
+  }
 
   return (
     <FirebaseProvider 
-      firebaseApp={instances?.firebaseApp || null} 
-      firestore={instances?.firestore || null} 
-      auth={instances?.auth || null}
+      firebaseApp={instances.firebaseApp} 
+      firestore={instances.firestore} 
+      auth={instances.auth}
     >
       {children}
     </FirebaseProvider>

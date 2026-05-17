@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, Firestore, enableIndexedDbPersistence, terminate, clearIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
@@ -11,13 +11,11 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  const config = firebaseConfig;
-
   try {
     let firebaseApp: FirebaseApp;
     
     if (!getApps().length) {
-      firebaseApp = initializeApp(config);
+      firebaseApp = initializeApp(firebaseConfig);
     } else {
       firebaseApp = getApp();
     }
@@ -25,14 +23,16 @@ export function initializeFirebase() {
     const firestore = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
 
-    // Enable Offline Persistence for Data Reliability
-    enableIndexedDbPersistence(firestore).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore Persistence: Multiple tabs open, persistence disabled.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore Persistence: Browser not supported.');
-      }
-    });
+    // Persistence is handled but we don't await it to prevent blocking initialization
+    if (typeof window !== 'undefined') {
+      enableIndexedDbPersistence(firestore).catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn('Firestore Persistence: Multiple tabs open, persistence might be limited.');
+        } else if (err.code === 'unimplemented') {
+          console.warn('Firestore Persistence: Browser not supported.');
+        }
+      });
+    }
 
     return { firebaseApp, firestore, auth };
   } catch (error) {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -17,8 +18,9 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
+    // If query is null, it means Firestore is still initializing or the query isn't ready.
+    // We stay in loading state.
     if (!query) {
-      setLoading(false);
       return;
     }
 
