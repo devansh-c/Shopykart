@@ -16,9 +16,8 @@ export function NotificationHandler() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [showPrompt, setShowPrompt] = useState(false);
 
-  // STEP 1: Find your VAPID Key in Firebase Console:
-  // Project Settings > Cloud Messaging > Web Push certificates > Key Pair
-  const VAPID_KEY = 'BBA-Your-VAPID-Key-Here'; // <-- PASTE YOUR KEY HERE (Starts with B...)
+  // VAPID Key provided by user
+  const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -65,11 +64,6 @@ export function NotificationHandler() {
 
   const saveToken = async (messaging: any) => {
     try {
-      if (VAPID_KEY === 'BBA-Your-VAPID-Key-Here') {
-        console.warn('Please set your VAPID key in NotificationHandler.tsx');
-        return;
-      }
-
       const token = await getToken(messaging, { vapidKey: VAPID_KEY });
 
       if (token && user && firestore) {
