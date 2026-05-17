@@ -26,7 +26,8 @@
       "properties": {
         "token": { "type": "string" },
         "deviceType": { "type": "string" },
-        "lastUpdated": { "type": "string", "format": "date-time" }
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
       }
     }
   },
@@ -35,6 +36,7 @@
     "/vendors/{vendorId}/products/{productId}": { "schema": "#/entities/Product", "description": "Vendor specific products" },
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
     "/orders/{orderId}": { "schema": "object", "description": "Global orders" },
-    "/users/{userId}/fcmTokens/{tokenId}": { "schema": "#/entities/FCMToken", "description": "User notification tokens" }
+    "/users/{userId}/fcmTokens/{tokenId}": { "schema": "#/entities/FCMToken", "description": "User notification tokens" },
+    "/users/{userId}/profile/data": { "schema": "object", "description": "User profile information" }
   }
 }

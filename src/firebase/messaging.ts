@@ -10,7 +10,10 @@ export async function getFirebaseMessaging() {
   if (typeof window === 'undefined') return null;
   
   const supported = await isSupported();
-  if (!supported) return null;
+  if (!supported) {
+    console.warn("FCM is not supported in this browser.");
+    return null;
+  }
 
   if (!messagingInstance) {
     const { firebaseApp } = initializeFirebase();

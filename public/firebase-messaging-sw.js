@@ -1,7 +1,8 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// These credentials should match your firebaseConfig in config.ts
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+
+// These config values will be replaced by the client initialization but are good to have for standalone SW
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
   authDomain: "studio-4644410857-c7ed7.firebaseapp.com",
@@ -13,22 +14,34 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background notification handler
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.notification.title || 'ShopyKart Update';
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/logo.png' // Replace with your actual logo path
+    body: payload.notification.body || 'New update available.',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    data: payload.data || {}
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Click action handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const urlToOpen = event.notification.data.click_action || '/orders';
+
   event.waitUntil(
-    clients.openWindow('/') // Opens home page, can be customized to /orders or specific IDs
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });

@@ -7,7 +7,7 @@ import { getFirebaseMessaging } from '@/firebase/messaging';
 import { getToken, onMessage } from 'firebase/messaging';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { BellRing } from 'lucide-react';
+import { BellRing, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function NotificationHandler() {
@@ -17,11 +17,14 @@ export function NotificationHandler() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [showPrompt, setShowPrompt] = useState(false);
 
+  // YOUR VAPID KEY
   const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPermission(Notification.permission);
+      
+      // Delay prompt slightly for better UX
       if (Notification.permission === 'default' && user) {
         const timer = setTimeout(() => setShowPrompt(true), 5000);
         return () => clearTimeout(timer);
@@ -43,16 +46,16 @@ export function NotificationHandler() {
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
+        // Foreground listener
         onMessage(messaging, (payload) => {
-          // Play notification sound
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-          audio.play().catch(e => console.log("Sound blocked"));
+          audio.play().catch(() => {});
 
           toast({
-            title: payload.notification?.title || 'ShopyKart Update',
-            description: payload.notification?.body || 'Check your orders for updates.',
+            title: payload.notification?.title || 'ShopyKart Notification',
+            description: payload.notification?.body || 'New update received.',
             action: (
-              <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = '/orders'}>
+              <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = payload.data?.click_action || '/orders'}>
                 VIEW
               </Button>
             ),
@@ -61,7 +64,7 @@ export function NotificationHandler() {
 
         await saveToken(messaging);
       } catch (err) {
-        // Silent fail for background setup
+        console.error("Messaging setup error:", err);
       }
     };
 
@@ -78,12 +81,11 @@ export function NotificationHandler() {
           deviceType: 'web',
           lastUpdated: serverTimestamp(),
           userId: user.uid
-        }, { merge: true }).catch(e => {
-          // Silent error for tokens
-        });
+        }, { merge: true });
+        console.log("FCM Token saved to Firestore:", token);
       }
     } catch (err) {
-      // Token retrieval failed
+      console.error("Token retrieval failed:", err);
     }
   };
 
@@ -95,10 +97,10 @@ export function NotificationHandler() {
       if (status === 'granted') {
         const messaging = await getFirebaseMessaging();
         if (messaging) await saveToken(messaging);
-        toast({ title: "Notifications Enabled!", description: "You will now receive order alerts." });
+        toast({ title: "Notifications Enabled!", description: "You will now receive real-time order alerts." });
       }
     } catch (err) {
-      // Permission block
+      console.error("Permission request failed:", err);
     }
   };
 
@@ -113,8 +115,8 @@ export function NotificationHandler() {
             <BellRing className="h-5 v-5 text-primary animate-bounce" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Enable Alerts</span>
-            <span className="text-xs font-bold leading-tight">Get real-time order updates.</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary leading-none mb-1">Stay Notified</span>
+            <span className="text-xs font-bold leading-tight">Enable alerts for order updates and premium offers.</span>
           </div>
         </div>
         <div className="flex gap-2 items-center">

@@ -122,12 +122,22 @@ export default function VendorDashboard() {
 
     if (hasNewOrder) {
       setShowOrderAlert(true);
+      
       // Start Ringing
       if (!audioRef.current) {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
       audioRef.current.play().catch(() => console.log("Audio waiting for interaction..."));
+
+      // Browser Push Trigger (Local Fallback)
+      if (Notification.permission === 'granted') {
+        new Notification("NEW ORDER RECEIVED!", {
+          body: `You have a new pending order on ShopyKart.`,
+          icon: '/favicon.ico',
+          tag: 'new-order-alert'
+        });
+      }
 
       // Start Vibration
       if ("vibrate" in navigator) {
@@ -669,7 +679,7 @@ export default function VendorDashboard() {
         <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-500">
           <div className="flex items-center gap-3">
             <div className="bg-amber-500/10 p-2 rounded-xl">
-              < स्मार्टफोन className="h-5 w-5 text-amber-600" />
+              <Smartphone className="h-5 w-5 text-amber-600" />
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 leading-none">Enable Alerts</p>
