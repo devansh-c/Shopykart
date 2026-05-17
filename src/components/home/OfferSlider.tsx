@@ -47,7 +47,7 @@ export function OfferSlider() {
         <CarouselContent>
           {banners.map((banner: any, index: number) => (
             <CarouselItem key={banner.id}>
-              <div className="relative h-[140px] w-full overflow-hidden shadow-sm rounded-[2rem]">
+              <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl">
                 <Image
                   src={banner.imageUrl}
                   alt={banner.title}
