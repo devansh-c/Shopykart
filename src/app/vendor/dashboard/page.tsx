@@ -260,7 +260,6 @@ export default function VendorDashboard() {
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-5 pt-4">
-                  {/* Gallery Upload Section */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Upload from Phone Gallery *</label>
                     <div 
@@ -443,18 +442,6 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
-      <div className="bg-black text-white px-4 py-2 flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-         <div className="flex items-center gap-4">
-            <X className="h-4 w-4" />
-            <ChevronLeft className="h-4 w-4" />
-         </div>
-         <span className="tracking-tighter italic">partner.shopykart.com</span>
-         <div className="flex items-center gap-4">
-            <Share2 className="h-4 w-4" />
-            <MoreVertical className="h-4 w-4" />
-         </div>
-      </div>
-
       {activeMainTab !== 'account' && (
         <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
           <div className="flex items-center gap-3">
