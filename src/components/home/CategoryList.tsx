@@ -12,6 +12,15 @@ type CategoryListProps = {
   onCategoryChange?: (id: string) => void;
 };
 
+const DEFAULT_CATEGORIES = [
+  { id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' },
+  { id: 'snacks', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100' },
+  { id: 'pizza', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100' },
+  { id: 'burgers', name: 'Burgers', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100' },
+  { id: 'pasta', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100' },
+  { id: 'drinks', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100' },
+];
+
 export function CategoryList({ activeCategory = 'all', onCategoryChange }: CategoryListProps) {
   const firestore = useFirestore();
 
@@ -22,24 +31,19 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: Categ
 
   const { data: dbCategories } = useCollection<any>(categoriesQuery);
 
-  // Default initial categories if none exist in DB
-  const defaultCategories = [
-    { id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' },
-  ];
-
   const categories = dbCategories && dbCategories.length > 0 
     ? [{ id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' }, ...dbCategories.map(c => ({ id: c.name.toLowerCase(), name: c.name, imageUrl: c.imageUrl }))]
-    : defaultCategories;
+    : DEFAULT_CATEGORIES;
 
   return (
     <div className="py-4">
-      <div className="flex items-center justify-between px-4 mb-5">
+      <div className="flex items-center justify-between px-6 mb-5">
         <h2 className="text-2xl font-black italic tracking-tighter uppercase">Categories</h2>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline">
           See all
         </Link>
       </div>
-      <div className="flex overflow-x-auto space-x-6 px-4 no-scrollbar">
+      <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
 

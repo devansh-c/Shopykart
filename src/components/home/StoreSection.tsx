@@ -9,6 +9,39 @@ import { collection } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
+const MOCK_STORES = [
+  {
+    id: 'store-1',
+    storeName: 'Bun Burst Burgers',
+    category: 'Fast Food',
+    rating: '4.8',
+    address: 'Near Main Market, Ranipur',
+    bannerUrl: 'https://picsum.photos/seed/store1/800/400',
+    isOnline: true,
+    status: 'approved'
+  },
+  {
+    id: 'store-2',
+    storeName: 'The Pizza Studio',
+    category: 'Italian',
+    rating: '4.5',
+    address: 'Station Road, Mauranipur',
+    bannerUrl: 'https://picsum.photos/seed/store2/800/400',
+    isOnline: true,
+    status: 'approved'
+  },
+  {
+    id: 'store-3',
+    storeName: 'Sweet Tooth Delights',
+    category: 'Desserts',
+    rating: '4.9',
+    address: 'Civil Lines, Ranipur',
+    bannerUrl: 'https://picsum.photos/seed/store3/800/400',
+    isOnline: true,
+    status: 'approved'
+  }
+];
+
 export function StoreSection() {
   const [currentTown, setCurrentTown] = useState<string | null>(null);
   const firestore = useFirestore();
@@ -35,19 +68,24 @@ export function StoreSection() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
-    if (!dbVendors) return [];
-    let result = dbVendors.filter(v => v.status === 'approved');
+    let result = dbVendors?.filter(v => v.status === 'approved') || [];
+    
+    // Fallback to mock stores if DB is empty
+    if (!loading && result.length === 0) {
+      result = MOCK_STORES;
+    }
+
     if (currentTown) {
-      const townMatch = result.filter(v => v.town === currentTown);
+      const townMatch = result.filter(v => v.town === currentTown || v.address?.includes(currentTown));
       if (townMatch.length > 0) result = townMatch;
     }
     return result;
-  }, [dbVendors, currentTown]);
+  }, [dbVendors, currentTown, loading]);
 
-  if (!filteredVendors || filteredVendors.length === 0) return null;
+  if (filteredVendors.length === 0 && loading) return null;
 
   return (
     <div className="py-2 px-4">
@@ -74,7 +112,6 @@ export function StoreSection() {
                 isOffline && "pointer-events-none opacity-80"
               )}
             >
-              {/* Store Image - Reduced height for compactness */}
               <div className="relative h-36 w-full bg-muted">
                 <Image 
                   src={displayImage} 
@@ -84,12 +121,10 @@ export function StoreSection() {
                   loading="lazy"
                 />
                 
-                {/* Promoted Tag */}
                 <div className="absolute top-2.5 left-2.5 bg-black/40 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
                   Promoted
                 </div>
 
-                {/* Closed Overlay */}
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-2xl uppercase italic tracking-tighter shadow-2xl">Closed Now</span>
@@ -97,7 +132,6 @@ export function StoreSection() {
                 )}
               </div>
 
-              {/* Store Details - Reduced padding */}
               <div className="p-3">
                 <div className="flex justify-between items-start mb-0.5">
                   <h3 className="text-base font-black text-foreground italic tracking-tight leading-tight">{store.storeName}</h3>

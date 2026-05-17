@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/carousel"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { Loader2 } from "lucide-react"
 
 const MOCK_BANNERS = [
   {
@@ -36,9 +35,9 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners } = useCollection(bannersQuery);
+  const { data: dbBanners, loading } = useCollection(bannersQuery);
 
-  // Always show mock data first, replace with DB data if it exists
+  // Fallback to mock data if DB is empty or still loading initial state
   const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
 
   return (

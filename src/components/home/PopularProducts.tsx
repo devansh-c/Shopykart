@@ -16,6 +16,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const MOCK_PRODUCTS = [
+  {
+    id: 'prod-1',
+    name: 'Supreme Margherita Pizza',
+    price: 349,
+    restaurantName: 'The Pizza Studio',
+    imageUrl: 'https://picsum.photos/seed/pizza1/400/300',
+    category: 'pizza',
+    isVeg: true,
+    vendorId: 'store-2'
+  },
+  {
+    id: 'prod-2',
+    name: 'Classic Veggie Crunch',
+    price: 149,
+    restaurantName: 'Bun Burst Burgers',
+    imageUrl: 'https://picsum.photos/seed/burger1/400/300',
+    category: 'burgers',
+    isVeg: true,
+    vendorId: 'store-1'
+  },
+  {
+    id: 'prod-3',
+    name: 'Spicy Paneer Tikka',
+    price: 259,
+    restaurantName: 'Indian Spices',
+    imageUrl: 'https://picsum.photos/seed/paneer1/400/300',
+    category: 'snacks',
+    isVeg: true,
+    vendorId: 'store-1'
+  }
+];
+
 type PopularProductsProps = {
   searchQuery?: string;
   category?: string;
@@ -40,24 +73,28 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     }
   }, []);
 
-  // Fetch Vendors to check online status
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  // Fetch Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(50));
+    // Simplified query for better fallback performance
+    return query(collection(firestore, 'products'), limit(50));
   }, [firestore]);
-  const { data: dbProducts } = useCollection<any>(productsQuery);
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    if (!dbProducts) return [];
+    let result = dbProducts || [];
     
-    let result = dbProducts.filter(product => {
+    // Fallback to mock products if DB is empty and not loading
+    if (!loading && result.length === 0) {
+      result = MOCK_PRODUCTS;
+    }
+    
+    result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
       const matchesSearch = name.includes(searchQuery.toLowerCase()) || cat.includes(searchQuery.toLowerCase());
@@ -65,20 +102,22 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
       return matchesSearch && matchesCategory;
     });
 
-    if (currentTown && !searchQuery && category === 'all') {
+    if (currentTown && !searchQuery && category === 'all' && dbProducts?.length) {
       const townMatch = result.filter(p => p.town === currentTown);
       if (townMatch.length > 0) result = townMatch;
     }
 
     switch (sortBy) {
       case 'price-low': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
-      case 'price-high': result = [...result].sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case 'price-high': result = [...result].sort((a, b) => (b.price || 0) - (a.price || 0)); break;
       case 'name': result = [...result].sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
       default: break;
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, currentTown]);
+  }, [searchQuery, category, sortBy, dbProducts, currentTown, loading]);
+
+  if (filteredAndSortedProducts.length === 0 && loading) return null;
 
   return (
     <div className="px-4 py-8">

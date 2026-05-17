@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Copy, Tag } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -33,9 +33,9 @@ export function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons } = useCollection(couponsQuery);
+  const { data: dbCoupons, loading } = useCollection(couponsQuery);
 
-  // Fallback to mock coupons immediately to avoid stuck loading
+  // Fallback to mock coupons immediately to avoid blank section
   const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
 
   const handleCopy = (code: string) => {
@@ -50,11 +50,11 @@ export function OffersSection() {
 
   return (
     <div className="py-4">
-      <div className="flex items-center px-4 mb-4">
+      <div className="flex items-center px-6 mb-4">
         <span className="text-xl mr-2">🏷️</span>
         <h2 className="text-2xl font-black tracking-tight">Offers & Coupons</h2>
       </div>
-      <div className="flex overflow-x-auto space-x-4 px-4 no-scrollbar">
+      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar">
         {coupons.map((coupon: any) => (
           <div 
             key={coupon.id}
