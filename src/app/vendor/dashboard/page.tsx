@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -114,7 +115,20 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  // Forced Ringing & Vibration Logic
+  const showLocalNotification = (title: string, body: string) => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, { body, icon: 'https://picsum.photos/seed/shopy-logo/100/100' });
+        }).catch(() => new Notification(title, { body }));
+      } else {
+        new Notification(title, { body });
+      }
+    }
+  };
+
+  // Aggressive Alert Logic
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -123,41 +137,24 @@ export default function VendorDashboard() {
     if (hasNewOrder) {
       setShowOrderAlert(true);
       
-      // Start Ringing
+      // Ring
       if (!audioRef.current) {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      audioRef.current.play().catch(() => console.log("Audio waiting for interaction..."));
+      audioRef.current.play().catch(() => {});
 
-      // Browser Push Trigger (Local Fallback via Service Worker)
-      if (Notification.permission === 'granted') {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification("NEW ORDER RECEIVED!", {
-              body: `You have a new pending order on ShopyKart.`,
-              icon: 'https://picsum.photos/seed/shopy-logo/100/100',
-              tag: 'new-order-alert'
-            });
-          }).catch(() => {
-            // Fallback to Service Worker registration if constructor is blocked
-            try {
-              navigator.serviceWorker.getRegistration().then(reg => {
-                reg?.showNotification("NEW ORDER RECEIVED!");
-              });
-            } catch(e) {}
-          });
-        }
-      }
+      // Browser Push Trigger
+      showLocalNotification("NEW ORDER RECEIVED!", "You have a new pending order on ShopyKart.");
 
-      // Start Vibration
+      // Vibration
       if ("vibrate" in navigator) {
         const vibrateInterval = setInterval(() => {
           if (!orders?.some(o => o.status === 'Placed')) {
             clearInterval(vibrateInterval);
             return;
           }
-          navigator.vibrate([500, 200, 500, 200, 500]);
+          navigator.vibrate([500, 200, 500]);
         }, 2000);
         return () => {
           clearInterval(vibrateInterval);
@@ -169,14 +166,11 @@ export default function VendorDashboard() {
       }
     } else {
       setShowOrderAlert(false);
-      // Stop Ringing
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
-      if ("vibrate" in navigator) {
-        navigator.vibrate(0);
-      }
+      if ("vibrate" in navigator) navigator.vibrate(0);
     }
   }, [orders]);
 
@@ -424,7 +418,9 @@ export default function VendorDashboard() {
                   <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">
                     {editingId ? 'Edit Item' : 'New Menu Item'}
                   </DialogTitle>
-                  <DialogDescription className="sr-only">Add or modify items in your store menu catalog.</DialogDescription>
+                  <DialogDescription className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Fill the details to publish your dish.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-5 pt-4">
                   <div className="space-y-2">
@@ -690,27 +686,6 @@ export default function VendorDashboard() {
             </div>
           </div>
         </header>
-      )}
-
-      {/* Critical Notification Check for Vendors */}
-      {notifPermission === 'default' && (
-        <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-500/10 p-2 rounded-xl">
-              <Smartphone className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 leading-none">Enable Alerts</p>
-              <p className="text-[9px] font-bold text-amber-600 uppercase mt-0.5">Receive order updates when app is closed</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => window.dispatchEvent(new CustomEvent('request-notifications'))}
-            className="bg-amber-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-600/20"
-          >
-            ENABLE
-          </button>
-        </div>
       )}
 
       <main className="flex-1 flex flex-col bg-[#F3F4F6] overflow-y-auto no-scrollbar">

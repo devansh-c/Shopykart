@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -57,17 +58,15 @@ export default function CartPage() {
     }
   }, []);
 
-  // Fetch some items for complete meal recommendations
   const prodsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
   const { data: dbProducts } = useCollection<any>(prodsQuery);
 
-  // Calculate costs
   const packagingFee = 10;
   const gst = totalPrice * 0.05;
-  const deliveryFee = orderType === 'Delivery' ? 0 : 0; 
+  const deliveryFee = 0; 
   const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
   if (totalItems === 0 && !showSuccess) {
@@ -85,6 +84,27 @@ export default function CartPage() {
       </div>
     );
   }
+
+  const showLocalNotification = (title: string, body: string) => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    if (Notification.permission === 'granted') {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+            body: body,
+            icon: "https://picsum.photos/seed/shopy-logo/100/100",
+            tag: 'order-success-' + Date.now()
+          });
+        }).catch(() => {
+          // Standard constructor fallback if SW not ready
+          new Notification(title, { body });
+        });
+      } else {
+        new Notification(title, { body });
+      }
+    }
+  };
 
   const handleCheckout = () => {
     if (!user || !firestore) {
@@ -112,20 +132,11 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
-        // Trigger immediate browser notification for the customer via Service Worker
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-              registration.showNotification("Order Confirmed! 🚀", {
-                body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
-                icon: "https://picsum.photos/seed/shopy-logo/100/100",
-                tag: 'order-success-' + orderId
-              });
-            }).catch(() => {
-              try { new Notification("Order Confirmed! 🚀", { body: "Thank You For Ordering Shopykart" }); } catch(e) {}
-            });
-          }
-        }
+        // Trigger immediate browser notification
+        showLocalNotification(
+          "Order Confirmed! 🚀", 
+          "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes"
+        );
       })
       .catch(async (err) => {
         const pErr = new FirestorePermissionError({ 

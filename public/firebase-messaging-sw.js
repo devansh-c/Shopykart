@@ -1,8 +1,9 @@
 
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+// Scripts for firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-messaging-compat.js');
 
-// These config values will be replaced by the client initialization but are good to have for standalone SW
+// Initialize the Firebase app in the service worker by passing in your app's Firebase config object
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
   authDomain: "studio-4644410857-c7ed7.firebaseapp.com",
@@ -12,36 +13,17 @@ firebase.initializeApp({
   appId: "1:78698058459:web:9826a05410288f8eed32fe"
 });
 
+// Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title || 'ShopyKart Update';
+  const notificationTitle = payload.notification.title;
   const notificationOptions = {
-    body: payload.notification.body || 'New update available.',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
-    data: payload.data || {}
+    body: payload.notification.body,
+    icon: 'https://picsum.photos/seed/shopy-logo/100/100',
+    data: payload.data
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const urlToOpen = event.notification.data.click_action || '/orders';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (var i = 0; i < windowClients.length; i++) {
-        var client = windowClients[i];
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
-  );
 });

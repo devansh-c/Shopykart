@@ -17,14 +17,12 @@ export function NotificationHandler() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [showPrompt, setShowPrompt] = useState(false);
 
-  // YOUR VAPID KEY
   const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPermission(Notification.permission);
       
-      // Delay prompt slightly for better UX
       if (Notification.permission === 'default' && user) {
         const timer = setTimeout(() => setShowPrompt(true), 5000);
         return () => clearTimeout(timer);
@@ -43,11 +41,17 @@ export function NotificationHandler() {
 
     const setupMessaging = async () => {
       try {
+        // Register Service Worker explicitly for FCM
+        if ('serviceWorker' in navigator) {
+          await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        }
+
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
         // Foreground listener
         onMessage(messaging, (payload) => {
+          console.log("Foreground Message received:", payload);
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
           audio.play().catch(() => {});
 
@@ -82,7 +86,7 @@ export function NotificationHandler() {
           lastUpdated: serverTimestamp(),
           userId: user.uid
         }, { merge: true });
-        console.log("FCM Token saved to Firestore:", token);
+        console.log("FCM Token saved to Firestore");
       }
     } catch (err) {
       console.error("Token retrieval failed:", err);
