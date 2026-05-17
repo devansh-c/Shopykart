@@ -8,7 +8,6 @@ import {
   ShoppingBag, 
   Trash2, 
   Plus, 
-  Camera, 
   LogOut,
   Utensils,
   Package,
@@ -18,16 +17,9 @@ import {
   CircleDollarSign,
   UserCircle2,
   ChevronLeft,
-  X,
-  Share2,
-  MoreVertical,
   Star,
   ChevronRight,
-  Phone,
-  Mail,
-  Store,
   Edit,
-  Check,
   ImageIcon,
   ImagePlus
 } from 'lucide-react';
@@ -62,7 +54,7 @@ export default function VendorDashboard() {
     name: '', 
     price: '', 
     description: '', 
-    category: 'snacks', 
+    category: '', 
     imageUrl: '', 
     isVeg: true 
   });
@@ -72,6 +64,13 @@ export default function VendorDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
+
+  // Fetch Categories from Firestore (Dynamic)
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+  const { data: dynamicCategories } = useCollection<any>(categoriesQuery);
 
   const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
@@ -117,7 +116,7 @@ export default function VendorDashboard() {
       name: product.name,
       price: product.price.toString(),
       description: product.description || '',
-      category: product.category || 'snacks',
+      category: product.category || '',
       imageUrl: product.imageUrl || '',
       isVeg: product.isVeg !== false
     });
@@ -137,8 +136,8 @@ export default function VendorDashboard() {
 
   const handleAddProduct = () => {
     if (!firestore || !user || !vendorProfile) return;
-    if (!newProduct.name || !newProduct.price || !newProduct.imageUrl) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price and Photo are required." });
+    if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
+      toast({ variant: "destructive", title: "Incomplete", description: "Name, Price, Category and Photo are required." });
       return;
     }
 
@@ -155,11 +154,10 @@ export default function VendorDashboard() {
       imageUrl: newProduct.imageUrl
     };
 
-    // INSTANT FEEDBACK: Close dialog immediately
     setIsAddOpen(false);
     const tempEditingId = editingId;
     setEditingId(null);
-    setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
+    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
 
     if (tempEditingId) {
       const vProdRef = doc(firestore, 'vendors', user.uid, 'products', tempEditingId);
@@ -247,7 +245,7 @@ export default function VendorDashboard() {
               setIsAddOpen(val);
               if(!val) {
                 setEditingId(null);
-                setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
+                setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
               }
             }}>
               <DialogTrigger asChild>
@@ -301,14 +299,18 @@ export default function VendorDashboard() {
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Collection *</label>
                       <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                        <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none px-5 text-base font-bold focus:ring-1 focus:ring-primary/20"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none px-5 text-base font-bold focus:ring-1 focus:ring-primary/20">
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
                         <SelectContent className="rounded-2xl">
-                          <SelectItem value="snacks" className="font-bold">Snacks</SelectItem>
-                          <SelectItem value="burgers" className="font-bold">Burgers</SelectItem>
-                          <SelectItem value="pizza" className="font-bold">Pizza</SelectItem>
-                          <SelectItem value="pasta" className="font-bold">Pasta</SelectItem>
-                          <SelectItem value="fries" className="font-bold">Fries</SelectItem>
-                          <SelectItem value="drinks" className="font-bold">Drinks</SelectItem>
+                          {dynamicCategories?.map((cat: any) => (
+                            <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold uppercase tracking-tight">
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                          {(!dynamicCategories || dynamicCategories.length === 0) && (
+                            <SelectItem value="snacks" className="font-bold">Snacks (Default)</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>

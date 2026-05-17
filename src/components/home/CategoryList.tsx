@@ -2,19 +2,10 @@
 "use client"
 
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-
-const categories = [
-  { id: 'all', name: 'All', imageId: 'category-all' },
-  { id: 'snacks', name: 'Snacks', imageId: 'category-snacks', badge: '🥟' },
-  { id: 'pizza', name: 'Pizza', imageId: 'category-pizza', badge: '🍕' },
-  { id: 'burgers', name: 'Burgers', imageId: 'category-burger', badge: '🍔' },
-  { id: 'pasta', name: 'Pasta', imageId: 'category-pasta', badge: '🍝' },
-  { id: 'fries', name: 'Fries', imageId: 'category-fries', badge: '🍟' },
-  { id: 'drinks', name: 'Drinks', imageId: 'category-drinks', badge: '🥤' },
-];
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 type CategoryListProps = {
   activeCategory?: string;
@@ -22,6 +13,24 @@ type CategoryListProps = {
 };
 
 export function CategoryList({ activeCategory = 'all', onCategoryChange }: CategoryListProps) {
+  const firestore = useFirestore();
+
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+
+  const { data: dbCategories } = useCollection<any>(categoriesQuery);
+
+  // Default initial categories if none exist in DB
+  const defaultCategories = [
+    { id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' },
+  ];
+
+  const categories = dbCategories && dbCategories.length > 0 
+    ? [{ id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' }, ...dbCategories.map(c => ({ id: c.name.toLowerCase(), name: c.name, imageUrl: c.imageUrl }))]
+    : defaultCategories;
+
   return (
     <div className="py-4">
       <div className="flex items-center justify-between px-4 mb-5">
@@ -32,7 +41,6 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: Categ
       </div>
       <div className="flex overflow-x-auto space-x-6 px-4 no-scrollbar">
         {categories.map((cat) => {
-          const img = PlaceHolderImages.find(p => p.id === cat.imageId);
           const isActive = activeCategory === cat.id;
 
           return (
@@ -46,16 +54,11 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: Categ
                 isActive ? "border-primary ring-4 ring-primary/10 scale-105" : "border-transparent bg-muted/30"
               )}>
                 <Image
-                  src={img?.imageUrl || `https://picsum.photos/seed/${cat.id}/100/100`}
+                  src={cat.imageUrl || `https://picsum.photos/seed/${cat.id}/100/100`}
                   alt={cat.name}
                   fill
                   className="object-cover"
                 />
-                {cat.badge && (
-                  <div className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-md border border-border/50 translate-x-1 translate-y-1">
-                    <span className="text-xs leading-none">{cat.badge}</span>
-                  </div>
-                )}
               </div>
               <span className={cn(
                 "text-[10px] font-black transition-colors uppercase tracking-tight",

@@ -1,21 +1,21 @@
 
 "use client"
 
-import { useState } from 'react';
-import { Plus, Trash2, Tag, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Tag, Image as ImageIcon, Loader2, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 export function BannerManagement() {
   const firestore = useFirestore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const bannersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -31,6 +31,16 @@ export function BannerManagement() {
   const [tag, setTag] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDelete = (id: string) => {
     if (!firestore) return;
     const docRef = doc(firestore, 'banners', id);
@@ -42,7 +52,10 @@ export function BannerManagement() {
   };
 
   const handleSave = () => {
-    if (!firestore || !title || !selectedImage) return;
+    if (!firestore || !title || !selectedImage) {
+      toast({ variant: "destructive", title: "Incomplete", description: "Please add Title and Image." });
+      return;
+    }
 
     const bannerData = {
       title,
@@ -82,6 +95,31 @@ export function BannerManagement() {
               <DialogTitle className="font-black italic uppercase">New Banner Slider</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "relative h-48 w-full border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-muted/20",
+                  selectedImage ? "border-primary/50" : "border-gray-200"
+                )}
+              >
+                {selectedImage ? (
+                  <>
+                    <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                       <div className="bg-white p-3 rounded-full text-primary"><ImagePlus className="h-6 w-6" /></div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <div className="bg-white p-4 rounded-3xl shadow-sm border border-border/50">
+                      <ImageIcon className="h-8 w-8 text-primary/40" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Select Banner from Gallery</span>
+                  </div>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Banner Title (e.g. 50% OFF)</label>
                 <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
@@ -94,24 +132,6 @@ export function BannerManagement() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tag (e.g. Limited Time)</label>
                 <Input value={tag} onChange={e => setTag(e.target.value)} placeholder="Tag" />
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Background</label>
-                <div className="grid grid-cols-4 gap-2 max-h-[150px] overflow-y-auto no-scrollbar p-1">
-                  {PlaceHolderImages.filter(img => img.id.includes('hero') || img.id.includes('combo')).map(img => (
-                    <button
-                      key={img.id}
-                      onClick={() => setSelectedImage(img.imageUrl)}
-                      className={cn(
-                        "aspect-video rounded-lg overflow-hidden border-2",
-                        selectedImage === img.imageUrl ? "border-primary" : "border-transparent"
-                      )}
-                    >
-                      <img src={img.imageUrl} className="h-full w-full object-cover" alt="" />
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic rounded-xl h-12">Publish Banner</Button>
             </div>
@@ -120,16 +140,12 @@ export function BannerManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {loading ? (
-          <div className="col-span-full flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : banners && banners.length > 0 ? (
+        {banners && banners.length > 0 ? (
           banners.map((banner: any) => (
             <div key={banner.id} className="bg-white rounded-2xl border p-1 overflow-hidden group">
-              <div className="relative h-40 bg-muted rounded-xl flex items-center justify-center m-1">
-                <img src={banner.imageUrl} className="absolute inset-0 w-full h-full object-cover rounded-xl" alt="" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5 rounded-xl">
+              <div className="relative h-40 bg-muted rounded-xl flex items-center justify-center m-1 overflow-hidden">
+                <img src={banner.imageUrl} className="absolute inset-0 w-full h-full object-cover" alt="" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
                   <h3 className="text-white font-black text-2xl italic tracking-tighter leading-none">{banner.title}</h3>
                   <p className="text-primary text-[10px] font-black uppercase tracking-widest mt-1">{banner.subtitle}</p>
                 </div>

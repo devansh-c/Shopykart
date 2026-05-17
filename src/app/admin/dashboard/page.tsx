@@ -18,7 +18,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -32,15 +33,17 @@ import { OrderManagement } from '@/components/admin/OrderManagement';
 import { ReviewManagement } from '@/components/admin/ReviewManagement';
 import { DiscountManagement } from '@/components/admin/DiscountManagement';
 import { StoreManagement } from '@/components/admin/StoreManagement';
+import { CategoryManagement } from '@/components/admin/CategoryManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'stores', label: 'Stores', icon: Store },
+  { id: 'categories', label: 'Categories', icon: Tag },
   { id: 'catalog', label: 'Catalog', icon: Layers },
+  { id: 'design', label: 'Banners', icon: Feather },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
-  { id: 'design', label: 'Design', icon: Feather },
   { id: 'fleet', label: 'Delivery Fleet', icon: Bike },
   { id: 'mission', label: 'Mission Control', icon: Rocket },
   { id: 'customers', label: 'Customers', icon: Users },
@@ -78,6 +81,8 @@ export default function AdminDashboard() {
         return <AdminOverview />;
       case 'stores':
         return <StoreManagement />;
+      case 'categories':
+        return <CategoryManagement />;
       case 'catalog':
         return <ProductManagement />;
       case 'design':
@@ -159,7 +164,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+      <main className="flex-1 p-8 max-w-7xl mx-auto w-full overflow-y-auto no-scrollbar">
         <header className="mb-8">
           <h2 className="text-3xl font-black italic uppercase">
             {menuItems.find(i => i.id === activeTab)?.label}
