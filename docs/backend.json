@@ -18,12 +18,23 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price", "vendorId"]
+    },
+    "FCMToken": {
+      "title": "FCM Token",
+      "description": "Browser push notification token",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "deviceType": { "type": "string" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
     "/vendors/{vendorId}": { "schema": "object", "description": "Store profiles" },
     "/vendors/{vendorId}/products/{productId}": { "schema": "#/entities/Product", "description": "Vendor specific products" },
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
-    "/orders/{orderId}": { "schema": "object", "description": "Global orders" }
+    "/orders/{orderId}": { "schema": "object", "description": "Global orders" },
+    "/users/{userId}/fcmTokens/{tokenId}": { "schema": "#/entities/FCMToken", "description": "User notification tokens" }
   }
 }

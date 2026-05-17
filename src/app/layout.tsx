@@ -10,6 +10,7 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { NotificationHandler } from '@/components/shared/NotificationHandler';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
@@ -24,6 +25,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       {showAuth && <EmailAuth />}
       <div className={showAuth ? "hidden" : ""}>
         {!isExcludedPath && <LocationRequest />}
+        <NotificationHandler />
         {children}
         {!isExcludedPath && <FloatingCart />}
       </div>
