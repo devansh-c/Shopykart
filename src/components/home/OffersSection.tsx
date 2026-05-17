@@ -1,6 +1,6 @@
 "use client"
 
-import { Copy } from 'lucide-react';
+import { Copy, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -45,7 +45,7 @@ export function OffersSection() {
                 <p className="text-[10px] font-bold opacity-80 mt-1.5 uppercase tracking-wider">{coupon.minOrder}</p>
               </div>
               <div className="bg-white/20 backdrop-blur-sm self-start px-3 py-1 rounded-full border border-white/10">
-                <span className="text-[10px] font-black uppercase tracking-widest">{coupon.type}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{coupon.type || 'PROMO'}</span>
               </div>
             </div>
             
@@ -60,7 +60,7 @@ export function OffersSection() {
                 className="flex items-center text-[8px] font-black bg-white/20 backdrop-blur-md text-white px-2 py-1.5 rounded-lg active:scale-95 transition-all border border-white/20"
               >
                 <Copy className="h-2.5 w-2.5 mr-1" />
-                Tap to copy
+                Copy
               </button>
             </div>
           </div>

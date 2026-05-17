@@ -2,7 +2,6 @@
 
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
@@ -16,27 +15,37 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: { act
 
   const { data: dbCategories, loading } = useCollection<any>(categoriesQuery);
 
-  // If no categories in DB, we don't show the section or show a minimal one
   if (loading || !dbCategories || dbCategories.length === 0) return null;
-
-  const categories = [{ id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' }, ...dbCategories.map(c => ({ id: c.name.toLowerCase(), name: c.name, imageUrl: c.imageUrl }))];
 
   return (
     <div className="py-4">
       <div className="flex items-center justify-between px-6 mb-5">
         <h2 className="text-2xl font-black italic tracking-tighter uppercase">Categories</h2>
-        <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline">
-          See all
-        </Link>
       </div>
       <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar">
-        {categories.map((cat) => {
-          const isActive = activeCategory === cat.id;
+        <button 
+          onClick={() => onCategoryChange?.('all')}
+          className="flex flex-col items-center space-y-2 min-w-[70px] relative group"
+        >
+          <div className={cn(
+            "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300 flex items-center justify-center bg-white",
+            activeCategory === 'all' ? "border-primary ring-4 ring-primary/10" : "border-transparent bg-muted/30"
+          )}>
+            <span className="text-[10px] font-black">ALL</span>
+          </div>
+          <span className={cn("text-[10px] font-black uppercase", activeCategory === 'all' ? "text-primary" : "text-muted-foreground")}>
+            View All
+          </span>
+        </button>
+
+        {dbCategories.map((cat) => {
+          const catId = cat.name.toLowerCase();
+          const isActive = activeCategory === catId;
 
           return (
             <button 
               key={cat.id} 
-              onClick={() => onCategoryChange?.(cat.id)}
+              onClick={() => onCategoryChange?.(catId)}
               className="flex flex-col items-center space-y-2 min-w-[70px] relative group"
             >
               <div className={cn(
@@ -44,7 +53,7 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: { act
                 isActive ? "border-primary ring-4 ring-primary/10 scale-105" : "border-transparent bg-muted/30"
               )}>
                 <Image
-                  src={cat.imageUrl || `https://picsum.photos/seed/${cat.id}/100/100`}
+                  src={cat.imageUrl}
                   alt={cat.name}
                   fill
                   className="object-cover"

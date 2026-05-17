@@ -1,6 +1,6 @@
 "use client"
 
-import { Star, MapPin } from "lucide-react"
+import { Star, MapPin, Store } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -23,8 +23,14 @@ export function StoreSection() {
     return dbVendors.filter(v => v.status === 'approved');
   }, [dbVendors, loading]);
 
-  // If no stores are in the database, we show nothing or a prompt
-  if (!loading && filteredVendors.length === 0) return null;
+  if (!loading && filteredVendors.length === 0) {
+    return (
+      <div className="py-10 px-6 text-center opacity-20">
+        <Store className="h-10 w-10 mx-auto mb-2" />
+        <p className="text-[10px] font-black uppercase tracking-widest">No active stores yet</p>
+      </div>
+    );
+  }
 
   return (
     <div className="py-2 px-4">
@@ -32,14 +38,11 @@ export function StoreSection() {
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
           All Stores
         </h2>
-        <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
-          View All
-        </Link>
       </div>
 
       <div className="space-y-6">
         {filteredVendors.map((store: any) => {
-          const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/500`;
+          const displayImage = store.bannerUrl || store.imageUrl;
           const isOffline = store.isOnline === false;
           
           return (
@@ -48,7 +51,7 @@ export function StoreSection() {
               key={store.id} 
               className={cn(
                 "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98]",
-                isOffline && "pointer-events-none opacity-80"
+                isOffline && "opacity-80"
               )}
             >
               <div className="relative h-36 w-full bg-muted">
@@ -60,10 +63,6 @@ export function StoreSection() {
                   loading="lazy"
                 />
                 
-                <div className="absolute top-2.5 left-2.5 bg-black/40 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  Promoted
-                </div>
-
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-2xl uppercase italic tracking-tighter shadow-2xl">Closed Now</span>
@@ -81,10 +80,9 @@ export function StoreSection() {
 
                 <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground mb-0.5">
                   <span className="truncate max-w-[70%]">{store.category || 'Food'} • Selection</span>
-                  <span className="shrink-0">₹200 for two</span>
                 </div>
 
-                <p className="text-[9px] font-medium text-muted-foreground/60 mb-2 truncate">{store.address || store.town || 'Nearby Location'}</p>
+                <p className="text-[9px] font-medium text-muted-foreground/60 mb-2 truncate">{store.address || 'Nearby Location'}</p>
 
                 <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/60">
                   <span className={cn("text-[8px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-primary")}>

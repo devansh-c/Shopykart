@@ -19,6 +19,7 @@ export function OfferSlider() {
 
   const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
   
+  // Show nothing if no banners are uploaded yet
   if (loading || !dbBanners || dbBanners.length === 0) return null;
 
   return (
@@ -29,12 +30,11 @@ export function OfferSlider() {
             <CarouselItem key={banner.id}>
               <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl">
                 <Image
-                  src={banner.imageUrl || `https://picsum.photos/seed/${banner.id}/800/400`}
+                  src={banner.imageUrl}
                   alt={banner.title || 'Offer'}
                   fill
                   className="object-cover"
                   priority={index === 0}
-                  data-ai-hint="promotion banner"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
                   <h3 className="text-white text-2xl font-black italic tracking-tighter leading-none mb-1">
