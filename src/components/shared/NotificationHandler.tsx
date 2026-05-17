@@ -51,7 +51,7 @@ export function NotificationHandler() {
 
         await saveToken(messaging);
       } catch (err) {
-        console.warn('Messaging setup failed:', err);
+        // Silent fail for background setup
       }
     };
 
@@ -64,15 +64,18 @@ export function NotificationHandler() {
       if (token && user && firestore) {
         const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
         // Using setDoc with catch to avoid unhandled permission errors crashing the UI
+        // We do not re-emit permission-error here to keep messaging background processes silent
         await setDoc(tokenRef, {
           token,
           deviceType: 'web',
           lastUpdated: serverTimestamp(),
           userId: user.uid
-        }, { merge: true }).catch(e => console.warn("Failed to save token to Firestore:", e.message));
+        }, { merge: true }).catch(e => {
+          // Do nothing, just prevent background write error from surfacing
+        });
       }
     } catch (err) {
-      console.warn('Token retrieval failed:', err);
+      // Token retrieval failed - likely browser blocked or network issue
     }
   };
 
@@ -86,7 +89,7 @@ export function NotificationHandler() {
         if (messaging) await saveToken(messaging);
       }
     } catch (err) {
-      console.warn('Permission request failed:', err);
+      // Permission block
     }
   };
 
