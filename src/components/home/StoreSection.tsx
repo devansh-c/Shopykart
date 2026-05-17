@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 
 export function StoreSection() {
   const [currentTown, setCurrentTown] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function StoreSection() {
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
           <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
-            {currentTown ? `All Stores in ${currentTown}` : 'All Stores'}
+            All Stores
           </h2>
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
@@ -130,8 +131,4 @@ export function StoreSection() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }
