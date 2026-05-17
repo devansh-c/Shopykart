@@ -48,7 +48,7 @@ type LocationHeaderProps = {
   onSearchChange: (val: string) => void;
 };
 
-const SEARCH_SUGGESTIONS = ["Pizza", "Burger", "Chowmin", "Glossary"];
+const SEARCH_SUGGESTIONS = ["pi", "burg", "chow", "pizza", "past"];
 
 export function LocationHeader({
   searchValue,
@@ -75,7 +75,6 @@ export function LocationHeader({
     const updateAddress = () => {
       const savedAddress = localStorage.getItem('user_address');
       if (savedAddress) {
-        // Show only the first part of the address in the header for cleanliness
         const parts = savedAddress.split(',');
         setCurrentAddress(parts[0].trim() || savedAddress);
       } else {
@@ -85,9 +84,7 @@ export function LocationHeader({
 
     updateAddress();
 
-    // Listen for custom address update event
     window.addEventListener('user-address-updated', updateAddress);
-    // Also listen for standard storage event (for cross-tab sync)
     window.addEventListener('storage', updateAddress);
 
     return () => {
@@ -96,7 +93,7 @@ export function LocationHeader({
     };
   }, []);
 
-  // Typewriter Logic
+  // Typewriter Logic to match screenshot style
   useEffect(() => {
     const handleTyping = () => {
       const fullText = SEARCH_SUGGESTIONS[suggestionIndex];
@@ -106,7 +103,7 @@ export function LocationHeader({
         setTypingSpeed(150);
         
         if (displayText === fullText) {
-          setTypingSpeed(1500); 
+          setTypingSpeed(2000); 
           setIsDeleting(true);
         }
       } else {
@@ -184,10 +181,6 @@ export function LocationHeader({
 
     recognition.onstart = () => {
       setIsListening(true);
-      toast({
-        title: 'Listening...',
-        description: "Go ahead, tell me what you're looking for.",
-      });
     };
 
     recognition.onresult = (event: any) => {
@@ -214,8 +207,7 @@ export function LocationHeader({
     setCustomReqOpen(false);
     toast({
       title: 'Request Sent',
-      description:
-        'Custom Veg dish added to your cart with ₹20 delivery charge.',
+      description: 'Custom Veg dish added to your cart.',
     });
   };
 
@@ -246,7 +238,7 @@ export function LocationHeader({
         </button>
       </div>
 
-      <div className="bg-[#0B0B0B] p-3 flex flex-col gap-3 rounded-none shadow-2xl border-b border-white/5">
+      <div className="bg-[#0B0B0B] p-3 flex flex-col gap-4 rounded-none shadow-2xl border-b border-white/5 pb-6">
         <div className="flex items-center justify-between gap-2">
           <Logo className="flex-shrink-0" />
 
@@ -273,9 +265,6 @@ export function LocationHeader({
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
                   />
-                  <p className="text-[10px] text-primary font-black uppercase text-center tracking-widest">
-                    Note: ₹20 Delivery charge applies
-                  </p>
                 </div>
                 <DialogFooter>
                   <Button
@@ -334,44 +323,28 @@ export function LocationHeader({
                       </button>
                     </Link>
                   ))}
-                  <div className="pt-8">
-                    <button 
-                      onClick={() => {
-                        toast({ title: "Signed Out", description: "Come back soon!" });
-                        router.push('/');
-                      }}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-colors"
-                    >
-                      <div className="bg-red-500/10 p-3 rounded-xl">
-                        <LogOut className="h-5 w-5" />
-                      </div>
-                      <span className="font-bold text-sm tracking-tight">Sign Out</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="absolute bottom-8 left-0 right-0 px-8 text-center">
-                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">ShopyKart v1.0.2 Premium</p>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* Updated Search Bar to match screenshot */}
+        <div className="px-1 -mb-10 relative z-20">
+          <div className="relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={`Search for "${displayText}"`}
-              className="h-10 bg-white border border-gray-100 rounded-full pl-11 pr-20 text-sm text-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:ring-offset-0 transition-all"
+              placeholder={`Search "${displayText}"`}
+              className="h-14 bg-white border-none rounded-xl pl-14 pr-24 text-lg text-foreground placeholder:text-gray-400 shadow-xl focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:ring-offset-0 transition-all"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-primary-foreground animate-pulse' : 'text-gray-400 hover:text-primary'}`}>
-                <Mic className="h-3.5 w-3.5" />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/50 backdrop-blur-sm rounded-lg p-1">
+              <button onClick={handleMicClick} className={`p-2 rounded-lg transition-all active:scale-90 ${isListening ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}>
+                <Mic className="h-4 w-4" />
               </button>
-              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-primary rounded-xl transition-all active:scale-90 disabled:opacity-50">
-                {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-primary rounded-lg transition-all active:scale-90 disabled:opacity-50">
+                {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
