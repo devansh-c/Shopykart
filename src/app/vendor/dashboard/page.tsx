@@ -21,7 +21,8 @@ import {
   ChevronRight,
   Edit,
   ImageIcon,
-  ImagePlus
+  ImagePlus,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -69,7 +70,7 @@ export default function VendorDashboard() {
     if (!firestore) return null;
     return collection(firestore, 'categories');
   }, [firestore]);
-  const { data: dynamicCategories } = useCollection<any>(categoriesQuery);
+  const { data: dynamicCategories, loading: categoriesLoading } = useCollection<any>(categoriesQuery);
 
   const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
@@ -159,14 +160,12 @@ export default function VendorDashboard() {
     setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
 
     if (tempEditingId) {
-      // Sync update in both collections
       const vProdRef = doc(firestore, 'vendors', user.uid, 'products', tempEditingId);
       const rootProdRef = doc(firestore, 'products', tempEditingId);
       updateDoc(vProdRef, productData);
       updateDoc(rootProdRef, productData);
       toast({ title: "Product Updated" });
     } else {
-      // Create new doc with same ID in both collections
       const rootProdRef = doc(collection(firestore, 'products'));
       const productId = rootProdRef.id;
       const vProdRef = doc(firestore, 'vendors', user.uid, 'products', productId);
@@ -306,18 +305,28 @@ export default function VendorDashboard() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Collection *</label>
-                      <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
+                      <Select 
+                        key={dynamicCategories?.length || 0}
+                        value={newProduct.category} 
+                        onValueChange={(val) => setNewProduct({...newProduct, category: val})}
+                      >
                         <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none px-5 text-base font-bold focus:ring-1 focus:ring-primary/20">
-                          <SelectValue placeholder="Select Category" />
+                          <SelectValue placeholder={categoriesLoading ? "Loading..." : "Select Category"} />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl">
-                          {dynamicCategories?.map((cat: any) => (
-                            <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold uppercase tracking-tight">
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                          {(!dynamicCategories || dynamicCategories.length === 0) && (
-                            <SelectItem value="snacks" className="font-bold">Snacks (Default)</SelectItem>
+                          {dynamicCategories && dynamicCategories.length > 0 ? (
+                            dynamicCategories.map((cat: any) => (
+                              <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold uppercase tracking-tight">
+                                {cat.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <>
+                              <SelectItem value="snacks" className="font-bold">Snacks</SelectItem>
+                              <SelectItem value="burgers" className="font-bold">Burgers</SelectItem>
+                              <SelectItem value="pizza" className="font-bold">Pizza</SelectItem>
+                              <SelectItem value="drinks" className="font-bold">Drinks</SelectItem>
+                            </>
                           )}
                         </SelectContent>
                       </Select>
