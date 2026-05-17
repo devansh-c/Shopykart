@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -6,8 +7,8 @@ import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
- * Standard Firebase initialization optimized for Firebase Studio.
- * Uses persistent cache with multi-tab support to ensure Preview/Live windows stay in sync.
+ * Robust Firebase initialization to prevent "initializeFirestore() has already been called" errors.
+ * Ensures custom options are applied only during the first initialization.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -16,25 +17,41 @@ export function initializeFirebase() {
 
   try {
     let firebaseApp: FirebaseApp;
-    
-    if (!getApps().length) {
-      firebaseApp = initializeApp(firebaseConfig);
-    } else {
+    let firestore: Firestore;
+    let auth: Auth;
+
+    if (getApps().length > 0) {
+      // App already exists, return existing instances
       firebaseApp = getApp();
+      firestore = getFirestore(firebaseApp);
+      auth = getAuth(firebaseApp);
+    } else {
+      // First time initialization
+      firebaseApp = initializeApp(firebaseConfig);
+      
+      // We initialize with custom settings only once
+      firestore = initializeFirestore(firebaseApp, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        experimentalAutoDetectLongPolling: true,
+      });
+      
+      auth = getAuth(firebaseApp);
     }
-
-    // Force Long Polling for more stable backend connection in workstation environments
-    const firestore = initializeFirestore(firebaseApp, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-      experimentalAutoDetectLongPolling: true,
-    });
-
-    const auth = getAuth(firebaseApp);
 
     return { firebaseApp, firestore, auth };
   } catch (error) {
     console.error('Firebase initialization error:', error);
-    return { firebaseApp: null, firestore: null, auth: null };
+    // Fallback to basic getters if initialization logic fails
+    try {
+      const app = getApp();
+      return { 
+        firebaseApp: app, 
+        firestore: getFirestore(app), 
+        auth: getAuth(app) 
+      };
+    } catch (e) {
+      return { firebaseApp: null, firestore: null, auth: null };
+    }
   }
 }
 
