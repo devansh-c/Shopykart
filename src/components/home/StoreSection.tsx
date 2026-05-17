@@ -18,7 +18,7 @@ export function StoreSection() {
     if (typeof window !== 'undefined') {
       const updateTown = () => {
         const savedTown = localStorage.getItem('user_town');
-        if (savedTown) setCurrentTown(savedTown);
+        setCurrentTown(savedTown || null);
       };
       
       updateTown();
@@ -41,16 +41,21 @@ export function StoreSection() {
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
+    // Only show approved vendors
     let result = dbVendors.filter(v => v.status === 'approved');
 
+    // Filter by town if selected, otherwise show all approved vendors
     if (currentTown) {
-      // Flexible matching for town
       const normalizedTown = currentTown.toLowerCase();
-      result = result.filter(v => 
+      const matched = result.filter(v => 
         (v.town && v.town.toLowerCase().includes(normalizedTown)) || 
         (v.address && v.address.toLowerCase().includes(normalizedTown))
       );
+      if (matched.length > 0) {
+        result = matched;
+      }
     }
+    
     return result;
   }, [dbVendors, currentTown]);
 
@@ -67,14 +72,14 @@ export function StoreSection() {
     <div className="py-2 px-4">
       <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
-          All Stores
+          {currentTown ? `Stores in ${currentTown}` : 'All Stores'}
         </h2>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
           View All
         </Link>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/500`;
@@ -118,19 +123,19 @@ export function StoreSection() {
                   </div>
 
                   <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground mb-0.5">
-                    <span className="truncate max-w-[70%]">{store.category || 'Food'} • Snacks • Beverages</span>
+                    <span className="truncate max-w-[70%]">{store.category || 'Food'} • Selection</span>
                     <span className="shrink-0">₹200 for two</span>
                   </div>
 
                   <p className="text-[9px] font-medium text-muted-foreground/60 mb-2 truncate">{store.address || store.town || 'Nearby Location'}</p>
 
                   <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/60">
-                    <span className="text-primary text-[8px] font-black uppercase tracking-widest">
-                      {isOffline ? 'Opens tomorrow' : 'Opens now'}
+                    <span className={cn("text-[8px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-primary")}>
+                      {isOffline ? 'Closed Now' : 'Opens now'}
                     </span>
                     <div className="flex items-center gap-1 text-muted-foreground text-[8px] font-black uppercase tracking-widest">
                       <MapPin className="h-2 w-2 text-primary" />
-                      Distance Varies
+                      Live in {store.town || 'Local'}
                     </div>
                   </div>
                 </div>
@@ -140,7 +145,7 @@ export function StoreSection() {
         ) : (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed opacity-40">
              <StoreIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-             <p className="font-black italic uppercase text-sm">No stores found in this area</p>
+             <p className="font-black italic uppercase text-sm">No registered stores found</p>
           </div>
         )}
       </div>

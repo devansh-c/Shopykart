@@ -7,25 +7,6 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const MOCK_COUPONS = [
-  {
-    id: 'c1',
-    discount: '50% OFF',
-    minOrder: 'Min Order ₹300',
-    type: 'FIRST ORDER',
-    code: 'FIRST50',
-    gradient: 'from-[#ff4b4b] to-[#dc2626]'
-  },
-  {
-    id: 'c2',
-    discount: '₹100 OFF',
-    minOrder: 'Min Order ₹500',
-    type: 'EVERYDAY',
-    code: 'SAVE100',
-    gradient: 'from-[#5f259f] to-[#4c1d80]'
-  }
-];
-
 export function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -55,7 +36,8 @@ export function OffersSection() {
     );
   }
 
-  const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
+  // If no coupons in DB, don't show this section
+  if (!dbCoupons || dbCoupons.length === 0) return null;
 
   return (
     <div className="py-4">
@@ -64,7 +46,7 @@ export function OffersSection() {
         <h2 className="text-2xl font-black tracking-tight">Offers & Coupons</h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar">
-        {coupons.map((coupon: any) => (
+        {dbCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
             className={`min-w-[280px] h-32 rounded-2xl bg-gradient-to-r ${coupon.gradient || 'from-primary to-accent'} p-5 flex text-white shadow-md relative overflow-hidden`}

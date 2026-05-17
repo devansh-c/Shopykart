@@ -29,8 +29,9 @@ export function OfferSlider() {
     );
   }
 
+  // If no banners in Firestore, we don't show the slider at all (Cleaner UI)
   if (!dbBanners || dbBanners.length === 0) {
-    return null; // Don't show anything if no banners exist
+    return null;
   }
 
   return (
@@ -41,7 +42,7 @@ export function OfferSlider() {
             <CarouselItem key={banner.id}>
               <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl">
                 <Image
-                  src={banner.imageUrl}
+                  src={banner.imageUrl || `https://picsum.photos/seed/${banner.id}/800/400`}
                   alt={banner.title || 'Offer'}
                   fill
                   className="object-cover"
@@ -58,7 +59,7 @@ export function OfferSlider() {
                   <div className="flex items-center">
                     <span className="bg-black/60 backdrop-blur-md text-[9px] text-white px-3 py-1 rounded-full border border-white/20 font-black flex items-center uppercase tracking-widest">
                       <span className="mr-1.5 h-1 w-1 bg-primary rounded-full animate-pulse" />
-                      {banner.tag || 'Special Offer'}
+                      {banner.tag || 'Exclusive'}
                     </span>
                   </div>
                 </div>

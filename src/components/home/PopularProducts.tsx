@@ -7,7 +7,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, limit } from 'firebase/firestore';
 import {
   Select,
   SelectContent,
@@ -57,7 +57,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     
     let result = [...dbProducts];
     
-    // Search & Category Filter
+    // 1. Filter by Search & Category
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
@@ -66,14 +66,18 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
       return matchesSearch && matchesCategory;
     });
 
-    // Town Filtering (Only if no active search)
+    // 2. Town Filtering Logic
+    // If a town is selected, we prefer showing products from that town.
+    // If no town matches, we still show other products instead of an empty screen for better UX.
     if (currentTown && !searchQuery && category === 'all') {
       const normalizedTown = currentTown.toLowerCase();
       const townMatch = result.filter(p => p.town && p.town.toLowerCase().includes(normalizedTown));
-      if (townMatch.length > 0) result = townMatch;
+      if (townMatch.length > 0) {
+        result = townMatch;
+      }
     }
 
-    // Sorting
+    // 3. Sorting
     switch (sortBy) {
       case 'price-low': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
       case 'price-high': result.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
@@ -100,7 +104,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase">
-            {currentTown ? `Popular in ${currentTown}` : 'Trending Items'}
+            {currentTown ? `Available in ${currentTown}` : 'All Products'}
           </h2>
         </div>
         
@@ -125,6 +129,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
             const liked = isInWishlist(product.id);
             const vendor = vendors?.find(v => v.id === product.vendorId);
             const isOffline = vendor?.isOnline === false;
+            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
             return (
               <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden relative">
@@ -141,7 +146,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
                 
                 <div className="relative w-32 h-32 shrink-0">
                   <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
                         <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed Now</span>
@@ -153,7 +158,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
                     {quantity === 0 ? (
                       <button 
                         disabled={isOffline}
-                        onClick={() => addToCart({ ...product, imageUrl: product.imageUrl })}
+                        onClick={() => addToCart({ ...product, imageUrl })}
                         className={cn(
                           "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all",
                           isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none"
@@ -165,7 +170,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
                       <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
                         <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Minus className="h-3 w-3" /></button>
                         <span className="text-xs font-black min-w-[24px] text-center">{quantity}</span>
-                        <button onClick={() => addToCart({ ...product, imageUrl: product.imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
+                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
                       </div>
                     )}
                   </div>
@@ -179,7 +184,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
         ) : (
           <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed opacity-40">
              <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-             <p className="font-black italic uppercase text-sm">No items found in database</p>
+             <p className="font-black italic uppercase text-sm">No live items in database</p>
           </div>
         )}
       </div>
