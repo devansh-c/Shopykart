@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -35,8 +34,10 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners } = useCollection<any>(bannersQuery);
-  const banners = dbBanners && dbBanners.length > 0 ? dbBanners : DEFAULT_BANNERS;
+  const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
+  
+  // Only use defaults if we are NOT loading AND the database is confirmed empty
+  const banners = (!loading && dbBanners && dbBanners.length > 0) ? dbBanners : DEFAULT_BANNERS;
 
   return (
     <div className="w-full px-4">

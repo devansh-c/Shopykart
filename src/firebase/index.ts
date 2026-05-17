@@ -2,14 +2,17 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
-  initializeFirestore, 
+  getFirestore, 
   Firestore, 
-  enableIndexedDbPersistence, 
   CACHE_SIZE_UNLIMITED 
 } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
+/**
+ * Robust Firebase initialization for multi-tab environments.
+ * Prevents re-initialization errors and ensures stable connectivity.
+ */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
     return { firebaseApp: null, firestore: null, auth: null };
@@ -24,24 +27,9 @@ export function initializeFirebase() {
       firebaseApp = getApp();
     }
 
-    // Using initializeFirestore with custom settings to handle network timeouts in virtual environments
-    const firestore = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true,
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED
-    });
-    
+    // Using standard getFirestore to avoid re-initialization conflicts in Fullscreen mode
+    const firestore = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
-
-    // Persistence is handled asynchronously to prevent blocking initialization
-    if (typeof window !== 'undefined') {
-      enableIndexedDbPersistence(firestore).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn('Firestore Persistence: Multiple tabs open, using memory cache.');
-        } else if (err.code === 'unimplemented') {
-          console.warn('Firestore Persistence: Browser not supported.');
-        }
-      });
-    }
 
     return { firebaseApp, firestore, auth };
   } catch (error) {

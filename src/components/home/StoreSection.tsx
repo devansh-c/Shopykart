@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, MapPin, Store as StoreIcon } from "lucide-react"
@@ -38,12 +37,13 @@ export function StoreSection() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
+    if (loading) return DEFAULT_STORES;
     const approved = dbVendors?.filter(v => v.status === 'approved') || [];
     return approved.length > 0 ? approved : DEFAULT_STORES;
-  }, [dbVendors]);
+  }, [dbVendors, loading]);
 
   return (
     <div className="py-2 px-4">

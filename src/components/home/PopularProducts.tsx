@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from "react"
@@ -51,10 +50,11 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(50));
   }, [firestore]);
-  const { data: dbProducts } = useCollection<any>(productsQuery);
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
-    let result = dbProducts && dbProducts.length > 0 ? [...dbProducts] : [...DEFAULT_PRODUCTS];
+    // If still loading from Firestore, show nothing or minimal defaults to avoid confusion
+    let result = (dbProducts && dbProducts.length > 0) ? [...dbProducts] : (loading ? [] : [...DEFAULT_PRODUCTS]);
     
     // Filter by Search & Category
     result = result.filter(product => {
@@ -74,7 +74,11 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts]);
+  }, [searchQuery, category, sortBy, dbProducts, loading]);
+
+  if (loading && (!dbProducts || dbProducts.length === 0)) {
+     return <div className="px-4 py-8 text-center text-xs font-black uppercase tracking-widest text-muted-foreground">Connecting to ShopyKart...</div>;
+  }
 
   return (
     <div className="px-4 py-8">
