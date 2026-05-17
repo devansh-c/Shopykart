@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useMemo, useState } from "react"
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils } from "lucide-react"
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, Loader2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -29,12 +30,12 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(50));
+    return query(collection(firestore, 'products'), limit(100));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts || dbProducts.length === 0) return [];
+    if (!dbProducts) return [];
     
     let result = [...dbProducts];
     
@@ -42,8 +43,13 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
-      const matchesSearch = name.includes(searchQuery.toLowerCase()) || cat.includes(searchQuery.toLowerCase());
-      const matchesCategory = category === 'all' || product.category === category;
+      const restaurant = (product.restaurantName || '').toLowerCase();
+      
+      const matchesSearch = name.includes(searchQuery.toLowerCase()) || 
+                          cat.includes(searchQuery.toLowerCase()) ||
+                          restaurant.includes(searchQuery.toLowerCase());
+                          
+      const matchesCategory = category === 'all' || product.category?.toLowerCase() === category.toLowerCase();
       return matchesSearch && matchesCategory;
     });
 
@@ -58,8 +64,18 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     return result;
   }, [searchQuery, category, sortBy, dbProducts]);
 
-  if (loading) return null;
-  if (!loading && productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-20 flex flex-col items-center justify-center text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p className="font-black italic uppercase tracking-tighter">Fetching Delicious Dishes...</p>
+      </div>
+    );
+  }
+
+  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') {
+    return null;
+  }
 
   return (
     <div className="px-4 py-8">
@@ -67,7 +83,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase">
-            All Products
+            {searchQuery ? 'Search Results' : 'All Products'}
           </h2>
         </div>
         
@@ -101,14 +117,19 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
                 </div>
                 <Link href={`/product/${product.id}`} className={cn(isOffline && "pointer-events-none")}>
                   <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight">{product.name}</h3>
-                  <div className="text-xl font-black text-primary mb-2 italic">₹{product.price?.toFixed(2)}</div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p>
+                  <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Unknown Store'}</p>
                 </Link>
               </div>
               
               <div className="relative w-32 h-32 shrink-0">
                 <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
-                  <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => { (e.target as any).src = 'https://placehold.co/400x300?text=No+Photo' }}
+                  />
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
                       <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed Now</span>

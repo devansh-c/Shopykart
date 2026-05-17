@@ -1,6 +1,7 @@
+
 "use client"
 
-import { Star, MapPin, Store } from "lucide-react"
+import { Star, MapPin, Store, Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -20,14 +21,24 @@ export function StoreSection() {
 
   const filteredVendors = useMemo(() => {
     if (loading || !dbVendors) return [];
-    return dbVendors.filter(v => v.status === 'approved');
+    // Only show approved stores
+    return dbVendors.filter(v => v.status === 'approved' || !v.status);
   }, [dbVendors, loading]);
 
-  if (!loading && filteredVendors.length === 0) {
+  if (loading) {
+    return (
+      <div className="py-10 flex flex-col items-center justify-center text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin mb-2" />
+        <p className="text-[10px] font-black uppercase tracking-widest">Loading Premium Stores...</p>
+      </div>
+    );
+  }
+
+  if (filteredVendors.length === 0) {
     return (
       <div className="py-10 px-6 text-center opacity-20">
         <Store className="h-10 w-10 mx-auto mb-2" />
-        <p className="text-[10px] font-black uppercase tracking-widest">No active stores yet</p>
+        <p className="text-[10px] font-black uppercase tracking-widest">No active stores found</p>
       </div>
     );
   }
@@ -42,7 +53,7 @@ export function StoreSection() {
 
       <div className="space-y-6">
         {filteredVendors.map((store: any) => {
-          const displayImage = store.bannerUrl || store.imageUrl;
+          const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
           const isOffline = store.isOnline === false;
           
           return (
@@ -61,6 +72,7 @@ export function StoreSection() {
                   fill
                   className="object-cover"
                   loading="lazy"
+                  unoptimized // Banners might be base64 strings or large files
                 />
                 
                 {isOffline && (
