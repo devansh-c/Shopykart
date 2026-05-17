@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export function CategoryList({ activeCategory = 'all', onCategoryChange }: { activeCategory?: string, onCategoryChange?: (id: string) => void }) {
   const firestore = useFirestore();
@@ -16,21 +15,8 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: { act
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery);
+  const { data: dbCategories } = useCollection<any>(categoriesQuery);
 
-  if (loading) {
-    return (
-      <div className="py-4">
-        <div className="flex space-x-6 px-6 overflow-x-auto no-scrollbar">
-          {[1, 2, 3, 4, 5].map(i => (
-            <Skeleton key={i} className="h-16 w-16 rounded-full shrink-0" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Use only database categories or an empty list if loading finished and nothing was found
   const categories = (dbCategories && dbCategories.length > 0)
     ? [{ id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' }, ...dbCategories.map(c => ({ id: c.name.toLowerCase(), name: c.name, imageUrl: c.imageUrl }))]
     : [];

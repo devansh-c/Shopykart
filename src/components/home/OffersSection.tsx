@@ -5,7 +5,6 @@ import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export function OffersSection() {
   const { toast } = useToast();
@@ -15,7 +14,7 @@ export function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery);
+  const { data: dbCoupons } = useCollection<any>(couponsQuery);
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined' && navigator.clipboard) {
@@ -27,16 +26,6 @@ export function OffersSection() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="py-4 px-6 overflow-x-auto no-scrollbar flex space-x-4">
-        <Skeleton className="h-32 min-w-[280px] rounded-2xl" />
-        <Skeleton className="h-32 min-w-[280px] rounded-2xl" />
-      </div>
-    );
-  }
-
-  // If no coupons in DB, don't show this section
   if (!dbCoupons || dbCoupons.length === 0) return null;
 
   return (

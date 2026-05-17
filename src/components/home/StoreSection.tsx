@@ -6,73 +6,31 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export function StoreSection() {
-  const [currentTown, setCurrentTown] = useState<string | null>(null);
   const firestore = useFirestore();
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const updateTown = () => {
-        const savedTown = localStorage.getItem('user_town');
-        setCurrentTown(savedTown || null);
-      };
-      
-      updateTown();
-      window.addEventListener('user-address-updated', updateTown);
-      window.addEventListener('storage', updateTown);
-      return () => {
-        window.removeEventListener('user-address-updated', updateTown);
-        window.removeEventListener('storage', updateTown);
-      };
-    }
-  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
-    
-    // Only show approved vendors
-    let result = dbVendors.filter(v => v.status === 'approved');
+    return dbVendors.filter(v => v.status === 'approved');
+  }, [dbVendors]);
 
-    // Filter by town if selected, otherwise show all approved vendors
-    if (currentTown) {
-      const normalizedTown = currentTown.toLowerCase();
-      const matched = result.filter(v => 
-        (v.town && v.town.toLowerCase().includes(normalizedTown)) || 
-        (v.address && v.address.toLowerCase().includes(normalizedTown))
-      );
-      if (matched.length > 0) {
-        result = matched;
-      }
-    }
-    
-    return result;
-  }, [dbVendors, currentTown]);
-
-  if (loading) {
-    return (
-      <div className="py-2 px-4 space-y-4">
-        <Skeleton className="h-8 w-40 ml-2" />
-        <Skeleton className="h-48 w-full rounded-3xl" />
-      </div>
-    );
-  }
+  if (!dbVendors) return null;
 
   return (
     <div className="py-2 px-4">
       <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
-          {currentTown ? `Stores in ${currentTown}` : 'All Stores'}
+          All Stores
         </h2>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
           View All

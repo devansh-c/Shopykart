@@ -5,7 +5,6 @@ import './globals.css';
 import { CartProvider } from '@/components/cart/CartProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
-import { SplashScreen } from '@/components/shared/SplashScreen';
 import { FirebaseClientProvider, useUser } from '@/firebase';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { usePathname } from 'next/navigation';
@@ -50,7 +49,6 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <FirebaseErrorListener />
           <CartProvider>
-            <SplashScreen />
             <AppContent>
               {children}
             </AppContent>

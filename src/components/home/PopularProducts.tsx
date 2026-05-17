@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils } from 'lucide-react';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn } from '@/lib/utils';
@@ -15,30 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from '@/components/ui/skeleton';
 
 export function PopularProducts({ searchQuery = '', category = 'all' }: { searchQuery?: string, category?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
-  const [currentTown, setCurrentTown] = useState<string | null>(null);
   
   const firestore = useFirestore();
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const updateTown = () => {
-        const savedTown = localStorage.getItem('user_town');
-        setCurrentTown(savedTown);
-      };
-      updateTown();
-      window.addEventListener('user-address-updated', updateTown);
-      window.addEventListener('storage', updateTown);
-      return () => {
-        window.removeEventListener('user-address-updated', updateTown);
-        window.removeEventListener('storage', updateTown);
-      };
-    }
-  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -50,14 +32,14 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(50));
   }, [firestore]);
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+  const { data: dbProducts } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
     
     let result = [...dbProducts];
     
-    // 1. Filter by Search & Category
+    // Filter by Search & Category
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
@@ -66,18 +48,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
       return matchesSearch && matchesCategory;
     });
 
-    // 2. Town Filtering Logic
-    // If a town is selected, we prefer showing products from that town.
-    // If no town matches, we still show other products instead of an empty screen for better UX.
-    if (currentTown && !searchQuery && category === 'all') {
-      const normalizedTown = currentTown.toLowerCase();
-      const townMatch = result.filter(p => p.town && p.town.toLowerCase().includes(normalizedTown));
-      if (townMatch.length > 0) {
-        result = townMatch;
-      }
-    }
-
-    // 3. Sorting
+    // Sorting
     switch (sortBy) {
       case 'price-low': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
       case 'price-high': result.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
@@ -86,17 +57,9 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, currentTown]);
+  }, [searchQuery, category, sortBy, dbProducts]);
 
-  if (loading) {
-    return (
-      <div className="px-4 py-8 space-y-6">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-40 w-full rounded-[2rem]" />
-        <Skeleton className="h-40 w-full rounded-[2rem]" />
-      </div>
-    );
-  }
+  if (!dbProducts) return null;
 
   return (
     <div className="px-4 py-8">
@@ -104,7 +67,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase">
-            {currentTown ? `Available in ${currentTown}` : 'All Products'}
+            All Products
           </h2>
         </div>
         
@@ -132,7 +95,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
             return (
-              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden relative">
+              <div key={product.id} className="premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative">
                 <div className="flex-1 pr-4">
                   <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
                     <div className="h-full w-full bg-green-600 rounded-full" />

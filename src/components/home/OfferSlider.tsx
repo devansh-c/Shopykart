@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/carousel"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { Skeleton } from "@/components/ui/skeleton"
 
 export function OfferSlider() {
   const firestore = useFirestore();
@@ -19,17 +18,8 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
+  const { data: dbBanners } = useCollection<any>(bannersQuery);
 
-  if (loading) {
-    return (
-      <div className="w-full px-4">
-        <Skeleton className="h-[160px] w-full rounded-2xl" />
-      </div>
-    );
-  }
-
-  // If no banners in Firestore, we don't show the slider at all (Cleaner UI)
   if (!dbBanners || dbBanners.length === 0) {
     return null;
   }
