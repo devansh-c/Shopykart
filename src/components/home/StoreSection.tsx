@@ -1,6 +1,6 @@
 "use client"
 
-import { Star, MapPin, Store as StoreIcon } from "lucide-react"
+import { Star, MapPin } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -19,10 +19,11 @@ export function StoreSection() {
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
-    if (loading) return [];
-    return dbVendors?.filter(v => v.status === 'approved') || [];
+    if (loading || !dbVendors) return [];
+    return dbVendors.filter(v => v.status === 'approved');
   }, [dbVendors, loading]);
 
+  // If no stores are in the database, we show nothing or a prompt
   if (!loading && filteredVendors.length === 0) return null;
 
   return (

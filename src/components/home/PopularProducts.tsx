@@ -50,7 +50,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     // Sorting
     switch (sortBy) {
       case 'price-low': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
-      case 'price-high': result.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case 'price-high': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
       case 'name': result.sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
       default: break;
     }
@@ -59,7 +59,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
   }, [searchQuery, category, sortBy, dbProducts]);
 
   if (loading) return null;
-  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
+  if (!loading && productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
 
   return (
     <div className="px-4 py-8">

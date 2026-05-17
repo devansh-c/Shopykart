@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { ReactNode, useEffect, useState } from 'react';
@@ -24,7 +23,8 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     setInstances(results);
   }, []);
 
-  // Removed blocking loading screen for instant feel
+  // We always render children to prevent startup hangs.
+  // Firebase instances will be null for a few milliseconds then populate.
   return (
     <FirebaseProvider 
       firebaseApp={instances?.firebaseApp || null} 

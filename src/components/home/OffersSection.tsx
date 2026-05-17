@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Copy } from 'lucide-react';
@@ -14,7 +13,7 @@ export function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons } = useCollection<any>(couponsQuery);
+  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery);
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined' && navigator.clipboard) {
@@ -26,7 +25,7 @@ export function OffersSection() {
     }
   };
 
-  if (!dbCoupons || dbCoupons.length === 0) return null;
+  if (loading || !dbCoupons || dbCoupons.length === 0) return null;
 
   return (
     <div className="py-4">

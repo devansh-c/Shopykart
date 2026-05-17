@@ -19,7 +19,6 @@ export function OfferSlider() {
 
   const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
   
-  // Show nothing if no banners in database
   if (loading || !dbBanners || dbBanners.length === 0) return null;
 
   return (

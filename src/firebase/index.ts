@@ -1,17 +1,13 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  Firestore, 
-  CACHE_SIZE_UNLIMITED 
-} from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
- * Robust Firebase initialization for multi-tab environments.
- * Prevents re-initialization errors and ensures stable connectivity.
+ * Standard Firebase initialization.
+ * Simplified to prevent startup hangs and persistence locks.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -27,7 +23,6 @@ export function initializeFirebase() {
       firebaseApp = getApp();
     }
 
-    // Using standard getFirestore to avoid re-initialization conflicts in Fullscreen mode
     const firestore = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
 
