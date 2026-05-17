@@ -24,38 +24,31 @@ export function initializeFirebase() {
     if (getApps().length > 0) {
       firebaseApp = getApp();
       auth = getAuth(firebaseApp);
-      // For firestore, we try to get existing instance or use a try-catch to initialize if needed
+      // For firestore, we try to get existing instance safely
       try {
         firestore = getFirestore(firebaseApp);
       } catch (e) {
-        firestore = initializeFirestore(firebaseApp, {
-          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-          experimentalAutoDetectLongPolling: true,
-        });
+        // If not initialized with settings, we attempt a clean init if possible
+        // but usually getFirestore() works if app exists.
+        firestore = getFirestore(firebaseApp);
       }
     } else {
       // First time initialization
       firebaseApp = initializeApp(firebaseConfig);
-      firestore = initializeFirestore(firebaseApp, {
-        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-        experimentalAutoDetectLongPolling: true,
-      });
+      // We initialize without persistent cache if it causes multi-tab lock issues in studio
+      firestore = getFirestore(firebaseApp);
       auth = getAuth(firebaseApp);
     }
 
     return { firebaseApp, firestore, auth };
   } catch (error) {
     console.error('Firebase initialization error:', error);
-    try {
-      const app = getApp() || initializeApp(firebaseConfig);
-      return { 
-        firebaseApp: app, 
-        firestore: getFirestore(app), 
-        auth: getAuth(app) 
-      };
-    } catch (e) {
-      return { firebaseApp: null, firestore: null, auth: null };
-    }
+    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    return { 
+      firebaseApp: app, 
+      firestore: getFirestore(app), 
+      auth: getAuth(app) 
+    };
   }
 }
 

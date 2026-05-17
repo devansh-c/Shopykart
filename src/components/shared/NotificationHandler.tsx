@@ -7,7 +7,7 @@ import { getFirebaseMessaging } from '@/firebase/messaging';
 import { getToken, onMessage } from 'firebase/messaging';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { BellRing } from 'lucide-react';
+import { BellRing, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function NotificationHandler() {
@@ -15,22 +15,28 @@ export function NotificationHandler() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPermission(Notification.permission);
+      if (Notification.permission === 'default' && user) {
+        // Show our custom premium prompt after a short delay
+        const timer = setTimeout(() => setShowPrompt(true), 3000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || Notification.permission !== 'granted') return;
 
     const setupMessaging = async () => {
       try {
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
-        // Handle foreground messages
+        // Foreground listener
         onMessage(messaging, (payload) => {
           toast({
             title: payload.notification?.title || 'ShopyKart',
@@ -42,17 +48,14 @@ export function NotificationHandler() {
             ),
           });
           
-          // Play notification sound
+          // Play sound
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
           audio.play().catch(() => {});
         });
 
-        // If permission is already granted, refresh token
-        if (Notification.permission === 'granted') {
-          saveToken(messaging);
-        }
+        saveToken(messaging);
       } catch (err) {
-        console.warn('Messaging setup failed, API might not be enabled yet.');
+        console.warn('Messaging setup failed:', err);
       }
     };
 
@@ -61,9 +64,12 @@ export function NotificationHandler() {
 
   const saveToken = async (messaging: any) => {
     try {
-      // VAPID Key is required for web push. Generate in Firebase Console > Cloud Messaging
+      // IMPORTANT: Generate VAPID key in Firebase Console > Project Settings > Cloud Messaging
+      // Scroll down to "Web push certificates" and click "Generate key pair"
+      const vapidKey = 'BBA-Your-VAPID-Key-Here'; // PASTE YOUR KEY HERE
+      
       const token = await getToken(messaging, {
-        vapidKey: 'B...generate_your_key_in_console...' 
+        vapidKey: vapidKey === 'BBA-Your-VAPID-Key-Here' ? undefined : vapidKey
       });
 
       if (token && user && firestore) {
@@ -72,14 +78,16 @@ export function NotificationHandler() {
           token,
           deviceType: 'web',
           lastUpdated: serverTimestamp(),
+          userId: user.uid
         }, { merge: true });
       }
     } catch (err) {
-      // Fail silently for setup issues
+      console.error('Failed to get FCM token:', err);
     }
   };
 
   const requestPermission = async () => {
+    setShowPrompt(false);
     try {
       const messaging = await getFirebaseMessaging();
       if (!messaging) return;
@@ -99,12 +107,13 @@ export function NotificationHandler() {
     }
   };
 
-  // Only show the prompt if they haven't decided yet
-  if (permission !== 'default' || !user) return null;
+  if (!showPrompt || !user || permission !== 'default') return null;
 
   return (
     <div className="fixed top-20 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4">
+      <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+        
         <div className="flex items-center gap-3">
           <div className="bg-primary/20 p-2 rounded-xl">
             <BellRing className="h-5 w-5 text-primary animate-bounce" />
@@ -114,8 +123,9 @@ export function NotificationHandler() {
             <span className="text-xs font-bold leading-tight">Get real-time order updates & exclusive offers.</span>
           </div>
         </div>
-        <div className="flex gap-2">
-           <button onClick={() => setPermission('denied')} className="text-[10px] font-black uppercase text-gray-500 px-2">Later</button>
+        
+        <div className="flex gap-2 items-center">
+           <button onClick={() => setShowPrompt(false)} className="text-[10px] font-black uppercase text-gray-500 px-2 hover:text-white transition-colors">Later</button>
            <Button onClick={requestPermission} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-4 font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-primary/20">
              ALLOW
            </Button>

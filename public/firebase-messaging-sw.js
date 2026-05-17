@@ -1,7 +1,10 @@
 
-importScripts('https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-compat.js');
+// Scripts for firebase and firebase messaging
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
+// Initialize the Firebase app in the service worker
+// These values should match your src/firebase/config.ts
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
   authDomain: "studio-4644410857-c7ed7.firebaseapp.com",
@@ -13,25 +16,29 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   const notificationTitle = payload.notification.title || 'ShopyKart Update';
   const notificationOptions = {
-    body: payload.notification.body || 'Open the app to see details.',
-    icon: 'https://picsum.photos/seed/shopy/128/128',
-    data: payload.data,
+    body: payload.notification.body,
+    icon: '/logo.png', // Add a logo image to your public folder
+    badge: '/logo.png',
+    data: payload.data
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
+// Click action
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.click_action || '/';
+  const urlToOpen = event.notification.data?.click_action || '/orders';
+  
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (var i = 0; i < windowClients.length; i++) {
-        var client = windowClients[i];
+    clients.matchAll({ type: 'window' }).then((windowClients) => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
