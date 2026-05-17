@@ -2,23 +2,30 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, addDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, where, addDoc, setDoc, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
   Trash2, 
   Plus, 
   Camera, 
-  Phone, 
   LogOut,
   Utensils,
-  Loader2,
-  Package
+  Package,
+  LayoutDashboard,
+  Layers,
+  ArrowLeftRight,
+  CircleDollarSign,
+  UserCircle2,
+  ChevronLeft,
+  X,
+  Share2,
+  MoreVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -29,6 +36,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from '@/components/ui/switch';
+
+type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
+type OrderStatus = 'Preparing' | 'Ready' | 'Out for Delivery' | 'Delivered';
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -38,8 +49,12 @@ export default function VendorDashboard() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [activeTab, setActiveTab] = useState<'orders' | 'catalog'>('orders');
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
+  const [orderFilter, setOrderFilter] = useState<OrderStatus>('Preparing');
+  const [isOnline, setIsOnline] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
 
   // Vendor Profile Stream
   const vendorRef = useMemoFirebase(() => {
@@ -71,32 +86,18 @@ export default function VendorDashboard() {
   const updateStatus = async (orderId: string, nextStatus: string) => {
     if (!firestore) return;
     const oRef = doc(firestore, 'orders', orderId);
-    await setDoc(oRef, { status: nextStatus }, { merge: true });
+    await updateDoc(oRef, { status: nextStatus });
     toast({ title: "Status Updated" });
   };
 
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const reader = new FileReader();
-    reader.onloadend = () => setNewProduct({ ...newProduct, imageUrl: reader.result as string });
-    if (e.target.files?.[0]) reader.readAsDataURL(e.target.files[0]);
-  };
-
   const handleAddProduct = async () => {
-    if (!firestore || !user || !vendorProfile || isSubmitting) {
-      if (!vendorProfile) toast({ title: "Wait", description: "Loading store profile..." });
-      return;
-    }
-    
+    if (!firestore || !user || !vendorProfile || isSubmitting) return;
     if (!newProduct.name || !newProduct.price) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Please enter name and price." });
+      toast({ variant: "destructive", title: "Missing Info", description: "Name and price required." });
       return;
     }
 
     setIsSubmitting(true);
-    
     const productData = { 
       name: newProduct.name,
       price: parseFloat(newProduct.price),
@@ -104,131 +105,220 @@ export default function VendorDashboard() {
       category: newProduct.category,
       isVeg: newProduct.isVeg,
       vendorId: user.uid, 
-      town: vendorProfile.town || 'Ranipur', 
+      town: vendorProfile.town || 'Local', 
       restaurantName: vendorProfile.storeName || 'My Store',
       createdAt: serverTimestamp(),
       imageUrl: newProduct.imageUrl || `https://picsum.photos/seed/${Date.now()}/400/400`
     };
 
     try {
-      // 1. Save to Vendor's sub-collection
-      const subColRef = collection(firestore, 'vendors', user.uid, 'products');
-      await addDoc(subColRef, productData);
-
-      // 2. Save to Global products collection for search
-      const globalColRef = collection(firestore, 'products');
-      await addDoc(globalColRef, productData);
-
+      await addDoc(collection(firestore, 'vendors', user.uid, 'products'), productData);
+      await addDoc(collection(firestore, 'products'), productData);
       setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
       setIsAddOpen(false);
-      toast({ title: "Product Published", description: "Saved permanently to database." });
+      toast({ title: "Product Added" });
     } catch (e) {
-      console.error("Error saving product:", e);
-      toast({ variant: "destructive", title: "Save Failed", description: "Please try again." });
+      toast({ variant: "destructive", title: "Error Saving" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-24 text-black">
-      <header className="bg-white border-b p-6 sticky top-0 z-50">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tighter text-black">{vendorProfile?.storeName || 'Vendor Panel'}</h1>
-            <p className="text-[10px] font-black text-green-500 uppercase mt-1">Live in {vendorProfile?.town || 'Local Area'}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-red-500 bg-red-50 rounded-xl ml-2"><LogOut className="h-4 w-4" /></Button>
-          </div>
-        </div>
-        <div className="flex bg-muted p-1 rounded-2xl mt-4">
-          {['orders', 'catalog'].map((t) => (
-            <button key={t} onClick={() => setActiveTab(t as any)} className={cn("flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all", activeTab === t ? "bg-white shadow-sm text-black" : "text-muted-foreground")}>{t}</button>
-          ))}
-        </div>
-      </header>
+  const statusOptions: OrderStatus[] = ['Preparing', 'Ready', 'Out for Delivery', 'Delivered'];
 
-      <main className="p-6">
-        {activeTab === 'orders' && (
-          <div className="space-y-4">
-            {orders?.map((order: any) => (
-              <div key={order.id} className="bg-white rounded-3xl p-6 shadow-sm border">
-                <span className="text-[10px] font-black uppercase text-primary">{order.status}</span>
-                <h3 className="font-black italic text-lg mt-1">#ORD-{order.id.slice(-4)}</h3>
-                <div className="grid gap-2 mt-4">
-                  {order.status === 'Placed' && <Button onClick={() => updateStatus(order.id, 'Accepted')} className="bg-green-500 font-black uppercase rounded-xl h-12">Accept</Button>}
-                  {order.status === 'Accepted' && <Button onClick={() => updateStatus(order.id, 'Preparing')} className="bg-primary font-black uppercase rounded-xl h-12">Prepare</Button>}
-                </div>
-              </div>
+  const renderContent = () => {
+    if (activeMainTab === 'orders') {
+      const filteredOrders = orders?.filter(o => {
+        if (orderFilter === 'Preparing') return o.status === 'Accepted' || o.status === 'Preparing';
+        if (orderFilter === 'Ready') return o.status === 'Ready for Pickup';
+        return o.status === orderFilter;
+      }) || [];
+
+      return (
+        <div className="flex flex-col flex-1">
+          {/* Status Pills */}
+          <div className="flex overflow-x-auto gap-3 px-4 py-4 no-scrollbar">
+            {statusOptions.map((status) => (
+              <button
+                key={status}
+                onClick={() => setOrderFilter(status)}
+                className={cn(
+                  "px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border",
+                  orderFilter === status 
+                    ? "bg-[#1E293B] text-white border-[#1E293B]" 
+                    : "bg-white text-gray-500 border-gray-200"
+                )}
+              >
+                {status}
+              </button>
             ))}
-            {(!orders || orders.length === 0) && (
-              <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                <ShoppingBag className="h-16 w-16 mb-4" />
-                <p className="font-black italic uppercase tracking-widest text-sm">No orders yet</p>
-              </div>
-            )}
           </div>
-        )}
 
-        {activeTab === 'catalog' && (
-           <div className="space-y-4">
-              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogTrigger asChild><Button className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-lg"><Plus className="mr-2 h-5 w-5" /> Add Menu Item</Button></DialogTrigger>
-                <DialogContent className="rounded-[2.5rem] bg-white">
-                  <DialogHeader>
-                    <DialogTitle className="font-black italic uppercase text-xl tracking-tighter">New Menu Item</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div onClick={() => fileInputRef.current?.click()} className="h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20">
-                      {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="Preview" /> : <><Camera className="text-muted-foreground h-8 w-8" /><span className="text-[10px] font-black uppercase mt-2">Upload Photo</span></>}
-                    </div>
-                    <Input placeholder="Dish Name (e.g. Cheese Pizza)" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="rounded-xl h-12" />
-                    <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} className="rounded-xl h-12" />
-                    <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select Category" /></SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        <SelectItem value="snacks">Snacks</SelectItem>
-                        <SelectItem value="pizza">Pizza</SelectItem>
-                        <SelectItem value="burgers">Burgers</SelectItem>
-                        <SelectItem value="pasta">Pasta</SelectItem>
-                        <SelectItem value="drinks">Drinks</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="flex items-center space-x-2 bg-muted/20 p-3 rounded-xl">
-                      <input type="checkbox" id="isVeg" checked={newProduct.isVeg} onChange={(e) => setNewProduct({...newProduct, isVeg: e.target.checked})} className="h-4 w-4 accent-primary" />
-                      <label htmlFor="isVeg" className="text-xs font-black uppercase italic">Pure Veg Item</label>
-                    </div>
-                    <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-14 bg-primary font-black rounded-2xl text-white shadow-xl shadow-primary/20">
-                      {isSubmitting ? "SAVING TO CLOUD..." : "PUBLISH PERMANENTLY"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              
-              <div className="space-y-3">
-                {products?.map((p: any) => (
-                  <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-4">
-                      <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover shrink-0" alt="" />
+          <div className="flex-1 flex flex-col px-4 py-8">
+            {filteredOrders.length > 0 ? (
+              <div className="space-y-4">
+                {filteredOrders.map((order: any) => (
+                  <div key={order.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h4 className="font-black italic text-sm">{p.name}</h4>
-                        <p className="text-primary font-black text-xs">₹{p.price}</p>
-                        <span className="text-[8px] font-bold uppercase text-muted-foreground">{p.category}</span>
+                        <h3 className="font-bold text-base">#ORD-{order.id.slice(-4)}</h3>
+                        <p className="text-xs text-muted-foreground">{order.items?.length} Items • ₹{order.total}</p>
                       </div>
+                      <span className="text-[10px] font-black uppercase text-primary bg-primary/5 px-2 py-1 rounded-md">{order.status}</span>
                     </div>
-                    <Button variant="ghost" onClick={async () => {
-                      if(confirm("Delete permanently?")) {
-                        await deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id));
-                      }
-                    }} className="text-red-200 hover:text-red-500 transition-colors"><Trash2 className="h-4 w-4" /></Button>
+                    <div className="flex gap-2">
+                       {order.status === 'Accepted' && <Button onClick={() => updateStatus(order.id, 'Preparing')} className="flex-1 bg-[#1E293B] text-white rounded-xl h-10 text-xs font-bold">START PREPARING</Button>}
+                       {order.status === 'Preparing' && <Button onClick={() => updateStatus(order.id, 'Ready for Pickup')} className="flex-1 bg-green-600 text-white rounded-xl h-10 text-xs font-bold">MARK READY</Button>}
+                    </div>
                   </div>
                 ))}
               </div>
-           </div>
-        )}
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 mt-10">
+                <div className="relative w-64 h-64 mb-6">
+                  {/* Kitchen Stove SVG Illustration */}
+                  <svg viewBox="0 0 400 400" className="w-full h-full text-gray-200 fill-current">
+                    <circle cx="200" cy="200" r="150" fill="#f3f4f6" />
+                    <rect x="120" y="160" width="160" height="120" rx="10" fill="#e5e7eb" />
+                    <rect x="130" y="170" width="140" height="100" rx="5" fill="#fff" />
+                    <circle cx="165" cy="200" r="25" fill="#f3f4f6" />
+                    <circle cx="235" cy="200" r="25" fill="#f3f4f6" />
+                    <circle cx="165" cy="250" r="25" fill="#f3f4f6" />
+                    <circle cx="235" cy="250" r="25" fill="#f3f4f6" />
+                    <path d="M150 160 L150 130 Q150 110 180 110 L220 110 Q250 110 250 130 L250 160" stroke="#d1d5db" strokeWidth="8" fill="none" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-600">No orders are currently being {orderFilter.toLowerCase()}!</h3>
+                <p className="text-sm text-gray-400 mt-1">Keep your app online to receive new requests.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeMainTab === 'catalog') {
+      return (
+        <div className="p-4 space-y-4 pb-32">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Menu Catalog</h2>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-[#1E293B] rounded-xl"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[2rem]">
+                <DialogHeader><DialogTitle>New Menu Item</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <Input placeholder="Dish Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                  <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                  <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full bg-primary rounded-xl h-12 font-bold">PUBLISH ITEM</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <div className="grid gap-3">
+            {products?.map(p => (
+              <div key={p.id} className="bg-white p-3 rounded-2xl border flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" />
+                  <div>
+                    <h4 className="font-bold text-sm">{p.name}</h4>
+                    <p className="text-primary font-black text-xs">₹{p.price}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id))} className="text-red-300"><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center p-20 opacity-30">
+        <Utensils className="h-12 w-12 mb-4" />
+        <p className="font-bold text-sm">Module coming soon</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
+      {/* Top System Icons Bar */}
+      <div className="bg-black text-white px-4 py-2 flex items-center justify-between text-sm">
+         <div className="flex items-center gap-4">
+            <X className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" />
+         </div>
+         <span className="font-medium tracking-tight">pppp.zepio.io</span>
+         <div className="flex items-center gap-4">
+            <Share2 className="h-4 w-4" />
+            <MoreVertical className="h-4 w-4" />
+         </div>
+      </div>
+
+      {/* Header Section */}
+      <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted border border-gray-100 shadow-sm">
+            <img 
+              src={vendorProfile?.imageUrl || 'https://picsum.photos/seed/resto/200/200'} 
+              className="w-full h-full object-cover" 
+              alt="Logo" 
+            />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant Name'}</h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500" : "bg-gray-300")} />
+              <span className={cn("text-[10px] font-bold uppercase", isOnline ? "text-green-500" : "text-gray-400")}>
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full">
+           <span className={cn("text-[10px] font-black uppercase", isOnline ? "text-green-600" : "text-gray-500")}>
+             {isOnline ? 'Online' : 'Offline'}
+           </span>
+           <Switch 
+            checked={isOnline} 
+            onCheckedChange={setIsOnline} 
+            className="data-[state=checked]:bg-green-500 scale-90"
+           />
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col bg-[#F3F4F6]">
+        {renderContent()}
       </main>
-      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+
+      {/* Dark Bottom Navigation Bar */}
+      <nav className="bg-[#0F172A] pt-4 pb-8 px-4 flex items-center justify-between">
+        {[
+          { id: 'orders', label: 'Orders', icon: LayoutDashboard },
+          { id: 'catalog', label: 'Catalog', icon: Layers },
+          { id: 'business', label: 'Business', icon: ArrowLeftRight },
+          { id: 'payouts', label: 'Payouts', icon: CircleDollarSign },
+          { id: 'account', label: 'Account', icon: UserCircle2 },
+        ].map((item) => {
+          const isActive = activeMainTab === item.id;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveMainTab(item.id as MainTab)}
+              className="flex flex-col items-center gap-1.5 flex-1 transition-all"
+            >
+              <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-gray-500")} />
+              <span className={cn("text-[10px] font-bold tracking-tight", isActive ? "text-white" : "text-gray-500")}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
