@@ -25,7 +25,10 @@ import {
   Loader2,
   XCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Volume2,
+  VolumeX,
+  BellRing
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -48,11 +51,13 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   
   const [newProduct, setNewProduct] = useState({ 
     name: '', 
@@ -101,6 +106,50 @@ export default function VendorDashboard() {
     return collection(firestore, 'vendors', user.uid, 'products');
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
+
+  // Ringing & Vibration Logic
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if any order is in 'Placed' status (New and not yet accepted)
+    const hasNewOrder = orders?.some(o => o.status === 'Placed');
+
+    if (hasNewOrder && isAudioEnabled) {
+      // Start Ringing
+      if (!audioRef.current) {
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audioRef.current.loop = true;
+      }
+      audioRef.current.play().catch(() => console.log("Autoplay blocked by browser policy"));
+
+      // Start Vibration (repeating pattern)
+      if ("vibrate" in navigator) {
+        const vibrateInterval = setInterval(() => {
+          if (!orders?.some(o => o.status === 'Placed')) {
+            clearInterval(vibrateInterval);
+            return;
+          }
+          navigator.vibrate([500, 200, 500, 200, 500]);
+        }, 2000);
+        return () => {
+          clearInterval(vibrateInterval);
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+        };
+      }
+    } else {
+      // Stop Ringing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      if ("vibrate" in navigator) {
+        navigator.vibrate(0);
+      }
+    }
+  }, [orders, isAudioEnabled]);
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -196,6 +245,8 @@ export default function VendorDashboard() {
         return false;
       }) || [];
 
+      const pendingOrdersCount = orders?.filter(o => o.status === 'Placed').length || 0;
+
       return (
         <div className="flex flex-col flex-1">
           <div className="flex bg-white px-4 py-3 border-b border-gray-100 sticky top-0 z-10">
@@ -217,9 +268,24 @@ export default function VendorDashboard() {
           </div>
 
           <div className="flex-1 flex flex-col px-4 py-6 space-y-4">
+            {orderFilter === 'NEW ORDERS' && pendingOrdersCount > 0 && (
+              <div className="bg-primary p-4 rounded-2xl flex items-center gap-4 animate-pulse shadow-lg shadow-primary/20 mb-2">
+                <div className="bg-white/20 p-2 rounded-xl">
+                  <BellRing className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-black italic uppercase text-sm leading-tight text-white">{pendingOrdersCount} NEW ORDERS PENDING</h2>
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Action Required to stop Ringtone</p>
+                </div>
+              </div>
+            )}
+
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order: any) => (
-                <div key={order.id} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 overflow-hidden relative">
+                <div key={order.id} className={cn(
+                  "bg-white rounded-3xl p-5 shadow-sm border overflow-hidden relative transition-all",
+                  order.status === 'Placed' ? "border-primary ring-1 ring-primary/20 scale-[1.02]" : "border-gray-100"
+                )}>
                   {order.status === 'Cancelled' && (
                     <div className="absolute top-0 right-0 p-3">
                        <XCircle className="h-5 w-5 text-red-500 opacity-20" />
@@ -552,15 +618,28 @@ export default function VendorDashboard() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full shadow-inner">
-             <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>
-               {isOnline ? 'On' : 'Off'}
-             </span>
-             <Switch 
-              checked={isOnline} 
-              onCheckedChange={handleOnlineToggle} 
-              className="data-[state=checked]:bg-green-500 scale-90"
-             />
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+              className={cn(
+                "p-2.5 rounded-xl border-2 transition-all active:scale-90",
+                isAudioEnabled ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-gray-50 text-gray-400 border-gray-100"
+              )}
+            >
+              {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+
+            <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full shadow-inner">
+               <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>
+                 {isOnline ? 'On' : 'Off'}
+               </span>
+               <Switch 
+                checked={isOnline} 
+                onCheckedChange={handleOnlineToggle} 
+                className="data-[state=checked]:bg-green-500 scale-90"
+               />
+            </div>
           </div>
         </header>
       )}
