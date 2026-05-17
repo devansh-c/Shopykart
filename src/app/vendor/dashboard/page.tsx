@@ -503,7 +503,7 @@ export default function VendorDashboard() {
           
           <div className="grid gap-3">
             {products?.map(p => (
-              <div className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm group">
+              <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm group">
                 <div className="flex items-center gap-4">
                   <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted shadow-sm">
                     <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />
