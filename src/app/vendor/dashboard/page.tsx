@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -140,8 +140,12 @@ export default function VendorDashboard() {
               tag: 'new-order-alert'
             });
           }).catch(() => {
-            // Fallback to legacy constructor if SW fails and available
-            try { new Notification("NEW ORDER RECEIVED!"); } catch(e) {}
+            // Fallback to Service Worker registration if constructor is blocked
+            try {
+              navigator.serviceWorker.getRegistration().then(reg => {
+                reg?.showNotification("NEW ORDER RECEIVED!");
+              });
+            } catch(e) {}
           });
         }
       }
@@ -420,6 +424,7 @@ export default function VendorDashboard() {
                   <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">
                     {editingId ? 'Edit Item' : 'New Menu Item'}
                   </DialogTitle>
+                  <DialogDescription className="sr-only">Add or modify items in your store menu catalog.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-5 pt-4">
                   <div className="space-y-2">
@@ -591,7 +596,7 @@ export default function VendorDashboard() {
                   <span className="text-sm font-bold text-gray-800">{vendorProfile?.email || '-'}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-24 text-[10px) font-black uppercase text-gray-400 tracking-widest">Phone</span>
+                  <span className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-widest">Phone</span>
                   <span className="text-sm font-bold text-gray-800">+91 {vendorProfile?.phone || '-'}</span>
                 </div>
               </div>
@@ -630,8 +635,12 @@ export default function VendorDashboard() {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">NEW ORDER<br />RECEIVED!</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Ringing & Vibration Active</p>
+              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">
+                NEW ORDER<br />RECEIVED!
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                Ringing & Vibration Active
+              </DialogDescription>
             </div>
 
             <div className="w-full bg-white/5 rounded-3xl p-6 border border-white/10">
