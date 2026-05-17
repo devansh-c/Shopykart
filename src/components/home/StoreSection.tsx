@@ -60,7 +60,7 @@ export function StoreSection() {
         <div className="flex items-center">
           <span className="text-2xl mr-2">🏪</span>
           <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
-            {currentTown ? `Top Stores in ${currentTown}` : 'Trending Stores'}
+            {currentTown ? `All Stores in ${currentTown}` : 'All Stores'}
           </h2>
         </div>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
