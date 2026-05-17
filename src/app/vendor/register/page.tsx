@@ -55,10 +55,10 @@ export default function VendorRegistrationPage() {
     logo: '',
     cover: '',
     zone: '', 
-    plusCode: '', // Replaces Lat/Lng
-    addressLine: '', // New Field
-    state: 'Uttar Pradesh', // New Field
-    rating: '4.5', // New Field for Home Page display
+    plusCode: '', 
+    addressLine: '', 
+    state: 'Uttar Pradesh', 
+    rating: '4.5', 
     fssai: '', 
     firstName: '',
     lastName: '',
@@ -87,7 +87,6 @@ export default function VendorRegistrationPage() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        // Simple plus-code style proxy using coordinates
         const code = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
         updateFormData('plusCode', code);
         toast({ title: "Location Captured", description: `Plus Code: ${code}` });
@@ -118,7 +117,6 @@ export default function VendorRegistrationPage() {
     setIsProcessing(true);
 
     try {
-      // 1. Create Auth Account
       const userCredential = await createUserWithEmailAndPassword(
         auth, 
         formData.email.trim().toLowerCase(), 
@@ -126,7 +124,6 @@ export default function VendorRegistrationPage() {
       );
       const user = userCredential.user;
 
-      // 2. Prepare Data
       const vendorData = {
         id: user.uid,
         storeName: formData.storeName,
@@ -144,15 +141,14 @@ export default function VendorRegistrationPage() {
         phone: formData.phone,
         email: formData.email.trim().toLowerCase(),
         status: 'approved',
+        isOnline: true,
         createdAt: serverTimestamp(),
         walletBalance: 0
       };
 
-      // 3. Save to Firestore permanently
       const vRef = doc(firestore, 'vendors', user.uid);
       await setDoc(vRef, vendorData);
 
-      // Also save to applications for history
       const appRef = doc(firestore, 'vendor_applications', user.uid);
       await setDoc(appRef, vendorData);
 
@@ -165,7 +161,7 @@ export default function VendorRegistrationPage() {
         toast({ variant: "destructive", title: "Error", description: "Email already exists." });
         setStep('owner-info'); 
       } else {
-        toast({ variant: "destructive", title: "Database Error", description: "Please check your network and try again." });
+        toast({ variant: "destructive", title: "Database Error", description: "Registration failed." });
       }
     } finally {
       setIsProcessing(false);
@@ -276,17 +272,31 @@ export default function VendorRegistrationPage() {
 
           {step === 'commission' && (
             <div className="space-y-6 text-center">
-              <div className="bg-primary/10 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-2"><ShieldCheck className="h-10 w-10 text-primary" /></div>
-              <div className="bg-black text-white p-8 rounded-[2.5rem] space-y-4">
-                <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase">₹5 COMMISSION</span>
-                <p className="text-sm font-bold leading-relaxed text-gray-300">PER SUCCESSFUL ORDER CHARGED.</p>
+              <div className="bg-primary/5 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-2">
+                <ShieldCheck className="h-10 w-10 text-primary" />
               </div>
+              
+              {/* Premium Commission Box Matching Screenshot */}
+              <div className="bg-black text-white p-10 rounded-[3rem] space-y-4 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                   <ShieldCheck className="h-12 w-12" />
+                </div>
+                <div className="flex justify-center">
+                  <span className="bg-[#EF4444] text-white text-[10px] font-black px-5 py-2 rounded-full uppercase italic tracking-tighter">
+                    ₹5 COMMISSION
+                  </span>
+                </div>
+                <p className="text-base font-black leading-tight text-white uppercase italic tracking-tighter">
+                  PER SUCCESSFUL ORDER<br />CHARGED.
+                </p>
+              </div>
+
               <Button 
                 onClick={handleSubmit} 
                 disabled={isProcessing}
-                className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20"
+                className="w-full h-16 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-3xl font-black uppercase italic text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
               >
-                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "I AGREE & SUBMIT"}
+                I AGREE & SUBMIT
               </Button>
             </div>
           )}

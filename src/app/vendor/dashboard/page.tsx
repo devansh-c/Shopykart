@@ -52,14 +52,12 @@ export default function VendorDashboard() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
 
-  // Vendor Profile Stream
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
-  // Sync Online status from DB
   const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
     if (vendorProfile) {
@@ -79,14 +77,12 @@ export default function VendorDashboard() {
     }
   };
 
-  // Orders Stream
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
   const { data: orders } = useCollection<any>(ordersQuery);
 
-  // Products Sub-collection Stream
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'vendors', user.uid, 'products');
@@ -203,7 +199,7 @@ export default function VendorDashboard() {
                     <path d="M150 160 L150 130 Q150 110 180 110 L220 110 Q250 110 250 130 L250 160" stroke="#d1d5db" strokeWidth="8" fill="none" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-gray-600">No orders are currently being {orderFilter.toLowerCase()}!</h3>
+                <h3 className="text-lg font-bold text-gray-600">No orders here!</h3>
                 <p className="text-sm text-gray-400 mt-1">Keep your app online to receive new requests.</p>
               </div>
             )}
@@ -216,7 +212,7 @@ export default function VendorDashboard() {
       return (
         <div className="p-4 space-y-4 pb-32">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Menu Catalog</h2>
+            <h2 className="text-xl font-bold text-gray-800">Menu Catalog</h2>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-[#1E293B] rounded-xl"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button>
@@ -235,7 +231,7 @@ export default function VendorDashboard() {
           </div>
           <div className="grid gap-3">
             {products?.map(p => (
-              <div key={p.id} className="bg-white p-3 rounded-2xl border flex items-center justify-between">
+              <div key={p.id} className="bg-white p-3 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-3">
                   <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" />
                   <div>
@@ -243,9 +239,15 @@ export default function VendorDashboard() {
                     <p className="text-primary font-black text-xs">₹{p.price}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id))} className="text-red-300"><Trash2 className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id))} className="text-red-300 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
               </div>
             ))}
+            {(!products || products.length === 0) && (
+               <div className="text-center py-20 opacity-30">
+                  <Utensils className="h-10 w-10 mx-auto mb-2" />
+                  <p className="text-xs font-bold uppercase tracking-widest">Catalog is empty</p>
+               </div>
+            )}
           </div>
         </div>
       );
@@ -254,7 +256,7 @@ export default function VendorDashboard() {
     if (activeMainTab === 'account') {
       return (
         <div className="flex flex-col bg-[#F3F4F6] min-h-full pb-32">
-          <div className="bg-white p-4 flex items-center gap-4 mb-4">
+          <div className="bg-white p-4 flex items-center gap-4 mb-4 border-b border-gray-100">
             <button onClick={() => setActiveMainTab('orders')} className="p-2 hover:bg-gray-100 rounded-full">
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -262,56 +264,56 @@ export default function VendorDashboard() {
           </div>
 
           <div className="px-4 space-y-4">
-            <div className="relative h-48 w-full rounded-2xl overflow-hidden shadow-sm bg-muted">
+            <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden shadow-sm bg-muted border border-gray-200">
               <img 
-                src={vendorProfile?.bannerUrl || 'https://picsum.photos/seed/kfc/800/400'} 
+                src={vendorProfile?.bannerUrl || 'https://picsum.photos/seed/resto/800/400'} 
                 className="w-full h-full object-cover" 
                 alt="Banner" 
               />
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                <h3 className="text-white text-xl font-bold">{vendorProfile?.storeName || 'Restaurant Name'}</h3>
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
+                <h3 className="text-white text-2xl font-black italic uppercase tracking-tighter">{vendorProfile?.storeName || 'Store Name'}</h3>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 flex items-center justify-between shadow-sm">
+            <div className="bg-white rounded-3xl p-6 flex items-center justify-between shadow-sm border border-gray-100">
               <div className="flex items-center gap-4">
-                <div className="text-3xl font-bold flex items-center gap-1.5">
+                <div className="text-3xl font-black italic tracking-tighter flex items-center gap-2">
                   {vendorProfile?.rating || '4.5'} <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-400">Total Ratings</span>
+                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none">Total Ratings</span>
                 </div>
               </div>
-              <button className="text-sm font-bold text-gray-400 flex items-center gap-1">
-                View all <ChevronRight className="h-4 w-4" />
+              <button className="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1">
+                Details <ChevronRight className="h-3 w-3" />
               </button>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold">Account Details</h3>
-                <button className="text-sm font-bold text-gray-400">Edit</button>
+            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-sm font-black uppercase tracking-widest text-gray-800">Account Details</h3>
+                <button className="text-[10px] font-black uppercase text-primary tracking-widest">Edit</button>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex">
-                  <span className="w-20 text-sm font-bold text-gray-800">Name</span>
-                  <span className="text-sm text-gray-500">{vendorProfile?.storeName || 'Shopykart'}</span>
+                  <span className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-widest">Name</span>
+                  <span className="text-sm font-bold text-gray-800">{vendorProfile?.storeName || '-'}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-20 text-sm font-bold text-gray-800">Email</span>
-                  <span className="text-sm text-gray-500">{vendorProfile?.email || 'shopykarttt@gmail.com'}</span>
+                  <span className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-widest">Email</span>
+                  <span className="text-sm font-bold text-gray-800">{vendorProfile?.email || '-'}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-20 text-sm font-bold text-gray-800">Phone</span>
-                  <span className="text-sm text-gray-500">+91 {vendorProfile?.phone || '9450355709'}</span>
+                  <span className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-widest">Phone</span>
+                  <span className="text-sm font-bold text-gray-800">+91 {vendorProfile?.phone || '-'}</span>
                 </div>
               </div>
             </div>
 
             <button 
               onClick={handleSignOut}
-              className="w-full h-14 bg-red-50 text-red-500 rounded-2xl font-bold text-base mt-4 border border-red-100 active:scale-[0.98] transition-all"
+              className="w-full h-16 bg-red-50 text-red-500 rounded-3xl font-black uppercase italic tracking-tighter text-lg mt-4 border border-red-100 active:scale-[0.98] transition-all"
             >
               Logout
             </button>
@@ -323,19 +325,19 @@ export default function VendorDashboard() {
     return (
       <div className="flex flex-col items-center justify-center p-20 opacity-30">
         <Utensils className="h-12 w-12 mb-4" />
-        <p className="font-bold text-sm">Module coming soon</p>
+        <p className="font-bold text-sm">Coming Soon</p>
       </div>
     );
   };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
-      <div className="bg-black text-white px-4 py-2 flex items-center justify-between text-sm">
+      <div className="bg-black text-white px-4 py-2 flex items-center justify-between text-xs font-bold uppercase tracking-widest">
          <div className="flex items-center gap-4">
-            <X className="h-5 w-5" />
-            <ChevronLeft className="h-5 w-5" />
+            <X className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
          </div>
-         <span className="font-medium tracking-tight">partner.shopykart.com</span>
+         <span className="tracking-tighter italic">partner.shopykart.com</span>
          <div className="flex items-center gap-4">
             <Share2 className="h-4 w-4" />
             <MoreVertical className="h-4 w-4" />
@@ -353,17 +355,17 @@ export default function VendorDashboard() {
               />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant Name'}</h1>
+              <h1 className="text-base font-bold text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant'}</h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500" : "bg-gray-300")} />
-                <span className={cn("text-[10px] font-bold uppercase", isOnline ? "text-green-500" : "text-gray-400")}>
+                <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-500" : "text-gray-400")}>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full">
-             <span className={cn("text-[10px] font-black uppercase", isOnline ? "text-green-600" : "text-gray-500")}>
+          <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full shadow-inner">
+             <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>
                {isOnline ? 'Online' : 'Offline'}
              </span>
              <Switch 
@@ -393,10 +395,10 @@ export default function VendorDashboard() {
             <button
               key={item.id}
               onClick={() => setActiveMainTab(item.id as MainTab)}
-              className="flex flex-col items-center gap-1.5 flex-1 transition-all"
+              className="flex flex-col items-center gap-1.5 flex-1 transition-all active:scale-90"
             >
-              <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-gray-500")} />
-              <span className={cn("text-[10px] font-bold tracking-tight", isActive ? "text-white" : "text-gray-500")}>
+              <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-white" : "text-gray-500")} />
+              <span className={cn("text-[10px] font-bold tracking-tight uppercase", isActive ? "text-white" : "text-gray-500")}>
                 {item.label}
               </span>
             </button>

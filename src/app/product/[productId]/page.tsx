@@ -19,9 +19,8 @@ export default function ProductDetailsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart, cart } = useCart();
-  const [instructions, setInstructions] = useState('');
   
-  // Rating & Review State
+  const [instructions, setInstructions] = useState('');
   const [userRating, setUserRating] = useState(0);
   const [userReview, setUserReview] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -34,9 +33,8 @@ export default function ProductDetailsPage() {
     return doc(firestore, 'products', productId as string);
   }, [firestore, productId]);
 
-  const { data: product, loading: dbLoading } = useDoc<any>(productRef);
+  const { data: product } = useDoc<any>(productRef);
   
-  // Products Query for Related Items
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
@@ -48,9 +46,6 @@ export default function ProductDetailsPage() {
     return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
   }, [allDbProducts, productId, product]);
 
-  const cartItem = cart.find(item => item.id === productId);
-
-  // Mocked global reviews
   const [mockReviews] = useState([
     { id: 'r1', user: 'Amit K.', rating: 5, comment: 'Absolutely delicious! The best in town.', date: '2 days ago' },
     { id: 'r2', user: 'Sara S.', rating: 4, comment: 'Very fresh and hot. Loved the packaging.', date: '5 days ago' },
@@ -101,18 +96,6 @@ export default function ProductDetailsPage() {
     toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
   };
 
-  if (!product && !dbLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center flex-col">
-        <Utensils className="h-16 w-16 text-muted-foreground/20 mb-4" />
-        <h2 className="text-2xl font-black uppercase italic">Product Not Found</h2>
-        <p className="text-muted-foreground mt-2 mb-6">The item you are looking for doesn't exist.</p>
-        <Button onClick={() => router.push('/menu')} className="bg-primary rounded-2xl h-12 px-8 font-bold">Back to Menu</Button>
-      </div>
-    );
-  }
-
-  // Placeholder while loading but without showing a spinner
   if (!product) return <div className="min-h-screen bg-white" />;
 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
