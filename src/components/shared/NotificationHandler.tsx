@@ -26,29 +26,33 @@ export function NotificationHandler() {
     if (!user || !firestore) return;
 
     const setupMessaging = async () => {
-      const messaging = await getFirebaseMessaging();
-      if (!messaging) return;
+      try {
+        const messaging = await getFirebaseMessaging();
+        if (!messaging) return;
 
-      // Handle foreground messages
-      onMessage(messaging, (payload) => {
-        toast({
-          title: payload.notification?.title || 'ShopyKart',
-          description: payload.notification?.body || 'New update received.',
-          action: (
-            <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = '/orders'}>
-              VIEW
-            </Button>
-          ),
+        // Handle foreground messages
+        onMessage(messaging, (payload) => {
+          toast({
+            title: payload.notification?.title || 'ShopyKart',
+            description: payload.notification?.body || 'New update received.',
+            action: (
+              <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = '/orders'}>
+                VIEW
+              </Button>
+            ),
+          });
+          
+          // Play notification sound
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.play().catch(() => {});
         });
-        
-        // Play notification sound
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audio.play().catch(() => {});
-      });
 
-      // If permission is already granted, refresh token
-      if (Notification.permission === 'granted') {
-        saveToken(messaging);
+        // If permission is already granted, refresh token
+        if (Notification.permission === 'granted') {
+          saveToken(messaging);
+        }
+      } catch (err) {
+        console.warn('Messaging setup failed, API might not be enabled yet.');
       }
     };
 
@@ -57,10 +61,9 @@ export function NotificationHandler() {
 
   const saveToken = async (messaging: any) => {
     try {
-      // VAPID Key is required for web push. You can generate this in Firebase Console > Project Settings > Cloud Messaging
-      // Using a placeholder here - user should ideally update this with their own VAPID key.
+      // VAPID Key is required for web push. Generate in Firebase Console > Cloud Messaging
       const token = await getToken(messaging, {
-        vapidKey: 'B...your_public_vapid_key_from_firebase_console...' 
+        vapidKey: 'B...generate_your_key_in_console...' 
       });
 
       if (token && user && firestore) {
@@ -72,23 +75,27 @@ export function NotificationHandler() {
         }, { merge: true });
       }
     } catch (err) {
-      console.error('Failed to get FCM token:', err);
+      // Fail silently for setup issues
     }
   };
 
   const requestPermission = async () => {
-    const messaging = await getFirebaseMessaging();
-    if (!messaging) return;
+    try {
+      const messaging = await getFirebaseMessaging();
+      if (!messaging) return;
 
-    const status = await Notification.requestPermission();
-    setPermission(status);
-    
-    if (status === 'granted') {
-      saveToken(messaging);
-      toast({
-        title: "Notifications Enabled",
-        description: "You'll now receive order and offer updates!",
-      });
+      const status = await Notification.requestPermission();
+      setPermission(status);
+      
+      if (status === 'granted') {
+        saveToken(messaging);
+        toast({
+          title: "Notifications Enabled",
+          description: "You'll now receive order and offer updates!",
+        });
+      }
+    } catch (err) {
+      setPermission('denied');
     }
   };
 
@@ -97,7 +104,7 @@ export function NotificationHandler() {
 
   return (
     <div className="fixed top-20 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 flex items-center justify-between gap-4">
+      <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="bg-primary/20 p-2 rounded-xl">
             <BellRing className="h-5 w-5 text-primary animate-bounce" />

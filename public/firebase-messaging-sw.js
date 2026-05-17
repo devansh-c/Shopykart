@@ -1,9 +1,7 @@
 
-// Scripts for firebase messaging
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-compat.js');
 
-// These values must match your src/firebase/config.ts
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
   authDomain: "studio-4644410857-c7ed7.firebaseapp.com",
@@ -15,31 +13,25 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
   const notificationTitle = payload.notification.title || 'ShopyKart Update';
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/favicon.ico', // Update this to your brand icon path
-    badge: '/favicon.ico',
-    tag: payload.data?.tag || 'shopykart-alert',
-    data: payload.data
+    body: payload.notification.body || 'Open the app to see details.',
+    icon: 'https://picsum.photos/seed/shopy/128/128',
+    data: payload.data,
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Handle notification click to navigate
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.url || '/orders';
-
+  const urlToOpen = event.notification.data?.click_action || '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }

@@ -20,30 +20,34 @@ export function initializeFirebase() {
     let firestore: Firestore;
     let auth: Auth;
 
+    // Check if app already exists
     if (getApps().length > 0) {
-      // App already exists, return existing instances
       firebaseApp = getApp();
-      firestore = getFirestore(firebaseApp);
       auth = getAuth(firebaseApp);
+      // For firestore, we try to get existing instance or use a try-catch to initialize if needed
+      try {
+        firestore = getFirestore(firebaseApp);
+      } catch (e) {
+        firestore = initializeFirestore(firebaseApp, {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+          experimentalAutoDetectLongPolling: true,
+        });
+      }
     } else {
       // First time initialization
       firebaseApp = initializeApp(firebaseConfig);
-      
-      // We initialize with custom settings only once
       firestore = initializeFirestore(firebaseApp, {
         localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         experimentalAutoDetectLongPolling: true,
       });
-      
       auth = getAuth(firebaseApp);
     }
 
     return { firebaseApp, firestore, auth };
   } catch (error) {
     console.error('Firebase initialization error:', error);
-    // Fallback to basic getters if initialization logic fails
     try {
-      const app = getApp();
+      const app = getApp() || initializeApp(firebaseConfig);
       return { 
         firebaseApp: app, 
         firestore: getFirestore(app), 
