@@ -106,6 +106,15 @@ export default function CartPage() {
     };
 
     setDoc(newOrderRef, orderData)
+      .then(() => {
+        // Trigger immediate browser notification for the customer
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification("Order Confirmed! 🚀", {
+            body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
+            icon: "https://picsum.photos/seed/shopy-logo/100/100", // Generic logo placeholder
+          });
+        }
+      })
       .catch(async (err) => {
         const pErr = new FirestorePermissionError({ 
           path: `orders/${orderId}`, 
@@ -335,10 +344,12 @@ export default function CartPage() {
               )}
             >
               <div className="flex items-center gap-3">
-                <Wallet className="h-5 w-5 text-green-500" />
-                <div className="text-left">
-                  <h4 className="text-xs font-bold text-gray-800">Pay Online</h4>
-                  <p className="text-[10px] text-gray-400 font-bold">UPI, Debit / Credit Card, Netbanking</p>
+                <div className="flex items-center gap-3">
+                  <Wallet className="h-5 w-5 text-green-500" />
+                  <div className="text-left">
+                    <h4 className="text-xs font-bold text-gray-800">Pay Online</h4>
+                    <p className="text-[10px] text-gray-400 font-bold">UPI, Debit / Credit Card, Netbanking</p>
+                  </div>
                 </div>
               </div>
               <div className={cn(
