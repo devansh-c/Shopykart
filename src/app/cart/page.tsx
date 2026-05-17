@@ -39,6 +39,9 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
+// Updated Brand Logo URL (Placeholder for now, user can replace with their hosted link)
+const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
+
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart, customRequest } = useCart();
   const router = useRouter();
@@ -93,15 +96,22 @@ export default function CartPage() {
         navigator.serviceWorker.ready.then(registration => {
           registration.showNotification(title, {
             body: body,
-            icon: "https://picsum.photos/seed/shopy-logo/100/100",
+            icon: BRAND_LOGO_URL,
+            badge: BRAND_LOGO_URL,
             tag: 'order-success-' + Date.now()
           });
         }).catch(() => {
           // Standard constructor fallback if SW not ready
-          new Notification(title, { body });
+          try {
+            new Notification(title, { body, icon: BRAND_LOGO_URL });
+          } catch(e) {
+            console.warn("Notification constructor failed, using fallback");
+          }
         });
       } else {
-        new Notification(title, { body });
+        try {
+          new Notification(title, { body, icon: BRAND_LOGO_URL });
+        } catch(e) {}
       }
     }
   };

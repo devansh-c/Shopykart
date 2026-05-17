@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { BellRing, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
+
 export function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -59,9 +61,12 @@ export function NotificationHandler() {
             title: payload.notification?.title || 'ShopyKart Notification',
             description: payload.notification?.body || 'New update received.',
             action: (
-              <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = payload.data?.click_action || '/orders'}>
-                VIEW
-              </Button>
+              <div className="flex items-center gap-3">
+                <img src={BRAND_LOGO_URL} className="h-8 w-8 rounded-full border border-primary/20" alt="Logo" />
+                <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = payload.data?.click_action || '/orders'}>
+                  VIEW
+                </Button>
+              </div>
             ),
           });
         });

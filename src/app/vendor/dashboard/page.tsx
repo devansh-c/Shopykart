@@ -45,6 +45,9 @@ import { compressImage } from '@/lib/image-utils';
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
+// Brand Logo URL
+const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
+
 export default function VendorDashboard() {
   const firestore = useFirestore();
   const auth = useAuth();
@@ -120,10 +123,20 @@ export default function VendorDashboard() {
     if (Notification.permission === 'granted') {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification(title, { body, icon: 'https://picsum.photos/seed/shopy-logo/100/100' });
-        }).catch(() => new Notification(title, { body }));
+          reg.showNotification(title, { 
+            body, 
+            icon: BRAND_LOGO_URL,
+            badge: BRAND_LOGO_URL 
+          });
+        }).catch(() => {
+          try {
+            new Notification(title, { body, icon: BRAND_LOGO_URL });
+          } catch(e) {}
+        });
       } else {
-        new Notification(title, { body });
+        try {
+          new Notification(title, { body, icon: BRAND_LOGO_URL });
+        } catch(e) {}
       }
     }
   };
