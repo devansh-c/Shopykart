@@ -20,7 +20,12 @@ import {
   ChevronLeft,
   X,
   Share2,
-  MoreVertical
+  MoreVertical,
+  Star,
+  ChevronRight,
+  Phone,
+  Mail,
+  Store
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -47,7 +52,6 @@ export default function VendorDashboard() {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderStatus>('Preparing');
@@ -80,6 +84,7 @@ export default function VendorDashboard() {
   const handleSignOut = async () => {
     if (!auth) return;
     await signOut(auth);
+    toast({ title: "Logged Out", description: "See you again soon!" });
     router.push('/vendor/login');
   };
 
@@ -136,7 +141,6 @@ export default function VendorDashboard() {
 
       return (
         <div className="flex flex-col flex-1">
-          {/* Status Pills */}
           <div className="flex overflow-x-auto gap-3 px-4 py-4 no-scrollbar">
             {statusOptions.map((status) => (
               <button
@@ -176,7 +180,6 @@ export default function VendorDashboard() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 mt-10">
                 <div className="relative w-64 h-64 mb-6">
-                  {/* Kitchen Stove SVG Illustration */}
                   <svg viewBox="0 0 400 400" className="w-full h-full text-gray-200 fill-current">
                     <circle cx="200" cy="200" r="150" fill="#f3f4f6" />
                     <rect x="120" y="160" width="160" height="120" rx="10" fill="#e5e7eb" />
@@ -207,7 +210,9 @@ export default function VendorDashboard() {
                 <Button size="sm" className="bg-[#1E293B] rounded-xl"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button>
               </DialogTrigger>
               <DialogContent className="rounded-[2rem]">
-                <DialogHeader><DialogTitle>New Menu Item</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle className="font-black italic uppercase">New Menu Item</DialogTitle>
+                </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <Input placeholder="Dish Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
                   <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
@@ -229,6 +234,80 @@ export default function VendorDashboard() {
                 <Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id))} className="text-red-300"><Trash2 className="h-4 w-4" /></Button>
               </div>
             ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeMainTab === 'account') {
+      return (
+        <div className="flex flex-col bg-[#F3F4F6] min-h-full pb-32">
+          {/* Account Header Sync */}
+          <div className="bg-white p-4 flex items-center gap-4 mb-4">
+            <button onClick={() => setActiveMainTab('orders')} className="p-2 hover:bg-gray-100 rounded-full">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <h2 className="text-lg font-bold">Account</h2>
+          </div>
+
+          <div className="px-4 space-y-4">
+            {/* Banner Section */}
+            <div className="relative h-48 w-full rounded-2xl overflow-hidden shadow-sm bg-muted">
+              <img 
+                src={vendorProfile?.bannerUrl || 'https://picsum.photos/seed/kfc/800/400'} 
+                className="w-full h-full object-cover" 
+                alt="Banner" 
+              />
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <h3 className="text-white text-xl font-bold">{vendorProfile?.storeName || 'Restaurant Name'}</h3>
+              </div>
+            </div>
+
+            {/* Rating Card */}
+            <div className="bg-white rounded-2xl p-6 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="text-3xl font-bold flex items-center gap-1.5">
+                  {vendorProfile?.rating || '4.7'} <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-400">5120 ratings</span>
+                </div>
+              </div>
+              <button className="text-sm font-bold text-gray-400 flex items-center gap-1">
+                View all ratings <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Details Card */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold">Account Details</h3>
+                <button className="text-sm font-bold text-gray-400">Edit</button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex">
+                  <span className="w-20 text-sm font-bold text-gray-800">Name</span>
+                  <span className="text-sm text-gray-500">{vendorProfile?.storeName || 'Shopykart'}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-20 text-sm font-bold text-gray-800">Email</span>
+                  <span className="text-sm text-gray-500">{vendorProfile?.email || 'shopykarttt@gmail.com'}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-20 text-sm font-bold text-gray-800">Phone</span>
+                  <span className="text-sm text-gray-500">+91 {vendorProfile?.phone || '9450355709'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            <button 
+              onClick={handleSignOut}
+              className="w-full h-14 bg-red-50 text-red-500 rounded-2xl font-bold text-base mt-4 border border-red-100 active:scale-[0.98] transition-all"
+            >
+              Logout
+            </button>
           </div>
         </div>
       );
@@ -257,45 +336,47 @@ export default function VendorDashboard() {
          </div>
       </div>
 
-      {/* Header Section */}
-      <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted border border-gray-100 shadow-sm">
-            <img 
-              src={vendorProfile?.imageUrl || 'https://picsum.photos/seed/resto/200/200'} 
-              className="w-full h-full object-cover" 
-              alt="Logo" 
-            />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant Name'}</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500" : "bg-gray-300")} />
-              <span className={cn("text-[10px] font-bold uppercase", isOnline ? "text-green-500" : "text-gray-400")}>
-                {isOnline ? 'Online' : 'Offline'}
-              </span>
+      {/* Header Section - Hide on Account tab as it has its own header */}
+      {activeMainTab !== 'account' && (
+        <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted border border-gray-100 shadow-sm">
+              <img 
+                src={vendorProfile?.imageUrl || 'https://picsum.photos/seed/resto/200/200'} 
+                className="w-full h-full object-cover" 
+                alt="Logo" 
+              />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant Name'}</h1>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500" : "bg-gray-300")} />
+                <span className={cn("text-[10px] font-bold uppercase", isOnline ? "text-green-500" : "text-gray-400")}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full">
-           <span className={cn("text-[10px] font-black uppercase", isOnline ? "text-green-600" : "text-gray-500")}>
-             {isOnline ? 'Online' : 'Offline'}
-           </span>
-           <Switch 
-            checked={isOnline} 
-            onCheckedChange={setIsOnline} 
-            className="data-[state=checked]:bg-green-500 scale-90"
-           />
-        </div>
-      </header>
+          <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full">
+             <span className={cn("text-[10px] font-black uppercase", isOnline ? "text-green-600" : "text-gray-500")}>
+               {isOnline ? 'Online' : 'Offline'}
+             </span>
+             <Switch 
+              checked={isOnline} 
+              onCheckedChange={setIsOnline} 
+              className="data-[state=checked]:bg-green-500 scale-90"
+             />
+          </div>
+        </header>
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col bg-[#F3F4F6]">
+      <main className="flex-1 flex flex-col bg-[#F3F4F6] overflow-y-auto no-scrollbar">
         {renderContent()}
       </main>
 
       {/* Dark Bottom Navigation Bar */}
-      <nav className="bg-[#0F172A] pt-4 pb-8 px-4 flex items-center justify-between">
+      <nav className="bg-[#0F172A] pt-4 pb-8 px-4 flex items-center justify-between border-t border-white/5">
         {[
           { id: 'orders', label: 'Orders', icon: LayoutDashboard },
           { id: 'catalog', label: 'Catalog', icon: Layers },
