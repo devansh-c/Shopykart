@@ -24,14 +24,14 @@ export function FirebaseErrorListener() {
         
         toast({
           variant: 'destructive',
-          title: 'Database Sync Alert',
-          description: `Limited access to ${error.context.path}. Please check your Firestore Security Rules.`,
+          title: 'Database is Locked',
+          description: `Please go to Firebase Console > Firestore > Rules and enable access to see your data.`,
         });
 
-        // Reset the ref after 5 seconds to allow the alert if it happens again later
+        // Reset the ref after 10 seconds to avoid spamming
         setTimeout(() => {
           lastErrorRef.current = '';
-        }, 5000);
+        }, 10000);
       }
     };
 
