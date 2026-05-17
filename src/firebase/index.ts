@@ -24,10 +24,11 @@ export function initializeFirebase() {
     const auth = getAuth(firebaseApp);
 
     // Persistence is handled but we don't await it to prevent blocking initialization
+    // For cloud environments, we keep it simple to avoid multi-tab locks
     if (typeof window !== 'undefined') {
       enableIndexedDbPersistence(firestore).catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn('Firestore Persistence: Multiple tabs open, persistence might be limited.');
+          console.warn('Firestore Persistence: Multiple tabs open, using single-tab persistence.');
         } else if (err.code === 'unimplemented') {
           console.warn('Firestore Persistence: Browser not supported.');
         }

@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MOCK_PRODUCTS = [
   {
@@ -49,12 +50,7 @@ const MOCK_PRODUCTS = [
   }
 ];
 
-type PopularProductsProps = {
-  searchQuery?: string;
-  category?: string;
-};
-
-export function PopularProducts({ searchQuery = '', category = 'all' }: PopularProductsProps) {
+export function PopularProducts({ searchQuery = '', category = 'all' }: { searchQuery?: string, category?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
   const [currentTown, setCurrentTown] = useState<string | null>(null);
@@ -81,16 +77,16 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Simplified query for better fallback performance
     return query(collection(firestore, 'products'), limit(50));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
+    if (loading) return [];
+    
     let result = dbProducts || [];
     
-    // Fallback to mock products if DB is empty and not loading
-    if (!loading && result.length === 0) {
+    if (result.length === 0) {
       result = MOCK_PRODUCTS;
     }
     
@@ -117,7 +113,15 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: PopularP
     return result;
   }, [searchQuery, category, sortBy, dbProducts, currentTown, loading]);
 
-  if (filteredAndSortedProducts.length === 0 && loading) return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-8 space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-40 w-full rounded-[2rem]" />
+        <Skeleton className="h-40 w-full rounded-[2rem]" />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-8">

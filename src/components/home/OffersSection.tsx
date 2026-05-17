@@ -5,6 +5,7 @@ import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MOCK_COUPONS = [
   {
@@ -33,10 +34,7 @@ export function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection(couponsQuery);
-
-  // Fallback to mock coupons immediately to avoid blank section
-  const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
+  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery);
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined' && navigator.clipboard) {
@@ -47,6 +45,17 @@ export function OffersSection() {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="py-4 px-6 overflow-x-auto no-scrollbar flex space-x-4">
+        <Skeleton className="h-32 min-w-[280px] rounded-2xl" />
+        <Skeleton className="h-32 min-w-[280px] rounded-2xl" />
+      </div>
+    );
+  }
+
+  const coupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : MOCK_COUPONS;
 
   return (
     <div className="py-4">

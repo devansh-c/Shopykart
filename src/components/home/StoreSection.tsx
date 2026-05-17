@@ -8,6 +8,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MOCK_STORES = [
   {
@@ -71,10 +72,11 @@ export function StoreSection() {
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
+    if (loading) return [];
+    
     let result = dbVendors?.filter(v => v.status === 'approved') || [];
     
-    // Fallback to mock stores if DB is empty
-    if (!loading && result.length === 0) {
+    if (result.length === 0) {
       result = MOCK_STORES;
     }
 
@@ -85,7 +87,15 @@ export function StoreSection() {
     return result;
   }, [dbVendors, currentTown, loading]);
 
-  if (filteredVendors.length === 0 && loading) return null;
+  if (loading) {
+    return (
+      <div className="py-2 px-4 space-y-4">
+        <Skeleton className="h-8 w-40 ml-2" />
+        <Skeleton className="h-48 w-full rounded-3xl" />
+        <Skeleton className="h-48 w-full rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="py-2 px-4">

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/carousel"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const MOCK_BANNERS = [
   {
@@ -35,9 +36,17 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners, loading } = useCollection(bannersQuery);
+  const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
 
-  // Fallback to mock data if DB is empty or still loading initial state
+  if (loading) {
+    return (
+      <div className="w-full px-4">
+        <Skeleton className="h-[160px] w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  // Use real data if available, otherwise fallback to mock ONLY after loading is finished
   const banners = (dbBanners && dbBanners.length > 0) ? dbBanners : MOCK_BANNERS;
 
   return (
@@ -53,6 +62,7 @@ export function OfferSlider() {
                   fill
                   className="object-cover"
                   priority={index === 0}
+                  data-ai-hint="promotion banner"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
                   <h3 className="text-white text-2xl font-black italic tracking-tighter leading-none mb-1">

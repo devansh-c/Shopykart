@@ -6,11 +6,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-
-type CategoryListProps = {
-  activeCategory?: string;
-  onCategoryChange?: (id: string) => void;
-};
+import { Skeleton } from '@/components/ui/skeleton';
 
 const DEFAULT_CATEGORIES = [
   { id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' },
@@ -21,7 +17,7 @@ const DEFAULT_CATEGORIES = [
   { id: 'drinks', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100' },
 ];
 
-export function CategoryList({ activeCategory = 'all', onCategoryChange }: CategoryListProps) {
+export function CategoryList({ activeCategory = 'all', onCategoryChange }: { activeCategory?: string, onCategoryChange?: (id: string) => void }) {
   const firestore = useFirestore();
 
   const categoriesQuery = useMemoFirebase(() => {
@@ -29,9 +25,21 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: Categ
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories } = useCollection<any>(categoriesQuery);
+  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery);
 
-  const categories = dbCategories && dbCategories.length > 0 
+  if (loading) {
+    return (
+      <div className="py-4">
+        <div className="flex space-x-6 px-6 overflow-x-auto no-scrollbar">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} className="h-16 w-16 rounded-full shrink-0" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const categories = (dbCategories && dbCategories.length > 0)
     ? [{ id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' }, ...dbCategories.map(c => ({ id: c.name.toLowerCase(), name: c.name, imageUrl: c.imageUrl }))]
     : DEFAULT_CATEGORIES;
 
