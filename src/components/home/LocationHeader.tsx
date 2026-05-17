@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -93,7 +92,7 @@ export function LocationHeader({
     };
   }, []);
 
-  // Typewriter Logic to match screenshot style
+  // Typewriter Logic
   useEffect(() => {
     const handleTyping = () => {
       const fullText = SEARCH_SUGGESTIONS[suggestionIndex];
@@ -220,33 +219,31 @@ export function LocationHeader({
 
   return (
     <div className="w-full">
-      <div className="bg-[#0B0B0B] px-4 pt-3 pb-1 flex items-center justify-between">
-        <div className="flex items-center gap-2 max-w-[70%]">
-          <div className="bg-primary/20 p-1.5 rounded-lg">
-            <MapPin className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <div className="flex flex-col truncate">
-            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Delivering to</span>
-            <span className="text-white text-[11px] font-bold truncate tracking-tight">{currentAddress}</span>
+      <div className="bg-[#0B0B0B] px-4 pt-2 pb-0.5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 max-w-[75%]">
+          <MapPin className="h-3 w-3 text-primary shrink-0" />
+          <div className="flex flex-row items-center gap-1.5 truncate">
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none shrink-0">Deliver to</span>
+            <span className="text-white text-[10px] font-bold truncate tracking-tight">{currentAddress}</span>
           </div>
         </div>
         <button 
           onClick={handleChangeLocation}
-          className="text-primary text-[10px] font-black uppercase tracking-widest hover:bg-white/5 px-2 py-1 rounded-lg transition-colors"
+          className="text-primary text-[9px] font-black uppercase tracking-widest px-1 py-1 rounded-lg transition-colors"
         >
           Change
         </button>
       </div>
 
-      <div className="bg-[#0B0B0B] p-3 flex flex-col gap-4 rounded-none shadow-2xl border-b border-white/5 pb-6">
+      <div className="bg-[#0B0B0B] px-3 pt-2 pb-5 flex flex-col gap-3 rounded-none shadow-2xl border-b border-white/5">
         <div className="flex items-center justify-between gap-2">
-          <Logo className="flex-shrink-0" />
+          <Logo className="scale-90 origin-left" />
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
               <DialogTrigger asChild>
-                <button className="h-9 w-9 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
-                  <PlusCircle className="h-5 w-5" />
+                <button className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
+                  <PlusCircle className="h-4.5 w-4.5" />
                 </button>
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-sm">
@@ -278,19 +275,19 @@ export function LocationHeader({
             </Dialog>
 
             <Link href="/wishlist">
-              <div className="h-9 w-9 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
-                <Heart className="h-5 w-5" />
+              <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+                <Heart className="h-4.5 w-4.5" />
               </div>
             </Link>
 
             <Link href="/cart">
               <div className="relative">
-                <div className="h-9 w-9 rounded-xl bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
-                  <ShoppingBag className="h-5 w-5" />
+                <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
+                  <ShoppingBag className="h-4.5 w-4.5" />
                 </div>
                 {totalItems > 0 && (
-                  <div className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-in zoom-in">
-                    <span className="text-[9px] font-black text-primary-foreground">
+                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center border border-[#0B0B0B] animate-in zoom-in">
+                    <span className="text-[8px] font-black text-primary-foreground">
                       {totalItems}
                     </span>
                   </div>
@@ -300,8 +297,8 @@ export function LocationHeader({
 
             <Sheet>
               <SheetTrigger asChild>
-                <button className="h-9 w-9 rounded-xl bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
-                  <Menu className="h-5 w-5 text-white" />
+                <button className="h-8 w-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
+                  <Menu className="h-4.5 w-4.5 text-white" />
                 </button>
               </SheetTrigger>
               <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
@@ -329,21 +326,21 @@ export function LocationHeader({
           </div>
         </div>
 
-        {/* Updated Search Bar to match screenshot */}
-        <div className="px-1 -mb-10 relative z-20">
+        {/* Updated Search Bar row with smaller margin */}
+        <div className="px-1 -mb-9 relative z-20">
           <div className="relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={`Search "${displayText}"`}
-              className="h-14 bg-white border-none rounded-xl pl-14 pr-24 text-lg text-foreground placeholder:text-gray-400 shadow-xl focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:ring-offset-0 transition-all"
+              className="h-12 bg-white border-none rounded-xl pl-14 pr-24 text-base text-foreground placeholder:text-gray-400 shadow-xl focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:ring-offset-0 transition-all"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/50 backdrop-blur-sm rounded-lg p-1">
-              <button onClick={handleMicClick} className={`p-2 rounded-lg transition-all active:scale-90 ${isListening ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white/50 backdrop-blur-sm rounded-lg p-0.5">
+              <button onClick={handleMicClick} className={`p-1.5 rounded-lg transition-all active:scale-90 ${isListening ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}>
                 <Mic className="h-4 w-4" />
               </button>
-              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-primary rounded-lg transition-all active:scale-90 disabled:opacity-50">
+              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-1.5 text-gray-400 hover:text-primary rounded-lg transition-all active:scale-90 disabled:opacity-50">
                 {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </button>
             </div>
