@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef } from 'react';
@@ -12,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { compressImage } from '@/lib/image-utils';
 
 export function BannerManagement() {
   const firestore = useFirestore();
@@ -35,8 +35,10 @@ export function BannerManagement() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedImage(reader.result as string);
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      const compressed = await compressImage(base64, 1200, 600);
+      setSelectedImage(compressed);
     };
     reader.readAsDataURL(file);
   };

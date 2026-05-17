@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -40,6 +39,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { compressImage } from '@/lib/image-utils';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -199,8 +199,10 @@ export default function VendorDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewProduct(prev => ({ ...prev, imageUrl: reader.result as string }));
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      const compressed = await compressImage(base64, 600, 600);
+      setNewProduct(prev => ({ ...prev, imageUrl: compressed }));
     };
     reader.readAsDataURL(file);
   };
@@ -501,7 +503,7 @@ export default function VendorDashboard() {
           
           <div className="grid gap-3">
             {products?.map(p => (
-              <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm group">
+              <div className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm group">
                 <div className="flex items-center gap-4">
                   <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted shadow-sm">
                     <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />

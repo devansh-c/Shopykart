@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef } from 'react';
@@ -33,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
+import { compressImage } from '@/lib/image-utils';
 
 type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success';
 
@@ -76,7 +76,12 @@ export default function VendorRegistrationPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => updateFormData(type, reader.result as string);
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      // Compress immediately to prevent Firestore document size limit error
+      const compressed = await compressImage(base64, type === 'cover' ? 1200 : 400, type === 'cover' ? 600 : 400);
+      updateFormData(type, compressed);
+    };
     reader.readAsDataURL(file);
   };
 
