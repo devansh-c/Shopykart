@@ -50,8 +50,8 @@ export function StoreSection() {
   if (!filteredVendors || filteredVendors.length === 0) return null;
 
   return (
-    <div className="py-6 px-4">
-      <div className="flex items-center justify-between mb-6 px-2">
+    <div className="py-4 px-4">
+      <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
           All Stores
         </h2>
@@ -60,7 +60,7 @@ export function StoreSection() {
         </Link>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-6">
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/500`;
           const isOffline = store.isOnline === false;
@@ -75,7 +75,7 @@ export function StoreSection() {
               )}
             >
               {/* Store Image */}
-              <div className="relative h-52 w-full bg-muted">
+              <div className="relative h-44 w-full bg-muted">
                 <Image 
                   src={displayImage} 
                   alt={store.storeName || 'Store'} 
@@ -98,27 +98,27 @@ export function StoreSection() {
               </div>
 
               {/* Store Details */}
-              <div className="p-5">
+              <div className="p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-xl font-black text-foreground italic tracking-tight">{store.storeName}</h3>
+                  <h3 className="text-lg font-black text-foreground italic tracking-tight">{store.storeName}</h3>
                   <div className="bg-green-700 text-white px-2 py-0.5 rounded-lg flex items-center gap-1 text-sm font-black shadow-sm">
                     {store.rating || '4.4'} <Star className="h-3 w-3 fill-white" />
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center text-sm font-bold text-muted-foreground mb-1">
+                <div className="flex justify-between items-center text-xs font-bold text-muted-foreground mb-1">
                   <span className="truncate max-w-[70%]">{store.category || 'Food'} • Snacks • Beverages</span>
                   <span>₹200 for two</span>
                 </div>
 
-                <p className="text-xs font-medium text-muted-foreground/60 mb-4">{store.address || store.town || 'Nearby Location'}</p>
+                <p className="text-[10px] font-medium text-muted-foreground/60 mb-3">{store.address || store.town || 'Nearby Location'}</p>
 
-                <div className="flex justify-between items-center pt-3 border-t border-dashed border-border/60">
-                  <span className="text-primary text-[10px] font-black uppercase tracking-widest">
+                <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/60">
+                  <span className="text-primary text-[9px] font-black uppercase tracking-widest">
                     {isOffline ? 'Opens tomorrow' : 'Opens at 11am'}
                   </span>
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
-                    <MapPin className="h-3 w-3 text-primary" />
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-[9px] font-black uppercase tracking-widest">
+                    <MapPin className="h-2.5 w-2.5 text-primary" />
                     2.4 km
                   </div>
                 </div>
