@@ -26,8 +26,6 @@ import {
   XCircle,
   CheckCircle2,
   Clock,
-  Volume2,
-  VolumeX,
   BellRing
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,8 +55,8 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   
+  // Audio is now always enabled internally
   const [newProduct, setNewProduct] = useState({ 
     name: '', 
     price: '', 
@@ -107,22 +105,22 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  // Ringing & Vibration Logic
+  // Forced Ringing & Vibration Logic
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Check if any order is in 'Placed' status (New and not yet accepted)
     const hasNewOrder = orders?.some(o => o.status === 'Placed');
 
-    if (hasNewOrder && isAudioEnabled) {
+    if (hasNewOrder) {
       // Start Ringing
       if (!audioRef.current) {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      audioRef.current.play().catch(() => console.log("Autoplay blocked by browser policy"));
+      // Note: Browsers may block this until a user interaction (click) happens on the page
+      audioRef.current.play().catch(() => console.log("Audio waiting for user interaction..."));
 
-      // Start Vibration (repeating pattern)
+      // Start Vibration
       if ("vibrate" in navigator) {
         const vibrateInterval = setInterval(() => {
           if (!orders?.some(o => o.status === 'Placed')) {
@@ -149,7 +147,7 @@ export default function VendorDashboard() {
         navigator.vibrate(0);
       }
     }
-  }, [orders, isAudioEnabled]);
+  }, [orders]);
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -620,16 +618,6 @@ export default function VendorDashboard() {
           </div>
           
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-              className={cn(
-                "p-2.5 rounded-xl border-2 transition-all active:scale-90",
-                isAudioEnabled ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-gray-50 text-gray-400 border-gray-100"
-              )}
-            >
-              {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </button>
-
             <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full shadow-inner">
                <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>
                  {isOnline ? 'On' : 'Off'}
