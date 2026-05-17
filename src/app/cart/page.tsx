@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -31,7 +30,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -50,7 +49,13 @@ export default function CartPage() {
   const [orderType, setOrderType] = useState('Delivery');
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
-  const [address, setAddress] = useState(typeof window !== 'undefined' ? localStorage.getItem('user_address') || '' : '');
+  const [address, setAddress] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setAddress(localStorage.getItem('user_address') || '');
+    }
+  }, []);
 
   // Fetch some items for complete meal recommendations
   const prodsQuery = useMemoFirebase(() => {
@@ -107,12 +112,19 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
-        // Trigger immediate browser notification for the customer
+        // Trigger immediate browser notification for the customer via Service Worker
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification("Order Confirmed! 🚀", {
-            body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
-            icon: "https://picsum.photos/seed/shopy-logo/100/100", // Generic logo placeholder
-          });
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+              registration.showNotification("Order Confirmed! 🚀", {
+                body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
+                icon: "https://picsum.photos/seed/shopy-logo/100/100",
+                tag: 'order-success-' + orderId
+              });
+            }).catch(() => {
+              try { new Notification("Order Confirmed! 🚀", { body: "Thank You For Ordering Shopykart" }); } catch(e) {}
+            });
+          }
         }
       })
       .catch(async (err) => {

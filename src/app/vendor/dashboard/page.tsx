@@ -130,13 +130,20 @@ export default function VendorDashboard() {
       }
       audioRef.current.play().catch(() => console.log("Audio waiting for interaction..."));
 
-      // Browser Push Trigger (Local Fallback)
+      // Browser Push Trigger (Local Fallback via Service Worker)
       if (Notification.permission === 'granted') {
-        new Notification("NEW ORDER RECEIVED!", {
-          body: `You have a new pending order on ShopyKart.`,
-          icon: '/favicon.ico',
-          tag: 'new-order-alert'
-        });
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification("NEW ORDER RECEIVED!", {
+              body: `You have a new pending order on ShopyKart.`,
+              icon: 'https://picsum.photos/seed/shopy-logo/100/100',
+              tag: 'new-order-alert'
+            });
+          }).catch(() => {
+            // Fallback to legacy constructor if SW fails and available
+            try { new Notification("NEW ORDER RECEIVED!"); } catch(e) {}
+          });
+        }
       }
 
       // Start Vibration
@@ -584,7 +591,7 @@ export default function VendorDashboard() {
                   <span className="text-sm font-bold text-gray-800">{vendorProfile?.email || '-'}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-24 text-[10px] font-black uppercase text-gray-400 tracking-widest">Phone</span>
+                  <span className="w-24 text-[10px) font-black uppercase text-gray-400 tracking-widest">Phone</span>
                   <span className="text-sm font-bold text-gray-800">+91 {vendorProfile?.phone || '-'}</span>
                 </div>
               </div>
