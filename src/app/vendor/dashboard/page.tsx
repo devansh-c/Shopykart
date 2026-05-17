@@ -6,17 +6,14 @@ import { collection, doc, query, where, addDoc, setDoc, serverTimestamp, deleteD
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
-  Tag, 
   Trash2, 
   Plus, 
   Camera, 
-  Save, 
   Phone, 
-  MessageCircle, 
   LogOut,
-  Lock,
   Utensils,
-  Loader2
+  Loader2,
+  Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +22,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -42,7 +38,7 @@ export default function VendorDashboard() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'catalog'>('orders');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Vendor Profile Stream
@@ -66,41 +62,10 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  const [storeData, setStoreData] = useState({
-    storeName: '', description: '', phone: ''
-  });
-
-  useEffect(() => {
-    if (vendorProfile) {
-      setStoreData({
-        storeName: vendorProfile.storeName || '',
-        description: vendorProfile.description || '',
-        phone: vendorProfile.phone || ''
-      });
-    }
-  }, [vendorProfile]);
-
   const handleSignOut = async () => {
     if (!auth) return;
     await signOut(auth);
     router.push('/vendor/login');
-  };
-
-  const handleUpdateProfile = async () => {
-    if (!vendorRef || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await setDoc(vendorRef, { 
-        storeName: storeData.storeName,
-        description: storeData.description,
-        updatedAt: serverTimestamp() 
-      }, { merge: true });
-      toast({ title: "Profile Updated" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Update Failed" });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const updateStatus = async (orderId: string, nextStatus: string) => {
@@ -156,10 +121,10 @@ export default function VendorDashboard() {
 
       setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
       setIsAddOpen(false);
-      toast({ title: "Product Published", description: "Saved permanently to Firestore." });
+      toast({ title: "Product Published", description: "Saved permanently to database." });
     } catch (e) {
       console.error("Error saving product:", e);
-      toast({ variant: "destructive", title: "Save Failed", description: "Check your connection." });
+      toast({ variant: "destructive", title: "Save Failed", description: "Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -170,16 +135,15 @@ export default function VendorDashboard() {
       <header className="bg-white border-b p-6 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tighter text-black">Vendor Panel</h1>
-            <p className="text-[10px] font-black text-amber-500 uppercase mt-1">Status: {vendorProfile?.status || 'Active'}</p>
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter text-black">{vendorProfile?.storeName || 'Vendor Panel'}</h1>
+            <p className="text-[10px] font-black text-green-500 uppercase mt-1">Live in {vendorProfile?.town || 'Local Area'}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => window.open(`tel:${storeData.phone}`)} className="text-blue-500 bg-blue-50 rounded-xl"><Phone className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-red-500 bg-red-50 rounded-xl ml-2"><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
         <div className="flex bg-muted p-1 rounded-2xl mt-4">
-          {['orders', 'catalog', 'profile'].map((t) => (
+          {['orders', 'catalog'].map((t) => (
             <button key={t} onClick={() => setActiveTab(t as any)} className={cn("flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all", activeTab === t ? "bg-white shadow-sm text-black" : "text-muted-foreground")}>{t}</button>
           ))}
         </div>
@@ -217,7 +181,7 @@ export default function VendorDashboard() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div onClick={() => fileInputRef.current?.click()} className="h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20">
-                      {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <><Camera className="text-muted-foreground h-8 w-8" /><span className="text-[10px] font-black uppercase mt-2">Upload Photo</span></>}
+                      {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="Preview" /> : <><Camera className="text-muted-foreground h-8 w-8" /><span className="text-[10px] font-black uppercase mt-2">Upload Photo</span></>}
                     </div>
                     <Input placeholder="Dish Name (e.g. Cheese Pizza)" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="rounded-xl h-12" />
                     <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} className="rounded-xl h-12" />
@@ -262,23 +226,6 @@ export default function VendorDashboard() {
                 ))}
               </div>
            </div>
-        )}
-
-        {activeTab === 'profile' && (
-          <div className="bg-white p-6 rounded-[2.5rem] border space-y-4 shadow-sm">
-             <div className="space-y-1">
-               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store Name</label>
-               <Input placeholder="Store Name" value={storeData.storeName} onChange={(e) => setStoreData({...storeData, storeName: e.target.value})} className="h-12 rounded-xl" />
-             </div>
-             <div className="space-y-1">
-               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">About Store</label>
-               <Textarea placeholder="Description" value={storeData.description} onChange={(e) => setStoreData({...storeData, description: e.target.value})} className="rounded-2xl h-32" />
-             </div>
-             <div className="p-4 bg-muted/20 rounded-2xl border border-dashed text-center">
-               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Logo, Banner & Location are locked. Contact support to change.</p>
-             </div>
-             <Button onClick={handleUpdateProfile} disabled={isSubmitting} className="w-full h-14 bg-primary font-black rounded-2xl text-white shadow-xl shadow-primary/20">SAVE PROFILE</Button>
-          </div>
         )}
       </main>
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />

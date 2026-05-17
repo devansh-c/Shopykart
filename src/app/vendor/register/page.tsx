@@ -17,7 +17,6 @@ import {
   ImageIcon,
   Eye,
   EyeOff,
-  Map as MapIcon,
   Loader2
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
@@ -142,15 +141,16 @@ export default function VendorRegistrationPage() {
         walletBalance: 0
       };
 
-      // 3. Save to Firestore (Wait for completion)
+      // 3. Save to Firestore
       const vRef = doc(firestore, 'vendors', user.uid);
       await setDoc(vRef, vendorData);
 
+      // Also save to applications for history
       const appRef = doc(firestore, 'vendor_applications', user.uid);
       await setDoc(appRef, vendorData);
 
       setStep('success');
-      toast({ title: "Account Active!", description: "Store is now fully live." });
+      toast({ title: "Account Activated!", description: "Welcome to ShopyKart elite network." });
 
     } catch (err: any) {
       console.error("Registration failed:", err);
@@ -158,7 +158,7 @@ export default function VendorRegistrationPage() {
         toast({ variant: "destructive", title: "Error", description: "Email already exists." });
         setStep('owner-info'); 
       } else {
-        toast({ variant: "destructive", title: "Connection Issue", description: "Could not save data. Please try again." });
+        toast({ variant: "destructive", title: "Database Error", description: "Please try again later." });
       }
     } finally {
       setIsProcessing(false);
@@ -215,7 +215,7 @@ export default function VendorRegistrationPage() {
                 </SelectContent>
               </Select>
               <div className="w-full h-32 rounded-2xl overflow-hidden border border-border shadow-inner bg-muted">
-                <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={mapUrl} className="grayscale-[0.2]" />
+                <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={mapUrl} className="grayscale-[0.2]" title="Store Location" />
               </div>
               <Button variant="ghost" onClick={handleGetLocation} className="w-full text-primary font-black uppercase text-[10px]">CAPTURE CURRENT GPS</Button>
               <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">NEXT STEP</Button>
@@ -269,7 +269,7 @@ export default function VendorRegistrationPage() {
                 </div>
               </div>
               <h2 className="text-3xl font-black italic uppercase text-blue-600">LIVE NOW!</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase px-4">Account activated. Start selling instantly.</p>
+              <p className="text-xs font-black text-muted-foreground uppercase px-4">Account activated. Your store is now visible on Home Page.</p>
               <Button onClick={() => router.push('/vendor/dashboard')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg">ENTER DASHBOARD</Button>
             </div>
           )}
