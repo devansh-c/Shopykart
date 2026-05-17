@@ -17,7 +17,9 @@ import {
   ImageIcon,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  LocateFixed,
+  Star
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -30,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from '@/components/ui/textarea';
 
 type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success';
 
@@ -52,8 +55,10 @@ export default function VendorRegistrationPage() {
     logo: '',
     cover: '',
     zone: '', 
-    lat: '',
-    lng: '',
+    plusCode: '', // Replaces Lat/Lng
+    addressLine: '', // New Field
+    state: 'Uttar Pradesh', // New Field
+    rating: '4.5', // New Field for Home Page display
     fssai: '', 
     firstName: '',
     lastName: '',
@@ -82,12 +87,13 @@ export default function VendorRegistrationPage() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        updateFormData('lat', pos.coords.latitude.toFixed(6));
-        updateFormData('lng', pos.coords.longitude.toFixed(6));
-        toast({ title: "Location Captured" });
+        // Simple plus-code style proxy using coordinates
+        const code = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
+        updateFormData('plusCode', code);
+        toast({ title: "Location Captured", description: `Plus Code: ${code}` });
       },
       () => {
-        toast({ variant: "destructive", title: "GPS Error" });
+        toast({ variant: "destructive", title: "GPS Error", description: "Please enter manually." });
       }
     );
   };
@@ -95,7 +101,7 @@ export default function VendorRegistrationPage() {
   const validateStep = () => {
     if (step === 'category') return !!formData.category;
     if (step === 'store-info') {
-      return !!formData.storeName && !!formData.logo && !!formData.cover && !!formData.zone && !!formData.lat && !!formData.lng;
+      return !!formData.storeName && !!formData.logo && !!formData.cover && !!formData.zone && !!formData.addressLine && !!formData.state;
     }
     if (step === 'owner-info') {
       const basic = !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.email && !!formData.password;
@@ -128,20 +134,21 @@ export default function VendorRegistrationPage() {
         imageUrl: formData.logo,
         bannerUrl: formData.cover,
         town: formData.zone,
-        lat: formData.lat,
-        lng: formData.lng,
+        plusCode: formData.plusCode,
+        address: formData.addressLine,
+        state: formData.state,
         fssai: formData.fssai,
+        rating: parseFloat(formData.rating) || 4.5,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
         email: formData.email.trim().toLowerCase(),
         status: 'approved',
         createdAt: serverTimestamp(),
-        rating: 4.5,
         walletBalance: 0
       };
 
-      // 3. Save to Firestore
+      // 3. Save to Firestore permanently
       const vRef = doc(firestore, 'vendors', user.uid);
       await setDoc(vRef, vendorData);
 
@@ -150,7 +157,7 @@ export default function VendorRegistrationPage() {
       await setDoc(appRef, vendorData);
 
       setStep('success');
-      toast({ title: "Account Activated!", description: "Welcome to ShopyKart elite network." });
+      toast({ title: "Account Activated!", description: "Your store is now live on ShopyKart." });
 
     } catch (err: any) {
       console.error("Registration failed:", err);
@@ -158,16 +165,12 @@ export default function VendorRegistrationPage() {
         toast({ variant: "destructive", title: "Error", description: "Email already exists." });
         setStep('owner-info'); 
       } else {
-        toast({ variant: "destructive", title: "Database Error", description: "Please try again later." });
+        toast({ variant: "destructive", title: "Database Error", description: "Please check your network and try again." });
       }
     } finally {
       setIsProcessing(false);
     }
   };
-
-  const mapUrl = (formData.lat && formData.lng) 
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(formData.lng)-0.005}%2C${parseFloat(formData.lat)-0.005}%2C${parseFloat(formData.lng)+0.005}%2C${parseFloat(formData.lat)+0.005}&layer=mapnik&marker=${formData.lat}%2C${formData.lng}`
-    : `https://www.openstreetmap.org/export/embed.html?bbox=78.3%2C25.2%2C78.6%2C25.4&layer=mapnik`;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
@@ -188,17 +191,19 @@ export default function VendorRegistrationPage() {
                   <span className="font-black uppercase italic text-xs">Grocery</span>
                 </button>
               </div>
-              <Button disabled={!formData.category} onClick={() => setStep('store-info')} className="w-full h-14 rounded-2xl bg-primary font-black uppercase italic">NEXT</Button>
+              <Button disabled={!formData.category} onClick={() => setStep('store-info')} className="w-full h-14 rounded-2xl bg-primary font-black uppercase italic shadow-lg shadow-primary/20">NEXT</Button>
             </div>
           )}
 
           {step === 'store-info' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="space-y-4 max-h-[75vh] overflow-y-auto no-scrollbar pr-1">
+              <div className="flex items-center gap-2 mb-2 sticky top-0 bg-white z-10 py-1">
                 <button onClick={() => setStep('category')} className="p-2 bg-muted rounded-xl"><ChevronLeft className="h-4 w-4" /></button>
                 <h2 className="text-xl font-black italic uppercase">Store Info</h2>
               </div>
+              
               <Input placeholder="Store Name *" value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} className="h-12 rounded-xl" />
+              
               <div className="grid grid-cols-2 gap-4">
                 <div onClick={() => logoInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
                   {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" /> : <><Camera className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Logo *</span></>}
@@ -207,18 +212,44 @@ export default function VendorRegistrationPage() {
                   {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" /> : <><ImageIcon className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Banner *</span></>}
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Plus Code / Location</label>
+                  <button onClick={handleGetLocation} className="text-primary text-[9px] font-black uppercase flex items-center gap-1"><LocateFixed className="h-2.5 w-2.5" /> Auto Fill</button>
+                </div>
+                <Input placeholder="Enter Plus Code or GPS" value={formData.plusCode} onChange={(e) => updateFormData('plusCode', e.target.value)} className="h-12 rounded-xl" />
+              </div>
+
               <Select value={formData.zone} onValueChange={(val) => updateFormData('zone', val)}>
-                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none"><SelectValue placeholder="Town / Zone *" /></SelectTrigger>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none"><SelectValue placeholder="Select Town / Zone *" /></SelectTrigger>
                 <SelectContent className="rounded-2xl">
                   <SelectItem value="Ranipur">Ranipur (284205)</SelectItem>
                   <SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="w-full h-32 rounded-2xl overflow-hidden border border-border shadow-inner bg-muted">
-                <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={mapUrl} className="grayscale-[0.2]" title="Store Location" />
+
+              <Textarea 
+                placeholder="Store Address Line (e.g. Near Main Market) *" 
+                value={formData.addressLine} 
+                onChange={(e) => updateFormData('addressLine', e.target.value)} 
+                className="rounded-xl min-h-[80px]"
+              />
+
+              <Input placeholder="Store State *" value={formData.state} onChange={(e) => updateFormData('state', e.target.value)} className="h-12 rounded-xl" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Initial Rating</label>
+                   <Input type="number" step="0.1" max="5" placeholder="Rating (e.g. 4.5)" value={formData.rating} onChange={(e) => updateFormData('rating', e.target.value)} className="h-12 rounded-xl" />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">FSSAI (Optional)</label>
+                   <Input placeholder="FSSAI Number" value={formData.fssai} onChange={(e) => updateFormData('fssai', e.target.value)} className="h-12 rounded-xl" />
+                </div>
               </div>
-              <Button variant="ghost" onClick={handleGetLocation} className="w-full text-primary font-black uppercase text-[10px]">CAPTURE CURRENT GPS</Button>
-              <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic">NEXT STEP</Button>
+
+              <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-lg shadow-primary/20">NEXT STEP</Button>
             </div>
           )}
 
@@ -239,7 +270,7 @@ export default function VendorRegistrationPage() {
                 <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
               </div>
               <Input placeholder="Confirm Password *" type="password" value={formData.confirmPassword} onChange={(e) => updateFormData('confirmPassword', e.target.value)} className="h-12 rounded-xl" />
-              <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4">REVIEW & SUBMIT</Button>
+              <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4 shadow-lg shadow-primary/20">REVIEW & SUBMIT</Button>
             </div>
           )}
 
@@ -253,7 +284,7 @@ export default function VendorRegistrationPage() {
               <Button 
                 onClick={handleSubmit} 
                 disabled={isProcessing}
-                className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl"
+                className="w-full h-16 bg-primary rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20"
               >
                 {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "I AGREE & SUBMIT"}
               </Button>
@@ -270,7 +301,7 @@ export default function VendorRegistrationPage() {
               </div>
               <h2 className="text-3xl font-black italic uppercase text-blue-600">LIVE NOW!</h2>
               <p className="text-xs font-black text-muted-foreground uppercase px-4">Account activated. Your store is now visible on Home Page.</p>
-              <Button onClick={() => router.push('/vendor/dashboard')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg">ENTER DASHBOARD</Button>
+              <Button onClick={() => router.push('/vendor/dashboard')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">ENTER DASHBOARD</Button>
             </div>
           )}
         </CardContent>
