@@ -1,10 +1,8 @@
-
-// Scripts for firebase and firebase messaging
+// Firebase Service Worker for Background Notifications
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// Initialize the Firebase app in the service worker
-// These values should match your src/firebase/config.ts
+// IMPORTANT: Replace with your actual config from Firebase Console
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
   authDomain: "studio-4644410857-c7ed7.firebaseapp.com",
@@ -18,33 +16,35 @@ const messaging = firebase.messaging();
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log('Received background message ', payload);
+
   const notificationTitle = payload.notification.title || 'ShopyKart Update';
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/logo.png', // Add a logo image to your public folder
+    body: payload.notification.body || 'You have a new update.',
+    icon: '/logo.png', // Ensure you have a logo.png in public folder or use a remote URL
     badge: '/logo.png',
+    tag: 'shopykart-alert',
     data: payload.data
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Click action
+// Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.click_action || '/orders';
   
+  const targetUrl = event.notification.data?.link || '/orders';
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((windowClients) => {
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url === urlToOpen && 'focus' in client) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(targetUrl);
       }
     })
   );

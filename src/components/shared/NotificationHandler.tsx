@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,7 +6,7 @@ import { getFirebaseMessaging } from '@/firebase/messaging';
 import { getToken, onMessage } from 'firebase/messaging';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { BellRing, X } from 'lucide-react';
+import { BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function NotificationHandler() {
@@ -17,12 +16,15 @@ export function NotificationHandler() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [showPrompt, setShowPrompt] = useState(false);
 
+  // STEP 1: Find your VAPID Key in Firebase Console:
+  // Project Settings > Cloud Messaging > Web Push certificates > Key Pair
+  const VAPID_KEY = 'BBA-Your-VAPID-Key-Here'; // <-- PASTE YOUR KEY HERE (Starts with B...)
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPermission(Notification.permission);
       if (Notification.permission === 'default' && user) {
-        // Show our custom premium prompt after a short delay
-        const timer = setTimeout(() => setShowPrompt(true), 3000);
+        const timer = setTimeout(() => setShowPrompt(true), 5000);
         return () => clearTimeout(timer);
       }
     }
@@ -36,11 +38,11 @@ export function NotificationHandler() {
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
-        // Foreground listener
+        // Foreground Listener
         onMessage(messaging, (payload) => {
           toast({
-            title: payload.notification?.title || 'ShopyKart',
-            description: payload.notification?.body || 'New update received.',
+            title: payload.notification?.title || 'ShopyKart Update',
+            description: payload.notification?.body || 'Check your orders for updates.',
             action: (
               <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = '/orders'}>
                 VIEW
@@ -48,14 +50,13 @@ export function NotificationHandler() {
             ),
           });
           
-          // Play sound
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
           audio.play().catch(() => {});
         });
 
         saveToken(messaging);
       } catch (err) {
-        console.warn('Messaging setup failed:', err);
+        console.warn('FCM Setup background wait:', err);
       }
     };
 
@@ -64,13 +65,12 @@ export function NotificationHandler() {
 
   const saveToken = async (messaging: any) => {
     try {
-      // IMPORTANT: Generate VAPID key in Firebase Console > Project Settings > Cloud Messaging
-      // Scroll down to "Web push certificates" and click "Generate key pair"
-      const vapidKey = 'BBA-Your-VAPID-Key-Here'; // PASTE YOUR KEY HERE
-      
-      const token = await getToken(messaging, {
-        vapidKey: vapidKey === 'BBA-Your-VAPID-Key-Here' ? undefined : vapidKey
-      });
+      if (VAPID_KEY === 'BBA-Your-VAPID-Key-Here') {
+        console.warn('Please set your VAPID key in NotificationHandler.tsx');
+        return;
+      }
+
+      const token = await getToken(messaging, { vapidKey: VAPID_KEY });
 
       if (token && user && firestore) {
         const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
@@ -89,14 +89,12 @@ export function NotificationHandler() {
   const requestPermission = async () => {
     setShowPrompt(false);
     try {
-      const messaging = await getFirebaseMessaging();
-      if (!messaging) return;
-
       const status = await Notification.requestPermission();
       setPermission(status);
       
       if (status === 'granted') {
-        saveToken(messaging);
+        const messaging = await getFirebaseMessaging();
+        if (messaging) saveToken(messaging);
         toast({
           title: "Notifications Enabled",
           description: "You'll now receive order and offer updates!",
@@ -120,7 +118,7 @@ export function NotificationHandler() {
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-widest text-primary">Enable Alerts</span>
-            <span className="text-xs font-bold leading-tight">Get real-time order updates & exclusive offers.</span>
+            <span className="text-xs font-bold leading-tight">Get real-time order updates.</span>
           </div>
         </div>
         

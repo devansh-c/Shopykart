@@ -1,14 +1,12 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
  * Robust Firebase initialization to prevent "initializeFirestore() has already been called" errors.
- * Ensures custom options are applied only during the first initialization.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -20,22 +18,12 @@ export function initializeFirebase() {
     let firestore: Firestore;
     let auth: Auth;
 
-    // Check if app already exists
     if (getApps().length > 0) {
       firebaseApp = getApp();
       auth = getAuth(firebaseApp);
-      // For firestore, we try to get existing instance safely
-      try {
-        firestore = getFirestore(firebaseApp);
-      } catch (e) {
-        // If not initialized with settings, we attempt a clean init if possible
-        // but usually getFirestore() works if app exists.
-        firestore = getFirestore(firebaseApp);
-      }
+      firestore = getFirestore(firebaseApp);
     } else {
-      // First time initialization
       firebaseApp = initializeApp(firebaseConfig);
-      // We initialize without persistent cache if it causes multi-tab lock issues in studio
       firestore = getFirestore(firebaseApp);
       auth = getAuth(firebaseApp);
     }
