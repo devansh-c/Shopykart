@@ -27,6 +27,12 @@ export function NotificationHandler() {
         return () => clearTimeout(timer);
       }
     }
+
+    const handleManualRequest = () => {
+      requestPermission();
+    };
+    window.addEventListener('request-notifications', handleManualRequest);
+    return () => window.removeEventListener('request-notifications', handleManualRequest);
   }, [user]);
 
   useEffect(() => {
@@ -38,6 +44,10 @@ export function NotificationHandler() {
         if (!messaging) return;
 
         onMessage(messaging, (payload) => {
+          // Play notification sound
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.play().catch(e => console.log("Sound blocked"));
+
           toast({
             title: payload.notification?.title || 'ShopyKart Update',
             description: payload.notification?.body || 'Check your orders for updates.',
@@ -63,19 +73,17 @@ export function NotificationHandler() {
       const token = await getToken(messaging, { vapidKey: VAPID_KEY });
       if (token && user && firestore) {
         const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
-        // Using setDoc with catch to avoid unhandled permission errors crashing the UI
-        // We do not re-emit permission-error here to keep messaging background processes silent
         await setDoc(tokenRef, {
           token,
           deviceType: 'web',
           lastUpdated: serverTimestamp(),
           userId: user.uid
         }, { merge: true }).catch(e => {
-          // Do nothing, just prevent background write error from surfacing
+          // Silent error for tokens
         });
       }
     } catch (err) {
-      // Token retrieval failed - likely browser blocked or network issue
+      // Token retrieval failed
     }
   };
 
@@ -87,6 +95,7 @@ export function NotificationHandler() {
       if (status === 'granted') {
         const messaging = await getFirebaseMessaging();
         if (messaging) await saveToken(messaging);
+        toast({ title: "Notifications Enabled!", description: "You will now receive order alerts." });
       }
     } catch (err) {
       // Permission block
@@ -101,7 +110,7 @@ export function NotificationHandler() {
         <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
         <div className="flex items-center gap-3">
           <div className="bg-primary/20 p-2 rounded-xl">
-            <BellRing className="h-5 w-5 text-primary animate-bounce" />
+            <BellRing className="h-5 v-5 text-primary animate-bounce" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-widest text-primary">Enable Alerts</span>

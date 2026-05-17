@@ -26,7 +26,9 @@ import {
   XCircle,
   CheckCircle2,
   Clock,
-  BellRing
+  BellRing,
+  AlertTriangle,
+  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -55,8 +57,9 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showOrderAlert, setShowOrderAlert] = useState(false);
+  const [notifPermission, setPermission] = useState<NotificationPermission>('default');
   
-  // Audio is now always enabled internally
   const [newProduct, setNewProduct] = useState({ 
     name: '', 
     price: '', 
@@ -85,6 +88,12 @@ export default function VendorDashboard() {
     }
   }, [vendorProfile]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPermission(Notification.permission);
+    }
+  }, []);
+
   const handleOnlineToggle = async (checked: boolean) => {
     setIsOnline(checked);
     if (firestore && user) {
@@ -112,13 +121,13 @@ export default function VendorDashboard() {
     const hasNewOrder = orders?.some(o => o.status === 'Placed');
 
     if (hasNewOrder) {
+      setShowOrderAlert(true);
       // Start Ringing
       if (!audioRef.current) {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      // Note: Browsers may block this until a user interaction (click) happens on the page
-      audioRef.current.play().catch(() => console.log("Audio waiting for user interaction..."));
+      audioRef.current.play().catch(() => console.log("Audio waiting for interaction..."));
 
       // Start Vibration
       if ("vibrate" in navigator) {
@@ -138,6 +147,7 @@ export default function VendorDashboard() {
         };
       }
     } else {
+      setShowOrderAlert(false);
       // Stop Ringing
       if (audioRef.current) {
         audioRef.current.pause();
@@ -273,7 +283,7 @@ export default function VendorDashboard() {
                 </div>
                 <div>
                   <h2 className="font-black italic uppercase text-sm leading-tight text-white">{pendingOrdersCount} NEW ORDERS PENDING</h2>
-                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Action Required to stop Ringtone</p>
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Acknowledge to stop Ringtone</p>
                 </div>
               </div>
             )}
@@ -282,19 +292,12 @@ export default function VendorDashboard() {
               filteredOrders.map((order: any) => (
                 <div key={order.id} className={cn(
                   "bg-white rounded-3xl p-5 shadow-sm border overflow-hidden relative transition-all",
-                  order.status === 'Placed' ? "border-primary ring-1 ring-primary/20 scale-[1.02]" : "border-gray-100"
+                  order.status === 'Placed' ? "border-primary ring-2 ring-primary/30 scale-[1.02] shadow-xl" : "border-gray-100"
                 )}>
-                  {order.status === 'Cancelled' && (
-                    <div className="absolute top-0 right-0 p-3">
-                       <XCircle className="h-5 w-5 text-red-500 opacity-20" />
-                    </div>
+                  {order.status === 'Placed' && (
+                    <div className="absolute top-0 left-0 w-full h-1 bg-primary animate-shimmer" />
                   )}
-                  {order.status === 'Delivered' && (
-                    <div className="absolute top-0 right-0 p-3">
-                       <CheckCircle2 className="h-5 w-5 text-green-500 opacity-20" />
-                    </div>
-                  )}
-
+                  
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="font-black text-lg italic tracking-tight leading-none mb-1">#ORD-{order.id.slice(-4).toUpperCase()}</h3>
@@ -596,6 +599,35 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
+      {/* Aggressive New Order Alert Dialog */}
+      <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
+        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] border-primary/30 p-8 text-center animate-in zoom-in duration-300">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-20" />
+              <div className="relative bg-primary p-6 rounded-full shadow-2xl shadow-primary/40">
+                <BellRing className="h-12 w-12 text-white animate-bounce" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">NEW ORDER<br />RECEIVED!</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Ringing & Vibration Active</p>
+            </div>
+
+            <div className="w-full bg-white/5 rounded-3xl p-6 border border-white/10">
+               <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-4">Action Required</p>
+               <Button 
+                onClick={() => setShowOrderAlert(false)}
+                className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl"
+               >
+                 ACKNOWLEDGE
+               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {activeMainTab !== 'account' && (
         <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -630,6 +662,27 @@ export default function VendorDashboard() {
             </div>
           </div>
         </header>
+      )}
+
+      {/* Critical Notification Check for Vendors */}
+      {notifPermission === 'default' && (
+        <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-500">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-500/10 p-2 rounded-xl">
+              < स्मार्टफोन className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 leading-none">Enable Alerts</p>
+              <p className="text-[9px] font-bold text-amber-600 uppercase mt-0.5">Receive order updates when app is closed</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('request-notifications'))}
+            className="bg-amber-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-600/20"
+          >
+            ENABLE
+          </button>
+        </div>
       )}
 
       <main className="flex-1 flex flex-col bg-[#F3F4F6] overflow-y-auto no-scrollbar">
