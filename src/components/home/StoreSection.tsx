@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Star, Clock } from 'lucide-react';
+import { Star, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -30,7 +30,6 @@ export function StoreSection() {
     }
   }, []);
 
-  // Fetch all vendors from stream
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
@@ -40,38 +39,30 @@ export function StoreSection() {
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
-    
-    // Show only approved vendors
     let result = dbVendors.filter(v => v.status === 'approved');
-    
-    // If town matches, prioritize those, else show all approved ones
     if (currentTown) {
       const townMatch = result.filter(v => v.town === currentTown);
       if (townMatch.length > 0) result = townMatch;
     }
-    
     return result;
   }, [dbVendors, currentTown]);
 
   if (!filteredVendors || filteredVendors.length === 0) return null;
 
   return (
-    <div className="py-6">
-      <div className="flex items-center justify-between px-6 mb-5">
-        <div className="flex items-center">
-          <span className="text-2xl mr-2">🏪</span>
-          <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
-            All Stores
-          </h2>
-        </div>
+    <div className="py-6 px-4">
+      <div className="flex items-center justify-between mb-6 px-2">
+        <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
+          All Stores
+        </h2>
         <Link href="/menu" className="text-primary text-[10px] font-black uppercase tracking-widest hover:underline decoration-2 underline-offset-4">
           View All
         </Link>
       </div>
 
-      <div className="flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4">
+      <div className="space-y-10">
         {filteredVendors.map((store: any) => {
-          const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/600/400`;
+          const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/500`;
           const isOffline = store.isOnline === false;
           
           return (
@@ -79,51 +70,58 @@ export function StoreSection() {
               href={`/menu?vendor=${store.id}`}
               key={store.id} 
               className={cn(
-                "min-w-[300px] max-w-[300px] flex flex-col group active:scale-[0.98] transition-all duration-300",
+                "block bg-white rounded-[2rem] overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98]",
                 isOffline && "pointer-events-none opacity-80"
               )}
             >
-              <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden shadow-lg border border-border/40 mb-3 bg-muted group-hover:shadow-xl transition-all">
+              {/* Store Image */}
+              <div className="relative h-52 w-full bg-muted">
                 <Image 
                   src={displayImage} 
                   alt={store.storeName || 'Store'} 
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  loading="eager"
+                  className="object-cover"
+                  loading="lazy"
                 />
                 
-                {/* Closed Now Overlay */}
+                {/* Promoted Tag */}
+                <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-md text-white text-[9px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider">
+                  Promoted
+                </div>
+
+                {/* Closed Overlay */}
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-3xl uppercase italic tracking-tighter shadow-2xl">Closed Now</span>
                   </div>
                 )}
-
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center shadow-md border border-black/5 z-20">
-                  <span className="text-xs font-black mr-1">{store.rating || '4.5'}</span>
-                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                </div>
-
-                <div className="absolute bottom-4 left-4 z-20">
-                  <div className="bg-[#0B0B0B]/80 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 border border-white/10">
-                    <Clock className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] font-black text-white uppercase tracking-tight">20-30 MIN</span>
-                  </div>
-                </div>
               </div>
 
-              <div className="px-2">
-                <div className="flex items-center gap-2">
-                   {store.imageUrl && (
-                     <div className="h-6 w-6 rounded-full overflow-hidden border border-border shrink-0">
-                       <img src={store.imageUrl} className="w-full h-full object-cover" alt="Logo" />
-                     </div>
-                   )}
-                   <h3 className="font-black text-xl text-foreground line-clamp-1 italic tracking-tight">{store.storeName}</h3>
+              {/* Store Details */}
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-xl font-black text-foreground italic tracking-tight">{store.storeName}</h3>
+                  <div className="bg-green-700 text-white px-2 py-0.5 rounded-lg flex items-center gap-1 text-sm font-black shadow-sm">
+                    {store.rating || '4.4'} <Star className="h-3 w-3 fill-white" />
+                  </div>
                 </div>
-                <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-tight mb-2 line-clamp-1 ml-8">
-                  {store.category || 'Food'} • {store.town || 'Nearby'}
-                </p>
+
+                <div className="flex justify-between items-center text-sm font-bold text-muted-foreground mb-1">
+                  <span className="truncate max-w-[70%]">{store.category || 'Food'} • Snacks • Beverages</span>
+                  <span>₹200 for two</span>
+                </div>
+
+                <p className="text-xs font-medium text-muted-foreground/60 mb-4">{store.address || store.town || 'Nearby Location'}</p>
+
+                <div className="flex justify-between items-center pt-3 border-t border-dashed border-border/60">
+                  <span className="text-primary text-[10px] font-black uppercase tracking-widest">
+                    {isOffline ? 'Opens tomorrow' : 'Opens at 11am'}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+                    <MapPin className="h-3 w-3 text-primary" />
+                    2.4 km
+                  </div>
+                </div>
               </div>
             </Link>
           );
