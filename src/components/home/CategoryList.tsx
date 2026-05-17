@@ -1,11 +1,20 @@
 
 "use client"
 
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import Image from "next/image"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection } from "firebase/firestore"
+
+const DEFAULT_CATEGORIES = [
+  { id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all/100/100' },
+  { id: 'snacks', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snk/100/100' },
+  { id: 'pizza', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/piz/100/100' },
+  { id: 'burgers', name: 'Burgers', imageUrl: 'https://picsum.photos/seed/brg/100/100' },
+  { id: 'pasta', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/pst/100/100' },
+  { id: 'drinks', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/drk/100/100' },
+];
 
 export function CategoryList({ activeCategory = 'all', onCategoryChange }: { activeCategory?: string, onCategoryChange?: (id: string) => void }) {
   const firestore = useFirestore();
@@ -19,9 +28,7 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: { act
 
   const categories = (dbCategories && dbCategories.length > 0)
     ? [{ id: 'all', name: 'All', imageUrl: 'https://picsum.photos/seed/all-cat/100/100' }, ...dbCategories.map(c => ({ id: c.name.toLowerCase(), name: c.name, imageUrl: c.imageUrl }))]
-    : [];
-
-  if (categories.length === 0) return null;
+    : DEFAULT_CATEGORIES;
 
   return (
     <div className="py-4">

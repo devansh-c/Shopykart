@@ -11,6 +11,23 @@ import {
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
+const DEFAULT_BANNERS = [
+  {
+    id: 'def-1',
+    title: '50% OFF ON PIZZA',
+    subtitle: 'FIRST ORDER SPECIAL',
+    tag: 'Limited Time',
+    imageUrl: 'https://picsum.photos/seed/piz-1/800/400'
+  },
+  {
+    id: 'def-2',
+    title: 'FREE DELIVERY',
+    subtitle: 'ON ORDERS ABOVE ₹199',
+    tag: 'Weekend Deal',
+    imageUrl: 'https://picsum.photos/seed/burg-1/800/400'
+  }
+];
+
 export function OfferSlider() {
   const firestore = useFirestore();
   const bannersQuery = useMemoFirebase(() => {
@@ -19,16 +36,13 @@ export function OfferSlider() {
   }, [firestore]);
 
   const { data: dbBanners } = useCollection<any>(bannersQuery);
-
-  if (!dbBanners || dbBanners.length === 0) {
-    return null;
-  }
+  const banners = dbBanners && dbBanners.length > 0 ? dbBanners : DEFAULT_BANNERS;
 
   return (
     <div className="w-full px-4">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
-          {dbBanners.map((banner: any, index: number) => (
+          {banners.map((banner: any, index: number) => (
             <CarouselItem key={banner.id}>
               <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl">
                 <Image
