@@ -27,18 +27,19 @@ import {
   Mail,
   Store,
   Edit,
-  Check
+  Check,
+  ImageIcon,
+  ImagePlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
@@ -50,6 +51,7 @@ export default function VendorDashboard() {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderStatus>('Preparing');
@@ -83,10 +85,6 @@ export default function VendorDashboard() {
     if (firestore && user) {
       const vRef = doc(firestore, 'vendors', user.uid);
       updateDoc(vRef, { isOnline: checked });
-      toast({ 
-        title: checked ? "Store is Online" : "Store is Offline",
-        description: checked ? "You are now accepting new orders." : "New orders are now paused."
-      });
     }
   };
 
@@ -112,7 +110,6 @@ export default function VendorDashboard() {
     if (!firestore) return;
     const oRef = doc(firestore, 'orders', orderId);
     updateDoc(oRef, { status: nextStatus });
-    toast({ title: "Status Updated" });
   };
 
   const handleOpenEdit = (product: any) => {
@@ -128,10 +125,20 @@ export default function VendorDashboard() {
     setIsAddOpen(true);
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewProduct(prev => ({ ...prev, imageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddProduct = () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price and Image are required." });
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price and Photo are required." });
       return;
     }
 
@@ -150,12 +157,13 @@ export default function VendorDashboard() {
 
     // INSTANT FEEDBACK: Close dialog immediately
     setIsAddOpen(false);
+    const tempEditingId = editingId;
+    setEditingId(null);
     setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
 
-    if (editingId) {
-      const vProdRef = doc(firestore, 'vendors', user.uid, 'products', editingId);
+    if (tempEditingId) {
+      const vProdRef = doc(firestore, 'vendors', user.uid, 'products', tempEditingId);
       updateDoc(vProdRef, productData);
-      setEditingId(null);
       toast({ title: "Product Updated" });
     } else {
       addDoc(collection(firestore, 'vendors', user.uid, 'products'), productData);
@@ -220,18 +228,7 @@ export default function VendorDashboard() {
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 mt-10">
-                <div className="relative w-64 h-64 mb-6">
-                  <svg viewBox="0 0 400 400" className="w-full h-full text-gray-200 fill-current">
-                    <circle cx="200" cy="200" r="150" fill="#f3f4f6" />
-                    <rect x="120" y="160" width="160" height="120" rx="10" fill="#e5e7eb" />
-                    <rect x="130" y="170" width="140" height="100" rx="5" fill="#fff" />
-                    <circle cx="165" cy="200" r="25" fill="#f3f4f6" />
-                    <circle cx="235" cy="200" r="25" fill="#f3f4f6" />
-                    <circle cx="165" cy="250" r="25" fill="#f3f4f6" />
-                    <circle cx="235" cy="250" r="25" fill="#f3f4f6" />
-                    <path d="M150 160 L150 130 Q150 110 180 110 L220 110 Q250 110 250 130 L250 160" stroke="#d1d5db" strokeWidth="8" fill="none" />
-                  </svg>
-                </div>
+                <Utensils className="h-16 w-16 mb-4 text-gray-200" />
                 <h3 className="text-lg font-bold text-gray-600">No orders here!</h3>
                 <p className="text-sm text-gray-400 mt-1">Keep your app online to receive new requests.</p>
               </div>
@@ -248,64 +245,87 @@ export default function VendorDashboard() {
             <h2 className="text-xl font-bold text-gray-800">Menu Catalog</h2>
             <Dialog open={isAddOpen} onOpenChange={(val) => {
               setIsAddOpen(val);
-              if(!val) setEditingId(null);
+              if(!val) {
+                setEditingId(null);
+                setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
+              }
             }}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-[#1E293B] rounded-xl"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button>
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar">
                 <DialogHeader>
-                  <DialogTitle className="font-black italic uppercase">{editingId ? 'Edit Item' : 'New Menu Item'}</DialogTitle>
+                  <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">
+                    {editingId ? 'Edit Item' : 'New Menu Item'}
+                  </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 pt-4">
+                <div className="space-y-5 pt-4">
+                  {/* Gallery Upload Section */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Select from Gallery *</label>
-                    <div className="grid grid-cols-4 gap-2 p-1 bg-muted/20 rounded-2xl border border-dashed">
-                      {PlaceHolderImages.map((img) => (
-                        <button
-                          key={img.id}
-                          onClick={() => setNewProduct({...newProduct, imageUrl: img.imageUrl})}
-                          className={cn(
-                            "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                            newProduct.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
-                          )}
-                        >
-                          <img src={img.imageUrl} alt="" className="h-full w-full object-cover" />
-                          {newProduct.imageUrl === img.imageUrl && (
-                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                              <Check className="h-4 w-4 text-white" />
-                            </div>
-                          )}
-                        </button>
-                      ))}
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Upload from Phone Gallery *</label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className={cn(
+                        "relative h-48 w-full border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-muted/20",
+                        newProduct.imageUrl ? "border-primary/50" : "border-gray-200"
+                      )}
+                    >
+                      {newProduct.imageUrl ? (
+                        <>
+                          <img src={newProduct.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                             <div className="bg-white p-3 rounded-full text-primary"><ImagePlus className="h-6 w-6" /></div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                          <div className="bg-white p-4 rounded-3xl shadow-sm border border-border/50">
+                            <ImageIcon className="h-8 w-8 text-primary/40" />
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Tap to select photo</span>
+                        </div>
+                      )}
+                    </div>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Dish Name *</label>
+                    <Input placeholder="Enter dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 text-base font-bold focus-visible:ring-1 focus-visible:ring-primary/20" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Price (₹) *</label>
+                      <Input type="number" placeholder="0.00" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 text-base font-bold" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Collection *</label>
+                      <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
+                        <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none px-5 text-base font-bold focus:ring-1 focus:ring-primary/20"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="snacks" className="font-bold">Snacks</SelectItem>
+                          <SelectItem value="burgers" className="font-bold">Burgers</SelectItem>
+                          <SelectItem value="pizza" className="font-bold">Pizza</SelectItem>
+                          <SelectItem value="pasta" className="font-bold">Pasta</SelectItem>
+                          <SelectItem value="fries" className="font-bold">Fries</SelectItem>
+                          <SelectItem value="drinks" className="font-bold">Drinks</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <Input placeholder="Dish Name *" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl" />
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input type="number" placeholder="Price (₹) *" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl" />
-                    <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                      <SelectTrigger className="h-12 rounded-xl bg-muted/10 border-none"><SelectValue placeholder="Collection" /></SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        <SelectItem value="snacks">Snacks</SelectItem>
-                        <SelectItem value="burgers">Burgers</SelectItem>
-                        <SelectItem value="pizza">Pizza</SelectItem>
-                        <SelectItem value="pasta">Pasta</SelectItem>
-                        <SelectItem value="fries">Fries</SelectItem>
-                        <SelectItem value="drinks">Drinks</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Description (Optional)</label>
+                    <Textarea placeholder="Tell users about your delicious dish..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-2xl bg-muted/10 border-none p-5 text-sm font-medium min-h-[100px]" />
                   </div>
-
-                  <Textarea placeholder="Description (Optional)" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl min-h-[100px]" />
                   
-                  <div className="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl">
-                    <Switch checked={newProduct.isVeg} onCheckedChange={(val) => setNewProduct({...newProduct, isVeg: val})} />
+                  <div className="flex items-center space-x-3 bg-muted/10 p-4 rounded-2xl">
+                    <Switch checked={newProduct.isVeg} onCheckedChange={(val) => setNewProduct({...newProduct, isVeg: val})} className="data-[state=checked]:bg-green-500" />
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pure Vegetarian</label>
                   </div>
 
-                  <Button onClick={handleAddProduct} className="w-full bg-primary rounded-xl h-14 font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
+                  <Button onClick={handleAddProduct} className="w-full bg-primary rounded-2xl h-16 font-black uppercase italic shadow-xl shadow-primary/20 text-lg tracking-tighter active:scale-95 transition-all">
                     {editingId ? 'UPDATE ITEM' : 'PUBLISH ITEM'}
                   </Button>
                 </div>
@@ -315,28 +335,28 @@ export default function VendorDashboard() {
           
           <div className="grid gap-3">
             {products?.map(p => (
-              <div key={p.id} className="bg-white p-3 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm group">
-                <div className="flex items-center gap-3">
-                  <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted">
+              <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm group">
+                <div className="flex items-center gap-4">
+                  <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted shadow-sm">
                     <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />
-                    {p.isVeg && <div className="absolute top-1 left-1 h-2 w-2 bg-green-500 rounded-full border border-white" />}
+                    {p.isVeg && <div className="absolute top-1.5 left-1.5 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-white" />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm">{p.name}</h4>
-                    <p className="text-primary font-black text-xs">₹{p.price}</p>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-0.5">{p.category}</p>
+                    <h4 className="font-black italic text-lg tracking-tight leading-none">{p.name}</h4>
+                    <p className="text-primary font-black text-xl italic tracking-tighter mt-1">₹{p.price}</p>
+                    <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1 opacity-60">{p.category}</p>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(p)} className="text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"><Edit className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(p)} className="text-blue-500 bg-blue-50 hover:bg-blue-100 rounded-xl h-10 w-10"><Edit className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 hover:bg-red-100 rounded-xl h-10 w-10"><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             ))}
             {(!products || products.length === 0) && (
                <div className="text-center py-20 opacity-30">
-                  <Utensils className="h-10 w-10 mx-auto mb-2" />
-                  <p className="text-xs font-bold uppercase tracking-widest">Catalog is empty</p>
+                  <Package className="h-12 w-12 mx-auto mb-2" />
+                  <p className="text-xs font-black uppercase tracking-widest">Catalog is empty</p>
                </div>
             )}
           </div>
