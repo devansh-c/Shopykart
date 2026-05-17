@@ -10,23 +10,6 @@ import {
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-const DEFAULT_BANNERS = [
-  {
-    id: 'def-1',
-    title: '50% OFF ON PIZZA',
-    subtitle: 'FIRST ORDER SPECIAL',
-    tag: 'Limited Time',
-    imageUrl: 'https://picsum.photos/seed/piz-1/800/400'
-  },
-  {
-    id: 'def-2',
-    title: 'FREE DELIVERY',
-    subtitle: 'ON ORDERS ABOVE ₹199',
-    tag: 'Weekend Deal',
-    imageUrl: 'https://picsum.photos/seed/burg-1/800/400'
-  }
-];
-
 export function OfferSlider() {
   const firestore = useFirestore();
   const bannersQuery = useMemoFirebase(() => {
@@ -36,14 +19,14 @@ export function OfferSlider() {
 
   const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
   
-  // Only use defaults if we are NOT loading AND the database is confirmed empty
-  const banners = (!loading && dbBanners && dbBanners.length > 0) ? dbBanners : DEFAULT_BANNERS;
+  // Show nothing if no banners in database
+  if (loading || !dbBanners || dbBanners.length === 0) return null;
 
   return (
     <div className="w-full px-4">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
-          {banners.map((banner: any, index: number) => (
+          {dbBanners.map((banner: any, index: number) => (
             <CarouselItem key={banner.id}>
               <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl">
                 <Image

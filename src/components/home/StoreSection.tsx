@@ -8,27 +8,6 @@ import { collection } from "firebase/firestore"
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 
-const DEFAULT_STORES = [
-  {
-    id: 'def-s1',
-    storeName: 'The Bun Burst',
-    rating: '4.5',
-    category: 'Fast Food',
-    address: 'Main Market, Ranipur',
-    isOnline: true,
-    bannerUrl: 'https://picsum.photos/seed/s1/800/500'
-  },
-  {
-    id: 'def-s2',
-    storeName: 'Pizza Paradise',
-    rating: '4.3',
-    category: 'Italian',
-    address: 'Railway Road, Mauranipur',
-    isOnline: true,
-    bannerUrl: 'https://picsum.photos/seed/s2/800/500'
-  }
-];
-
 export function StoreSection() {
   const firestore = useFirestore();
 
@@ -40,10 +19,11 @@ export function StoreSection() {
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
-    if (loading) return DEFAULT_STORES;
-    const approved = dbVendors?.filter(v => v.status === 'approved') || [];
-    return approved.length > 0 ? approved : DEFAULT_STORES;
+    if (loading) return [];
+    return dbVendors?.filter(v => v.status === 'approved') || [];
   }, [dbVendors, loading]);
+
+  if (!loading && filteredVendors.length === 0) return null;
 
   return (
     <div className="py-2 px-4">

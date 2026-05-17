@@ -15,25 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const DEFAULT_PRODUCTS = [
-  {
-    id: 'def-p1',
-    name: 'Classic Margherita Pizza',
-    price: 199,
-    restaurantName: 'Pizza Paradise',
-    category: 'Pizza',
-    imageUrl: 'https://picsum.photos/seed/pp1/400/300'
-  },
-  {
-    id: 'def-p2',
-    name: 'Spicy Veggie Burger',
-    price: 129,
-    restaurantName: 'The Bun Burst',
-    category: 'Burgers',
-    imageUrl: 'https://picsum.photos/seed/pp2/400/300'
-  }
-];
-
 export function PopularProducts({ searchQuery = '', category = 'all' }: { searchQuery?: string, category?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
@@ -53,8 +34,9 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
-    // If still loading from Firestore, show nothing or minimal defaults to avoid confusion
-    let result = (dbProducts && dbProducts.length > 0) ? [...dbProducts] : (loading ? [] : [...DEFAULT_PRODUCTS]);
+    if (!dbProducts || dbProducts.length === 0) return [];
+    
+    let result = [...dbProducts];
     
     // Filter by Search & Category
     result = result.filter(product => {
@@ -74,11 +56,10 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     }
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, loading]);
+  }, [searchQuery, category, sortBy, dbProducts]);
 
-  if (loading && (!dbProducts || dbProducts.length === 0)) {
-     return <div className="px-4 py-8 text-center text-xs font-black uppercase tracking-widest text-muted-foreground">Connecting to ShopyKart...</div>;
-  }
+  if (loading) return null;
+  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
 
   return (
     <div className="px-4 py-8">
@@ -163,6 +144,12 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
           );
         })}
       </div>
+      {productsToDisplay.length === 0 && searchQuery && (
+        <div className="text-center py-20 opacity-30">
+          <Utensils className="h-12 w-12 mx-auto mb-2" />
+          <p className="text-xs font-black uppercase tracking-widest">No matching dishes found</p>
+        </div>
+      )}
     </div>
   );
 }
