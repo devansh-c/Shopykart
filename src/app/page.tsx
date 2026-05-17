@@ -28,10 +28,8 @@ export default function Home() {
       )}
 
       {!searchQuery && (
-        <div className="mx-4 mt-6">
-          <div className="bg-white py-2 rounded-[2rem] shadow-sm border border-border/40">
-            <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-          </div>
+        <div className="mt-2">
+          <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
         </div>
       )}
 
