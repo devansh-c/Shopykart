@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -12,23 +11,23 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
-      // Use console.warn instead of console.error to prevent Next.js Dev Red Screen Overlay
+      // Use console.warn instead of console.error to avoid Next.js Dev Red Screen Overlay
       console.warn('Firestore Permission Alert:', {
         path: error.context.path,
         operation: error.context.operation,
       });
 
-      // Avoid showing the same toast multiple times for the same collection
+      // Show toast notification if rules are not correctly set
       if (lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
         toast({
           variant: 'destructive',
-          title: 'Database is Locked',
-          description: `Please go to Firebase Console > Firestore > Rules and enable access to see your data.`,
+          title: 'Database Access Restricted',
+          description: `Cannot ${error.context.operation} at ${error.context.path}. Please verify your Firestore Security Rules.`,
         });
 
-        // Reset the ref after 10 seconds to avoid spamming
+        // Reset the ref after 10 seconds to avoid spamming the same error
         setTimeout(() => {
           lastErrorRef.current = '';
         }, 10000);

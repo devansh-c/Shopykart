@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -7,8 +6,8 @@ import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
- * Enhanced Firebase initialization to be extremely robust in Next.js Dev/Turbopack.
- * Checks for existing instances before creating new ones to avoid setting-conflict errors.
+ * Robust Firebase initialization singleton.
+ * Prevents "Firestore already initialized" errors during Next.js Hot Reloading.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -20,28 +19,25 @@ export function initializeFirebase() {
     let firestore: Firestore;
     let auth: Auth;
 
-    // Initialize App
     if (getApps().length > 0) {
       firebaseApp = getApp();
     } else {
       firebaseApp = initializeApp(firebaseConfig);
     }
 
-    // Initialize Auth
     auth = getAuth(firebaseApp);
 
-    // Initialize Firestore safely
     try {
-      // Try getting existing firestore instance first
+      // Use existing firestore instance if possible
       firestore = getFirestore(firebaseApp);
     } catch (e) {
-      // If fails, use standard initialization
+      // Standard initialization fallback
       firestore = initializeFirestore(firebaseApp, {});
     }
 
     return { firebaseApp, firestore, auth };
   } catch (error) {
-    // Ultimate fallback to existing app
+    console.error("Firebase initialization failed:", error);
     const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     return { 
       firebaseApp: app, 
