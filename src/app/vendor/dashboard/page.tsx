@@ -22,7 +22,10 @@ import {
   Edit,
   ImageIcon,
   ImagePlus,
-  Loader2
+  Loader2,
+  XCircle,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
-type OrderStatus = 'Preparing' | 'Ready' | 'Out for Delivery' | 'Delivered';
+type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -47,7 +50,7 @@ export default function VendorDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
-  const [orderFilter, setOrderFilter] = useState<OrderStatus>('Preparing');
+  const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -109,6 +112,7 @@ export default function VendorDashboard() {
     if (!firestore) return;
     const oRef = doc(firestore, 'orders', orderId);
     updateDoc(oRef, { status: nextStatus });
+    toast({ title: "Status Updated", description: `Order is now ${nextStatus}` });
   };
 
   const handleOpenEdit = (product: any) => {
@@ -183,59 +187,126 @@ export default function VendorDashboard() {
     toast({ title: "Product Deleted" });
   };
 
-  const statusOptions: OrderStatus[] = ['Preparing', 'Ready', 'Out for Delivery', 'Delivered'];
-
   const renderContent = () => {
     if (activeMainTab === 'orders') {
       const filteredOrders = orders?.filter(o => {
-        if (orderFilter === 'Preparing') return o.status === 'Accepted' || o.status === 'Preparing';
-        if (orderFilter === 'Ready') return o.status === 'Ready for Pickup';
-        return o.status === orderFilter;
+        if (orderFilter === 'NEW ORDERS') return !['Delivered', 'Cancelled'].includes(o.status);
+        if (orderFilter === 'DELIVERED') return o.status === 'Delivered';
+        if (orderFilter === 'CANCELLED') return o.status === 'Cancelled';
+        return false;
       }) || [];
 
       return (
         <div className="flex flex-col flex-1">
-          <div className="flex overflow-x-auto gap-3 px-4 py-4 no-scrollbar">
-            {statusOptions.map((status) => (
+          <div className="flex bg-white px-4 py-3 border-b border-gray-100 sticky top-0 z-10">
+            {['NEW ORDERS', 'DELIVERED', 'CANCELLED'].map((filter) => (
               <button
-                key={status}
-                onClick={() => setOrderFilter(status)}
+                key={filter}
+                onClick={() => setOrderFilter(filter as OrderFilter)}
                 className={cn(
-                  "px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border",
-                  orderFilter === status 
-                    ? "bg-[#1E293B] text-white border-[#1E293B]" 
-                    : "bg-white text-gray-500 border-gray-200"
+                  "flex-1 py-3 text-[10px] font-black tracking-widest transition-all relative uppercase",
+                  orderFilter === filter ? "text-primary" : "text-gray-400"
                 )}
               >
-                {status}
+                {filter}
+                {orderFilter === filter && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+                )}
               </button>
             ))}
           </div>
 
-          <div className="flex-1 flex flex-col px-4 py-8">
+          <div className="flex-1 flex flex-col px-4 py-6 space-y-4">
             {filteredOrders.length > 0 ? (
-              <div className="space-y-4">
-                {filteredOrders.map((order: any) => (
-                  <div key={order.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-base">#ORD-{order.id.slice(-4)}</h3>
-                        <p className="text-xs text-muted-foreground">{order.items?.length} Items • ₹{order.total}</p>
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-primary bg-primary/5 px-2 py-1 rounded-md">{order.status}</span>
+              filteredOrders.map((order: any) => (
+                <div key={order.id} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 overflow-hidden relative">
+                  {order.status === 'Cancelled' && (
+                    <div className="absolute top-0 right-0 p-3">
+                       <XCircle className="h-5 w-5 text-red-500 opacity-20" />
                     </div>
-                    <div className="flex gap-2">
-                       {order.status === 'Accepted' && <Button onClick={() => updateStatus(order.id, 'Preparing')} className="flex-1 bg-[#1E293B] text-white rounded-xl h-10 text-xs font-bold">START PREPARING</Button>}
-                       {order.status === 'Preparing' && <Button onClick={() => updateStatus(order.id, 'Ready for Pickup')} className="flex-1 bg-green-600 text-white rounded-xl h-10 text-xs font-bold">MARK READY</Button>}
+                  )}
+                  {order.status === 'Delivered' && (
+                    <div className="absolute top-0 right-0 p-3">
+                       <CheckCircle2 className="h-5 w-5 text-green-500 opacity-20" />
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-black text-lg italic tracking-tight leading-none mb-1">#ORD-{order.id.slice(-4).toUpperCase()}</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <Clock className="h-3 w-3" />
+                        {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full",
+                      order.status === 'Delivered' ? "bg-green-50 text-green-600" :
+                      order.status === 'Cancelled' ? "bg-red-50 text-red-600" :
+                      "bg-primary/5 text-primary"
+                    )}>
+                      {order.status}
+                    </span>
+                  </div>
+
+                  <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
+                    {order.items?.map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-xs font-bold text-gray-600">
+                        <span>{item.quantity}x {item.name}</span>
+                        <span>₹{item.price * item.quantity}</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 mt-2 border-t border-dashed border-gray-200 flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase text-gray-400">Total Bill</span>
+                      <span className="text-sm font-black text-gray-800">₹{order.total}</span>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {orderFilter === 'NEW ORDERS' && (
+                    <div className="flex gap-3">
+                      {order.status === 'Placed' && (
+                        <Button 
+                          onClick={() => updateStatus(order.id, 'Accepted')} 
+                          className="flex-1 bg-black text-white rounded-2xl h-12 font-black uppercase italic tracking-tighter text-xs"
+                        >
+                          ACCEPT ORDER
+                        </Button>
+                      )}
+                      {order.status === 'Accepted' && (
+                        <Button 
+                          onClick={() => updateStatus(order.id, 'Preparing')} 
+                          className="flex-1 bg-primary text-white rounded-2xl h-12 font-black uppercase italic tracking-tighter text-xs"
+                        >
+                          START PREPARING
+                        </Button>
+                      )}
+                      {order.status === 'Preparing' && (
+                        <Button 
+                          onClick={() => updateStatus(order.id, 'Ready for Pickup')} 
+                          className="flex-1 bg-green-600 text-white rounded-2xl h-12 font-black uppercase italic tracking-tighter text-xs"
+                        >
+                          MARK READY
+                        </Button>
+                      )}
+                      
+                      {!['Ready for Pickup', 'Picked Up', 'Out for Delivery'].includes(order.status) && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => updateStatus(order.id, 'Cancelled')}
+                          className="h-12 w-12 rounded-2xl border-red-100 text-red-500 hover:bg-red-50 shrink-0"
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 mt-10">
-                <Utensils className="h-16 w-16 mb-4 text-gray-200" />
-                <h3 className="text-lg font-bold text-gray-600">No orders here!</h3>
-                <p className="text-sm text-gray-400 mt-1">Keep your app online to receive new requests.</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-20 opacity-30">
+                <ShoppingBag className="h-16 w-16 mb-4 text-gray-300" />
+                <h3 className="text-lg font-black italic uppercase tracking-tighter text-gray-600">No {orderFilter}</h3>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Keep your app online to receive orders.</p>
               </div>
             )}
           </div>
@@ -247,7 +318,7 @@ export default function VendorDashboard() {
       return (
         <div className="p-4 space-y-4 pb-32">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-800">Menu Catalog</h2>
+            <h2 className="text-xl font-black italic uppercase tracking-tighter">Menu Catalog</h2>
             <Dialog open={isAddOpen} onOpenChange={(val) => {
               setIsAddOpen(val);
               if(!val) {
@@ -256,7 +327,7 @@ export default function VendorDashboard() {
               }
             }}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-[#1E293B] rounded-xl"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button>
+                <Button size="sm" className="bg-[#1E293B] rounded-xl font-black uppercase text-[10px] tracking-widest"><Plus className="h-3 w-3 mr-1" /> ADD ITEM</Button>
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar">
                 <DialogHeader>
@@ -389,7 +460,7 @@ export default function VendorDashboard() {
             <button onClick={() => setActiveMainTab('orders')} className="p-2 hover:bg-gray-100 rounded-full">
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <h2 className="text-lg font-bold">Account</h2>
+            <h2 className="text-lg font-black italic uppercase tracking-tighter">Account</h2>
           </div>
 
           <div className="px-4 space-y-4">
@@ -454,7 +525,7 @@ export default function VendorDashboard() {
     return (
       <div className="flex flex-col items-center justify-center p-20 opacity-30">
         <Utensils className="h-12 w-12 mb-4" />
-        <p className="font-bold text-sm">Coming Soon</p>
+        <p className="font-black italic uppercase tracking-tighter text-sm">Coming Soon</p>
       </div>
     );
   };
@@ -472,7 +543,7 @@ export default function VendorDashboard() {
               />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant'}</h1>
+              <h1 className="text-base font-black italic uppercase tracking-tighter text-gray-800 leading-tight">{vendorProfile?.storeName || 'Restaurant'}</h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500" : "bg-gray-300")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-500" : "text-gray-400")}>
@@ -483,7 +554,7 @@ export default function VendorDashboard() {
           </div>
           <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full shadow-inner">
              <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>
-               {isOnline ? 'Online' : 'Offline'}
+               {isOnline ? 'On' : 'Off'}
              </span>
              <Switch 
               checked={isOnline} 
