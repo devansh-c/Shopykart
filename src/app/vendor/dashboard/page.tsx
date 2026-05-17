@@ -25,7 +25,9 @@ import {
   ChevronRight,
   Phone,
   Mail,
-  Store
+  Store,
+  Edit,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +37,9 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
 type OrderStatus = 'Preparing' | 'Ready' | 'Out for Delivery' | 'Delivered';
@@ -48,9 +53,17 @@ export default function VendorDashboard() {
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderStatus>('Preparing');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const [newProduct, setNewProduct] = useState({ 
+    name: '', 
+    price: '', 
+    description: '', 
+    category: 'snacks', 
+    imageUrl: '', 
+    isVeg: true 
+  });
 
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -69,7 +82,7 @@ export default function VendorDashboard() {
     setIsOnline(checked);
     if (firestore && user) {
       const vRef = doc(firestore, 'vendors', user.uid);
-      await updateDoc(vRef, { isOnline: checked });
+      updateDoc(vRef, { isOnline: checked });
       toast({ 
         title: checked ? "Store is Online" : "Store is Offline",
         description: checked ? "You are now accepting new orders." : "New orders are now paused."
@@ -92,25 +105,36 @@ export default function VendorDashboard() {
   const handleSignOut = async () => {
     if (!auth) return;
     await signOut(auth);
-    toast({ title: "Logged Out", description: "See you again soon!" });
     router.push('/vendor/login');
   };
 
   const updateStatus = async (orderId: string, nextStatus: string) => {
     if (!firestore) return;
     const oRef = doc(firestore, 'orders', orderId);
-    await updateDoc(oRef, { status: nextStatus });
+    updateDoc(oRef, { status: nextStatus });
     toast({ title: "Status Updated" });
   };
 
-  const handleAddProduct = async () => {
-    if (!firestore || !user || !vendorProfile || isSubmitting) return;
-    if (!newProduct.name || !newProduct.price) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name and price required." });
+  const handleOpenEdit = (product: any) => {
+    setNewProduct({
+      name: product.name,
+      price: product.price.toString(),
+      description: product.description || '',
+      category: product.category || 'snacks',
+      imageUrl: product.imageUrl || '',
+      isVeg: product.isVeg !== false
+    });
+    setEditingId(product.id);
+    setIsAddOpen(true);
+  };
+
+  const handleAddProduct = () => {
+    if (!firestore || !user || !vendorProfile) return;
+    if (!newProduct.name || !newProduct.price || !newProduct.imageUrl) {
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price and Image are required." });
       return;
     }
 
-    setIsSubmitting(true);
     const productData = { 
       name: newProduct.name,
       price: parseFloat(newProduct.price),
@@ -121,20 +145,29 @@ export default function VendorDashboard() {
       town: vendorProfile.town || 'Local', 
       restaurantName: vendorProfile.storeName || 'My Store',
       createdAt: serverTimestamp(),
-      imageUrl: newProduct.imageUrl || `https://picsum.photos/seed/${Date.now()}/400/400`
+      imageUrl: newProduct.imageUrl
     };
 
-    try {
-      await addDoc(collection(firestore, 'vendors', user.uid, 'products'), productData);
-      await addDoc(collection(firestore, 'products'), productData);
-      setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
-      setIsAddOpen(false);
-      toast({ title: "Product Added" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error Saving" });
-    } finally {
-      setIsSubmitting(false);
+    // INSTANT FEEDBACK: Close dialog immediately
+    setIsAddOpen(false);
+    setNewProduct({ name: '', price: '', description: '', category: 'snacks', imageUrl: '', isVeg: true });
+
+    if (editingId) {
+      const vProdRef = doc(firestore, 'vendors', user.uid, 'products', editingId);
+      updateDoc(vProdRef, productData);
+      setEditingId(null);
+      toast({ title: "Product Updated" });
+    } else {
+      addDoc(collection(firestore, 'vendors', user.uid, 'products'), productData);
+      addDoc(collection(firestore, 'products'), productData);
+      toast({ title: "Product Published" });
     }
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    if (!firestore || !user) return;
+    deleteDoc(doc(firestore, 'vendors', user.uid, 'products', id));
+    toast({ title: "Product Deleted" });
   };
 
   const statusOptions: OrderStatus[] = ['Preparing', 'Ready', 'Out for Delivery', 'Delivered'];
@@ -213,33 +246,91 @@ export default function VendorDashboard() {
         <div className="p-4 space-y-4 pb-32">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-800">Menu Catalog</h2>
-            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <Dialog open={isAddOpen} onOpenChange={(val) => {
+              setIsAddOpen(val);
+              if(!val) setEditingId(null);
+            }}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-[#1E293B] rounded-xl"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button>
               </DialogTrigger>
-              <DialogContent className="rounded-[2rem]">
+              <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar">
                 <DialogHeader>
-                  <DialogTitle className="font-black italic uppercase">New Menu Item</DialogTitle>
+                  <DialogTitle className="font-black italic uppercase">{editingId ? 'Edit Item' : 'New Menu Item'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <Input placeholder="Dish Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                  <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                  <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full bg-primary rounded-xl h-12 font-bold">PUBLISH ITEM</Button>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Select from Gallery *</label>
+                    <div className="grid grid-cols-4 gap-2 p-1 bg-muted/20 rounded-2xl border border-dashed">
+                      {PlaceHolderImages.map((img) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setNewProduct({...newProduct, imageUrl: img.imageUrl})}
+                          className={cn(
+                            "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                            newProduct.imageUrl === img.imageUrl ? "border-primary scale-95" : "border-transparent"
+                          )}
+                        >
+                          <img src={img.imageUrl} alt="" className="h-full w-full object-cover" />
+                          {newProduct.imageUrl === img.imageUrl && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <Check className="h-4 w-4 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Input placeholder="Dish Name *" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl" />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input type="number" placeholder="Price (₹) *" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl" />
+                    <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
+                      <SelectTrigger className="h-12 rounded-xl bg-muted/10 border-none"><SelectValue placeholder="Collection" /></SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        <SelectItem value="snacks">Snacks</SelectItem>
+                        <SelectItem value="burgers">Burgers</SelectItem>
+                        <SelectItem value="pizza">Pizza</SelectItem>
+                        <SelectItem value="pasta">Pasta</SelectItem>
+                        <SelectItem value="fries">Fries</SelectItem>
+                        <SelectItem value="drinks">Drinks</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Textarea placeholder="Description (Optional)" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl min-h-[100px]" />
+                  
+                  <div className="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl">
+                    <Switch checked={newProduct.isVeg} onCheckedChange={(val) => setNewProduct({...newProduct, isVeg: val})} />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pure Vegetarian</label>
+                  </div>
+
+                  <Button onClick={handleAddProduct} className="w-full bg-primary rounded-xl h-14 font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
+                    {editingId ? 'UPDATE ITEM' : 'PUBLISH ITEM'}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
+          
           <div className="grid gap-3">
             {products?.map(p => (
-              <div key={p.id} className="bg-white p-3 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm">
+              <div key={p.id} className="bg-white p-3 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm group">
                 <div className="flex items-center gap-3">
-                  <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" />
+                  <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted">
+                    <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />
+                    {p.isVeg && <div className="absolute top-1 left-1 h-2 w-2 bg-green-500 rounded-full border border-white" />}
+                  </div>
                   <div>
                     <h4 className="font-bold text-sm">{p.name}</h4>
                     <p className="text-primary font-black text-xs">₹{p.price}</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-0.5">{p.category}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id))} className="text-red-300 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(p)} className="text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"><Edit className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
+                </div>
               </div>
             ))}
             {(!products || products.length === 0) && (
