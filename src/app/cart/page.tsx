@@ -96,11 +96,19 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
+        // Fix for Illegal Constructor: Use ServiceWorker to show notification
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-           new Notification("Order Confirmed! 🚀", {
-             body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
-             icon: BRAND_LOGO_URL
-           });
+           if ('serviceWorker' in navigator) {
+             navigator.serviceWorker.ready.then((registration) => {
+               registration.showNotification("Order Confirmed! 🚀", {
+                 body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
+                 icon: BRAND_LOGO_URL,
+                 badge: BRAND_LOGO_URL
+               });
+             }).catch(() => {
+               // Silently fail if SW notification fails
+             });
+           }
         }
         
         // Fast Redirection (1 second)
