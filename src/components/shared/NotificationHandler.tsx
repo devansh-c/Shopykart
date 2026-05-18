@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { getFirebaseMessaging } from '@/firebase/messaging';
 import { getToken, onMessage } from 'firebase/messaging';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { BellRing, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,9 @@ export function NotificationHandler() {
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [showPrompt, setShowPrompt] = useState(false);
+  
+  // To track order status changes locally
+  const lastStatuses = useRef<Record<string, string>>({});
 
   const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
@@ -38,12 +41,92 @@ export function NotificationHandler() {
     return () => window.removeEventListener('request-notifications', handleManualRequest);
   }, [user]);
 
+  // Status Change Listener Logic
+  useEffect(() => {
+    if (!user || !firestore) return;
+
+    const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const orderData = change.doc.data();
+        const orderId = change.doc.id;
+        const newStatus = orderData.status;
+        const oldStatus = lastStatuses.current[orderId];
+
+        // Notify if status changed
+        if (oldStatus && oldStatus !== newStatus) {
+           triggerStatusNotification(newStatus);
+        }
+        
+        // Initialize status if not present (to avoid notifying on first load)
+        lastStatuses.current[orderId] = newStatus;
+      });
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore]);
+
+  const triggerStatusNotification = (status: string) => {
+    let title = "Order Update";
+    let body = `Your order status is now: ${status}`;
+
+    switch (status) {
+      case 'Accepted':
+        title = "Order Accepted! 👨‍🍳";
+        body = "Your order has been accepted and preparation has started right now!";
+        break;
+      case 'Preparing':
+        title = "In the Kitchen! 🍱";
+        body = "Your order is being prepared. It will be ready for pickup in approximately 2 minutes.";
+        break;
+      case 'Ready for Pickup':
+        title = "Ready to Go! ✅";
+        body = "Your order is ready for pickup! Our delivery partner will pick it up within 10 minutes.";
+        break;
+      case 'Picked Up':
+        title = "On the Way! 🚚";
+        body = "Your order has been picked up and will be delivered in a few minutes.";
+        break;
+      case 'Out for Delivery':
+        title = "Almost There! 📍";
+        body = "Your order is out for delivery. The delivery partner is just 100 meters away from you!";
+        break;
+      case 'Delivered':
+        title = "Delivered! 😋";
+        body = "Your order has been successfully delivered. Thank you for shopping with ShopyKart!";
+        break;
+    }
+
+    // Play Sound
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.play().catch(() => {});
+
+    // Browser Notification
+    if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(title, {
+          body: body,
+          icon: BRAND_LOGO_URL,
+          badge: BRAND_LOGO_URL,
+          tag: 'order-status'
+        });
+      });
+    }
+
+    // UI Toast as fallback/duplicate for foreground
+    toast({
+      title: title,
+      description: body,
+      duration: 5000,
+    });
+  };
+
   useEffect(() => {
     if (!user || !firestore || Notification.permission !== 'granted') return;
 
     const setupMessaging = async () => {
       try {
-        // Register Service Worker explicitly for FCM
         if ('serviceWorker' in navigator) {
           await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         }
@@ -51,24 +134,9 @@ export function NotificationHandler() {
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
-        // Foreground listener
         onMessage(messaging, (payload) => {
-          console.log("Foreground Message received:", payload);
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-          audio.play().catch(() => {});
-
-          toast({
-            title: payload.notification?.title || 'ShopyKart Notification',
-            description: payload.notification?.body || 'New update received.',
-            action: (
-              <div className="flex items-center gap-3">
-                <img src={BRAND_LOGO_URL} className="h-8 w-8 rounded-full border border-primary/20" alt="Logo" />
-                <Button size="sm" variant="outline" className="rounded-lg font-bold text-[10px]" onClick={() => window.location.href = payload.data?.click_action || '/orders'}>
-                  VIEW
-                </Button>
-              </div>
-            ),
-          });
+          console.log("Foreground FCM received:", payload);
+          triggerStatusNotification(payload.notification?.body || 'Updated');
         });
 
         await saveToken(messaging);
@@ -78,7 +146,7 @@ export function NotificationHandler() {
     };
 
     setupMessaging();
-  }, [user, firestore, toast]);
+  }, [user, firestore]);
 
   const saveToken = async (messaging: any) => {
     try {
@@ -91,7 +159,6 @@ export function NotificationHandler() {
           lastUpdated: serverTimestamp(),
           userId: user.uid
         }, { merge: true });
-        console.log("FCM Token saved to Firestore");
       }
     } catch (err) {
       console.error("Token retrieval failed:", err);
