@@ -20,7 +20,7 @@ import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
 import { identifyFood } from '@/ai/flows/visual-search-flow';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -42,57 +42,15 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 
-type LocationHeaderProps = {
-  searchValue: string;
-  onSearchChange: (val: string) => void;
-};
-
 const SEARCH_SUGGESTIONS = ["pi", "burg", "chow", "pizza", "past"];
 
-export function LocationHeader({
-  searchValue,
-  onSearchChange,
-}: LocationHeaderProps) {
-  const { totalItems, addCustomRequest } = useCart();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isIdentifying, setIsIdentifying] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [customReqOpen, setCustomReqOpen] = useState(false);
-  const [customText, setCustomText] = useState('');
-  const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
-  
-  // Typewriter States
+// Isolated Typewriter component to prevent re-rendering the whole header
+const TypewriterPlaceholder = memo(() => {
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [typingSpeed, setTypingSpeed] = useState(150);
 
-  const { toast } = useToast();
-  const router = useRouter();
-
-  useEffect(() => {
-    const updateAddress = () => {
-      const savedAddress = localStorage.getItem('user_address');
-      if (savedAddress) {
-        const parts = savedAddress.split(',');
-        setCurrentAddress(parts[0].trim() || savedAddress);
-      } else {
-        setCurrentAddress('Select Location');
-      }
-    };
-
-    updateAddress();
-
-    window.addEventListener('user-address-updated', updateAddress);
-    window.addEventListener('storage', updateAddress);
-
-    return () => {
-      window.removeEventListener('user-address-updated', updateAddress);
-      window.removeEventListener('storage', updateAddress);
-    };
-  }, []);
-
-  // Typewriter Logic
   useEffect(() => {
     const handleTyping = () => {
       const fullText = SEARCH_SUGGESTIONS[suggestionIndex];
@@ -121,6 +79,47 @@ export function LocationHeader({
     return () => clearTimeout(timer);
   }, [displayText, isDeleting, suggestionIndex, typingSpeed]);
 
+  return <span>Search &quot;{displayText}&quot;</span>;
+});
+
+TypewriterPlaceholder.displayName = 'TypewriterPlaceholder';
+
+type LocationHeaderProps = {
+  searchValue: string;
+  onSearchChange: (val: string) => void;
+};
+
+export function LocationHeader({
+  searchValue,
+  onSearchChange,
+}: LocationHeaderProps) {
+  const { totalItems, addCustomRequest } = useCart();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isIdentifying, setIsIdentifying] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [customReqOpen, setCustomReqOpen] = useState(false);
+  const [customText, setCustomText] = useState('');
+  const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
+
+  const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    const updateAddress = () => {
+      const savedAddress = localStorage.getItem('user_address');
+      if (savedAddress) {
+        const parts = savedAddress.split(',');
+        setCurrentAddress(parts[0].trim() || savedAddress);
+      } else {
+        setCurrentAddress('Select Location');
+      }
+    };
+
+    updateAddress();
+    window.addEventListener('user-address-updated', updateAddress);
+    return () => window.removeEventListener('user-address-updated', updateAddress);
+  }, []);
+
   const handleChangeLocation = () => {
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
@@ -140,16 +139,9 @@ export function LocationHeader({
       try {
         const result = await identifyFood({ photoDataUri: base64String });
         onSearchChange(result.identifiedFood);
-        toast({
-          title: 'Visual Search Successful',
-          description: `Searching for: ${result.identifiedFood}`,
-        });
+        toast({ title: 'Success', description: `Identified: ${result.identifiedFood}` });
       } catch (err) {
-        toast({
-          variant: 'destructive',
-          title: 'Search Failed',
-          description: 'Could not identify the food from the photo.',
-        });
+        toast({ variant: 'destructive', title: 'Failed', description: 'Could not identify food.' });
       } finally {
         setIsIdentifying(false);
       }
@@ -158,44 +150,15 @@ export function LocationHeader({
   };
 
   const handleMicClick = () => {
-    if (
-      !('webkitSpeechRecognition' in window) &&
-      !('SpeechRecognition' in window)
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Not Supported',
-        description: 'Your browser does not support voice search.',
-      });
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast({ variant: 'destructive', title: 'Not Supported' });
       return;
     }
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event: any) => {
-      const speechToText = event.results[0][0].transcript;
-      onSearchChange(speechToText);
-      setIsListening(false);
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => onSearchChange(event.results[0][0].transcript);
+    recognition.onend = () => setIsListening(false);
     recognition.start();
   };
 
@@ -204,21 +167,11 @@ export function LocationHeader({
     addCustomRequest(customText);
     setCustomText('');
     setCustomReqOpen(false);
-    toast({
-      title: 'Request Sent',
-      description: 'Custom Veg dish added to your cart.',
-    });
+    toast({ title: 'Request Sent' });
   };
 
-  const menuItems = [
-    { label: 'My Profile', icon: User, href: '/profile' },
-    { label: 'My Orders', icon: Package, href: '/orders' },
-    { label: 'Rewards & Coupons', icon: Gift, href: '/rewards' },
-    { label: 'My Wishlist', icon: Heart, href: '/wishlist' },
-  ];
-
   return (
-    <div className="w-full">
+    <div className="w-full will-change-transform">
       <div className="bg-[#0B0B0B] px-4 pt-2 pb-0.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5 max-w-[75%]">
           <MapPin className="h-3 w-3 text-primary shrink-0" />
@@ -227,98 +180,41 @@ export function LocationHeader({
             <span className="text-white text-[10px] font-bold truncate tracking-tight">{currentAddress}</span>
           </div>
         </div>
-        <button 
-          onClick={handleChangeLocation}
-          className="text-primary text-[9px] font-black uppercase tracking-widest px-1 py-1 rounded-lg transition-colors"
-        >
-          Change
-        </button>
+        <button onClick={handleChangeLocation} className="text-primary text-[9px] font-black uppercase tracking-widest px-1 py-1">Change</button>
       </div>
 
-      <div className="bg-[#0B0B0B] px-3 pt-2 pb-5 flex flex-col gap-3 rounded-none shadow-2xl border-b border-white/5">
+      <div className="bg-[#0B0B0B] px-3 pt-2 pb-5 flex flex-col gap-3 border-b border-white/5 shadow-2xl">
         <div className="flex items-center justify-between gap-2">
           <Logo className="scale-90 origin-left" />
 
           <div className="flex items-center gap-1.5">
             <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
               <DialogTrigger asChild>
-                <button className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all">
-                  <PlusCircle className="h-4.5 w-4.5" />
-                </button>
+                <button className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all"><PlusCircle className="h-4.5 w-4.5" /></button>
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-sm">
-                <DialogHeader>
-                  <DialogTitle className="font-black italic uppercase text-xl tracking-tighter text-center">
-                    Custom Veg Dish
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <p className="text-xs text-muted-foreground font-bold text-center uppercase tracking-widest">
-                    Can't find it? Tell us what you want!
-                  </p>
-                  <Textarea
-                    placeholder="E.g. Paneer Tikka Masala..."
-                    className="rounded-2xl h-24 bg-muted/30 border-none focus-visible:ring-primary/20"
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleCustomSubmit}
-                    className="w-full h-12 rounded-xl bg-primary font-black uppercase italic tracking-tighter"
-                  >
-                    ADD TO CART
-                  </Button>
-                </DialogFooter>
+                <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Custom Veg Dish</DialogTitle></DialogHeader>
+                <div className="py-4"><Textarea placeholder="E.g. Paneer Tikka Masala..." className="rounded-2xl h-24 bg-muted/30 border-none" value={customText} onChange={(e) => setCustomText(e.target.value)} /></div>
+                <DialogFooter><Button onClick={handleCustomSubmit} className="w-full h-12 bg-primary font-black uppercase italic">ADD TO CART</Button></DialogFooter>
               </DialogContent>
             </Dialog>
 
-            <Link href="/wishlist">
-              <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
-                <Heart className="h-4.5 w-4.5" />
-              </div>
-            </Link>
+            <Link href="/wishlist"><div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all"><Heart className="h-4.5 w-4.5" /></div></Link>
 
             <Link href="/cart">
               <div className="relative">
-                <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all">
-                  <ShoppingBag className="h-4.5 w-4.5" />
-                </div>
-                {totalItems > 0 && (
-                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center border border-[#0B0B0B] animate-in zoom-in">
-                    <span className="text-[8px] font-black text-primary-foreground">
-                      {totalItems}
-                    </span>
-                  </div>
-                )}
+                <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all"><ShoppingBag className="h-4.5 w-4.5" /></div>
+                {totalItems > 0 && <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center border border-[#0B0B0B]"><span className="text-[8px] font-black text-white">{totalItems}</span></div>}
               </div>
             </Link>
 
             <Sheet>
-              <SheetTrigger asChild>
-                <button className="h-8 w-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all">
-                  <Menu className="h-4.5 w-4.5 text-white" />
-                </button>
-              </SheetTrigger>
+              <SheetTrigger asChild><button className="h-8 w-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all"><Menu className="h-4.5 w-4.5 text-white" /></button></SheetTrigger>
               <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
-                <SheetHeader className="p-8 border-b border-white/5">
-                  <Logo className="justify-start border-none bg-transparent shadow-none px-0" />
-                  <SheetTitle className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] mt-2 text-left">Menu Navigation</SheetTitle>
-                </SheetHeader>
+                <SheetHeader className="p-8 border-b border-white/5"><Logo className="justify-start bg-transparent shadow-none px-0" /></SheetHeader>
                 <div className="p-6 space-y-2">
-                  {menuItems.map((item) => (
-                    <Link key={item.label} href={item.href}>
-                      <button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors group">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-white/5 p-3 rounded-xl group-hover:bg-primary/20 transition-colors">
-                            <item.icon className="h-5 w-5 text-primary" />
-                          </div>
-                          <span className="font-bold text-sm tracking-tight">{item.label}</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-primary transition-colors" />
-                      </button>
-                    </Link>
+                  {[{label:'My Profile',icon:User,href:'/profile'},{label:'My Orders',icon:Package,href:'/orders'},{label:'Rewards',icon:Gift,href:'/rewards'},{label:'Wishlist',icon:Heart,href:'/wishlist'}].map((item) => (
+                    <Link key={item.label} href={item.href}><button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors"><div className="flex items-center gap-4"><div className="bg-white/5 p-3 rounded-xl"><item.icon className="h-5 w-5 text-primary" /></div><span className="font-bold text-sm">{item.label}</span></div><ChevronRight className="h-4 w-4 text-gray-600" /></button></Link>
                   ))}
                 </div>
               </SheetContent>
@@ -326,23 +222,21 @@ export function LocationHeader({
           </div>
         </div>
 
-        {/* Updated Search Bar row with smaller margin */}
         <div className="px-1 -mb-9 relative z-20">
           <div className="relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
+              {!searchValue && <TypewriterPlaceholder />}
+            </div>
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={`Search "${displayText}"`}
-              className="h-12 bg-white border-none rounded-xl pl-14 pr-24 text-base text-foreground placeholder:text-gray-400 shadow-xl focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:ring-offset-0 transition-all"
+              placeholder=""
+              className="h-12 bg-white border-none rounded-xl pl-14 pr-24 text-base text-foreground shadow-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white/50 backdrop-blur-sm rounded-lg p-0.5">
-              <button onClick={handleMicClick} className={`p-1.5 rounded-lg transition-all active:scale-90 ${isListening ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'}`}>
-                <Mic className="h-4 w-4" />
-              </button>
-              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-1.5 text-gray-400 hover:text-primary rounded-lg transition-all active:scale-90 disabled:opacity-50">
-                {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-              </button>
+              <button onClick={handleMicClick} className={`p-1.5 rounded-lg transition-all active:scale-90 ${isListening ? 'bg-primary text-white' : 'text-gray-400'}`}><Mic className="h-4 w-4" /></button>
+              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-1.5 text-gray-400 hover:text-primary rounded-lg transition-all active:scale-90">{isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}</button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
           </div>
