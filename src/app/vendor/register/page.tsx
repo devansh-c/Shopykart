@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef } from 'react';
@@ -18,7 +19,8 @@ import {
   EyeOff,
   Loader2,
   LocateFixed,
-  Star
+  Star,
+  WifiOff
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -78,7 +80,6 @@ export default function VendorRegistrationPage() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      // Compress immediately to prevent Firestore document size limit error
       const compressed = await compressImage(base64, type === 'cover' ? 1200 : 400, type === 'cover' ? 600 : 400);
       updateFormData(type, compressed);
     };
@@ -154,20 +155,23 @@ export default function VendorRegistrationPage() {
       const vRef = doc(firestore, 'vendors', user.uid);
       await setDoc(vRef, vendorData);
 
-      const appRef = doc(firestore, 'vendor_applications', user.uid);
-      await setDoc(appRef, vendorData);
-
       setStep('success');
       toast({ title: "Account Activated!", description: "Your store is now live on ShopyKart." });
 
     } catch (err: any) {
       console.error("Registration failed:", err);
+      let errorTitle = "Registration Failed";
+      let errorMsg = "Could not create account. Please try again.";
+
       if (err.code === 'auth/email-already-in-use') {
-        toast({ variant: "destructive", title: "Error", description: "Email already exists." });
+        errorMsg = "Email already exists.";
         setStep('owner-info'); 
-      } else {
-        toast({ variant: "destructive", title: "Database Error", description: "Registration failed." });
+      } else if (err.code === 'auth/network-request-failed') {
+        errorTitle = "Network Error";
+        errorMsg = "Please check your internet connection and try again.";
       }
+
+      toast({ variant: "destructive", title: errorTitle, description: errorMsg });
     } finally {
       setIsProcessing(false);
     }
@@ -281,7 +285,6 @@ export default function VendorRegistrationPage() {
                 <ShieldCheck className="h-10 w-10 text-primary" />
               </div>
               
-              {/* Premium Commission Box Matching Screenshot */}
               <div className="bg-black text-white p-10 rounded-[3rem] space-y-4 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                    <ShieldCheck className="h-12 w-12" />
@@ -301,7 +304,7 @@ export default function VendorRegistrationPage() {
                 disabled={isProcessing}
                 className="w-full h-16 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-3xl font-black uppercase italic text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
               >
-                I AGREE & SUBMIT
+                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "I AGREE & SUBMIT"}
               </Button>
             </div>
           )}

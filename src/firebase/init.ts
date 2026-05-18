@@ -1,8 +1,9 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore, initializeFirestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
@@ -26,10 +27,16 @@ export function initializeFirebase() {
     }
 
     auth = getAuth(firebaseApp);
+    
+    // Set persistence explicitly to browserLocalPersistence for better stability on mobile
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn("Auth persistence could not be set:", err);
+    });
 
     try {
       firestore = getFirestore(firebaseApp);
     } catch (e) {
+      // Fallback for environments where default getFirestore might fail
       firestore = initializeFirestore(firebaseApp, {});
     }
 
