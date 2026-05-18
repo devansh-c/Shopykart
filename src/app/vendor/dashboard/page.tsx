@@ -241,12 +241,7 @@ export default function VendorDashboard() {
   };
 
   if (authLoading || profileLoading || !vendorProfile) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <h2 className="text-xl font-black uppercase italic tracking-tighter">Verifying Access...</h2>
-      </div>
-    );
+    return <div className="min-h-screen bg-white" />;
   }
 
   const renderContent = () => {
@@ -466,4 +461,3 @@ export default function VendorDashboard() {
     </div>
   );
 }
-

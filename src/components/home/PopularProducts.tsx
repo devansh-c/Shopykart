@@ -64,13 +64,8 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     return result;
   }, [searchQuery, category, sortBy, dbProducts]);
 
-  if (loading) {
-    return (
-      <div className="px-4 py-20 flex flex-col items-center justify-center text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p className="font-black italic uppercase tracking-tighter">Fetching Delicious Dishes...</p>
-      </div>
-    );
+  if (loading && !dbProducts) {
+    return null;
   }
 
   if (productsToDisplay.length === 0 && !searchQuery && category === 'all') {

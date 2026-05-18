@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -37,20 +38,7 @@ export function PersonalizedOffers() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="px-4 py-8 space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2">
-          {[1, 2].map((i) => (
-            <Skeleton key={i} className="min-w-[300px] h-48 rounded-[2.5rem]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!offersData?.offers || offersData.offers.length === 0) return null;
+  if (loading || !offersData?.offers || offersData.offers.length === 0) return null;
 
   return (
     <div className="py-8">

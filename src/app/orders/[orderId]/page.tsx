@@ -33,7 +33,7 @@ export default function OrderDetailsPage() {
 
   const { data: order, loading } = useDoc<any>(orderRef);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (loading && !order) return <div className="min-h-screen bg-white" />;
   if (!order) return <div className="min-h-screen flex items-center justify-center font-black">ORDER NOT FOUND</div>;
 
   const currentStatusIdx = steps.findIndex(s => s.id === order.status);

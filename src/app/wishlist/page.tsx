@@ -24,11 +24,11 @@ export default function WishlistPage() {
 
   const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id)) || [];
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (loading && !dbProducts) {
+    return <div className="min-h-screen bg-white" />;
   }
 
-  if (favoriteProducts.length === 0) {
+  if (favoriteProducts.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-red-50 h-32 w-32 rounded-full flex items-center justify-center mb-6">

@@ -25,22 +25,8 @@ export function StoreSection() {
     return dbVendors.filter(v => v.status === 'approved' || !v.status);
   }, [dbVendors, loading]);
 
-  if (loading) {
-    return (
-      <div className="py-10 flex flex-col items-center justify-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mb-2" />
-        <p className="text-[10px] font-black uppercase tracking-widest">Loading Premium Stores...</p>
-      </div>
-    );
-  }
-
-  if (filteredVendors.length === 0) {
-    return (
-      <div className="py-10 px-6 text-center opacity-20">
-        <Store className="h-10 w-10 mx-auto mb-2" />
-        <p className="text-[10px] font-black uppercase tracking-widest">No active stores found</p>
-      </div>
-    );
+  if (loading || filteredVendors.length === 0) {
+    return null;
   }
 
   return (
