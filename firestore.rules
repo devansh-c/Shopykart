@@ -1,0 +1,76 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Global Products & Banners
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isSignedIn(); // In production, restrict to Admin
+    }
+    
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Vendor Profiles & Their Products
+    match /vendors/{vendorId} {
+      allow read: if true;
+      allow write: if isOwner(vendorId);
+      
+      match /products/{productId} {
+        allow read: if true;
+        allow write: if isOwner(vendorId);
+      }
+    }
+    
+    match /vendor_applications/{appId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn(); // Admin control
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId || 
+        request.auth.uid == resource.data.vendorId ||
+        request.auth.uid == resource.data.deliveryPartnerId
+      );
+      allow update: if isSignedIn(); 
+    }
+
+    // User Data & FCM Tokens
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      
+      match /profile/data {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /fcmTokens/{tokenId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
