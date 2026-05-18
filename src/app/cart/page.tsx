@@ -100,19 +100,19 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
-        // Local Fallback Notification if SW is not ready
-        if (Notification.permission === 'granted') {
+        // Notification logic
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
            new Notification("Order Confirmed! 🚀", {
              body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
              icon: BRAND_LOGO_URL
            });
         }
         
-        // Instant speed: Reduced timeout for snappy feel
+        // Fast Redirection
         setTimeout(() => {
           clearCart();
           router.push(`/orders/${orderId}`);
-        }, 1000);
+        }, 1200);
       })
       .catch(async (err) => {
         setShowSuccess(false);
