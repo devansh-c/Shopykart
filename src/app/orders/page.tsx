@@ -6,7 +6,7 @@ import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Trash2, Loader2 } fr
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, deleteDoc, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -30,24 +30,40 @@ export default function OrdersPage() {
   const { data: orders, loading } = useCollection<any>(ordersQuery);
 
   const handleClearHistory = async () => {
-    if (!firestore || !user || !orders || orders.length === 0) return;
+    if (!firestore || !user) return;
     
-    if (!confirm("Are you sure you want to permanently clear your order history?")) return;
+    // Check if there are orders to delete
+    const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      toast({ title: "No Orders", description: "There is no history to clear." });
+      return;
+    }
+
+    if (!confirm("Are you sure? This will permanently delete your entire order history.")) return;
 
     setIsDeleting(true);
     try {
-      // Fetch all orders for this user to ensure we have latest IDs
-      const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
-      const snapshot = await getDocs(q);
+      const batch = writeBatch(firestore);
       
-      const deletePromises = snapshot.docs.map(document => 
-        deleteDoc(doc(firestore, 'orders', document.id))
-      );
+      snapshot.docs.forEach((document) => {
+        batch.delete(doc(firestore, 'orders', document.id));
+      });
 
-      await Promise.all(deletePromises);
-      toast({ title: "History Cleared", description: "Your order history has been removed." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Could not clear history." });
+      await batch.commit();
+      
+      toast({ 
+        title: "History Cleared!", 
+        description: "Your order history has been successfully removed from our servers." 
+      });
+    } catch (err: any) {
+      console.error("Deletion error:", err);
+      toast({ 
+        variant: "destructive", 
+        title: "Deletion Failed", 
+        description: "Could not clear history. Please check your internet connection." 
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -61,7 +77,8 @@ export default function OrdersPage() {
           <button 
             onClick={handleClearHistory}
             disabled={isDeleting}
-            className="h-10 w-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
+            className="h-12 w-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center active:scale-90 transition-all disabled:opacity-50 shadow-sm border border-red-100"
+            title="Clear All History"
           >
             {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
           </button>
