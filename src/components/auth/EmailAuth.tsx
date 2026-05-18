@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Lock, User, Phone, CheckCircle2 } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -16,6 +16,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
+import { cn } from '@/lib/utils';
 
 type AuthView = 'login' | 'signup' | 'forgot';
 
@@ -54,7 +55,7 @@ export function EmailAuth() {
           phoneNumber: user.phoneNumber || '',
           createdAt: serverTimestamp(),
           role: 'customer'
-        });
+        }, { merge: true });
       }
       toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
     } catch (err: any) {
@@ -92,9 +93,9 @@ export function EmailAuth() {
             email: trimmedEmail,
             createdAt: serverTimestamp(),
             role: 'customer'
-          });
+          }, { merge: true });
         }
-        toast({ title: "Identity Created", description: `Welcome, ${fullName}!` });
+        toast({ title: "Account Created!", description: `Welcome to ShopyKart, ${fullName}!` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified" });
@@ -103,70 +104,128 @@ export function EmailAuth() {
         setIsResetSent(true);
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Access Denied", description: err.message });
+      let message = err.message;
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        message = "Wrong email or password.";
+      } else if (err.code === 'auth/email-already-in-use') {
+        message = "Email is already registered.";
+      }
+      toast({ variant: "destructive", title: "Access Denied", description: message });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8 animate-in fade-in duration-700 overflow-y-auto no-scrollbar">
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-20" />
-      <div className="flex justify-center mt-6 mb-10"><div className="scale-110"><Logo /></div></div>
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
+    <div className="fixed inset-0 z-[110] bg-white flex flex-col animate-in fade-in duration-700 overflow-y-auto no-scrollbar">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-sm mx-auto w-full space-y-10">
+        
+        <div className="flex flex-col items-center space-y-6">
+          <Logo className="scale-125 mb-2" />
+          <div className="text-center space-y-1">
+            <h1 className="text-3xl font-black italic tracking-tighter uppercase">
+              {view === 'login' ? 'Welcome Back' : view === 'signup' ? 'Create Account' : 'Reset Keys'}
+            </h1>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+              Premium Food Delivery Network
+            </p>
+          </div>
+        </div>
+
         {isResetSent ? (
-          <div className="text-center space-y-6 pb-10">
-            <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100"><CheckCircle2 className="h-10 w-10 text-green-500" /></div>
-            <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK SENT!</h2>
-            <Button onClick={() => {setIsResetSent(false); setView('login');}} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">BACK TO LOGIN</Button>
+          <div className="text-center space-y-6 w-full animate-in zoom-in duration-300">
+            <div className="mx-auto bg-green-50 h-24 w-24 rounded-full flex items-center justify-center border border-green-100 shadow-xl shadow-green-100/50">
+              <CheckCircle2 className="h-12 w-12 text-green-500" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black italic tracking-tighter uppercase">Reset Link Sent!</h2>
+              <p className="text-xs font-bold text-muted-foreground">Check your email inbox to reset your password.</p>
+            </div>
+            <Button onClick={() => {setIsResetSent(false); setView('login');}} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all">
+              BACK TO LOGIN
+            </Button>
           </div>
         ) : (
-          <>
-            <div className="text-center">
-              <h1 className="text-4xl font-black italic tracking-tighter uppercase">
-                {view === 'login' ? 'Premium Access' : view === 'signup' ? 'Join Elite' : 'Reset Keys'}
-              </h1>
-            </div>
-
-            <form onSubmit={handleAuth} className="space-y-6">
-              <div className="space-y-4">
-                {view === 'signup' && (
-                  <>
-                    <div className="bg-gray-50 rounded-xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20">
+          <div className="w-full space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+            <form onSubmit={handleAuth} className="space-y-4">
+              {view === 'signup' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-2">Full Identity</label>
+                    <div className="bg-gray-50 rounded-2xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20 transition-all">
                       <User className="h-4 w-4 text-gray-400 mr-3" />
-                      <input type="text" placeholder="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
+                      <input type="text" placeholder="Your Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20">
-                      <Phone className="h-4 w-4 text-gray-400 mr-3" />
-                      <input type="tel" placeholder="Mobile Number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
-                    </div>
-                  </>
-                )}
-                <div className="bg-gray-50 rounded-xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20">
-                  <Mail className="h-4 w-4 text-gray-400 mr-3" />
-                  <input type="email" placeholder="Email identity" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
-                </div>
-                {view !== 'forgot' && (
-                  <div className="bg-gray-50 rounded-xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20">
-                    <Lock className="h-4 w-4 text-gray-400 mr-3" />
-                    <input type="password" placeholder="Secret Key" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
                   </div>
-                )}
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-2">Mobile Number (For Delivery)</label>
+                    <div className="bg-gray-50 rounded-2xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20 transition-all">
+                      <Phone className="h-4 w-4 text-gray-400 mr-3" />
+                      <input type="tel" placeholder="10 Digit Number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email Address</label>
+                <div className="bg-gray-50 rounded-2xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20 transition-all">
+                  <Mail className="h-4 w-4 text-gray-400 mr-3" />
+                  <input type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
+                </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : view === 'login' ? 'ENTER HUB' : view === 'signup' ? 'CREATE IDENTITY' : 'SEND LINK'}
+
+              {view !== 'forgot' && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center px-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Secret Key</label>
+                    {view === 'login' && <button type="button" onClick={() => setView('forgot')} className="text-[9px] font-black uppercase tracking-widest text-primary">Forgot?</button>}
+                  </div>
+                  <div className="bg-gray-50 rounded-2xl p-4 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-primary/20 transition-all">
+                    <Lock className="h-4 w-4 text-gray-400 mr-3" />
+                    <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-transparent border-none text-sm font-bold focus:outline-none" />
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" disabled={loading} className="w-full h-16 bg-primary text-white rounded-[1.8rem] font-black uppercase italic shadow-xl shadow-primary/20 text-lg active:scale-[0.98] transition-all mt-4">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                  <span className="flex items-center gap-2">
+                    {view === 'login' ? 'ENTER HUB' : view === 'signup' ? 'CREATE ACCOUNT' : 'SEND LINK'}
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
+                )}
               </Button>
-              <div className="relative flex items-center py-2"><div className="flex-grow border-t border-gray-100"></div><span className="flex-shrink mx-4 text-[8px] font-black text-muted-foreground uppercase tracking-widest">Social login</span><div className="flex-grow border-t border-gray-100"></div></div>
-              <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={loading} className="w-full h-14 border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-3">
-                <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/><path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/><path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/></svg>
-                <span className="text-sm font-bold">Continue with Google</span>
-              </Button>
-              <button type="button" onClick={() => setView(view === 'login' ? 'signup' : 'login')} className="w-full text-[9px] font-black uppercase tracking-widest text-primary underline">
-                {view === 'login' ? 'Create New Elite Identity' : 'Back to Hub Access'}
-              </button>
             </form>
-          </>
+
+            <div className="space-y-6">
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-gray-100"></div>
+                <span className="flex-shrink mx-4 text-[9px] font-black text-muted-foreground uppercase tracking-widest">Fast Access</span>
+                <div className="flex-grow border-t border-gray-100"></div>
+              </div>
+
+              <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={loading} className="w-full h-14 border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-gray-50 shadow-sm">
+                <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/><path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/><path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/></svg>
+                <span className="text-sm font-black uppercase tracking-tight">Login with Google</span>
+              </Button>
+
+              <div className="text-center pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setView(view === 'login' ? 'signup' : 'login')} 
+                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-70 transition-opacity"
+                >
+                  {view === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
+
+        <p className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] absolute bottom-10">
+          ShopyKart Private Limited • Secure Auth
+        </p>
       </div>
     </div>
   );
