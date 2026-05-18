@@ -2,23 +2,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // Deployment Timestamp: 2024-03-20T16:15:00Z
+    
+    // Helper function for Auth
     function isSignedIn() {
       return request.auth != null;
     }
     
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Orders: Allow any signed-in user to create and read orders
+    // Orders: Full access for any authenticated user during prototyping
     match /orders/{orderId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn(); 
-      allow update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
-    // Products & Global Data: Open for reading, restricted writing
+    // Products, Banners, Categories, Coupons: Public Read, Auth Write
     match /products/{productId} {
       allow read: if true;
       allow write: if isSignedIn();
@@ -50,11 +46,12 @@ service cloud.firestore {
       }
     }
     
+    // Vendor Applications
     match /vendor_applications/{appId} {
-      allow read, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
-    // User Profiles & Data
+    // User Profiles & FCM Tokens
     match /users/{userId} {
       allow read: if isSignedIn();
       
@@ -63,11 +60,11 @@ service cloud.firestore {
       }
       
       match /fcmTokens/{tokenId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isSignedIn();
       }
     }
     
-    // Catch-all for other collections during prototype
+    // Catch-all for any other collections
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
