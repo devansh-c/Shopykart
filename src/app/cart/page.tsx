@@ -264,6 +264,33 @@ export default function CartPage() {
           </div>
         </div>
 
+        {/* Restore Payment Method Section */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-gray-800">Payment Method</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { id: 'Online', icon: Wallet, label: 'Pay Online' },
+              { id: 'COD', icon: Banknote, label: 'Cash on Delivery' },
+            ].map((method) => (
+              <button
+                key={method.id}
+                onClick={() => setPaymentMethod(method.id)}
+                className={cn(
+                  "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                  paymentMethod === method.id ? "border-primary bg-primary/5" : "border-gray-100 bg-white"
+                )}
+              >
+                <div className={cn("p-2 rounded-lg", paymentMethod === method.id ? "bg-primary text-white" : "bg-gray-100 text-gray-400")}>
+                  <method.icon className="h-5 w-5" />
+                </div>
+                <span className={cn("text-xs font-bold", paymentMethod === method.id ? "text-primary" : "text-gray-500")}>
+                  {method.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-red-500" />
@@ -327,7 +354,7 @@ export default function CartPage() {
           <div>
             <div className="text-xl font-black text-gray-800">₹{grandTotal.toFixed(2)}</div>
             <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase">
-              ⚡ {paymentMethod === 'Online' ? 'Online' : 'COD'} • incl. taxes
+              {paymentMethod === 'Online' ? '⚡ Online' : '💵 Cash'} • incl. taxes
             </p>
           </div>
           
