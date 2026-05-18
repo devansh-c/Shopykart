@@ -11,15 +11,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Helper to check user role from their profile document
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/data).data;
+    // Orders: Allow any signed-in user to create and read orders
+    match /orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn(); 
+      allow update, delete: if isSignedIn();
     }
 
-    // Global Products & Banners
+    // Products & Global Data: Open for reading, restricted writing
     match /products/{productId} {
       allow read: if true;
-      allow write: if isSignedIn(); // Allowing for prototype, restrict to admin in prod
+      allow write: if isSignedIn();
     }
     
     match /banners/{bannerId} {
@@ -37,10 +39,10 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
-    // Vendor Profiles & Their Products
+    // Vendor Data
     match /vendors/{vendorId} {
       allow read: if true;
-      allow write: if isSignedIn(); // Allow admin to activate stores
+      allow write: if isSignedIn();
       
       match /products/{productId} {
         allow read: if true;
@@ -49,29 +51,25 @@ service cloud.firestore {
     }
     
     match /vendor_applications/{appId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn(); 
+      allow read, create, update, delete: if isSignedIn();
     }
 
-    // Orders
-    match /orders/{orderId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn(); // Allow admin and owner to read
-      allow update: if isSignedIn(); 
-    }
-
-    // User Data & FCM Tokens
+    // User Profiles & Data
     match /users/{userId} {
-      allow read: if isOwner(userId) || isSignedIn(); // Allow admin to see customer list
+      allow read: if isSignedIn();
       
       match /profile/data {
-        allow read, write: if isOwner(userId) || isSignedIn();
+        allow read, write: if isSignedIn();
       }
       
       match /fcmTokens/{tokenId} {
         allow read, write: if isOwner(userId);
       }
+    }
+    
+    // Catch-all for other collections during prototype
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
