@@ -96,6 +96,8 @@ export default function CartPage() {
       vendorId: cart[0]?.vendorId || 'unknown'
     };
 
+    setShowSuccess(true);
+
     setDoc(newOrderRef, orderData)
       .then(() => {
         // Local Fallback Notification if SW is not ready
@@ -105,8 +107,15 @@ export default function CartPage() {
              icon: BRAND_LOGO_URL
            });
         }
+        
+        // Instant speed: Reduced timeout for snappy feel
+        setTimeout(() => {
+          clearCart();
+          router.push(`/orders/${orderId}`);
+        }, 1000);
       })
       .catch(async (err) => {
+        setShowSuccess(false);
         const pErr = new FirestorePermissionError({ 
           path: `orders/${orderId}`, 
           operation: 'create', 
@@ -114,13 +123,6 @@ export default function CartPage() {
         });
         errorEmitter.emit('permission-error', pErr);
       });
-
-    setShowSuccess(true);
-    
-    setTimeout(() => {
-      clearCart();
-      router.push(`/orders/${orderId}`);
-    }, 2500);
   };
 
   const recommendations = dbProducts ? dbProducts.filter((p: any) => !cart.find(c => c.id === p.id)).slice(0, 5) : [];
@@ -143,7 +145,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F7] pb-40">
-      <OrderSuccessOverlay id="order-success" isVisible={showSuccess} />
+      <OrderSuccessOverlay isVisible={showSuccess} />
 
       {/* Sticky Header */}
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
