@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { NotificationHandler } from '@/components/shared/NotificationHandler';
+import { SplashScreen } from '@/components/shared/SplashScreen';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
@@ -48,6 +49,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-[#FAFAFA] text-foreground">
+        <SplashScreen />
         <FirebaseClientProvider>
           <FirebaseErrorListener />
           <CartProvider>
