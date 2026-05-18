@@ -143,7 +143,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F7] pb-40">
-      <OrderSuccessOverlay isVisible={showSuccess} />
+      <OrderSuccessOverlay id="order-success" isVisible={showSuccess} />
 
       {/* Sticky Header */}
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
@@ -264,7 +264,7 @@ export default function CartPage() {
           </div>
           <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 px-1">
              <History className="h-3 w-3" />
-             <span>~35 min - Free</span>
+             <span>~20 min - Free</span>
           </div>
         </div>
 
@@ -427,7 +427,7 @@ export default function CartPage() {
               </div>
               <div className="flex items-center gap-1.5 text-gray-400">
                  <Bike className="h-4 w-4 text-amber-500" />
-                 <span className="text-[10px] font-bold">~35 min</span>
+                 <span className="text-[10px] font-bold">~20 min</span>
               </div>
            </div>
            <Button 
@@ -442,4 +442,3 @@ export default function CartPage() {
     </div>
   );
 }
-
