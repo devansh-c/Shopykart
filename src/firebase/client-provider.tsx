@@ -5,7 +5,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
 import { FirebaseProvider } from './provider';
-import { initializeFirebase } from './index';
+import { initializeFirebase } from './init';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -23,8 +23,6 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     setInstances(results);
   }, []);
 
-  // We always render children to prevent startup hangs.
-  // Firebase instances will be null for a few milliseconds then populate.
   return (
     <FirebaseProvider 
       firebaseApp={instances?.firebaseApp || null} 

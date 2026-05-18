@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -39,7 +38,6 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
-// Updated Brand Logo URL (Placeholder for now, user can replace with their hosted link)
 const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
 
 export default function CartPage() {
@@ -72,22 +70,6 @@ export default function CartPage() {
   const deliveryFee = 0; 
   const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
-  if (totalItems === 0 && !showSuccess) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-muted h-32 w-32 rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="h-12 w-12 text-muted-foreground" />
-        </div>
-        <h2 className="text-2xl font-black italic uppercase">Your cart is empty</h2>
-        <p className="text-muted-foreground mt-2 mb-8">Add something delicious to get started!</p>
-        <Button onClick={() => router.push('/menu')} className="rounded-2xl h-12 px-8 font-bold">
-          BROWSE MENU
-        </Button>
-        <BottomNav />
-      </div>
-    );
-  }
-
   const showLocalNotification = (title: string, body: string) => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
 
@@ -98,15 +80,12 @@ export default function CartPage() {
             body: body,
             icon: BRAND_LOGO_URL,
             badge: BRAND_LOGO_URL,
-            tag: 'order-success-' + Date.now()
+            tag: 'order-success'
           });
         }).catch(() => {
-          // Standard constructor fallback if SW not ready
           try {
             new Notification(title, { body, icon: BRAND_LOGO_URL });
-          } catch(e) {
-            console.warn("Notification constructor failed, using fallback");
-          }
+          } catch(e) {}
         });
       } else {
         try {
@@ -142,7 +121,6 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
-        // Trigger immediate browser notification
         showLocalNotification(
           "Order Confirmed! 🚀", 
           "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes"
@@ -171,11 +149,26 @@ export default function CartPage() {
 
   const recommendations = dbProducts ? dbProducts.filter((p: any) => !cart.find(c => c.id === p.id)).slice(0, 5) : [];
 
+  if (totalItems === 0 && !showSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-muted h-32 w-32 rounded-full flex items-center justify-center mb-6">
+          <ShoppingBag className="h-12 w-12 text-muted-foreground" />
+        </div>
+        <h2 className="text-2xl font-black italic uppercase">Your cart is empty</h2>
+        <p className="text-muted-foreground mt-2 mb-8">Add something delicious to get started!</p>
+        <Button onClick={() => router.push('/menu')} className="rounded-2xl h-12 px-8 font-bold">
+          BROWSE MENU
+        </Button>
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F6F7] pb-40">
       <OrderSuccessOverlay isVisible={showSuccess} />
 
-      {/* Header */}
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100">
           <ChevronLeft className="h-6 w-6" />
@@ -184,7 +177,6 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Order Items Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
             <div className="flex items-center gap-2">
@@ -244,36 +236,6 @@ export default function CartPage() {
           </button>
         </div>
 
-        {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-               <h3 className="text-sm font-bold text-gray-700">Complete your meal</h3>
-            </div>
-            <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
-              {recommendations.map((prod) => (
-                <div key={prod.id} className="min-w-[120px] max-w-[120px] bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-                  <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
-                    <Image src={prod.imageUrl || `https://picsum.photos/seed/${prod.id}/200/200`} alt={prod.name} fill className="object-cover" />
-                    <button 
-                      onClick={() => addToCart({ ...prod, imageUrl: prod.imageUrl || `https://picsum.photos/seed/${prod.id}/200/200` })}
-                      className="absolute bottom-1 right-1 h-6 w-6 bg-white rounded-full flex items-center justify-center shadow-md text-red-500"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-1 mb-0.5">
-                     <div className="h-2 w-2 bg-green-600 rounded-full" />
-                     <span className="text-[10px] font-bold text-gray-800 truncate">{prod.name}</span>
-                  </div>
-                  <div className="text-[10px] font-bold text-gray-400">₹{prod.price}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Order Type */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-gray-800">Order Type</h3>
           <div className="grid grid-cols-4 gap-3">
@@ -302,7 +264,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Delivery Address */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-red-500" />
@@ -327,7 +288,6 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Bill Details */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="bg-blue-50 p-1.5 rounded-lg">
@@ -360,65 +320,8 @@ export default function CartPage() {
             <span className="text-xl font-black text-red-500">₹{grandTotal.toFixed(2)}</span>
           </div>
         </div>
-
-        {/* Pay Using */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💳</span>
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Pay Using</h3>
-          </div>
-
-          <div className="space-y-3">
-            <button 
-              onClick={() => setPaymentMethod('Online')}
-              className={cn(
-                "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all",
-                paymentMethod === 'Online' ? "border-green-500 bg-green-50/30" : "border-gray-50"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-3">
-                  <Wallet className="h-5 w-5 text-green-500" />
-                  <div className="text-left">
-                    <h4 className="text-xs font-bold text-gray-800">Pay Online</h4>
-                    <p className="text-[10px] text-gray-400 font-bold">UPI, Debit / Credit Card, Netbanking</p>
-                  </div>
-                </div>
-              </div>
-              <div className={cn(
-                "h-5 w-5 rounded-full border-2 flex items-center justify-center",
-                paymentMethod === 'Online' ? "border-green-500" : "border-gray-200"
-              )}>
-                {paymentMethod === 'Online' && <div className="h-2.5 w-2.5 bg-green-500 rounded-full" />}
-              </div>
-            </button>
-
-            <button 
-              onClick={() => setPaymentMethod('Cash')}
-              className={cn(
-                "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all",
-                paymentMethod === 'Cash' ? "border-green-500 bg-green-50/30" : "border-gray-50"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <Banknote className="h-5 w-5 text-gray-400" />
-                <div className="text-left">
-                  <h4 className="text-xs font-bold text-gray-800">Pay with Cash</h4>
-                  <p className="text-[10px] text-gray-400 font-bold">Pay when your order arrives</p>
-                </div>
-              </div>
-              <div className={cn(
-                "h-5 w-5 rounded-full border-2 flex items-center justify-center",
-                paymentMethod === 'Cash' ? "border-green-500" : "border-gray-200"
-              )}>
-                {paymentMethod === 'Cash' && <div className="h-2.5 w-2.5 bg-green-500 rounded-full" />}
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
 
-      {/* Fixed Footer Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
           <div>

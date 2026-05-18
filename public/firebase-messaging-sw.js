@@ -1,9 +1,6 @@
-
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
-
-// Brand Logo URL
-const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
+// ShopyKart Eats Service Worker
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
@@ -17,12 +14,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title || 'ShopyKart Notification';
+  console.log('[firebase-messaging-sw.js] Background message received: ', payload);
+  const notificationTitle = payload.notification.title;
   const notificationOptions = {
-    body: payload.notification.body || 'New update received.',
-    icon: BRAND_LOGO_URL,
-    badge: BRAND_LOGO_URL,
+    body: payload.notification.body,
+    icon: 'https://picsum.photos/seed/shopykart-eats/200/200',
+    badge: 'https://picsum.photos/seed/shopykart-eats/200/200',
     data: payload.data
   };
 
