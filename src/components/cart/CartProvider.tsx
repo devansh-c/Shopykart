@@ -1,5 +1,4 @@
-
-"use client"
+'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 
@@ -16,11 +15,8 @@ export type CartItem = {
 type CartContextType = {
   cart: CartItem[];
   wishlist: string[];
-  customRequest: string;
   addToCart: (product: any) => void;
   removeFromCart: (productId: string) => void;
-  addCustomRequest: (text: string) => void;
-  removeCustomRequest: () => void;
   clearCart: () => void;
   toggleWishlist: (productId: string) => void;
   isInWishlist: (productId: string) => boolean;
@@ -33,9 +29,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [customRequest, setCustomRequest] = useState<string>('');
-
-  const CUSTOM_REQUEST_PRICE = 20;
 
   const addToCart = useCallback((product: any) => {
     setCart((prev) => {
@@ -47,14 +40,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-  }, []);
-
-  const addCustomRequest = useCallback((text: string) => {
-    setCustomRequest(text);
-  }, []);
-
-  const removeCustomRequest = useCallback(() => {
-    setCustomRequest('');
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
@@ -71,7 +56,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setCart([]);
-    setCustomRequest('');
   }, []);
 
   const toggleWishlist = useCallback((productId: string) => {
@@ -84,28 +68,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const isInWishlist = useCallback((productId: string) => wishlist.includes(productId), [wishlist]);
 
-  const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0) + (customRequest ? 1 : 0), [cart, customRequest]);
+  const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   
   const totalPrice = useMemo(() => {
-    const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const customTotal = customRequest ? CUSTOM_REQUEST_PRICE : 0;
-    return itemsTotal + customTotal;
-  }, [cart, customRequest]);
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [cart]);
 
   const value = useMemo(() => ({
     cart, 
     wishlist,
-    customRequest,
     addToCart, 
     removeFromCart, 
-    addCustomRequest,
-    removeCustomRequest,
     clearCart, 
     toggleWishlist, 
     isInWishlist,
     totalItems, 
     totalPrice 
-  }), [cart, wishlist, customRequest, addToCart, removeFromCart, addCustomRequest, removeCustomRequest, clearCart, toggleWishlist, isInWishlist, totalItems, totalPrice]);
+  }), [cart, wishlist, addToCart, removeFromCart, clearCart, toggleWishlist, isInWishlist, totalItems, totalPrice]);
 
   return (
     <CartContext.Provider value={value}>

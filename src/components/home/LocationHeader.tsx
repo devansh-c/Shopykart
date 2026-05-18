@@ -8,12 +8,10 @@ import {
   Camera,
   Mic,
   Loader2,
-  PlusCircle,
   User,
   Package,
   Gift,
   ChevronRight,
-  LogOut,
   MapPin,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
@@ -24,22 +22,12 @@ import { useRef, useState, useEffect, memo } from 'react';
 import { identifyFood } from '@/ai/flows/visual-search-flow';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 
 const SEARCH_SUGGESTIONS = ["pi", "burg", "chow", "pizza", "past"];
@@ -93,12 +81,10 @@ export function LocationHeader({
   searchValue,
   onSearchChange,
 }: LocationHeaderProps) {
-  const { totalItems, addCustomRequest } = useCart();
+  const { totalItems } = useCart();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [customReqOpen, setCustomReqOpen] = useState(false);
-  const [customText, setCustomText] = useState('');
   const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
 
   const { toast } = useToast();
@@ -162,14 +148,6 @@ export function LocationHeader({
     recognition.start();
   };
 
-  const handleCustomSubmit = () => {
-    if (!customText.trim()) return;
-    addCustomRequest(customText);
-    setCustomText('');
-    setCustomReqOpen(false);
-    toast({ title: 'Request Sent' });
-  };
-
   return (
     <div className="w-full will-change-transform">
       <div className="bg-[#0B0B0B] px-4 pt-2 pb-0.5 flex items-center justify-between">
@@ -188,17 +166,6 @@ export function LocationHeader({
           <Logo className="scale-90 origin-left" />
 
           <div className="flex items-center gap-1.5">
-            <Dialog open={customReqOpen} onOpenChange={setCustomReqOpen}>
-              <DialogTrigger asChild>
-                <button className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-primary active:scale-90 transition-all"><PlusCircle className="h-4.5 w-4.5" /></button>
-              </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] max-w-sm">
-                <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Custom Veg Dish</DialogTitle></DialogHeader>
-                <div className="py-4"><Textarea placeholder="E.g. Paneer Tikka Masala..." className="rounded-2xl h-24 bg-muted/30 border-none" value={customText} onChange={(e) => setCustomText(e.target.value)} /></div>
-                <DialogFooter><Button onClick={handleCustomSubmit} className="w-full h-12 bg-primary font-black uppercase italic">ADD TO CART</Button></DialogFooter>
-              </DialogContent>
-            </Dialog>
-
             <Link href="/wishlist"><div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-white/5 flex items-center justify-center text-white active:scale-90 transition-all"><Heart className="h-4.5 w-4.5" /></div></Link>
 
             <Link href="/cart">

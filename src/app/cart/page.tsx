@@ -1,5 +1,4 @@
-
-"use client"
+'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -39,7 +38,7 @@ import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
 
 export default function CartPage() {
-  const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart, customRequest } = useCart();
+  const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -81,7 +80,6 @@ export default function CartPage() {
     const orderData = {
       userId: user.uid,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
-      customRequest: customRequest || null,
       total: grandTotal,
       status: 'Placed',
       orderType,
@@ -96,7 +94,6 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
-        // Fix for Illegal Constructor: Use ServiceWorker to show notification
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
            if ('serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
@@ -105,13 +102,10 @@ export default function CartPage() {
                  icon: BRAND_LOGO_URL,
                  badge: BRAND_LOGO_URL
                });
-             }).catch(() => {
-               // Silently fail if SW notification fails
-             });
+             }).catch(() => {});
            }
         }
         
-        // Fast Redirection (1 second)
         setTimeout(() => {
           clearCart();
           router.push(`/orders/${orderId}`);
@@ -119,9 +113,6 @@ export default function CartPage() {
       })
       .catch(async (err: any) => {
         setShowSuccess(false);
-        console.error("Order Write Failed:", err);
-        
-        // Emit only if it's a permission issue
         if (err.code === 'permission-denied' || err.message?.includes('permission')) {
           const pErr = new FirestorePermissionError({ 
             path: `orders/${orderId}`, 
