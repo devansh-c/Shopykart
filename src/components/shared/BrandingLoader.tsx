@@ -1,10 +1,14 @@
-
 'use client';
 
 import { useEffect } from 'react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
+/**
+ * @fileOverview BrandingLoader handles dynamic SEO updates from Firestore.
+ * It ensures Title, Description, and Favicon are updated across the app
+ * to maintain consistent branding and search engine visibility.
+ */
 export function BrandingLoader() {
   const firestore = useFirestore();
 
@@ -17,39 +21,51 @@ export function BrandingLoader() {
 
   useEffect(() => {
     if (branding) {
-      // Update Title
+      // 1. Update Document Title (Primary SEO)
       if (branding.siteTitle) {
         document.title = branding.siteTitle;
       }
 
-      // Update Description Meta Tag
-      if (branding.siteDescription) {
-        let metaDesc = document.querySelector('meta[name="description"]');
-        if (!metaDesc) {
-          metaDesc = document.createElement('meta');
-          metaDesc.setAttribute('name', 'description');
-          document.head.appendChild(metaDesc);
+      // 2. Update Description Meta Tag (For Google Snippets)
+      const updateMetaTag = (name: string, content: string) => {
+        let element = document.querySelector(`meta[name="${name}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          element.setAttribute('name', name);
+          document.head.appendChild(element);
         }
-        metaDesc.setAttribute('content', branding.siteDescription);
+        element.setAttribute('content', content);
+      };
+
+      if (branding.siteDescription) {
+        updateMetaTag('description', branding.siteDescription);
+        updateMetaTag('og:description', branding.siteDescription);
+        updateMetaTag('twitter:description', branding.siteDescription);
       }
 
-      // Update Favicon
-      if (branding.faviconUrl) {
-        const favicon = document.querySelector('link[rel="icon"]');
-        if (favicon) {
-          favicon.setAttribute('href', branding.faviconUrl);
-        } else {
-          const newFavicon = document.createElement('link');
-          newFavicon.rel = 'icon';
-          newFavicon.href = branding.faviconUrl;
-          document.head.appendChild(newFavicon);
-        }
+      // 3. Update OG Title and Twitter Card Title
+      if (branding.siteTitle) {
+        updateMetaTag('og:title', branding.siteTitle);
+        updateMetaTag('twitter:title', branding.siteTitle);
+      }
 
-        // Also update apple-touch-icon
-        const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-        if (appleIcon) {
-          appleIcon.setAttribute('href', branding.faviconUrl);
-        }
+      // 4. Update Favicon Dynamically
+      if (branding.faviconUrl) {
+        const updateLinkTag = (rel: string, href: string) => {
+          let link = document.querySelector(`link[rel*="${rel}"]`);
+          if (link) {
+            link.setAttribute('href', href);
+          } else {
+            const newLink = document.createElement('link');
+            newLink.rel = rel;
+            newLink.href = href;
+            document.head.appendChild(newLink);
+          }
+        };
+
+        updateLinkTag('icon', branding.faviconUrl);
+        updateLinkTag('apple-touch-icon', branding.faviconUrl);
+        updateLinkTag('shortcut icon', branding.faviconUrl);
       }
     }
   }, [branding]);
