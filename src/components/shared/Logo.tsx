@@ -4,6 +4,7 @@
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -28,6 +29,15 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
+      {/* 
+        IMAGE LOGO INTEGRATION:
+        Uncomment the Image component below and comment out the h1 if you want to use an image logo.
+        Put your logo.png in the /public folder.
+      */}
+      {/* 
+      <Image src="/logo.png" alt="ShopyKart Logo" width={120} height={40} className="object-contain" /> 
+      */}
+
       <h1 className="flex items-center text-lg font-black italic tracking-tighter leading-none">
         <span className="text-white">SHOPY</span>
         <span className="text-[#C5A021]">KART</span>

@@ -13,6 +13,10 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 
+// Note: Next.js metadata should ideally be in a server component. 
+// Since this is a client-heavy layout, we keep the basic tags for now.
+// For full SEO, you can move metadata to a separate metadata.ts or use it in page.tsx files.
+
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
   const pathname = usePathname();
@@ -42,8 +46,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>ShopyKart | Premium Food Delivery</title>
-        <meta name="description" content="Gourmet meals delivered to your doorstep with ShopyKart." />
+        {/* SEO TITLE & DESCRIPTION */}
+        <title>ShopyKart | Premium Food Delivery in Ranipur & Mauranipur</title>
+        <meta name="description" content="Get gourmet meals delivered to your doorstep within 20 minutes. ShopyKart offers the best selection of food in Ranipur and Mauranipur." />
+        
+        {/* VIEWPORT & THEME */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        <meta name="theme-color" content="#EF4444" />
+
+        {/* FAVICON: Put your favicon.ico in the /public folder */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/favicon.ico" />
+
+        {/* FONTS */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
