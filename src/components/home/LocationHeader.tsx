@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -85,7 +86,7 @@ export function LocationHeader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
+  const [currentAddress, setCurrentAddress] = useState('Select Location');
 
   const { toast } = useToast();
   const router = useRouter();
