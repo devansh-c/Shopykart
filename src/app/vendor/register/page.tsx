@@ -18,9 +18,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  LocateFixed,
-  Star,
-  WifiOff
+  LocateFixed
 } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -67,7 +65,6 @@ export default function VendorRegistrationPage() {
     phone: '',
     email: '',
     password: '',
-    confirmPassword: '',
   });
 
   const updateFormData = (key: string, value: any) => {
@@ -109,11 +106,7 @@ export default function VendorRegistrationPage() {
       return !!formData.storeName && !!formData.logo && !!formData.cover && !!formData.zone && !!formData.addressLine && !!formData.state;
     }
     if (step === 'owner-info') {
-      const basic = !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.email && !!formData.password;
-      if (!basic) return false;
-      if (formData.phone.length !== 10) return false;
-      if (formData.password !== formData.confirmPassword) return false;
-      return formData.password.length >= 6;
+      return !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.email && !!formData.password && formData.phone.length === 10;
     }
     return true;
   };
@@ -123,6 +116,7 @@ export default function VendorRegistrationPage() {
     setIsProcessing(true);
 
     try {
+      // Step 1: Create Firebase User
       const userCredential = await createUserWithEmailAndPassword(
         auth, 
         formData.email.trim().toLowerCase(), 
@@ -130,7 +124,8 @@ export default function VendorRegistrationPage() {
       );
       const user = userCredential.user;
 
-      const vendorData = {
+      // Step 2: Create Application Entry (Waiting for Admin Approval)
+      const applicationData = {
         id: user.uid,
         storeName: formData.storeName,
         category: formData.category,
@@ -146,32 +141,17 @@ export default function VendorRegistrationPage() {
         lastName: formData.lastName,
         phone: formData.phone,
         email: formData.email.trim().toLowerCase(),
-        status: 'approved',
-        isOnline: true,
+        status: 'pending',
         createdAt: serverTimestamp(),
-        walletBalance: 0
       };
 
-      const vRef = doc(firestore, 'vendors', user.uid);
-      await setDoc(vRef, vendorData);
+      await setDoc(doc(firestore, 'vendor_applications', user.uid), applicationData);
 
       setStep('success');
-      toast({ title: "Account Activated!", description: "Your store is now live on ShopyKart." });
+      toast({ title: "Application Sent!", description: "Admin will verify and activate your store within 24 hours." });
 
     } catch (err: any) {
-      console.error("Registration failed:", err);
-      let errorTitle = "Registration Failed";
-      let errorMsg = "Could not create account. Please try again.";
-
-      if (err.code === 'auth/email-already-in-use') {
-        errorMsg = "Email already exists.";
-        setStep('owner-info'); 
-      } else if (err.code === 'auth/network-request-failed') {
-        errorTitle = "Network Error";
-        errorMsg = "Please check your internet connection and try again.";
-      }
-
-      toast({ variant: "destructive", title: errorTitle, description: errorMsg });
+      toast({ variant: "destructive", title: "Registration Failed", description: err.message });
     } finally {
       setIsProcessing(false);
     }
@@ -220,10 +200,10 @@ export default function VendorRegistrationPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Plus Code / Location</label>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Location</label>
                   <button onClick={handleGetLocation} className="text-primary text-[9px] font-black uppercase flex items-center gap-1"><LocateFixed className="h-2.5 w-2.5" /> Auto Fill</button>
                 </div>
-                <Input placeholder="Enter Plus Code or GPS" value={formData.plusCode} onChange={(e) => updateFormData('plusCode', e.target.value)} className="h-12 rounded-xl" />
+                <Input placeholder="Plus Code or GPS" value={formData.plusCode} onChange={(e) => updateFormData('plusCode', e.target.value)} className="h-12 rounded-xl" />
               </div>
 
               <Select value={formData.zone} onValueChange={(val) => updateFormData('zone', val)}>
@@ -235,24 +215,11 @@ export default function VendorRegistrationPage() {
               </Select>
 
               <Textarea 
-                placeholder="Store Address Line (e.g. Near Main Market) *" 
+                placeholder="Full Address Line *" 
                 value={formData.addressLine} 
                 onChange={(e) => updateFormData('addressLine', e.target.value)} 
                 className="rounded-xl min-h-[80px]"
               />
-
-              <Input placeholder="Store State *" value={formData.state} onChange={(e) => updateFormData('state', e.target.value)} className="h-12 rounded-xl" />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Initial Rating</label>
-                   <Input type="number" step="0.1" max="5" placeholder="Rating (e.g. 4.5)" value={formData.rating} onChange={(e) => updateFormData('rating', e.target.value)} className="h-12 rounded-xl" />
-                </div>
-                <div className="space-y-1">
-                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">FSSAI (Optional)</label>
-                   <Input placeholder="FSSAI Number" value={formData.fssai} onChange={(e) => updateFormData('fssai', e.target.value)} className="h-12 rounded-xl" />
-                </div>
-              </div>
 
               <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-lg shadow-primary/20">NEXT STEP</Button>
             </div>
@@ -274,7 +241,6 @@ export default function VendorRegistrationPage() {
                 <Input placeholder="Password *" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} className="h-12 rounded-xl pr-10" />
                 <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
               </div>
-              <Input placeholder="Confirm Password *" type="password" value={formData.confirmPassword} onChange={(e) => updateFormData('confirmPassword', e.target.value)} className="h-12 rounded-xl" />
               <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4 shadow-lg shadow-primary/20">REVIEW & SUBMIT</Button>
             </div>
           )}
@@ -286,9 +252,6 @@ export default function VendorRegistrationPage() {
               </div>
               
               <div className="bg-black text-white p-10 rounded-[3rem] space-y-4 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                   <ShieldCheck className="h-12 w-12" />
-                </div>
                 <div className="flex justify-center">
                   <span className="bg-[#EF4444] text-white text-[10px] font-black px-5 py-2 rounded-full uppercase italic tracking-tighter">
                     ₹5 COMMISSION
@@ -317,9 +280,9 @@ export default function VendorRegistrationPage() {
                   <CheckCircle2 className="h-14 w-14 text-white" />
                 </div>
               </div>
-              <h2 className="text-3xl font-black italic uppercase text-blue-600">LIVE NOW!</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase px-4">Account activated. Your store is now visible on Home Page.</p>
-              <Button onClick={() => router.push('/vendor/dashboard')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">ENTER DASHBOARD</Button>
+              <h2 className="text-2xl font-black italic uppercase text-blue-600">APPLICATION SENT!</h2>
+              <p className="text-xs font-black text-muted-foreground uppercase px-4">Your store is under verification. You will be notified via email once approved.</p>
+              <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">BACK TO HOME</Button>
             </div>
           )}
         </CardContent>

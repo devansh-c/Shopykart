@@ -70,7 +70,7 @@ export function EmailAuth() {
 
     const trimmedEmail = email.trim().toLowerCase();
     if (!validateEmail(trimmedEmail)) {
-      toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email identity." });
+      toast({ variant: "destructive", title: "Invalid Email" });
       return;
     }
 
@@ -78,7 +78,7 @@ export function EmailAuth() {
     try {
       if (view === 'signup') {
         if (!fullName.trim() || phoneNumber.length !== 10 || password.length < 6) {
-          throw new Error("Please fill all fields. Password must be 6+ characters and Phone must be 10 digits.");
+          throw new Error("Phone must be 10 digits and Password 6+ characters.");
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
@@ -94,21 +94,16 @@ export function EmailAuth() {
             role: 'customer'
           });
         }
-        toast({ title: "Identity Created", description: `Welcome to ShopyKart, ${fullName}!` });
+        toast({ title: "Identity Created", description: `Welcome, ${fullName}!` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
-        toast({ title: "Identity Verified", description: "Accessing your signature experience." });
+        toast({ title: "Identity Verified" });
       } else if (view === 'forgot') {
         await sendPasswordResetEmail(auth, trimmedEmail);
         setIsResetSent(true);
       }
     } catch (err: any) {
-      let message = err.message;
-      if (err.code === 'auth/invalid-credential') message = "Wrong email or password identity.";
-      else if (err.code === 'auth/email-already-in-use') message = "This email is already registered.";
-      else if (err.code === 'auth/network-request-failed') message = "Network connection failed. Please check your signal.";
-      
-      toast({ variant: "destructive", title: "Access Denied", description: message });
+      toast({ variant: "destructive", title: "Access Denied", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -120,14 +115,14 @@ export function EmailAuth() {
       <div className="flex justify-center mt-6 mb-10"><div className="scale-110"><Logo /></div></div>
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-8">
         {isResetSent ? (
-          <div className="text-center space-y-6 animate-in zoom-in duration-500 pb-10">
+          <div className="text-center space-y-6 pb-10">
             <div className="mx-auto bg-green-50 h-20 w-20 rounded-full flex items-center justify-center border border-green-100"><CheckCircle2 className="h-10 w-10 text-green-500" /></div>
-            <h2 className="text-3xl font-black italic tracking-tighter uppercase text-black">LINK DISPATCHED!</h2>
+            <h2 className="text-3xl font-black italic tracking-tighter uppercase">LINK SENT!</h2>
             <Button onClick={() => {setIsResetSent(false); setView('login');}} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">BACK TO LOGIN</Button>
           </div>
         ) : (
           <>
-            <div className="text-center space-y-2">
+            <div className="text-center">
               <h1 className="text-4xl font-black italic tracking-tighter uppercase">
                 {view === 'login' ? 'Premium Access' : view === 'signup' ? 'Join Elite' : 'Reset Keys'}
               </h1>
@@ -161,11 +156,7 @@ export function EmailAuth() {
               <Button type="submit" disabled={loading} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : view === 'login' ? 'ENTER HUB' : view === 'signup' ? 'CREATE IDENTITY' : 'SEND LINK'}
               </Button>
-              <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-gray-100"></div>
-                <span className="flex-shrink mx-4 text-[8px] font-black text-muted-foreground uppercase tracking-widest">Social login</span>
-                <div className="flex-grow border-t border-gray-100"></div>
-              </div>
+              <div className="relative flex items-center py-2"><div className="flex-grow border-t border-gray-100"></div><span className="flex-shrink mx-4 text-[8px] font-black text-muted-foreground uppercase tracking-widest">Social login</span><div className="flex-grow border-t border-gray-100"></div></div>
               <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={loading} className="w-full h-14 border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-3">
                 <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/><path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/><path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/></svg>
                 <span className="text-sm font-bold">Continue with Google</span>
