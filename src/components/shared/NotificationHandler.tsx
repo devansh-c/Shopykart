@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -25,7 +24,7 @@ export function NotificationHandler() {
   const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
       setPermission(Notification.permission);
       
       if (Notification.permission === 'default' && user) {
@@ -102,8 +101,8 @@ export function NotificationHandler() {
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play().catch(() => {});
 
-    // Browser Notification
-    if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+    // Browser Notification - Safe Check
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification(title, {
           body: body,
@@ -111,7 +110,7 @@ export function NotificationHandler() {
           badge: BRAND_LOGO_URL,
           tag: 'order-status'
         });
-      });
+      }).catch(() => {});
     }
 
     // UI Toast as fallback/duplicate for foreground
@@ -123,7 +122,7 @@ export function NotificationHandler() {
   };
 
   useEffect(() => {
-    if (!user || !firestore || Notification.permission !== 'granted') return;
+    if (!user || !firestore || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
     const setupMessaging = async () => {
       try {
@@ -166,6 +165,11 @@ export function NotificationHandler() {
   };
 
   const requestPermission = async () => {
+    if (typeof Notification === 'undefined') {
+      toast({ title: "Not Supported", description: "Your browser doesn't support notifications." });
+      return;
+    }
+    
     setShowPrompt(false);
     try {
       const status = await Notification.requestPermission();
@@ -180,7 +184,7 @@ export function NotificationHandler() {
     }
   };
 
-  if (!showPrompt || !user || permission !== 'default') return null;
+  if (!showPrompt || !user || permission !== 'default' || typeof Notification === 'undefined') return null;
 
   return (
     <div className="fixed top-20 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500">
