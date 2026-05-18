@@ -36,6 +36,7 @@ import { ReviewManagement } from '@/components/admin/ReviewManagement';
 import { DiscountManagement } from '@/components/admin/DiscountManagement';
 import { StoreManagement } from '@/components/admin/StoreManagement';
 import { CategoryManagement } from '@/components/admin/CategoryManagement';
+import { BrandingManagement } from '@/components/admin/BrandingManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,12 +47,7 @@ const menuItems = [
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
-  { id: 'fleet', label: 'Delivery Fleet', icon: Bike },
-  { id: 'mission', label: 'Mission Control', icon: Rocket },
-  { id: 'customers', label: 'Customers', icon: Users },
-  { id: 'reports', label: 'Reports', icon: LineChart },
-  { id: 'plugins', label: 'Plugins', icon: Zap },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
 
 export default function AdminDashboard() {
@@ -150,6 +146,8 @@ export default function AdminDashboard() {
         return <ReviewManagement />;
       case 'discounts':
         return <DiscountManagement />;
+      case 'settings':
+        return <BrandingManagement />;
       default: {
         const activeItem = menuItems.find(i => i.id === activeTab);
         const Icon = activeItem?.icon;
