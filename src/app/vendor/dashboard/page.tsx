@@ -26,7 +26,13 @@ import {
   XCircle,
   BellRing,
   Clock,
-  Smartphone
+  Smartphone,
+  Settings,
+  Phone,
+  Moon,
+  Sun,
+  Camera,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +45,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { compressImage } from '@/lib/image-utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -52,6 +59,8 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
@@ -59,7 +68,12 @@ export default function VendorDashboard() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showOrderAlert, setShowOrderAlert] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
+  // Edit Profile States
+  const [isEditPhoneOpen, setIsEditPhoneOpen] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+
   const [newProduct, setNewProduct] = useState({ 
     name: '', 
     price: '', 
@@ -75,14 +89,12 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // Authentication & Role Gate
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/vendor/login');
     }
   }, [user, authLoading, router]);
 
-  // Permission Gate: Redirect if user is not a vendor
   useEffect(() => {
     if (!authLoading && !profileLoading && user && !vendorProfile) {
       toast({ 
@@ -98,7 +110,7 @@ export default function VendorDashboard() {
     if (!firestore) return null;
     return collection(firestore, 'categories');
   }, [firestore]);
-  const { data: dynamicCategories, loading: categoriesLoading } = useCollection<any>(categoriesQuery);
+  const { data: dynamicCategories } = useCollection<any>(categoriesQuery);
 
   const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
@@ -127,21 +139,6 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  const showLocalNotification = (title: string, body: string) => {
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification(title, { body, icon: BRAND_LOGO_URL, badge: BRAND_LOGO_URL });
-        }).catch(() => {
-          try { new Notification(title, { body, icon: BRAND_LOGO_URL }); } catch(e) {}
-        });
-      } else {
-        try { new Notification(title, { body, icon: BRAND_LOGO_URL }); } catch(e) {}
-      }
-    }
-  };
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const hasNewOrder = orders?.some(o => o.status === 'Placed');
@@ -152,18 +149,9 @@ export default function VendorDashboard() {
         audioRef.current.loop = true;
       }
       audioRef.current.play().catch(() => {});
-      showLocalNotification("NEW ORDER RECEIVED!", "You have a new pending order on ShopyKart.");
-      if ("vibrate" in navigator) {
-        const vInt = setInterval(() => {
-           if (!orders?.some(o => o.status === 'Placed')) { clearInterval(vInt); return; }
-           navigator.vibrate([500, 200, 500]);
-        }, 2000);
-        return () => { clearInterval(vInt); if(audioRef.current){ audioRef.current.pause(); audioRef.current.currentTime = 0; } }
-      }
     } else {
       setShowOrderAlert(false);
       if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-      if ("vibrate" in navigator) navigator.vibrate(0);
     }
   }, [orders]);
 
@@ -180,28 +168,32 @@ export default function VendorDashboard() {
     toast({ title: "Status Updated", description: `Order is now ${nextStatus}` });
   };
 
-  const handleOpenEdit = (product: any) => {
-    setNewProduct({
-      name: product.name,
-      price: product.price.toString(),
-      description: product.description || '',
-      category: product.category || '',
-      imageUrl: product.imageUrl || '',
-      isVeg: product.isVeg !== false
-    });
-    setEditingId(product.id);
-    setIsAddOpen(true);
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'banner' | 'product') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 600, 600);
-      setNewProduct(prev => ({ ...prev, imageUrl: compressed }));
+      const compressed = await compressImage(reader.result as string, field === 'banner' ? 1200 : 600, 600);
+      
+      if (field === 'product') {
+        setNewProduct(prev => ({ ...prev, imageUrl: compressed }));
+      } else if (field === 'logo' || field === 'banner') {
+        if (!firestore || !user) return;
+        const vRef = doc(firestore, 'vendors', user.uid);
+        const updateData = field === 'logo' ? { imageUrl: compressed } : { bannerUrl: compressed };
+        await updateDoc(vRef, updateData);
+        toast({ title: "Updated", description: `${field === 'logo' ? 'Logo' : 'Banner'} has been updated.` });
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleUpdatePhone = async () => {
+    if (!firestore || !user || newPhone.length !== 10) return;
+    const vRef = doc(firestore, 'vendors', user.uid);
+    await updateDoc(vRef, { phone: newPhone });
+    setIsEditPhoneOpen(false);
+    toast({ title: "Phone Updated", description: "Your contact number has been updated." });
   };
 
   const handleAddProduct = () => {
@@ -294,6 +286,9 @@ export default function VendorDashboard() {
                 </div>
               </div>
             )}
+            {filteredOrders.length === 0 && (
+               <div className="text-center py-20 opacity-20"><ShoppingBag className="mx-auto h-12 w-12 mb-2" /><p className="font-black uppercase text-xs">No orders in this list</p></div>
+            )}
             {filteredOrders.map((order: any) => (
               <div key={order.id} className={cn("bg-white rounded-3xl p-5 shadow-sm border relative transition-all", order.status === 'Placed' ? "border-primary ring-2 ring-primary/30" : "border-gray-100")}>
                 <div className="flex justify-between items-start mb-4">
@@ -332,7 +327,7 @@ export default function VendorDashboard() {
           <div className="flex items-center justify-between"><h2 className="text-xl font-black italic uppercase tracking-tighter">Menu Catalog</h2><Dialog open={isAddOpen} onOpenChange={(v) => { setIsAddOpen(v); if(!v){setEditingId(null); setNewProduct({name:'', price:'', description:'', category:'', imageUrl:'', isVeg:true});} }}><DialogTrigger asChild><Button size="sm" className="bg-[#1E293B] rounded-xl font-black uppercase text-[10px]"><Plus className="h-3 w-3 mr-1" /> ADD ITEM</Button></DialogTrigger><DialogContent className="rounded-[2.5rem] max-w-lg"><DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">New Menu Item</DialogTitle><DialogDescription className="text-center text-[10px] font-bold text-muted-foreground uppercase">Fill details to publish your dish.</DialogDescription></DialogHeader>
           <div className="space-y-5 pt-4">
             <div onClick={() => fileInputRef.current?.click()} className={cn("relative h-48 w-full border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center overflow-hidden bg-muted/20", newProduct.imageUrl ? "border-primary/50" : "border-gray-200")}>{newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="" /> : <><ImageIcon className="h-8 w-8 text-primary/40" /><span className="text-[10px] font-black uppercase">Tap to select photo</span></>}</div>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'product')} />
             <Input placeholder="Enter dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
             <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" /><Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}><SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent>{dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <Textarea placeholder="Description..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-2xl bg-muted/10 border-none p-5" />
@@ -341,13 +336,95 @@ export default function VendorDashboard() {
           <div className="grid gap-3">{products?.map(p => (
             <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between group">
               <div className="flex items-center gap-4"><div className="h-20 w-20 rounded-2xl overflow-hidden bg-muted"><img src={p.imageUrl} className="h-full w-full object-cover" alt="" /></div><div><h4 className="font-black italic text-lg tracking-tight leading-none">{p.name}</h4><p className="text-primary font-black text-xl italic tracking-tighter mt-1">₹{p.price}</p></div></div>
-              <div className="flex gap-2"><Button variant="ghost" size="icon" onClick={() => handleOpenEdit(p)} className="text-blue-500 bg-blue-50 h-10 w-10"><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 h-10 w-10"><Trash2 className="h-4 w-4" /></Button></div>
+              <div className="flex gap-2"><Button variant="ghost" size="icon" onClick={() => { setNewProduct({ name: p.name, price: p.price.toString(), description: p.description || '', category: p.category || '', imageUrl: p.imageUrl || '', isVeg: p.isVeg !== false }); setEditingId(p.id); setIsAddOpen(true); }} className="text-blue-500 bg-blue-50 h-10 w-10"><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 h-10 w-10"><Trash2 className="h-4 w-4" /></Button></div>
             </div>
           ))}</div>
         </div>
       );
     }
-    return <div className="flex flex-col items-center justify-center p-20 opacity-30"><Utensils className="h-12 w-12 mb-4" /><p className="font-black italic uppercase tracking-tighter text-sm">Coming Soon</p></div>;
+    if (activeMainTab === 'account') {
+      return (
+        <div className="p-6 space-y-8 animate-in fade-in duration-500">
+          <div className="relative">
+            <div 
+              onClick={() => bannerInputRef.current?.click()}
+              className="h-40 w-full rounded-[2rem] overflow-hidden bg-muted relative group border border-gray-100"
+            >
+              <img src={vendorProfile.bannerUrl || `https://picsum.photos/seed/${vendorProfile.id}/800/400`} className="w-full h-full object-cover" alt="Banner" />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="text-white h-8 w-8" />
+              </div>
+            </div>
+            <div 
+              onClick={() => logoInputRef.current?.click()}
+              className="absolute -bottom-6 left-6 h-20 w-20 rounded-2xl bg-white p-1 shadow-xl border border-gray-100 group cursor-pointer"
+            >
+              <div className="h-full w-full rounded-xl overflow-hidden relative">
+                <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="Logo" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="text-white h-4 w-4" />
+                </div>
+              </div>
+            </div>
+            <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'banner')} />
+            <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'logo')} />
+          </div>
+
+          <div className="pt-6">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile.storeName}</h2>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{vendorProfile.category} Store • {vendorProfile.town}</p>
+          </div>
+
+          <div className="space-y-4">
+             <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-primary/10 p-3 rounded-2xl text-primary"><Phone className="h-5 w-5" /></div>
+                  <div>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Phone Number</span>
+                    <p className="text-sm font-bold">{vendorProfile.phone}</p>
+                  </div>
+                </div>
+                <Dialog open={isEditPhoneOpen} onOpenChange={setIsEditPhoneOpen}>
+                  <DialogTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-10 bg-muted/50 rounded-xl" onClick={() => setNewPhone(vendorProfile.phone)}><Edit className="h-4 w-4" /></Button></DialogTrigger>
+                  <DialogContent className="rounded-[2.5rem] max-w-sm">
+                    <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Edit Contact</DialogTitle></DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <Input value={newPhone} onChange={e => setNewPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} placeholder="Enter 10 digit phone" className="h-14 rounded-2xl text-center text-lg font-black" />
+                      <Button onClick={handleUpdatePhone} className="w-full bg-primary h-14 rounded-2xl font-black uppercase italic shadow-xl">SAVE CHANGES</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+             </div>
+
+             <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-50 p-3 rounded-2xl text-blue-500">{isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}</div>
+                  <div>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Display Mode</span>
+                    <p className="text-sm font-bold">{isDarkMode ? 'Dark' : 'Light'} Mode</p>
+                  </div>
+                </div>
+                <Switch checked={isDarkMode} onCheckedChange={setIsDarkMode} className="data-[state=checked]:bg-primary" />
+             </div>
+          </div>
+
+          <div className="pt-4">
+            <div className="bg-black text-white p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <CircleDollarSign className="text-primary h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Total Wallet</span>
+                </div>
+                <h3 className="text-4xl font-black italic tracking-tighter leading-none mb-4">₹{vendorProfile.walletBalance || '0.00'}</h3>
+                <Button className="w-full bg-white text-black h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">WITHDRAW FUNDS</Button>
+              </div>
+              <div className="absolute top-0 right-0 h-full w-32 bg-primary/10 -skew-x-12 translate-x-10" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return <div className="flex flex-col items-center justify-center p-20 opacity-30"><Utensils className="h-12 w-12 mb-4" /><p className="font-black italic uppercase tracking-tighter text-sm">Module Coming Soon</p></div>;
   };
 
   return (
@@ -360,11 +437,28 @@ export default function VendorDashboard() {
           <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted border border-gray-100"><img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /></div>
           <div><h1 className="text-base font-black italic uppercase tracking-tighter text-gray-800 leading-tight">{vendorProfile.storeName}</h1><div className="flex items-center gap-1.5 mt-0.5"><div className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500" : "bg-gray-300")} /><span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-500" : "text-gray-400")}>{isOnline ? 'Online' : 'Offline'}</span></div></div>
         </div>
-        <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full"><span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>{isOnline ? 'On' : 'Off'}</span><Switch checked={isOnline} onCheckedChange={handleOnlineToggle} className="data-[state=checked]:bg-green-500 scale-90" /></div>
+        <div className="flex items-center gap-3">
+           {activeMainTab === 'account' ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="bg-muted/50 rounded-xl h-10 w-10"><Settings className="h-5 w-5" /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 w-48">
+                   <DropdownMenuItem onClick={handleSignOut} className="text-red-500 font-black uppercase text-[10px] tracking-widest focus:bg-red-50 focus:text-red-600 rounded-xl py-3"><LogOut className="h-3 w-3 mr-2" /> EXIT DASHBOARD</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+           ) : (
+              <div className="flex items-center gap-3 bg-[#F1F5F9] px-3 py-1.5 rounded-full"><span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-green-600" : "text-gray-500")}>{isOnline ? 'On' : 'Off'}</span><Switch checked={isOnline} onCheckedChange={handleOnlineToggle} className="data-[state=checked]:bg-green-500 scale-90" /></div>
+           )}
+        </div>
       </header>
-      <main className="flex-1 flex flex-col bg-[#F3F4F6] overflow-y-auto no-scrollbar">{renderContent()}</main>
-      <nav className="bg-[#0F172A] pt-4 pb-8 px-4 flex items-center justify-between">
-        {[{id:'orders',label:'Orders',icon:LayoutDashboard},{id:'catalog',label:'Catalog',icon:Layers},{id:'business',label:'Business',icon:ArrowLeftRight},{id:'payouts',label:'Payouts',icon:CircleDollarSign},{id:'account',label:'Account',icon:UserCircle2}].map((item) => {
+      <main className="flex-1 flex flex-col bg-[#F3F4F6] overflow-y-auto no-scrollbar pb-32">{renderContent()}</main>
+      <nav className="fixed bottom-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-4 flex items-center justify-between border-t border-white/5 z-50">
+        {[
+          {id:'orders',label:'Orders',icon:LayoutDashboard},
+          {id:'catalog',label:'Catalog',icon:Layers},
+          {id:'business',label:'Business',icon:ArrowLeftRight},
+          {id:'payouts',label:'Payouts',icon:CircleDollarSign},
+          {id:'account',label:'Account',icon:UserCircle2}
+        ].map((item) => {
           const isActive = activeMainTab === item.id; const Icon = item.icon;
           return <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1.5 flex-1 transition-all active:scale-90"><Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-gray-500")} /><span className={cn("text-[10px] font-bold tracking-tight uppercase", isActive ? "text-white" : "text-gray-500")}>{item.label}</span></button>
         })}
@@ -372,3 +466,4 @@ export default function VendorDashboard() {
     </div>
   );
 }
+
