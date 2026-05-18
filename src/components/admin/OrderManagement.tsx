@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -75,7 +74,7 @@ export function OrderManagement() {
                 </div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-black text-lg italic tracking-tight">#ORD-{order.id.slice(-4).toUpperCase()}</h3>
+                    <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
                     <Badge className={cn("text-[9px] font-black uppercase tracking-widest rounded-full", getStatusColor(order.status))}>
                       {order.status}
                     </Badge>

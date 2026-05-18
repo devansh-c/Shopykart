@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -27,7 +26,8 @@ import {
   Check,
   TrendingUp,
   ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -241,15 +241,39 @@ export default function VendorDashboard() {
             {filteredOrders.map((order: any) => (
               <div key={order.id} className={cn("bg-white rounded-3xl p-5 shadow-sm border", order.status === 'Placed' ? "border-primary" : "border-gray-100")}>
                 <div className="flex justify-between items-start mb-4">
-                  <div><h3 className="font-black text-lg italic tracking-tight">#ORD-{order.id.slice(-4).toUpperCase()}</h3><div className="flex items-center gap-1.5 text-[10px] text-gray-400"><Clock className="h-3 w-3" />{order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString() : 'Now'}</div></div>
+                  <div>
+                    <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                      <Clock className="h-3 w-3" />
+                      {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString() : 'Now'}
+                    </div>
+                  </div>
                   <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-full bg-primary/5 text-primary">{order.status}</span>
                 </div>
+                
                 <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
                   {order.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between text-xs font-bold text-gray-600"><span>{item.quantity}x {item.name}</span><span>₹{item.price * item.quantity}</span></div>
+                    <div key={i} className="flex justify-between text-xs font-bold text-gray-600">
+                      <span>{item.quantity}x {item.name}</span>
+                      <span>₹{item.price * item.quantity}</span>
+                    </div>
                   ))}
-                  <div className="pt-2 border-t border-dashed border-gray-200 flex justify-between"><span className="text-[10px] font-black text-gray-400">TOTAL</span><span className="text-sm font-black">₹{order.total}</span></div>
+                  <div className="pt-2 border-t border-dashed border-gray-200 flex justify-between">
+                    <span className="text-[10px] font-black text-gray-400">TOTAL</span>
+                    <span className="text-sm font-black">₹{order.total}</span>
+                  </div>
                 </div>
+
+                {order.instructions && (
+                  <div className="mb-4 bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
+                    <FileText className="h-4 w-4 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-black text-amber-600 uppercase mb-1">Customer Instructions:</p>
+                      <p className="text-xs font-bold text-amber-900 leading-relaxed italic">"{order.instructions}"</p>
+                    </div>
+                  </div>
+                )}
+
                 {orderFilter === 'NEW ORDERS' && (
                   <div className="flex gap-3">
                     {order.status === 'Placed' && <Button onClick={() => updateStatus(order.id, 'Accepted')} className="flex-1 bg-black rounded-2xl h-12 font-black uppercase italic text-xs">ACCEPT</Button>}

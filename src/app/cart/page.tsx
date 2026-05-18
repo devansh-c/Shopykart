@@ -67,18 +67,22 @@ export default function CartPage() {
   const deliveryFee = 0; 
   const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
+  const generateOrderId = () => {
+    return Math.floor(10000 + Math.random() * 90000).toString();
+  };
+
   const handleCheckout = () => {
     if (!user || !firestore) {
       toast({ title: "Auth Error", description: "Please sign in to place order.", variant: "destructive" });
       return;
     }
 
-    const ordersCol = collection(firestore, 'orders');
-    const newOrderRef = doc(ordersCol);
-    const orderId = newOrderRef.id;
+    const orderId = generateOrderId();
+    const orderRef = doc(firestore, 'orders', orderId);
 
     const orderData = {
       userId: user.uid,
+      orderDisplayId: orderId,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
       total: grandTotal,
       status: 'Placed',
@@ -92,7 +96,7 @@ export default function CartPage() {
 
     setShowSuccess(true);
 
-    setDoc(newOrderRef, orderData)
+    setDoc(orderRef, orderData)
       .then(() => {
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
            if ('serviceWorker' in navigator) {

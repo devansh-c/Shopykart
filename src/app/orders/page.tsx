@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -44,7 +43,7 @@ export default function OrdersPage() {
                     <Package className="h-7 w-7" />
                   </div>
                   <div>
-                    <h3 className="font-black text-lg italic tracking-tight">#{order.id.slice(-6).toUpperCase()}</h3>
+                    <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
                     <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
                       <Clock className="h-3 w-3 mr-1" />
                       {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Just now'}
