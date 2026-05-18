@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
   SelectContent,
@@ -56,7 +57,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     // Sorting
     switch (sortBy) {
       case 'price-low': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
-      case 'price-high': result.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case 'price-high': result.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
       case 'name': result.sort((a, b) => (a.name || '').localeCompare(b.name || '')); break;
       default: break;
     }
@@ -64,8 +65,15 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     return result;
   }, [searchQuery, category, sortBy, dbProducts]);
 
-  if (loading && !dbProducts) {
-    return null;
+  if (loading) {
+    return (
+      <div className="px-4 py-8 space-y-6">
+        <Skeleton className="h-6 w-40 rounded-full" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-32 w-full bg-white rounded-3xl shadow-sm border animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
   if (productsToDisplay.length === 0 && !searchQuery && category === 'all') {

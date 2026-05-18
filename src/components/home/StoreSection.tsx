@@ -8,6 +8,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function StoreSection() {
   const firestore = useFirestore();
@@ -25,7 +26,18 @@ export function StoreSection() {
     return dbVendors.filter(v => v.status === 'approved' || !v.status);
   }, [dbVendors, loading]);
 
-  if (loading || filteredVendors.length === 0) {
+  if (loading) {
+    return (
+      <div className="py-2 px-4 space-y-4">
+        <Skeleton className="h-8 w-32 rounded-lg" />
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-3xl h-64 w-full shadow-sm border animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (filteredVendors.length === 0) {
     return null;
   }
 
@@ -58,7 +70,7 @@ export function StoreSection() {
                   fill
                   className="object-cover"
                   loading="lazy"
-                  unoptimized // Banners might be base64 strings or large files
+                  unoptimized 
                 />
                 
                 {isOffline && (
