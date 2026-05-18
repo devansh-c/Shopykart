@@ -9,7 +9,6 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
-import { QuickActionGrid } from '@/components/home/QuickActionGrid';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,8 +29,6 @@ export default function Home() {
 
       {!searchQuery && (
         <div className="mt-4">
-          {/* Quick Action Grid as requested in screenshot */}
-          <QuickActionGrid />
           <CategoryList activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
         </div>
       )}
