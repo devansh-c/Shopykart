@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ChevronLeft, CheckCircle2, Settings2, WifiOff } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -29,7 +29,6 @@ export function EmailAuth() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -59,9 +58,7 @@ export function EmailAuth() {
       }
       toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
     } catch (err: any) {
-      let msg = "Google authentication failed.";
-      if (err.code === 'auth/network-request-failed') msg = "Internet connection is unstable. Please retry.";
-      toast({ variant: "destructive", title: "Sign-in Error", description: msg });
+      toast({ variant: "destructive", title: "Sign-in Error", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -81,9 +78,8 @@ export function EmailAuth() {
     try {
       if (view === 'signup') {
         if (!fullName.trim() || phoneNumber.length !== 10 || password.length < 6) {
-          throw new Error("Please fill all fields correctly. Phone must be 10 digits.");
+          throw new Error("Please fill all fields. Password must be 6+ characters and Phone must be 10 digits.");
         }
-        if (password !== confirmPassword) throw new Error("Passwords do not match.");
 
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
@@ -98,7 +94,7 @@ export function EmailAuth() {
             role: 'customer'
           });
         }
-        toast({ title: "Welcome!", description: `Account created for ${fullName}.` });
+        toast({ title: "Identity Created", description: `Welcome to ShopyKart, ${fullName}!` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified", description: "Accessing your signature experience." });
