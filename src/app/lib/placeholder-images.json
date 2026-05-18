@@ -42,6 +42,30 @@
       "description": "Coolers & Shakes",
       "imageUrl": "https://picsum.photos/seed/shopy-drink/100/100",
       "imageHint": "beverages"
+    },
+    {
+      "id": "action-best-offer",
+      "description": "Best Offer Promotion",
+      "imageUrl": "https://picsum.photos/seed/shopy-mega/200/200",
+      "imageHint": "megaphone offer"
+    },
+    {
+      "id": "action-services",
+      "description": "Device and Print Services",
+      "imageUrl": "https://picsum.photos/seed/shopy-device/200/200",
+      "imageHint": "printer device"
+    },
+    {
+      "id": "action-tickets",
+      "description": "Train and Event Tickets",
+      "imageUrl": "https://picsum.photos/seed/shopy-ticket/200/200",
+      "imageHint": "train ticket"
+    },
+    {
+      "id": "action-gourmet",
+      "description": "Gourmet Food Selection",
+      "imageUrl": "https://picsum.photos/seed/shopy-gourmet/200/200",
+      "imageHint": "gourmet dish"
     }
   ]
 }
