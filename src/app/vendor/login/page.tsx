@@ -7,35 +7,55 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Store, Mail, Lock, ArrowRight } from 'lucide-react';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { Store, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth, useFirestore } from '@/firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function VendorLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore) return;
+    setLoading(true);
 
-    // Direct sign in attempt
-    signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
-      .then(() => {
-        toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
-        // Immediate redirect
-        router.push('/vendor/dashboard');
-      })
-      .catch((err: any) => {
-        let msg = "Invalid credentials or network error.";
-        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-          msg = "Wrong email or password.";
-        }
-        toast({ variant: "destructive", title: "Login Failed", description: msg });
-      });
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      const user = userCredential.user;
+
+      // Crucial: Check if this user exists in the 'vendors' collection
+      const vendorRef = doc(firestore, 'vendors', user.uid);
+      const vendorSnap = await getDoc(vendorRef);
+
+      if (!vendorSnap.exists()) {
+        // Not a vendor! Force sign out and show error.
+        await signOut(auth);
+        toast({ 
+          variant: "destructive", 
+          title: "Access Denied", 
+          description: "This account is not registered as a Vendor store." 
+        });
+        setLoading(false);
+        return;
+      }
+
+      toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
+      router.push('/vendor/dashboard');
+    } catch (err: any) {
+      let msg = "Invalid credentials or network error.";
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        msg = "Wrong email or password.";
+      }
+      toast({ variant: "destructive", title: "Login Failed", description: msg });
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,8 +101,9 @@ export default function VendorLoginPage() {
             <Button 
               type="submit" 
               className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-all"
+              disabled={loading}
             >
-              SIGN IN
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "SIGN IN"}
             </Button>
             
             <div className="relative py-4">
@@ -95,6 +116,7 @@ export default function VendorLoginPage() {
               variant="outline"
               className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black uppercase italic tracking-tighter hover:bg-primary/5"
               onClick={() => router.push('/vendor/register')}
+              disabled={loading}
             >
               JOIN AS VENDOR
               <ArrowRight className="ml-2 h-4 w-4" />
