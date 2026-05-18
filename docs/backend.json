@@ -19,6 +19,19 @@
       },
       "required": ["name", "price", "vendorId"]
     },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "FCMToken": {
       "title": "FCM Token",
       "description": "Browser push notification token",
@@ -35,7 +48,11 @@
     "/vendors/{vendorId}": { "schema": "object", "description": "Store profiles" },
     "/vendors/{vendorId}/products/{productId}": { "schema": "#/entities/Product", "description": "Vendor specific products" },
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
-    "/orders/{orderId}": { "schema": "object", "description": "Global orders" },
+    "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders" },
+    "/banners/{bannerId}": { "schema": "object", "description": "Promotional banners" },
+    "/coupons/{couponId}": { "schema": "object", "description": "Discount codes" },
+    "/categories/{categoryId}": { "schema": "object", "description": "Food categories" },
+    "/vendor_applications/{appId}": { "schema": "object", "description": "New store requests" },
     "/users/{userId}/fcmTokens/{tokenId}": { "schema": "#/entities/FCMToken", "description": "User notification tokens" },
     "/users/{userId}/profile/data": { "schema": "object", "description": "User profile information" }
   }

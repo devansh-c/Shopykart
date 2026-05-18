@@ -10,7 +10,6 @@ import {
   Trash2, 
   ChevronLeft, 
   ShoppingBag, 
-  X, 
   Loader2, 
   PlusCircle, 
   Bike, 
@@ -20,12 +19,9 @@ import {
   MapPin, 
   ChevronRight, 
   TicketPercent, 
-  Star, 
   FileText, 
   Wallet, 
   Banknote,
-  CheckCircle2,
-  Info,
   History
 } from 'lucide-react';
 import Image from 'next/image';
@@ -100,7 +96,6 @@ export default function CartPage() {
 
     setDoc(newOrderRef, orderData)
       .then(() => {
-        // Notification logic
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
            new Notification("Order Confirmed! 🚀", {
              body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
@@ -108,20 +103,27 @@ export default function CartPage() {
            });
         }
         
-        // Fast Redirection
+        // Fast Redirection (1 second)
         setTimeout(() => {
           clearCart();
           router.push(`/orders/${orderId}`);
-        }, 1200);
+        }, 1000);
       })
-      .catch(async (err) => {
+      .catch(async (err: any) => {
         setShowSuccess(false);
-        const pErr = new FirestorePermissionError({ 
-          path: `orders/${orderId}`, 
-          operation: 'create', 
-          requestResourceData: orderData 
-        });
-        errorEmitter.emit('permission-error', pErr);
+        console.error("Order Write Failed:", err);
+        
+        // Emit only if it's a permission issue
+        if (err.code === 'permission-denied' || err.message?.includes('permission')) {
+          const pErr = new FirestorePermissionError({ 
+            path: `orders/${orderId}`, 
+            operation: 'create', 
+            requestResourceData: orderData 
+          });
+          errorEmitter.emit('permission-error', pErr);
+        } else {
+          toast({ variant: "destructive", title: "Order Failed", description: "Check connection & retry." });
+        }
       });
   };
 
@@ -147,7 +149,6 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F5F6F7] pb-40">
       <OrderSuccessOverlay isVisible={showSuccess} />
 
-      {/* Sticky Header */}
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
           <ChevronLeft className="h-6 w-6 text-gray-700" />
@@ -156,7 +157,6 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Your Order Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
             <div className="flex items-center gap-2">
@@ -205,7 +205,6 @@ export default function CartPage() {
           </button>
         </div>
 
-        {/* Recommendations Section */}
         {recommendations.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
@@ -237,7 +236,6 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* Order Type Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-gray-800">Order Type</h3>
           <div className="grid grid-cols-4 gap-3">
@@ -270,7 +268,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Delivery Address Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-[#EF4444]" />
@@ -295,7 +292,6 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Coupons Section */}
         <button className="w-full bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all">
           <div className="flex items-center gap-3">
              <div className="bg-pink-50 p-2 rounded-xl text-[#EF4444]">
@@ -309,7 +305,6 @@ export default function CartPage() {
           <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#EF4444] transition-colors" />
         </button>
 
-        {/* Special Instructions */}
         <div className="space-y-3">
            <div className="flex items-center gap-2 px-1">
              <FileText className="h-4 w-4 text-gray-400" />
@@ -323,7 +318,6 @@ export default function CartPage() {
            />
         </div>
 
-        {/* Bill Details */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="bg-blue-50 p-1.5 rounded-lg">
@@ -357,7 +351,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Payment Methods */}
         <div className="space-y-3">
            <div className="flex items-center gap-2 px-1">
              <Wallet className="h-4 w-4 text-gray-400" />
@@ -408,7 +401,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* Cancellation Policy Box */}
         <div className="bg-gray-100 rounded-2xl p-4 border border-gray-200/50">
            <h4 className="text-[10px] font-black uppercase text-gray-600 mb-1 tracking-wider">Cancellation Policy</h4>
            <p className="text-[10px] font-medium text-gray-500 leading-relaxed">
@@ -417,7 +409,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Fixed Bottom Footer */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="max-w-lg mx-auto">
            <div className="flex items-center justify-between mb-3 px-1">
