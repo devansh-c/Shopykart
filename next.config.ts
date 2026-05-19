@@ -2,7 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* FORCING STATIC EXPORT FOR FREE PLAN STABILITY */
+  /* FORCING STATIC EXPORT */
   output: 'export',
   distDir: 'out',
   images: {
@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  /* PREVENT SERVER-SIDE FEATURES */
+  /* ENSURE CLEAN URLS */
   trailingSlash: true,
 };
 
