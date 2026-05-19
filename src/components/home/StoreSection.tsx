@@ -10,7 +10,7 @@ import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function StoreSection() {
+export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -22,9 +22,13 @@ export function StoreSection() {
 
   const filteredVendors = useMemo(() => {
     if (loading || !dbVendors) return [];
-    // Only show approved stores
-    return dbVendors.filter(v => v.status === 'approved' || !v.status);
-  }, [dbVendors, loading]);
+    // Only show approved stores of the active mode
+    return dbVendors.filter(v => {
+      const isApproved = v.status === 'approved' || !v.status;
+      const matchesMode = (v.category || 'Food') === activeMode;
+      return isApproved && matchesMode;
+    });
+  }, [dbVendors, loading, activeMode]);
 
   if (loading) {
     return (
@@ -38,14 +42,19 @@ export function StoreSection() {
   }
 
   if (filteredVendors.length === 0) {
-    return null;
+    return (
+      <div className="py-20 text-center opacity-30 px-6">
+        <Store className="h-12 w-12 mx-auto mb-4" />
+        <p className="font-black italic uppercase tracking-widest text-sm">No {activeMode} Stores Found</p>
+      </div>
+    );
   }
 
   return (
     <div className="py-2 px-4">
       <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
-          All Stores
+          {activeMode} Stores
         </h2>
       </div>
 

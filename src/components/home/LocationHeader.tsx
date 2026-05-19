@@ -14,6 +14,7 @@ import {
   Gift,
   ChevronRight,
   MapPin,
+  Utensils,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -30,10 +31,10 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
-const SEARCH_SUGGESTIONS = ["pi", "burg", "chow", "pizza", "past"];
+const SEARCH_SUGGESTIONS = ["pizza", "milk", "burger", "chips", "pasta"];
 
-// Isolated Typewriter component to prevent re-rendering the whole header
 const TypewriterPlaceholder = memo(() => {
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -76,11 +77,15 @@ TypewriterPlaceholder.displayName = 'TypewriterPlaceholder';
 type LocationHeaderProps = {
   searchValue: string;
   onSearchChange: (val: string) => void;
+  activeMode: string;
+  onModeChange: (mode: string) => void;
 };
 
 export function LocationHeader({
   searchValue,
   onSearchChange,
+  activeMode,
+  onModeChange,
 }: LocationHeaderProps) {
   const { totalItems } = useCart();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -193,8 +198,8 @@ export function LocationHeader({
           </div>
         </div>
 
-        <div className="px-1 -mb-9 relative z-20">
-          <div className="relative group">
+        <div className="px-1 -mb-9 relative z-20 flex gap-2">
+          <div className="relative group flex-1">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
               {!searchValue && <TypewriterPlaceholder />}
@@ -211,6 +216,19 @@ export function LocationHeader({
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
           </div>
+
+          <button 
+            onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
+            className={cn(
+              "h-12 w-14 rounded-xl flex flex-col items-center justify-center transition-all shadow-xl active:scale-95 shrink-0 border-2",
+              activeMode === 'Food' ? "bg-white border-primary/20 text-primary" : "bg-green-600 border-green-500 text-white"
+            )}
+          >
+            {activeMode === 'Food' ? <Utensils className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
+            <span className="text-[7px] font-black uppercase mt-0.5 leading-none">
+              {activeMode === 'Food' ? 'Food' : 'Grocery'}
+            </span>
+          </button>
         </div>
       </div>
     </div>

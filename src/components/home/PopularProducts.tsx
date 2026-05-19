@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useMemo, useState, memo } from "react"
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, Loader2 } from "lucide-react"
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, Loader2, ShoppingBag } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -82,7 +83,15 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
 
 ProductItem.displayName = 'ProductItem';
 
-export function PopularProducts({ searchQuery = '', category = 'all' }: { searchQuery?: string, category?: string }) {
+export function PopularProducts({ 
+  searchQuery = '', 
+  category = 'all',
+  activeMode = 'Food'
+}: { 
+  searchQuery?: string, 
+  category?: string,
+  activeMode?: string
+}) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
   
@@ -96,15 +105,22 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(50)); // Reduced limit for better performance
+    return query(collection(firestore, 'products'), limit(50));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts) return [];
+    if (!dbProducts || !vendors) return [];
     
     let result = [...dbProducts];
     
+    // Filter by Mode first (Check if product's vendor matches active mode)
+    result = result.filter(product => {
+      const vendor = vendors.find(v => v.id === product.vendorId);
+      const vendorMode = vendor?.category || 'Food';
+      return vendorMode === activeMode;
+    });
+
     // Filter by Search & Category
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
@@ -124,7 +140,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     if (sortBy === 'price-high') result.sort((a, b) => (b.price || 0) - (a.price || 0));
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts]);
+  }, [searchQuery, category, sortBy, dbProducts, vendors, activeMode]);
 
   if (loading) {
     return (
@@ -137,7 +153,14 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
     );
   }
 
-  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
+  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') {
+     return (
+        <div className="text-center py-20 opacity-30 flex flex-col items-center">
+          {activeMode === 'Food' ? <Utensils className="h-12 w-12 mb-2" /> : <ShoppingBag className="h-12 w-12 mb-2" />}
+          <p className="text-xs font-black uppercase tracking-widest">No {activeMode} Items Found</p>
+        </div>
+     );
+  }
 
   return (
     <div className="px-4 py-8">
@@ -145,7 +168,7 @@ export function PopularProducts({ searchQuery = '', category = 'all' }: { search
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase">
-            {searchQuery ? 'Search Results' : 'All Products'}
+            {searchQuery ? 'Search Results' : `All ${activeMode} Products`}
           </h2>
         </div>
         

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -12,6 +13,7 @@ import { ScrollReveal } from '@/components/shared/ScrollReveal';
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeMode, setActiveMode] = useState('Food'); // 'Food' or 'Grocery'
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-32">
@@ -19,10 +21,12 @@ export default function ShopyKartApp() {
         <LocationHeader 
           searchValue={searchQuery} 
           onSearchChange={setSearchQuery} 
+          activeMode={activeMode}
+          onModeChange={setActiveMode}
         />
       </div>
 
-      <main className="mt-8 space-y-2">
+      <main className="mt-12 space-y-2">
         {/* Banner Slider */}
         {!searchQuery && activeCategory === 'all' && (
           <ScrollReveal delay={100}>
@@ -30,10 +34,10 @@ export default function ShopyKartApp() {
           </ScrollReveal>
         )}
 
-        {/* Stores Section */}
+        {/* Stores Section - Filtered by Mode */}
         {!searchQuery && activeCategory === 'all' && (
           <ScrollReveal delay={200}>
-            <StoreSection />
+            <StoreSection activeMode={activeMode} />
           </ScrollReveal>
         )}
 
@@ -45,11 +49,12 @@ export default function ShopyKartApp() {
           />
         </ScrollReveal>
 
-        {/* All Products Section */}
+        {/* All Products Section - Filtered by Mode */}
         <div className="px-1">
           <PopularProducts 
             searchQuery={searchQuery} 
             category={activeCategory} 
+            activeMode={activeMode}
           />
         </div>
       </main>
