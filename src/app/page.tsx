@@ -9,9 +9,10 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
+import Head from 'next/head';
 
 /**
- * SYSTEM VERSION 102.0 - CACHE BUSTER ENABLED
+ * SYSTEM VERSION 105.0 - NUCLEAR CACHE RESET
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -26,15 +27,24 @@ export default function Home() {
 
   useEffect(() => {
     setIsLive(true);
+    // Force a console log to verify JS execution
+    console.log("ShopyKart Version 105.0 Active");
   }, []);
 
   if (!isLive) return null;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
-      {/* CACHE BUSTER BANNER */}
-      <div className="bg-orange-600 text-white text-[14px] font-black text-center py-4 uppercase tracking-tighter sticky top-0 z-[100] shadow-2xl border-b-4 border-white animate-pulse">
-        ⚡ CACHE CLEARED: SYSTEM VERSION 102.0 ONLINE ⚡
+      {/* FORCE NO CACHE META */}
+      <head>
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
+      </head>
+
+      {/* VERSION 105.0 BANNER */}
+      <div className="bg-blue-600 text-white text-[16px] font-black text-center py-5 uppercase tracking-widest sticky top-0 z-[100] shadow-2xl border-b-4 border-yellow-400">
+        🚀 SYSTEM VERSION 105.0 : DEPLOYED & LIVE 🚀
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -60,11 +70,10 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 z-50">
-        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-orange-600 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
-          V102.0
+        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-blue-600 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
+          V105.0
         </span>
       </div>
     </div>
   );
 }
-    
