@@ -52,9 +52,9 @@ export function AdminOverview() {
                   <div>
                     <p className="text-[10px] font-bold text-amber-700 uppercase">Emergency Checklist (If site not showing)</p>
                     <div className="text-[9px] text-amber-800 mt-1 uppercase leading-relaxed font-bold space-y-2">
-                      <p>1. <span className="text-primary underline">App Hosting vs Hosting</span>: Make sure aapne domain <span className="font-black">"App Hosting"</span> section mein add kiya hai, normal "Hosting" mein nahi.</p>
-                      <p>2. <span className="text-primary underline">Build Status</span>: Console mein check karein ki build "Success" dikha raha hai ya "Failed".</p>
-                      <p>3. <span className="text-primary underline">Authorized Domains</span>: Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains mein <span className="font-black">shopykart.co.in</span> add karein.</p>
+                      <p>1. <span className="text-primary underline">App Hosting vs Hosting</span>: Aapka domain <span className="font-black">"App Hosting"</span> section mein hona chahiye. Agar aapne use sirf "Hosting" mein add kiya hai, toh wo Next.js files load nahi karega.</p>
+                      <p>2. <span className="text-primary underline">Path Check</span>: Firebase Console &gt; Build &gt; App Hosting &gt; Backend Name &gt; Settings &gt; Custom Domains mein jayein.</p>
+                      <p>3. <span className="text-primary underline">Authorized Domains</span>: Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains mein <span className="font-black">shopykart.co.in</span> add karna na bhoolein.</p>
                     </div>
                   </div>
                </div>
