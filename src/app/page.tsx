@@ -1,7 +1,23 @@
+
 "use client"
 
 import { useState } from 'react';
-import { ShoppingCart, ShoppingBag, Search, User, Heart, ChevronRight, Star, MapPin, Phone, Mail, Facebook, Instagram, Twitter } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  ShoppingBag, 
+  Search, 
+  User, 
+  Heart, 
+  ChevronRight, 
+  Star, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Facebook, 
+  Instagram, 
+  Twitter,
+  Zap
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,9 +50,14 @@ export default function ShopyKartWebsite() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
+      {/* --- DEPLOYMENT TRACKER --- */}
+      <div className="bg-green-600 text-white py-1 px-6 text-center text-[10px] font-black tracking-widest">
+        SYSTEM STATUS: ONLINE | VERSION 2000.0 | ALL SYSTEMS GO
+      </div>
+
       {/* --- TOP BAR --- */}
-      <div className="bg-primary text-white py-2 px-6 text-center text-xs font-bold tracking-widest">
-        FREE DELIVERY ON ALL ORDERS ABOVE ₹500 | VERSION 1000.1
+      <div className="bg-slate-900 text-white py-2 px-6 text-center text-xs font-bold tracking-widest hidden md:block">
+        FREE DELIVERY ON ALL ORDERS ABOVE ₹500
       </div>
 
       {/* --- MAIN NAVIGATION --- */}
@@ -93,7 +114,7 @@ export default function ShopyKartWebsite() {
           className="object-cover opacity-50"
         />
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-          <div className="max-w-xl">
+          <div className="max-w-xl text-center md:text-left">
             <Badge className="bg-primary/20 text-primary border-primary/50 mb-4 px-4 py-1 rounded-full text-xs font-black uppercase">
               Now serving in Ranipur & Mauranipur
             </Badge>
@@ -103,7 +124,7 @@ export default function ShopyKartWebsite() {
             <p className="text-lg text-slate-300 mb-8 font-medium">
               Experience the finest cuisine from top-rated local restaurants delivered to your doorstep in minutes.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Button onClick={() => router.push('/menu')} size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-red-600 text-lg font-black uppercase italic">
                 Order Now
               </Button>
@@ -142,27 +163,33 @@ export default function ShopyKartWebsite() {
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-10 text-center">Top Rated Stores</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {vendors?.slice(0, 3).map((vendor: any) => (
-              <div key={vendor.id} className="bg-white rounded-[2.5rem] overflow-hidden shadow-md hover:shadow-2xl transition-all border border-slate-100 group">
-                <div className="relative h-48">
-                   <img src={vendor.bannerUrl || `https://picsum.photos/seed/${vendor.id}/600/300`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={vendor.storeName} />
-                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl flex items-center gap-1.5 shadow-sm">
-                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                      <span className="font-black text-sm">{vendor.rating || '4.5'}</span>
-                   </div>
+            {vendors && vendors.length > 0 ? (
+              vendors.slice(0, 3).map((vendor: any) => (
+                <div key={vendor.id} className="bg-white rounded-[2.5rem] overflow-hidden shadow-md hover:shadow-2xl transition-all border border-slate-100 group">
+                  <div className="relative h-48">
+                    <img src={vendor.bannerUrl || `https://picsum.photos/seed/${vendor.id}/600/300`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={vendor.storeName} />
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl flex items-center gap-1.5 shadow-sm">
+                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                        <span className="font-black text-sm">{vendor.rating || '4.5'}</span>
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    <h3 className="text-2xl font-black italic uppercase mb-2">{vendor.storeName}</h3>
+                    <div className="flex items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">
+                        <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-primary" /> {vendor.town}</span>
+                        <span className="flex items-center gap-1">Fast Delivery</span>
+                    </div>
+                    <Button onClick={() => router.push(`/menu?vendor=${vendor.id}`)} className="w-full h-14 rounded-2xl bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic">
+                        Explore Menu
+                    </Button>
+                  </div>
                 </div>
-                <div className="p-8">
-                   <h3 className="text-2xl font-black italic uppercase mb-2">{vendor.storeName}</h3>
-                   <div className="flex items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">
-                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-primary" /> {vendor.town}</span>
-                      <span className="flex items-center gap-1">Fast Delivery</span>
-                   </div>
-                   <Button onClick={() => router.push(`/menu?vendor=${vendor.id}`)} className="w-full h-14 rounded-2xl bg-[#0B0B0B] hover:bg-primary font-black uppercase italic">
-                      Explore Menu
-                   </Button>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-10 text-slate-400 font-bold uppercase italic">
+                Updating store list...
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
