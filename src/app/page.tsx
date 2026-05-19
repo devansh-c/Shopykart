@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, memo, useEffect } from 'react';
@@ -11,8 +10,8 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * VERSION 14.0 - EMERGENCY RECOVERY
- * This version forces a complete refresh of the hosting edge cache.
+ * SYSTEM VERSION 100.0 - MEGA RESET
+ * This is a forced deployment to clear all server and browser caches.
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -33,9 +32,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
-      {/* EMERGENCY SYSTEM STATUS BANNER */}
-      <div className="bg-blue-600 text-white text-[12px] font-black text-center py-3 uppercase tracking-tighter sticky top-0 z-[100] shadow-xl">
-        ⚡ SYSTEM REBOOT: SHOPYKART VERSION 14.0 IS LIVE ⚡
+      {/* EMERGENCY SYSTEM STATUS BANNER - VERSION 100 */}
+      <div className="bg-red-700 text-white text-[14px] font-black text-center py-4 uppercase tracking-tighter sticky top-0 z-[100] shadow-2xl border-b-4 border-yellow-400 animate-pulse">
+        🚀 CRITICAL UPDATE: SYSTEM VERSION 100.0 IS DEPLOYED 🚀
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -60,8 +59,10 @@ export default function Home() {
 
       <BottomNav />
       
-      <div className="fixed bottom-24 right-4 opacity-30 pointer-events-none">
-        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-white px-2 py-1 rounded border border-blue-600">VER. 14.0.0</span>
+      <div className="fixed bottom-24 right-4 z-50">
+        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-red-700 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
+          V100.0 ACTIVE
+        </span>
       </div>
     </div>
   );
