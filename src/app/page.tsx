@@ -11,7 +11,7 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * PRODUCTION_BUILD_FINAL_SYNC_V10
+ * PRODUCTION_BUILD_FINAL_SYNC_V11
  * This version forces a clean overwrite of the Firebase default index.html
  */
 
@@ -31,12 +31,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden will-change-scroll">
-      {/* Hidden Build Validator */}
-      <div className="sr-only">BUILD_ID: FINAL_STABLE_STATIC_EXPORT_SUCCESS</div>
-      
-      {/* Visual confirmation that the site is live and not the blue page */}
-      <div className="bg-primary text-white text-[8px] font-bold text-center py-0.5 uppercase tracking-widest">
-        Live Update Success • Ready for Orders
+      {/* VISIBLE STATUS BANNER - Confirms the new code is active */}
+      <div className="bg-[#EF4444] text-white text-[10px] font-black text-center py-1.5 uppercase tracking-[0.2em] shadow-lg sticky top-0 z-[100] animate-in slide-in-from-top duration-500">
+        SHOPYKART LIVE • VERSION 11.0 • READY FOR ORDERS
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -59,8 +56,11 @@ export default function Home() {
 
       <BottomNav />
       
+      {/* Hidden Build Validator */}
+      <div className="sr-only">BUILD_ID: V11_STABLE_STATIC_SYNC_SUCCESS</div>
+      
       <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest">V9.0_STABLE_DEPLOY</span>
+        <span className="text-[8px] font-black uppercase tracking-widest text-black">V11.0_PROD</span>
       </div>
     </div>
   );

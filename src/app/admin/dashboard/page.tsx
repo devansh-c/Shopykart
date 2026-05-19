@@ -21,7 +21,9 @@ import {
   Globe,
   RefreshCw,
   Timer,
-  AlertOctagon
+  AlertOctagon,
+  RefreshCcw,
+  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -144,22 +146,32 @@ export default function AdminDashboard() {
                     <AlertOctagon className="h-8 w-8 animate-pulse" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">BLUE PAGE RECOVERY ACTIVE</h2>
-                    <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-2">Status: Overwriting Firebase Default Page...</p>
+                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">RECOVERY MODE V11 ACTIVE</h2>
+                    <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-2">Status: Forcing Static Release...</p>
                   </div>
                </div>
                
-               <div className="grid grid-cols-1 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white/80 p-6 rounded-3xl border border-red-100">
                     <h4 className="text-xs font-black uppercase text-red-800 mb-3 flex items-center gap-2">
-                       <CheckCircle2 className="h-3 w-3" /> AGAR ABHI BHI BLUE PAGE DIKH RAHA HAI:
+                       <CheckCircle2 className="h-3 w-3" /> CUSTOMER KO YE BOLO:
                     </h4>
-                    <ul className="list-disc ml-5 space-y-2 text-[11px] font-bold text-gray-700 uppercase">
-                      <li>Aapka domain connect ho chuka hai (isiliye blue page aa raha hai).</li>
-                      <li>Firebase default page ko 10-15 min ke liye "Cache" kar leta hai.</li>
-                      <li><span className="text-red-600 underline">SOLUTION:</span> Kisi naye phone par site kholein ya Chrome mein 3 dots par click karke <strong>"New Incognito Tab"</strong> kholiye.</li>
-                      <li>Domain settings (600 TTL) ko ab mat chhediye, wo bilkul sahi hai.</li>
+                    <ul className="list-disc ml-5 space-y-2 text-[11px] font-bold text-gray-700 uppercase leading-relaxed">
+                      <li>Website live hai, lekin aapka phone purana page yaad rakhta hai.</li>
+                      <li><span className="text-red-600 underline font-black">SOLTUION:</span> Chrome mein 3 dots par click karke <strong>"New Incognito Tab"</strong> kholiye.</li>
+                      <li>Agar site blue dikhe, toh apne phone ki "Settings > Apps > Chrome > Clear Cache" kijiye.</li>
                     </ul>
+                  </div>
+
+                  <div className="bg-white/80 p-6 rounded-3xl border border-blue-100">
+                    <h4 className="text-xs font-black uppercase text-blue-800 mb-3 flex items-center gap-2">
+                       <Smartphone className="h-3 w-3" /> TESTING STEPS:
+                    </h4>
+                    <div className="space-y-3">
+                       <p className="text-[10px] font-bold text-gray-600 uppercase">1. GoDaddy check kijiye (TTL 600 fixed?)</p>
+                       <p className="text-[10px] font-bold text-gray-600 uppercase">2. 5 Minute wait kijiye (Files sync ho rahi hain)</p>
+                       <p className="text-[10px] font-bold text-gray-600 uppercase">3. Dusre naye phone par site check karein</p>
+                    </div>
                   </div>
                </div>
             </div>
@@ -194,9 +206,9 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row">
       {/* Emergency Deployment Banner */}
       <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
-         <Timer className="h-4 w-4 animate-pulse hidden sm:block" />
+         <RefreshCcw className="h-4 w-4 animate-spin hidden sm:block" />
          <span className="text-[10px] font-black uppercase tracking-widest italic">
-           FINAL SYNC IN PROGRESS. DO NOT DISCONNECT DOMAIN.
+           FINAL PRODUCTION SYNC V11.0 • DO NOT REBOOT
          </span>
       </div>
 
