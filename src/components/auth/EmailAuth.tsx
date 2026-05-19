@@ -63,11 +63,13 @@ export function EmailAuth() {
         toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
       }
     } catch (err: any) {
-      console.error("Auth Error:", err.code);
+      // Using console.warn to avoid Next.js Red Screen Overlay
+      console.warn("Auth Notification:", err.code);
+      
       let errorMsg = "Google login failed. Please try again.";
       
       if (err.code === 'auth/unauthorized-domain') {
-        errorMsg = "Domain 'shopykart.co.in' is not authorized. Go to Firebase Console > Auth > Settings > Authorized Domains and add it.";
+        errorMsg = "ACTION REQUIRED: Domain 'shopykart.co.in' is not authorized in Firebase Console. Go to Auth > Settings > Authorized Domains.";
       } else if (err.code === 'auth/popup-blocked') {
         errorMsg = "Browser blocked the login popup. Please allow popups for this site.";
       } else if (err.code === 'auth/popup-closed-by-user') {
@@ -76,9 +78,9 @@ export function EmailAuth() {
 
       toast({ 
         variant: "destructive", 
-        title: "Sign-in Error", 
+        title: "Security Alert", 
         description: errorMsg,
-        duration: 10000 
+        duration: 8000 
       });
     } finally {
       setLoading(false);
