@@ -1,15 +1,14 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { getFirebaseMessaging } from '@/firebase/messaging';
-import { getToken, onMessage } from 'firebase/messaging';
-import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, where, onSnapshot, doc, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
+const DEFAULT_LOGO = "https://picsum.photos/seed/shopykart-eats/200/200";
 
 export function NotificationHandler() {
   const { user } = useUser();
@@ -19,73 +18,69 @@ export function NotificationHandler() {
   const [showPrompt, setShowPrompt] = useState(false);
   
   const lastStatuses = useRef<Record<string, string>>({});
-  const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
+  const lastBroadcastId = useRef<string | null>(null);
+  const lastPersonalId = useRef<string | null>(null);
+
+  // Fetch dynamic notification logo from branding
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: branding } = useDoc<any>(brandingRef);
+
+  const NOTIFY_ICON = branding?.notificationLogoUrl || DEFAULT_LOGO;
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
       
       if (Notification.permission === 'default' && user) {
-        const timer = setTimeout(() => setShowPrompt(true), 5000);
+        const timer = setTimeout(() => setShowPrompt(true), 15000); // Wait 15s before asking
         return () => clearTimeout(timer);
       }
     }
   }, [user]);
 
-  const triggerStatusNotification = (status: string) => {
-    let title = "Order Update";
-    let body = `Your order status is now: ${status}`;
-
-    switch (status) {
-      case 'Accepted':
-        title = "Order Accepted! 👨‍🍳";
-        body = "Your order has been accepted and preparation has started right now!";
-        break;
-      case 'Preparing':
-        title = "In the Kitchen! 🍱";
-        body = "Your order is being prepared. It will be ready for pickup in approximately 2 minutes.";
-        break;
-      case 'Ready for Pickup':
-        title = "Ready to Go! ✅";
-        body = "Your order is ready for pickup! Our delivery partner will pick it up within 10 minutes.";
-        break;
-      case 'Picked Up':
-        title = "On the Way! 🚚";
-        body = "Your order has been picked up and will be delivered in a few minutes.";
-        break;
-      case 'Out for Delivery':
-        title = "Almost There! 📍";
-        body = "Your order is out for delivery. The delivery partner is just 100 meters away from you!";
-        break;
-      case 'Delivered':
-        title = "Delivered! 😋";
-        body = "Your order has been successfully delivered. Thank you for shopping with ShopyKart!";
-        break;
-    }
-
+  const triggerPush = (title: string, body: string) => {
+    // Sound
     try {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.play().catch(() => {});
     } catch (e) {}
 
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.showNotification(title, {
-          body: body,
-          icon: BRAND_LOGO_URL,
-          badge: BRAND_LOGO_URL,
-          tag: 'order-status'
-        });
-      }).catch(() => {});
-    }
-
+    // Toast
     toast({
       title: title,
       description: body,
-      duration: 5000,
+      duration: 6000,
     });
+
+    // Native Notification
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: NOTIFY_ICON,
+          badge: NOTIFY_ICON,
+          tag: 'shopykart-alert'
+        });
+      } catch (err) {
+        // Fallback for mobile browsers that require service worker for notifications
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body: body,
+              icon: NOTIFY_ICON,
+              badge: NOTIFY_ICON,
+              tag: 'shopykart-alert'
+            });
+          }).catch(() => {});
+        }
+      }
+    }
   };
 
+  // 1. Order Status Listener
   useEffect(() => {
     if (!user || !firestore) return;
 
@@ -99,67 +94,79 @@ export function NotificationHandler() {
         const oldStatus = lastStatuses.current[orderId];
 
         if (oldStatus && oldStatus !== newStatus) {
-           triggerStatusNotification(newStatus);
+           let title = "Order Update";
+           let body = `Your order status is now: ${newStatus}`;
+           if (newStatus === 'Delivered') { title = "Delivered! 😋"; body = "Enjoy your meal from ShopyKart!"; }
+           if (newStatus === 'Out for Delivery') { title = "Almost There! 🚚"; body = "Your food is just around the corner."; }
+           
+           triggerPush(title, body);
         }
         lastStatuses.current[orderId] = newStatus;
       });
-    }, (err) => {
-      console.warn("Snapshot error:", err);
     });
 
     return () => unsubscribe();
   }, [user, firestore, toast]);
 
+  // 2. Broadcast Listener (Global Campaigns)
   useEffect(() => {
-    if (!user || !firestore || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!firestore) return;
 
-    const setupMessaging = async () => {
-      try {
-        if ('serviceWorker' in navigator) {
-          await navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(() => {});
-        }
-
-        const messaging = await getFirebaseMessaging();
-        if (!messaging) return;
-
-        onMessage(messaging, (payload) => {
-          triggerStatusNotification(payload.notification?.body || 'Order Updated');
-        });
-
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-        if (token && user) {
-          const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
-          await setDoc(tokenRef, {
-            token,
-            deviceType: 'web',
-            lastUpdated: serverTimestamp(),
-            userId: user.uid
-          }, { merge: true });
-        }
-      } catch (err) {
-        console.warn("Messaging setup error (usually non-SSL or unsupported):", err);
+    const q = query(collection(firestore, 'broadcasts'), orderBy('timestamp', 'desc'), limit(1));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) return;
+      const latest = snapshot.docs[0];
+      const data = latest.data();
+      
+      // Prevent showing old broadcasts on first load
+      if (!lastBroadcastId.current) {
+        lastBroadcastId.current = latest.id;
+        return;
       }
-    };
 
-    setupMessaging();
+      if (latest.id !== lastBroadcastId.current) {
+        lastBroadcastId.current = latest.id;
+        triggerPush(data.title || "ShopyKart Alert", data.message || "");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [firestore]);
+
+  // 3. Personal Notification Listener
+  useEffect(() => {
+    if (!user || !firestore) return;
+
+    const q = query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('timestamp', 'desc'), limit(1));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) return;
+      const latest = snapshot.docs[0];
+      const data = latest.data();
+
+      if (!lastPersonalId.current) {
+        lastPersonalId.current = latest.id;
+        return;
+      }
+
+      if (latest.id !== lastPersonalId.current) {
+        lastPersonalId.current = latest.id;
+        triggerPush(data.title || "For You", data.message || "");
+      }
+    });
+
+    return () => unsubscribe();
   }, [user, firestore]);
 
   const requestPermission = async () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      toast({ title: "Not Supported", description: "Browser notifications not supported." });
-      return;
-    }
-    
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
     setShowPrompt(false);
     try {
       const status = await Notification.requestPermission();
       setPermission(status);
-      if (status === 'granted') {
-        toast({ title: "Enabled!", description: "You'll receive real-time order alerts." });
-      }
-    } catch (err) {
-      console.warn("Permission request failed:", err);
-    }
+      if (status === 'granted') toast({ title: "Enabled!", description: "Real-time alerts active." });
+    } catch (err) {}
   };
 
   if (!showPrompt || !user || permission !== 'default' || typeof window === 'undefined' || !('Notification' in window)) return null;
@@ -167,7 +174,7 @@ export function NotificationHandler() {
   return (
     <div className="fixed top-20 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
         <div className="flex items-center gap-3">
           <div className="bg-primary/20 p-2 rounded-xl">
             <BellRing className="h-5 v-5 text-primary animate-bounce" />

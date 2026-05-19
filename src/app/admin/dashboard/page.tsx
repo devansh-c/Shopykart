@@ -20,6 +20,7 @@ import {
   ChevronRight,
   MessageSquare,
   Tag,
+  BellRing,
   Menu as MenuIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import { DiscountManagement } from '@/components/admin/DiscountManagement';
 import { StoreManagement } from '@/components/admin/StoreManagement';
 import { CategoryManagement } from '@/components/admin/CategoryManagement';
 import { BrandingManagement } from '@/components/admin/BrandingManagement';
+import { NotificationManagement } from '@/components/admin/NotificationManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,6 +48,7 @@ const menuItems = [
   { id: 'design', label: 'Banners', icon: Feather },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
+  { id: 'notifications', label: 'Notifications', icon: BellRing },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
@@ -146,6 +149,8 @@ export default function AdminDashboard() {
         return <ReviewManagement />;
       case 'discounts':
         return <DiscountManagement />;
+      case 'notifications':
+        return <NotificationManagement />;
       case 'settings':
         return <BrandingManagement />;
       default: {
