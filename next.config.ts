@@ -1,8 +1,7 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* FORCING STATIC EXPORT */
+  /* FORCING STATIC EXPORT FOR EXTERNAL HOSTING */
   output: 'export',
   distDir: 'out',
   images: {
@@ -14,7 +13,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  /* ENSURE CLEAN URLS */
+  /* ENSURE CLEAN URLS FOR HOSTS LIKE GODADDY */
   trailingSlash: true,
 };
 

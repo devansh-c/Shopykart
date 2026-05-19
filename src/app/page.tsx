@@ -14,7 +14,9 @@ import {
   Mail, 
   Facebook, 
   Instagram, 
-  Twitter
+  Twitter,
+  Zap,
+  Utensils
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,9 +50,9 @@ export default function ShopyKartWebsite() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      {/* --- CACHE BUSTER BANNER --- */}
-      <div className="bg-yellow-400 text-black py-2 px-6 text-center text-xs font-black tracking-widest border-b-4 border-black">
-        SYSTEM UPDATED TO VERSION 2000.0 | IF YOU SEE THIS, THE WEBSITE IS LIVE!
+      {/* --- VERSION 2000.0 --- */}
+      <div className="bg-green-600 text-white py-2 px-6 text-center text-xs font-black tracking-widest border-b-4 border-black">
+        VERSION 2000.0 | READY FOR EXTERNAL HOSTING
       </div>
 
       {/* --- TOP BAR --- */}
