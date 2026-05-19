@@ -52,7 +52,7 @@ export function AdminOverview() {
                   <div>
                     <p className="text-[10px] font-bold text-amber-700 uppercase">Final Verification Check</p>
                     <p className="text-[9px] text-amber-600 mt-1 uppercase leading-relaxed font-bold">
-                      Domain connected hai! Bas ye confirm kar lein ki aapne <span className="text-primary underline">Firebase Console > Authentication > Authorized Domains</span> mein <span className="font-black">shopykart.co.in</span> add kar diya hai taaki Google Login fail na ho.
+                      Domain connected hai! Bas ye confirm kar lein ki aapne <span className="text-primary underline">Firebase Console &gt; Authentication &gt; Authorized Domains</span> mein <span className="font-black">shopykart.co.in</span> add kar diya hai taaki Google Login fail na ho.
                     </p>
                   </div>
                </div>
