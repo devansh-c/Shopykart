@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -146,7 +145,7 @@ export default function AdminDashboard() {
                     <AlertOctagon className="h-8 w-8 animate-pulse" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">RECOVERY MODE V11 ACTIVE</h2>
+                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">RECOVERY MODE V500 ACTIVE</h2>
                     <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-2">Status: Forcing Static Release...</p>
                   </div>
                </div>
@@ -159,7 +158,7 @@ export default function AdminDashboard() {
                     <ul className="list-disc ml-5 space-y-2 text-[11px] font-bold text-gray-700 uppercase leading-relaxed">
                       <li>Website live hai, lekin aapka phone purana page yaad rakhta hai.</li>
                       <li><span className="text-red-600 underline font-black">SOLTUION:</span> Chrome mein 3 dots par click karke <strong>"New Incognito Tab"</strong> kholiye.</li>
-                      <li>Agar site blue dikhe, toh apne phone ki "Settings > Apps > Chrome > Clear Cache" kijiye.</li>
+                      <li>Agar site blue dikhe, toh apne phone ki "Settings &gt; Apps &gt; Chrome &gt; Clear Cache" kijiye.</li>
                     </ul>
                   </div>
 
@@ -208,7 +207,7 @@ export default function AdminDashboard() {
       <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
          <RefreshCcw className="h-4 w-4 animate-spin hidden sm:block" />
          <span className="text-[10px] font-black uppercase tracking-widest italic">
-           FINAL PRODUCTION SYNC V11.0 • DO NOT REBOOT
+           FINAL PRODUCTION SYNC V500.0 • DO NOT REBOOT
          </span>
       </div>
 
