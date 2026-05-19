@@ -11,8 +11,8 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * VERSION 12.0 - REFRESHED CONTENT
- * AGAR AAPKO YE BANNER DIKH RAHA HAI, TO SITE UPDATE HO CHUKI HAI.
+ * VERSION 13.0 - RE-DEPLOYMENT FORCE
+ * Last Updated: 2024-03-20
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -35,7 +35,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
       {/* SUCCESS BANNER - This confirms the new code is active */}
       <div className="bg-green-600 text-white text-[11px] font-black text-center py-2 uppercase tracking-widest sticky top-0 z-[100]">
-        ✓ SHOPYKART CONNECTED - SYSTEM ONLINE
+        ✓ SHOPYKART LIVE - VERSION 13.0
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -60,9 +60,9 @@ export default function Home() {
 
       <BottomNav />
       
-      {/* CACHE BUSTER ID: 123456789 */}
+      {/* CACHE BUSTER ID: 9876543210 */}
       <div className="fixed bottom-24 right-4 opacity-20 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest text-black">V12.0_STABLE</span>
+        <span className="text-[8px] font-black uppercase tracking-widest text-black">V13.0_LIVE</span>
       </div>
     </div>
   );
