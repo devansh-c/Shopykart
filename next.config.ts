@@ -3,6 +3,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* Static export mode for Firebase Free Plan */
   output: 'export',
+  trailingSlash: true, // Generates folder/index.html for better clean URL support on static hosting
   typescript: {
     ignoreBuildErrors: true,
   },
