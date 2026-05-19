@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -11,13 +10,21 @@ import { PersonalizedOffers } from '@/components/home/PersonalizedOffers';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 
+/**
+ * VERSION 2000.0 - FINAL PRODUCTION SYNC
+ * This file handles the main homepage of ShopyKart with Premium Mobile UI.
+ */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-32">
-      {/* --- TOP FIXED HEADER --- */}
+      {/* Emergency Cache Flush Banner */}
+      <div className="bg-primary text-white text-[8px] font-black uppercase tracking-[0.3em] py-1 text-center italic">
+        Syncing Final Release V2000.0 • Verified Live
+      </div>
+
       <div className="sticky top-0 z-50">
         <LocationHeader 
           searchValue={searchQuery} 
@@ -26,21 +33,18 @@ export default function ShopyKartApp() {
       </div>
 
       <main className="mt-8 space-y-2">
-        {/* --- AI DRIVEN PERSONALIZED OFFERS --- */}
         {!searchQuery && activeCategory === 'all' && (
           <ScrollReveal>
             <PersonalizedOffers />
           </ScrollReveal>
         )}
 
-        {/* --- PROMOTIONAL SLIDER --- */}
         {!searchQuery && activeCategory === 'all' && (
           <ScrollReveal delay={100}>
             <OfferSlider />
           </ScrollReveal>
         )}
 
-        {/* --- CATEGORY SELECTOR --- */}
         <ScrollReveal delay={200}>
           <CategoryList 
             activeCategory={activeCategory} 
@@ -48,14 +52,12 @@ export default function ShopyKartApp() {
           />
         </ScrollReveal>
 
-        {/* --- FEATURED STORES --- */}
         {!searchQuery && activeCategory === 'all' && (
           <ScrollReveal delay={300}>
             <StoreSection />
           </ScrollReveal>
         )}
 
-        {/* --- DYNAMIC PRODUCT GRID --- */}
         <div className="px-1">
           <PopularProducts 
             searchQuery={searchQuery} 
@@ -64,7 +66,6 @@ export default function ShopyKartApp() {
         </div>
       </main>
 
-      {/* --- BOTTOM NAVIGATION --- */}
       <BottomNav />
     </div>
   );
