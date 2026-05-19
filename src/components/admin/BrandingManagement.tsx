@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Type, FileText, Loader2, Camera, Link as LinkIcon, Eye, BellRing } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Type, FileText, Loader2, Camera, Link as LinkIcon, Eye, BellRing, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,6 +62,11 @@ export function BrandingManagement() {
       toast({ title: "Image Loaded", description: "Save changes to make it live." });
     };
     reader.readAsDataURL(file);
+  };
+
+  const removeImage = (field: keyof typeof formData) => {
+    setFormData(prev => ({ ...prev, [field]: '' }));
+    toast({ title: "Image Removed", description: "Click 'Save' below to apply changes." });
   };
 
   const handleSave = async () => {
@@ -142,22 +147,32 @@ export function BrandingManagement() {
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">App Logo (Main Branding)</label>
-              <div 
-                onClick={() => logoInputRef.current?.click()}
-                className="h-32 w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 group hover:border-primary/40 transition-all relative"
-              >
-                {formData.logoUrl ? (
-                  <>
-                    <img src={formData.logoUrl} className="h-full w-full object-contain p-4" alt="Logo Preview" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <Camera className="text-white h-6 w-6" />
+              <div className="relative group">
+                <div 
+                  onClick={() => logoInputRef.current?.click()}
+                  className="h-32 w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 hover:border-primary/40 transition-all relative"
+                >
+                  {formData.logoUrl ? (
+                    <>
+                      <img src={formData.logoUrl} className="h-full w-full object-contain p-4" alt="Logo Preview" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <Camera className="text-white h-6 w-6" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center text-muted-foreground">
+                      <ImageIcon className="h-8 w-8 mb-2 opacity-20" />
+                      <span className="text-[10px] font-black uppercase">Upload Logo</span>
                     </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center text-muted-foreground">
-                    <ImageIcon className="h-8 w-8 mb-2 opacity-20" />
-                    <span className="text-[10px] font-black uppercase">Upload Logo</span>
-                  </div>
+                  )}
+                </div>
+                {formData.logoUrl && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); removeImage('logoUrl'); }}
+                    className="absolute -top-2 -right-2 h-8 w-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 active:scale-90 transition-all z-20"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 )}
               </div>
               <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logoUrl')} />
@@ -167,14 +182,24 @@ export function BrandingManagement() {
               {/* Favicon */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Favicon Icon</label>
-                <div 
-                  onClick={() => faviconInputRef.current?.click()}
-                  className="h-24 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 group hover:border-primary/40 transition-all"
-                >
-                  {formData.faviconUrl ? (
-                    <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="Favicon" />
-                  ) : (
-                    <LinkIcon className="h-5 w-5 opacity-20" />
+                <div className="relative group">
+                  <div 
+                    onClick={() => faviconInputRef.current?.click()}
+                    className="h-24 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 hover:border-primary/40 transition-all"
+                  >
+                    {formData.faviconUrl ? (
+                      <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="Favicon" />
+                    ) : (
+                      <LinkIcon className="h-5 w-5 opacity-20" />
+                    )}
+                  </div>
+                  {formData.faviconUrl && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeImage('faviconUrl'); }}
+                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 active:scale-90 transition-all z-20"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   )}
                 </div>
                 <input type="file" ref={faviconInputRef} className="hidden" accept="image/png, image/x-icon" onChange={(e) => handleImageUpload(e, 'faviconUrl')} />
@@ -183,14 +208,24 @@ export function BrandingManagement() {
               {/* Notification Icon */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Notification Icon</label>
-                <div 
-                  onClick={() => notifyInputRef.current?.click()}
-                  className="h-24 border-2 border-dashed rounded-2xl border-primary/20 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-primary/5 group hover:border-primary/40 transition-all"
-                >
-                  {formData.notificationLogoUrl ? (
-                    <img src={formData.notificationLogoUrl} className="h-10 w-10 object-contain" alt="Notification Logo" />
-                  ) : (
-                    <BellRing className="h-5 w-5 text-primary opacity-40" />
+                <div className="relative group">
+                  <div 
+                    onClick={() => notifyInputRef.current?.click()}
+                    className="h-24 border-2 border-dashed rounded-2xl border-primary/20 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-primary/5 hover:border-primary/40 transition-all"
+                  >
+                    {formData.notificationLogoUrl ? (
+                      <img src={formData.notificationLogoUrl} className="h-10 w-10 object-contain" alt="Notification Logo" />
+                    ) : (
+                      <BellRing className="h-5 w-5 text-primary opacity-40" />
+                    )}
+                  </div>
+                  {formData.notificationLogoUrl && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeImage('notificationLogoUrl'); }}
+                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 active:scale-90 transition-all z-20"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   )}
                 </div>
                 <input type="file" ref={notifyInputRef} className="hidden" accept="image/png" onChange={(e) => handleImageUpload(e, 'notificationLogoUrl')} />
