@@ -1,12 +1,2 @@
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
-
-runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 5
-  memory: 512Mi
-
-env:
-  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: studio-4644410857-c7ed7
+# This file is intentionally left blank to avoid triggering Blaze Plan App Hosting.
+# We are using Standard Static Hosting which is FREE.

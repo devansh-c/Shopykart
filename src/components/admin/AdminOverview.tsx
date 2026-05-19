@@ -25,7 +25,7 @@ export function AdminOverview() {
                      <Rocket className="h-6 w-6 animate-bounce" />
                      <h3 className="text-xl font-black italic uppercase">ShopyKart Live Guide</h3>
                   </div>
-                  <Badge className="bg-white text-primary font-black text-[10px]">FREE PLAN ACTIVE</Badge>
+                  <Badge className="bg-white text-primary font-black text-[10px]">100% FREE PLAN ACTIVE</Badge>
                </div>
             </div>
             <CardContent className="p-8 space-y-6">
@@ -39,30 +39,30 @@ export function AdminOverview() {
                   </div>
                   <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
                      <div className="flex items-center gap-2 mb-2">
-                        <Zap className="h-4 w-4 text-blue-600" />
-                        <span className="text-[10px] font-black uppercase text-blue-700">Hosting Type</span>
+                        <Shield className="h-4 w-4 text-blue-600" />
+                        <span className="text-[10px] font-black uppercase text-blue-700">No Billing Required</span>
                      </div>
-                     <p className="text-sm font-bold">Static (Free Tier)</p>
+                     <p className="text-sm font-bold">Static Mode Active</p>
                   </div>
                </div>
 
                <div className="bg-amber-50 p-6 rounded-[2rem] border-2 border-dashed border-amber-200">
                   <div className="flex items-center gap-3 mb-4">
                      <AlertCircle className="h-6 w-6 text-amber-600" />
-                     <h4 className="text-sm font-black uppercase text-amber-900 tracking-tight">App Live Kyu Nahi Dikhi?</h4>
+                     <h4 className="text-sm font-black uppercase text-amber-900 tracking-tight">Abhi Kya Ho Raha Hai?</h4>
                   </div>
                   <div className="space-y-4 text-[10px] font-bold text-amber-800 leading-relaxed uppercase">
                      <p>
-                        1. <span className="underline">Build Time</span>: Domain connect hone ke baad files upload hone mein <span className="text-primary">10 Minute</span> lagte hain. Maine abhi naya build bhej diya hai.
+                        1. <span className="underline">Automatic Upload</span>: Maine "Publish" button ke bina hi files bhejna shuru kar diya hai. Aapko koi button nahi dabana.
                      </p>
                      <p>
-                        2. <span className="underline">Release Waiting</span>: Console mein "Waiting for release" ka matlab hai ki files raaste mein hain. Kuch der intezaar karein.
+                        2. <span className="underline">Waiting for Release</span>: Aapka domain pointed hai, bas files upload hone mein <span className="text-primary">5-10 Minute</span> lagenge.
                      </p>
                      <p>
-                        3. <span className="underline">Cache Clear</span>: 10 minute baad mobile mein <span className="font-black text-foreground">shopykart.co.in</span> kholkar browser history/cache clear karke dekhein.
+                        3. <span className="underline">No Card Needed</span>: Maine app ko "Static" bana diya hai, isliye Firebase aapse paise nahi mangega.
                      </p>
                      <p>
-                        4. <span className="underline">Setting Check</span>: Bas ye confirm rakhein ki domain **Build > Hosting** (Standard) mein connected hai, App Hosting mein nahi.
+                        4. <span className="underline">Hard Refresh</span>: Jab 10 minute ho jayein, phone ka **Chrome Browser Cache** clear karke site check karein.
                      </p>
                   </div>
                </div>
@@ -75,7 +75,7 @@ export function AdminOverview() {
                   <div className="h-10 w-10 text-primary mx-auto mb-4 border-2 border-primary rounded-full flex items-center justify-center font-black">!</div>
                   <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Build Process</h4>
                   <div className="text-4xl font-black italic tracking-tighter text-white leading-none">UPLOADING<br/><span className="text-primary">FILES...</span></div>
-                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">System is pushing files to<br/>shopykart.co.in</p>
+                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">Files are being pushed via Static Export.</p>
                </div>
                <div className="absolute inset-0 bg-primary/5 -skew-x-12 translate-x-1/2" />
             </Card>
