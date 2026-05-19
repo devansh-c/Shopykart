@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo, memo } from 'react';
+import { useState, memo } from 'react';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { OfferSlider } from '@/components/home/OfferSlider';
@@ -11,9 +11,9 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * PRODUCTION_BUILD_ID: FINAL_STABLE_V3000_DNS_PROPAGATION_ACTIVE
- * This ID ensures the Firebase Studio triggers a clean build for shopykart.co.in
- * TTL 600s applied in GoDaddy.
+ * PRODUCTION_BUILD_ID: FINAL_STATIC_RELEASE_V9000_SYNC_ACTIVE
+ * This ID triggers an immediate rebuild to overwrite the default Firebase blue page.
+ * Standard Static Hosting (Spark Plan) is active.
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -48,7 +48,7 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_V30.0.0_PROPAGATION_MODE</span>
+        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_PROD_V9.0_STABLE</span>
       </div>
     </div>
   );
