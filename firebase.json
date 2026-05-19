@@ -1,13 +1,11 @@
 {
-  "firestore": {
-    "rules": "firestore.rules"
-  },
   "hosting": {
     "public": "out",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "public/index.html"
     ],
     "cleanUrls": true,
     "trailingSlash": true,
@@ -17,7 +15,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
+            "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
           }
         ]
       }
