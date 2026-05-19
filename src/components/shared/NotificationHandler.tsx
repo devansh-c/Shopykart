@@ -6,7 +6,7 @@ import { getFirebaseMessaging } from '@/firebase/messaging';
 import { getToken, onMessage } from 'firebase/messaging';
 import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { BellRing, Smartphone } from 'lucide-react';
+import { BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
@@ -15,16 +15,14 @@ export function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [permission, setPermission] = useState<string>('default');
   const [showPrompt, setShowPrompt] = useState(false);
   
-  // To track order status changes locally
   const lastStatuses = useRef<Record<string, string>>({});
-
   const VAPID_KEY = 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
       
       if (Notification.permission === 'default' && user) {
@@ -32,39 +30,7 @@ export function NotificationHandler() {
         return () => clearTimeout(timer);
       }
     }
-
-    const handleManualRequest = () => {
-      requestPermission();
-    };
-    window.addEventListener('request-notifications', handleManualRequest);
-    return () => window.removeEventListener('request-notifications', handleManualRequest);
   }, [user]);
-
-  // Status Change Listener Logic
-  useEffect(() => {
-    if (!user || !firestore) return;
-
-    const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const orderData = change.doc.data();
-        const orderId = change.doc.id;
-        const newStatus = orderData.status;
-        const oldStatus = lastStatuses.current[orderId];
-
-        // Notify if status changed
-        if (oldStatus && oldStatus !== newStatus) {
-           triggerStatusNotification(newStatus);
-        }
-        
-        // Initialize status if not present (to avoid notifying on first load)
-        lastStatuses.current[orderId] = newStatus;
-      });
-    });
-
-    return () => unsubscribe();
-  }, [user, firestore]);
 
   const triggerStatusNotification = (status: string) => {
     let title = "Order Update";
@@ -97,12 +63,12 @@ export function NotificationHandler() {
         break;
     }
 
-    // Play Sound
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audio.play().catch(() => {});
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(() => {});
+    } catch (e) {}
 
-    // Browser Notification - Safe Check
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification(title, {
           body: body,
@@ -113,7 +79,6 @@ export function NotificationHandler() {
       }).catch(() => {});
     }
 
-    // UI Toast as fallback/duplicate for foreground
     toast({
       title: title,
       description: body,
@@ -122,51 +87,66 @@ export function NotificationHandler() {
   };
 
   useEffect(() => {
-    if (!user || !firestore || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (!user || !firestore) return;
+
+    const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const orderData = change.doc.data();
+        const orderId = change.doc.id;
+        const newStatus = orderData.status;
+        const oldStatus = lastStatuses.current[orderId];
+
+        if (oldStatus && oldStatus !== newStatus) {
+           triggerStatusNotification(newStatus);
+        }
+        lastStatuses.current[orderId] = newStatus;
+      });
+    }, (err) => {
+      console.warn("Snapshot error:", err);
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore, toast]);
+
+  useEffect(() => {
+    if (!user || !firestore || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
 
     const setupMessaging = async () => {
       try {
         if ('serviceWorker' in navigator) {
-          await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          await navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(() => {});
         }
 
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
 
         onMessage(messaging, (payload) => {
-          console.log("Foreground FCM received:", payload);
-          triggerStatusNotification(payload.notification?.body || 'Updated');
+          triggerStatusNotification(payload.notification?.body || 'Order Updated');
         });
 
-        await saveToken(messaging);
+        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        if (token && user) {
+          const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
+          await setDoc(tokenRef, {
+            token,
+            deviceType: 'web',
+            lastUpdated: serverTimestamp(),
+            userId: user.uid
+          }, { merge: true });
+        }
       } catch (err) {
-        console.error("Messaging setup error:", err);
+        console.warn("Messaging setup error (usually non-SSL or unsupported):", err);
       }
     };
 
     setupMessaging();
   }, [user, firestore]);
 
-  const saveToken = async (messaging: any) => {
-    try {
-      const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-      if (token && user && firestore) {
-        const tokenRef = doc(firestore, 'users', user.uid, 'fcmTokens', token);
-        await setDoc(tokenRef, {
-          token,
-          deviceType: 'web',
-          lastUpdated: serverTimestamp(),
-          userId: user.uid
-        }, { merge: true });
-      }
-    } catch (err) {
-      console.error("Token retrieval failed:", err);
-    }
-  };
-
   const requestPermission = async () => {
-    if (typeof Notification === 'undefined') {
-      toast({ title: "Not Supported", description: "Your browser doesn't support notifications." });
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast({ title: "Not Supported", description: "Browser notifications not supported." });
       return;
     }
     
@@ -175,16 +155,14 @@ export function NotificationHandler() {
       const status = await Notification.requestPermission();
       setPermission(status);
       if (status === 'granted') {
-        const messaging = await getFirebaseMessaging();
-        if (messaging) await saveToken(messaging);
-        toast({ title: "Notifications Enabled!", description: "You will now receive real-time order alerts." });
+        toast({ title: "Enabled!", description: "You'll receive real-time order alerts." });
       }
     } catch (err) {
-      console.error("Permission request failed:", err);
+      console.warn("Permission request failed:", err);
     }
   };
 
-  if (!showPrompt || !user || permission !== 'default' || typeof Notification === 'undefined') return null;
+  if (!showPrompt || !user || permission !== 'default' || typeof window === 'undefined' || !('Notification' in window)) return null;
 
   return (
     <div className="fixed top-20 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500">
@@ -196,7 +174,7 @@ export function NotificationHandler() {
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-widest text-primary leading-none mb-1">Stay Notified</span>
-            <span className="text-xs font-bold leading-tight">Enable alerts for order updates and premium offers.</span>
+            <span className="text-xs font-bold leading-tight">Enable alerts for order updates.</span>
           </div>
         </div>
         <div className="flex gap-2 items-center">

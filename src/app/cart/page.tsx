@@ -49,6 +49,7 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
   const [address, setAddress] = useState('');
+  const [isPlacing, setIsPlacing] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -67,17 +68,14 @@ export default function CartPage() {
   const deliveryFee = 0; 
   const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
-  const generateOrderId = () => {
-    return Math.floor(10000 + Math.random() * 90000).toString();
-  };
-
   const handleCheckout = () => {
-    if (!user || !firestore) {
-      toast({ title: "Auth Error", description: "Please sign in to place order.", variant: "destructive" });
+    if (!user || !firestore || isPlacing) {
+      if (!user) toast({ title: "Auth Required", description: "Please sign in.", variant: "destructive" });
       return;
     }
 
-    const orderId = generateOrderId();
+    setIsPlacing(true);
+    const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
     const orderData = {
@@ -98,35 +96,30 @@ export default function CartPage() {
 
     setDoc(orderRef, orderData)
       .then(() => {
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-           if ('serviceWorker' in navigator) {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
                registration.showNotification("Order Confirmed! 🚀", {
-                 body: "Thank You For Ordering Shopykart Your Order Has Been Delivered After 15 Minutes",
+                 body: "Thank you for ordering with Shopykart!",
                  icon: BRAND_LOGO_URL,
                  badge: BRAND_LOGO_URL
                });
              }).catch(() => {});
-           }
         }
         
         setTimeout(() => {
           clearCart();
           router.push(`/orders/${orderId}`);
-        }, 1000);
+        }, 1500);
       })
       .catch(async (err: any) => {
         setShowSuccess(false);
-        if (err.code === 'permission-denied' || err.message?.includes('permission')) {
-          const pErr = new FirestorePermissionError({ 
-            path: `orders/${orderId}`, 
-            operation: 'create', 
-            requestResourceData: orderData 
-          });
-          errorEmitter.emit('permission-error', pErr);
-        } else {
-          toast({ variant: "destructive", title: "Order Failed", description: "Check connection & retry." });
-        }
+        setIsPlacing(false);
+        const pErr = new FirestorePermissionError({ 
+          path: `orders/${orderId}`, 
+          operation: 'create', 
+          requestResourceData: orderData 
+        });
+        errorEmitter.emit('permission-error', pErr);
       });
   };
 
@@ -314,7 +307,7 @@ export default function CartPage() {
              <h2 className="text-sm font-bold uppercase text-gray-700">Special Instructions</h2>
            </div>
            <Textarea 
-             placeholder="Any special requests? (optional)" 
+             placeholder="Any special requests? (kam mirchi, extra sauce...)" 
              className="rounded-xl bg-white border-none shadow-sm h-14 text-sm font-medium focus-visible:ring-1 focus-visible:ring-[#EF4444]/20"
              value={instructions}
              onChange={(e) => setInstructions(e.target.value)}
@@ -354,56 +347,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div className="space-y-3">
-           <div className="flex items-center gap-2 px-1">
-             <Wallet className="h-4 w-4 text-gray-400" />
-             <h2 className="text-sm font-bold uppercase text-gray-700">Pay Using</h2>
-           </div>
-           <div className="space-y-2">
-             <button
-               onClick={() => setPaymentMethod('Online')}
-               className={cn(
-                 "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all",
-                 paymentMethod === 'Online' ? "bg-green-50/50 border-green-500" : "bg-white border-gray-100"
-               )}
-             >
-               <div className="flex items-center gap-3">
-                 <div className={cn("p-2 rounded-xl", paymentMethod === 'Online' ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400")}>
-                    <Wallet className="h-5 w-5" />
-                 </div>
-                 <div className="text-left">
-                   <h4 className={cn("text-sm font-bold", paymentMethod === 'Online' ? "text-green-700" : "text-gray-700")}>Pay Online</h4>
-                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">UPI, Debit / Credit Card, Netbanking</p>
-                 </div>
-               </div>
-               <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", paymentMethod === 'Online' ? "border-green-600" : "border-gray-200")}>
-                  {paymentMethod === 'Online' && <div className="h-2.5 w-2.5 bg-green-600 rounded-full" />}
-               </div>
-             </button>
-
-             <button
-               onClick={() => setPaymentMethod('COD')}
-               className={cn(
-                 "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all",
-                 paymentMethod === 'COD' ? "bg-green-50/50 border-green-500" : "bg-white border-gray-100"
-               )}
-             >
-               <div className="flex items-center gap-3">
-                 <div className={cn("p-2 rounded-xl", paymentMethod === 'COD' ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400")}>
-                    <Banknote className="h-5 w-5" />
-                 </div>
-                 <div className="text-left">
-                   <h4 className={cn("text-sm font-bold", paymentMethod === 'COD' ? "text-green-700" : "text-gray-700")}>Pay with Cash</h4>
-                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Pay when your order arrives</p>
-                 </div>
-               </div>
-               <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", paymentMethod === 'COD' ? "border-green-600" : "border-gray-200")}>
-                  {paymentMethod === 'COD' && <div className="h-2.5 w-2.5 bg-green-600 rounded-full" />}
-               </div>
-             </button>
-           </div>
-        </div>
-
         <div className="bg-gray-100 rounded-2xl p-4 border border-gray-200/50">
            <h4 className="text-[10px] font-black uppercase text-gray-600 mb-1 tracking-wider">Cancellation Policy</h4>
            <p className="text-[10px] font-medium text-gray-500 leading-relaxed">
@@ -427,11 +370,11 @@ export default function CartPage() {
               </div>
            </div>
            <Button 
-            disabled={(!address && orderType === 'Delivery') || showSuccess}
+            disabled={(!address && orderType === 'Delivery') || isPlacing}
             onClick={handleCheckout}
             className="w-full h-14 rounded-2xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-black text-lg shadow-xl shadow-red-100 active:scale-[0.98] transition-all"
           >
-            {showSuccess ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}
+            {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}
           </Button>
         </div>
       </div>
