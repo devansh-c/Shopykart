@@ -53,11 +53,14 @@ export function EmailAuth() {
           fullName: user.displayName || 'Google User',
           email: user.email,
           phoneNumber: user.phoneNumber || '',
+          coins: 10, // Welcome Bonus: 10 Coins (₹5 value in checkout)
           createdAt: serverTimestamp(),
           role: 'customer'
         }, { merge: true });
+        toast({ title: "Welcome Bonus!", description: "10 Coins added to your wallet!" });
+      } else {
+        toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
       }
-      toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Sign-in Error", description: err.message });
     } finally {
@@ -91,11 +94,12 @@ export function EmailAuth() {
             fullName,
             phoneNumber,
             email: trimmedEmail,
+            coins: 10, // Welcome Bonus: 10 Coins (₹5 value in checkout)
             createdAt: serverTimestamp(),
             role: 'customer'
           }, { merge: true });
         }
-        toast({ title: "Account Created!", description: `Welcome to ShopyKart, ${fullName}!` });
+        toast({ title: "Welcome Bonus!", description: `Account created with 10 Coins, ${fullName}!` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         toast({ title: "Identity Verified" });
