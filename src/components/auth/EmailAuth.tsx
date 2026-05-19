@@ -41,6 +41,7 @@ export function EmailAuth() {
     if (!auth || !firestore) return;
     setLoading(true);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
       const result = await signInWithPopup(auth, provider);
@@ -53,7 +54,7 @@ export function EmailAuth() {
           fullName: user.displayName || 'Google User',
           email: user.email,
           phoneNumber: user.phoneNumber || '',
-          coins: 10, // Welcome Bonus: 10 Coins (₹5 value in checkout)
+          coins: 10, 
           createdAt: serverTimestamp(),
           role: 'customer'
         }, { merge: true });
@@ -62,7 +63,23 @@ export function EmailAuth() {
         toast({ title: "Welcome!", description: `Logged in as ${user.displayName}` });
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Sign-in Error", description: err.message });
+      console.error("Auth Error:", err.code);
+      let errorMsg = "Google login failed. Please try again.";
+      
+      if (err.code === 'auth/unauthorized-domain') {
+        errorMsg = "Domain 'shopykart.co.in' is not authorized. Go to Firebase Console > Auth > Settings > Authorized Domains and add it.";
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMsg = "Browser blocked the login popup. Please allow popups for this site.";
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        errorMsg = "Login window was closed before completion.";
+      }
+
+      toast({ 
+        variant: "destructive", 
+        title: "Sign-in Error", 
+        description: errorMsg,
+        duration: 10000 
+      });
     } finally {
       setLoading(false);
     }
@@ -94,7 +111,7 @@ export function EmailAuth() {
             fullName,
             phoneNumber,
             email: trimmedEmail,
-            coins: 10, // Welcome Bonus: 10 Coins (₹5 value in checkout)
+            coins: 10,
             createdAt: serverTimestamp(),
             role: 'customer'
           }, { merge: true });
@@ -211,7 +228,7 @@ export function EmailAuth() {
 
               <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={loading} className="w-full h-14 border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-gray-50 shadow-sm">
                 <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.18 1-.78 1.85-1.63 2.53v2.77h2.63c1.54-1.42 2.43-3.5 2.43-5.31z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-2.63-2.77c-.73.49-1.66.78-2.65.78-2.04 0-3.77-1.38-4.39-3.23h-2.72v2.12C8.63 20.44 11.13 23 12 23z" fill="#34A853"/><path d="M7.61 15.12c-.16-.49-.25-1.02-.25-1.56s.09-1.07.25-1.56V9.88H4.89C4.32 11.08 4 12.51 4 14s.32 2.92.89 4.12l2.72-2.12z" fill="#FBBC05"/><path d="M12 7.51c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 4.09 14.97 3 12 3 8.63 3 5.63 5.56 4.89 8.88l2.72 2.12c.62-1.85 2.35-3.23 4.39-3.23z" fill="#EA4335"/></svg>
-                <span className="text-sm font-black uppercase tracking-tight">Login with Google</span>
+                <span className="text-sm font-black uppercase tracking-tight">Continue with Google</span>
               </Button>
 
               <div className="text-center pt-2">

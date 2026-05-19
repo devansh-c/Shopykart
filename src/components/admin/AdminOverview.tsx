@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Users, ShoppingCart, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck } from 'lucide-react';
+import { TrendingUp, Users, ShoppingCart, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function AdminOverview() {
@@ -46,11 +46,18 @@ export function AdminOverview() {
                      </div>
                   </div>
                </div>
-               <div className="mt-6 bg-amber-50 p-4 rounded-2xl border border-amber-200 flex items-center gap-3">
-                  <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse" />
-                  <p className="text-[10px] font-bold text-amber-700 uppercase">
-                     Reminder: Ensure "shopykart.co.in" is added to Authorized Domains in Firebase Console.
-                  </p>
+               
+               <div className="mt-6 space-y-3">
+                 <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-bold text-amber-700 uppercase">Google Login Trouble?</p>
+                      <p className="text-[9px] text-amber-600 mt-1 uppercase leading-relaxed">
+                        Go to Firebase Console > Authentication > Settings > Authorized Domains. 
+                        Add <b>shopykart.co.in</b> to the list. This is 100% required for Google Sign-in to work.
+                      </p>
+                    </div>
+                 </div>
                </div>
             </CardContent>
          </Card>
