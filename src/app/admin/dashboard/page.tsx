@@ -17,7 +17,9 @@ import {
   Menu as MenuIcon,
   AlertTriangle,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Percent,
+  Feather
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
