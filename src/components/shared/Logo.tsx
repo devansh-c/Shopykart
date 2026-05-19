@@ -34,7 +34,7 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-transform px-4 py-2 border border-[#C5A021]/30 rounded-[1.8rem] bg-black/40 backdrop-blur-md shadow-[0_0_20px_rgba(197,160,33,0.1)] min-w-[120px] justify-center h-14", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-5 py-2 border border-[#C5A021]/40 rounded-[2rem] bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[130px] justify-center h-14", 
         className
       )}
     >
@@ -46,7 +46,8 @@ export function Logo({ className }: { className?: string }) {
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
-          <span className="text-[7px] font-black uppercase tracking-[0.25em] text-white/40 mt-1.5">
+          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-1.5" />
+          <span className="text-[6px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">
             QUALITY FIRST
           </span>
         </>
