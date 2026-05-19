@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -15,8 +14,7 @@ import {
   Mail, 
   Facebook, 
   Instagram, 
-  Twitter,
-  Zap
+  Twitter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,9 +48,9 @@ export default function ShopyKartWebsite() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      {/* --- DEPLOYMENT TRACKER --- */}
-      <div className="bg-green-600 text-white py-1 px-6 text-center text-[10px] font-black tracking-widest">
-        SYSTEM STATUS: ONLINE | VERSION 2000.0 | ALL SYSTEMS GO
+      {/* --- CACHE BUSTER BANNER --- */}
+      <div className="bg-yellow-400 text-black py-2 px-6 text-center text-xs font-black tracking-widest border-b-4 border-black">
+        SYSTEM UPDATED TO VERSION 2000.0 | IF YOU SEE THIS, THE WEBSITE IS LIVE!
       </div>
 
       {/* --- TOP BAR --- */}
