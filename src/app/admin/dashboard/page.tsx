@@ -6,22 +6,18 @@ import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Store, 
-  Bike, 
-  Rocket, 
   Layers, 
   ShoppingBag, 
-  Users, 
-  LineChart, 
-  Percent, 
-  Feather, 
-  Zap, 
   Settings,
   LogOut,
   ChevronRight,
   MessageSquare,
   Tag,
   BellRing,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  AlertTriangle,
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -153,28 +149,23 @@ export default function AdminDashboard() {
         return <NotificationManagement />;
       case 'settings':
         return <BrandingManagement />;
-      default: {
-        const activeItem = menuItems.find(i => i.id === activeTab);
-        const Icon = activeItem?.icon;
-        return (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-muted-foreground/20">
-            <div className="h-16 w-16 bg-muted rounded-2xl flex items-center justify-center mb-4">
-              {Icon && <Icon className="h-8 w-8 text-muted-foreground" />}
-            </div>
-            <h3 className="text-xl font-black italic uppercase">Module Coming Soon</h3>
-            <p className="text-muted-foreground text-sm font-medium">
-              The {activeItem?.label || 'selected'} section is under development.
-            </p>
-          </div>
-        );
-      }
+      default:
+        return <AdminOverview />;
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row">
+      {/* Emergency Deployment Banner */}
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
+         <AlertTriangle className="h-4 w-4 animate-pulse hidden sm:block" />
+         <span className="text-[10px] font-black uppercase tracking-widest italic">
+           CRITICAL: DO NOT DISCONNECT DOMAIN. Build V1000 is syncing. Use Incognito Mode to check.
+         </span>
+      </div>
+
       {/* Mobile Header */}
-      <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
+      <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 mt-8 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <div className="bg-primary p-2 rounded-xl text-white">
             <LayoutDashboard className="h-4 w-4" />
@@ -197,17 +188,34 @@ export default function AdminDashboard() {
       </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen">
+      <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen pt-8">
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full pt-16">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div className="bg-green-50 border-2 border-dashed border-green-200 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
+              <div className="bg-green-500 p-3 rounded-2xl text-white shadow-lg"><Zap className="h-6 w-6 animate-bounce" /></div>
+              <div>
+                 <h2 className="text-xl font-black italic uppercase text-green-900 leading-none">Site Status: LIVE SOON</h2>
+                 <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest mt-1">Domain Connected • Files Syncing</p>
+              </div>
+           </div>
+           <div className="bg-white border border-border/50 p-6 rounded-[2rem] flex items-center gap-4">
+              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600"><CheckCircle2 className="h-6 w-6" /></div>
+              <div>
+                 <h2 className="text-xl font-black italic uppercase text-gray-800 leading-none">FREE PLAN MODE</h2>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Static Build V1000 Active</p>
+              </div>
+           </div>
+        </div>
+
         <header className="mb-6 md:mb-8">
           <h2 className="text-2xl md:text-3xl font-black italic uppercase">
             {menuItems.find(i => i.id === activeTab)?.label}
           </h2>
-          <p className="text-muted-foreground text-xs md:text-sm font-medium">Manage and monitor your business operations here.</p>
+          <p className="text-muted-foreground text-xs md:text-sm font-medium">Manage your business operations securely on Spark Plan.</p>
         </header>
 
         <div className="pb-10">
