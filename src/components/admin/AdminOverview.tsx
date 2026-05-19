@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Users, ShoppingBag, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle, Info, Rocket, ShoppingCart, Clock } from 'lucide-react';
+import { TrendingUp, Users, ShoppingBag, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle, Info, Rocket, ShoppingCart, Clock, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function AdminOverview() {
@@ -47,13 +47,15 @@ export function AdminOverview() {
                   </div>
                </div>
                
-               <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-200 flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+               <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-200 flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold text-blue-700 uppercase">Deployment Note</p>
-                    <p className="text-[9px] text-blue-600 mt-1 uppercase leading-relaxed font-bold">
-                      Agar abhi bhi "Firebase Welcome" page dikh raha hai, toh 5-10 minute wait karein. Naye domain par app build hone mein thoda waqt lagta hai. Refresh karne ke liye <span className="text-primary underline">Ctrl+Shift+R</span> dabayein.
-                    </p>
+                    <p className="text-[10px] font-bold text-amber-700 uppercase">Emergency Checklist (If site not showing)</p>
+                    <div className="text-[9px] text-amber-800 mt-1 uppercase leading-relaxed font-bold space-y-2">
+                      <p>1. <span className="text-primary underline">App Hosting vs Hosting</span>: Make sure aapne domain <span className="font-black">"App Hosting"</span> section mein add kiya hai, normal "Hosting" mein nahi.</p>
+                      <p>2. <span className="text-primary underline">Build Status</span>: Console mein check karein ki build "Success" dikha raha hai ya "Failed".</p>
+                      <p>3. <span className="text-primary underline">Authorized Domains</span>: Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains mein <span className="font-black">shopykart.co.in</span> add karein.</p>
+                    </div>
                   </div>
                </div>
             </CardContent>

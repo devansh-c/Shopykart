@@ -10,7 +10,7 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
-// PRODUCTION_REFRESH_ID: 2024-03-20-V1 (Forcing build for shopykart.co.in)
+// PRODUCTION_REFRESH_ID: 2024-03-20-V2 (Triggering new build for shopykart.co.in)
 
 // Memoized components to prevent re-renders on search input changes
 const MemoOfferSlider = memo(OfferSlider);
