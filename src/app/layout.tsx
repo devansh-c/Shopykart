@@ -43,11 +43,12 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <title>ShopyKart | Premium Food Delivery</title>
-        <meta name="description" content="Gourmet meals delivered to your doorstep." />
+        <meta name="description" content="Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur." />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         <meta name="theme-color" content="#EF4444" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/favicon.ico" />
+        <link rel="canonical" href="https://shopykart.co.in" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
