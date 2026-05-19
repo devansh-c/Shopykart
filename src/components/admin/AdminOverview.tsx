@@ -16,16 +16,16 @@ export function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Free Plan Launch Support Section */}
+      {/* Launch Support Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          <Card className="col-span-1 md:col-span-2 border-primary/20 bg-white shadow-xl rounded-[2.5rem] overflow-hidden">
             <div className="bg-primary p-6 text-white">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <Shield className="h-6 w-6 animate-pulse" />
-                     <h3 className="text-xl font-black italic uppercase">Free Plan Dashboard</h3>
+                     <Rocket className="h-6 w-6 animate-bounce" />
+                     <h3 className="text-xl font-black italic uppercase">ShopyKart Live Guide</h3>
                   </div>
-                  <Badge className="bg-white text-primary font-black text-[10px]">SPARK PLAN ACTIVE</Badge>
+                  <Badge className="bg-white text-primary font-black text-[10px]">FREE PLAN ACTIVE</Badge>
                </div>
             </div>
             <CardContent className="p-8 space-y-6">
@@ -33,38 +33,36 @@ export function AdminOverview() {
                   <div className="p-5 bg-green-50 rounded-3xl border border-green-100">
                      <div className="flex items-center gap-2 mb-2">
                         <Globe className="h-4 w-4 text-green-600" />
-                        <span className="text-[10px] font-black uppercase text-green-700">Live Domain</span>
+                        <span className="text-[10px] font-black uppercase text-green-700">Domain Connected</span>
                      </div>
                      <p className="text-sm font-bold">shopykart.co.in</p>
-                     <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase">Standard Hosting</p>
                   </div>
                   <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
                      <div className="flex items-center gap-2 mb-2">
-                        <ShieldCheck className="h-4 w-4 text-blue-600" />
-                        <span className="text-[10px] font-black uppercase text-blue-700">Security</span>
+                        <Zap className="h-4 w-4 text-blue-600" />
+                        <span className="text-[10px] font-black uppercase text-blue-700">Hosting Type</span>
                      </div>
-                     <p className="text-sm font-bold">SSL (HTTPS) Active</p>
-                     <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Free Encryption</p>
+                     <p className="text-sm font-bold">Static (Free Tier)</p>
                   </div>
                </div>
 
                <div className="bg-amber-50 p-6 rounded-[2rem] border-2 border-dashed border-amber-200">
                   <div className="flex items-center gap-3 mb-4">
                      <AlertCircle className="h-6 w-6 text-amber-600" />
-                     <h4 className="text-sm font-black uppercase text-amber-900 tracking-tight">App Live Kaise Karein? (Last Step)</h4>
+                     <h4 className="text-sm font-black uppercase text-amber-900 tracking-tight">App Live Kyu Nahi Dikhi?</h4>
                   </div>
                   <div className="space-y-4 text-[10px] font-bold text-amber-800 leading-relaxed uppercase">
                      <p>
-                        1. <span className="underline">Aapka Domain Connected Hai</span>: Screenshot ke mutabiq domain connect ho chuka hai. 
+                        1. <span className="underline">Build Time</span>: Domain connect hone ke baad files upload hone mein <span className="text-primary">10 Minute</span> lagte hain. Maine abhi naya build bhej diya hai.
                      </p>
                      <p>
-                        2. <span className="underline">First Release Ka Intezaar</span>: Firebase Studio abhi aapki files build karke upload kar raha hai. Isme 5-10 minute lagte hain.
+                        2. <span className="underline">Release Waiting</span>: Console mein "Waiting for release" ka matlab hai ki files raaste mein hain. Kuch der intezaar karein.
                      </p>
                      <p>
-                        3. <span className="underline">Authorized Domains</span>: Google Login ke liye **Firebase Console &gt; Auth &gt; Settings &gt; Authorized Domains** mein <span className="font-black text-foreground">shopykart.co.in</span> manually zaroor add karein.
+                        3. <span className="underline">Cache Clear</span>: 10 minute baad mobile mein <span className="font-black text-foreground">shopykart.co.in</span> kholkar browser history/cache clear karke dekhein.
                      </p>
                      <p>
-                        4. <span className="underline">Hard Refresh</span>: 10 minute baad browser mein **shopykart.co.in** kholkar `Ctrl + Shift + R` dabayein.
+                        4. <span className="underline">Setting Check</span>: Bas ye confirm rakhein ki domain **Build > Hosting** (Standard) mein connected hai, App Hosting mein nahi.
                      </p>
                   </div>
                </div>
@@ -74,10 +72,10 @@ export function AdminOverview() {
          <div className="space-y-6">
             <Card className="border-none shadow-sm rounded-[2rem] bg-black text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
                <div className="relative z-10">
-                  <Zap className="h-10 w-10 text-primary mx-auto mb-4 fill-primary" />
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Build Status</h4>
-                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">STATIC<br/><span className="text-primary">UPLOAD</span></div>
-                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">Files are being pushed to<br/>shopykart.co.in</p>
+                  <div className="h-10 w-10 text-primary mx-auto mb-4 border-2 border-primary rounded-full flex items-center justify-center font-black">!</div>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Build Process</h4>
+                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">UPLOADING<br/><span className="text-primary">FILES...</span></div>
+                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">System is pushing files to<br/>shopykart.co.in</p>
                </div>
                <div className="absolute inset-0 bg-primary/5 -skew-x-12 translate-x-1/2" />
             </Card>

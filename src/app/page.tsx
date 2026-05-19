@@ -10,7 +10,7 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
-// PRODUCTION_REFRESH_ID: 2024-03-21-V5 (Triggering new build for Static Hosting)
+// PRODUCTION_REFRESH_ID: 2024-03-21-FINAL-RELEASE-V1 (Triggering new build for Static Hosting)
 
 // Memoized components to prevent re-renders on search input changes
 const MemoOfferSlider = memo(OfferSlider);
@@ -47,7 +47,7 @@ export default function Home() {
       
       {/* Version Tag to confirm successful deployment */}
       <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest">SHK v3.45.0 (STATIC)</span>
+        <span className="text-[8px] font-black uppercase tracking-widest">SHK v4.0.1 (STATIC-LIVE)</span>
       </div>
     </div>
   );
