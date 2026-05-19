@@ -10,9 +10,11 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
-// CRITICAL_DEPLOY_ID: FORCE_BUILD_RETRY_V100_STRICT_STATIC
+/**
+ * PRODUCTION_BUILD_ID: FINAL_FORCE_STATIC_V500
+ * This ID ensures the Firebase Studio triggers a clean build for shopykart.co.in
+ */
 
-// Memoized components to prevent re-renders on search input changes
 const MemoOfferSlider = memo(OfferSlider);
 const MemoStoreSection = memo(StoreSection);
 const MemoOffersSection = memo(OffersSection);
@@ -24,7 +26,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden will-change-scroll">
-      {/* Top Header with Integrated Search */}
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
       
       {!searchQuery && (
@@ -45,9 +46,8 @@ export default function Home() {
 
       <BottomNav />
       
-      {/* Version Tag to confirm successful deployment */}
       <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest">SHK v5.1.2 (FORCE-STATIC-ACTIVE)</span>
+        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_V5.0.0_STRICT_FREE</span>
       </div>
     </div>
   );

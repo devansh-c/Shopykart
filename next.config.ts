@@ -2,11 +2,12 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* Static export mode for Firebase Free Plan - This is CRITICAL */
+  /* CRITICAL: Force Static Export for Free Spark Plan */
   output: 'export',
   trailingSlash: true,
+  distDir: 'out',
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
   typescript: {
     ignoreBuildErrors: true,
