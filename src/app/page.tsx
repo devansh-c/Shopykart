@@ -11,8 +11,7 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * SYSTEM VERSION 101.0 - TOTAL REFRESH
- * Forced no-cache headers enabled.
+ * SYSTEM VERSION 102.0 - CACHE BUSTER ENABLED
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -33,9 +32,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
-      {/* EMERGENCY SYSTEM STATUS BANNER - VERSION 101 */}
-      <div className="bg-purple-700 text-white text-[14px] font-black text-center py-4 uppercase tracking-tighter sticky top-0 z-[100] shadow-2xl border-b-4 border-white animate-pulse">
-        🚀 EMERGENCY REFRESH: SYSTEM VERSION 101.0 ACTIVE 🚀
+      {/* CACHE BUSTER BANNER */}
+      <div className="bg-orange-600 text-white text-[14px] font-black text-center py-4 uppercase tracking-tighter sticky top-0 z-[100] shadow-2xl border-b-4 border-white animate-pulse">
+        ⚡ CACHE CLEARED: SYSTEM VERSION 102.0 ONLINE ⚡
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -61,10 +60,11 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 z-50">
-        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-purple-700 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
-          V101.0 LIVE
+        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-orange-600 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
+          V102.0
         </span>
       </div>
     </div>
   );
 }
+    
