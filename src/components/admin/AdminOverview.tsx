@@ -2,7 +2,8 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Users, ShoppingCart, IndianRupee, MousePointerClick } from 'lucide-react';
+import { TrendingUp, Users, ShoppingCart, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export function AdminOverview() {
   const stats = [
@@ -14,6 +15,56 @@ export function AdminOverview() {
 
   return (
     <div className="space-y-6">
+      {/* Launch Status Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <Card className="col-span-1 md:col-span-2 border-primary/20 bg-primary/5 shadow-lg rounded-[2rem] overflow-hidden">
+            <CardHeader className="pb-2">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <div className="bg-primary p-2 rounded-xl text-white">
+                        <Globe className="h-5 w-5" />
+                     </div>
+                     <CardTitle className="text-lg font-black italic uppercase">Live Domain Status</CardTitle>
+                  </div>
+                  <Badge className="bg-green-500 text-white font-black text-[10px]">READY TO LAUNCH</Badge>
+               </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-primary/10">
+                     <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                     <div>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground">Domain Configured</p>
+                        <p className="text-sm font-bold text-foreground">shopykart.co.in</p>
+                     </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-primary/10">
+                     <ShieldCheck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                     <div>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground">Security Status</p>
+                        <p className="text-sm font-bold text-foreground">SSL & Auth Active</p>
+                     </div>
+                  </div>
+               </div>
+               <div className="mt-6 bg-amber-50 p-4 rounded-2xl border border-amber-200 flex items-center gap-3">
+                  <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse" />
+                  <p className="text-[10px] font-bold text-amber-700 uppercase">
+                     Reminder: Ensure "shopykart.co.in" is added to Authorized Domains in Firebase Console.
+                  </p>
+               </div>
+            </CardContent>
+         </Card>
+
+         <Card className="border-none shadow-sm rounded-[2rem] bg-black text-white p-8 flex flex-col justify-center text-center relative overflow-hidden">
+            <div className="relative z-10">
+               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Current Activity</h4>
+               <div className="text-5xl font-black italic tracking-tighter text-primary">LIVE</div>
+               <p className="text-[10px] font-bold text-gray-400 mt-4 uppercase">System monitoring active for today's launch.</p>
+            </div>
+            <div className="absolute inset-0 bg-primary/5 -skew-x-12 translate-x-1/2" />
+         </Card>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <Card key={i} className="border-none shadow-sm rounded-2xl overflow-hidden">
