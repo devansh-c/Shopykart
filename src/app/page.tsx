@@ -11,7 +11,7 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * PRODUCTION_BUILD_ID: FINAL_FORCE_STATIC_V500
+ * PRODUCTION_BUILD_ID: FINAL_FORCE_STATIC_V800_STRICT
  * This ID ensures the Firebase Studio triggers a clean build for shopykart.co.in
  */
 
@@ -47,7 +47,7 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_V5.0.0_STRICT_FREE</span>
+        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_V8.0.0_ULTRA_STATIC</span>
       </div>
     </div>
   );

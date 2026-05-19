@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2 } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function AdminOverview() {
@@ -20,27 +20,30 @@ export function AdminOverview() {
             <div className="bg-black p-6 text-white">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <Rocket className="h-6 w-6 text-primary animate-pulse" />
-                     <h3 className="text-xl font-black italic uppercase tracking-tight">Deployment Success Check</h3>
+                     <RefreshCw className="h-6 w-6 text-primary animate-spin" />
+                     <h3 className="text-xl font-black italic uppercase tracking-tight">Final Force Deployment</h3>
                   </div>
-                  <Badge className="bg-primary text-white font-black text-[10px]">REBUILD_V500_TRIGGERED</Badge>
+                  <Badge className="bg-primary text-white font-black text-[10px]">ULTRA_STATIC_V800</Badge>
                </div>
             </div>
             <CardContent className="p-8 space-y-6">
                <div className="bg-red-50 p-6 rounded-[2rem] border-2 border-dashed border-red-200">
                   <div className="flex items-center gap-3 mb-4">
                      <AlertCircle className="h-6 w-6 text-red-600" />
-                     <h4 className="text-sm font-black uppercase text-red-900">Ab Kya Karna Hai? (Instructions)</h4>
+                     <h4 className="text-sm font-black uppercase text-red-900">Final Instructions (Important)</h4>
                   </div>
                   <div className="space-y-4 text-[11px] font-bold text-red-800 leading-relaxed uppercase">
                      <p>
-                        1. <span className="underline">Intezaar</span>: Maine code ko "Static Mode" mein lock kar diya hai. Ab ye bina billing (debit card) ke live hoga.
+                        1. <span className="underline font-black">Free Plan Status</span>: Aapka domain point ho chuka hai. Humne code ko "Static" kar diya hai taaki bina billing ke live ho sake.
                      </p>
                      <p>
-                        2. <span className="underline">Blue Page Issue</span>: Agar site par abhi bhi blue "Deploy" page dikh raha hai, toh ye build ki deri nahi, balki browser ki purani memory hai.
+                        2. <span className="underline font-black">Wait Time</span>: Build process mein 5-10 minute lagte hain. Phir se wahi domain mat daliye, bas wait karein.
                      </p>
                      <p>
-                        3. <span className="underline">Action</span>: Apne users se bolein ki wo <span className="text-black underline font-black">shopykart.co.in</span> ko Incognito / Private Mode mein khol kar check karein.
+                        3. <span className="underline font-black">Crucial Check</span>: 10 minute baad apne phone mein <span className="text-black underline font-black">Incognito / Private Mode</span> mein site kholiye. 
+                     </p>
+                     <p>
+                        4. Agar phir bhi blue page dikhe, toh iska matlab Firebase server files upload kar raha hai. 
                      </p>
                   </div>
                </div>
@@ -49,16 +52,16 @@ export function AdminOverview() {
                   <div className="p-5 bg-green-50 rounded-3xl border border-green-100">
                      <div className="flex items-center gap-2 mb-2">
                         <Globe className="h-4 w-4 text-green-600" />
-                        <span className="text-[10px] font-black uppercase text-green-700">Domain Status</span>
+                        <span className="text-[10px] font-black uppercase text-green-700">Domain Connected</span>
                      </div>
-                     <p className="text-sm font-bold">Pointing to Standard Hosting</p>
+                     <p className="text-sm font-bold italic">shopykart.co.in (Active)</p>
                   </div>
                   <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
                      <div className="flex items-center gap-2 mb-2">
                         <Shield className="h-4 w-4 text-blue-600" />
                         <span className="text-[10px] font-black uppercase text-blue-700">Billing Guard</span>
                      </div>
-                     <p className="text-sm font-bold">Debit Card Not Required</p>
+                     <p className="text-sm font-bold">100% Free Plan Active</p>
                   </div>
                </div>
             </CardContent>
@@ -67,9 +70,9 @@ export function AdminOverview() {
          <Card className="border-none shadow-sm rounded-[2rem] bg-primary text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
             <div className="relative z-10">
                <Loader2 className="h-10 w-10 text-white mx-auto mb-4 animate-spin" />
-               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Build V500 Status</h4>
-               <div className="text-4xl font-black italic tracking-tighter text-white leading-none">CLEANING<br/>CACHE</div>
-               <p className="text-[9px] font-bold text-white/80 mt-6 uppercase leading-relaxed">Forcing system to replace blue page with your app.</p>
+               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Build V800 Status</h4>
+               <div className="text-4xl font-black italic tracking-tighter text-white leading-none">FORCE<br/>RELEASE</div>
+               <p className="text-[9px] font-bold text-white/80 mt-6 uppercase leading-relaxed">System is pushing files to your free hosting right now.</p>
             </div>
             <div className="absolute inset-0 bg-black/10 -skew-x-12 translate-x-1/2" />
          </Card>
