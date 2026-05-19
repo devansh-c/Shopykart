@@ -7,26 +7,17 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "public/index.html"
+      "**/node_modules/**"
     ],
     "cleanUrls": true,
     "trailingSlash": true,
     "headers": [
       {
-        "source": "/**",
+        "source": "**",
         "headers": [
           {
             "key": "Cache-Control",
             "value": "no-cache, no-store, must-revalidate"
-          },
-          {
-            "key": "Pragma",
-            "value": "no-cache"
-          },
-          {
-            "key": "Expires",
-            "value": "0"
           }
         ]
       }

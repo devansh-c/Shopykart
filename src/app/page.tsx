@@ -9,10 +9,6 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
-/**
- * SYSTEM VERSION 110.0 - ERROR FIXED & CACHE BYPASS
- */
-
 const MemoOfferSlider = memo(OfferSlider);
 const MemoStoreSection = memo(StoreSection);
 const MemoOffersSection = memo(OffersSection);
@@ -25,16 +21,15 @@ export default function Home() {
 
   useEffect(() => {
     setIsLive(true);
-    console.log("ShopyKart Version 110.0 Active - Errors Cleared");
   }, []);
 
   if (!isLive) return null;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
-      {/* VERSION 110.0 BANNER - HIGH VISIBILITY */}
-      <div className="bg-green-600 text-white text-[14px] font-black text-center py-4 uppercase tracking-tighter sticky top-0 z-[100] shadow-2xl border-b-4 border-white">
-        ✅ SYSTEM VERSION 110.0 : STABLE & LIVE ✅
+      {/* MEGA VERSION 500.0 BANNER - NEON GREEN TO BE UNMISTAKABLE */}
+      <div className="bg-[#39FF14] text-black text-[16px] font-black text-center py-6 uppercase tracking-widest sticky top-0 z-[100] shadow-2xl border-b-4 border-black">
+        🚀 SHOPYKART IS LIVE - VERSION 500.0 🚀
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -60,8 +55,8 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 z-50">
-        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-green-600 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
-          V110.0
+        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-black px-4 py-2 rounded-full border-2 border-[#39FF14] shadow-lg">
+          VER 500.0
         </span>
       </div>
     </div>
