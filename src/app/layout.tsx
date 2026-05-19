@@ -49,6 +49,19 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/favicon.ico" />
         <link rel="canonical" href="https://shopykart.co.in" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://shopykart.co.in/" />
+        <meta property="og:title" content="ShopyKart | Premium Food Delivery" />
+        <meta property="og:description" content="Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur." />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://shopykart.co.in/" />
+        <meta property="twitter:title" content="ShopyKart | Premium Food Delivery" />
+        <meta property="twitter:description" content="Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur." />
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
