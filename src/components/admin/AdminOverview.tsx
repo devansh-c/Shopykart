@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Users, ShoppingCart, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle } from 'lucide-react';
+import { TrendingUp, Users, ShoppingCart, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function AdminOverview() {
@@ -47,14 +47,25 @@ export function AdminOverview() {
                   </div>
                </div>
                
-               <div className="mt-6 space-y-3">
+               <div className="mt-6 space-y-4">
+                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 flex items-start gap-3">
+                    <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-bold text-blue-700 uppercase">Step 1: Domain Mapping (Site Not Found Error?)</p>
+                      <p className="text-[9px] text-blue-600 mt-1 uppercase leading-relaxed">
+                        Go to Firebase Console > <b>Build</b> > <b>App Hosting</b>. Click your backend name, then <b>Settings</b> tab. 
+                        Add <b>shopykart.co.in</b> in "Custom domains" and update DNS A-records in your domain panel.
+                      </p>
+                    </div>
+                 </div>
+
                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[10px] font-bold text-amber-700 uppercase">Google Login Trouble?</p>
+                      <p className="text-[10px] font-bold text-amber-700 uppercase">Step 2: Google Login Fix</p>
                       <p className="text-[9px] text-amber-600 mt-1 uppercase leading-relaxed">
-                        Go to Firebase Console > Authentication > Settings > Authorized Domains. 
-                        Add <b>shopykart.co.in</b> to the list. This is 100% required for Google Sign-in to work.
+                        Go to Firebase Console > <b>Authentication</b> > <b>Settings</b> > <b>Authorized Domains</b>. 
+                        Add <b>shopykart.co.in</b> to the list. This is 100% required for Google login.
                       </p>
                     </div>
                  </div>
