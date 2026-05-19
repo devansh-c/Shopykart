@@ -2,9 +2,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* CRITICAL: Force Static Export for Free Spark Plan */
+  /* FORCING STATIC EXPORT FOR FREE PLAN */
   output: 'export',
-  trailingSlash: true,
   distDir: 'out',
   images: {
     unoptimized: true,
