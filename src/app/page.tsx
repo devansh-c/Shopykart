@@ -50,9 +50,9 @@ export default function ShopyKartWebsite() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      {/* --- VERSION 2000.0 --- */}
-      <div className="bg-green-600 text-white py-2 px-6 text-center text-xs font-black tracking-widest border-b-4 border-black">
-        VERSION 2000.0 | READY FOR EXTERNAL HOSTING
+      {/* --- SUCCESS BANNER --- */}
+      <div className="bg-yellow-400 text-black py-2 px-6 text-center text-xs font-black tracking-widest border-b-2 border-black">
+        VERSION 5000.0 | SYSTEM UPDATED | PLEASE REFRESH YOUR BROWSER
       </div>
 
       {/* --- TOP BAR --- */}
@@ -112,6 +112,7 @@ export default function ShopyKartWebsite() {
           alt="Hero"
           fill
           className="object-cover opacity-50"
+          unoptimized
         />
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
           <div className="max-w-xl text-center md:text-left">
