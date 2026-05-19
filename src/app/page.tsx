@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, memo, useEffect } from 'react';
@@ -9,10 +8,9 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
-import Head from 'next/head';
 
 /**
- * SYSTEM VERSION 105.0 - NUCLEAR CACHE RESET
+ * SYSTEM VERSION 110.0 - ERROR FIXED & CACHE BYPASS
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -27,24 +25,16 @@ export default function Home() {
 
   useEffect(() => {
     setIsLive(true);
-    // Force a console log to verify JS execution
-    console.log("ShopyKart Version 105.0 Active");
+    console.log("ShopyKart Version 110.0 Active - Errors Cleared");
   }, []);
 
   if (!isLive) return null;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32 overflow-x-hidden">
-      {/* FORCE NO CACHE META */}
-      <head>
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
-      </head>
-
-      {/* VERSION 105.0 BANNER */}
-      <div className="bg-blue-600 text-white text-[16px] font-black text-center py-5 uppercase tracking-widest sticky top-0 z-[100] shadow-2xl border-b-4 border-yellow-400">
-        🚀 SYSTEM VERSION 105.0 : DEPLOYED & LIVE 🚀
+      {/* VERSION 110.0 BANNER - HIGH VISIBILITY */}
+      <div className="bg-green-600 text-white text-[14px] font-black text-center py-4 uppercase tracking-tighter sticky top-0 z-[100] shadow-2xl border-b-4 border-white">
+        ✅ SYSTEM VERSION 110.0 : STABLE & LIVE ✅
       </div>
 
       <LocationHeader searchValue={searchQuery} onSearchChange={setSearchQuery} />
@@ -70,8 +60,8 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 z-50">
-        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-blue-600 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
-          V105.0
+        <span className="text-[12px] font-black uppercase tracking-widest text-white bg-green-600 px-3 py-1.5 rounded-full border-2 border-white shadow-lg">
+          V110.0
         </span>
       </div>
     </div>
