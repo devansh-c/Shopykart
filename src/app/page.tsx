@@ -15,11 +15,6 @@ export default function ShopyKartApp() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-32">
-      {/* Emergency Cache Flush Banner */}
-      <div className="bg-primary text-white text-[8px] font-black uppercase tracking-[0.3em] py-1 text-center italic">
-        Syncing Final Release V500.0 • Verified Live
-      </div>
-
       <div className="sticky top-0 z-50">
         <LocationHeader 
           searchValue={searchQuery} 
@@ -42,7 +37,7 @@ export default function ShopyKartApp() {
           </ScrollReveal>
         )}
 
-        {/* Categories Section - Now above Products */}
+        {/* Categories Section */}
         <ScrollReveal delay={300}>
           <CategoryList 
             activeCategory={activeCategory} 

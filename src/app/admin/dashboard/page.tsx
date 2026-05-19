@@ -136,48 +136,7 @@ export default function AdminDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return (
-          <div className="space-y-6">
-            {/* BLUE PAGE KILLER ALERT */}
-            <div className="bg-red-50 border-2 border-red-200 p-8 rounded-[2.5rem] shadow-sm animate-in zoom-in duration-500">
-               <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-red-500 p-4 rounded-3xl text-white shadow-lg shadow-red-200">
-                    <AlertOctagon className="h-8 w-8 animate-pulse" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">RECOVERY MODE V500 ACTIVE</h2>
-                    <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-2">Status: Forcing Static Release...</p>
-                  </div>
-               </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white/80 p-6 rounded-3xl border border-red-100">
-                    <h4 className="text-xs font-black uppercase text-red-800 mb-3 flex items-center gap-2">
-                       <CheckCircle2 className="h-3 w-3" /> CUSTOMER KO YE BOLO:
-                    </h4>
-                    <ul className="list-disc ml-5 space-y-2 text-[11px] font-bold text-gray-700 uppercase leading-relaxed">
-                      <li>Website live hai, lekin aapka phone purana page yaad rakhta hai.</li>
-                      <li><span className="text-red-600 underline font-black">SOLTUION:</span> Chrome mein 3 dots par click karke <strong>"New Incognito Tab"</strong> kholiye.</li>
-                      <li>Agar site blue dikhe, toh apne phone ki "Settings &gt; Apps &gt; Chrome &gt; Clear Cache" kijiye.</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-white/80 p-6 rounded-3xl border border-blue-100">
-                    <h4 className="text-xs font-black uppercase text-blue-800 mb-3 flex items-center gap-2">
-                       <Smartphone className="h-3 w-3" /> TESTING STEPS:
-                    </h4>
-                    <div className="space-y-3">
-                       <p className="text-[10px] font-bold text-gray-600 uppercase">1. GoDaddy check kijiye (TTL 600 fixed?)</p>
-                       <p className="text-[10px] font-bold text-gray-600 uppercase">2. 5 Minute wait kijiye (Files sync ho rahi hain)</p>
-                       <p className="text-[10px] font-bold text-gray-600 uppercase">3. Dusre naye phone par site check karein</p>
-                    </div>
-                  </div>
-               </div>
-            </div>
-
-            <AdminOverview />
-          </div>
-        );
+        return <AdminOverview />;
       case 'stores':
         return <StoreManagement />;
       case 'categories':
@@ -203,16 +162,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row">
-      {/* Emergency Deployment Banner */}
-      <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
-         <RefreshCcw className="h-4 w-4 animate-spin hidden sm:block" />
-         <span className="text-[10px] font-black uppercase tracking-widest italic">
-           FINAL PRODUCTION SYNC V500.0 • DO NOT REBOOT
-         </span>
-      </div>
-
       {/* Mobile Header */}
-      <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 mt-8 flex items-center justify-between sticky top-0 z-50">
+      <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <div className="bg-primary p-2 rounded-xl text-white">
             <LayoutDashboard className="h-4 w-4" />
@@ -235,17 +186,17 @@ export default function AdminDashboard() {
       </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen pt-8">
+      <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen">
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full pt-16">
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
         <header className="mb-6 md:mb-8">
           <h2 className="text-2xl md:text-3xl font-black italic uppercase">
             {menuItems.find(i => i.id === activeTab)?.label}
           </h2>
-          <p className="text-muted-foreground text-xs md:text-sm font-medium">Manage your business operations securely on Spark Plan.</p>
+          <p className="text-muted-foreground text-xs md:text-sm font-medium">Secure business operations management.</p>
         </header>
 
         <div className="pb-10">
