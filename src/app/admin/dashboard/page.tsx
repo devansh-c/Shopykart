@@ -19,12 +19,16 @@ import {
   Zap,
   CheckCircle2,
   Percent,
-  Feather
+  Feather,
+  Globe,
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 
 // Admin Sub-components
 import { AdminOverview } from '@/components/admin/AdminOverview';
@@ -132,7 +136,43 @@ export default function AdminDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <AdminOverview />;
+        return (
+          <div className="space-y-6">
+            {/* DNS EMERGENCY TRACKER */}
+            <div className="bg-red-50 border-2 border-red-200 p-8 rounded-[2.5rem] shadow-sm animate-in zoom-in duration-500">
+               <div className="flex items-center gap-4 mb-6">
+                  <div className="bg-red-600 p-4 rounded-3xl text-white shadow-lg shadow-red-200">
+                    <Globe className="h-8 w-8 animate-spin" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">DNS ERROR DETECTED</h2>
+                    <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-2">Status: Domain Not Resolving (NXDOMAIN)</p>
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white/60 p-6 rounded-3xl border border-red-100">
+                    <h4 className="text-xs font-black uppercase text-red-800 mb-3 flex items-center gap-2">
+                       <RefreshCw className="h-3 w-3" /> Solution Step 1
+                    </h4>
+                    <p className="text-[11px] font-bold text-gray-700 leading-relaxed uppercase">
+                      Check your domain provider (Hostinger/Godaddy). Make sure "A Records" are pointed to Firebase IPs. DNS changes take 30 mins to update.
+                    </p>
+                  </div>
+                  <div className="bg-white/60 p-6 rounded-3xl border border-red-100">
+                    <h4 className="text-xs font-black uppercase text-red-800 mb-3 flex items-center gap-2">
+                       <Search className="h-3 w-3" /> Solution Step 2
+                    </h4>
+                    <p className="text-[11px] font-bold text-gray-700 leading-relaxed uppercase">
+                      Ensure `shopykart.co.in` is still listed in Firebase Hosting settings. If you removed it, re-add it immediately.
+                    </p>
+                  </div>
+               </div>
+            </div>
+
+            <AdminOverview />
+          </div>
+        );
       case 'stores':
         return <StoreManagement />;
       case 'categories':
@@ -162,7 +202,7 @@ export default function AdminDashboard() {
       <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
          <AlertTriangle className="h-4 w-4 animate-pulse hidden sm:block" />
          <span className="text-[10px] font-black uppercase tracking-widest italic">
-           CRITICAL: DO NOT DISCONNECT DOMAIN. Build V1000 is syncing. Use Incognito Mode to check.
+           CRITICAL: DNS NXDOMAIN ERROR. CHECK DOMAIN PANEL IMMEDIATELY.
          </span>
       </div>
 
@@ -197,18 +237,18 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full pt-16">
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-           <div className="bg-green-50 border-2 border-dashed border-green-200 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
-              <div className="bg-green-500 p-3 rounded-2xl text-white shadow-lg"><Zap className="h-6 w-6 animate-bounce" /></div>
+           <div className="bg-red-50 border-2 border-dashed border-red-200 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
+              <div className="bg-red-500 p-3 rounded-2xl text-white shadow-lg"><Globe className="h-6 w-6 animate-pulse" /></div>
               <div>
-                 <h2 className="text-xl font-black italic uppercase text-green-900 leading-none">Site Status: LIVE SOON</h2>
-                 <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest mt-1">Domain Connected • Files Syncing</p>
+                 <h2 className="text-xl font-black italic uppercase text-red-900 leading-none">DNS RESOLVING...</h2>
+                 <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-1">Domain Not Found • Check Records</p>
               </div>
            </div>
            <div className="bg-white border border-border/50 p-6 rounded-[2rem] flex items-center gap-4">
-              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600"><CheckCircle2 className="h-6 w-6" /></div>
+              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600"><RefreshCw className="h-6 w-6 animate-spin" /></div>
               <div>
-                 <h2 className="text-xl font-black italic uppercase text-gray-800 leading-none">FREE PLAN MODE</h2>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Static Build V1000 Active</p>
+                 <h2 className="text-xl font-black italic uppercase text-gray-800 leading-none">BUILD V2000</h2>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Static Syncing in Progress</p>
               </div>
            </div>
         </div>
