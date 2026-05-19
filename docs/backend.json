@@ -29,18 +29,21 @@
         "total": { "type": "number" },
         "status": { "type": "string" },
         "address": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "coinsEarned": { "type": "number" },
+        "coinsUsed": { "type": "number" }
       }
     },
-    "FCMToken": {
-      "title": "FCM Token",
-      "description": "Browser push notification token",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User profile data",
       "type": "object",
       "properties": {
-        "token": { "type": "string" },
-        "deviceType": { "type": "string" },
-        "lastUpdated": { "type": "string", "format": "date-time" },
-        "userId": { "type": "string" }
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "coins": { "type": "number", "default": 0 },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -53,7 +56,7 @@
     "/coupons/{couponId}": { "schema": "object", "description": "Discount codes" },
     "/categories/{categoryId}": { "schema": "object", "description": "Food categories" },
     "/vendor_applications/{appId}": { "schema": "object", "description": "New store requests" },
-    "/users/{userId}/fcmTokens/{tokenId}": { "schema": "#/entities/FCMToken", "description": "User notification tokens" },
-    "/users/{userId}/profile/data": { "schema": "object", "description": "User profile information" }
+    "/users/{userId}/fcmTokens/{tokenId}": { "schema": "object", "description": "User notification tokens" },
+    "/users/{userId}/profile/data": { "schema": "#/entities/UserProfile", "description": "User profile information" }
   }
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -19,14 +20,13 @@ import {
   ChevronRight, 
   TicketPercent, 
   FileText, 
-  Wallet, 
-  Banknote,
+  Coins,
   History
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -34,6 +34,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
+import { Switch } from '@/components/ui/switch';
 
 const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
 
@@ -50,6 +51,14 @@ export default function CartPage() {
   const [instructions, setInstructions] = useState('');
   const [address, setAddress] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
+  const [useCoins, setUseCoins] = useState(false);
+
+  // Fetch User Profile for Coins
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid, 'profile', 'data');
+  }, [firestore, user]);
+  const { data: profile } = useDoc<any>(profileRef);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -66,7 +75,9 @@ export default function CartPage() {
   const packagingFee = 10;
   const gst = totalPrice * 0.05;
   const deliveryFee = 0; 
-  const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
+  const availableCoins = profile?.coins || 0;
+  const coinDiscountValue = useCoins ? Math.min(totalPrice, availableCoins * 0.5) : 0;
+  const grandTotal = totalPrice + packagingFee + gst + deliveryFee - coinDiscountValue;
 
   const handleCheckout = () => {
     if (!user || !firestore || isPlacing) {
@@ -77,6 +88,10 @@ export default function CartPage() {
     setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
+
+    // Calculate Earned Coins (50% of the bill)
+    const earnedCoins = Math.floor(grandTotal * 0.5);
+    const coinsToDeduct = useCoins ? availableCoins : 0;
 
     const orderData = {
       userId: user.uid,
@@ -89,13 +104,19 @@ export default function CartPage() {
       instructions,
       address: address || 'Store Pickup',
       createdAt: serverTimestamp(),
-      vendorId: cart[0]?.vendorId || 'unknown'
+      vendorId: cart[0]?.vendorId || 'unknown',
+      coinsEarned: earnedCoins,
+      coinsUsed: coinsToDeduct
     };
 
     setShowSuccess(true);
 
     setDoc(orderRef, orderData)
-      .then(() => {
+      .then(async () => {
+        // Update User Coins
+        const newCoinBalance = (availableCoins - coinsToDeduct) + earnedCoins;
+        await updateDoc(profileRef, { coins: newCoinBalance });
+
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
                registration.showNotification("Order Confirmed! 🚀", {
@@ -200,6 +221,28 @@ export default function CartPage() {
             Add more items
           </button>
         </div>
+
+        {/* Coins System */}
+        {availableCoins > 0 && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border-2 border-dashed border-amber-200">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
+                      <Coins className="h-5 w-5" />
+                   </div>
+                   <div>
+                      <h4 className="text-sm font-black text-gray-800 uppercase italic">Spend Coins</h4>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Available: {availableCoins} (₹{(availableCoins * 0.5).toFixed(0)})</p>
+                   </div>
+                </div>
+                <Switch 
+                  checked={useCoins} 
+                  onCheckedChange={setUseCoins}
+                  className="data-[state=checked]:bg-amber-500"
+                />
+             </div>
+          </div>
+        )}
 
         {recommendations.length > 0 && (
           <div className="space-y-3">
@@ -339,11 +382,21 @@ export default function CartPage() {
               <span>GST (5%)</span>
               <span>₹{gst.toFixed(2)}</span>
             </div>
+            {useCoins && (
+              <div className="flex justify-between font-bold text-amber-600">
+                <span className="flex items-center gap-1"><Coins className="h-3 w-3" /> Coins Applied</span>
+                <span>- ₹{coinDiscountValue.toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
             <span className="text-base font-black text-gray-700">Total Payable</span>
             <span className="text-xl font-black text-[#EF4444]">₹{grandTotal.toFixed(2)}</span>
+          </div>
+
+          <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-center gap-2">
+             <span className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">You will earn {Math.floor(grandTotal * 0.5)} coins on this order</span>
           </div>
         </div>
 

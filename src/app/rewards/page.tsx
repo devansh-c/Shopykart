@@ -1,15 +1,28 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Gift, Star, Trophy, ArrowRight, Copy, Info } from 'lucide-react';
+import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function RewardsPage() {
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('points');
+
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid, 'profile', 'data');
+  }, [firestore, user]);
+
+  const { data: profile } = useDoc<any>(profileRef);
+  const currentCoins = profile?.coins || 0;
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined' && navigator.clipboard) {
@@ -20,12 +33,6 @@ export default function RewardsPage() {
       });
     }
   };
-
-  const rewards = [
-    { title: 'Free Large Pizza', cost: '3,000 pts', type: 'Food', progress: 80 },
-    { title: 'BOGO Burger Meal', cost: '1,500 pts', type: 'Combo', progress: 100 },
-    { title: 'Free Cold Drink', cost: '800 pts', type: 'Beverage', progress: 100 },
-  ];
 
   const coupons = [
     { code: 'FIRST50', desc: '50% Off your first order', minOrder: '₹300', color: 'bg-red-500' },
@@ -50,16 +57,16 @@ export default function RewardsPage() {
           
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-2">
-              <Star className="h-5 w-5 fill-white text-white" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Available Points</span>
+              <Coins className="h-5 w-5 fill-white text-white" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Available Coins</span>
             </div>
-            <div className="text-6xl font-black italic tracking-tighter leading-none mb-4">2,450</div>
+            <div className="text-6xl font-black italic tracking-tighter leading-none mb-4">{currentCoins}</div>
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-black uppercase tracking-wider opacity-80">
-                <span>Silver Tier</span>
-                <span>Next Tier: 3,000 pts</span>
+                <span>Value: ₹{(currentCoins * 0.5).toFixed(0)}</span>
+                <span>Earn 50% on every order</span>
               </div>
-              <Progress value={81} className="h-2 bg-white/20" />
+              <Progress value={Math.min(100, (currentCoins / 5000) * 100)} className="h-2 bg-white/20" />
             </div>
           </div>
         </div>
@@ -87,31 +94,32 @@ export default function RewardsPage() {
         </div>
 
         {activeTab === 'points' ? (
-          <div className="space-y-4">
-            <h2 className="text-xl font-black italic uppercase tracking-tight ml-2">Unlock Rewards</h2>
-            {rewards.map((reward, i) => (
-              <div key={i} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-border/40 shadow-sm relative overflow-hidden group">
-                <div className="h-16 w-16 bg-muted rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden">
-                  <img src={`https://picsum.photos/seed/rew-${i}/100/100`} className="h-full w-full object-cover group-hover:scale-110 transition-transform" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-sm leading-tight">{reward.title}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-black text-primary uppercase">{reward.cost}</span>
-                    <span className="text-[10px] text-muted-foreground">• {reward.type}</span>
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-8 border border-border/40 shadow-sm text-center">
+               <div className="bg-amber-50 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-100">
+                  <Trophy className="h-10 w-10 text-amber-500" />
+               </div>
+               <h2 className="text-2xl font-black italic uppercase tracking-tight">How it works?</h2>
+               <p className="text-xs text-muted-foreground font-bold mt-2 leading-relaxed px-4 uppercase">
+                 Har order par <span className="text-primary">50% Coins</span> mileinge. <br />
+                 Checkout ke waqt <span className="text-primary">1 Coin = ₹0.5</span> ka discount milega!
+               </p>
+            </div>
+
+            <div className="bg-[#0B0B0B] rounded-3xl p-6 text-white relative overflow-hidden">
+               <div className="flex items-center gap-4 relative z-10">
+                  <div className="bg-white/10 p-3 rounded-2xl">
+                     <History className="h-6 w-6 text-primary" />
                   </div>
-                  <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${reward.progress}%` }} />
+                  <div>
+                     <h3 className="font-black italic uppercase text-sm">Coin History</h3>
+                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Rewards updated after every order</p>
                   </div>
-                </div>
-                <button className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center transition-all",
-                  reward.progress === 100 ? "bg-primary text-white" : "bg-muted text-muted-foreground"
-                )}>
-                  {reward.progress === 100 ? <Gift className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
-                </button>
-              </div>
-            ))}
+               </div>
+               <div className="mt-8 opacity-20 text-center py-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em]">No recent activity</p>
+               </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
