@@ -179,7 +179,10 @@ export function LocationHeader({
             <Sheet>
               <SheetTrigger asChild><button className="h-8 w-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-white/5 active:scale-90 transition-all"><Menu className="h-4.5 w-4.5 text-white" /></button></SheetTrigger>
               <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
-                <SheetHeader className="p-8 border-b border-white/5"><Logo className="justify-start bg-transparent shadow-none px-0" /></SheetHeader>
+                <SheetHeader className="p-8 border-b border-white/5">
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <Logo className="justify-start bg-transparent shadow-none px-0" />
+                </SheetHeader>
                 <div className="p-6 space-y-2">
                   {[{label:'My Profile',icon:User,href:'/profile'},{label:'My Orders',icon:Package,href:'/orders'},{label:'Rewards',icon:Gift,href:'/rewards'},{label:'Wishlist',icon:Heart,href:'/wishlist'}].map((item) => (
                     <Link key={item.label} href={item.href}><button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors"><div className="flex items-center gap-4"><div className="bg-white/5 p-3 rounded-xl"><item.icon className="h-5 w-5 text-primary" /></div><span className="font-bold text-sm">{item.label}</span></div><ChevronRight className="h-4 w-4 text-gray-600" /></button></Link>
