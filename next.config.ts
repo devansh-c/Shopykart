@@ -1,7 +1,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* Static export mode for Firebase Free Plan */
+  /* Static export mode for Firebase Free Plan - This is CRITICAL */
   output: 'export',
   trailingSlash: true, // Generates folder/index.html for better clean URL support on static hosting
   typescript: {
@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true,
+    unoptimized: true, // Required for static export
     remotePatterns: [
       {
         protocol: 'https',

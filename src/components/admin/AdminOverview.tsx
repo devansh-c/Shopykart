@@ -48,25 +48,23 @@ export function AdminOverview() {
                   </div>
                </div>
 
-               <div className="bg-muted/50 p-6 rounded-[2rem] border-2 border-dashed border-muted-foreground/20">
+               <div className="bg-amber-50 p-6 rounded-[2rem] border-2 border-dashed border-amber-200">
                   <div className="flex items-center gap-3 mb-4">
-                     <Info className="h-6 w-6 text-primary" />
-                     <h4 className="text-sm font-black uppercase text-foreground tracking-tight">Free Plan Par Website Kaise Chalegi?</h4>
+                     <AlertCircle className="h-6 w-6 text-amber-600" />
+                     <h4 className="text-sm font-black uppercase text-amber-900 tracking-tight">App Live Kaise Karein? (Last Step)</h4>
                   </div>
-                  <div className="space-y-4 text-[10px] font-bold text-muted-foreground leading-relaxed uppercase">
+                  <div className="space-y-4 text-[10px] font-bold text-amber-800 leading-relaxed uppercase">
                      <p>
-                        1. <span className="text-primary underline">Static Export</span>: Maine app ko "Static Mode" mein convert kar diya hai. Ab ye bina kisi extra cost (Blaze Plan) ke **Standard Firebase Hosting** par chal jayegi.
+                        1. <span className="underline">Aapka Domain Connected Hai</span>: Screenshot ke mutabiq domain connect ho chuka hai. 
                      </p>
                      <p>
-                        2. <span className="text-primary underline">Wait for Build</span>: Domain connect hone ke baad, Firebase Studio ko 5-10 minute ka waqt dein files upload karne ke liye.
+                        2. <span className="underline">First Release Ka Intezaar</span>: Firebase Studio abhi aapki files build karke upload kar raha hai. Isme 5-10 minute lagte hain.
                      </p>
                      <p>
-                        3. <span className="text-primary underline">Authorized Domains</span>: Agar Google Login nahi chal raha, toh **Firebase Console &gt; Auth &gt; Settings &gt; Authorized Domains** mein <span className="font-black text-foreground">shopykart.co.in</span> manually add kar dein. Ye kaam Spark plan par bhi free hota hai.
+                        3. <span className="underline">Authorized Domains</span>: Google Login ke liye **Firebase Console &gt; Auth &gt; Settings &gt; Authorized Domains** mein <span className="font-black text-foreground">shopykart.co.in</span> manually zaroor add karein.
                      </p>
-                  </div>
-                  <div className="mt-6 pt-4 border-t border-muted">
-                     <p className="text-[8px] text-muted-foreground text-center font-black tracking-widest italic">
-                        SITE LIVE HONE MEIN MAX 24 GHANTE LAG SAKTE HAIN
+                     <p>
+                        4. <span className="underline">Hard Refresh</span>: 10 minute baad browser mein **shopykart.co.in** kholkar `Ctrl + Shift + R` dabayein.
                      </p>
                   </div>
                </div>
@@ -77,9 +75,9 @@ export function AdminOverview() {
             <Card className="border-none shadow-sm rounded-[2rem] bg-black text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
                <div className="relative z-10">
                   <Zap className="h-10 w-10 text-primary mx-auto mb-4 fill-primary" />
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Network Status</h4>
-                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">FREE<br/><span className="text-primary">HOSTING</span></div>
-                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">Optimization complete for<br/>shopykart.co.in</p>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Build Status</h4>
+                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">STATIC<br/><span className="text-primary">UPLOAD</span></div>
+                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">Files are being pushed to<br/>shopykart.co.in</p>
                </div>
                <div className="absolute inset-0 bg-primary/5 -skew-x-12 translate-x-1/2" />
             </Card>
