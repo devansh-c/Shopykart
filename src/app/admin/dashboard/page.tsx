@@ -22,7 +22,8 @@ import {
   Feather,
   Globe,
   RefreshCw,
-  Search
+  Search,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -139,32 +140,32 @@ export default function AdminDashboard() {
         return (
           <div className="space-y-6">
             {/* DNS EMERGENCY TRACKER */}
-            <div className="bg-red-50 border-2 border-red-200 p-8 rounded-[2.5rem] shadow-sm animate-in zoom-in duration-500">
+            <div className="bg-amber-50 border-2 border-amber-200 p-8 rounded-[2.5rem] shadow-sm animate-in zoom-in duration-500">
                <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-red-600 p-4 rounded-3xl text-white shadow-lg shadow-red-200">
-                    <Globe className="h-8 w-8 animate-spin" />
+                  <div className="bg-amber-500 p-4 rounded-3xl text-white shadow-lg shadow-amber-200">
+                    <Timer className="h-8 w-8 animate-pulse" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black italic uppercase text-red-900 leading-none">DNS ERROR DETECTED</h2>
-                    <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-2">Status: Domain Not Resolving (NXDOMAIN)</p>
+                    <h2 className="text-2xl font-black italic uppercase text-amber-900 leading-none">DNS PROPAGATION ACTIVE</h2>
+                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mt-2">Status: TTL 600s applied. Internet updating...</p>
                   </div>
                </div>
                
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white/60 p-6 rounded-3xl border border-red-100">
-                    <h4 className="text-xs font-black uppercase text-red-800 mb-3 flex items-center gap-2">
-                       <RefreshCw className="h-3 w-3" /> GoDaddy Fix Step 1
+                  <div className="bg-white/60 p-6 rounded-3xl border border-amber-100">
+                    <h4 className="text-xs font-black uppercase text-amber-800 mb-3 flex items-center gap-2">
+                       <CheckCircle2 className="h-3 w-3" /> Step 1: TTL Config
                     </h4>
                     <p className="text-[11px] font-bold text-gray-700 leading-relaxed uppercase">
-                      Go to GoDaddy DNS Manager. Add/Update "A Record". Host: "@", IP: Copy from Firebase Console. Set TTL to "600 seconds" or "10 mins".
+                      Aapne TTL 600s set kar diya hai. Ab internet ke servers har 10 min mein aapke domain ko refresh karenge.
                     </p>
                   </div>
-                  <div className="bg-white/60 p-6 rounded-3xl border border-red-100">
-                    <h4 className="text-xs font-black uppercase text-red-800 mb-3 flex items-center gap-2">
-                       <Search className="h-3 w-3" /> GoDaddy Fix Step 2
+                  <div className="bg-white/60 p-6 rounded-3xl border border-amber-100">
+                    <h4 className="text-xs font-black uppercase text-amber-800 mb-3 flex items-center gap-2">
+                       <RefreshCw className="h-3 w-3" /> Step 2: Next Refresh
                     </h4>
                     <p className="text-[11px] font-bold text-gray-700 leading-relaxed uppercase">
-                      Ensure no other "A Records" or "CNAME Records" for `shopykart.co.in` exist that point elsewhere. Clear duplicates.
+                      Site abhi propagation stage mein hai. 30-60 min baad Incognito mode mein check karein.
                     </p>
                   </div>
                </div>
@@ -199,10 +200,10 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row">
       {/* Emergency Deployment Banner */}
-      <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
-         <AlertTriangle className="h-4 w-4 animate-pulse hidden sm:block" />
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white px-4 py-2 flex items-center justify-center gap-4 text-center">
+         <Timer className="h-4 w-4 animate-pulse hidden sm:block" />
          <span className="text-[10px] font-black uppercase tracking-widest italic">
-           CRITICAL: DNS NXDOMAIN ERROR. CHECK GODADDY DNS PANEL IMMEDIATELY.
+           WAITING FOR DNS PROPAGATION (TTL: 600s). DO NOT CHANGE SETTINGS.
          </span>
       </div>
 
@@ -237,18 +238,18 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full pt-16">
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-           <div className="bg-red-50 border-2 border-dashed border-red-200 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
-              <div className="bg-red-500 p-3 rounded-2xl text-white shadow-lg"><Globe className="h-6 w-6 animate-pulse" /></div>
+           <div className="bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
+              <div className="bg-amber-500 p-3 rounded-2xl text-white shadow-lg"><Globe className="h-6 w-6 animate-pulse" /></div>
               <div>
-                 <h2 className="text-xl font-black italic uppercase text-red-900 leading-none">DNS RESOLVING...</h2>
-                 <p className="text-[10px] font-bold text-red-700 uppercase tracking-widest mt-1">Check GoDaddy A-Records • TTL 600s</p>
+                 <h2 className="text-xl font-black italic uppercase text-amber-900 leading-none">DNS PROPAGATING</h2>
+                 <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mt-1">TTL: 600s • ETA: 30-60 min</p>
               </div>
            </div>
            <div className="bg-white border border-border/50 p-6 rounded-[2rem] flex items-center gap-4">
-              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600"><RefreshCw className="h-6 w-6 animate-spin" /></div>
+              <div className="bg-green-100 p-3 rounded-2xl text-green-600"><CheckCircle2 className="h-6 w-6" /></div>
               <div>
-                 <h2 className="text-xl font-black italic uppercase text-gray-800 leading-none">STATIC SYNC</h2>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ready for DNS Propagation</p>
+                 <h2 className="text-xl font-black italic uppercase text-gray-800 leading-none">BUILD SYNCED</h2>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ready for Incoming Traffic</p>
               </div>
            </div>
         </div>

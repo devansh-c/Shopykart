@@ -11,8 +11,9 @@ import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
 /**
- * PRODUCTION_BUILD_ID: FINAL_STABLE_V2000_DNS_FIX_STATIC
+ * PRODUCTION_BUILD_ID: FINAL_STABLE_V3000_DNS_PROPAGATION_ACTIVE
  * This ID ensures the Firebase Studio triggers a clean build for shopykart.co.in
+ * TTL 600s applied in GoDaddy.
  */
 
 const MemoOfferSlider = memo(OfferSlider);
@@ -47,7 +48,7 @@ export default function Home() {
       <BottomNav />
       
       <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
-        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_V20.0.0_DNS_RECOVERY_MODE</span>
+        <span className="text-[8px] font-black uppercase tracking-widest">LIVE_V30.0.0_PROPAGATION_MODE</span>
       </div>
     </div>
   );
