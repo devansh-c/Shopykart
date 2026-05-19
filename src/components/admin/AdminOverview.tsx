@@ -2,8 +2,9 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Users, ShoppingBag, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle, Info, Rocket, ShoppingCart, Clock, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Users, ShoppingBag, IndianRupee, MousePointerClick, CheckCircle2, Globe, ShieldCheck, AlertCircle, Info, Rocket, ShoppingCart, Clock, AlertTriangle, Zap, Server } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function AdminOverview() {
   const stats = [
@@ -15,60 +16,74 @@ export function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Launch Success Dashboard */}
+      {/* Launch Support Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         <Card className="col-span-1 md:col-span-2 border-green-200 bg-green-50/30 shadow-lg rounded-[2rem] overflow-hidden">
-            <CardHeader className="pb-2">
+         <Card className="col-span-1 md:col-span-2 border-primary/20 bg-white shadow-xl rounded-[2.5rem] overflow-hidden">
+            <div className="bg-primary p-6 text-white">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <div className="bg-green-500 p-2 rounded-xl text-white">
-                        <Rocket className="h-5 w-5" />
-                     </div>
-                     <CardTitle className="text-lg font-black italic uppercase">Site Status: CONNECTED</CardTitle>
+                     <Rocket className="h-6 w-6 animate-bounce" />
+                     <h3 className="text-xl font-black italic uppercase">Launch Emergency Kit</h3>
                   </div>
-                  <Badge className="bg-green-600 text-white font-black text-[10px] animate-pulse">LIVE AT SHOPYKART.CO.IN</Badge>
+                  <Badge className="bg-white text-primary font-black text-[10px]">v3.0 LIVE CONFIG</Badge>
                </div>
-            </CardHeader>
-            <CardContent className="pt-4">
+            </div>
+            <CardContent className="p-8 space-y-6">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-green-100 shadow-sm">
-                     <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                     <div>
-                        <p className="text-[10px] font-black uppercase text-muted-foreground">Domain Verified</p>
-                        <p className="text-sm font-bold text-foreground">shopykart.co.in</p>
+                  <div className="p-5 bg-green-50 rounded-3xl border border-green-100">
+                     <div className="flex items-center gap-2 mb-2">
+                        <Globe className="h-4 w-4 text-green-600" />
+                        <span className="text-[10px] font-black uppercase text-green-700">Live Domain</span>
                      </div>
+                     <p className="text-sm font-bold">shopykart.co.in</p>
+                     <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase">DNS Connected</p>
                   </div>
-                  <div className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-blue-100 shadow-sm">
-                     <ShieldCheck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-                     <div>
-                        <p className="text-[10px] font-black uppercase text-muted-foreground">Security Protocol</p>
-                        <p className="text-sm font-bold text-foreground">HTTPS (SSL) Active</p>
+                  <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
+                     <div className="flex items-center gap-2 mb-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-600" />
+                        <span className="text-[10px] font-black uppercase text-blue-700">SSL Status</span>
                      </div>
+                     <p className="text-sm font-bold">HTTPS Active</p>
+                     <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Secure Connection</p>
                   </div>
                </div>
-               
-               <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-200 flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] font-bold text-amber-700 uppercase">Emergency Checklist (If site not showing)</p>
-                    <div className="text-[9px] text-amber-800 mt-1 uppercase leading-relaxed font-bold space-y-2">
-                      <p>1. <span className="text-primary underline">App Hosting vs Hosting</span>: Aapka domain <span className="font-black">"App Hosting"</span> section mein hona chahiye. Agar aapne use sirf "Hosting" mein add kiya hai, toh wo Next.js files load nahi karega.</p>
-                      <p>2. <span className="text-primary underline">Path Check</span>: Firebase Console &gt; Build &gt; App Hosting &gt; Backend Name &gt; Settings &gt; Custom Domains mein jayein.</p>
-                      <p>3. <span className="text-primary underline">Authorized Domains</span>: Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains mein <span className="font-black">shopykart.co.in</span> add karna na bhoolein.</p>
-                    </div>
+
+               <div className="bg-amber-50 p-6 rounded-[2rem] border-2 border-dashed border-amber-200">
+                  <div className="flex items-center gap-3 mb-4">
+                     <AlertTriangle className="h-6 w-6 text-amber-600" />
+                     <h4 className="text-sm font-black uppercase text-amber-800 tracking-tight">"Deploying" Page Kyu Aa Raha Hai?</h4>
+                  </div>
+                  <div className="space-y-4 text-[10px] font-bold text-amber-900/80 leading-relaxed uppercase">
+                     <p>
+                        1. <span className="text-primary underline">Plan Check</span>: Aapka screenshot dikhata hai ki aap "App Hosting" logging use nahi kar pa rahe. **Next.js App Hosting** ke liye Firebase ka <span className="text-black font-black">Blaze Plan (Free Tier included)</span> activate karna zaroori hai. Iske bina site connect nahi hogi.
+                     </p>
+                     <p>
+                        2. <span className="text-primary underline">Sahi Menu</span>: Domain ko **Build &gt; Hosting** se <span className="text-red-600">Hata Dein</span>. Phir usey **Build &gt; App Hosting &gt; Settings &gt; Custom Domains** mein <span className="text-green-600">Add Karein</span>.
+                     </p>
+                     <p>
+                        3. <span className="text-primary underline">Authorized Domains</span>: Agar Google Login nahi chal raha, toh **Auth &gt; Settings &gt; Authorized Domains** mein <span className="font-black">shopykart.co.in</span> manually add karein.
+                     </p>
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-amber-200">
+                     <p className="text-[8px] text-amber-600 text-center font-black tracking-widest italic">
+                        SITE LIVE HONE MEIN MAX 24 GHANTE LAG SAKTE HAIN
+                     </p>
                   </div>
                </div>
             </CardContent>
          </Card>
 
-         <Card className="border-none shadow-sm rounded-[2rem] bg-black text-white p-8 flex flex-col justify-center text-center relative overflow-hidden">
-            <div className="relative z-10">
-               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Network Hub</h4>
-               <div className="text-5xl font-black italic tracking-tighter text-primary">ONLINE</div>
-               <p className="text-[10px] font-bold text-gray-400 mt-4 uppercase">Shopykart Network is now accepting traffic</p>
-            </div>
-            <div className="absolute inset-0 bg-primary/5 -skew-x-12 translate-x-1/2" />
-         </Card>
+         <div className="space-y-6">
+            <Card className="border-none shadow-sm rounded-[2rem] bg-black text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
+               <div className="relative z-10">
+                  <Zap className="h-10 w-10 text-primary mx-auto mb-4 fill-primary" />
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Network Hub</h4>
+                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">SHK-NET<br/><span className="text-primary">ONLINE</span></div>
+                  <p className="text-[9px] font-bold text-gray-500 mt-6 uppercase leading-relaxed">System is broadcasting to<br/>shopykart.co.in</p>
+               </div>
+               <div className="absolute inset-0 bg-primary/5 -skew-x-12 translate-x-1/2" />
+            </Card>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

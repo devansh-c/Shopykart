@@ -10,7 +10,7 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { OffersSection } from '@/components/home/OffersSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 
-// PRODUCTION_REFRESH_ID: 2024-03-20-V3 (Triggering new build for App Hosting connection)
+// PRODUCTION_REFRESH_ID: 2024-03-21-V4 (Triggering new build for App Hosting connection)
 
 // Memoized components to prevent re-renders on search input changes
 const MemoOfferSlider = memo(OfferSlider);
@@ -44,6 +44,11 @@ export default function Home() {
       <PopularProducts searchQuery={searchQuery} category={activeCategory} />
 
       <BottomNav />
+      
+      {/* Version Tag to confirm successful deployment */}
+      <div className="fixed bottom-24 right-4 opacity-10 pointer-events-none">
+        <span className="text-[8px] font-black uppercase tracking-widest">SHK v3.44.0</span>
+      </div>
     </div>
   );
 }
