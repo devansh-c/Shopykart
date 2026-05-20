@@ -200,7 +200,7 @@ export function LocationHeader({
         </div>
 
         <div className="px-1 -mb-9 relative z-20 flex items-center gap-2">
-          {/* Main Search Input - Now much larger */}
+          {/* Main Search Input - Maximized space */}
           <div className="relative group flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <div className="absolute left-12 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
@@ -219,43 +219,30 @@ export function LocationHeader({
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
           </div>
 
-          {/* Smaller Premium Sliding Toggle Switch */}
+          {/* Ultra-Compact Premium Sliding Toggle Switch */}
           <div 
             onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
             className={cn(
-              "relative h-14 w-20 rounded-2xl p-1 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-2xl border-2 border-white/5",
+              "relative h-10 w-16 rounded-full p-1 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-2xl border border-white/10",
               activeMode === 'Food' ? "bg-primary" : "bg-green-600"
             )}
           >
-            {/* The white sliding circle thumb - Smaller */}
+            {/* The white sliding circle thumb - Small & Sleek */}
             <div 
               className={cn(
-                "absolute h-10 w-10 bg-white rounded-xl shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
-                activeMode === 'Food' ? "translate-x-0" : "translate-x-8"
+                "absolute h-8 w-8 bg-white rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
+                activeMode === 'Food' ? "translate-x-0" : "translate-x-6"
               )}
             >
               {activeMode === 'Food' ? (
-                <Utensils className="h-4 w-4 text-primary animate-in zoom-in duration-300" />
+                <Utensils className="h-3.5 w-3.5 text-primary animate-in zoom-in duration-300" />
               ) : (
-                <ShoppingBag className="h-4 w-4 text-green-600 animate-in zoom-in duration-300" />
+                <ShoppingBag className="h-3.5 w-3.5 text-green-600 animate-in zoom-in duration-300" />
               )}
             </div>
             
-            {/* Subtle Text Labels */}
-            <div className="flex justify-between w-full px-1 select-none">
-               <div className="w-full text-center">
-                  <span className={cn(
-                    "text-[7px] font-black text-white uppercase transition-all duration-500",
-                    activeMode === 'Food' ? "opacity-0" : "opacity-100"
-                  )}>Food</span>
-               </div>
-               <div className="w-full text-center">
-                  <span className={cn(
-                    "text-[7px] font-black text-white uppercase transition-all duration-500",
-                    activeMode === 'Grocery' ? "opacity-0" : "opacity-100"
-                  )}>Shop</span>
-               </div>
-            </div>
+            {/* Subtle Hidden Text Labels for accessibility */}
+            <span className="sr-only">{activeMode === 'Food' ? 'Food Mode' : 'Grocery Mode'}</span>
           </div>
         </div>
       </div>
