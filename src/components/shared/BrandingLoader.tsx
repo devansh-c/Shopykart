@@ -21,16 +21,7 @@ export function BrandingLoader() {
   useEffect(() => {
     if (typeof window === 'undefined' || !document || !document.head) return;
 
-    // Safety: Only run if document is ready or interactive
-    if (document.readyState === 'loading') {
-      const handleLoad = () => applyBranding(branding);
-      window.addEventListener('DOMContentLoaded', handleLoad);
-      return () => window.removeEventListener('DOMContentLoaded', handleLoad);
-    } else {
-      applyBranding(branding);
-    }
-
-    function applyBranding(data: any) {
+    const applyBranding = (data: any) => {
       if (!data) return;
 
       // 1. Update Document Title
@@ -38,7 +29,7 @@ export function BrandingLoader() {
         document.title = data.siteTitle;
       }
 
-      // 2. Helper to update/create Meta tags safely
+      // 2. Helper to update Meta tags safely
       const updateMetaTag = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
         try {
           let element = document.querySelector(`meta[${attr}="${name}"]`);
@@ -51,7 +42,7 @@ export function BrandingLoader() {
             element.setAttribute('content', content);
           }
         } catch (e) {
-          console.warn(`Failed to update meta ${name}`);
+          // Fail silently to prevent runtime crashes
         }
       };
 
@@ -64,7 +55,7 @@ export function BrandingLoader() {
         updateMetaTag('og:title', data.siteTitle, 'property');
       }
 
-      // 3. Helper to update/create Link tags (Favicons) safely
+      // 3. Helper to update Link tags (Favicons) safely
       const updateLinkTag = (rel: string, href: string) => {
         try {
           const elements = document.querySelectorAll(`link[rel*="${rel}"]`);
@@ -80,13 +71,22 @@ export function BrandingLoader() {
             document.head.appendChild(newLink);
           }
         } catch (e) {
-          console.warn(`Failed to update link ${rel}`);
+          // Fail silently
         }
       };
 
       const targetFavicon = data.faviconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
       updateLinkTag('icon', targetFavicon);
       updateLinkTag('apple-touch-icon', targetFavicon);
+    };
+
+    // Safety: Only run if document is ready or interactive
+    if (document.readyState === 'loading') {
+      const handleLoad = () => applyBranding(branding);
+      window.addEventListener('DOMContentLoaded', handleLoad);
+      return () => window.removeEventListener('DOMContentLoaded', handleLoad);
+    } else {
+      applyBranding(branding);
     }
 
   }, [branding]);
