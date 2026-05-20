@@ -55,7 +55,6 @@ export function BrandingManagement() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      // Icons should be tiny, Logo can be medium
       const dimensions = field === 'logoUrl' ? 600 : 128;
       const compressed = await compressImage(base64, dimensions, dimensions);
       setFormData(prev => ({ ...prev, [field]: compressed }));

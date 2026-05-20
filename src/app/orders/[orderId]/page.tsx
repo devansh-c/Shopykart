@@ -51,7 +51,7 @@ export default function OrderDetailsPage() {
       <div className="p-4 space-y-4 max-w-lg mx-auto">
         <div className="bg-[#FFF8E6] border-[#FFE8B3] rounded-xl p-4 flex items-center gap-3 border text-[#B38B00]">
           <Clock className="h-5 w-5" />
-          <div className="font-bold text-sm">Order #{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</div>
+          <div className="font-bold text-sm">Order #{order.orderDisplayId || (typeof order.id === 'string' ? order.id.slice(-5).toUpperCase() : '...') }</div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

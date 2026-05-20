@@ -142,16 +142,18 @@ export function LocationHeader({
   };
 
   const handleMicClick = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      toast({ variant: 'destructive', title: 'Not Supported' });
-      return;
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast({ variant: 'destructive', title: 'Not Supported' });
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.onstart = () => setIsListening(true);
+      recognition.onresult = (event: any) => onSearchChange(event.results[0][0].transcript);
+      recognition.onend = () => setIsListening(false);
+      recognition.start();
     }
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event: any) => onSearchChange(event.results[0][0].transcript);
-    recognition.onend = () => setIsListening(false);
-    recognition.start();
   };
 
   return (

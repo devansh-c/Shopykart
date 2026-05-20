@@ -41,7 +41,7 @@ export default function ShopyKartApp() {
           </ScrollReveal>
         )}
 
-        {/* Categories Section */}
+        {/* Categories Section - Moved above products */}
         <ScrollReveal delay={300}>
           <CategoryList 
             activeCategory={activeCategory} 
