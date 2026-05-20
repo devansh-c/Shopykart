@@ -3,9 +3,9 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, onSnapshot, doc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { BellRing } from 'lucide-react';
+import { BellRing, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const DEFAULT_LOGO = "https://picsum.photos/seed/shopykart-eats/200/200";
@@ -20,6 +20,7 @@ export function NotificationHandler() {
   const lastStatuses = useRef<Record<string, string>>({});
   const lastBroadcastId = useRef<string | null>(null);
   const lastPersonalId = useRef<string | null>(null);
+  const processedOrders = useRef<Set<string>>(new Set());
 
   // Fetch dynamic notification logo from branding
   const brandingRef = useMemoFirebase(() => {
@@ -28,6 +29,13 @@ export function NotificationHandler() {
   }, [firestore]);
   const { data: branding } = useDoc<any>(brandingRef);
 
+  // Fetch user profile to determine role
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid, 'profile', 'data');
+  }, [firestore, user]);
+  const { data: profile } = useDoc<any>(profileRef);
+
   const NOTIFY_ICON = branding?.notificationLogoUrl || DEFAULT_LOGO;
 
   useEffect(() => {
@@ -35,24 +43,27 @@ export function NotificationHandler() {
       setPermission(Notification.permission);
       
       if (Notification.permission === 'default' && user) {
-        const timer = setTimeout(() => setShowPrompt(true), 15000); // Wait 15s before asking
+        const timer = setTimeout(() => setShowPrompt(true), 15000);
         return () => clearTimeout(timer);
       }
     }
   }, [user]);
 
-  const triggerPush = (title: string, body: string) => {
-    // Sound
+  const triggerPush = (title: string, body: string, isOrder = false) => {
+    // Sound - Using the requested ringtone
     try {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => {});
+      audio.play().catch(() => {
+        console.log("Audio autoplay blocked - User interaction required");
+      });
     } catch (e) {}
 
     // Toast
     toast({
       title: title,
       description: body,
-      duration: 6000,
+      duration: 8000,
+      variant: isOrder ? "default" : "default",
     });
 
     // Native Notification
@@ -62,17 +73,16 @@ export function NotificationHandler() {
           body: body,
           icon: NOTIFY_ICON,
           badge: NOTIFY_ICON,
-          tag: 'shopykart-alert'
+          tag: isOrder ? 'new-order' : 'shopykart-alert'
         });
       } catch (err) {
-        // Fallback for mobile browsers that require service worker for notifications
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.ready.then((registration) => {
             registration.showNotification(title, {
               body: body,
               icon: NOTIFY_ICON,
               badge: NOTIFY_ICON,
-              tag: 'shopykart-alert'
+              tag: isOrder ? 'new-order' : 'shopykart-alert'
             });
           }).catch(() => {});
         }
@@ -80,22 +90,58 @@ export function NotificationHandler() {
     }
   };
 
-  // 1. Order Status Listener
+  // 1. Order Listener (Admin & Vendor & Customer)
   useEffect(() => {
     if (!user || !firestore) return;
 
-    const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    // Logic: 
+    // - Admin (email check or role) listens to ALL new orders
+    // - Vendor listens to orders where vendorId == uid
+    // - Customer listens to orders where userId == uid
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const isAdmin = user.email === 'admin@shopykart.com' || profile?.role === 'admin';
+    const isVendor = profile?.role === 'vendor' || !!localStorage.getItem('vendor_id'); // Fallback check
+
+    let ordersQuery;
+    
+    if (isAdmin) {
+      // Admin listens to everything created in the last 1 hour to prevent old spam on load
+      const oneHourAgo = new Timestamp(Timestamp.now().seconds - 3600, 0);
+      ordersQuery = query(collection(firestore, 'orders'), where('createdAt', '>=', oneHourAgo));
+    } else if (isVendor) {
+      ordersQuery = query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
+    } else {
+      ordersQuery = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    }
+    
+    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         const orderData = change.doc.data();
         const orderId = change.doc.id;
         const newStatus = orderData.status;
-        const oldStatus = lastStatuses.current[orderId];
 
+        // HANDLE NEW ORDERS (For Admin & Vendor)
+        if (change.type === 'added' && newStatus === 'Placed') {
+          if (!processedOrders.current.has(orderId)) {
+            processedOrders.current.add(orderId);
+            
+            const displayId = orderData.orderDisplayId || orderId.slice(-5).toUpperCase();
+            const rolePrefix = isAdmin ? "[ADMIN] " : "";
+            
+            triggerPush(
+              `${rolePrefix}New Order #${displayId}! 🚀`, 
+              `Total: ₹${orderData.total} from ${orderData.restaurantName || 'a store'}.`,
+              true
+            );
+          }
+        }
+
+        // HANDLE STATUS UPDATES (For Customer & Admin)
+        const oldStatus = lastStatuses.current[orderId];
         if (oldStatus && oldStatus !== newStatus) {
            let title = "Order Update";
-           let body = `Your order status is now: ${newStatus}`;
+           let body = `Order #${orderData.orderDisplayId || orderId.slice(-5).toUpperCase()} is now: ${newStatus}`;
+           
            if (newStatus === 'Delivered') { title = "Delivered! 😋"; body = "Enjoy your meal from ShopyKart!"; }
            if (newStatus === 'Out for Delivery') { title = "Almost There! 🚚"; body = "Your food is just around the corner."; }
            
@@ -106,7 +152,7 @@ export function NotificationHandler() {
     });
 
     return () => unsubscribe();
-  }, [user, firestore, toast]);
+  }, [user, firestore, profile, toast]);
 
   // 2. Broadcast Listener (Global Campaigns)
   useEffect(() => {
@@ -119,7 +165,6 @@ export function NotificationHandler() {
       const latest = snapshot.docs[0];
       const data = latest.data();
       
-      // Prevent showing old broadcasts on first load
       if (!lastBroadcastId.current) {
         lastBroadcastId.current = latest.id;
         return;
