@@ -9,8 +9,8 @@ import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
- * @fileOverview This component handles zero-OTP direct registration.
- * It gathers user details and creates a persistent anonymous session.
+ * @fileOverview Handles zero-OTP access. 
+ * Supports fallback to Guest ID if Firebase Anonymous Auth is disabled in console.
  */
 export function OTPVerification() {
   const [loading, setLoading] = useState(false);
@@ -28,54 +28,59 @@ export function OTPVerification() {
 
   const handleQuickLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) {
+    if (!firestore) {
       toast({ variant: "destructive", title: "System Initializing", description: "Please wait a moment." });
       return;
     }
 
-    // Explicit Validation
-    if (!formData.fullName.trim()) {
-      toast({ variant: "destructive", title: "Missing Name", description: "Please enter your full name." });
-      return;
-    }
-    if (formData.phoneNumber.length !== 10) {
-      toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter 10 digits." });
-      return;
-    }
-    if (!formData.address.trim()) {
-      toast({ variant: "destructive", title: "Missing Address", description: "Please enter your area/street." });
-      return;
-    }
-    if (formData.pincode.length !== 6) {
-      toast({ variant: "destructive", title: "Invalid Pincode", description: "Please enter 6 digits." });
+    // Validation
+    if (!formData.fullName.trim() || formData.phoneNumber.length !== 10 || !formData.address.trim() || formData.pincode.length !== 6) {
+      toast({ variant: "destructive", title: "Incomplete Details", description: "Please fill all fields correctly." });
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Create a session so the app recognizes the user
-      const userCredential = await signInAnonymously(auth);
-      const user = userCredential.user;
+      let uid = '';
+      
+      // Attempt 1: Real Firebase Anonymous Auth
+      try {
+        if (auth) {
+          const userCredential = await signInAnonymously(auth);
+          uid = userCredential.user.uid;
+        }
+      } catch (authErr: any) {
+        // Attempt 2: Fallback to Guest ID if service is disabled in console
+        console.warn("Auth restricted, using Guest ID fallback:", authErr.message);
+        uid = 'guest_' + Math.random().toString(36).substr(2, 9);
+      }
 
-      // 2. Save complete profile to ROOT 'users' collection for Admin visibility
-      // This is what makes the customer appear in your Admin Dashboard
-      await setDoc(doc(firestore, 'users', user.uid), {
+      if (!uid) throw new Error("Could not generate identity.");
+
+      // 1. Save complete profile to ROOT 'users' collection for Admin visibility
+      await setDoc(doc(firestore, 'users', uid), {
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         address: formData.address,
         city: formData.city,
         pincode: formData.pincode,
-        uid: user.uid,
+        uid: uid,
         coins: 10, // Initial welcome bonus
         createdAt: serverTimestamp(),
         role: 'customer'
       }, { merge: true });
 
-      // 3. Save locally for extra UI speed and persistence
+      // 2. Save locally for persistence and "virtual login"
+      localStorage.setItem('guest_uid', uid);
+      localStorage.setItem('guest_name', formData.fullName);
       localStorage.setItem('user_address', `${formData.address}, ${formData.city} - ${formData.pincode}`);
       localStorage.setItem('user_location_set', 'true');
 
       toast({ title: "Welcome to ShopyKart!", description: "Access granted successfully." });
+      
+      // Force reload to update useUser hook and clear the login overlay
+      window.location.reload();
+
     } catch (err: any) {
       console.error("Login Error:", err);
       toast({ variant: "destructive", title: "Login Failed", description: "Connection error. Please try again." });

@@ -16,7 +16,6 @@ export default function ProfilePage() {
   const auth = useAuth();
   const firestore = useFirestore();
 
-  // Updated profileRef to root user document
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -49,13 +48,20 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    if (!auth) return;
-    signOut(auth).then(() => {
-      toast({ title: "Signed Out", description: "Come back soon!" });
-      router.push('/');
-    }).catch(() => {
-      router.push('/');
-    });
+    // 1. Clear Firebase Session
+    if (auth) {
+      await signOut(auth).catch(() => {});
+    }
+    
+    // 2. Clear Guest Session
+    localStorage.removeItem('guest_uid');
+    localStorage.removeItem('guest_name');
+    localStorage.removeItem('user_location_set');
+    
+    toast({ title: "Signed Out", description: "Come back soon!" });
+    
+    // 3. Force reload to reset App state
+    window.location.href = '/';
   };
 
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
@@ -63,7 +69,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
-      {/* Profile Header */}
       <div className="bg-primary h-56 relative flex flex-col items-center justify-center pt-8">
         <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
         <div className="relative group">
