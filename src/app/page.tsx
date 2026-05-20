@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -18,16 +19,15 @@ export default function ShopyKartApp() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-32">
-      <div className="sticky top-0 z-50">
-        <LocationHeader 
-          searchValue={searchQuery} 
-          onSearchChange={setSearchQuery} 
-          activeMode={activeMode}
-          onModeChange={setActiveMode}
-        />
-      </div>
+      {/* Header now scrolls with the page */}
+      <LocationHeader 
+        searchValue={searchQuery} 
+        onSearchChange={setSearchQuery} 
+        activeMode={activeMode}
+        onModeChange={setActiveMode}
+      />
 
-      <main className="mt-14 space-y-2">
+      <main className="mt-2 space-y-2">
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
