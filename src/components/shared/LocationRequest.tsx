@@ -8,8 +8,6 @@ import { Input } from '@/components/ui/input';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 
 type ViewState = 'prompt' | 'manual';
@@ -112,7 +110,6 @@ export function LocationRequest() {
       localStorage.setItem('user_town', townName);
       localStorage.setItem('user_location_set', 'true');
       
-      // Store coordinates if available for delivery boys
       if (location.latitude && location.longitude) {
         localStorage.setItem('user_lat', location.latitude.toString());
         localStorage.setItem('user_lng', location.longitude.toString());
@@ -153,10 +150,26 @@ export function LocationRequest() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`);
+          // Precise Reverse Geocoding for detailed address
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await response.json();
-          const display = data.display_name || 'Detected Location';
-          saveLocationToDB({ latitude, longitude, address: display, type: 'gps' });
+          
+          // Construct a highly detailed address
+          const addr = data.address;
+          const house = addr.house_number || addr.building || addr.apartment || '';
+          const road = addr.road || addr.suburb || addr.neighbourhood || '';
+          const city = addr.city || addr.town || addr.village || '';
+          const pincode = addr.postcode || '';
+          
+          const detailedDisplay = data.display_name || `${house ? house + ', ' : ''}${road}, ${city}`;
+          
+          saveLocationToDB({ 
+            latitude, 
+            longitude, 
+            address: detailedDisplay, 
+            type: 'gps',
+            pincode: pincode 
+          });
         } catch (error) {
           setLoading(false);
           setView('manual');
@@ -166,7 +179,7 @@ export function LocationRequest() {
         setLoading(false);
         setView('manual');
       },
-      { timeout: 5000 }
+      { timeout: 8000, enableHighAccuracy: true }
     );
   };
 
