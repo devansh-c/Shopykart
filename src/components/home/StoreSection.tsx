@@ -30,10 +30,9 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   if (loading) {
     return (
-      <div className="py-2 px-4 space-y-4">
-        <Skeleton className="h-8 w-32 rounded-lg" />
+      <div className="py-2 px-4 flex space-x-4 overflow-hidden">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-white rounded-3xl h-64 w-full shadow-sm border animate-pulse" />
+          <div key={i} className="bg-white rounded-3xl h-64 min-w-[280px] shadow-sm border animate-pulse" />
         ))}
       </div>
     );
@@ -49,14 +48,14 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   }
 
   return (
-    <div className="py-2 px-4">
-      <div className="flex items-center justify-between mb-4 px-2">
+    <div className="py-2">
+      <div className="flex items-center justify-between mb-4 px-6">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
           {activeMode} Stores
         </h2>
       </div>
 
-      <div className="space-y-6">
+      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-4">
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
           const isOffline = store.isOnline === false;
@@ -66,11 +65,11 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               href={`/menu?vendor=${store.id}`}
               key={store.id} 
               className={cn(
-                "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98]",
+                "block min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] shrink-0",
                 isOffline && "opacity-80"
               )}
             >
-              <div className="relative h-44 w-full bg-muted">
+              <div className="relative h-36 w-full bg-muted">
                 <Image 
                   src={displayImage} 
                   alt={store.storeName || 'Store'} 
@@ -82,7 +81,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
                 
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
-                    <span className="text-white font-black text-2xl uppercase italic tracking-tighter shadow-2xl">Closed Now</span>
+                    <span className="text-white font-black text-xl uppercase italic tracking-tighter">Closed Now</span>
                   </div>
                 )}
 
@@ -92,27 +91,27 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
                 </div>
               </div>
 
-              <div className="p-5">
+              <div className="p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-xl font-black text-foreground italic tracking-tight leading-tight">{store.storeName}</h3>
-                  <div className="flex items-center gap-1 text-muted-foreground text-[8px] font-black uppercase tracking-widest bg-muted/50 px-2 py-1 rounded-full">
-                    <MapPin className="h-2 w-2 text-primary" />
+                  <h3 className="text-lg font-black text-foreground italic tracking-tight leading-tight truncate mr-2">{store.storeName}</h3>
+                  <div className="flex items-center gap-1 text-muted-foreground text-[7px] font-black uppercase tracking-widest bg-muted/50 px-1.5 py-0.5 rounded-full shrink-0">
+                    <MapPin className="h-1.5 w-1.5 text-primary" />
                     {store.town || 'Local'}
                   </div>
                 </div>
 
-                <div className="flex items-center text-[10px] font-bold text-muted-foreground mb-4">
-                  <span>{store.category || 'Food'} • Fast Delivery • Premium Selection</span>
+                <div className="flex items-center text-[9px] font-bold text-muted-foreground mb-3">
+                  <span className="truncate">{store.category || 'Food'} • Fast Delivery</span>
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t border-dashed border-border/60">
+                <div className="flex justify-between items-center pt-3 border-t border-dashed border-border/60">
                   <div className="flex items-center gap-2">
-                     <div className={cn("h-2 w-2 rounded-full", isOffline ? "bg-red-500" : "bg-green-500 animate-pulse")} />
-                     <span className={cn("text-[9px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-green-600")}>
-                        {isOffline ? 'Closed Now' : 'Accepting Orders'}
+                     <div className={cn("h-1.5 w-1.5 rounded-full", isOffline ? "bg-red-500" : "bg-green-500 animate-pulse")} />
+                     <span className={cn("text-[8px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-green-600")}>
+                        {isOffline ? 'Closed' : 'Accepting'}
                      </span>
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">View Menu →</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">View Menu →</span>
                 </div>
               </div>
             </Link>
