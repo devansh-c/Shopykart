@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -27,7 +28,9 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownLeft,
-  FileText
+  FileText,
+  User,
+  PhoneCall
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -249,6 +252,25 @@ export default function VendorDashboard() {
                     </div>
                   </div>
                   <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-full bg-primary/5 text-primary">{order.status}</span>
+                </div>
+
+                {/* Customer Identity & Quick Call */}
+                <div className="flex items-center justify-between bg-muted/20 p-3 rounded-2xl mb-4 border border-border/40">
+                   <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 p-2 rounded-xl text-primary"><User className="h-4 w-4" /></div>
+                      <div>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Customer</p>
+                        <h4 className="text-sm font-black italic tracking-tight leading-none uppercase">{order.customerName || 'Premium User'}</h4>
+                      </div>
+                   </div>
+                   {order.customerPhone && (
+                     <button 
+                      onClick={() => window.open(`tel:${order.customerPhone}`)}
+                      className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"
+                     >
+                       <PhoneCall className="h-4 w-4" />
+                     </button>
+                   )}
                 </div>
                 
                 <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">

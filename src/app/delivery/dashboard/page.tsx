@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, updateDoc, query, where } from 'firebase/firestore';
-import { Navigation, Package, CheckCircle, MapPin, LogOut, BellRing, Volume2, VolumeX, Compass, Map } from 'lucide-react';
+import { Navigation, Package, CheckCircle, MapPin, LogOut, BellRing, Volume2, VolumeX, Compass, Map, User, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -147,7 +148,24 @@ export default function DeliveryDashboard() {
                   task.status === 'Ready for Pickup' ? "text-primary" : "text-gray-500"
                 )}>{task.status}</span>
                 <h3 className="font-black italic text-lg leading-none mt-2">PICKUP #{task.id.slice(-4)}</h3>
-                <div className="flex items-center gap-2 mt-3 text-gray-400 text-xs">
+                
+                {/* Customer Identity for Delivery Boy */}
+                <div className="mt-4 flex items-center justify-between bg-white/5 p-3 rounded-2xl border border-white/5">
+                   <div className="flex items-center gap-2">
+                      <div className="bg-white/10 p-1.5 rounded-lg text-primary"><User className="h-3.5 w-3.5" /></div>
+                      <span className="text-xs font-black uppercase italic tracking-tighter">{task.customerName || 'Customer'}</span>
+                   </div>
+                   {task.customerPhone && (
+                     <button 
+                      onClick={() => window.open(`tel:${task.customerPhone}`)}
+                      className="bg-green-600 p-2 rounded-xl text-white shadow-lg active:scale-90"
+                     >
+                       <PhoneCall className="h-3.5 w-3.5" />
+                     </button>
+                   )}
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 text-gray-400 text-xs">
                   <MapPin className="h-3.5 w-3.5 text-primary" />
                   <span className="truncate max-w-[200px] font-medium">{task.address}</span>
                 </div>

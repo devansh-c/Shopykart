@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -53,7 +54,7 @@ export default function CartPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
 
-  // Fetch User Profile for Coins
+  // Fetch User Profile for Coins and Contact Details
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid, 'profile', 'data');
@@ -100,6 +101,8 @@ export default function CartPage() {
 
     const orderData = {
       userId: user.uid,
+      customerName: profile?.fullName || user.displayName || 'Customer',
+      customerPhone: profile?.phoneNumber || '',
       orderDisplayId: orderId,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
       total: grandTotal,
@@ -112,6 +115,7 @@ export default function CartPage() {
       longitude: coords?.lng || null,
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'unknown',
+      restaurantName: cart[0]?.restaurantName || 'a store',
       coinsEarned: earnedCoins,
       coinsUsed: coinsToDeduct
     };
@@ -121,8 +125,10 @@ export default function CartPage() {
     setDoc(orderRef, orderData)
       .then(async () => {
         // Update User Coins
-        const newCoinBalance = (availableCoins - coinsToDeduct) + earnedCoins;
-        await updateDoc(profileRef, { coins: newCoinBalance });
+        if (profileRef) {
+          const newCoinBalance = (availableCoins - coinsToDeduct) + earnedCoins;
+          await updateDoc(profileRef, { coins: newCoinBalance });
+        }
 
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {

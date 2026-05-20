@@ -25,6 +25,8 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
         "items": { "type": "array" },
         "total": { "type": "number" },
         "status": { "type": "string" },
