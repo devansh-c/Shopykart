@@ -200,7 +200,8 @@ export function LocationHeader({
           </div>
         </div>
 
-        <div className="px-1 -mb-9 relative z-20 flex gap-2">
+        <div className="px-1 -mb-9 relative z-20 flex items-center gap-3">
+          {/* Main Search Input */}
           <div className="relative group flex-1">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
@@ -219,18 +220,40 @@ export function LocationHeader({
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
           </div>
 
-          <button 
+          {/* Premium Sliding Toggle Switch */}
+          <div 
             onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
             className={cn(
-              "h-12 w-14 rounded-xl flex flex-col items-center justify-center transition-all shadow-xl active:scale-95 shrink-0 border-2",
-              activeMode === 'Food' ? "bg-white border-primary/20 text-primary" : "bg-green-600 border-green-500 text-white"
+              "relative h-12 w-24 rounded-full p-1 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-xl border-2 border-white/10",
+              activeMode === 'Food' ? "bg-primary" : "bg-green-600"
             )}
           >
-            {activeMode === 'Food' ? <Utensils className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
-            <span className="text-[7px] font-black uppercase mt-0.5 leading-none">
-              {activeMode === 'Food' ? 'Food' : 'Grocery'}
-            </span>
-          </button>
+            {/* The white sliding circle thumb */}
+            <div 
+              className={cn(
+                "absolute h-9 w-9 bg-white rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
+                activeMode === 'Food' ? "translate-x-0" : "translate-x-12"
+              )}
+            >
+              {activeMode === 'Food' ? (
+                <Utensils className="h-5 w-5 text-primary animate-in zoom-in duration-300" />
+              ) : (
+                <ShoppingBag className="h-5 w-5 text-green-600 animate-in zoom-in duration-300" />
+              )}
+            </div>
+            
+            {/* Labels under the thumb */}
+            <div className="flex justify-between w-full px-2.5 select-none">
+              <span className={cn(
+                "text-[8px] font-black text-white uppercase ml-9 transition-all duration-500 tracking-tighter",
+                activeMode === 'Food' ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+              )}>Food</span>
+              <span className={cn(
+                "text-[8px] font-black text-white uppercase mr-9 transition-all duration-500 tracking-tighter",
+                activeMode === 'Grocery' ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2"
+              )}>Shop</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
