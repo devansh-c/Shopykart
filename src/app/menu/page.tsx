@@ -30,7 +30,14 @@ function MenuContent() {
   
   const firestore = useFirestore();
 
-  // Fetch Vendor Profile
+  // Fetch All Vendors (Needed for sorting by online status)
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: allVendors } = useCollection<any>(vendorsQuery);
+
+  // Fetch Specific Vendor Profile
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !vendorIdParam) return null;
     return doc(firestore, 'vendors', vendorIdParam);
@@ -47,7 +54,7 @@ function MenuContent() {
   const { data: dbProducts, loading: dbLoading } = useCollection(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
-    if (!dbProducts) return [];
+    if (!dbProducts || !allVendors) return [];
 
     let result = dbProducts.filter((product: any) => {
       const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -57,15 +64,25 @@ function MenuContent() {
       return matchesSearch && matchesCategory && matchesVendor;
     });
 
-    switch (sortBy) {
-      case 'price-low': result.sort((a: any, b: any) => (a.price || 0) - (b.price || 0)); break;
-      case 'price-high': result.sort((a: any, b: any) => (b.price || 0) - (a.price || 0)); break;
-      case 'name': result.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')); break;
-      default: break;
-    }
+    // Apply Sorting: Primary = Online Status, Secondary = SortBy
+    result.sort((a, b) => {
+      const vA = allVendors.find(v => v.id === a.vendorId);
+      const vB = allVendors.find(v => v.id === b.vendorId);
+      const onlineA = vA?.isOnline !== false ? 1 : 0;
+      const onlineB = vB?.isOnline !== false ? 1 : 0;
+
+      if (onlineA !== onlineB) return onlineB - onlineA;
+
+      switch (sortBy) {
+        case 'price-low': return (a.price || 0) - (b.price || 0);
+        case 'price-high': return (b.price || 0) - (a.price || 0);
+        case 'name': return (a.name || '').localeCompare(b.name || '');
+        default: return 0;
+      }
+    });
 
     return result;
-  }, [searchQuery, activeCategory, sortBy, dbProducts, vendorIdParam]);
+  }, [searchQuery, activeCategory, sortBy, dbProducts, vendorIdParam, allVendors]);
 
   const categories = [
     { id: 'all', name: 'All' },
@@ -169,14 +186,19 @@ function MenuContent() {
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
+            const vendor = allVendors?.find(v => v.id === product.vendorId);
+            const productIsOffline = vendor?.isOnline === false;
 
             return (
               <div 
                 key={product.id}
-                className="premium-card p-5 flex justify-between items-center bg-white relative overflow-hidden"
+                className={cn(
+                  "premium-card p-5 flex justify-between items-center bg-white relative overflow-hidden transition-all duration-500",
+                  productIsOffline ? "opacity-60 grayscale-[0.4]" : "opacity-100"
+                )}
               >
                 <div className="flex-1 pr-4">
-                  <Link href={`/product/view?id=${product.id}`} className={cn("block", isOffline && "pointer-events-none")}>
+                  <Link href={`/product/view?id=${product.id}`} className={cn("block", (productIsOffline || isOffline) && "pointer-events-none")}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                         <div className="h-full w-full bg-green-600 rounded-full" />
@@ -201,7 +223,7 @@ function MenuContent() {
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                    {isOffline && (
+                    {(productIsOffline || isOffline) && (
                       <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
                         <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
                       </div>
@@ -210,14 +232,14 @@ function MenuContent() {
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2 z-20">
                     {quantity === 0 ? (
                       <button 
-                        disabled={isOffline}
+                        disabled={productIsOffline || isOffline}
                         onClick={() => addToCart({ ...product, imageUrl })}
                         className={cn(
                           "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all",
-                          isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none"
+                          (productIsOffline || isOffline) && "opacity-50 border-gray-300 text-gray-400 shadow-none"
                         )}
                       >
-                        {isOffline ? 'CLOSED' : 'ADD TO BAG'}
+                        {productIsOffline || isOffline ? 'CLOSED' : 'ADD TO BAG'}
                       </button>
                     ) : (
                       <div className="flex items-center justify-between w-full h-10 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">

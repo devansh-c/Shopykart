@@ -25,7 +25,10 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
   return (
-    <div className="premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative will-change-transform">
+    <div className={cn(
+      "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative will-change-transform transition-all duration-500",
+      isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
+    )}>
       <div className="flex-1 pr-4">
         <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
           <div className="h-full w-full bg-green-600 rounded-full" />
@@ -60,7 +63,7 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
               onClick={() => onAdd({ ...product, imageUrl })}
               className={cn(
                 "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all",
-                isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none"
+                isOffline ? "opacity-50 border-gray-300 text-gray-400 shadow-none" : "active:scale-95"
               )}
             >
               {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
@@ -105,7 +108,7 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(50));
+    return query(collection(firestore, 'products'), limit(100));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
@@ -114,14 +117,14 @@ export function PopularProducts({
     
     let result = [...dbProducts];
     
-    // Filter by Mode first (Check if product's vendor matches active mode)
+    // 1. Filter by Mode (Check if product's vendor matches active mode)
     result = result.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
       const vendorMode = vendor?.category || 'Food';
       return vendorMode === activeMode;
     });
 
-    // Filter by Search & Category
+    // 2. Filter by Search & Category
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
@@ -135,9 +138,24 @@ export function PopularProducts({
       return matchesSearch && matchesCategory;
     });
 
-    // Sorting
-    if (sortBy === 'price-low') result.sort((a, b) => (a.price || 0) - (b.price || 0));
-    if (sortBy === 'price-high') result.sort((a, b) => (b.price || 0) - (a.price || 0));
+    // 3. Primary Sort: Online vs Offline (User Request)
+    // Products from stores that are online should be at the top
+    result.sort((a, b) => {
+      const vendorA = vendors.find(v => v.id === a.vendorId);
+      const vendorB = vendors.find(v => v.id === b.vendorId);
+      const onlineA = vendorA?.isOnline !== false ? 1 : 0;
+      const onlineB = vendorB?.isOnline !== false ? 1 : 0;
+      
+      if (onlineA !== onlineB) {
+        return onlineB - onlineA; // 1 (online) comes before 0 (offline)
+      }
+      
+      // If both are same status, use the selected secondary sort
+      if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
+      if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
+      
+      return 0; // Maintain original order for "recommended"
+    });
 
     return result;
   }, [searchQuery, category, sortBy, dbProducts, vendors, activeMode]);
