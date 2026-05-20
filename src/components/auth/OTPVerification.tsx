@@ -1,9 +1,8 @@
-
-"use client"
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, ChevronLeft, AlertCircle, Mail, Phone } from 'lucide-react';
+import { Loader2, ShieldCheck, ChevronLeft, AlertCircle, Mail, Phone, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { 
@@ -29,14 +28,14 @@ export function OTPVerification() {
   const auth = useAuth();
 
   useEffect(() => {
-    if (auth && !recaptchaVerifierRef.current && authMethod === 'phone') {
+    if (typeof window !== 'undefined' && auth && !recaptchaVerifierRef.current && authMethod === 'phone') {
       try {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
         });
         recaptchaVerifierRef.current = verifier;
       } catch (error) {
-        console.error("Recaptcha initialization failed:", error);
+        console.warn("Recaptcha initialization failed:", error);
       }
     }
     
@@ -54,13 +53,10 @@ export function OTPVerification() {
       return;
     }
     
-    if (!auth) {
-      toast({ variant: "destructive", title: "Config Error", description: "Firebase Auth not ready." });
-      return;
-    }
+    if (!auth) return;
 
     if (!recaptchaVerifierRef.current) {
-      toast({ variant: "destructive", title: "Recaptcha Error", description: "Recaptcha not initialized." });
+      toast({ variant: "destructive", title: "Security Error", description: "Recaptcha not ready." });
       return;
     }
 
@@ -71,19 +67,18 @@ export function OTPVerification() {
       const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifierRef.current);
       setConfirmationResult(result);
       setStep('otp');
-      toast({ title: "OTP Sent", description: `Sent to +91 ${phone}` });
+      toast({ title: "Verification Sent", description: `OTP pushed to +91 ${phone}` });
     } catch (err: any) {
       if (err.code === 'auth/billing-not-enabled' || err.message.includes('billing')) {
         setBillingError(true);
         toast({ 
           variant: "destructive", 
-          title: "SMS Billing Required", 
-          description: "Firebase Spark plan doesn't support real SMS. Use Email or Demo Access." 
+          title: "SMS Limit", 
+          description: "Real SMS requires a paid Firebase plan. Use Demo access." 
         });
       } else {
-        toast({ variant: "destructive", title: "Error", description: err.message });
+        toast({ variant: "destructive", title: "Network Error", description: err.message });
       }
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -94,9 +89,9 @@ export function OTPVerification() {
     setLoading(true);
     try {
       await signInAnonymously(auth);
-      toast({ title: "Demo Mode", description: "Logged in via anonymous access." });
+      toast({ title: "Premium Access", description: "Logged in via Instant Demo mode." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Failed", description: err.message });
     } finally {
       setLoading(false);
     }
@@ -109,8 +104,9 @@ export function OTPVerification() {
     setLoading(true);
     try {
       await confirmationResult.confirm(code);
+      toast({ title: "Access Granted", description: "Welcome to ShopyKart." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Invalid OTP", description: "Code is incorrect." });
+      toast({ variant: "destructive", title: "Invalid OTP", description: "The code entered is incorrect." });
       setOtp(['', '', '', '', '', '']);
     } finally {
       setLoading(false);
@@ -122,16 +118,19 @@ export function OTPVerification() {
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
-    if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
   };
 
   if (authMethod === 'email') {
     return (
-      <div className="fixed inset-0 z-[110] bg-white flex flex-col animate-in fade-in duration-500">
+      <div className="fixed inset-0 z-[110] bg-[#0B0B0B] flex flex-col animate-in fade-in duration-500">
         <div className="p-8">
           <button onClick={() => setAuthMethod('phone')} className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-6">
             <ChevronLeft className="h-3 w-3 mr-1" />
-            Back to Phone Auth
+            Back to Phone Access
           </button>
         </div>
         <EmailAuth />
@@ -140,90 +139,93 @@ export function OTPVerification() {
   }
 
   return (
-    <div className="fixed inset-0 z-[110] bg-white flex flex-col p-8 animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-[110] bg-[#0B0B0B] flex flex-col p-8 animate-in fade-in duration-500 overflow-y-auto no-scrollbar">
       <div id="recaptcha-container" className="hidden" />
       
       <div className="mt-4 flex justify-between items-center">
         {step === 'otp' ? (
-          <button onClick={() => setStep('phone')} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
-            <ChevronLeft className="h-6 w-6 text-foreground" />
+          <button onClick={() => setStep('phone')} className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-white transition-all active:scale-90">
+            <ChevronLeft className="h-6 w-6" />
           </button>
         ) : <div />}
         
         <button 
           onClick={() => setAuthMethod('email')}
-          className="bg-muted px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+          className="bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-gray-400 active:scale-95"
         >
-          <Mail className="h-3 w-3" />
-          Use Email
+          <Mail className="h-3.5 w-3.5" />
+          Email Key
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12">
+      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12 py-10">
         <div className="text-left">
-          <h1 className="text-4xl font-black italic tracking-tighter leading-tight text-foreground">
-            {step === 'phone' ? 'Premium Access.' : 'Confirm Identity.'}
+          <div className="bg-primary/20 h-16 w-16 rounded-[2rem] flex items-center justify-center text-primary mb-8 border border-primary/20">
+            {step === 'phone' ? <Smartphone className="h-8 w-8" /> : <ShieldCheck className="h-8 w-8" />}
+          </div>
+          <h1 className="text-5xl font-black italic tracking-tighter leading-[0.9] text-white uppercase">
+            {step === 'phone' ? <>Fast<br /><span className="text-primary">Access.</span></> : <>Verify<br /><span className="text-primary">Identity.</span></>}
           </h1>
-          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-3">
-            {step === 'phone' ? 'Enter your mobile number to begin' : `Verification code sent to +91 ${phone}`}
+          <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mt-6 max-w-[200px] leading-relaxed">
+            {step === 'phone' ? 'Enter your mobile number to unlock your premium profile.' : `We've pushed a 6-digit code to +91 ${phone}.`}
           </p>
         </div>
 
         {step === 'phone' ? (
-          <div className="space-y-6">
-            <div className="relative border-b-2 border-muted focus-within:border-primary transition-colors pb-4">
-              <div className="flex items-center">
-                <span className="text-2xl font-black text-muted-foreground mr-4">+91</span>
-                <input
-                  type="tel"
-                  placeholder="00000 00000"
-                  value={phone}
-                  autoFocus
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="w-full bg-transparent border-none text-2xl font-black tracking-tight focus:outline-none placeholder:text-muted"
-                />
+          <div className="space-y-8">
+            <div className="relative group">
+              <div className="absolute -left-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                 <span className="text-2xl font-black text-gray-600">+91</span>
+                 <div className="h-6 w-[1px] bg-white/10" />
               </div>
+              <input
+                type="tel"
+                placeholder="00000 00000"
+                value={phone}
+                autoFocus
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                className="w-full bg-transparent border-b-2 border-white/5 py-4 pl-16 text-3xl font-black tracking-tighter text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/5"
+              />
             </div>
             
             <div className="space-y-4">
               <Button
                 onClick={handleSendOTP}
                 disabled={loading || phone.length < 10}
-                className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic shadow-2xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Continue'}
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'UNLOCK NOW'}
               </Button>
 
               {billingError ? (
-                <div className="p-5 bg-red-50 rounded-[2rem] border border-red-100 animate-in slide-in-from-top-2">
-                  <div className="flex items-center gap-2 text-red-700 mb-3">
+                <div className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 animate-in slide-in-from-top-4">
+                  <div className="flex items-center gap-2 text-amber-500 mb-4">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Free Plan Limitation</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Billing Restricted</span>
                   </div>
-                  <p className="text-[10px] text-red-600/70 font-medium leading-relaxed mb-4 uppercase">
-                    Firebase Free Plan par real SMS nahi jaate. Aap <span className="font-black">Email Login</span> use karein ya <span className="font-black">Demo Mode</span> se enter karein.
+                  <p className="text-[10px] text-gray-400 font-bold leading-relaxed mb-6 uppercase">
+                    Firebase Free Plan detected. Real SMS is disabled. Please use <span className="text-white">Instant Demo Access</span> or switch to <span className="text-white">Email Login</span>.
                   </p>
-                  <div className="grid gap-2">
+                  <div className="grid gap-3">
                     <Button
                       onClick={handleDemoLogin}
-                      className="w-full h-12 bg-black text-white rounded-xl font-black text-xs uppercase italic tracking-tighter shadow-lg"
+                      className="w-full h-14 bg-white text-black rounded-2xl font-black text-xs uppercase italic tracking-tighter shadow-xl active:scale-95 transition-all"
                     >
-                      Enter via Demo Mode (Instant)
+                      ENTER VIA INSTANT DEMO
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => setAuthMethod('email')}
-                      className="w-full h-12 border-red-200 text-red-700 hover:bg-red-100 rounded-xl font-black text-xs uppercase"
+                      className="w-full h-12 text-gray-500 hover:text-white rounded-xl font-black text-[9px] uppercase tracking-widest"
                     >
-                      <Mail className="h-3 w-3 mr-2" />
-                      Switch to Email Login
+                      Switch to Email Key
                     </Button>
                   </div>
                 </div>
               ) : (
                 <button 
                   onClick={handleDemoLogin}
-                  className="w-full text-center text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                  className="w-full text-center text-[9px] font-black uppercase tracking-widest text-gray-600 hover:text-primary transition-colors py-2"
                 >
                   Skip for testing (Demo Access)
                 </button>
@@ -231,7 +233,7 @@ export function OTPVerification() {
             </div>
           </div>
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-12">
             <div className="flex justify-between gap-3">
               {otp.map((digit, idx) => (
                 <input
@@ -242,34 +244,40 @@ export function OTPVerification() {
                   value={digit}
                   autoFocus={idx === 0}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  className="w-full h-14 border-b-2 border-muted text-center text-3xl font-black outline-none focus:border-primary transition-all text-foreground"
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl text-center text-3xl font-black outline-none focus:border-primary focus:bg-primary/5 transition-all text-white shadow-inner"
                 />
               ))}
             </div>
             
-            <Button
-              onClick={handleVerifyOTP}
-              disabled={loading || otp.join('').length < 6}
-              className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
-            >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Verify Access'}
-            </Button>
+            <div className="space-y-4">
+              <Button
+                onClick={handleVerifyOTP}
+                disabled={loading || otp.join('').length < 6}
+                className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic shadow-2xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
+              >
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'GRANT ACCESS'}
+              </Button>
 
-            <button 
-              onClick={() => setStep('phone')}
-              className="w-full text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
-            >
-              Change phone number
-            </button>
+              <button 
+                onClick={() => setStep('phone')}
+                className="w-full text-center text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
+              >
+                Incorrect number? Edit
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="mt-auto text-center pb-8">
-        <div className="flex items-center justify-center gap-2 text-muted-foreground/30">
-          <ShieldCheck className="h-4 w-4" />
-          <p className="text-[8px] font-black uppercase tracking-[0.3em]">Secure High-End Platform</p>
+      <div className="mt-auto text-center pb-10">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center justify-center gap-2 text-white/10">
+            <ShieldCheck className="h-4 w-4" />
+            <p className="text-[8px] font-black uppercase tracking-[0.5em]">High-End Encryption</p>
+          </div>
+          <p className="text-[7px] font-black text-white/5 uppercase tracking-widest">ShopyKart Private Limited • All Rights Reserved</p>
         </div>
       </div>
     </div>
   );
+}

@@ -4,7 +4,7 @@ import { CartProvider } from '@/components/cart/CartProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
 import { FirebaseClientProvider, useUser } from '@/firebase';
-import { EmailAuth } from '@/components/auth/EmailAuth';
+import { OTPVerification } from '@/components/auth/OTPVerification';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
@@ -22,7 +22,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-screen">
-      {showAuth && <EmailAuth />}
+      {showAuth && <OTPVerification />}
       <div className={showAuth ? 'hidden' : ''}>
         {!isExcludedPath && <LocationRequest />}
         {!isExcludedPath && <PromoPopup />}
