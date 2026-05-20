@@ -10,33 +10,19 @@ import {
   ChevronLeft, 
   ShoppingBag, 
   Loader2, 
-  PlusCircle, 
   Bike, 
-  Store, 
-  Utensils, 
-  Car, 
-  MapPin, 
-  ChevronRight, 
-  TicketPercent, 
-  FileText, 
-  Coins,
-  History,
-  User,
-  Phone
+  User, 
+  FileText 
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
-import { Switch } from '@/components/ui/switch';
 
 const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
 
@@ -48,11 +34,8 @@ export default function CartPage() {
   const { toast } = useToast();
   
   const [showSuccess, setShowSuccess] = useState(false);
-  const [orderType, setOrderType] = useState('Delivery');
-  const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
-  const [useCoins, setUseCoins] = useState(false);
 
   // User Details State
   const [customerName, setCustomerName] = useState('');
@@ -85,8 +68,7 @@ export default function CartPage() {
 
   const packagingFee = 10;
   const gst = totalPrice * 0.05;
-  const deliveryFee = 0; 
-  const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
+  const grandTotal = totalPrice + packagingFee + gst;
 
   const handleCheckout = () => {
     if (!firestore || isPlacing) return;
@@ -105,21 +87,24 @@ export default function CartPage() {
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
-    // Identity for Admin
-    const uid = user?.uid || 'guest_' + customerPhone;
+    // Identity Logic: Essential for History Visibility
+    const guestUid = 'guest_' + customerPhone;
+    const finalUid = user?.uid || guestUid;
+    
+    // Crucial: Save this UID to local storage so /orders page can fetch history
+    localStorage.setItem('guest_uid', finalUid);
+    localStorage.setItem('guest_name', customerName);
 
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
     const orderData = {
-      userId: uid,
+      userId: finalUid,
       customerName: customerName,
       customerPhone: customerPhone,
       orderDisplayId: orderId,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
       total: grandTotal,
       status: 'Placed',
-      orderType,
-      paymentMethod,
       instructions,
       address: fullFinalAddress,
       createdAt: serverTimestamp(),
@@ -135,14 +120,14 @@ export default function CartPage() {
     setDoc(orderRef, orderData)
       .then(async () => {
         // 2. Update/Create User Profile for Admin Directory
-        const userRef = doc(firestore, 'users', uid);
+        const userRef = doc(firestore, 'users', finalUid);
         await setDoc(userRef, {
           fullName: customerName,
           phoneNumber: customerPhone,
           address: fullFinalAddress,
           city: customerCity,
           pincode: customerPincode,
-          uid: uid,
+          uid: finalUid,
           updatedAt: serverTimestamp(),
           role: 'customer'
         }, { merge: true });
@@ -198,7 +183,6 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Delivery Details Collection - NO LOGIN REQUIRED */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-primary/10">
           <div className="flex items-center gap-2 mb-6">
             <div className="bg-primary/10 p-2 rounded-xl text-primary">
@@ -287,9 +271,6 @@ export default function CartPage() {
                       <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
                       <button onClick={() => addToCart(item)} className="flex-1 flex items-center justify-center font-bold text-xl">+</button>
                     </div>
-                    <button onClick={() => removeFromCart(item.id)} className="bg-pink-50 p-2 rounded-lg text-[#EF4444]">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
                   </div>
                 </div>
                 <div className="relative h-20 w-20 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
@@ -298,16 +279,6 @@ export default function CartPage() {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-gray-800">Special Instructions</h3>
-          <Textarea 
-            placeholder="Any specific note for the chef or delivery partner?"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            className="rounded-xl bg-gray-50 border-none"
-          />
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
@@ -341,10 +312,6 @@ export default function CartPage() {
             <span className="text-base font-black text-gray-700">Total Payable</span>
             <span className="text-xl font-black text-[#EF4444]">₹{grandTotal.toFixed(2)}</span>
           </div>
-
-          <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-center gap-2">
-             <span className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">Earn {Math.floor(grandTotal * 0.5)} coins on this order</span>
-          </div>
         </div>
       </div>
 
@@ -372,3 +339,4 @@ export default function CartPage() {
     </div>
   );
 }
+

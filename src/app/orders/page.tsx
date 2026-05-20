@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -6,24 +5,39 @@ import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2 } from 'luci
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { useMemo } from 'react';
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    // If no user object, it might be a guest session not yet loaded
+    if (!firestore || !user?.uid) return null;
+    
+    // We use a simple query without orderBy to avoid index issues in prototyping.
+    // Sorting is handled client-side in sortedOrders useMemo.
     return query(
       collection(firestore, 'orders'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
   }, [firestore, user]);
 
-  const { data: orders, loading } = useCollection<any>(ordersQuery);
+  const { data: orders, loading: ordersLoading } = useCollection<any>(ordersQuery);
+
+  const sortedOrders = useMemo(() => {
+    if (!orders) return [];
+    return [...orders].sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0;
+      const dateB = b.createdAt?.seconds || 0;
+      return dateB - dateA;
+    });
+  }, [orders]);
+
+  const isLoading = userLoading || (ordersLoading && !orders);
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
@@ -32,12 +46,12 @@ export default function OrdersPage() {
       </div>
 
       <div className="px-4 space-y-5">
-        {loading && !orders ? (
+        {isLoading ? (
           <div className="flex justify-center py-20">
              <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : orders && orders.length > 0 ? (
-          orders.map((order) => (
+        ) : sortedOrders.length > 0 ? (
+          sortedOrders.map((order) => (
             <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-border/40 shadow-sm active:scale-[0.98] transition-all group">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center space-x-4">
@@ -99,6 +113,12 @@ export default function OrdersPage() {
           <div className="text-center py-20 opacity-30 flex flex-col items-center">
             <ShoppingBag className="h-16 w-16 mb-4" />
             <p className="font-black italic uppercase tracking-widest text-sm">No orders yet</p>
+            <button 
+              onClick={() => router.push('/menu')}
+              className="mt-6 text-primary font-black uppercase text-[10px] tracking-widest underline underline-offset-4"
+            >
+              Order something delicious now
+            </button>
           </div>
         )}
       </div>
