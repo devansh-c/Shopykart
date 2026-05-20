@@ -2,7 +2,7 @@
 "use client"
 
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
@@ -11,6 +11,7 @@ export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
   const router = useRouter();
   const firestore = useFirestore();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -20,13 +21,20 @@ export function Logo({ className }: { className?: string }) {
   const { data: branding } = useDoc<any>(brandingRef);
 
   const handleTap = () => {
+    // Clear existing timer
+    if (timerRef.current) clearTimeout(timerRef.current);
+
     const nextTaps = taps + 1;
+    
     if (nextTaps >= 5) {
       setTaps(0);
       router.push('/admin/login');
     } else {
       setTaps(nextTaps);
-      setTimeout(() => setTaps(0), 2000);
+      // Reset taps if user doesn't click again within 2 seconds
+      timerRef.current = setTimeout(() => {
+        setTaps(0);
+      }, 2000);
     }
   };
 

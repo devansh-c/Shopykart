@@ -35,7 +35,6 @@ export default function ProfilePage() {
   const dashboardItems = [
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
-    { label: 'Admin Panel', icon: LayoutDashboard, path: '/admin/login', description: 'Global app administration' },
   ];
 
   const handleAction = (item: any) => {
