@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export function ProductManagement() {
   const firestore = useFirestore();
@@ -39,23 +39,29 @@ export function ProductManagement() {
     if (!firestore) return;
     const docRef = doc(firestore, 'products', id);
     deleteDoc(docRef).catch(async (e) => {
-      const err = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
+      const err = new FirestorePermissionError({ 
+        path: docRef.path, 
+        operation: 'delete' 
+      } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', err);
     });
     toast({ title: "Product Deleted", description: "The product was successfully removed." });
   };
 
   const handleSave = () => {
-    if (!firestore || !name || !price) return;
+    if (!firestore || !name || !price) {
+      toast({ variant: "destructive", title: "Missing Fields", description: "Name and Price are mandatory." });
+      return;
+    }
     
     const productData = {
       name,
       price: parseFloat(price),
-      category: category.toLowerCase(),
-      restaurantName,
+      category: category.toLowerCase() || 'general',
+      restaurantName: restaurantName || 'ShopyKart Select',
       isVeg,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
-      badges: ['Featured'],
+      badges: ['New'],
       createdAt: serverTimestamp(),
     };
 
@@ -63,10 +69,14 @@ export function ProductManagement() {
       .then(() => {
         setIsAddOpen(false);
         resetForm();
-        toast({ title: "Product Saved", description: "Your product has been added successfully." });
+        toast({ title: "Product Saved", description: "Your product is now live on the menu." });
       })
       .catch(async (e) => {
-        const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
+        const err = new FirestorePermissionError({ 
+          path: 'products', 
+          operation: 'create', 
+          requestResourceData: productData 
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', err);
       });
   };
@@ -78,89 +88,90 @@ export function ProductManagement() {
     setRestaurantName('');
     setIsVeg(true);
     setSelectedImage(null);
+    setIsGalleryOpen(false);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border">
+      <div className="flex items-center justify-between bg-white p-4 rounded-3xl border shadow-sm">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search products..." className="pl-10 h-10 bg-muted/50 border-none rounded-xl" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search catalog..." className="pl-12 h-12 bg-muted/30 border-none rounded-2xl font-bold" />
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 rounded-xl ml-4">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
+            <Button className="bg-primary hover:bg-primary/90 rounded-2xl ml-4 h-12 px-6 font-black uppercase italic shadow-lg shadow-primary/20">
+              <Plus className="h-5 w-5 mr-2" />
+              NEW PRODUCT
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-2xl max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <DialogHeader className="p-6 pb-2">
-              <DialogTitle className="font-black text-xl italic uppercase">Add New Product</DialogTitle>
+          <DialogContent className="rounded-[2.5rem] max-w-lg overflow-hidden flex flex-col max-h-[92vh] border-none shadow-2xl">
+            <DialogHeader className="p-8 pb-4">
+              <DialogTitle className="font-black text-2xl italic uppercase tracking-tighter">Inventory Update</DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto p-8 pt-0 space-y-6 no-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Product Name</label>
-                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="Enter name" className="rounded-xl" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Dish Identity</label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Maharaja Burger" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Price (₹)</label>
-                  <Input value={price} onChange={e => setPrice(e.target.value)} type="number" placeholder="0.00" className="rounded-xl" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Price (₹)</label>
+                  <Input value={price} onChange={e => setPrice(e.target.value)} type="number" placeholder="0.00" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Category</label>
-                  <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Burgers, Pizza" className="rounded-xl" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Category</label>
+                  <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Burgers, Pizza" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Restaurant Name</label>
-                  <Input value={restaurantName} onChange={e => setRestaurantName(e.target.value)} placeholder="e.g. Bun Burst" className="rounded-xl" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store Name</label>
+                  <Input value={restaurantName} onChange={e => setRestaurantName(e.target.value)} placeholder="e.g. Bun Burst" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Product Image</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Visual Branding</label>
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-24 w-24 rounded-2xl bg-muted border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="flex items-center gap-5 bg-muted/10 p-4 rounded-3xl border border-dashed border-muted-foreground/20">
+                    <div className="h-24 w-24 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 border border-border/50">
                       {selectedImage ? (
                         <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
                       ) : (
-                        <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                        <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Select a premium high-quality food image from our curated gallery.</p>
+                    <div className="flex-1 space-y-3">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">Choose a premium high-quality image from our curated gallery for better conversions.</p>
                       <Button 
                         variant="outline" 
                         onClick={() => setIsGalleryOpen(!isGalleryOpen)}
-                        className="w-full rounded-xl border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] h-10"
+                        className="w-full rounded-xl border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] h-10 bg-white"
                       >
-                        {isGalleryOpen ? "Close Gallery" : "Open Gallery"}
+                        {isGalleryOpen ? "CLOSE GALLERY" : "OPEN GALLERY"}
                       </Button>
                     </div>
                   </div>
 
                   {isGalleryOpen && (
-                    <div className="bg-muted/30 p-4 rounded-2xl border border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto no-scrollbar p-1">
+                    <div className="bg-[#0B0B0B] p-4 rounded-[2rem] border border-white/5 animate-in fade-in zoom-in-95 duration-300">
+                      <div className="grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto no-scrollbar p-1">
                         {PlaceHolderImages.map((img) => (
                           <button
                             key={img.id}
-                            onClick={() => setSelectedImage(img.imageUrl)}
+                            onClick={() => { setSelectedImage(img.imageUrl); setIsGalleryOpen(false); }}
                             className={cn(
-                              "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
-                              selectedImage === img.imageUrl ? "border-primary scale-95" : "border-transparent"
+                              "relative aspect-square rounded-xl overflow-hidden border-2 transition-all active:scale-90",
+                              selectedImage === img.imageUrl ? "border-primary scale-95" : "border-transparent opacity-60"
                             )}
                           >
                             <img src={img.imageUrl} alt={img.description} className="h-full w-full object-cover" />
                             {selectedImage === img.imageUrl && (
                               <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                <Check className="h-5 w-5 text-white drop-shadow-lg" />
+                                <Check className="h-6 w-6 text-white drop-shadow-xl stroke-[4]" />
                               </div>
                             )}
                           </button>
@@ -171,81 +182,81 @@ export function ProductManagement() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3 bg-muted/20 p-4 rounded-2xl">
+              <div className="flex items-center space-x-4 bg-green-50 p-5 rounded-3xl border border-green-100">
                 <input 
                   type="checkbox" 
                   id="isVeg" 
                   checked={isVeg} 
                   onChange={e => setIsVeg(e.target.checked)} 
-                  className="h-5 w-5 rounded-md accent-primary" 
+                  className="h-6 w-6 rounded-lg accent-green-600 cursor-pointer" 
                 />
-                <label htmlFor="isVeg" className="text-sm font-black uppercase italic tracking-tight">Pure Vegetarian Item</label>
+                <label htmlFor="isVeg" className="text-xs font-black uppercase italic tracking-tight text-green-700 cursor-pointer">Pure Vegetarian Selection</label>
               </div>
             </div>
 
-            <div className="p-6 border-t bg-muted/10">
-              <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic py-7 rounded-2xl shadow-xl shadow-primary/20 text-lg tracking-tighter">
-                Confirm & Add Product
+            <div className="p-8 border-t bg-muted/5">
+              <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic h-16 rounded-3xl shadow-xl shadow-primary/20 text-lg tracking-tighter active:scale-95 transition-all">
+                PUBLISH TO MENU
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="col-span-full flex items-center justify-center py-40">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         ) : products && products.length > 0 ? (
           products.map((product: any) => (
-            <div key={product.id} className="bg-white p-5 rounded-2xl border flex items-center justify-between hover:shadow-md transition-shadow group">
-              <div className="flex items-center space-x-4">
-                <div className="h-16 w-16 bg-muted rounded-xl flex items-center justify-center overflow-hidden border">
+            <div key={product.id} className="bg-white p-5 rounded-[2.5rem] border border-border/50 flex flex-col hover:shadow-xl transition-all group relative overflow-hidden">
+              <div className="flex items-center space-x-5">
+                <div className="h-24 w-24 bg-muted rounded-3xl flex items-center justify-center overflow-hidden border border-border/50 shrink-0">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} className="h-full w-full object-cover" alt={product.name} />
                   ) : (
-                    <Package className="h-8 w-8 text-muted-foreground" />
+                    <Package className="h-10 w-10 text-muted-foreground/20" />
                   )}
                 </div>
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="font-bold text-base">{product.name}</h3>
-                    {product.isVeg && <div className="h-2 w-2 rounded-full bg-green-500" title="Veg" />}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h3 className="font-black text-lg italic tracking-tight truncate leading-none">{product.name}</h3>
+                    {product.isVeg && <div className="h-3 w-3 rounded-full bg-green-500 shrink-0 shadow-sm border border-white" />}
                   </div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase">
-                      <Store className="h-3 w-3 mr-1 text-primary" />
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                      <Store className="h-3 w-3 mr-1 text-primary/60" />
                       {product.restaurantName}
                     </div>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <span className="text-xs font-bold text-muted-foreground uppercase">{product.category}</span>
+                    <span className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em]">{product.category}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-black text-primary italic">₹{product.price}</span>
-                    <div className="flex gap-1 ml-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-black text-foreground italic tracking-tighter">₹{product.price}</span>
+                    <div className="flex gap-1">
                       {product.badges?.map((b: string) => (
-                        <Badge key={b} variant="secondary" className="text-[9px] font-black uppercase px-2 py-0">
+                        <span key={b} className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/5 text-primary">
                           {b}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl text-blue-500">
+              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl text-blue-500 bg-white shadow-lg border-none active:scale-90">
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => handleDelete(product.id)} className="h-10 w-10 rounded-xl text-red-500">
+                <Button variant="outline" size="icon" onClick={() => handleDelete(product.id)} className="h-10 w-10 rounded-xl text-red-500 bg-white shadow-lg border-none active:scale-90">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed">
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No products found</p>
+          <div className="col-span-full text-center py-32 bg-muted/10 rounded-[3rem] border-2 border-dashed border-muted-foreground/10">
+            <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground/20" />
+            <p className="text-muted-foreground font-black italic uppercase tracking-[0.2em] text-sm">Inventory Empty</p>
           </div>
         )}
       </div>
