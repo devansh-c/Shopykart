@@ -77,7 +77,7 @@ export default function ShopyKartApp() {
               </ScrollReveal>
             )}
 
-            {/* Coupons Section - Now above Categories */}
+            {/* Coupons Section - Positioned above Categories as requested */}
             {!searchQuery && (
               <ScrollReveal delay={250}>
                 <OffersSection />

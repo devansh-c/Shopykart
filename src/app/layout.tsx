@@ -46,25 +46,19 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         <meta name="theme-color" content="#EF4444" />
         
-        {/* Cache Control Meta Tags Moved Here to Fix Hydration Error */}
+        {/* Anti-Cache for Static Hosting stability */}
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
 
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/favicon.ico" />
+        <link rel="icon" href="data:," /> {/* Removed default Next.js 'N' icon */}
+        <link rel="apple-touch-icon" href="data:," />
         <link rel="canonical" href="https://shopykart.co.in" />
         
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://shopykart.co.in/" />
         <meta property="og:title" content="ShopyKart | Premium Food Delivery" />
-        <meta property="og:description" content="Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur." />
         
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://shopykart.co.in/" />
-        <meta property="twitter:title" content="ShopyKart | Premium Food Delivery" />
-        <meta property="twitter:description" content="Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur." />
-
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
