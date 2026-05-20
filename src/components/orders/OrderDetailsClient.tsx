@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -17,19 +17,46 @@ const steps = [
 ];
 
 export default function OrderDetailsClient() {
-  const { orderId } = useParams();
+  const params = useParams();
+  const orderId = params?.orderId as string;
   const router = useRouter();
   const firestore = useFirestore();
 
   const orderRef = useMemoFirebase(() => {
-    if (!firestore || !orderId) return null;
-    return doc(firestore, 'orders', orderId as string);
+    if (!firestore || !orderId || orderId === 'latest') return null;
+    return doc(firestore, 'orders', orderId);
   }, [firestore, orderId]);
 
   const { data: order, loading } = useDoc<any>(orderRef);
 
-  if (loading && !order) return <div className="min-h-screen bg-white" />;
-  if (!order) return <div className="min-h-screen flex items-center justify-center font-black">ORDER NOT FOUND</div>;
+  if (orderId === 'latest') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <Clock className="h-12 w-12 text-primary mb-4 animate-pulse" />
+        <h2 className="text-xl font-black italic uppercase">Finding your order...</h2>
+        <p className="text-muted-foreground text-xs mt-2">Please wait while we sync your details.</p>
+        <button onClick={() => router.push('/orders')} className="mt-8 text-primary font-black uppercase text-[10px] tracking-widest">View Order History</button>
+      </div>
+    );
+  }
+
+  if (loading && !order) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <h2 className="text-xl font-black italic uppercase">Order Not Found</h2>
+        <p className="text-muted-foreground text-xs mt-2">The order ID might be invalid or deleted.</p>
+        <button onClick={() => router.push('/')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Back to Home</button>
+      </div>
+    );
+  }
 
   const currentStatusIdx = steps.findIndex(s => s.id === order.status);
 
@@ -37,7 +64,9 @@ export default function OrderDetailsClient() {
     <div className="min-h-screen bg-[#F8F9FA] pb-10">
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/orders')} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-50"><ChevronLeft className="h-6 w-6" /></button>
+          <button onClick={() => router.push('/orders')} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
           <h1 className="text-lg font-bold italic uppercase">Track Order</h1>
         </div>
       </div>
@@ -45,7 +74,7 @@ export default function OrderDetailsClient() {
       <div className="p-4 space-y-4 max-w-lg mx-auto">
         <div className="bg-[#FFF8E6] border-[#FFE8B3] rounded-xl p-4 flex items-center gap-3 border text-[#B38B00]">
           <Clock className="h-5 w-5" />
-          <div className="font-bold text-sm">Order #{order.orderDisplayId || (typeof order.id === 'string' ? order.id.slice(-5).toUpperCase() : '...') }</div>
+          <div className="font-bold text-sm">Order #{order.orderDisplayId || orderId.slice(-5).toUpperCase()}</div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -60,7 +89,10 @@ export default function OrderDetailsClient() {
                     <div className={cn("absolute left-[11px] top-6 w-[2px] h-full -z-0", isCompleted ? "bg-primary" : "bg-gray-100")} />
                   )}
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className={cn("h-6 w-6 rounded-full flex items-center justify-center border-2", isCompleted ? "bg-primary border-primary shadow-lg shadow-primary/20" : "bg-white border-gray-200")}>
+                    <div className={cn(
+                      "h-6 w-6 rounded-full flex items-center justify-center border-2",
+                      isCompleted ? "bg-primary border-primary shadow-lg shadow-primary/20" : "bg-white border-gray-200"
+                    )}>
                       {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <Circle className="h-2 w-2 text-gray-300" />}
                     </div>
                   </div>
@@ -80,7 +112,7 @@ export default function OrderDetailsClient() {
             {order.items?.map((item: any, i: number) => (
               <div key={i} className="flex justify-between text-sm">
                 <span className="font-bold">{item.quantity}x {item.name}</span>
-                <span className="font-black">₹{item.price * item.quantity}</span>
+                <span className="font-black">₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             <div className="pt-3 border-t border-dashed flex justify-between items-center">

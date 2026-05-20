@@ -2,11 +2,13 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 
 /**
  * @fileOverview Server Component wrapper for Order tracking.
- * Fixes "missing generateStaticParams" error for output: export.
+ * Fixes "missing param in generateStaticParams" error for output: export.
  */
 
 export async function generateStaticParams() {
-  return []; // Dynamic routes will be handled on client side via Firestore
+  // We provide a default ID to satisfy the static export requirement.
+  // Real order IDs will be handled dynamically on the client.
+  return [{ orderId: 'latest' }];
 }
 
 export default function OrderPage() {

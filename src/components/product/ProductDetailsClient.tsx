@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2 } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -14,7 +14,8 @@ import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase
 import { doc, collection } from 'firebase/firestore';
 
 export default function ProductDetailsClient() {
-  const { productId } = useParams();
+  const params = useParams();
+  const productId = params?.productId as string;
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart } = useCart();
@@ -28,11 +29,11 @@ export default function ProductDetailsClient() {
 
   const firestore = useFirestore();
   const productRef = useMemoFirebase(() => {
-    if (!firestore || !productId) return null;
-    return doc(firestore, 'products', productId as string);
+    if (!firestore || !productId || productId === 'featured') return null;
+    return doc(firestore, 'products', productId);
   }, [firestore, productId]);
 
-  const { data: product } = useDoc<any>(productRef);
+  const { data: product, loading } = useDoc<any>(productRef);
   
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -44,11 +45,6 @@ export default function ProductDetailsClient() {
     if (!allDbProducts || !product) return [];
     return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
   }, [allDbProducts, productId, product]);
-
-  const [mockReviews] = useState([
-    { id: 'r1', user: 'Amit K.', rating: 5, comment: 'Absolutely delicious! The best in town.', date: '2 days ago' },
-    { id: 'r2', user: 'Sara S.', rating: 4, comment: 'Very fresh and hot. Loved the packaging.', date: '5 days ago' },
-  ]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -95,7 +91,23 @@ export default function ProductDetailsClient() {
     toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
   };
 
-  if (!product) return <div className="min-h-screen bg-white" />;
+  if (productId === 'featured' || (loading && !product)) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <h2 className="text-xl font-black italic uppercase">Product Not Found</h2>
+        <p className="text-muted-foreground text-xs mt-2">The item you are looking for might have been removed.</p>
+        <button onClick={() => router.push('/menu')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Explore Menu</button>
+      </div>
+    );
+  }
 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
 
