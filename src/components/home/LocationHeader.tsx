@@ -14,7 +14,6 @@ import {
   ChevronRight,
   MapPin,
   Utensils,
-  Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -40,6 +39,8 @@ type LocationHeaderProps = {
   onModeChange: (mode: string) => void;
 };
 
+const SEARCH_WORDS = ["Pizza", "Burgers", "Sweets", "Pasta", "Biryani", "Shakes"];
+
 export function LocationHeader({
   searchValue,
   onSearchChange,
@@ -51,9 +52,17 @@ export function LocationHeader({
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [currentAddress, setCurrentAddress] = useState('Select Location');
+  const [wordIndex, setWordIndex] = useState(0);
 
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % SEARCH_WORDS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const updateAddress = () => {
@@ -116,116 +125,128 @@ export function LocationHeader({
   };
 
   return (
-    <div className="w-full will-change-transform bg-white border-b border-gray-100">
-      <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 max-w-[75%]">
-          <MapPin className="h-4 w-4 text-primary shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Deliver to</span>
-            <span className="text-foreground text-xs font-bold truncate tracking-tight">{currentAddress}</span>
+    <div className="w-full bg-[#0B0B0B] pb-6 pt-4 px-4 space-y-5 rounded-b-[2.5rem] shadow-2xl relative z-50">
+      {/* Top Row: Location & Actions */}
+      <div className="flex items-center justify-between">
+        <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
+          <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
+            <MapPin className="h-5 w-5" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Deliver to</span>
+            <div className="flex items-center gap-1">
+              <span className="text-white text-xs font-black truncate tracking-tight">{currentAddress}</span>
+              <ChevronRight className="h-3 w-3 text-primary shrink-0" />
+            </div>
           </div>
         </div>
-        <button onClick={handleChangeLocation} className="text-primary text-[10px] font-black uppercase tracking-widest">Change</button>
+
+        <div className="flex items-center gap-2">
+          <Link href="/cart">
+            <div className="relative">
+              <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+              {totalItems > 0 && (
+                <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-bounce">
+                  <span className="text-[10px] font-black text-white">{totalItems}</span>
+                </div>
+              )}
+            </div>
+          </Link>
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+                <Menu className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
+              <SheetHeader className="p-8 border-b border-white/5">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <Logo className="justify-start bg-transparent shadow-none px-0" />
+              </SheetHeader>
+              <div className="p-6 space-y-2">
+                {[
+                  { label: 'My Profile', icon: User, href: '/profile' },
+                  { label: 'My Orders', icon: Package, href: '/orders' },
+                  { label: 'Rewards', icon: Gift, href: '/rewards' },
+                  { label: 'Wishlist', icon: Heart, href: '/wishlist' }
+                ].map((item) => (
+                  <Link key={item.label} href={item.href}>
+                    <button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white/5 p-3 rounded-xl">
+                          <item.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="font-bold text-sm">{item.label}</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-600" />
+                    </button>
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
-      <div className="px-3 pt-2 pb-4 flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <Logo className="scale-90 origin-left" />
+      {/* Center Branding */}
+      <div className="flex justify-center">
+        <Logo className="scale-110" />
+      </div>
 
-          <div className="flex items-center gap-2">
-            <Link href="/wishlist">
-              <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground active:scale-90 transition-all">
-                <Heart className="h-5 w-5" />
+      {/* Bottom Row: Search Bar & Mode Toggle */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 pointer-events-none" />
+          <div className="relative h-14 w-full bg-white/5 border border-white/10 rounded-2xl overflow-hidden focus-within:border-primary/50 transition-all">
+            <Input
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="h-full w-full bg-transparent border-none pl-12 pr-12 text-white font-bold placeholder:text-transparent focus-visible:ring-0"
+            />
+            {!searchValue && (
+              <div className="absolute left-12 top-0 bottom-0 flex items-center pointer-events-none overflow-hidden h-full">
+                <span className="text-gray-500 text-sm font-bold mr-1">Search</span>
+                <span 
+                  key={wordIndex}
+                  className="text-primary text-sm font-black italic animate-placeholder-slide"
+                >
+                  {SEARCH_WORDS[wordIndex]}
+                </span>
               </div>
-            </Link>
-
-            <Link href="/cart">
-              <div className="relative">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-all">
-                  <ShoppingBag className="h-5 w-5" />
-                </div>
-                {totalItems > 0 && (
-                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center border-2 border-white">
-                    <span className="text-[10px] font-black text-white">{totalItems}</span>
-                  </div>
-                )}
-              </div>
-            </Link>
-
-            <Sheet>
-              <SheetTrigger asChild>
-                <button className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center text-foreground active:scale-90 transition-all">
-                  <Menu className="h-5 w-5" />
-                </button>
-              </SheetTrigger>
-              <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
-                <SheetHeader className="p-8 border-b border-white/5">
-                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                  <Logo className="justify-start bg-transparent shadow-none px-0" />
-                </SheetHeader>
-                <div className="p-6 space-y-2">
-                  {[
-                    { label: 'My Profile', icon: User, href: '/profile' },
-                    { label: 'My Orders', icon: Package, href: '/orders' },
-                    { label: 'Rewards', icon: Gift, href: '/rewards' },
-                    { label: 'Wishlist', icon: Heart, href: '/wishlist' }
-                  ].map((item) => (
-                    <Link key={item.label} href={item.href}>
-                      <button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="bg-white/5 p-3 rounded-xl">
-                            <item.icon className="h-5 w-5 text-primary" />
-                          </div>
-                          <span className="font-bold text-sm">{item.label}</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-600" />
-                      </button>
-                    </Link>
-                  ))}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-          <Input
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder='Search "Pizza, Sweets, Burgers..."'
-            className="h-14 bg-muted/30 border-none rounded-2xl pl-12 pr-24 text-base text-foreground shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <button onClick={handleMicClick} className={cn("p-2 rounded-xl transition-all active:scale-90", isListening ? "bg-primary text-white" : "text-primary")}>
-              <Mic className="h-5 w-5" />
-            </button>
-            <button onClick={handleCameraClick} className="p-2 text-primary rounded-xl active:scale-90 transition-all">
-              {isIdentifying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
-            </button>
+            )}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+               <button onClick={handleCameraClick} className="p-2 text-primary active:scale-90 transition-all">
+                {isIdentifying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          {['Food', 'Grocery'].map((mode) => (
+        {/* Mode Toggle Switch */}
+        <div className="bg-white/5 p-1 rounded-2xl border border-white/10 flex gap-1 h-14">
+          {[
+            { id: 'Food', icon: Utensils },
+            { id: 'Grocery', icon: ShoppingBag }
+          ].map((mode) => (
             <button
-              key={mode}
-              onClick={() => onModeChange(mode)}
+              key={mode.id}
+              onClick={() => onModeChange(mode.id)}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 flex items-center gap-2",
-                activeMode === mode ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-muted/50 text-muted-foreground"
+                "h-full px-4 rounded-xl flex items-center justify-center transition-all relative overflow-hidden",
+                activeMode === mode.id 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 scale-100" 
+                  : "text-gray-500 scale-90 opacity-60"
               )}
             >
-              {mode === 'Food' ? <Utensils className="h-3 w-3" /> : <ShoppingBag className="h-3 w-3" />}
-              {mode}
+              <mode.icon className="h-5 w-5" />
+              {activeMode === mode.id && (
+                 <div className="absolute -bottom-2 w-1 h-1 bg-white rounded-full" />
+              )}
             </button>
           ))}
-          <div className="flex-1" />
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-xl border border-green-100">
-             <div className="h-1.5 w-1.5 bg-green-600 rounded-full animate-pulse" />
-             <span className="text-[9px] font-black uppercase tracking-tight">Pure Veg</span>
-          </button>
         </div>
       </div>
     </div>
