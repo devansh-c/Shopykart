@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -71,14 +70,14 @@ export default function ShopyKartApp() {
               </ScrollReveal>
             )}
 
-            {/* Stores Section - Filtered by Mode */}
+            {/* Stores Section - Vertical List */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={200}>
                 <StoreSection activeMode={activeMode} />
               </ScrollReveal>
             )}
 
-            {/* Coupons Section */}
+            {/* Coupons Section - Now above Categories */}
             {!searchQuery && (
               <ScrollReveal delay={250}>
                 <OffersSection />
@@ -93,7 +92,7 @@ export default function ShopyKartApp() {
               />
             </ScrollReveal>
 
-            {/* All Products Section - Filtered by Mode */}
+            {/* All Products Section */}
             <div className="px-1">
               <PopularProducts 
                 searchQuery={searchQuery} 

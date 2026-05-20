@@ -1,7 +1,6 @@
-
 "use client"
 
-import { Star, MapPin, Store, Loader2 } from "lucide-react"
+import { Star, MapPin, Store } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -22,7 +21,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   const filteredVendors = useMemo(() => {
     if (loading || !dbVendors) return [];
-    // Only show approved stores of the active mode
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
