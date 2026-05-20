@@ -11,7 +11,8 @@ import {
   Calendar,
   Building2,
   Navigation,
-  Coins
+  Coins,
+  MessageCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
@@ -19,11 +20,15 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
+/**
+ * @fileOverview This component allows Admin to manage and call registered customers.
+ * It reads from the root 'users' collection.
+ */
 export function CustomerManagement() {
   const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch all users from root collection
+  // Fetch all users from root collection for real-time monitoring
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
@@ -49,7 +54,7 @@ export function CustomerManagement() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">User Directory</h2>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Total Registered: {users?.length || 0}</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Live Monitoring: {users?.length || 0} Registered</p>
         </div>
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -63,7 +68,7 @@ export function CustomerManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
+        {loading && !users ? (
           <div className="col-span-full flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -98,14 +103,24 @@ export function CustomerManagement() {
                        </div>
                        <span className="text-sm font-black tracking-tight">{user.phoneNumber || 'N/A'}</span>
                     </div>
-                    {user.phoneNumber && (
-                      <button 
-                        onClick={() => window.open(`tel:${user.phoneNumber}`)}
-                        className="text-[10px] font-black uppercase text-blue-600 underline"
-                      >
-                        CALL NOW
-                      </button>
-                    )}
+                    <div className="flex gap-2">
+                      {user.phoneNumber && (
+                        <>
+                          <button 
+                            onClick={() => window.open(`tel:${user.phoneNumber}`)}
+                            className="p-2 bg-green-500 text-white rounded-lg active:scale-90 transition-transform shadow-md"
+                          >
+                            <PhoneCall className="h-3.5 w-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => window.open(`https://wa.me/91${user.phoneNumber}`)}
+                            className="p-2 bg-green-50 text-green-600 rounded-lg active:scale-90 transition-transform"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-start gap-2">
@@ -142,7 +157,7 @@ export function CustomerManagement() {
         ) : (
           <div className="col-span-full text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
             <User className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No customers found</p>
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">Waiting for first login...</p>
           </div>
         )}
       </div>
