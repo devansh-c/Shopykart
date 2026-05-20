@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -50,6 +49,7 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState<{lat: string, lng: string} | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
 
@@ -63,6 +63,11 @@ export default function CartPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setAddress(localStorage.getItem('user_address') || '');
+      const lat = localStorage.getItem('user_lat');
+      const lng = localStorage.getItem('user_lng');
+      if (lat && lng) {
+        setCoords({ lat, lng });
+      }
     }
   }, []);
 
@@ -103,6 +108,8 @@ export default function CartPage() {
       paymentMethod,
       instructions,
       address: address || 'Store Pickup',
+      latitude: coords?.lat || null,
+      longitude: coords?.lng || null,
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'unknown',
       coinsEarned: earnedCoins,
@@ -317,6 +324,7 @@ export default function CartPage() {
               <div className="flex-1 truncate pr-4">
                 <span className="text-[10px] font-bold text-[#EF4444] uppercase">Home</span>
                 <p className="text-xs font-bold text-gray-700 truncate mt-0.5">{address}</p>
+                {coords && <span className="text-[8px] text-gray-400 uppercase font-black">GPS Verified ✓</span>}
               </div>
               <button onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))} className="text-blue-500 text-[10px] font-bold uppercase">Change</button>
             </div>

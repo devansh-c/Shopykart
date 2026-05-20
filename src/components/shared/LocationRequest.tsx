@@ -111,6 +111,16 @@ export function LocationRequest() {
       localStorage.setItem('user_address', location.address);
       localStorage.setItem('user_town', townName);
       localStorage.setItem('user_location_set', 'true');
+      
+      // Store coordinates if available for delivery boys
+      if (location.latitude && location.longitude) {
+        localStorage.setItem('user_lat', location.latitude.toString());
+        localStorage.setItem('user_lng', location.longitude.toString());
+      } else {
+        localStorage.removeItem('user_lat');
+        localStorage.removeItem('user_lng');
+      }
+      
       window.dispatchEvent(new CustomEvent('user-address-updated'));
     }
 

@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, updateDoc, query, where } from 'firebase/firestore';
-import { Navigation, Package, CheckCircle, MapPin, LogOut, BellRing, Volume2, VolumeX } from 'lucide-react';
+import { Navigation, Package, CheckCircle, MapPin, LogOut, BellRing, Volume2, VolumeX, Compass, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -78,6 +77,19 @@ export default function DeliveryDashboard() {
     router.push('/delivery/login');
   };
 
+  const openNavigation = (task: any) => {
+    if (task.latitude && task.longitude) {
+      // Direct navigation link for Google Maps - Uses shortest path based on real-time traffic
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${task.latitude},${task.longitude}&travelmode=driving`;
+      window.open(url, '_blank');
+    } else {
+      // Fallback to text search if no coordinates
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
+      window.open(url, '_blank');
+      toast({ title: "Note", description: "Navigating via address as GPS spot was not set." });
+    }
+  };
+
   if (authLoading || loading) return null;
   if (!user) return null;
 
@@ -122,44 +134,57 @@ export default function DeliveryDashboard() {
         </div>
       )}
 
-      {!isAudioEnabled && pendingPickupsCount > 0 && (
-        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-center">
-          <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Enable sound to hear order alerts</p>
-        </div>
-      )}
-
       <div className="space-y-4">
         {tasks?.map((task) => (
           <div key={task.id} className={cn(
-            "bg-white/5 backdrop-blur-md rounded-[2rem] p-6 border transition-all",
+            "bg-white/5 backdrop-blur-md rounded-[2.5rem] p-6 border transition-all relative overflow-hidden",
             task.status === 'Ready for Pickup' ? "border-primary shadow-lg shadow-primary/5" : "border-white/10"
           )}>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-6">
               <div>
                 <span className={cn(
                   "text-[10px] font-black uppercase tracking-[0.2em]",
                   task.status === 'Ready for Pickup' ? "text-primary" : "text-gray-500"
                 )}>{task.status}</span>
                 <h3 className="font-black italic text-lg leading-none mt-2">PICKUP #{task.id.slice(-4)}</h3>
-                <div className="flex items-center gap-2 mt-2 text-gray-400 text-xs">
-                  <MapPin className="h-3 w-3" />
-                  <span className="truncate">{task.address}</span>
+                <div className="flex items-center gap-2 mt-3 text-gray-400 text-xs">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  <span className="truncate max-w-[200px] font-medium">{task.address}</span>
                 </div>
+                {task.latitude && (
+                  <div className="mt-1 inline-flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded text-[8px] font-black text-green-500 uppercase">
+                    <CheckCircle className="h-2 w-2" /> GPS Point Verified
+                  </div>
+                )}
               </div>
-              <div className="bg-white/10 p-4 rounded-2xl">
-                <Navigation className={cn("h-6 w-6", task.status === 'Ready for Pickup' ? "text-primary animate-bounce" : "text-gray-500")} />
-              </div>
+              <button 
+                onClick={() => openNavigation(task)}
+                className="bg-white/10 p-4 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group"
+              >
+                <Compass className={cn("h-6 w-6", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} />
+              </button>
             </div>
 
-            {task.status === 'Ready for Pickup' && (
-              <Button onClick={() => updateDelivery(task.id, 'Picked Up')} className="w-full bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic h-14 text-lg shadow-xl shadow-primary/20">Accept & Pickup</Button>
-            )}
-            {task.status === 'Picked Up' && (
-              <Button onClick={() => updateDelivery(task.id, 'Out for Delivery')} className="w-full bg-blue-500 hover:bg-blue-600 rounded-2xl font-black uppercase italic h-14 text-lg">Mark Out for Delivery</Button>
-            )}
-            {task.status === 'Out for Delivery' && (
-              <Button onClick={() => updateDelivery(task.id, 'Delivered')} className="w-full bg-green-500 hover:bg-green-600 rounded-2xl font-black uppercase italic h-14 text-lg">Confirm Delivery</Button>
-            )}
+            <div className="space-y-3">
+              <Button 
+                onClick={() => openNavigation(task)}
+                variant="outline"
+                className="w-full h-12 rounded-2xl border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10"
+              >
+                <Map className="h-3 w-3 mr-2" />
+                Open Smart Route
+              </Button>
+
+              {task.status === 'Ready for Pickup' && (
+                <Button onClick={() => updateDelivery(task.id, 'Picked Up')} className="w-full bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic h-14 text-lg shadow-xl shadow-primary/20">Accept & Pickup</Button>
+              )}
+              {task.status === 'Picked Up' && (
+                <Button onClick={() => updateDelivery(task.id, 'Out for Delivery')} className="w-full bg-blue-500 hover:bg-blue-600 rounded-2xl font-black uppercase italic h-14 text-lg">Mark Out for Delivery</Button>
+              )}
+              {task.status === 'Out for Delivery' && (
+                <Button onClick={() => updateDelivery(task.id, 'Delivered')} className="w-full bg-green-500 hover:bg-green-600 rounded-2xl font-black uppercase italic h-14 text-lg">Confirm Delivery</Button>
+              )}
+            </div>
           </div>
         ))}
 
