@@ -200,7 +200,6 @@ export function LocationHeader({
         </div>
 
         <div className="px-1 -mb-9 relative z-20 flex items-center gap-2">
-          {/* Main Search Input - Maximized space */}
           <div className="relative group flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             <div className="absolute left-12 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
@@ -219,30 +218,27 @@ export function LocationHeader({
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
           </div>
 
-          {/* Ultra-Compact Premium Sliding Toggle Switch */}
+          {/* Ultra-Premium Super-Compact Toggle */}
           <div 
             onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
             className={cn(
-              "relative h-10 w-16 rounded-full p-1 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-2xl border border-white/10",
+              "relative h-9 w-14 rounded-full p-0.5 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-xl border border-white/10 overflow-hidden",
               activeMode === 'Food' ? "bg-primary" : "bg-green-600"
             )}
           >
-            {/* The white sliding circle thumb - Small & Sleek */}
             <div 
               className={cn(
-                "absolute h-8 w-8 bg-white rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
-                activeMode === 'Food' ? "translate-x-0" : "translate-x-6"
+                "absolute h-[30px] w-[30px] bg-white rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
+                activeMode === 'Food' ? "translate-x-0" : "translate-x-5"
               )}
             >
               {activeMode === 'Food' ? (
-                <Utensils className="h-3.5 w-3.5 text-primary animate-in zoom-in duration-300" />
+                <Utensils className="h-3 w-3 text-primary" />
               ) : (
-                <ShoppingBag className="h-3.5 w-3.5 text-green-600 animate-in zoom-in duration-300" />
+                <ShoppingBag className="h-3 w-3 text-green-600" />
               )}
             </div>
-            
-            {/* Subtle Hidden Text Labels for accessibility */}
-            <span className="sr-only">{activeMode === 'Food' ? 'Food Mode' : 'Grocery Mode'}</span>
+            <span className="sr-only">Toggle Mode</span>
           </div>
         </div>
       </div>

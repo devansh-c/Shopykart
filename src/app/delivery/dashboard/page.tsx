@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -35,7 +34,6 @@ export default function DeliveryDashboard() {
 
   const { data: tasks, loading } = useCollection<any>(tasksQuery);
 
-  // Sound Logic: Ring if any order is 'Ready for Pickup'
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -80,11 +78,9 @@ export default function DeliveryDashboard() {
 
   const openNavigation = (task: any) => {
     if (task.latitude && task.longitude) {
-      // Direct navigation link for Google Maps - Uses shortest path based on real-time traffic
       const url = `https://www.google.com/maps/dir/?api=1&destination=${task.latitude},${task.longitude}&travelmode=driving`;
       window.open(url, '_blank');
     } else {
-      // Fallback to text search if no coordinates
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
       window.open(url, '_blank');
       toast({ title: "Note", description: "Navigating via address as GPS spot was not set." });
@@ -139,7 +135,7 @@ export default function DeliveryDashboard() {
         {tasks?.map((task) => (
           <div key={task.id} className={cn(
             "bg-white/5 backdrop-blur-md rounded-[2.5rem] p-6 border transition-all relative overflow-hidden",
-            task.status === 'Ready for Pickup' ? "border-primary shadow-lg shadow-primary/5" : "border-white/10"
+            task.status === 'Ready for Pickup' ? "border-primary shadow-xl shadow-primary/5" : "border-white/10"
           )}>
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -149,37 +145,39 @@ export default function DeliveryDashboard() {
                 )}>{task.status}</span>
                 <h3 className="font-black italic text-lg leading-none mt-2">PICKUP #{task.id.slice(-4)}</h3>
                 
-                {/* Customer Identity for Delivery Boy */}
-                <div className="mt-4 flex items-center justify-between bg-white/5 p-3 rounded-2xl border border-white/5">
-                   <div className="flex items-center gap-2">
-                      <div className="bg-white/10 p-1.5 rounded-lg text-primary"><User className="h-3.5 w-3.5" /></div>
-                      <span className="text-xs font-black uppercase italic tracking-tighter">{task.customerName || 'Customer'}</span>
+                <div className="mt-4 flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                   <div className="flex items-center gap-3">
+                      <div className="bg-white/10 p-2 rounded-xl text-primary"><User className="h-4 w-4" /></div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-500 uppercase leading-none mb-1">Customer</p>
+                        <span className="text-xs font-black uppercase italic tracking-tighter">{task.customerName || 'Premium User'}</span>
+                      </div>
                    </div>
                    {task.customerPhone && (
                      <button 
                       onClick={() => window.open(`tel:${task.customerPhone}`)}
-                      className="bg-green-600 p-2 rounded-xl text-white shadow-lg active:scale-90"
+                      className="bg-green-600 hover:bg-green-500 p-3.5 rounded-xl text-white shadow-xl shadow-green-600/20 active:scale-90 transition-all"
                      >
-                       <PhoneCall className="h-3.5 w-3.5" />
+                       <PhoneCall className="h-5 w-5" />
                      </button>
                    )}
                 </div>
 
                 <div className="flex items-center gap-2 mt-4 text-gray-400 text-xs">
                   <MapPin className="h-3.5 w-3.5 text-primary" />
-                  <span className="truncate max-w-[200px] font-medium">{task.address}</span>
+                  <span className="truncate max-w-[180px] font-medium">{task.address}</span>
                 </div>
                 {task.latitude && (
-                  <div className="mt-1 inline-flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded text-[8px] font-black text-green-500 uppercase">
-                    <CheckCircle className="h-2 w-2" /> GPS Point Verified
+                  <div className="mt-2 inline-flex items-center gap-1.5 bg-green-500/10 px-2.5 py-1 rounded-lg text-[9px] font-black text-green-500 uppercase">
+                    <CheckCircle className="h-2.5 w-2.5" /> GPS SPOT VERIFIED
                   </div>
                 )}
               </div>
               <button 
                 onClick={() => openNavigation(task)}
-                className="bg-white/10 p-4 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group"
+                className="bg-white/10 p-5 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group shadow-2xl"
               >
-                <Compass className={cn("h-6 w-6", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} />
+                <Compass className={cn("h-7 w-7", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} />
               </button>
             </div>
 

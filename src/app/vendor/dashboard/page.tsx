@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -242,7 +241,7 @@ export default function VendorDashboard() {
               </div>
             )}
             {filteredOrders.map((order: any) => (
-              <div key={order.id} className={cn("bg-white rounded-3xl p-5 shadow-sm border", order.status === 'Placed' ? "border-primary" : "border-gray-100")}>
+              <div key={order.id} className={cn("bg-white rounded-3xl p-5 shadow-sm border", order.status === 'Placed' ? "border-primary shadow-lg" : "border-gray-100")}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
@@ -254,21 +253,20 @@ export default function VendorDashboard() {
                   <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-full bg-primary/5 text-primary">{order.status}</span>
                 </div>
 
-                {/* Customer Identity & Quick Call */}
-                <div className="flex items-center justify-between bg-muted/20 p-3 rounded-2xl mb-4 border border-border/40">
+                <div className="flex items-center justify-between bg-muted/20 p-4 rounded-2xl mb-4 border border-border/40">
                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-xl text-primary"><User className="h-4 w-4" /></div>
+                      <div className="bg-primary/10 p-2 rounded-xl text-primary"><User className="h-5 w-5" /></div>
                       <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Customer</p>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Customer Details</p>
                         <h4 className="text-sm font-black italic tracking-tight leading-none uppercase">{order.customerName || 'Premium User'}</h4>
                       </div>
                    </div>
                    {order.customerPhone && (
                      <button 
                       onClick={() => window.open(`tel:${order.customerPhone}`)}
-                      className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"
+                      className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl shadow-xl shadow-green-500/20 active:scale-90 transition-all"
                      >
-                       <PhoneCall className="h-4 w-4" />
+                       <PhoneCall className="h-5 w-5" />
                      </button>
                    )}
                 </div>

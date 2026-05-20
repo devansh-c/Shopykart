@@ -7,7 +7,7 @@ import { doc } from 'firebase/firestore';
 /**
  * @fileOverview BrandingLoader handles dynamic SEO updates from Firestore.
  * Refactored to prevent "removeChild" errors by updating existing nodes
- * instead of destructive removal/re-addition.
+ * and ensuring stable icon management to block default "N" favicon.
  */
 export function BrandingLoader() {
   const firestore = useFirestore();
@@ -53,15 +53,16 @@ export function BrandingLoader() {
 
     // 3. Helper to update/create Link tags (Favicons) safely
     const updateLinkTag = (rel: string, href: string) => {
-      let element = document.querySelector(`link[rel*="${rel}"]`) as HTMLLinkElement;
+      const elements = document.querySelectorAll(`link[rel*="${rel}"]`);
       
-      // If we found an existing tag, just update its href
-      if (element) {
-        if (element.href !== href) {
-          element.href = href;
-        }
+      if (elements.length > 0) {
+        elements.forEach((el) => {
+          const linkEl = el as HTMLLinkElement;
+          if (linkEl.href !== href) {
+            linkEl.href = href;
+          }
+        });
       } else {
-        // Only create if it truly doesn't exist
         const newLink = document.createElement('link');
         newLink.rel = rel;
         newLink.href = href;
@@ -71,6 +72,7 @@ export function BrandingLoader() {
 
     const targetFavicon = branding?.faviconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
 
+    // Apply to multiple rel types to override all browser defaults
     updateLinkTag('icon', targetFavicon);
     updateLinkTag('apple-touch-icon', targetFavicon);
     updateLinkTag('shortcut icon', targetFavicon);
