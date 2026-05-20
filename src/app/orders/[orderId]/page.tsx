@@ -6,10 +6,12 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
  */
 
 export async function generateStaticParams() {
-  // We provide a default ID to satisfy the static export requirement.
-  // Real order IDs will be handled dynamically on the client.
+  // Return a dummy ID for build time.
   return [{ orderId: 'latest' }];
 }
+
+export const dynamic = 'force-static';
+export const dynamicParams = true;
 
 export default function OrderPage() {
   return <OrderDetailsClient />;

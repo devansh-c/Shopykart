@@ -5,9 +5,8 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview BrandingLoader handles dynamic SEO updates from Firestore.
- * Refactored to prevent "removeChild" errors by updating existing nodes
- * and ensuring stable icon management to block default "N" favicon.
+ * @fileOverview BrandingLoader handles dynamic SEO and UI branding from Firestore.
+ * Refactored to be extremely defensive against DOM manipulation errors.
  */
 export function BrandingLoader() {
   const firestore = useFirestore();
@@ -20,62 +19,75 @@ export function BrandingLoader() {
   const { data: branding } = useDoc<any>(brandingRef);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !document.head) return;
+    if (typeof window === 'undefined' || !document || !document.head) return;
 
-    // 1. Update Document Title
-    if (branding?.siteTitle && document.title !== branding.siteTitle) {
-      document.title = branding.siteTitle;
+    // Safety: Only run if document is ready or interactive
+    if (document.readyState === 'loading') {
+      const handleLoad = () => applyBranding(branding);
+      window.addEventListener('DOMContentLoaded', handleLoad);
+      return () => window.removeEventListener('DOMContentLoaded', handleLoad);
+    } else {
+      applyBranding(branding);
     }
 
-    // 2. Helper to update/create Meta tags safely
-    const updateMetaTag = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
-      let element = document.querySelector(`meta[${attr}="${name}"]`);
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attr, name);
-        document.head.appendChild(element);
+    function applyBranding(data: any) {
+      if (!data) return;
+
+      // 1. Update Document Title
+      if (data.siteTitle && document.title !== data.siteTitle) {
+        document.title = data.siteTitle;
       }
-      if (element.getAttribute('content') !== content) {
-        element.setAttribute('content', content);
-      }
-    };
 
-    if (branding?.siteDescription) {
-      updateMetaTag('description', branding.siteDescription);
-      updateMetaTag('og:description', branding.siteDescription, 'property');
-      updateMetaTag('twitter:description', branding.siteDescription);
-    }
-
-    if (branding?.siteTitle) {
-      updateMetaTag('og:title', branding.siteTitle, 'property');
-      updateMetaTag('twitter:title', branding.siteTitle);
-    }
-
-    // 3. Helper to update/create Link tags (Favicons) safely
-    const updateLinkTag = (rel: string, href: string) => {
-      const elements = document.querySelectorAll(`link[rel*="${rel}"]`);
-      
-      if (elements.length > 0) {
-        elements.forEach((el) => {
-          const linkEl = el as HTMLLinkElement;
-          if (linkEl.href !== href) {
-            linkEl.href = href;
+      // 2. Helper to update/create Meta tags safely
+      const updateMetaTag = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
+        try {
+          let element = document.querySelector(`meta[${attr}="${name}"]`);
+          if (!element) {
+            element = document.createElement('meta');
+            element.setAttribute(attr, name);
+            document.head.appendChild(element);
           }
-        });
-      } else {
-        const newLink = document.createElement('link');
-        newLink.rel = rel;
-        newLink.href = href;
-        document.head.appendChild(newLink);
+          if (element.getAttribute('content') !== content) {
+            element.setAttribute('content', content);
+          }
+        } catch (e) {
+          console.warn(`Failed to update meta ${name}`);
+        }
+      };
+
+      if (data.siteDescription) {
+        updateMetaTag('description', data.siteDescription);
+        updateMetaTag('og:description', data.siteDescription, 'property');
       }
-    };
 
-    const targetFavicon = branding?.faviconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
+      if (data.siteTitle) {
+        updateMetaTag('og:title', data.siteTitle, 'property');
+      }
 
-    // Apply to multiple rel types to override all browser defaults
-    updateLinkTag('icon', targetFavicon);
-    updateLinkTag('apple-touch-icon', targetFavicon);
-    updateLinkTag('shortcut icon', targetFavicon);
+      // 3. Helper to update/create Link tags (Favicons) safely
+      const updateLinkTag = (rel: string, href: string) => {
+        try {
+          const elements = document.querySelectorAll(`link[rel*="${rel}"]`);
+          if (elements.length > 0) {
+            elements.forEach((el) => {
+              const linkEl = el as HTMLLinkElement;
+              if (linkEl.href !== href) linkEl.href = href;
+            });
+          } else {
+            const newLink = document.createElement('link');
+            newLink.rel = rel;
+            newLink.href = href;
+            document.head.appendChild(newLink);
+          }
+        } catch (e) {
+          console.warn(`Failed to update link ${rel}`);
+        }
+      };
+
+      const targetFavicon = data.faviconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
+      updateLinkTag('icon', targetFavicon);
+      updateLinkTag('apple-touch-icon', targetFavicon);
+    }
 
   }, [branding]);
 

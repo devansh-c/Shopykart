@@ -6,10 +6,14 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
  */
 
 export async function generateStaticParams() {
-  // We provide a default ID to satisfy the static export requirement.
-  // Real product IDs will be handled dynamically on the client.
+  // Return a dummy ID for build time. 
+  // Next.js requires this for static export of dynamic routes.
   return [{ productId: 'featured' }];
 }
+
+// Ensure the page is treated as static but can handle dynamic client routing
+export const dynamic = 'force-static';
+export const dynamicParams = true;
 
 export default function ProductPage() {
   return <ProductDetailsClient />;
