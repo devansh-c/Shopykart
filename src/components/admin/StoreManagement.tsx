@@ -1,21 +1,14 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { 
   Store, 
   User, 
-  Phone, 
   MapPin, 
-  CheckCircle, 
   Trash2, 
   Loader2, 
-  Utensils, 
-  ShoppingBag,
   MessageCircle,
-  Mail,
-  Map as MapIcon,
   Edit,
   PhoneCall,
   Search,
@@ -37,7 +30,7 @@ export function StoreManagement() {
   const [editingStore, setEditingStore] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  // Fetch Live Stores instead of Applications
+  // Fetch Live Stores
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), orderBy('updatedAt', 'desc'));
@@ -231,4 +224,3 @@ export function StoreManagement() {
     </div>
   );
 }
-

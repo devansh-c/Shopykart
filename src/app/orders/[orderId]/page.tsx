@@ -6,11 +6,12 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
  */
 
 export async function generateStaticParams() {
-  // Return a sample ID to satisfy the build requirement for static export.
+  // Return sample IDs to satisfy the build requirement for static export.
   // The actual tracking happens on the client side in OrderDetailsClient.
   return [
     { orderId: 'track' },
-    { orderId: 'status' }
+    { orderId: 'status' },
+    { orderId: 'active' }
   ];
 }
 

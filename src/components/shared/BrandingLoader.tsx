@@ -29,21 +29,14 @@ export function BrandingLoader() {
         document.title = data.siteTitle;
       }
 
-      // 2. Helper to update Meta tags safely
+      // 2. Helper to update Meta tags safely (Only update existing to avoid conflicts)
       const updateMetaTag = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
         try {
-          let element = document.querySelector(`meta[${attr}="${name}"]`);
-          if (!element) {
-            element = document.createElement('meta');
-            element.setAttribute(attr, name);
-            document.head.appendChild(element);
-          }
-          if (element.getAttribute('content') !== content) {
+          const element = document.querySelector(`meta[${attr}="${name}"]`);
+          if (element && element.getAttribute('content') !== content) {
             element.setAttribute('content', content);
           }
-        } catch (e) {
-          // Fail silently to prevent runtime crashes
-        }
+        } catch (e) {}
       };
 
       if (data.siteDescription) {
@@ -64,20 +57,14 @@ export function BrandingLoader() {
               const linkEl = el as HTMLLinkElement;
               if (linkEl.href !== href) linkEl.href = href;
             });
-          } else {
-            const newLink = document.createElement('link');
-            newLink.rel = rel;
-            newLink.href = href;
-            document.head.appendChild(newLink);
           }
-        } catch (e) {
-          // Fail silently
-        }
+        } catch (e) {}
       };
 
-      const targetFavicon = data.faviconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
-      updateLinkTag('icon', targetFavicon);
-      updateLinkTag('apple-touch-icon', targetFavicon);
+      if (data.faviconUrl) {
+        updateLinkTag('icon', data.faviconUrl);
+        updateLinkTag('apple-touch-icon', data.faviconUrl);
+      }
     };
 
     // Safety: Only run if document is ready or interactive

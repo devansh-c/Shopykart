@@ -6,11 +6,12 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
  */
 
 export async function generateStaticParams() {
-  // Return a sample ID to satisfy the build requirement for static export.
+  // Return sample IDs to satisfy the build requirement for static export.
   // The actual fetching happens on the client side in ProductDetailsClient.
   return [
     { productId: 'featured' },
-    { productId: 'latest' }
+    { productId: 'latest' },
+    { productId: 'trending' }
   ];
 }
 
