@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -200,58 +199,62 @@ export function LocationHeader({
           </div>
         </div>
 
-        <div className="px-1 -mb-9 relative z-20 flex items-center gap-3">
-          {/* Main Search Input */}
+        <div className="px-1 -mb-9 relative z-20 flex items-center gap-2">
+          {/* Main Search Input - Now much larger */}
           <div className="relative group flex-1">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-            <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <div className="absolute left-12 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-sm font-medium z-10">
               {!searchValue && <TypewriterPlaceholder />}
             </div>
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder=""
-              className="h-12 bg-white border-none rounded-xl pl-14 pr-24 text-base text-foreground shadow-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+              className="h-14 bg-white border-none rounded-2xl pl-12 pr-20 text-base text-foreground shadow-2xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white/50 backdrop-blur-sm rounded-lg p-0.5">
-              <button onClick={handleMicClick} className={`p-1.5 rounded-lg transition-all active:scale-90 ${isListening ? 'bg-primary text-white' : 'text-gray-400'}`}><Mic className="h-4 w-4" /></button>
-              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-1.5 text-gray-400 hover:text-primary rounded-lg transition-all active:scale-90">{isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}</button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              <button onClick={handleMicClick} className={`p-2 rounded-xl transition-all active:scale-90 ${isListening ? 'bg-primary text-white shadow-lg' : 'text-gray-400'}`}><Mic className="h-4 w-4" /></button>
+              <button onClick={handleCameraClick} disabled={isIdentifying} className="p-2 text-gray-400 hover:text-primary rounded-xl transition-all active:scale-90">{isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}</button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
           </div>
 
-          {/* Premium Sliding Toggle Switch */}
+          {/* Smaller Premium Sliding Toggle Switch */}
           <div 
             onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
             className={cn(
-              "relative h-12 w-24 rounded-full p-1 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-xl border-2 border-white/10",
+              "relative h-14 w-20 rounded-2xl p-1 cursor-pointer transition-all duration-500 flex items-center shrink-0 shadow-2xl border-2 border-white/5",
               activeMode === 'Food' ? "bg-primary" : "bg-green-600"
             )}
           >
-            {/* The white sliding circle thumb */}
+            {/* The white sliding circle thumb - Smaller */}
             <div 
               className={cn(
-                "absolute h-9 w-9 bg-white rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
-                activeMode === 'Food' ? "translate-x-0" : "translate-x-12"
+                "absolute h-10 w-10 bg-white rounded-xl shadow-lg transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex items-center justify-center z-10",
+                activeMode === 'Food' ? "translate-x-0" : "translate-x-8"
               )}
             >
               {activeMode === 'Food' ? (
-                <Utensils className="h-5 w-5 text-primary animate-in zoom-in duration-300" />
+                <Utensils className="h-4 w-4 text-primary animate-in zoom-in duration-300" />
               ) : (
-                <ShoppingBag className="h-5 w-5 text-green-600 animate-in zoom-in duration-300" />
+                <ShoppingBag className="h-4 w-4 text-green-600 animate-in zoom-in duration-300" />
               )}
             </div>
             
-            {/* Labels under the thumb */}
-            <div className="flex justify-between w-full px-2.5 select-none">
-              <span className={cn(
-                "text-[8px] font-black text-white uppercase ml-9 transition-all duration-500 tracking-tighter",
-                activeMode === 'Food' ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-              )}>Food</span>
-              <span className={cn(
-                "text-[8px] font-black text-white uppercase mr-9 transition-all duration-500 tracking-tighter",
-                activeMode === 'Grocery' ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2"
-              )}>Shop</span>
+            {/* Subtle Text Labels */}
+            <div className="flex justify-between w-full px-1 select-none">
+               <div className="w-full text-center">
+                  <span className={cn(
+                    "text-[7px] font-black text-white uppercase transition-all duration-500",
+                    activeMode === 'Food' ? "opacity-0" : "opacity-100"
+                  )}>Food</span>
+               </div>
+               <div className="w-full text-center">
+                  <span className={cn(
+                    "text-[7px] font-black text-white uppercase transition-all duration-500",
+                    activeMode === 'Grocery' ? "opacity-0" : "opacity-100"
+                  )}>Shop</span>
+               </div>
             </div>
           </div>
         </div>
