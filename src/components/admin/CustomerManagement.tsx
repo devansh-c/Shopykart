@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -11,18 +10,20 @@ import {
   Loader2, 
   Calendar,
   Building2,
-  Navigation
+  Navigation,
+  Coins
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 export function CustomerManagement() {
   const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch all users
+  // Fetch all users from root collection
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
@@ -33,13 +34,13 @@ export function CustomerManagement() {
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     return users.filter(u => {
-      const p = u.profile?.data || u;
-      return (
-        p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.phoneNumber?.includes(searchQuery) ||
-        p.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.pincode?.includes(searchQuery)
-      );
+      const name = (u.fullName || '').toLowerCase();
+      const phone = (u.phoneNumber || '');
+      const city = (u.city || '').toLowerCase();
+      const pincode = (u.pincode || '');
+      
+      const q = searchQuery.toLowerCase();
+      return name.includes(q) || phone.includes(q) || city.includes(q) || pincode.includes(q);
     });
   }, [users, searchQuery]);
 
@@ -68,7 +69,6 @@ export function CustomerManagement() {
           </div>
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
-            const profile = user.profile?.data || user;
             return (
               <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col">
                 <div className="flex items-center gap-4 mb-6">
@@ -77,12 +77,16 @@ export function CustomerManagement() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate">
-                      {profile.fullName || 'Identity Pending'}
+                      {user.fullName || 'Identity Pending'}
                     </h3>
                     <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
                       <Calendar className="h-3 w-3" />
-                      Joined {profile.createdAt?.seconds ? format(new Date(profile.createdAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+                      Joined {user.createdAt?.seconds ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
                     </div>
+                  </div>
+                  <div className="bg-amber-50 px-3 py-2 rounded-2xl border border-amber-100 flex flex-col items-center justify-center">
+                     <Coins className="h-4 w-4 text-amber-500 mb-0.5" />
+                     <span className="text-xs font-black text-amber-600">{user.coins || 0}</span>
                   </div>
                 </div>
 
@@ -92,11 +96,11 @@ export function CustomerManagement() {
                        <div className="bg-white p-1.5 rounded-lg shadow-sm">
                           <PhoneCall className="h-3.5 w-3.5 text-green-500" />
                        </div>
-                       <span className="text-sm font-black tracking-tight">{profile.phoneNumber || 'N/A'}</span>
+                       <span className="text-sm font-black tracking-tight">{user.phoneNumber || 'N/A'}</span>
                     </div>
-                    {profile.phoneNumber && (
+                    {user.phoneNumber && (
                       <button 
-                        onClick={() => window.open(`tel:${profile.phoneNumber}`)}
+                        onClick={() => window.open(`tel:${user.phoneNumber}`)}
                         className="text-[10px] font-black uppercase text-blue-600 underline"
                       >
                         CALL NOW
@@ -107,19 +111,19 @@ export function CustomerManagement() {
                   <div className="flex items-start gap-2">
                      <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                      <p className="text-xs font-bold text-muted-foreground leading-snug">
-                       {profile.address || 'Address not provided'}
+                       {user.address || 'Address not provided'}
                      </p>
                   </div>
 
                   <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-200">
                      <div className="flex items-center gap-1.5">
                         <Building2 className="h-3 w-3 text-gray-400" />
-                        <span className="text-[10px] font-black uppercase">{profile.city || 'N/A'}</span>
+                        <span className="text-[10px] font-black uppercase">{user.city || 'N/A'}</span>
                      </div>
                      <div className="h-1 w-1 bg-gray-300 rounded-full" />
                      <div className="flex items-center gap-1.5">
                         <Navigation className="h-3 w-3 text-gray-400" />
-                        <span className="text-[10px] font-black uppercase">{profile.pincode || 'N/A'}</span>
+                        <span className="text-[10px] font-black uppercase">{user.pincode || 'N/A'}</span>
                      </div>
                   </div>
                 </div>

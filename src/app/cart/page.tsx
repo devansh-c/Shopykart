@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -54,10 +53,10 @@ export default function CartPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
 
-  // Fetch User Profile for Coins and Contact Details
+  // Fetch User Profile from root
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'profile', 'data');
+    return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: profile } = useDoc<any>(profileRef);
 
@@ -95,7 +94,6 @@ export default function CartPage() {
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
-    // Calculate Earned Coins (50% of the bill)
     const earnedCoins = Math.floor(grandTotal * 0.5);
     const coinsToDeduct = useCoins ? availableCoins : 0;
 
@@ -124,7 +122,6 @@ export default function CartPage() {
 
     setDoc(orderRef, orderData)
       .then(async () => {
-        // Update User Coins
         if (profileRef) {
           const newCoinBalance = (availableCoins - coinsToDeduct) + earnedCoins;
           await updateDoc(profileRef, { coins: newCoinBalance });
@@ -235,7 +232,6 @@ export default function CartPage() {
           </button>
         </div>
 
-        {/* Coins System */}
         {availableCoins > 0 && (
           <div className="bg-white rounded-2xl p-4 shadow-sm border-2 border-dashed border-amber-200">
              <div className="flex items-center justify-between">
@@ -314,10 +310,6 @@ export default function CartPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 px-1">
-             <History className="h-3 w-3" />
-             <span>~20 min - Free</span>
-          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
@@ -343,32 +335,6 @@ export default function CartPage() {
               Add delivery address
             </button>
           )}
-        </div>
-
-        <button className="w-full bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all">
-          <div className="flex items-center gap-3">
-             <div className="bg-pink-50 p-2 rounded-xl text-[#EF4444]">
-               <TicketPercent className="h-5 w-5" />
-             </div>
-             <div className="text-left">
-               <h4 className="text-sm font-bold text-gray-800">View all coupons</h4>
-               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">2 offers available</p>
-             </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#EF4444] transition-colors" />
-        </button>
-
-        <div className="space-y-3">
-           <div className="flex items-center gap-2 px-1">
-             <FileText className="h-4 w-4 text-gray-400" />
-             <h2 className="text-sm font-bold uppercase text-gray-700">Special Instructions</h2>
-           </div>
-           <Textarea 
-             placeholder="Any special requests? (kam mirchi, extra sauce...)" 
-             className="rounded-xl bg-white border-none shadow-sm h-14 text-sm font-medium focus-visible:ring-1 focus-visible:ring-[#EF4444]/20"
-             value={instructions}
-             onChange={(e) => setInstructions(e.target.value)}
-           />
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
@@ -413,13 +379,6 @@ export default function CartPage() {
              <span className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">You will earn {Math.floor(grandTotal * 0.5)} coins on this order</span>
           </div>
         </div>
-
-        <div className="bg-gray-100 rounded-2xl p-4 border border-gray-200/50">
-           <h4 className="text-[10px] font-black uppercase text-gray-600 mb-1 tracking-wider">Cancellation Policy</h4>
-           <p className="text-[10px] font-medium text-gray-500 leading-relaxed">
-             Help us reduce food waste by avoiding cancellations after placing your order. Orders once placed cannot be cancelled.
-           </p>
-        </div>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -428,7 +387,7 @@ export default function CartPage() {
               <div>
                  <div className="text-lg font-black text-gray-800">₹{grandTotal.toFixed(2)}</div>
                  <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase">
-                   {paymentMethod === 'Online' ? '⚡ Online Payment' : '💵 Cash'} • incl. taxes
+                   ⚡ Online Payment • incl. taxes
                  </p>
               </div>
               <div className="flex items-center gap-1.5 text-gray-400">

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -16,9 +15,10 @@ export default function RewardsPage() {
   const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('points');
 
+  // Updated profileRef to root user document
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'profile', 'data');
+    return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
   const { data: profile } = useDoc<any>(profileRef);
@@ -105,21 +105,6 @@ export default function RewardsPage() {
                  Checkout ke waqt <span className="text-primary">1 Coin = ₹0.5</span> ka discount milega!
                </p>
             </div>
-
-            <div className="bg-[#0B0B0B] rounded-3xl p-6 text-white relative overflow-hidden">
-               <div className="flex items-center gap-4 relative z-10">
-                  <div className="bg-white/10 p-3 rounded-2xl">
-                     <History className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                     <h3 className="font-black italic uppercase text-sm">Coin History</h3>
-                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Rewards updated after every order</p>
-                  </div>
-               </div>
-               <div className="mt-8 opacity-20 text-center py-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em]">No recent activity</p>
-               </div>
-            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -138,10 +123,6 @@ export default function RewardsPage() {
                   >
                     <Copy className="h-5 w-5" />
                   </button>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-dashed border-border mt-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Min Order: {coupon.minOrder}</span>
-                  <span className="text-[10px] font-black text-primary uppercase italic">Details</span>
                 </div>
               </div>
             ))}

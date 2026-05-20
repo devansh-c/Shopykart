@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -17,9 +16,10 @@ export default function ProfilePage() {
   const auth = useAuth();
   const firestore = useFirestore();
 
+  // Updated profileRef to root user document
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'profile', 'data');
+    return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
   const { data: profile } = useDoc<any>(profileRef);
