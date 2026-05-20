@@ -64,7 +64,7 @@ export default function WishlistPage() {
           return (
             <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300">
               <div className="relative aspect-square">
-                <Link href={`/product/${product.id}`}>
+                <Link href={`/product/view?id=${product.id}`}>
                   <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" />
                 </Link>
                 <button 
@@ -75,7 +75,7 @@ export default function WishlistPage() {
                 </button>
               </div>
               <div className="p-3 flex-1 flex flex-col justify-between">
-                <Link href={`/product/${product.id}`}>
+                <Link href={`/product/view?id=${product.id}`}>
                   <h3 className="font-bold text-xs line-clamp-2 min-h-[2rem] leading-tight mb-1">{product.name}</h3>
                   <p className="text-primary font-black text-sm">₹{product.price.toFixed(2)}</p>
                 </Link>

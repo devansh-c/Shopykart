@@ -142,7 +142,7 @@ export default function CartPage() {
         
         setTimeout(() => {
           clearCart();
-          router.push(`/orders/${orderId}`);
+          router.push(`/orders/track?id=${orderId}`);
         }, 1500);
       })
       .catch(async (err: any) => {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, Suspense } from 'react';
@@ -175,7 +176,7 @@ function MenuContent() {
                 className="premium-card p-5 flex justify-between items-center bg-white relative overflow-hidden"
               >
                 <div className="flex-1 pr-4">
-                  <Link href={`/product/${product.id}`} className={cn("block", isOffline && "pointer-events-none")}>
+                  <Link href={`/product/view?id=${product.id}`} className={cn("block", isOffline && "pointer-events-none")}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                         <div className="h-full w-full bg-green-600 rounded-full" />

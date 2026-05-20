@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
 import { ChevronLeft, Minus, Plus, Star, Share2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
@@ -14,8 +15,8 @@ import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase
 import { doc, collection } from 'firebase/firestore';
 
 export default function ProductDetailsClient() {
-  const params = useParams();
-  const productId = params?.productId as string;
+  const searchParams = useSearchParams();
+  const productId = searchParams.get('id');
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart } = useCart();
@@ -29,7 +30,7 @@ export default function ProductDetailsClient() {
 
   const firestore = useFirestore();
   const productRef = useMemoFirebase(() => {
-    if (!firestore || !productId || productId === 'featured') return null;
+    if (!firestore || !productId) return null;
     return doc(firestore, 'products', productId);
   }, [firestore, productId]);
 
@@ -42,7 +43,7 @@ export default function ProductDetailsClient() {
   const { data: allDbProducts } = useCollection<any>(productsQuery);
 
   const relatedProducts = useMemo(() => {
-    if (!allDbProducts || !product) return [];
+    if (!allDbProducts || !product || !productId) return [];
     return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
   }, [allDbProducts, productId, product]);
 
@@ -91,7 +92,16 @@ export default function ProductDetailsClient() {
     toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
   };
 
-  if (productId === 'featured' || (loading && !product)) {
+  if (!productId) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <h2 className="text-xl font-black italic uppercase">No Product Selected</h2>
+        <button onClick={() => router.push('/menu')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Explore Menu</button>
+      </div>
+    );
+  }
+
+  if (loading && !product) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -234,7 +244,7 @@ export default function ProductDetailsClient() {
             <div className="overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
               <div className="flex space-x-4">
                 {relatedProducts.map((prod: any) => (
-                  <Link key={prod.id} href={`/product/${prod.id}`}>
+                  <Link key={prod.id} href={`/product/view?id=${prod.id}`}>
                     <div className="min-w-[200px] bg-white rounded-3xl border border-border/40 p-3 shadow-sm flex flex-col group active:scale-95 transition-all">
                       <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
                         <img 

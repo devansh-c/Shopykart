@@ -30,7 +30,7 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
         <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
           <div className="h-full w-full bg-green-600 rounded-full" />
         </div>
-        <Link href={`/product/${product.id}`} className={cn(isOffline && "pointer-events-none")}>
+        <Link href={`/product/view?id=${product.id}`} className={cn(isOffline && "pointer-events-none")}>
           <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight">{product.name}</h3>
           <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
           <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Unknown Store'}</p>

@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -17,24 +18,24 @@ const steps = [
 ];
 
 export default function OrderDetailsClient() {
-  const params = useParams();
-  const orderId = params?.orderId as string;
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get('id');
   const router = useRouter();
   const firestore = useFirestore();
 
   const orderRef = useMemoFirebase(() => {
-    if (!firestore || !orderId || orderId === 'latest') return null;
+    if (!firestore || !orderId) return null;
     return doc(firestore, 'orders', orderId);
   }, [firestore, orderId]);
 
   const { data: order, loading } = useDoc<any>(orderRef);
 
-  if (orderId === 'latest') {
+  if (!orderId) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
         <Clock className="h-12 w-12 text-primary mb-4 animate-pulse" />
-        <h2 className="text-xl font-black italic uppercase">Finding your order...</h2>
-        <p className="text-muted-foreground text-xs mt-2">Please wait while we sync your details.</p>
+        <h2 className="text-xl font-black italic uppercase">No Order ID</h2>
+        <p className="text-muted-foreground text-xs mt-2">Please select an order from your history.</p>
         <button onClick={() => router.push('/orders')} className="mt-8 text-primary font-black uppercase text-[10px] tracking-widest">View Order History</button>
       </div>
     );

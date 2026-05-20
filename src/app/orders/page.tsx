@@ -86,7 +86,7 @@ export default function OrdersPage() {
                   <span className="text-xl font-black text-foreground italic tracking-tight">₹{order.total?.toFixed(2)}</span>
                 </div>
                 <button 
-                  onClick={() => router.push(`/orders/${order.id}`)}
+                  onClick={() => router.push(`/orders/track?id=${order.id}`)}
                   className="bg-[#0B0B0B] text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-primary transition-colors"
                 >
                   Track Order
