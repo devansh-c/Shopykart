@@ -11,6 +11,7 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
+import { PromoPopup } from '@/components/shared/PromoPopup';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useUser();
@@ -24,6 +25,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       {showAuth && <EmailAuth />}
       <div className={showAuth ? 'hidden' : ''}>
         {!isExcludedPath && <LocationRequest />}
+        {!isExcludedPath && <PromoPopup />}
         <NotificationHandler />
         {children}
         {!isExcludedPath && <FloatingCart />}
