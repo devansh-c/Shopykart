@@ -19,10 +19,10 @@ export function BrandingLoader() {
   const { data: branding } = useDoc<any>(brandingRef);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !branding) return;
+    if (typeof window === 'undefined') return;
 
     // 1. Update Document Title
-    if (branding.siteTitle) {
+    if (branding?.siteTitle) {
       document.title = branding.siteTitle;
     }
 
@@ -37,34 +37,38 @@ export function BrandingLoader() {
       element.setAttribute('content', content);
     };
 
-    if (branding.siteDescription) {
+    if (branding?.siteDescription) {
       updateMetaTag('description', branding.siteDescription);
       updateMetaTag('og:description', branding.siteDescription, 'property');
       updateMetaTag('twitter:description', branding.siteDescription);
     }
 
-    if (branding.siteTitle) {
+    if (branding?.siteTitle) {
       updateMetaTag('og:title', branding.siteTitle, 'property');
       updateMetaTag('twitter:title', branding.siteTitle);
     }
 
     // 3. Helper to update/create Link tags (Favicons)
     const updateLinkTag = (rel: string, href: string) => {
-      let link = document.querySelector(`link[rel*="${rel}"]`);
-      if (link) {
-        link.setAttribute('href', href);
-      } else {
-        const newLink = document.createElement('link');
-        newLink.rel = rel;
-        newLink.href = href;
-        document.head.appendChild(newLink);
-      }
+      // Remove any existing tags with this rel to avoid conflicts
+      const existingTags = document.querySelectorAll(`link[rel*="${rel}"]`);
+      existingTags.forEach(tag => tag.remove());
+
+      const newLink = document.createElement('link');
+      newLink.rel = rel;
+      newLink.href = href;
+      document.head.appendChild(newLink);
     };
 
-    if (branding.faviconUrl) {
+    if (branding?.faviconUrl) {
       updateLinkTag('icon', branding.faviconUrl);
       updateLinkTag('apple-touch-icon', branding.faviconUrl);
       updateLinkTag('shortcut icon', branding.faviconUrl);
+    } else {
+      // Fallback to our custom SVG cart icon instead of default N
+      const fallbackIcon = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
+      updateLinkTag('icon', fallbackIcon);
+      updateLinkTag('shortcut icon', fallbackIcon);
     }
   }, [branding]);
 
