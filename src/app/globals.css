@@ -56,6 +56,13 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes placeholder-slide {
+  0% { transform: translateY(100%); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  90% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+
 .animate-shimmer {
   position: relative;
   overflow: hidden;
@@ -79,6 +86,10 @@
 
 .animate-running-line {
   animation: running-line 2s infinite linear;
+}
+
+.animate-placeholder-slide {
+  animation: placeholder-slide 3s infinite ease-in-out;
 }
 
 .premium-card {
