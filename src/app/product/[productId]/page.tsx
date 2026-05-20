@@ -2,16 +2,15 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 
 /**
  * @fileOverview Server Component wrapper for Product details.
- * Fixes "dynamicParams: true" conflict with output: export.
+ * In static export mode, we must define sample params and disable dynamicParams.
  */
 
 export async function generateStaticParams() {
-  // Return a dummy ID for build time. 
-  // Next.js requires this for static export of dynamic routes.
+  // Return a sample ID to satisfy the build requirement.
+  // The actual fetching happens on the client side in ProductDetailsClient.
   return [{ productId: 'featured' }];
 }
 
-// Ensure the page is treated as static but can handle dynamic client routing
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 

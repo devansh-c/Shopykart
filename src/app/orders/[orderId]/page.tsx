@@ -2,11 +2,12 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 
 /**
  * @fileOverview Server Component wrapper for Order tracking.
- * Fixes "dynamicParams: true" conflict with output: export.
+ * In static export mode, we must define sample params and disable dynamicParams.
  */
 
 export async function generateStaticParams() {
-  // Return a dummy ID for build time.
+  // Return a sample ID to satisfy the build requirement.
+  // The actual tracking happens on the client side in OrderDetailsClient.
   return [{ orderId: 'latest' }];
 }
 
