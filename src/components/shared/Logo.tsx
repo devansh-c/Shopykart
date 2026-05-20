@@ -28,7 +28,8 @@ export function Logo({ className }: { className?: string }) {
     
     if (nextTaps >= 5) {
       setTaps(0);
-      router.push('/admin/login');
+      // Redirect directly to dashboard. Dashboard will handle login redirect if needed.
+      router.push('/admin/dashboard');
     } else {
       setTaps(nextTaps);
       // Reset taps if user doesn't click again within 2 seconds
