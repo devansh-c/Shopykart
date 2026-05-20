@@ -6,7 +6,8 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview BrandingLoader handles dynamic SEO updates from Firestore.
- * Ensures Title, Description, and Favicon are updated safely on the client.
+ * Refactored to prevent "removeChild" errors by updating existing nodes
+ * instead of destructive removal/re-addition.
  */
 export function BrandingLoader() {
   const firestore = useFirestore();
@@ -19,14 +20,14 @@ export function BrandingLoader() {
   const { data: branding } = useDoc<any>(brandingRef);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !document.head) return;
 
     // 1. Update Document Title
-    if (branding?.siteTitle) {
+    if (branding?.siteTitle && document.title !== branding.siteTitle) {
       document.title = branding.siteTitle;
     }
 
-    // 2. Helper to update/create Meta tags
+    // 2. Helper to update/create Meta tags safely
     const updateMetaTag = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
       let element = document.querySelector(`meta[${attr}="${name}"]`);
       if (!element) {
@@ -34,7 +35,9 @@ export function BrandingLoader() {
         element.setAttribute(attr, name);
         document.head.appendChild(element);
       }
-      element.setAttribute('content', content);
+      if (element.getAttribute('content') !== content) {
+        element.setAttribute('content', content);
+      }
     };
 
     if (branding?.siteDescription) {
@@ -48,28 +51,30 @@ export function BrandingLoader() {
       updateMetaTag('twitter:title', branding.siteTitle);
     }
 
-    // 3. Helper to update/create Link tags (Favicons)
+    // 3. Helper to update/create Link tags (Favicons) safely
     const updateLinkTag = (rel: string, href: string) => {
-      // Remove any existing tags with this rel to avoid conflicts
-      const existingTags = document.querySelectorAll(`link[rel*="${rel}"]`);
-      existingTags.forEach(tag => tag.remove());
-
-      const newLink = document.createElement('link');
-      newLink.rel = rel;
-      newLink.href = href;
-      document.head.appendChild(newLink);
+      let element = document.querySelector(`link[rel*="${rel}"]`) as HTMLLinkElement;
+      
+      // If we found an existing tag, just update its href
+      if (element) {
+        if (element.href !== href) {
+          element.href = href;
+        }
+      } else {
+        // Only create if it truly doesn't exist
+        const newLink = document.createElement('link');
+        newLink.rel = rel;
+        newLink.href = href;
+        document.head.appendChild(newLink);
+      }
     };
 
-    if (branding?.faviconUrl) {
-      updateLinkTag('icon', branding.faviconUrl);
-      updateLinkTag('apple-touch-icon', branding.faviconUrl);
-      updateLinkTag('shortcut icon', branding.faviconUrl);
-    } else {
-      // Fallback to our custom SVG cart icon instead of default N
-      const fallbackIcon = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
-      updateLinkTag('icon', fallbackIcon);
-      updateLinkTag('shortcut icon', fallbackIcon);
-    }
+    const targetFavicon = branding?.faviconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>';
+
+    updateLinkTag('icon', targetFavicon);
+    updateLinkTag('apple-touch-icon', targetFavicon);
+    updateLinkTag('shortcut icon', targetFavicon);
+
   }, [branding]);
 
   return null;
