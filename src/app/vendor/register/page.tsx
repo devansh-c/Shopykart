@@ -124,11 +124,11 @@ export default function VendorRegistrationPage() {
       );
       const user = userCredential.user;
 
-      // Step 2: Create Application Entry (Waiting for Admin Approval)
-      const applicationData = {
+      // Step 2: Create Store Entry (Directly in 'vendors' for instant login/visibility)
+      const storeData = {
         id: user.uid,
         storeName: formData.storeName,
-        category: formData.category,
+        category: formData.category, // 'Food' or 'Grocery'
         imageUrl: formData.logo,
         bannerUrl: formData.cover,
         town: formData.zone,
@@ -141,14 +141,17 @@ export default function VendorRegistrationPage() {
         lastName: formData.lastName,
         phone: formData.phone,
         email: formData.email.trim().toLowerCase(),
-        status: 'pending',
+        status: 'approved', // Auto-approved for prototyping
+        isOnline: true,
+        walletBalance: 0,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(firestore, 'vendor_applications', user.uid), applicationData);
+      await setDoc(doc(firestore, 'vendors', user.uid), storeData);
 
       setStep('success');
-      toast({ title: "Application Sent!", description: "Admin will verify and activate your store within 24 hours." });
+      toast({ title: "Store Created!", description: "Your business is now live on ShopyKart." });
 
     } catch (err: any) {
       toast({ variant: "destructive", title: "Registration Failed", description: err.message });
@@ -280,9 +283,9 @@ export default function VendorRegistrationPage() {
                   <CheckCircle2 className="h-14 w-14 text-white" />
                 </div>
               </div>
-              <h2 className="text-2xl font-black italic uppercase text-blue-600">APPLICATION SENT!</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase px-4">Your store is under verification. You will be notified via email once approved.</p>
-              <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">BACK TO HOME</Button>
+              <h2 className="text-2xl font-black italic uppercase text-blue-600">BUSINESS LIVE!</h2>
+              <p className="text-xs font-black text-muted-foreground uppercase px-4">Your store is now active. You can login and start adding products.</p>
+              <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">LOGIN TO DASHBOARD</Button>
             </div>
           )}
         </CardContent>
