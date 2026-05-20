@@ -2,7 +2,7 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 
 /**
  * @fileOverview Server Component wrapper for Product details.
- * Fixes "missing param in generateStaticParams" error for output: export.
+ * Fixes "dynamicParams: true" conflict with output: export.
  */
 
 export async function generateStaticParams() {
@@ -13,7 +13,7 @@ export async function generateStaticParams() {
 
 // Ensure the page is treated as static but can handle dynamic client routing
 export const dynamic = 'force-static';
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export default function ProductPage() {
   return <ProductDetailsClient />;

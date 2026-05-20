@@ -2,7 +2,7 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 
 /**
  * @fileOverview Server Component wrapper for Order tracking.
- * Fixes "missing param in generateStaticParams" error for output: export.
+ * Fixes "dynamicParams: true" conflict with output: export.
  */
 
 export async function generateStaticParams() {
@@ -11,7 +11,7 @@ export async function generateStaticParams() {
 }
 
 export const dynamic = 'force-static';
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export default function OrderPage() {
   return <OrderDetailsClient />;
