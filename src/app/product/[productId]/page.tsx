@@ -6,11 +6,12 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
  */
 
 export async function generateStaticParams() {
-  // Return a sample ID to satisfy the build requirement.
+  // Return a sample ID to satisfy the build requirement for static export.
   // The actual fetching happens on the client side in ProductDetailsClient.
   return [{ productId: 'featured' }];
 }
 
+// Ensure the page is treated as static for the export process
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
