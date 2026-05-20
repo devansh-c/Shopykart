@@ -1,7 +1,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { 
   Store, 
   User, 
@@ -12,7 +12,10 @@ import {
   Edit,
   PhoneCall,
   Search,
-  Check
+  Check,
+  Power,
+  PowerOff,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +32,7 @@ export function StoreManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingStore, setEditingStore] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   // Fetch Live Stores
   const vendorsQuery = useMemoFirebase(() => {
@@ -73,11 +77,78 @@ export function StoreManagement() {
     }
   };
 
+  const handleBulkStatus = async (online: boolean) => {
+    if (!firestore || !vendors || vendors.length === 0) return;
+    
+    const confirmMsg = online 
+      ? "Do you want to OPEN ALL stores in the network?" 
+      : "CRITICAL: Do you want to CLOSE ALL stores in the network immediately?";
+    
+    if (!confirm(confirmMsg)) return;
+
+    setIsBulkUpdating(true);
+    try {
+      const batch = writeBatch(firestore);
+      
+      vendors.forEach((store) => {
+        const ref = doc(firestore, 'vendors', store.id);
+        batch.update(ref, { isOnline: online, updatedAt: new Date() });
+      });
+
+      await batch.commit();
+      toast({ 
+        title: online ? "All Stores Opened" : "All Stores Closed", 
+        description: `Successfully updated ${vendors.length} stores.`,
+        variant: online ? "default" : "destructive"
+      });
+    } catch (err) {
+      console.error("Bulk update error:", err);
+      toast({ variant: "destructive", title: "Bulk Update Failed" });
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      {/* Master Bulk Control */}
+      <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+             <div className="bg-primary/20 p-3 rounded-2xl border border-primary/20">
+                <Power className="h-6 w-6 text-primary" />
+             </div>
+             <div>
+                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">Master Network Control</h3>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Control all {vendors?.length || 0} stores with one click</p>
+             </div>
+          </div>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+             <Button 
+              disabled={isBulkUpdating}
+              onClick={() => handleBulkStatus(true)}
+              className="flex-1 md:flex-none h-12 rounded-xl bg-green-600 hover:bg-green-500 font-black uppercase italic text-[10px] tracking-widest"
+             >
+               {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-2" />}
+               OPEN ALL STORES
+             </Button>
+             <Button 
+              disabled={isBulkUpdating}
+              onClick={() => handleBulkStatus(false)}
+              className="flex-1 md:flex-none h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase italic text-[10px] tracking-widest"
+             >
+               {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-2" />}
+               CLOSE ALL STORES
+             </Button>
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 h-full w-32 bg-primary/5 -skew-x-12 translate-x-10" />
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-4">
         <div>
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Store Management</h2>
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Store Directory</h2>
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Monitor and Edit Live Vendors</p>
         </div>
         <div className="relative w-full md:w-72">
