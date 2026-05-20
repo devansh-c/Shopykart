@@ -3,10 +3,10 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, Utensils } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,11 +14,16 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 
+// Required for Next.js Static Export with dynamic routes
+export async function generateStaticParams() {
+  return [];
+}
+
 export default function ProductDetailsPage() {
   const { productId } = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { addToCart, cart } = useCart();
+  const { addToCart } = useCart();
   
   const [instructions, setInstructions] = useState('');
   const [userRating, setUserRating] = useState(0);

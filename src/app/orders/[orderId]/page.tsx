@@ -1,14 +1,16 @@
+
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, MessageSquare, Phone, Clock, FileText, Send, XCircle, CheckCircle2, Circle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ChevronLeft, Clock, CheckCircle2, Circle } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+
+// Required for Next.js Static Export with dynamic routes
+export async function generateStaticParams() {
+  return [];
+}
 
 const steps = [
   { id: 'Placed', label: 'Order Placed' },
