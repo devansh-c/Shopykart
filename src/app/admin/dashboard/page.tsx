@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -17,12 +18,7 @@ import {
   CheckCircle2,
   Percent,
   Feather,
-  Globe,
-  RefreshCw,
-  Timer,
-  AlertOctagon,
-  RefreshCcw,
-  Smartphone
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -41,9 +37,11 @@ import { StoreManagement } from '@/components/admin/StoreManagement';
 import { CategoryManagement } from '@/components/admin/CategoryManagement';
 import { BrandingManagement } from '@/components/admin/BrandingManagement';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
+import { CustomerManagement } from '@/components/admin/CustomerManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'customers', label: 'Customers', icon: Users },
   { id: 'stores', label: 'Stores', icon: Store },
   { id: 'categories', label: 'Categories', icon: Tag },
   { id: 'catalog', label: 'Catalog', icon: Layers },
@@ -137,6 +135,8 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'dashboard':
         return <AdminOverview />;
+      case 'customers':
+        return <CustomerManagement />;
       case 'stores':
         return <StoreManagement />;
       case 'categories':

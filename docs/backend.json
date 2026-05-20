@@ -44,6 +44,9 @@
         "fullName": { "type": "string" },
         "email": { "type": "string" },
         "phoneNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "pincode": { "type": "string" },
         "coins": { "type": "number", "default": 0 },
         "createdAt": { "type": "string", "format": "date-time" }
       }
