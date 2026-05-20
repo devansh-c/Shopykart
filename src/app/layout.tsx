@@ -1,37 +1,47 @@
-"use client"
-
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { CartProvider } from '@/components/cart/CartProvider';
-import { Toaster } from '@/components/ui/toaster';
-import { FloatingCart } from '@/components/shared/FloatingCart';
-import { FirebaseClientProvider, useUser } from '@/firebase';
-import { EmailAuth } from '@/components/auth/EmailAuth';
-import { usePathname } from 'next/navigation';
-import { LocationRequest } from '@/components/shared/LocationRequest';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { NotificationHandler } from '@/components/shared/NotificationHandler';
-import { SplashScreen } from '@/components/shared/SplashScreen';
-import { BrandingLoader } from '@/components/shared/BrandingLoader';
+import { ClientLayout } from '@/components/layout/ClientLayout';
+import { Inter } from 'next/font/google';
 
-function AppContent({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useUser();
-  const pathname = usePathname();
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-inter',
+});
 
-  const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
-  const showAuth = !authLoading && !user && !isExcludedPath;
+export const metadata: Metadata = {
+  title: 'ShopyKart | Premium Food Delivery',
+  description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
+  icons: {
+    icon: 'data:,',
+    apple: 'data:,',
+  },
+  alternates: {
+    canonical: 'https://shopykart.co.in',
+  },
+  openGraph: {
+    type: 'website',
+    url: 'https://shopykart.co.in/',
+    title: 'ShopyKart | Premium Food Delivery',
+    siteName: 'ShopyKart',
+    description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
+  },
+  other: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  }
+};
 
-  return (
-    <div className="relative min-h-screen">
-      {showAuth && <EmailAuth />}
-      <div className={showAuth ? "hidden" : ""}>
-        {!isExcludedPath && <LocationRequest />}
-        <NotificationHandler />
-        {children}
-        {!isExcludedPath && <FloatingCart />}
-      </div>
-    </div>
-  );
-}
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#EF4444',
+};
 
 export default function RootLayout({
   children,
@@ -39,42 +49,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <title>ShopyKart | Premium Food Delivery</title>
-        <meta name="description" content="Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur." />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
-        <meta name="theme-color" content="#EF4444" />
-        
-        {/* Anti-Cache for Static Hosting stability */}
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
-
-        <link rel="icon" href="data:," /> {/* Removed default Next.js 'N' icon */}
-        <link rel="apple-touch-icon" href="data:," />
-        <link rel="canonical" href="https://shopykart.co.in" />
-        
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://shopykart.co.in/" />
-        <meta property="og:title" content="ShopyKart | Premium Food Delivery" />
-        
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={inter.variable}>
       <body className="font-body antialiased bg-[#FAFAFA] text-foreground">
-        <SplashScreen />
-        <FirebaseClientProvider>
-          <BrandingLoader />
-          <FirebaseErrorListener />
-          <CartProvider>
-            <AppContent>
-              {children}
-            </AppContent>
-            <Toaster />
-          </CartProvider>
-        </FirebaseClientProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
