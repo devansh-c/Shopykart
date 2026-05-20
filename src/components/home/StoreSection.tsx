@@ -72,7 +72,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
                 isOffline && "opacity-80"
               )}
             >
-              <div className="relative h-36 w-full bg-muted">
+              <div className="relative h-44 w-full bg-muted">
                 <Image 
                   src={displayImage} 
                   alt={store.storeName || 'Store'} 
@@ -87,30 +87,34 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
                     <span className="text-white font-black text-2xl uppercase italic tracking-tighter shadow-2xl">Closed Now</span>
                   </div>
                 )}
+
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-xl flex items-center gap-1 shadow-sm">
+                   <span className="text-[10px] font-black text-black">{store.rating || '4.4'}</span>
+                   <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                </div>
               </div>
 
-              <div className="p-3">
-                <div className="flex justify-between items-start mb-0.5">
-                  <h3 className="text-base font-black text-foreground italic tracking-tight leading-tight">{store.storeName}</h3>
-                  <div className="bg-green-700 text-white px-1.5 py-0.5 rounded-md flex items-center gap-1 text-[10px] font-black shadow-sm shrink-0">
-                    {store.rating || '4.4'} <Star className="h-2.5 w-2.5 fill-white" />
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground mb-0.5">
-                  <span className="truncate max-w-[70%]">{store.category || 'Food'} • Selection</span>
-                </div>
-
-                <p className="text-[9px] font-medium text-muted-foreground/60 mb-2 truncate">{store.address || 'Nearby Location'}</p>
-
-                <div className="flex justify-between items-center pt-2 border-t border-dashed border-border/60">
-                  <span className={cn("text-[8px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-primary")}>
-                    {isOffline ? 'Closed Now' : 'Opens now'}
-                  </span>
-                  <div className="flex items-center gap-1 text-muted-foreground text-[8px] font-black uppercase tracking-widest">
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-xl font-black text-foreground italic tracking-tight leading-tight">{store.storeName}</h3>
+                  <div className="flex items-center gap-1 text-muted-foreground text-[8px] font-black uppercase tracking-widest bg-muted/50 px-2 py-1 rounded-full">
                     <MapPin className="h-2 w-2 text-primary" />
-                    Live in {store.town || 'Local'}
+                    {store.town || 'Local'}
                   </div>
+                </div>
+
+                <div className="flex items-center text-[10px] font-bold text-muted-foreground mb-4">
+                  <span>{store.category || 'Food'} • Fast Delivery • Premium Selection</span>
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-dashed border-border/60">
+                  <div className="flex items-center gap-2">
+                     <div className={cn("h-2 w-2 rounded-full", isOffline ? "bg-red-500" : "bg-green-500 animate-pulse")} />
+                     <span className={cn("text-[9px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-green-600")}>
+                        {isOffline ? 'Closed Now' : 'Accepting Orders'}
+                     </span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">View Menu →</span>
                 </div>
               </div>
             </Link>
