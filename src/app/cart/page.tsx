@@ -20,7 +20,9 @@ import {
   TicketPercent, 
   FileText, 
   Coins,
-  History
+  History,
+  User,
+  Phone
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -32,6 +34,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Switch } from '@/components/ui/switch';
 
@@ -48,45 +51,53 @@ export default function CartPage() {
   const [orderType, setOrderType] = useState('Delivery');
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [instructions, setInstructions] = useState('');
-  const [address, setAddress] = useState('');
-  const [coords, setCoords] = useState<{lat: string, lng: string} | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
 
-  // Fetch User Profile from root
-  const profileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: profile } = useDoc<any>(profileRef);
+  // User Details State
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerCity, setCustomerCity] = useState('');
+  const [customerPincode, setCustomerPincode] = useState('');
 
+  // Load from local storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setAddress(localStorage.getItem('user_address') || '');
-      const lat = localStorage.getItem('user_lat');
-      const lng = localStorage.getItem('user_lng');
-      if (lat && lng) {
-        setCoords({ lat, lng });
-      }
+      setCustomerName(localStorage.getItem('user_name') || '');
+      setCustomerPhone(localStorage.getItem('user_phone') || '');
+      setCustomerAddress(localStorage.getItem('user_address_line') || '');
+      setCustomerCity(localStorage.getItem('user_city') || 'Ranipur');
+      setCustomerPincode(localStorage.getItem('user_pincode') || '');
     }
   }, []);
 
-  const prodsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'products');
-  }, [firestore]);
-  const { data: dbProducts } = useCollection<any>(prodsQuery);
+  // Sync back to local storage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_name', customerName);
+      localStorage.setItem('user_phone', customerPhone);
+      localStorage.setItem('user_address_line', customerAddress);
+      localStorage.setItem('user_city', customerCity);
+      localStorage.setItem('user_pincode', customerPincode);
+    }
+  }, [customerName, customerPhone, customerAddress, customerCity, customerPincode]);
 
   const packagingFee = 10;
   const gst = totalPrice * 0.05;
   const deliveryFee = 0; 
-  const availableCoins = profile?.coins || 0;
-  const coinDiscountValue = useCoins ? Math.min(totalPrice, availableCoins * 0.5) : 0;
-  const grandTotal = totalPrice + packagingFee + gst + deliveryFee - coinDiscountValue;
+  const grandTotal = totalPrice + packagingFee + gst + deliveryFee;
 
   const handleCheckout = () => {
-    if (!user || !firestore || isPlacing) {
-      if (!user) toast({ title: "Auth Required", description: "Please sign in.", variant: "destructive" });
+    if (!firestore || isPlacing) return;
+
+    // Validation
+    if (!customerName.trim() || customerPhone.length !== 10 || !customerAddress.trim() || customerPincode.length !== 6) {
+      toast({ 
+        variant: "destructive", 
+        title: "Incomplete Details", 
+        description: "Please provide your Name, 10-digit Phone, and Full Address to proceed." 
+      });
       return;
     }
 
@@ -94,13 +105,15 @@ export default function CartPage() {
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
-    const earnedCoins = Math.floor(grandTotal * 0.5);
-    const coinsToDeduct = useCoins ? availableCoins : 0;
+    // Identity for Admin
+    const uid = user?.uid || 'guest_' + customerPhone;
+
+    const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
     const orderData = {
-      userId: user.uid,
-      customerName: profile?.fullName || user.displayName || 'Customer',
-      customerPhone: profile?.phoneNumber || '',
+      userId: uid,
+      customerName: customerName,
+      customerPhone: customerPhone,
       orderDisplayId: orderId,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
       total: grandTotal,
@@ -108,29 +121,37 @@ export default function CartPage() {
       orderType,
       paymentMethod,
       instructions,
-      address: address || 'Store Pickup',
-      latitude: coords?.lat || null,
-      longitude: coords?.lng || null,
+      address: fullFinalAddress,
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'unknown',
       restaurantName: cart[0]?.restaurantName || 'a store',
-      coinsEarned: earnedCoins,
-      coinsUsed: coinsToDeduct
+      coinsEarned: Math.floor(grandTotal * 0.5),
+      coinsUsed: 0
     };
 
     setShowSuccess(true);
 
+    // 1. Create Order
     setDoc(orderRef, orderData)
       .then(async () => {
-        if (profileRef) {
-          const newCoinBalance = (availableCoins - coinsToDeduct) + earnedCoins;
-          await updateDoc(profileRef, { coins: newCoinBalance });
-        }
+        // 2. Update/Create User Profile for Admin Directory
+        const userRef = doc(firestore, 'users', uid);
+        await setDoc(userRef, {
+          fullName: customerName,
+          phoneNumber: customerPhone,
+          address: fullFinalAddress,
+          city: customerCity,
+          pincode: customerPincode,
+          uid: uid,
+          updatedAt: serverTimestamp(),
+          role: 'customer'
+        }, { merge: true });
 
+        // Notifications
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
                registration.showNotification("Order Confirmed! 🚀", {
-                 body: "Thank you for ordering with Shopykart!",
+                 body: `Thank you ${customerName}! Your order is being prepared.`,
                  icon: BRAND_LOGO_URL,
                  badge: BRAND_LOGO_URL
                });
@@ -142,19 +163,12 @@ export default function CartPage() {
           router.push(`/orders/track?id=${orderId}`);
         }, 1500);
       })
-      .catch(async (err: any) => {
+      .catch((err: any) => {
         setShowSuccess(false);
         setIsPlacing(false);
-        const pErr = new FirestorePermissionError({ 
-          path: `orders/${orderId}`, 
-          operation: 'create', 
-          requestResourceData: orderData 
-        });
-        errorEmitter.emit('permission-error', pErr);
+        toast({ variant: "destructive", title: "Order Failed", description: "Database error. Please try again." });
       });
   };
-
-  const recommendations = dbProducts ? dbProducts.filter((p: any) => !cart.find(c => c.id === p.id)).slice(0, 5) : [];
 
   if (totalItems === 0 && !showSuccess) {
     return (
@@ -173,24 +187,86 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6F7] pb-40">
+    <div className="min-h-screen bg-[#F5F6F7] pb-44">
       <OrderSuccessOverlay isVisible={showSuccess} />
 
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
           <ChevronLeft className="h-6 w-6 text-gray-700" />
         </button>
-        <h1 className="text-lg font-bold text-gray-800">Your Cart</h1>
+        <h1 className="text-lg font-bold text-gray-800">Review Order</h1>
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Delivery Details Collection - NO LOGIN REQUIRED */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-primary/10">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="bg-primary/10 p-2 rounded-xl text-primary">
+              <User className="h-5 w-5" />
+            </div>
+            <h2 className="text-sm font-black uppercase text-gray-700 italic">Delivery Identity</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Your Full Name</label>
+              <Input 
+                placeholder="E.g. Rahul Sharma" 
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="h-12 rounded-xl bg-gray-50 border-none font-bold"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Phone Number (10 Digits)</label>
+              <Input 
+                type="tel"
+                placeholder="E.g. 9876543210" 
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))}
+                className="h-12 rounded-xl bg-gray-50 border-none font-bold"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Full Delivery Address</label>
+              <Textarea 
+                placeholder="House No, Building, Street Name, Landmark..." 
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+                className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">City</label>
+                <Input 
+                  value={customerCity}
+                  onChange={(e) => setCustomerCity(e.target.value)}
+                  className="h-12 rounded-xl bg-gray-50 border-none font-bold"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Pincode</label>
+                <Input 
+                  placeholder="284205"
+                  value={customerPincode}
+                  onChange={(e) => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))}
+                  className="h-12 rounded-xl bg-gray-50 border-none font-bold"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-bold uppercase text-gray-700">Your Order</h2>
+              <h2 className="text-sm font-bold uppercase text-gray-700">Order Items ({totalItems})</h2>
             </div>
-            <span className="text-xs font-bold text-gray-400">{totalItems} items</span>
           </div>
 
           <div className="space-y-6">
@@ -203,15 +279,15 @@ export default function CartPage() {
                     </div>
                     <h3 className="font-bold text-sm text-gray-800 truncate">{item.name}</h3>
                   </div>
-                  <div className="text-sm font-black text-gray-800 mt-6">₹{item.price.toFixed(2)}</div>
+                  <div className="text-sm font-black text-gray-800 mt-2">₹{item.price.toFixed(2)}</div>
                   
-                  <div className="flex items-center gap-4 mt-2">
+                  <div className="flex items-center gap-4 mt-3">
                     <div className="flex items-center bg-[#EF4444] text-white rounded-lg h-9 w-24">
                       <button onClick={() => removeFromCart(item.id)} className="flex-1 flex items-center justify-center font-bold text-xl">-</button>
                       <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
                       <button onClick={() => addToCart(item)} className="flex-1 flex items-center justify-center font-bold text-xl">+</button>
                     </div>
-                    <button onClick={() => removeFromCart(item.id)} className="bg-pink-50 p-2 rounded-lg text-[#EF4444] hover:bg-pink-100 transition-colors">
+                    <button onClick={() => removeFromCart(item.id)} className="bg-pink-50 p-2 rounded-lg text-[#EF4444]">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -222,119 +298,16 @@ export default function CartPage() {
               </div>
             ))}
           </div>
-
-          <button 
-            onClick={() => router.push('/menu')}
-            className="w-full mt-6 py-3 border-2 border-dashed border-[#EF4444]/30 rounded-xl text-[#EF4444] font-bold text-sm flex items-center justify-center gap-2 hover:bg-pink-50/50 transition-all"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Add more items
-          </button>
-        </div>
-
-        {availableCoins > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border-2 border-dashed border-amber-200">
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                   <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-                      <Coins className="h-5 w-5" />
-                   </div>
-                   <div>
-                      <h4 className="text-sm font-black text-gray-800 uppercase italic">Spend Coins</h4>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Available: {availableCoins} (₹{(availableCoins * 0.5).toFixed(0)})</p>
-                   </div>
-                </div>
-                <Switch 
-                  checked={useCoins} 
-                  onCheckedChange={setUseCoins}
-                  className="data-[state=checked]:bg-amber-500"
-                />
-             </div>
-          </div>
-        )}
-
-        {recommendations.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <Utensils className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-bold uppercase text-gray-700">Complete your meal</h2>
-            </div>
-            <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
-              {recommendations.map((prod) => (
-                <div key={prod.id} className="min-w-[140px] bg-white rounded-2xl p-2 shadow-sm border border-gray-50 flex flex-col">
-                  <div className="relative h-28 w-full rounded-xl overflow-hidden mb-2 bg-gray-50">
-                    <Image src={prod.imageUrl} alt={prod.name} fill className="object-cover" />
-                    <button 
-                      onClick={() => addToCart(prod)}
-                      className="absolute bottom-1 right-1 h-6 w-6 bg-white rounded-full shadow-lg flex items-center justify-center text-[#EF4444] active:scale-90 transition-transform"
-                    >
-                      <Plus className="h-4 w-4 stroke-[3]" />
-                    </button>
-                  </div>
-                  <div className="px-1">
-                    <div className="h-3 w-3 border border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-1">
-                       <div className="h-full w-full bg-green-600 rounded-full" />
-                    </div>
-                    <h4 className="text-[11px] font-bold text-gray-800 line-clamp-1">{prod.name}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 mt-0.5">₹{prod.price}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-gray-800">Order Type</h3>
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { id: 'Delivery', icon: Bike, label: 'Delivery' },
-              { id: 'Pickup', icon: Store, label: 'Pickup' },
-              { id: 'Dine In', icon: Utensils, label: 'Dine In' },
-              { id: 'In Car', icon: Car, label: 'In Car' },
-            ].map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setOrderType(type.id)}
-                className={cn(
-                  "flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all",
-                  orderType === type.id ? "border-green-500 bg-green-50/30" : "border-gray-50 bg-white"
-                )}
-              >
-                <div className={cn("p-1.5 rounded-lg", orderType === type.id ? "text-green-600" : "text-gray-400")}>
-                  <type.icon className="h-5 w-5" />
-                </div>
-                <span className={cn("text-[10px] font-bold", orderType === type.id ? "text-green-700" : "text-gray-500")}>
-                  {type.label}
-                </span>
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-[#EF4444]" />
-            <h3 className="text-sm font-bold text-gray-800">Delivery Address</h3>
-          </div>
-          {address ? (
-            <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between group">
-              <div className="flex-1 truncate pr-4">
-                <span className="text-[10px] font-bold text-[#EF4444] uppercase">Home</span>
-                <p className="text-xs font-bold text-gray-700 truncate mt-0.5">{address}</p>
-                {coords && <span className="text-[8px] text-gray-400 uppercase font-black">GPS Verified ✓</span>}
-              </div>
-              <button onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))} className="text-blue-500 text-[10px] font-bold uppercase">Change</button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
-              className="w-full py-3 border-2 border-dashed border-[#EF4444]/30 rounded-xl text-[#EF4444] font-bold text-sm flex items-center justify-center gap-2 hover:bg-pink-50/50"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Add delivery address
-            </button>
-          )}
+          <h3 className="text-sm font-bold text-gray-800">Special Instructions</h3>
+          <Textarea 
+            placeholder="Any specific note for the chef or delivery partner?"
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            className="rounded-xl bg-gray-50 border-none"
+          />
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
@@ -362,12 +335,6 @@ export default function CartPage() {
               <span>GST (5%)</span>
               <span>₹{gst.toFixed(2)}</span>
             </div>
-            {useCoins && (
-              <div className="flex justify-between font-bold text-amber-600">
-                <span className="flex items-center gap-1"><Coins className="h-3 w-3" /> Coins Applied</span>
-                <span>- ₹{coinDiscountValue.toFixed(2)}</span>
-              </div>
-            )}
           </div>
 
           <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
@@ -376,7 +343,7 @@ export default function CartPage() {
           </div>
 
           <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-center gap-2">
-             <span className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">You will earn {Math.floor(grandTotal * 0.5)} coins on this order</span>
+             <span className="text-[10px] font-black text-green-700 uppercase tracking-widest italic">Earn {Math.floor(grandTotal * 0.5)} coins on this order</span>
           </div>
         </div>
       </div>
@@ -386,21 +353,19 @@ export default function CartPage() {
            <div className="flex items-center justify-between mb-3 px-1">
               <div>
                  <div className="text-lg font-black text-gray-800">₹{grandTotal.toFixed(2)}</div>
-                 <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase">
-                   ⚡ Online Payment • incl. taxes
-                 </p>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">⚡ Cash on Delivery / Online</p>
               </div>
               <div className="flex items-center gap-1.5 text-gray-400">
                  <Bike className="h-4 w-4 text-amber-500" />
-                 <span className="text-[10px] font-bold">~20 min</span>
+                 <span className="text-[10px] font-bold">~25 min</span>
               </div>
            </div>
            <Button 
-            disabled={(!address && orderType === 'Delivery') || isPlacing}
+            disabled={isPlacing}
             onClick={handleCheckout}
-            className="w-full h-14 rounded-2xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-black text-lg shadow-xl shadow-red-100 active:scale-[0.98] transition-all"
+            className="w-full h-14 rounded-2xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-black text-lg shadow-xl active:scale-[0.98] transition-all"
           >
-            {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}
+            {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Confirm & Place Order"}
           </Button>
         </div>
       </div>

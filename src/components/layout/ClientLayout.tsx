@@ -4,7 +4,6 @@ import { CartProvider } from '@/components/cart/CartProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
 import { FirebaseClientProvider, useUser } from '@/firebase';
-import { OTPVerification } from '@/components/auth/OTPVerification';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
@@ -14,16 +13,13 @@ import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { PromoPopup } from '@/components/shared/PromoPopup';
 
 function AppContent({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useUser();
   const pathname = usePathname();
 
   const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
-  const showAuth = !authLoading && !user && !isExcludedPath;
 
   return (
     <div className="relative min-h-screen">
-      {showAuth && <OTPVerification />}
-      <div className={showAuth ? 'hidden' : ''}>
+      <div>
         {!isExcludedPath && <LocationRequest />}
         {!isExcludedPath && <PromoPopup />}
         <NotificationHandler />
