@@ -321,11 +321,6 @@ export default function CartPage() {
                 <span>₹{charge.calculatedAmount.toFixed(2)}</span>
               </div>
             ))}
-
-            <div className="flex justify-between font-bold text-green-600">
-              <span>Delivery Fee</span>
-              <span>Free</span>
-            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
