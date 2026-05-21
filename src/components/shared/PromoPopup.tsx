@@ -132,18 +132,18 @@ export function PromoPopup() {
         const isPhaseOne = prev < 88;
 
         if (isPhaseOne) {
-          // PHASE 1: Threshold 220 - Rise to 88%
-          if (peak > 220) {
+          // PHASE 1: Threshold 240 - Rise to 88%
+          if (peak > 240) {
             next = Math.min(88, prev + 1.2); // Slower rise, harder to keep
           } else {
-            next = Math.max(0, prev - 2.5); // FAST INSTANT DROP
+            next = Math.max(0, prev - 3.5); // EVEN FASTER INSTANT DROP
           }
         } else {
           // PHASE 2: THE LOCK (Threshold 240) - Rise to 90% then stop
           if (peak > 240) {
             next = Math.min(90, prev + 0.01); // Extremely slow rise to 90% hard cap
           } else {
-            next = Math.max(0, prev - 5.0); // EVEN FASTER DROP IF STOPPED NEAR END
+            next = Math.max(0, prev - 5.5); // EVEN FASTER DROP IF STOPPED NEAR END
           }
         }
         
