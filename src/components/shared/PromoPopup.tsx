@@ -132,11 +132,11 @@ export function PromoPopup() {
         const isEasyPhase = prev < 88;
 
         if (isEasyPhase) {
-          // PHASE 1: VERY VERY EASY (Threshold 30 as requested) - Rise to 88%
-          if (peak > 30) {
-            next = Math.min(88, prev + 5.0); // Super fast rise
+          // PHASE 1: EASY (Threshold 120) - Rise to 88%
+          if (peak > 120) {
+            next = Math.min(88, prev + 1.5); // Fast but controlled rise
           } else {
-            next = Math.max(0, prev - 0.05); // Very slow drain
+            next = Math.max(0, prev - 0.1); // Slow drain
           }
         } else {
           // PHASE 2: THE LOCK (Threshold 240) - Rise to 90% then stop
@@ -147,7 +147,7 @@ export function PromoPopup() {
           }
         }
         
-        // Safety check (should never win because of Phase 2 cap and logic)
+        // Safety check (win condition is disabled by 90% cap)
         if (next >= 100) {
           setTimeout(handleWin, 100);
           return 100;
@@ -210,21 +210,21 @@ export function PromoPopup() {
       <div className="relative w-full h-full min-h-screen flex flex-col items-center pt-10 px-6 max-w-lg mx-auto">
         <div className="w-full flex justify-between items-center mb-4 px-2">
            <button onClick={handleClose} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md active:scale-90 transition-transform">
-             <X className="h-5 w-5" />
+             <X className="h-5 v-5" />
            </button>
            <div className="flex gap-2">
               <button className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md">
-                <Volume2 className="h-5 w-5" />
+                <Volume2 className="h-5 v-5" />
               </button>
               <button className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md">
-                <Share2 className="h-5 w-5" />
+                <Share2 className="h-5 v-5" />
               </button>
            </div>
         </div>
 
         {gameState === 'info' && (
           <div className="flex flex-col items-center w-full animate-in slide-in-from-bottom-4 duration-500">
-            {/* Jagged Banner - Images Removed as requested */}
+            {/* Jagged Banner */}
             <div className="relative mb-6">
                <div className="bg-white px-8 py-3 rounded-md shadow-[4px_4px_0px_rgba(0,0,0,0.1)] relative transform -rotate-1">
                   <h2 className="text-center">
@@ -234,7 +234,7 @@ export function PromoPopup() {
                </div>
             </div>
 
-            {/* Powered By Section - ShopyKart branding added */}
+            {/* Powered By Section - Clean ShopyKart Text */}
             <div className="flex flex-col items-center gap-1 mb-6">
                <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-80">Powered By</span>
                <h1 className="text-2xl font-black italic tracking-tighter text-white">
@@ -267,7 +267,7 @@ export function PromoPopup() {
                     <div className="max-w-[150px] space-y-2">
                       <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">1. Jitna zor se chillaoge meter utna bharega.</p>
                       <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">2. 30 seconds ke andar 100% karna hai.</p>
-                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. 88% ke baad extra power chahiye!</p>
+                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. 88% ke baad asali dum chahiye!</p>
                     </div>
                   </div>
                </div>
