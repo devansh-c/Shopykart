@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function AdminOverview() {
@@ -10,7 +10,7 @@ export function AdminOverview() {
     { label: 'Total Revenue', value: '₹0.00', icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-100' },
     { label: 'Total Orders', value: '0', icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-100' },
     { label: 'Registered Users', value: '1', icon: Users, color: 'text-purple-600', bg: 'bg-purple-100' },
-    { label: 'Active Stores', value: 'Online', icon: Globe, color: 'text-amber-600', bg: 'bg-amber-100' },
+    { label: 'Network Status', value: 'Ready', icon: Globe, color: 'text-amber-600', bg: 'bg-amber-100' },
   ];
 
   return (
@@ -23,45 +23,42 @@ export function AdminOverview() {
                      <CheckCircle2 className="h-6 w-6 text-green-500" />
                      <h3 className="text-xl font-black italic uppercase tracking-tight">System Status: OPERATIONAL</h3>
                   </div>
-                  <Badge className="bg-primary text-white font-black text-[10px]">LIVE_PROTECTED</Badge>
+                  <Badge className="bg-primary text-white font-black text-[10px]">INTERNAL_PREVIEW</Badge>
                </div>
             </div>
             <CardContent className="p-8 space-y-6">
                <div className="bg-amber-50 p-6 rounded-[2rem] border-2 border-dashed border-amber-200">
                   <div className="flex items-center gap-3 mb-4">
                      <AlertCircle className="h-6 w-6 text-amber-600" />
-                     <h4 className="text-sm font-black uppercase text-amber-900">Important Instructions (Hindi)</h4>
+                     <h4 className="text-sm font-black uppercase text-amber-900">Next Steps: Domain & Hosting</h4>
                   </div>
                   <div className="space-y-4 text-[11px] font-bold text-amber-800 leading-relaxed uppercase">
                      <p>
-                        1. <span className="underline font-black text-black">Blue Page Ka Matlab</span>: Agar aapko blue Firebase page dikh raha hai, toh iska matlab hai ki aapka phone purani files yaad rakh raha hai (Cache).
+                        1. <span className="underline font-black text-black">Domain Connection</span>: Aapka domain abhi connect nahi hai. Website ko live karne ke liye Firebase Console mein DNS settings update karni hogi.
                      </p>
                      <p>
-                        2. <span className="underline font-black text-black">Zaroori Solution</span>: Apne phone mein <span className="text-black underline font-black">Incognito / Private Mode</span> karke website kholiye ya Browser ki history "Clear" kijiye.
+                        2. <span className="underline font-black text-black">Telegram Alerts</span>: Alerts tabhi trigger honge jab Admin Panel ya Customer App kisi browser tab mein khula ho.
                      </p>
                      <p>
-                        3. <span className="underline font-black text-black">Instant Update</span>: Naye changes apply ho chuke hain. 2-3 minute mein aapki website update ho jayegi.
-                     </p>
-                     <p>
-                        4. <span className="underline font-black text-black">Master Control</span>: Aap "Stores" section mein jaakar poore network ko ek saath close kar sakte hain.
+                        3. <span className="underline font-black text-black">Instant Update</span>: Naye changes apply ho chuke hain. Browser refresh karke test order place karein.
                      </p>
                   </div>
                </div>
 
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-5 bg-green-50 rounded-3xl border border-green-100">
-                     <div className="flex items-center gap-2 mb-2">
-                        <Globe className="h-4 w-4 text-green-600" />
-                        <span className="text-[10px] font-black uppercase text-green-700">Domain Connected</span>
-                     </div>
-                     <p className="text-sm font-bold italic">shopykart.co.in (Active)</p>
-                  </div>
                   <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
                      <div className="flex items-center gap-2 mb-2">
-                        <Shield className="h-4 w-4 text-blue-600" />
-                        <span className="text-[10px] font-black uppercase text-blue-700">Cloud Status</span>
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        <span className="text-[10px] font-black uppercase text-blue-700">Domain Status</span>
                      </div>
-                     <p className="text-sm font-bold">100% Spark Security Active</p>
+                     <p className="text-sm font-bold italic text-blue-800">Connection Pending...</p>
+                  </div>
+                  <div className="p-5 bg-green-50 rounded-3xl border border-green-100">
+                     <div className="flex items-center gap-2 mb-2">
+                        <Shield className="h-4 w-4 text-green-600" />
+                        <span className="text-[10px] font-black uppercase text-green-700">Database Status</span>
+                     </div>
+                     <p className="text-sm font-bold">Cloud Firestore Secured</p>
                   </div>
                </div>
             </CardContent>
