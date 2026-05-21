@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -11,6 +12,7 @@ import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { PromoPopup } from '@/components/shared/PromoPopup';
+import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +25,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         {!isExcludedPath && <LocationRequest />}
         {!isExcludedPath && <PromoPopup />}
         <NotificationHandler />
+        <TelegramNotifier />
         {children}
         {!isExcludedPath && <FloatingCart />}
       </div>
