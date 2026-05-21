@@ -25,7 +25,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
 
 // Admin Sub-components
 import { AdminOverview } from '@/components/admin/AdminOverview';
@@ -56,6 +55,67 @@ const menuItems = [
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
 
+function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: { 
+  activeTab: string, 
+  setActiveTab: (id: string) => void, 
+  onSignOut: () => void,
+  onCloseMobile: () => void
+}) {
+  return (
+    <div className="flex flex-col h-full bg-white">
+      <div className="p-6 flex items-center space-x-3 border-b border-border/30">
+        <div className="bg-primary p-2 rounded-xl text-white">
+          <LayoutDashboard className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-lg font-black italic leading-none">SHOPYKART</h1>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Admin Panel</p>
+        </div>
+      </div>
+
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto no-scrollbar">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                onCloseMobile();
+              }}
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                isActive 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <div className="flex items-center space-x-3">
+                <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
+                <span className="text-sm font-bold">{item.label}</span>
+              </div>
+              {isActive && <ChevronRight className="h-4 w-4" />}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="p-4 border-t border-border/30">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onSignOut} 
+          className="w-full justify-start text-red-500 font-bold hover:bg-red-50 hover:text-red-600 rounded-xl"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          EXIT PANEL
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
@@ -79,60 +139,6 @@ export default function AdminDashboard() {
   };
 
   if (!isAuthorized) return null;
-
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white">
-      <div className="p-6 flex items-center space-x-3 border-b border-border/30">
-        <div className="bg-primary p-2 rounded-xl text-white">
-          <LayoutDashboard className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-lg font-black italic leading-none">SHOPYKART</h1>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Admin Panel</p>
-        </div>
-      </div>
-
-      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto no-scrollbar">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id);
-                setIsMobileMenuOpen(false);
-              }}
-              className={cn(
-                "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group",
-                isActive 
-                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <div className="flex items-center space-x-3">
-                <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
-                <span className="text-sm font-bold">{item.label}</span>
-              </div>
-              {isActive && <ChevronRight className="h-4 w-4" />}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-border/30">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleSignOut} 
-          className="w-full justify-start text-red-500 font-bold hover:bg-red-50 hover:text-red-600 rounded-xl"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          EXIT PANEL
-        </Button>
-      </div>
-    </div>
-  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -185,14 +191,24 @@ export default function AdminDashboard() {
             <SheetHeader className="sr-only">
               <SheetTitle>Admin Navigation Menu</SheetTitle>
             </SheetHeader>
-            <SidebarContent />
+            <SidebarContent 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab} 
+              onSignOut={handleSignOut} 
+              onCloseMobile={() => setIsMobileMenuOpen(false)} 
+            />
           </SheetContent>
         </Sheet>
       </header>
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen">
-        <SidebarContent />
+        <SidebarContent 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          onSignOut={handleSignOut} 
+          onCloseMobile={() => {}} 
+        />
       </aside>
 
       {/* Main Content */}
