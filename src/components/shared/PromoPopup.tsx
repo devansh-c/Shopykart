@@ -68,22 +68,11 @@ export function PromoPopup() {
 
   const startGame = async () => {
     try {
-      // Robust cleanup before starting
+      // Step 1: Clean up any existing state
       stopGame();
 
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        } 
-      }).catch(err => {
-        if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-          throw new Error("Microphone access is blocked. Please refresh the page or check if another app is using the mic.");
-        }
-        throw err;
-      });
-
+      // Step 2: Request Mic with simplified constraints for better compatibility
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
       const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
@@ -96,7 +85,7 @@ export function PromoPopup() {
       
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.3;
+      analyser.smoothingTimeConstant = 0.4;
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -111,7 +100,7 @@ export function PromoPopup() {
       toast({
         variant: "destructive",
         title: "Mic Error",
-        description: err.message || "Could not access microphone!"
+        description: "Please check your microphone permissions and try again."
       });
       setViewState('info');
     }
@@ -133,23 +122,29 @@ export function PromoPopup() {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      // Instant visual feedback (Very responsive)
+      // Visual feedback wave
       const instantLevel = Math.min(100, Math.floor((peak / 255) * 100));
       setScreamLevel(instantLevel);
       
-      // Progress logic - Now more possible
+      // Core Logic: Easy up to 88%, Impossible after that
       setMaxLevelReached(prev => {
         let next = prev;
-        
-        // Lowered threshold from 230 to 180 for better playability
-        if (peak > 180) {
-          // Faster fill rate than before
-          const multiplier = peak > 220 ? 0.6 : 0.3;
-          next = Math.min(100, prev + multiplier); 
-        } else if (peak < 100) {
-          // Slower drain so it's not frustrating
-          const drainRate = prev > 80 ? 0.4 : 0.2;
-          next = Math.max(0, prev - drainRate); 
+        const isEasyPhase = prev < 88;
+
+        if (isEasyPhase) {
+          // PHASE 1: Easy Mode (0% to 88%)
+          if (peak > 110) { // Fairly sensitive
+            next = Math.min(88, prev + 1.5); // Rapid fill
+          } else {
+            next = Math.max(0, prev - 0.15); // Slow drain
+          }
+        } else {
+          // PHASE 2: Impossible Mode (88% to 100%)
+          if (peak > 245) { // Needs near-maximum volume
+            next = Math.min(100, prev + 0.04); // Extremely slow fill
+          } else {
+            next = Math.max(88, prev - 0.45); // Fast drain if you stop
+          }
         }
         
         if (next >= 100) {
@@ -283,7 +278,7 @@ export function PromoPopup() {
                     <div className="max-w-[150px] space-y-2">
                       <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">1. Jitna zor se chillaoge meter utna bharega.</p>
                       <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">2. 30 seconds ke andar 100% karna hai.</p>
-                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. Rukne par meter wapas girega!</p>
+                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. 88% ke baad extra power chahiye!</p>
                     </div>
                   </div>
                </div>
@@ -320,7 +315,7 @@ export function PromoPopup() {
             </div>
 
             <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter text-center mt-6 drop-shadow-2xl">
-              GO ON!<br /><span className="text-red-600 bg-white px-2">SCREAM LOUDER!</span>
+              {maxLevelReached < 88 ? "KEEP GOING!" : "ALMOST THERE!"}<br /><span className="text-red-600 bg-white px-2">SCREAM LOUDER!</span>
             </h2>
             
             <div className="relative flex-1 w-full flex items-center justify-center my-6">
@@ -345,18 +340,21 @@ export function PromoPopup() {
               <div className="absolute -right-6 top-1/2 -translate-y-1/2 flex flex-col gap-8 text-2xl">
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 30 ? "opacity-100 scale-110" : "opacity-20 scale-75")}>😐</div>
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 60 ? "opacity-100 scale-110" : "opacity-20 scale-75")}>😮</div>
-                 <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 85 ? "opacity-100 scale-110 animate-bounce" : "opacity-20 scale-75")}>😫</div>
+                 <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached >= 88 ? "opacity-100 scale-125 animate-bounce bg-red-100" : "opacity-20 scale-75")}>😫</div>
               </div>
             </div>
 
             <div className="w-full bg-white/20 p-5 rounded-[2.5rem] backdrop-blur-md border border-white/30 mb-8">
                <div className="flex justify-between items-center mb-2">
-                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Progress</span>
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Progress Bar</span>
                  <span className="text-xl font-black text-white italic">{Math.floor(maxLevelReached)}%</span>
                </div>
                <div className="w-full h-5 bg-black/20 rounded-full overflow-hidden border-2 border-white/10">
                   <div 
-                    className="h-full bg-green-500 transition-all duration-100" 
+                    className={cn(
+                      "h-full transition-all duration-100",
+                      maxLevelReached < 88 ? "bg-amber-400" : "bg-green-500"
+                    )} 
                     style={{ width: `${maxLevelReached}%` }}
                   />
                </div>
@@ -367,7 +365,7 @@ export function PromoPopup() {
               onClick={() => { stopGame(); setViewState('info'); }}
               className="mb-8 text-white/40 font-black uppercase text-[10px] tracking-widest hover:text-white"
             >
-              QUIT GAME
+              QUIT CHALLENGE
             </Button>
           </div>
         )}
