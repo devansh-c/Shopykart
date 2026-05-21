@@ -188,15 +188,15 @@ export function PromoPopup() {
         const isPhaseOne = prev < 88;
 
         if (isPhaseOne) {
-          // PHASE 1: Threshold 240 - High requirement
-          if (peak > 240) {
+          // PHASE 1: Threshold 230 - High requirement
+          if (peak > 230) {
             next = Math.min(88, prev + 1.2); 
           } else {
-            next = Math.max(0, prev - 4.5); // INSTANT DROP
+            next = Math.max(0, prev - 3.5); // INSTANT DROP
           }
         } else {
           // PHASE 2: Lock at 90%
-          if (peak > 240) {
+          if (peak > 230) {
             next = Math.min(90, prev + 0.01); 
           } else {
             next = Math.max(0, prev - 6.5); // FASTER DROP
@@ -376,7 +376,7 @@ export function PromoPopup() {
                     <div className="max-w-[150px] space-y-2 text-[10px] font-black text-[#451A03] uppercase leading-tight">
                       <p>1. Jitna zor se chillaoge meter utna bharega.</p>
                       <p>2. Chillaana band kiya toh meter turant gir jayega.</p>
-                      <p>3. Peak 240+ chahiye progress ke liye!</p>
+                      <p>3. Peak 230+ chahiye progress ke liye!</p>
                     </div>
                   </div>
                </div>
