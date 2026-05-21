@@ -68,24 +68,24 @@ export function PromoPopup() {
 
   const startGame = async () => {
     try {
-      // Step 1: Clean up any existing state
+      // 1. Force cleanup
       stopGame();
 
-      // Step 2: Request Mic
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      
+      // 2. Setup Audio
       const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
       const audioContext = new AudioContextClass();
       audioContextRef.current = audioContext;
 
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
       }
       
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.2; // Faster response
+      analyser.smoothingTimeConstant = 0.1; // Very responsive
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -99,8 +99,8 @@ export function PromoPopup() {
       console.error("Mic Access Error:", err);
       toast({
         variant: "destructive",
-        title: "Mic Error",
-        description: "Please check your microphone permissions and try again."
+        title: "Mic Access Denied",
+        description: "Please allow microphone permissions to play the game."
       });
       setViewState('info');
     }
@@ -122,41 +122,39 @@ export function PromoPopup() {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      // Visual feedback wave (yellow part)
+      // Visual feedback (Yellow wave)
       const instantLevel = Math.min(100, Math.floor((peak / 255) * 100));
       setScreamLevel(instantLevel);
       
-      // Core Logic: User requested 70 for 88%, and 240 for 100%
+      // CORE LOGIC: VERY VERY EASY until 88%
       setMaxLevelReached(prev => {
         let next = prev;
         const isEasyPhase = prev < 88;
 
         if (isEasyPhase) {
-          // PHASE 1: Super Easy (Threshold 70)
-          if (peak > 70) {
-            next = Math.min(88, prev + 2.5); // Very fast progression
+          // PHASE 1: VERY VERY EASY (Threshold 30 - background noise might trigger it)
+          if (peak > 30) {
+            next = Math.min(88, prev + 4.0); // Extreme fast progression
           } else {
-            next = Math.max(0, prev - 0.2); // Slow drain
+            next = Math.max(0, prev - 0.1); // Slow drain
           }
         } else {
-          // PHASE 2: Impossible Wall (Threshold 240)
+          // PHASE 2: IMPOSSIBLE WALL (Threshold 240)
           if (peak > 240) {
-            next = Math.min(100, prev + 0.05); // Extremely slow progression
+            next = Math.min(100, prev + 0.05); // Super slow crawl to 100%
           } else {
-            next = Math.max(88, prev - 0.6); // Rapid drain if they stop
+            next = Math.max(88, prev - 0.4); // Rapid drop if they stop shouting
           }
         }
         
         if (next >= 100) {
-          handleWin();
+          setTimeout(handleWin, 100);
           return 100;
         }
         return next;
       });
 
-      if (gameState === 'playing') {
-        animationFrameRef.current = requestAnimationFrame(update);
-      }
+      animationFrameRef.current = requestAnimationFrame(update);
     };
     
     animationFrameRef.current = requestAnimationFrame(update);
@@ -186,9 +184,7 @@ export function PromoPopup() {
       timerIntervalRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        track.stop();
-      });
+      streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     if (audioContextRef.current) {
