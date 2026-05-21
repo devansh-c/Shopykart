@@ -11,6 +11,7 @@ import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/fi
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 export function ChargeManagement() {
   const firestore = useFirestore();
