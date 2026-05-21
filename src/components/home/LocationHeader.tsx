@@ -113,7 +113,7 @@ export function LocationHeader({
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        toast({ variant: 'destructive', title: 'Not Supported' });
+        toast({ variant: 'destructive', title: 'Voice search not supported in this browser.' });
         return;
       }
       const recognition = new SpeechRecognition();
@@ -125,17 +125,17 @@ export function LocationHeader({
   };
 
   return (
-    <div className="w-full bg-[#0B0B0B] pb-6 pt-4 px-4 space-y-5 rounded-b-[2.5rem] shadow-2xl relative z-50">
+    <div className="w-full bg-[#0B0B0B] pb-4 pt-3 px-4 space-y-4 rounded-b-[2.5rem] shadow-2xl relative z-50">
       {/* Top Row: Location & Actions */}
       <div className="flex items-center justify-between">
         <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
-          <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
-            <MapPin className="h-5 w-5" />
+          <div className="h-9 w-9 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
+            <MapPin className="h-4 w-4" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Deliver to</span>
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-0.5">Deliver to</span>
             <div className="flex items-center gap-1">
-              <span className="text-white text-xs font-black truncate tracking-tight">{currentAddress}</span>
+              <span className="text-white text-[11px] font-black truncate tracking-tight">{currentAddress}</span>
               <ChevronRight className="h-3 w-3 text-primary shrink-0" />
             </div>
           </div>
@@ -144,20 +144,20 @@ export function LocationHeader({
         <div className="flex items-center gap-2">
           <Link href="/cart">
             <div className="relative">
-              <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
-                <ShoppingBag className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+                <ShoppingBag className="h-4 w-4" />
               </div>
               {totalItems > 0 && (
-                <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B] animate-bounce">
-                  <span className="text-[10px] font-black text-white">{totalItems}</span>
+                <div className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B]">
+                  <span className="text-[8px] font-black text-white">{totalItems}</span>
                 </div>
               )}
             </div>
           </Link>
           <Sheet>
             <SheetTrigger asChild>
-              <button className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
-                <Menu className="h-5 w-5" />
+              <button className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+                <Menu className="h-4 w-4" />
               </button>
             </SheetTrigger>
             <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
@@ -192,41 +192,44 @@ export function LocationHeader({
 
       {/* Center Branding */}
       <div className="flex justify-center">
-        <Logo className="scale-110" />
+        <Logo className="scale-100 h-12" />
       </div>
 
       {/* Bottom Row: Search Bar & Mode Toggle */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 pointer-events-none" />
-          <div className="relative h-14 w-full bg-white/5 border border-white/10 rounded-2xl overflow-hidden focus-within:border-primary/50 transition-all">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-[2] group">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+          <div className="relative h-12 w-full bg-white/5 border border-white/10 rounded-2xl overflow-hidden focus-within:border-primary/50 transition-all">
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="h-full w-full bg-transparent border-none pl-12 pr-12 text-white font-bold placeholder:text-transparent focus-visible:ring-0"
+              className="h-full w-full bg-transparent border-none pl-10 pr-16 text-white font-bold placeholder:text-transparent focus-visible:ring-0 text-sm"
             />
             {!searchValue && (
-              <div className="absolute left-12 top-0 bottom-0 flex items-center pointer-events-none overflow-hidden h-full">
-                <span className="text-gray-500 text-sm font-bold mr-1">Search</span>
+              <div className="absolute left-10 top-0 bottom-0 flex items-center pointer-events-none overflow-hidden h-full">
+                <span className="text-gray-500 text-[11px] font-bold mr-1">Search</span>
                 <span 
                   key={wordIndex}
-                  className="text-primary text-sm font-black italic animate-placeholder-slide"
+                  className="text-primary text-[11px] font-black italic animate-placeholder-slide"
                 >
                   {SEARCH_WORDS[wordIndex]}
                 </span>
               </div>
             )}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-               <button onClick={handleCameraClick} className="p-2 text-primary active:scale-90 transition-all">
-                {isIdentifying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+               <button onClick={handleCameraClick} className="p-1.5 text-primary active:scale-90 transition-all">
+                {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              </button>
+              <button onClick={handleMicClick} className={cn("p-1.5 text-primary active:scale-90 transition-all", isListening && "animate-pulse text-red-500")}>
+                <Mic className="h-4 w-4" />
               </button>
             </div>
           </div>
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
         </div>
 
-        {/* Mode Toggle Switch */}
-        <div className="bg-white/5 p-1 rounded-2xl border border-white/10 flex gap-1 h-14">
+        {/* Mode Toggle Switch - Shrunk as requested */}
+        <div className="bg-white/5 p-1 rounded-xl border border-white/10 flex gap-0.5 h-12 flex-1">
           {[
             { id: 'Food', icon: Utensils },
             { id: 'Grocery', icon: ShoppingBag }
@@ -235,15 +238,15 @@ export function LocationHeader({
               key={mode.id}
               onClick={() => onModeChange(mode.id)}
               className={cn(
-                "h-full px-4 rounded-xl flex items-center justify-center transition-all relative overflow-hidden",
+                "h-full px-3 rounded-lg flex items-center justify-center transition-all relative overflow-hidden flex-1",
                 activeMode === mode.id 
                   ? "bg-primary text-white shadow-lg shadow-primary/20 scale-100" 
                   : "text-gray-500 scale-90 opacity-60"
               )}
             >
-              <mode.icon className="h-5 w-5" />
+              <mode.icon className="h-4 w-4" />
               {activeMode === mode.id && (
-                 <div className="absolute -bottom-2 w-1 h-1 bg-white rounded-full" />
+                 <div className="absolute -bottom-1.5 w-1 h-1 bg-white rounded-full" />
               )}
             </button>
           ))}
