@@ -68,10 +68,9 @@ export function PromoPopup() {
 
   const startGame = async () => {
     try {
-      // 1. Force cleanup of any previous session to avoid NotReadableError
+      // Robust cleanup before starting
       stopGame();
 
-      // 2. Request fresh microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: false,
@@ -80,7 +79,7 @@ export function PromoPopup() {
         } 
       }).catch(err => {
         if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-          throw new Error("Microphone is currently being used by another application. Please close other apps and try again.");
+          throw new Error("Microphone access is blocked. Please refresh the page or check if another app is using the mic.");
         }
         throw err;
       });
@@ -91,29 +90,29 @@ export function PromoPopup() {
       const audioContext = new AudioContextClass();
       audioContextRef.current = audioContext;
 
-      // Force resume (required for many mobile browsers)
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
       }
       
       const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256; // Smaller for faster response
-      analyser.smoothingTimeConstant = 0.2; // Less smoothing = more responsive meter
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.3;
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       
       setViewState('playing');
+      setScreamLevel(0);
+      setMaxLevelReached(0);
       detectVolume();
     } catch (err: any) {
       console.error("Mic Access Error:", err);
       toast({
         variant: "destructive",
-        title: "Access Denied",
-        description: err.message || "Please allow microphone access to play!"
+        title: "Mic Error",
+        description: err.message || "Could not access microphone!"
       });
-      stopGame();
       setViewState('info');
     }
   };
@@ -129,41 +128,32 @@ export function PromoPopup() {
       
       analyserRef.current.getByteFrequencyData(dataArray);
       
-      // Calculate average volume for smoother visual meter
-      let sum = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
-      }
-      const average = sum / bufferLength;
-      
-      // Get the peak value for the "Impossible" logic
       let peak = 0;
       for (let i = 0; i < bufferLength; i++) {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      // Instant visual level (more sensitive so it moves with normal speech)
-      const instantLevel = Math.min(100, Math.floor((peak / 200) * 100));
+      // Instant visual feedback (Very responsive)
+      const instantLevel = Math.min(100, Math.floor((peak / 255) * 100));
       setScreamLevel(instantLevel);
       
-      // Impossible Progression Logic
+      // Progress logic - Now more possible
       setMaxLevelReached(prev => {
         let next = prev;
         
-        // Threshold for filling: Only fills when volume is very high (> 80%)
-        // High threshold makes it "Impossible" to hit 100% without extreme screaming
-        if (peak > 230) {
-          // Difficulty curve: Fills slower as it gets higher
-          const fillRate = prev > 90 ? 0.1 : 0.4;
-          next = Math.min(100, prev + fillRate); 
-        } else {
-          // Aggressive drain logic
-          const drainRate = prev > 80 ? 0.8 : 0.3;
+        // Lowered threshold from 230 to 180 for better playability
+        if (peak > 180) {
+          // Faster fill rate than before
+          const multiplier = peak > 220 ? 0.6 : 0.3;
+          next = Math.min(100, prev + multiplier); 
+        } else if (peak < 100) {
+          // Slower drain so it's not frustrating
+          const drainRate = prev > 80 ? 0.4 : 0.2;
           next = Math.max(0, prev - drainRate); 
         }
         
         if (next >= 100) {
-          setTimeout(handleWin, 200);
+          handleWin();
           return 100;
         }
         return next;
@@ -201,7 +191,6 @@ export function PromoPopup() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         track.stop();
-        track.enabled = false;
       });
       streamRef.current = null;
     }
@@ -224,18 +213,6 @@ export function PromoPopup() {
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-sky-400/95 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
-      {/* Decorative patterns */}
-      <div className="absolute top-0 left-0 p-4 opacity-40">
-        <div className="w-32 h-32 text-green-800 rotate-[-15deg]">
-           <svg viewBox="0 0 100 100" fill="currentColor"><path d="M10,90 Q40,10 90,90" fill="none" stroke="currentColor" strokeWidth="5" /><path d="M20,70 L40,40 L60,70" /></svg>
-        </div>
-      </div>
-      <div className="absolute top-0 right-0 p-4 opacity-40">
-        <div className="w-32 h-32 text-green-800 rotate-[15deg]">
-           <svg viewBox="0 0 100 100" fill="currentColor"><path d="M10,90 Q40,10 90,90" fill="none" stroke="currentColor" strokeWidth="5" /><path d="M20,70 L40,40 L60,70" /></svg>
-        </div>
-      </div>
-
       <div className="relative w-full h-full min-h-screen flex flex-col items-center pt-10 px-6 max-w-lg mx-auto">
         <div className="w-full flex justify-between items-center mb-4 px-2">
            <button onClick={handleClose} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md active:scale-90 transition-transform">
@@ -283,37 +260,37 @@ export function PromoPopup() {
 
             <div className="text-center mb-8">
                <h3 className="text-3xl font-black italic text-white uppercase tracking-tighter drop-shadow-[0_2px_0_#15803d]">
-                  LEVEL: IMPOSSIBLE
+                  CHALLENGE ACTIVE!
                </h3>
                <h3 className="text-xl font-black italic text-[#FEF08A] uppercase tracking-tighter mt-2">
-                  SCREAM CONTINUOUSLY FOR 100% 😱
+                  SCREAM CONTINUOUSLY TO WIN 😱
                </h3>
-               <p className="text-[10px] font-black text-white/60 uppercase mt-2 tracking-widest">YOU HAVE ONLY 30 SECONDS!</p>
+               <p className="text-[10px] font-black text-white/60 uppercase mt-2 tracking-widest">Jeetne par milega Free Choc-Bar!</p>
             </div>
 
             <div className="w-full bg-[#E0F2FE] rounded-3xl overflow-hidden border-4 border-white shadow-2xl mb-10">
                <div className="bg-[#B9E6FE] py-2 text-center">
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[#0369A1]">CHALLENGE RULES</span>
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[#0369A1]">HOW TO PLAY</span>
                </div>
                <div className="bg-[#FEF08A] p-8 flex flex-col items-center relative">
                   <div className="flex items-center gap-6">
                     <div className="text-center space-y-1">
-                      <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-lg animate-pulse">MUST BE LOUD</div>
+                      <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-lg animate-pulse">LOUD SOUND</div>
                       <div className="h-20 w-20 rounded-full border-4 border-white bg-white overflow-hidden shadow-lg">
                         <img src="https://picsum.photos/seed/loud-mouth/200/200" alt="Loud" className="w-full h-full object-cover" />
                       </div>
                     </div>
                     <div className="max-w-[150px] space-y-2">
-                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">1. Meter drains if you stop screaming.</p>
-                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">2. Win within 30 seconds or lose.</p>
-                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. Good luck... you'll need it.</p>
+                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">1. Jitna zor se chillaoge meter utna bharega.</p>
+                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">2. 30 seconds ke andar 100% karna hai.</p>
+                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. Rukne par meter wapas girega!</p>
                     </div>
                   </div>
                </div>
                <div className="bg-white py-3 text-center border-t border-sky-100">
                   <p className="text-[9px] font-black text-red-600 uppercase tracking-widest flex items-center justify-center gap-2">
                      <Info className="h-3 w-3" />
-                     WARNING: DO NOT PLAY IN PUBLIC PLACES
+                     WARNING: PLEASE DON'T SHOUT IN PUBLIC
                   </p>
                </div>
             </div>
@@ -323,7 +300,7 @@ export function PromoPopup() {
                 onClick={startGame}
                 className="w-full h-16 bg-white rounded-full shadow-[0_10px_40px_rgba(255,255,255,0.4)] flex items-center justify-center active:scale-95 transition-all"
                >
-                 <span className="text-xl font-black text-[#451A03] uppercase italic">I Accept The Challenge</span>
+                 <span className="text-xl font-black text-[#451A03] uppercase italic">Start Screaming!</span>
                </button>
             </div>
           </div>
@@ -331,7 +308,6 @@ export function PromoPopup() {
 
         {gameState === 'playing' && (
           <div className="flex flex-col items-center w-full h-full animate-in zoom-in duration-500">
-            {/* Timer Display */}
             <div className="flex flex-col items-center gap-1 mt-4">
               <div className={cn(
                 "flex items-center gap-2 px-6 py-2 rounded-full border-2 bg-black/40 backdrop-blur-md shadow-2xl transition-colors",
@@ -344,18 +320,16 @@ export function PromoPopup() {
             </div>
 
             <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter text-center mt-6 drop-shadow-2xl">
-              SCREAMING NOW...<br /><span className="text-red-600 bg-white px-2">DON'T STOP!</span>
+              GO ON!<br /><span className="text-red-600 bg-white px-2">SCREAM LOUDER!</span>
             </h2>
             
             <div className="relative flex-1 w-full flex items-center justify-center my-6">
               <div className="w-32 h-[380px] bg-black/40 rounded-full border-4 border-white/20 p-2 relative overflow-hidden shadow-2xl">
-                {/* Instant visual indicator (Moves easily with speech) */}
                 <div 
                   className="absolute bottom-0 left-0 right-0 bg-yellow-400 opacity-20 transition-all duration-75"
                   style={{ height: `${screamLevel}%` }}
                 />
                 
-                {/* Main Progress Bar (Hard to fill) */}
                 <div 
                   className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-red-600 via-orange-400 to-green-500 transition-all duration-100"
                   style={{ height: `${maxLevelReached}%` }}
@@ -363,13 +337,12 @@ export function PromoPopup() {
                    <div className="absolute top-0 left-0 right-0 h-4 bg-white/40 blur-md" />
                 </div>
                 
-                {/* Measurement marks */}
                 <div className="absolute inset-0 flex flex-col justify-between py-10 items-center pointer-events-none opacity-20">
                    {[...Array(10)].map((_, i) => <div key={i} className="w-10 h-0.5 bg-white rounded-full" />)}
                 </div>
               </div>
 
-              <div className="absolute -right-6 top-1/2 -translate-y-1/2 flex flex-col gap-8">
+              <div className="absolute -right-6 top-1/2 -translate-y-1/2 flex flex-col gap-8 text-2xl">
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 30 ? "opacity-100 scale-110" : "opacity-20 scale-75")}>😐</div>
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 60 ? "opacity-100 scale-110" : "opacity-20 scale-75")}>😮</div>
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 85 ? "opacity-100 scale-110 animate-bounce" : "opacity-20 scale-75")}>😫</div>
@@ -378,7 +351,7 @@ export function PromoPopup() {
 
             <div className="w-full bg-white/20 p-5 rounded-[2.5rem] backdrop-blur-md border border-white/30 mb-8">
                <div className="flex justify-between items-center mb-2">
-                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Progress to 100%</span>
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Progress</span>
                  <span className="text-xl font-black text-white italic">{Math.floor(maxLevelReached)}%</span>
                </div>
                <div className="w-full h-5 bg-black/20 rounded-full overflow-hidden border-2 border-white/10">
@@ -394,7 +367,7 @@ export function PromoPopup() {
               onClick={() => { stopGame(); setViewState('info'); }}
               className="mb-8 text-white/40 font-black uppercase text-[10px] tracking-widest hover:text-white"
             >
-              QUIT CHALLENGE
+              QUIT GAME
             </Button>
           </div>
         )}
@@ -409,7 +382,7 @@ export function PromoPopup() {
              </div>
 
              <h2 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-tight drop-shadow-xl">
-               YOU DID IT!<br /><span className="text-[#22c55e] drop-shadow-[0_2px_0_#FFF]">LEGENDARY.</span>
+               YOU WON!<br /><span className="text-[#22c55e] drop-shadow-[0_2px_0_#FFF]">AMAZING!</span>
              </h2>
 
              <div className="mt-10 bg-white p-8 rounded-[3rem] shadow-2xl w-full max-w-sm space-y-6">
@@ -418,11 +391,11 @@ export function PromoPopup() {
                       <img src="https://picsum.photos/seed/icecream-choc/100/200" className="h-16 object-contain" alt="Free Prize" />
                    </div>
                    <h4 className="text-xl font-black italic uppercase text-gray-800">FREE CHOC-BAR</h4>
-                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">VALID ON ORDERS ABOVE ₹300</p>
+                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">COUPON: SCREAMFREE</p>
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-200">
-                   <span className="text-xs font-black text-gray-400 uppercase">Your Reward Code:</span>
+                   <span className="text-xs font-black text-gray-400 uppercase">Use at checkout:</span>
                    <div className="text-2xl font-black italic tracking-widest text-black mt-1">SCREAMFREE</div>
                 </div>
 
@@ -430,7 +403,7 @@ export function PromoPopup() {
                   onClick={handleClose}
                   className="w-full h-14 rounded-2xl bg-black hover:bg-gray-800 text-white font-black uppercase italic shadow-xl"
                 >
-                  FINALIZE REWARD
+                  START SHOPPING
                 </Button>
              </div>
           </div>
@@ -444,18 +417,18 @@ export function PromoPopup() {
                 </div>
              </div>
 
-             <h2 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-tight drop-shadow-xl">
-               TIME UP!<br /><span className="text-red-500 drop-shadow-[0_2px_0_#FFF]">TRY AGAIN.</span>
+             <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-tight drop-shadow-xl">
+               TIME OVER!<br /><span className="text-yellow-400 drop-shadow-[0_2px_0_#FFF]">GOOD TRY!</span>
              </h2>
 
              <p className="text-sm font-bold text-white/80 uppercase tracking-widest mt-6 max-w-xs leading-relaxed">
-               BETTER LUCK NEXT TIME! DON'T WORRY, WE HAVE SOMETHING FOR YOU.
+               Thoda aur zor se chillaana tha! But don't worry, here is your reward.
              </p>
 
              <div className="mt-10 bg-white p-8 rounded-[3rem] shadow-2xl w-full max-w-sm space-y-6">
                 <div className="flex flex-col items-center">
                    <h4 className="text-xl font-black italic uppercase text-gray-800">10% OFF DISCOUNT</h4>
-                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">FOR YOUR EFFORT!</p>
+                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">CONSOLATION PRIZE</p>
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-200">
@@ -468,7 +441,7 @@ export function PromoPopup() {
                     onClick={startGame}
                     className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase italic shadow-xl"
                   >
-                    REPLAY CHALLENGE
+                    TRY AGAIN
                   </Button>
                   <Button 
                     onClick={handleClose}
