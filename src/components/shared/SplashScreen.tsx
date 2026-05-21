@@ -9,15 +9,15 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // Faster entry: 1 second instead of 2
+    // Keep visible for exactly 2 seconds
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 1000);
+    }, 2000);
 
-    // Completely remove from DOM after fade animation
+    // Completely remove from DOM after fade animation (2s + 0.8s transition)
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 1800);
+    }, 2800);
 
     return () => {
       clearTimeout(timer);
@@ -40,7 +40,7 @@ export function SplashScreen() {
           isVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}>
           {/* Pill-shaped Branding */}
-          <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-sm shadow-[0_0_40px_rgba(197,160,33,0.2)] flex flex-col items-center">
+          <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-md shadow-[0_0_40px_rgba(197,160,33,0.2)] flex flex-col items-center">
             <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
               <span className="text-white">SHOPY</span>
               <span className="text-[#C5A021]">KART</span>
