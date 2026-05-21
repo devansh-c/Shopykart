@@ -254,7 +254,7 @@ export default function CartPage() {
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Pincode</label>
                 <Input 
-                  placeholder="284205"
+                  placeholder="Pincode"
                   value={customerPincode}
                   onChange={(e) => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))}
                   className="h-12 rounded-xl bg-gray-50 border-none font-bold"
