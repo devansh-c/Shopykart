@@ -147,7 +147,6 @@ export function PromoPopup() {
           }
         }
         
-        // This will never be true now because next is capped at 90
         if (next >= 100) {
           setTimeout(handleWin, 100);
           return 100;
@@ -226,13 +225,6 @@ export function PromoPopup() {
           <div className="flex flex-col items-center w-full animate-in slide-in-from-bottom-4 duration-500">
             <div className="relative mb-6">
                <div className="bg-white px-8 py-3 rounded-md shadow-[4px_4px_0px_rgba(0,0,0,0.1)] relative transform -rotate-1">
-                  <div className="absolute -left-10 top-1/2 -translate-y-1/2">
-                     <img 
-                      src="https://picsum.photos/seed/icecream-choc/200/400" 
-                      alt="Ice Cream" 
-                      className="h-24 w-auto object-contain drop-shadow-xl"
-                     />
-                  </div>
                   <h2 className="text-center">
                     <span className="block text-4xl font-black text-[#632D15] leading-none tracking-tighter">SCREAM</span>
                     <span className="block text-sm font-black text-red-600 uppercase tracking-widest mt-1">FOR <span className="bg-red-600 text-white px-1">ICE-CREAM</span></span>
@@ -240,16 +232,11 @@ export function PromoPopup() {
                </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 mb-6">
+            <div className="flex flex-col items-center gap-1 mb-6">
                <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-80">Powered By</span>
-               <div className="flex items-center gap-3">
-                  <div className="bg-white p-1 rounded-md shadow-sm h-8 w-14 flex items-center justify-center">
-                     <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Kwality_Wall%27s_Logo.svg" className="h-full object-contain" alt="Kwality Walls" />
-                  </div>
-                  <div className="bg-white p-1 rounded-md shadow-sm h-8 w-14 flex items-center justify-center">
-                     <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Amul_Logo.svg" className="h-full object-contain" alt="Amul" />
-                  </div>
-               </div>
+               <h1 className="text-xl font-black italic tracking-tighter text-white">
+                 SHOPY<span className="text-yellow-400">KART</span>
+               </h1>
             </div>
 
             <div className="text-center mb-8">
