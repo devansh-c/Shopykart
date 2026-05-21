@@ -132,7 +132,7 @@ export function PromoPopup() {
         const isEasyPhase = prev < 88;
 
         if (isEasyPhase) {
-          // PHASE 1: VERY VERY EASY (Threshold 30) - Rise to 88%
+          // PHASE 1: VERY VERY EASY (Threshold 30 as requested) - Rise to 88%
           if (peak > 30) {
             next = Math.min(88, prev + 5.0); // Super fast rise
           } else {
@@ -147,6 +147,7 @@ export function PromoPopup() {
           }
         }
         
+        // Safety check (should never win because of Phase 2 cap and logic)
         if (next >= 100) {
           setTimeout(handleWin, 100);
           return 100;
@@ -223,6 +224,7 @@ export function PromoPopup() {
 
         {gameState === 'info' && (
           <div className="flex flex-col items-center w-full animate-in slide-in-from-bottom-4 duration-500">
+            {/* Jagged Banner - Images Removed as requested */}
             <div className="relative mb-6">
                <div className="bg-white px-8 py-3 rounded-md shadow-[4px_4px_0px_rgba(0,0,0,0.1)] relative transform -rotate-1">
                   <h2 className="text-center">
@@ -232,9 +234,10 @@ export function PromoPopup() {
                </div>
             </div>
 
+            {/* Powered By Section - ShopyKart branding added */}
             <div className="flex flex-col items-center gap-1 mb-6">
                <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-80">Powered By</span>
-               <h1 className="text-xl font-black italic tracking-tighter text-white">
+               <h1 className="text-2xl font-black italic tracking-tighter text-white">
                  SHOPY<span className="text-yellow-400">KART</span>
                </h1>
             </div>
