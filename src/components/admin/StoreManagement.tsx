@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch } from 'firebase/firestore';
 import { 
   Store, 
   User, 
@@ -14,8 +15,7 @@ import {
   Search,
   Check,
   Power,
-  PowerOff,
-  AlertTriangle
+  PowerOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -176,7 +176,11 @@ export function StoreManagement() {
 
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border-2 border-primary/10">
-                   <img src={store.imageUrl || `https://picsum.photos/seed/${store.id}/100/100`} className="h-full w-full object-cover" alt="" />
+                   {store.imageUrl ? (
+                     <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
+                   ) : (
+                     <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground uppercase font-black">{store.storeName?.charAt(0)}</div>
+                   )}
                 </div>
                 <div>
                   <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight mb-1 truncate max-w-[150px]">{store.storeName}</h3>

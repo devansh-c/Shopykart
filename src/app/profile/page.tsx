@@ -1,13 +1,16 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, LayoutDashboard, Loader2, Phone } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useRef, useState } from 'react';
+import { compressImage } from '@/lib/image-utils';
 
 export default function ProfilePage() {
   const { toast } = useToast();
@@ -15,6 +18,8 @@ export default function ProfilePage() {
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -47,20 +52,38 @@ export default function ProfilePage() {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      try {
+        const compressed = await compressImage(base64, 400, 400);
+        if (firestore && user) {
+          const userRef = doc(firestore, 'users', user.uid);
+          await updateDoc(userRef, { profileImageUrl: compressed });
+          toast({ title: "Profile Updated", description: "Your new photo is now live." });
+        }
+      } catch (err) {
+        toast({ variant: "destructive", title: "Upload Failed" });
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSignOut = async () => {
-    // 1. Clear Firebase Session
     if (auth) {
       await signOut(auth).catch(() => {});
     }
-    
-    // 2. Clear Guest Session
     localStorage.removeItem('guest_uid');
     localStorage.removeItem('guest_name');
     localStorage.removeItem('user_location_set');
-    
     toast({ title: "Signed Out", description: "Come back soon!" });
-    
-    // 3. Force reload to reset App state
     window.location.href = '/';
   };
 
@@ -71,15 +94,35 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
       <div className="bg-primary h-56 relative flex flex-col items-center justify-center pt-8">
         <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
-        <div className="relative group">
-          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-transform">
-            <AvatarImage src={`https://picsum.photos/seed/${user?.uid || 'user'}/200/200`} />
-            <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
+        
+        <div 
+          className="relative group cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-transform overflow-hidden bg-muted">
+            {profile?.profileImageUrl ? (
+              <AvatarImage src={profile.profileImageUrl} className="object-cover" />
+            ) : null}
+            <AvatarFallback className="text-4xl font-black bg-muted text-primary">
+              {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> : displayName.charAt(0)}
+            </AvatarFallback>
           </Avatar>
+          
+          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6 group-hover:scale-110 transition-transform">
+            <Camera className="h-4 w-4 text-primary" />
+          </div>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleImageUpload} 
+          />
         </div>
       </div>
 
-      <div className="px-4 text-center mt-10">
+      <div className="px-4 text-center mt-12">
         <h2 className="text-3xl font-black italic uppercase tracking-tighter">
           {displayName}
         </h2>
