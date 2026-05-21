@@ -85,7 +85,7 @@ export function PromoPopup() {
       
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.1; // Very responsive
+      analyser.smoothingTimeConstant = 0.1;
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -122,31 +122,32 @@ export function PromoPopup() {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      // Visual feedback (Yellow wave)
+      // Visual feedback wave
       const instantLevel = Math.min(100, Math.floor((peak / 255) * 100));
       setScreamLevel(instantLevel);
       
-      // CORE LOGIC: VERY VERY EASY until 88%
+      // CUSTOM PROGRESSION LOGIC
       setMaxLevelReached(prev => {
         let next = prev;
         const isEasyPhase = prev < 88;
 
         if (isEasyPhase) {
-          // PHASE 1: VERY VERY EASY (Threshold 30 - background noise might trigger it)
+          // PHASE 1: VERY VERY EASY (Threshold 30) - Rise to 88%
           if (peak > 30) {
-            next = Math.min(88, prev + 4.0); // Extreme fast progression
+            next = Math.min(88, prev + 5.0); // Super fast rise
           } else {
-            next = Math.max(0, prev - 0.1); // Slow drain
+            next = Math.max(0, prev - 0.05); // Very slow drain
           }
         } else {
-          // PHASE 2: IMPOSSIBLE WALL (Threshold 240)
+          // PHASE 2: THE LOCK (Threshold 240) - Rise to 90% then stop
           if (peak > 240) {
-            next = Math.min(100, prev + 0.05); // Super slow crawl to 100%
+            next = Math.min(90, prev + 0.02); // Super slow rise to 90% cap
           } else {
-            next = Math.max(88, prev - 0.4); // Rapid drop if they stop shouting
+            next = Math.max(88, prev - 0.3); // Quick drop back to 88 if they stop
           }
         }
         
+        // This will never be true now because next is capped at 90
         if (next >= 100) {
           setTimeout(handleWin, 100);
           return 100;
