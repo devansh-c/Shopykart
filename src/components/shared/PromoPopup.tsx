@@ -113,6 +113,8 @@ export function PromoPopup() {
         address: regData.address,
         pincode: regData.pincode,
         updatedAt: serverTimestamp(),
+        createdAt: profile?.createdAt || serverTimestamp(),
+        role: 'customer'
       }, { merge: true });
       
       setViewState('info');

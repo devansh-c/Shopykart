@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -17,7 +16,8 @@ import {
   Edit2,
   Plus,
   Minus,
-  Check
+  Check,
+  IceCream
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
@@ -35,9 +35,10 @@ export function CustomerManagement() {
   const [adjustAmount, setAdjustAmount] = useState('');
   const [isAdjusting, setIsAdjusting] = useState(false);
 
+  // Fetch all users ordered by newest first
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, 'users'), orderBy('updatedAt', 'desc'));
   }, [firestore]);
 
   const { data: users, loading } = useCollection<any>(usersQuery);
@@ -83,8 +84,8 @@ export function CustomerManagement() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">User Directory</h2>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Live Monitoring: {users?.length || 0} Registered</p>
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Customer Insights</h2>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Tracking {users?.length || 0} Registrations</p>
         </div>
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -104,18 +105,33 @@ export function CustomerManagement() {
           </div>
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
+            const dateStr = user.updatedAt?.seconds 
+              ? format(new Date(user.updatedAt.seconds * 1000), 'MMM d, h:mm a') 
+              : 'Recently';
+
             return (
               <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10">
-                    <User className="h-7 w-7" />
+                  <div className="relative">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10">
+                      {user.profileImageUrl ? (
+                        <img src={user.profileImageUrl} className="h-full w-full object-cover rounded-2xl" alt="" />
+                      ) : (
+                        <User className="h-7 w-7" />
+                      )}
+                    </div>
+                    {user.hasPlayedScreamGame && (
+                      <div className="absolute -top-2 -right-2 bg-amber-400 text-white p-1.5 rounded-full shadow-lg border-2 border-white">
+                        <IceCream className="h-3 w-3" />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate">
-                      {user.fullName || 'Identity Pending'}
+                      {user.fullName || 'New User'}
                     </h3>
                     <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
-                      Joined {user.createdAt?.seconds ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+                      <Calendar className="h-3 w-3" /> {dateStr}
                     </div>
                   </div>
                   
@@ -169,8 +185,8 @@ export function CustomerManagement() {
                   </Dialog>
                 </div>
 
-                <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
+                <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4 flex-1">
+                  <div className="flex items-center justify-between border-b border-white pb-3 mb-1">
                     <div className="flex items-center gap-2">
                        <div className="bg-white p-1.5 rounded-lg shadow-sm">
                           <PhoneCall className="h-3.5 w-3.5 text-green-500" />
@@ -197,32 +213,37 @@ export function CustomerManagement() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2">
-                     <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                     <p className="text-xs font-bold text-muted-foreground leading-snug">
-                       {user.address || 'Address not provided'}
-                     </p>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Full Address</p>
+                    <div className="flex items-start gap-2">
+                       <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                       <p className="text-xs font-bold text-gray-800 leading-snug">
+                         {user.address || 'Not Provided'}
+                       </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-2 border-t border-dashed border-gray-200">
+                  <div className="flex items-center gap-3 pt-3 border-t border-dashed border-gray-300">
                      <div className="flex items-center gap-1.5">
                         <Building2 className="h-3 w-3 text-gray-400" />
-                        <span className="text-[10px] font-black uppercase">{user.city || 'N/A'}</span>
+                        <span className="text-[10px] font-black uppercase text-gray-500">{user.city || 'Ranipur'}</span>
                      </div>
                      <div className="h-1 w-1 bg-gray-300 rounded-full" />
                      <div className="flex items-center gap-1.5">
                         <Navigation className="h-3 w-3 text-gray-400" />
-                        <span className="text-[10px] font-black uppercase">{user.pincode || 'N/A'}</span>
+                        <span className="text-[10px] font-black uppercase text-gray-500">{user.pincode || 'N/A'}</span>
                      </div>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-2">
+                <div className="pt-2">
                    <div className="flex justify-between items-center px-1">
                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ID: {user.id.slice(-8)}</span>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[8px] font-black px-2 py-0.5 rounded-full uppercase">
-                         ACTIVE USER
-                      </Badge>
+                      {user.hasPlayedScreamGame && (
+                        <Badge className="bg-blue-50 text-blue-700 border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase">
+                           GAME PLAYER
+                        </Badge>
+                      )}
                    </div>
                 </div>
               </div>
@@ -231,7 +252,7 @@ export function CustomerManagement() {
         ) : (
           <div className="col-span-full text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
             <User className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">Waiting for first login...</p>
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">Waiting for registrations...</p>
           </div>
         )}
       </div>
