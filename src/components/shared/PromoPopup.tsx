@@ -126,28 +126,28 @@ export function PromoPopup() {
       const instantLevel = Math.min(100, Math.floor((peak / 255) * 100));
       setScreamLevel(instantLevel);
       
-      // PROGRESSION LOGIC WITH 90% HARD LOCK
+      // PROGRESSION LOGIC WITH 90% HARD LOCK AND INSTANT DROP
       setMaxLevelReached(prev => {
         let next = prev;
         const isPhaseOne = prev < 88;
 
         if (isPhaseOne) {
-          // PHASE 1: EASY (Threshold 200) - Rise to 88%
-          if (peak > 200) {
-            next = Math.min(88, prev + 1.5);
+          // PHASE 1: Threshold 220 - Rise to 88%
+          if (peak > 220) {
+            next = Math.min(88, prev + 1.2); // Slower rise, harder to keep
           } else {
-            next = Math.max(0, prev - 0.1);
+            next = Math.max(0, prev - 2.5); // FAST INSTANT DROP
           }
         } else {
           // PHASE 2: THE LOCK (Threshold 240) - Rise to 90% then stop
           if (peak > 240) {
-            next = Math.min(90, prev + 0.02); // Super slow rise to 90% hard cap
+            next = Math.min(90, prev + 0.01); // Extremely slow rise to 90% hard cap
           } else {
-            next = Math.max(88, prev - 0.3); // Quick drop back to 88 if they stop
+            next = Math.max(0, prev - 5.0); // EVEN FASTER DROP IF STOPPED NEAR END
           }
         }
         
-        // Win condition check
+        // Win condition check (Enforced but practically unreachable due to 90% cap)
         if (next >= 100) {
           setTimeout(handleWin, 100);
           return 100;
