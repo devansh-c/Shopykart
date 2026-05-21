@@ -71,7 +71,7 @@ export function PromoPopup() {
       // Step 1: Clean up any existing state
       stopGame();
 
-      // Step 2: Request Mic with simplified constraints for better compatibility
+      // Step 2: Request Mic
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
@@ -85,7 +85,7 @@ export function PromoPopup() {
       
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.4;
+      analyser.smoothingTimeConstant = 0.2; // Faster response
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -113,7 +113,7 @@ export function PromoPopup() {
     const dataArray = new Uint8Array(bufferLength);
     
     const update = () => {
-      if (gameState !== 'playing' || !analyserRef.current) return;
+      if (!analyserRef.current) return;
       
       analyserRef.current.getByteFrequencyData(dataArray);
       
@@ -122,28 +122,28 @@ export function PromoPopup() {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      // Visual feedback wave
+      // Visual feedback wave (yellow part)
       const instantLevel = Math.min(100, Math.floor((peak / 255) * 100));
       setScreamLevel(instantLevel);
       
-      // Core Logic: Easy up to 88%, Impossible after that
+      // Core Logic: User requested 70 for 88%, and 240 for 100%
       setMaxLevelReached(prev => {
         let next = prev;
         const isEasyPhase = prev < 88;
 
         if (isEasyPhase) {
-          // PHASE 1: Easy Mode (0% to 88%)
-          if (peak > 110) { // Fairly sensitive
-            next = Math.min(88, prev + 1.5); // Rapid fill
+          // PHASE 1: Super Easy (Threshold 70)
+          if (peak > 70) {
+            next = Math.min(88, prev + 2.5); // Very fast progression
           } else {
-            next = Math.max(0, prev - 0.15); // Slow drain
+            next = Math.max(0, prev - 0.2); // Slow drain
           }
         } else {
-          // PHASE 2: Impossible Mode (88% to 100%)
-          if (peak > 245) { // Needs near-maximum volume
-            next = Math.min(100, prev + 0.04); // Extremely slow fill
+          // PHASE 2: Impossible Wall (Threshold 240)
+          if (peak > 240) {
+            next = Math.min(100, prev + 0.05); // Extremely slow progression
           } else {
-            next = Math.max(88, prev - 0.45); // Fast drain if you stop
+            next = Math.max(88, prev - 0.6); // Rapid drain if they stop
           }
         }
         
@@ -154,7 +154,9 @@ export function PromoPopup() {
         return next;
       });
 
-      animationFrameRef.current = requestAnimationFrame(update);
+      if (gameState === 'playing') {
+        animationFrameRef.current = requestAnimationFrame(update);
+      }
     };
     
     animationFrameRef.current = requestAnimationFrame(update);
