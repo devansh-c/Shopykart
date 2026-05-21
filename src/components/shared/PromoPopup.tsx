@@ -132,8 +132,9 @@ export function PromoPopup() {
         const isEasyPhase = prev < 88;
 
         if (isEasyPhase) {
-          // PHASE 1: EASY (Threshold 120) - Rise to 88%
-          if (peak > 120) {
+          // PHASE 1: EASY (Threshold 150) - Rise to 88%
+          // User requested 150 peak threshold for 88% progress
+          if (peak > 150) {
             next = Math.min(88, prev + 1.5); // Fast but controlled rise
           } else {
             next = Math.max(0, prev - 0.1); // Slow drain
@@ -141,13 +142,13 @@ export function PromoPopup() {
         } else {
           // PHASE 2: THE LOCK (Threshold 240) - Rise to 90% then stop
           if (peak > 240) {
-            next = Math.min(90, prev + 0.02); // Super slow rise to 90% cap
+            next = Math.min(90, prev + 0.02); // Super slow rise to 90% cap (Hard cap for impossible win)
           } else {
             next = Math.max(88, prev - 0.3); // Quick drop back to 88 if they stop
           }
         }
         
-        // Safety check (win condition is disabled by 90% cap)
+        // Win condition check (Note: next is capped at 90, so this will only trigger via logic-bypass or debug)
         if (next >= 100) {
           setTimeout(handleWin, 100);
           return 100;
@@ -234,7 +235,7 @@ export function PromoPopup() {
                </div>
             </div>
 
-            {/* Powered By Section - Clean ShopyKart Text */}
+            {/* Powered By Section */}
             <div className="flex flex-col items-center gap-1 mb-6">
                <span className="text-[10px] font-black text-white uppercase tracking-widest opacity-80">Powered By</span>
                <h1 className="text-2xl font-black italic tracking-tighter text-white">
