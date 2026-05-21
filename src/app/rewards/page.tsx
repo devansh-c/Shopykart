@@ -1,7 +1,8 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift } from 'lucide-react';
+import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift, IndianRupee } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -15,7 +16,16 @@ export default function RewardsPage() {
   const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('points');
 
-  // Updated profileRef to root user document
+  // 1. Fetch Economy Settings (for coin value)
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: branding } = useDoc<any>(brandingRef);
+  
+  const coinValue = branding?.coinValue || 0.5;
+
+  // 2. Fetch User Profile
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -63,8 +73,8 @@ export default function RewardsPage() {
             <div className="text-6xl font-black italic tracking-tighter leading-none mb-4">{currentCoins}</div>
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-black uppercase tracking-wider opacity-80">
-                <span>Value: ₹{(currentCoins * 0.5).toFixed(0)}</span>
-                <span>Earn 50% on every order</span>
+                <span>Value: ₹{(currentCoins * coinValue).toFixed(2)}</span>
+                <span>Earn on every order</span>
               </div>
               <Progress value={Math.min(100, (currentCoins / 5000) * 100)} className="h-2 bg-white/20" />
             </div>
@@ -100,10 +110,10 @@ export default function RewardsPage() {
                   <Trophy className="h-10 w-10 text-amber-500" />
                </div>
                <h2 className="text-2xl font-black italic uppercase tracking-tight">How it works?</h2>
-               <p className="text-xs text-muted-foreground font-bold mt-2 leading-relaxed px-4 uppercase">
-                 Har order par <span className="text-primary">50% Coins</span> mileinge. <br />
-                 Checkout ke waqt <span className="text-primary">1 Coin = ₹0.5</span> ka discount milega!
-               </p>
+               <div className="text-xs text-muted-foreground font-bold mt-2 leading-relaxed px-4 uppercase space-y-1">
+                 <p>Har order par <span className="text-primary">Bonus Coins</span> mileinge.</p>
+                 <p>Checkout ke waqt <span className="text-primary">1 Coin = ₹{coinValue}</span> ka discount milega!</p>
+               </div>
             </div>
           </div>
         ) : (

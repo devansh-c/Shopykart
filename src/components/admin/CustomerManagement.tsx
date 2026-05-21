@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, doc, updateDoc, increment } from 'firebase/firestore';
 import { 
   User, 
   PhoneCall, 
@@ -12,23 +13,28 @@ import {
   Building2,
   Navigation,
   Coins,
-  MessageCircle
+  MessageCircle,
+  Edit2,
+  Plus,
+  Minus,
+  Check
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
-/**
- * @fileOverview This component allows Admin to manage and call registered customers.
- * It reads from the root 'users' collection.
- */
 export function CustomerManagement() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
-  // Fetch all users from root collection for real-time monitoring
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
@@ -48,6 +54,30 @@ export function CustomerManagement() {
       return name.includes(q) || phone.includes(q) || city.includes(q) || pincode.includes(q);
     });
   }, [users, searchQuery]);
+
+  const handleAdjustCoins = async (userId: string, mode: 'add' | 'sub') => {
+    if (!firestore || !adjustAmount || isNaN(Number(adjustAmount))) return;
+    
+    setIsAdjusting(true);
+    const amount = Number(adjustAmount);
+    const finalChange = mode === 'add' ? amount : -amount;
+
+    try {
+      const userRef = doc(firestore, 'users', userId);
+      await updateDoc(userRef, {
+        coins: increment(finalChange)
+      });
+      toast({ 
+        title: "Coins Updated", 
+        description: `Successfully ${mode === 'add' ? 'added' : 'removed'} ${amount} coins.` 
+      });
+      setAdjustAmount('');
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -85,14 +115,58 @@ export function CustomerManagement() {
                       {user.fullName || 'Identity Pending'}
                     </h3>
                     <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
-                      <Calendar className="h-3 w-3" />
                       Joined {user.createdAt?.seconds ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
                     </div>
                   </div>
-                  <div className="bg-amber-50 px-3 py-2 rounded-2xl border border-amber-100 flex flex-col items-center justify-center">
-                     <Coins className="h-4 w-4 text-amber-500 mb-0.5" />
-                     <span className="text-xs font-black text-amber-600">{user.coins || 0}</span>
-                  </div>
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button className="bg-amber-50 px-3 py-2 rounded-2xl border border-amber-100 flex flex-col items-center justify-center hover:bg-amber-100 transition-colors group/coin">
+                        <Coins className="h-4 w-4 text-amber-500 mb-0.5 group-hover/coin:scale-110 transition-transform" />
+                        <span className="text-xs font-black text-amber-600">{user.coins || 0}</span>
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-[2.5rem] max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle className="font-black italic uppercase text-center text-xl">Manage Coins</DialogTitle>
+                      </DialogHeader>
+                      <div className="p-4 space-y-6">
+                        <div className="text-center">
+                          <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Current Balance</p>
+                          <div className="text-4xl font-black italic text-amber-600">{user.coins || 0}</div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-center block">Adjustment Amount</label>
+                          <Input 
+                            type="number" 
+                            placeholder="Enter amount" 
+                            value={adjustAmount}
+                            onChange={(e) => setAdjustAmount(e.target.value)}
+                            className="h-14 rounded-2xl text-center text-xl font-black bg-muted/20 border-none"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button 
+                            onClick={() => handleAdjustCoins(user.id, 'add')}
+                            disabled={isAdjusting || !adjustAmount}
+                            className="h-14 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase italic"
+                          >
+                            <Plus className="mr-2 h-5 w-5" /> ADD
+                          </Button>
+                          <Button 
+                            onClick={() => handleAdjustCoins(user.id, 'sub')}
+                            disabled={isAdjusting || !adjustAmount}
+                            variant="destructive"
+                            className="h-14 rounded-2xl font-black uppercase italic"
+                          >
+                            <Minus className="mr-2 h-5 w-5" /> REMOVE
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4">

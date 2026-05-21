@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Type, FileText, Loader2, Camera, Link as LinkIcon, Eye, BellRing, Trash2 } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Type, FileText, Loader2, Camera, Link as LinkIcon, Eye, BellRing, Trash2, Coins, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,6 +32,7 @@ export function BrandingManagement() {
     logoUrl: '',
     faviconUrl: '',
     notificationLogoUrl: '',
+    coinValue: '0.5', // Default: 1 Coin = 0.50 Rs
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -44,6 +45,7 @@ export function BrandingManagement() {
         logoUrl: settings.logoUrl || '',
         faviconUrl: settings.faviconUrl || '',
         notificationLogoUrl: settings.notificationLogoUrl || '',
+        coinValue: settings.coinValue ? settings.coinValue.toString() : '0.5',
       });
     }
   }, [settings]);
@@ -74,9 +76,10 @@ export function BrandingManagement() {
     try {
       await setDoc(doc(firestore, 'app_settings', 'branding'), {
         ...formData,
+        coinValue: parseFloat(formData.coinValue) || 0.5,
         updatedAt: serverTimestamp(),
       });
-      toast({ title: "Branding Live!", description: "Visual identity updated successfully." });
+      toast({ title: "Settings Saved!", description: "Global configuration updated successfully." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -87,8 +90,45 @@ export function BrandingManagement() {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Economy Settings - NEW */}
+        <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
+           <div className="flex items-center gap-3 mb-2">
+            <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600"><Coins className="h-5 w-5" /></div>
+            <h3 className="text-lg font-black italic uppercase">Reward Economy</h3>
+          </div>
+          
+          <div className="space-y-4">
+             <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100">
+                <div className="flex items-center justify-between mb-4">
+                   <div className="flex items-center gap-2">
+                      <IndianRupee className="h-4 w-4 text-amber-600" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-800">Value of 1 Coin</span>
+                   </div>
+                   <span className="text-[9px] font-bold text-amber-600 uppercase italic">Control Currency</span>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                   <div className="flex-1">
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        value={formData.coinValue}
+                        onChange={(e) => setFormData({...formData, coinValue: e.target.value})}
+                        className="h-14 rounded-2xl border-amber-200 bg-white font-black italic text-xl text-amber-700 text-center"
+                      />
+                   </div>
+                   <div className="text-sm font-black text-amber-900 uppercase italic">Rupees</div>
+                </div>
+                <p className="text-[10px] font-bold text-amber-700 mt-4 leading-relaxed uppercase opacity-70">
+                  Example: If you set 0.10, then 100 coins = ₹10. If you set 1.0, then 100 coins = ₹100.
+                </p>
+             </div>
+          </div>
+        </div>
+
         {/* SEO Settings */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
           <div className="flex items-center justify-between mb-2">
@@ -124,26 +164,17 @@ export function BrandingManagement() {
                 />
               </div>
             </div>
-
-            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
-              <Eye className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] font-black text-blue-600 uppercase">Search Preview</p>
-                <p className="text-sm font-bold text-blue-800 line-clamp-1 mt-1">{formData.siteTitle || 'Website Title'}</p>
-                <p className="text-xs text-blue-700/70 line-clamp-2 mt-1 italic">{formData.siteDescription || 'Your description will appear here on Google.'}</p>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Visual Identity */}
-        <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
+        <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm lg:col-span-2">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-primary/10 p-2 rounded-xl text-primary"><ImageIcon className="h-5 w-5" /></div>
             <h3 className="text-lg font-black italic uppercase">Visual Identity</h3>
           </div>
 
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">App Logo (Main Branding)</label>
               <div className="relative group">
@@ -165,14 +196,6 @@ export function BrandingManagement() {
                     </div>
                   )}
                 </div>
-                {formData.logoUrl && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); removeImage('logoUrl'); }}
-                    className="absolute -top-2 -right-2 h-8 w-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 active:scale-90 transition-all z-20"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
               </div>
               <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logoUrl')} />
             </div>
@@ -192,14 +215,6 @@ export function BrandingManagement() {
                       <LinkIcon className="h-5 w-5 opacity-20" />
                     )}
                   </div>
-                  {formData.faviconUrl && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removeImage('faviconUrl'); }}
-                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 active:scale-90 transition-all z-20"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
                 </div>
                 <input type="file" ref={faviconInputRef} className="hidden" accept="image/png, image/x-icon" onChange={(e) => handleImageUpload(e, 'faviconUrl')} />
               </div>
@@ -218,14 +233,6 @@ export function BrandingManagement() {
                       <BellRing className="h-5 w-5 text-primary opacity-40" />
                     )}
                   </div>
-                  {formData.notificationLogoUrl && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removeImage('notificationLogoUrl'); }}
-                      className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 active:scale-90 transition-all z-20"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
                 </div>
                 <input type="file" ref={notifyInputRef} className="hidden" accept="image/png" onChange={(e) => handleImageUpload(e, 'notificationLogoUrl')} />
               </div>
@@ -241,7 +248,7 @@ export function BrandingManagement() {
           className="w-full md:w-auto px-16 h-16 rounded-3xl bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all hover:bg-primary"
         >
           {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Save className="h-6 w-6 mr-3" />}
-          SAVE ALL BRANDING
+          SAVE ALL SETTINGS
         </Button>
       </div>
     </div>
