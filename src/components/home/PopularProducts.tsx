@@ -26,7 +26,7 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
 
   return (
     <div className={cn(
-      "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative will-change-transform transition-all duration-500",
+      "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-200",
       isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
     )}>
       <div className="flex-1 pr-4">
@@ -62,21 +62,21 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
               disabled={isOffline}
               onClick={() => onAdd({ ...product, imageUrl })}
               className={cn(
-                "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all",
-                isOffline ? "opacity-50 border-gray-300 text-gray-400 shadow-none" : "active:scale-95"
+                "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-150 active:scale-95",
+                isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none"
               )}
             >
               {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
             </button>
           ) : (
-            <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
+            <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden transition-all">
               <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Minus className="h-3 w-3" /></button>
               <span className="text-xs font-black min-w-[24px] text-center">{quantity}</span>
               <button onClick={() => onAdd({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
             </div>
           )}
         </div>
-        <button onClick={() => onWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20">
+        <button onClick={() => onWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20 active:scale-90 transition-transform">
           <Heart className={cn("h-4 w-4", liked ? "fill-primary text-primary" : "text-gray-300")} />
         </button>
       </div>
@@ -117,14 +117,12 @@ export function PopularProducts({
     
     let result = [...dbProducts];
     
-    // 1. Filter by Mode (Check if product's vendor matches active mode)
     result = result.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
       const vendorMode = vendor?.category || 'Food';
       return vendorMode === activeMode;
     });
 
-    // 2. Filter by Search & Category
     result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
@@ -138,8 +136,6 @@ export function PopularProducts({
       return matchesSearch && matchesCategory;
     });
 
-    // 3. Primary Sort: Online vs Offline (User Request)
-    // Products from stores that are online should be at the top
     result.sort((a, b) => {
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
@@ -147,14 +143,13 @@ export function PopularProducts({
       const onlineB = vendorB?.isOnline !== false ? 1 : 0;
       
       if (onlineA !== onlineB) {
-        return onlineB - onlineA; // 1 (online) comes before 0 (offline)
+        return onlineB - onlineA;
       }
       
-      // If both are same status, use the selected secondary sort
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
       
-      return 0; // Maintain original order for "recommended"
+      return 0;
     });
 
     return result;
@@ -217,12 +212,6 @@ export function PopularProducts({
           />
         ))}
       </div>
-      {productsToDisplay.length === 0 && searchQuery && (
-        <div className="text-center py-20 opacity-30">
-          <Utensils className="h-12 w-12 mx-auto mb-2" />
-          <p className="text-xs font-black uppercase tracking-widest">No matching dishes found</p>
-        </div>
-      )}
     </div>
   );
 }

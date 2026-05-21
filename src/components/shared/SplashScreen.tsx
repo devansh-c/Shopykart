@@ -9,15 +9,15 @@ export function SplashScreen() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // Keep visible for exactly 2 seconds
+    // Keep visible for exactly 2 seconds as requested
     const timer = setTimeout(() => {
       setIsVisible(false);
     }, 2000);
 
-    // Completely remove from DOM after fade animation (2s + 0.8s transition)
+    // Completely remove from DOM after a very short fade (2s + 0.3s transition)
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 2800);
+    }, 2350);
 
     return () => {
       clearTimeout(timer);
@@ -30,14 +30,14 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-700 ease-in-out",
+        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-300 ease-in-out",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div className="relative flex flex-col items-center">
         <div className={cn(
-          "transition-all duration-700 transform flex flex-col items-center",
-          isVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
+          "transition-all duration-500 transform flex flex-col items-center",
+          isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
         )}>
           {/* Pill-shaped Branding */}
           <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-md shadow-[0_0_40px_rgba(197,160,33,0.2)] flex flex-col items-center">
@@ -54,7 +54,7 @@ export function SplashScreen() {
       
       {/* Handcrafted Detail */}
       <div className={cn(
-        "absolute bottom-12 transition-all duration-700 delay-300 flex flex-col items-center gap-2",
+        "absolute bottom-12 transition-all duration-500 delay-100 flex flex-col items-center gap-2",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted By Devansh</p>

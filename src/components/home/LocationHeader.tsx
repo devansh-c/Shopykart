@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -144,7 +145,7 @@ export function LocationHeader({
         <div className="flex items-center gap-2">
           <Link href="/cart">
             <div className="relative">
-              <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+              <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all duration-150">
                 <ShoppingBag className="h-4 w-4" />
               </div>
               {totalItems > 0 && (
@@ -156,7 +157,7 @@ export function LocationHeader({
           </Link>
           <Sheet>
             <SheetTrigger asChild>
-              <button className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+              <button className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all duration-150">
                 <Menu className="h-4 w-4" />
               </button>
             </SheetTrigger>
@@ -190,7 +191,6 @@ export function LocationHeader({
         </div>
       </div>
 
-      {/* Center Branding */}
       <div className="flex justify-center">
         <Logo className="scale-100 h-12" />
       </div>
@@ -228,17 +228,15 @@ export function LocationHeader({
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
         </div>
 
-        {/* Skeuomorphic Toggle Switch (Matching the provided image) */}
         <div 
           onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
-          className="h-11 w-24 rounded-full p-[2px] cursor-pointer flex-shrink-0 relative active:scale-95 transition-transform"
+          className="h-11 w-24 rounded-full p-[2px] cursor-pointer flex-shrink-0 relative active:scale-95 transition-transform duration-150"
           style={{
-            background: 'linear-gradient(180deg, #E0E0E0 0%, #707070 100%)', // Metallic Silver Border
+            background: 'linear-gradient(180deg, #E0E0E0 0%, #707070 100%)',
             boxShadow: '0 4px 10px rgba(0,0,0,0.4)'
           }}
         >
            <div className="w-full h-full bg-[#121212] rounded-full shadow-[inset_0_4px_8px_rgba(0,0,0,0.9)] flex items-center relative overflow-hidden">
-              {/* Embossed Labels on Track */}
               <div className="absolute inset-0 flex items-center justify-between px-2.5">
                  <span className={cn(
                    "text-[7px] font-black transition-opacity duration-300 select-none",
@@ -250,10 +248,9 @@ export function LocationHeader({
                  )}>GROC</span>
               </div>
 
-              {/* High-End Metallic Handle (Thumb) */}
               <div 
                 className={cn(
-                  "absolute w-8 h-8 rounded-full transition-all duration-500 ease-premium z-10 flex items-center justify-center",
+                  "absolute w-8 h-8 rounded-full transition-all duration-300 ease-out z-10 flex items-center justify-center",
                   activeMode === 'Food' ? "left-1" : "left-[calc(100%-36px)]"
                 )}
                 style={{
@@ -261,7 +258,6 @@ export function LocationHeader({
                   boxShadow: '0 3px 6px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.8)'
                 }}
               >
-                {/* Active Mode Icon in Thumb */}
                 {activeMode === 'Food' ? <Utensils className="h-3 w-3 text-gray-800" /> : <ShoppingBag className="h-3 w-3 text-gray-800" />}
               </div>
            </div>
