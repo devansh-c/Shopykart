@@ -1,34 +1,38 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Volume2, Share2, Info, Mic, Trophy, Loader2 } from 'lucide-react';
+import { X, Volume2, Share2, Info, Mic, Trophy, Loader2, Timer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
+type GameState = 'info' | 'playing' | 'won' | 'lost';
+
 export function PromoPopup() {
   const [isOpen, setIsOpen] = useState(false);
-  const [gameState, setViewState] = useState<'info' | 'playing' | 'won'>('info');
+  const [gameState, setViewState] = useState<GameState>('info');
   const [screamLevel, setScreamLevel] = useState(0);
   const [maxLevelReached, setMaxLevelReached] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(30);
   const { toast } = useToast();
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleOpen = () => {
       setViewState('info');
       setScreamLevel(0);
       setMaxLevelReached(0);
+      setTimeLeft(30);
       setIsOpen(true);
     };
     window.addEventListener('open-promo-popup', handleOpen);
     
-    // Auto-show on first visit
     const lastShown = sessionStorage.getItem('last_promo_shown');
     if (!lastShown) {
       const timer = setTimeout(() => setIsOpen(true), 3000);
@@ -41,9 +45,29 @@ export function PromoPopup() {
     };
   }, []);
 
+  // Timer Logic
+  useEffect(() => {
+    if (gameState === 'playing') {
+      setTimeLeft(30);
+      timerIntervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            handleLost();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [gameState]);
+
   const startGame = async () => {
     try {
-      // Clean up previous context if any
       stopGame();
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -54,7 +78,7 @@ export function PromoPopup() {
       
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.4; // Faster response
+      analyser.smoothingTimeConstant = 0.4;
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -88,29 +112,19 @@ export function PromoPopup() {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      // Normalization Logic - 255 is hardware max. 
-      // Most consumer mics clip at 230-240. 
-      // Setting threshold to 252 makes it "impossible" for most.
       const instantLevel = Math.min(100, Math.floor((peak / 252) * 100));
       setScreamLevel(instantLevel);
       
-      // Update Momentum Bar (The Progress)
       setMaxLevelReached(prev => {
         let next = prev;
         
-        // Impossible Logic:
-        // 1. Must be screaming at 98%+ to gain any progress.
-        // 2. Progress gain is very slow.
-        // 3. Drain is very fast (if not at peak, lose 0.6% per frame).
-        
         if (instantLevel > 98) {
-          next = Math.min(100, prev + 0.25); // Needs ~400 frames of peak scream (~6.6 seconds)
+          next = Math.min(100, prev + 0.25); 
         } else {
-          next = Math.max(0, prev - 0.6); // Rapid drain if you stop
+          next = Math.max(0, prev - 0.6); 
         }
         
         if (next >= 100) {
-          // Delay success slightly to ensure the visual hits 100%
           setTimeout(handleWin, 200);
           return 100;
         }
@@ -130,10 +144,19 @@ export function PromoPopup() {
     audio.play().catch(() => {});
   };
 
+  const handleLost = () => {
+    stopGame();
+    setViewState('lost');
+  };
+
   const stopGame = () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
+    }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -156,7 +179,6 @@ export function PromoPopup() {
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-sky-400/95 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
-      {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 p-4 opacity-40">
         <div className="w-32 h-32 text-green-800 rotate-[-15deg]">
            <svg viewBox="0 0 100 100" fill="currentColor"><path d="M10,90 Q40,10 90,90" fill="none" stroke="currentColor" strokeWidth="5" /><path d="M20,70 L40,40 L60,70" /></svg>
@@ -169,8 +191,6 @@ export function PromoPopup() {
       </div>
 
       <div className="relative w-full h-full min-h-screen flex flex-col items-center pt-10 px-6 max-w-lg mx-auto">
-        
-        {/* Top Navigation Row */}
         <div className="w-full flex justify-between items-center mb-4 px-2">
            <button onClick={handleClose} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md active:scale-90 transition-transform">
              <X className="h-5 w-5" />
@@ -222,6 +242,7 @@ export function PromoPopup() {
                <h3 className="text-xl font-black italic text-[#FEF08A] uppercase tracking-tighter mt-2">
                   SCREAM CONTINUOUSLY FOR 100% 😱
                </h3>
+               <p className="text-[10px] font-black text-white/60 uppercase mt-2 tracking-widest">YOU HAVE ONLY 30 SECONDS!</p>
             </div>
 
             <div className="w-full bg-[#E0F2FE] rounded-3xl overflow-hidden border-4 border-white shadow-2xl mb-10">
@@ -238,7 +259,7 @@ export function PromoPopup() {
                     </div>
                     <div className="max-w-[150px] space-y-2">
                       <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">1. Meter drains if you stop screaming.</p>
-                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">2. Only 99% logic triggers the prize.</p>
+                      <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">2. Win within 30 seconds or lose.</p>
                       <p className="text-[10px] font-black text-[#451A03] uppercase leading-tight">3. Good luck... you'll need it.</p>
                     </div>
                   </div>
@@ -264,20 +285,29 @@ export function PromoPopup() {
 
         {gameState === 'playing' && (
           <div className="flex flex-col items-center w-full h-full animate-in zoom-in duration-500">
+            {/* Timer Display */}
+            <div className="flex flex-col items-center gap-1 mt-4">
+              <div className={cn(
+                "flex items-center gap-2 px-6 py-2 rounded-full border-2 bg-black/40 backdrop-blur-md shadow-2xl transition-colors",
+                timeLeft <= 5 ? "border-red-500 text-red-500" : "border-white/20 text-white"
+              )}>
+                 <Timer className={cn("h-5 w-5", timeLeft <= 5 && "animate-pulse")} />
+                 <span className="text-3xl font-black tabular-nums italic tracking-tighter">{timeLeft}s</span>
+              </div>
+              <span className="text-[8px] font-black uppercase text-white/40 tracking-[0.3em]">HURRY UP!</span>
+            </div>
+
             <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter text-center mt-6 drop-shadow-2xl">
               SCREAMING NOW...<br /><span className="text-red-600 bg-white px-2">DON'T STOP!</span>
             </h2>
             
             <div className="relative flex-1 w-full flex items-center justify-center my-6">
-              {/* The Impossible Meter */}
               <div className="w-32 h-[380px] bg-black/40 rounded-full border-4 border-white/20 p-2 relative overflow-hidden shadow-2xl">
-                {/* Instant Volume Visualizer */}
                 <div 
                   className="absolute bottom-0 left-0 right-0 bg-yellow-400 opacity-30 transition-all duration-75"
                   style={{ height: `${screamLevel}%` }}
                 />
                 
-                {/* Momentum / Progress Bar (The one that drains) */}
                 <div 
                   className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-red-600 via-orange-400 to-green-500 transition-all duration-100"
                   style={{ height: `${maxLevelReached}%` }}
@@ -290,7 +320,6 @@ export function PromoPopup() {
                 </div>
               </div>
 
-              {/* Reaction Emojis based on progress */}
               <div className="absolute -right-6 top-1/2 -translate-y-1/2 flex flex-col gap-8">
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 30 ? "opacity-100 scale-110" : "opacity-20 scale-75")}>😐</div>
                  <div className={cn("bg-white p-2 rounded-xl shadow-lg transition-all", maxLevelReached > 60 ? "opacity-100 scale-110" : "opacity-20 scale-75")}>😮</div>
@@ -309,9 +338,6 @@ export function PromoPopup() {
                     style={{ width: `${maxLevelReached}%` }}
                   />
                </div>
-               <p className="text-[8px] font-bold text-center text-white/50 uppercase mt-3 tracking-[0.2em]">
-                 TIP: Scream into the bottom of your phone
-               </p>
             </div>
 
             <Button 
@@ -337,10 +363,6 @@ export function PromoPopup() {
                YOU DID IT!<br /><span className="text-[#22c55e] drop-shadow-[0_2px_0_#FFF]">LEGENDARY.</span>
              </h2>
 
-             <p className="text-sm font-bold text-white/80 uppercase tracking-widest mt-6 max-w-xs leading-relaxed">
-               YOUR VOICE HAS UNLOCKED THE ULTIMATE PRIZE.
-             </p>
-
              <div className="mt-10 bg-white p-8 rounded-[3rem] shadow-2xl w-full max-w-sm space-y-6">
                 <div className="flex flex-col items-center">
                    <div className="h-24 w-24 bg-amber-50 rounded-3xl flex items-center justify-center mb-4">
@@ -361,6 +383,52 @@ export function PromoPopup() {
                 >
                   FINALIZE REWARD
                 </Button>
+             </div>
+          </div>
+        )}
+
+        {gameState === 'lost' && (
+          <div className="flex flex-col items-center justify-center w-full h-full animate-in zoom-in duration-700 text-center">
+             <div className="relative mb-8">
+                <div className="bg-white/10 h-32 w-32 rounded-full flex items-center justify-center border-4 border-white/20">
+                   <AlertCircle className="h-16 w-16 text-white" />
+                </div>
+             </div>
+
+             <h2 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-tight drop-shadow-xl">
+               TIME UP!<br /><span className="text-red-500 drop-shadow-[0_2px_0_#FFF]">TRY AGAIN.</span>
+             </h2>
+
+             <p className="text-sm font-bold text-white/80 uppercase tracking-widest mt-6 max-w-xs leading-relaxed">
+               BETTER LUCK NEXT TIME! DON'T WORRY, WE HAVE SOMETHING FOR YOU.
+             </p>
+
+             <div className="mt-10 bg-white p-8 rounded-[3rem] shadow-2xl w-full max-w-sm space-y-6">
+                <div className="flex flex-col items-center">
+                   <h4 className="text-xl font-black italic uppercase text-gray-800">10% OFF DISCOUNT</h4>
+                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">FOR YOUR EFFORT!</p>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-200">
+                   <span className="text-xs font-black text-gray-400 uppercase">Use This Code:</span>
+                   <div className="text-2xl font-black italic tracking-widest text-black mt-1">ICECREAM10</div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={startGame}
+                    className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase italic shadow-xl"
+                  >
+                    REPLAY CHALLENGE
+                  </Button>
+                  <Button 
+                    onClick={handleClose}
+                    variant="ghost"
+                    className="w-full h-12 text-gray-400 font-bold uppercase text-[10px] tracking-widest"
+                  >
+                    CLOSE & SHOP
+                  </Button>
+                </div>
              </div>
           </div>
         )}
