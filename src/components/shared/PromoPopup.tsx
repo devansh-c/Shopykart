@@ -68,17 +68,37 @@ export function PromoPopup() {
 
   const startGame = async () => {
     try {
+      // 1. Force cleanup of any previous session to avoid NotReadableError
       stopGame();
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 2. Request fresh microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        } 
+      }).catch(err => {
+        if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          throw new Error("Microphone is currently being used by another application. Please close other apps and try again.");
+        }
+        throw err;
+      });
+
       streamRef.current = stream;
       
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+      const audioContext = new AudioContextClass();
       audioContextRef.current = audioContext;
+
+      // Force resume (required for many mobile browsers)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
       
       const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.4;
+      analyser.fftSize = 256; // Smaller for faster response
+      analyser.smoothingTimeConstant = 0.2; // Less smoothing = more responsive meter
       analyserRef.current = analyser;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -86,13 +106,15 @@ export function PromoPopup() {
       
       setViewState('playing');
       detectVolume();
-    } catch (err) {
-      console.error("Mic Error:", err);
+    } catch (err: any) {
+      console.error("Mic Access Error:", err);
       toast({
         variant: "destructive",
-        title: "Mic Access Denied",
-        description: "Please allow microphone access in browser settings to play!"
+        title: "Access Denied",
+        description: err.message || "Please allow microphone access to play!"
       });
+      stopGame();
+      setViewState('info');
     }
   };
 
@@ -107,21 +129,37 @@ export function PromoPopup() {
       
       analyserRef.current.getByteFrequencyData(dataArray);
       
+      // Calculate average volume for smoother visual meter
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+      const average = sum / bufferLength;
+      
+      // Get the peak value for the "Impossible" logic
       let peak = 0;
       for (let i = 0; i < bufferLength; i++) {
         if (dataArray[i] > peak) peak = dataArray[i];
       }
       
-      const instantLevel = Math.min(100, Math.floor((peak / 252) * 100));
+      // Instant visual level (more sensitive so it moves with normal speech)
+      const instantLevel = Math.min(100, Math.floor((peak / 200) * 100));
       setScreamLevel(instantLevel);
       
+      // Impossible Progression Logic
       setMaxLevelReached(prev => {
         let next = prev;
         
-        if (instantLevel > 98) {
-          next = Math.min(100, prev + 0.25); 
+        // Threshold for filling: Only fills when volume is very high (> 80%)
+        // High threshold makes it "Impossible" to hit 100% without extreme screaming
+        if (peak > 230) {
+          // Difficulty curve: Fills slower as it gets higher
+          const fillRate = prev > 90 ? 0.1 : 0.4;
+          next = Math.min(100, prev + fillRate); 
         } else {
-          next = Math.max(0, prev - 0.6); 
+          // Aggressive drain logic
+          const drainRate = prev > 80 ? 0.8 : 0.3;
+          next = Math.max(0, prev - drainRate); 
         }
         
         if (next >= 100) {
@@ -140,8 +178,10 @@ export function PromoPopup() {
   const handleWin = () => {
     stopGame();
     setViewState('won');
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
-    audio.play().catch(() => {});
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+      audio.play().catch(() => {});
+    } catch (e) {}
   };
 
   const handleLost = () => {
@@ -159,11 +199,16 @@ export function PromoPopup() {
       timerIntervalRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
       streamRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {});
+      if (audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+      }
       audioContextRef.current = null;
     }
     analyserRef.current = null;
@@ -179,6 +224,7 @@ export function PromoPopup() {
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-sky-400/95 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
+      {/* Decorative patterns */}
       <div className="absolute top-0 left-0 p-4 opacity-40">
         <div className="w-32 h-32 text-green-800 rotate-[-15deg]">
            <svg viewBox="0 0 100 100" fill="currentColor"><path d="M10,90 Q40,10 90,90" fill="none" stroke="currentColor" strokeWidth="5" /><path d="M20,70 L40,40 L60,70" /></svg>
@@ -303,11 +349,13 @@ export function PromoPopup() {
             
             <div className="relative flex-1 w-full flex items-center justify-center my-6">
               <div className="w-32 h-[380px] bg-black/40 rounded-full border-4 border-white/20 p-2 relative overflow-hidden shadow-2xl">
+                {/* Instant visual indicator (Moves easily with speech) */}
                 <div 
-                  className="absolute bottom-0 left-0 right-0 bg-yellow-400 opacity-30 transition-all duration-75"
+                  className="absolute bottom-0 left-0 right-0 bg-yellow-400 opacity-20 transition-all duration-75"
                   style={{ height: `${screamLevel}%` }}
                 />
                 
+                {/* Main Progress Bar (Hard to fill) */}
                 <div 
                   className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-red-600 via-orange-400 to-green-500 transition-all duration-100"
                   style={{ height: `${maxLevelReached}%` }}
@@ -315,6 +363,7 @@ export function PromoPopup() {
                    <div className="absolute top-0 left-0 right-0 h-4 bg-white/40 blur-md" />
                 </div>
                 
+                {/* Measurement marks */}
                 <div className="absolute inset-0 flex flex-col justify-between py-10 items-center pointer-events-none opacity-20">
                    {[...Array(10)].map((_, i) => <div key={i} className="w-10 h-0.5 bg-white rounded-full" />)}
                 </div>
