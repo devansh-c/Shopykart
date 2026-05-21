@@ -6,32 +6,42 @@ import { Gift, Timer, Zap, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function IceCreamBanner() {
-  const [timeLeft, setTimeLeft] = useState({ hours: 12, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    // Logic for a rolling 12-hour countdown
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.hours === 0 && prev.minutes === 0 && prev.seconds === 0) {
-          return { hours: 12, minutes: 0, seconds: 0 };
-        }
-        
-        let s = prev.seconds - 1;
-        let m = prev.minutes;
-        let h = prev.hours;
+    // 1. Get or set the persistent end time
+    const getEndTime = () => {
+      const stored = localStorage.getItem('ice_cream_promo_end');
+      if (stored) return parseInt(stored, 10);
+      
+      // Set to 12 hours from now if not exists
+      const newEnd = Date.now() + 12 * 60 * 60 * 1000;
+      localStorage.setItem('ice_cream_promo_end', newEnd.toString());
+      return newEnd;
+    };
 
-        if (s < 0) {
-          s = 59;
-          m -= 1;
-        }
-        if (m < 0) {
-          m = 59;
-          h -= 1;
-        }
+    const endTime = getEndTime();
 
-        return { hours: h, minutes: m, seconds: s };
-      });
-    }, 1000);
+    // 2. Update logic based on fixed end time
+    const calculateTime = () => {
+      const now = Date.now();
+      const diff = endTime - now;
+
+      if (diff <= 0) {
+        // If expired, we could restart it or show 0
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft({ hours: h, minutes: m, seconds: s });
+    };
+
+    calculateTime();
+    const timer = setInterval(calculateTime, 1000);
 
     return () => clearInterval(timer);
   }, []);
