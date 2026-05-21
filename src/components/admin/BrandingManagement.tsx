@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Type, FileText, Loader2, Camera, Link as LinkIcon, Eye, BellRing, Trash2, Coins, IndianRupee, Send, ShieldCheck } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Type, FileText, Loader2, Camera, Link as LinkIcon, Eye, BellRing, Trash2, Coins, IndianRupee, Send, ShieldCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,6 +40,7 @@ export function BrandingManagement() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -72,6 +73,27 @@ export function BrandingManagement() {
     reader.readAsDataURL(file);
   };
 
+  const handleTestTelegram = async () => {
+    if (!formData.telegramBotToken || !formData.telegramChatId) {
+      toast({ variant: "destructive", title: "Missing Credentials", description: "Please enter Bot Token and Chat ID first." });
+      return;
+    }
+
+    setIsTesting(true);
+    const testMsg = `🔔 SHOPYKART TEST ALERT\n\nYour Telegram system is now ACTIVE and connected correctly! ✅`;
+    const url = `https://api.telegram.org/bot${formData.telegramBotToken.trim()}/sendMessage?chat_id=${formData.telegramChatId.trim()}&text=${encodeURIComponent(testMsg)}`;
+
+    try {
+      // Using no-cors as it's a simple GET notification
+      await fetch(url, { mode: 'no-cors' });
+      toast({ title: "Test Sent!", description: "Check your Telegram bot. If you don't see it, check your ID/Token." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Test Failed", description: "Check your internet and credentials." });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!firestore) return;
     setIsSaving(true);
@@ -95,7 +117,7 @@ export function BrandingManagement() {
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Telegram Alerts - NEW */}
+        {/* Telegram Alerts */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
@@ -127,11 +149,24 @@ export function BrandingManagement() {
                 className="h-12 rounded-xl bg-muted/5 font-bold"
               />
             </div>
-            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
-              <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
-              <p className="text-[9px] font-bold text-blue-800 uppercase leading-relaxed">
-                Orders updates will be sent to this Telegram chat automatically when enabled.
-              </p>
+            
+            <div className="flex flex-col gap-3">
+              <Button 
+                onClick={handleTestTelegram}
+                disabled={isTesting}
+                variant="outline"
+                className="w-full h-12 rounded-xl border-blue-100 text-blue-600 font-black uppercase italic text-[10px] tracking-widest hover:bg-blue-50"
+              >
+                {isTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+                TEST CONNECTION NOW
+              </Button>
+
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
+                <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                <p className="text-[9px] font-bold text-blue-800 uppercase leading-relaxed">
+                  Important: Ensure your bot is added to the group/chat before testing.
+                </p>
+              </div>
             </div>
           </div>
         </div>
