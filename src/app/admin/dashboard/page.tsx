@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Percent,
   Feather,
-  Users
+  Users,
+  Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,7 @@ import { CategoryManagement } from '@/components/admin/CategoryManagement';
 import { BrandingManagement } from '@/components/admin/BrandingManagement';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { CustomerManagement } from '@/components/admin/CustomerManagement';
+import { ChargeManagement } from '@/components/admin/ChargeManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -48,6 +50,7 @@ const menuItems = [
   { id: 'design', label: 'Banners', icon: Feather },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
+  { id: 'charges', label: 'Tax & Charges', icon: Receipt },
   { id: 'notifications', label: 'Notifications', icon: BellRing },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
@@ -147,12 +150,14 @@ export default function AdminDashboard() {
         return <BannerManagement />;
       case 'orders':
         return <OrderManagement />;
-      case 'reviews':
-        return <ReviewManagement />;
       case 'discounts':
         return <DiscountManagement />;
+      case 'charges':
+        return <ChargeManagement />;
       case 'notifications':
         return <NotificationManagement />;
+      case 'reviews':
+        return <ReviewManagement />;
       case 'settings':
         return <BrandingManagement />;
       default:

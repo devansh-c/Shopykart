@@ -50,6 +50,17 @@
         "coins": { "type": "number", "default": 0 },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "CheckoutCharge": {
+      "title": "Checkout Charge",
+      "description": "Additional charges applied during checkout",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["fixed", "percentage"] },
+        "value": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -62,6 +73,7 @@
     "/categories/{categoryId}": { "schema": "object", "description": "Food categories" },
     "/vendor_applications/{appId}": { "schema": "object", "description": "New store requests" },
     "/users/{userId}/fcmTokens/{tokenId}": { "schema": "object", "description": "User notification tokens" },
-    "/users/{userId}/profile/data": { "schema": "#/entities/UserProfile", "description": "User profile information" }
+    "/users/{userId}/profile/data": { "schema": "#/entities/UserProfile", "description": "User profile information" },
+    "/checkout_charges/{chargeId}": { "schema": "#/entities/CheckoutCharge", "description": "Dynamic tax and service charges" }
   }
 }

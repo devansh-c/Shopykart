@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -16,9 +17,9 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,13 @@ export default function CartPage() {
   const [customerCity, setCustomerCity] = useState('');
   const [customerPincode, setCustomerPincode] = useState('');
 
+  // Fetch Dynamic Charges from Admin Panel
+  const chargesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'checkout_charges');
+  }, [firestore]);
+  const { data: dbCharges } = useCollection<any>(chargesQuery);
+
   // Load from local storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -66,9 +74,19 @@ export default function CartPage() {
     }
   }, [customerName, customerPhone, customerAddress, customerCity, customerPincode]);
 
-  const packagingFee = 10;
-  const gst = totalPrice * 0.05;
-  const grandTotal = totalPrice + packagingFee + gst;
+  // Calculate dynamic totals
+  const calculatedCharges = useMemo(() => {
+    if (!dbCharges) return [];
+    return dbCharges.map(charge => {
+      const amount = charge.type === 'percentage' 
+        ? totalPrice * (charge.value / 100) 
+        : charge.value;
+      return { ...charge, calculatedAmount: amount };
+    });
+  }, [dbCharges, totalPrice]);
+
+  const chargesTotal = calculatedCharges.reduce((acc, curr) => acc + curr.calculatedAmount, 0);
+  const grandTotal = totalPrice + chargesTotal;
 
   const handleCheckout = () => {
     if (!firestore || isPlacing) return;
@@ -103,6 +121,7 @@ export default function CartPage() {
       customerPhone: customerPhone,
       orderDisplayId: orderId,
       items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
+      chargesApplied: calculatedCharges.map(c => ({ name: c.name, amount: c.calculatedAmount })),
       total: grandTotal,
       status: 'Placed',
       instructions,
@@ -294,17 +313,18 @@ export default function CartPage() {
               <span>Item Total</span>
               <span>₹{totalPrice.toFixed(2)}</span>
             </div>
+            
+            {/* Dynamic Admin Charges */}
+            {calculatedCharges.map((charge) => (
+              <div key={charge.id} className="flex justify-between font-bold text-gray-500">
+                <span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span>
+                <span>₹{charge.calculatedAmount.toFixed(2)}</span>
+              </div>
+            ))}
+
             <div className="flex justify-between font-bold text-green-600">
               <span>Delivery Fee</span>
               <span>Free</span>
-            </div>
-            <div className="flex justify-between font-bold text-gray-500">
-              <span>Packaging Fee</span>
-              <span>₹{packagingFee.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-gray-500">
-              <span>GST (5%)</span>
-              <span>₹{gst.toFixed(2)}</span>
             </div>
           </div>
 
@@ -339,4 +359,3 @@ export default function CartPage() {
     </div>
   );
 }
-
