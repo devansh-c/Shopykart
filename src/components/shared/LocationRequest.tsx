@@ -35,6 +35,7 @@ export function LocationRequest() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
+    // Check if location is already set in this session or storage
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
       const timer = setTimeout(() => setOpen(true), 1500);
@@ -66,7 +67,7 @@ export function LocationRequest() {
           const response = await fetch(`https://api.postalpincode.in/pincode/${manualData.pincode}`);
           const data = await response.json();
           
-          if (data[0].Status === "Success") {
+          if (data && data[0] && data[0].Status === "Success") {
             const postOffices = data[0].PostOffice;
             const mainTown = postOffices.find((po: any) => po.BranchType === "Sub Post Office") || postOffices[0];
             setManualData(prev => ({
@@ -89,6 +90,7 @@ export function LocationRequest() {
     let townName = '';
     const fullAddr = (location.address || '').toLowerCase();
     
+    // Determine the serving town
     if (location.pincode === '284205' || fullAddr.includes('ranipur')) {
       townName = 'Ranipur';
     } else if (location.pincode === '284204' || fullAddr.includes('mauranipur')) {
@@ -118,6 +120,7 @@ export function LocationRequest() {
         localStorage.removeItem('user_lng');
       }
       
+      // Dispatch event to update UI instantly
       window.dispatchEvent(new CustomEvent('user-address-updated'));
     }
 
@@ -128,10 +131,13 @@ export function LocationRequest() {
       setLoading(false);
     }, 800);
 
+    // Sync to Firebase if user is logged in
     if (user && firestore) {
-      const userRef = doc(firestore, 'users', user.uid, 'profile', 'data');
+      const userRef = doc(firestore, 'users', user.uid);
       const finalData = {
-        location: { ...location, town: townName },
+        address: location.address,
+        city: townName,
+        pincode: location.pincode || '',
         updatedAt: serverTimestamp(),
       };
 
@@ -150,11 +156,12 @@ export function LocationRequest() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // Precise Reverse Geocoding for detailed address
+          // Precise Reverse Geocoding
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await response.json();
           
-          // Construct a highly detailed address
+          if (!data || !data.address) throw new Error("No data");
+
           const addr = data.address;
           const house = addr.house_number || addr.building || addr.apartment || '';
           const road = addr.road || addr.suburb || addr.neighbourhood || '';
