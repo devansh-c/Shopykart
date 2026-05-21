@@ -195,15 +195,15 @@ export function LocationHeader({
         <Logo className="scale-100 h-12" />
       </div>
 
-      {/* Bottom Row: Search Bar & Mode Toggle */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-[2] group">
+      {/* Bottom Row: Search Bar & Metallic Mode Toggle */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 group">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
           <div className="relative h-12 w-full bg-white/5 border border-white/10 rounded-2xl overflow-hidden focus-within:border-primary/50 transition-all">
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="h-full w-full bg-transparent border-none pl-10 pr-16 text-white font-bold placeholder:text-transparent focus-visible:ring-0 text-sm"
+              className="h-full w-full bg-transparent border-none pl-10 pr-20 text-white font-bold placeholder:text-transparent focus-visible:ring-0 text-sm"
             />
             {!searchValue && (
               <div className="absolute left-10 top-0 bottom-0 flex items-center pointer-events-none overflow-hidden h-full">
@@ -228,28 +228,43 @@ export function LocationHeader({
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
         </div>
 
-        {/* Mode Toggle Switch - Shrunk as requested */}
-        <div className="bg-white/5 p-1 rounded-xl border border-white/10 flex gap-0.5 h-12 flex-1">
-          {[
-            { id: 'Food', icon: Utensils },
-            { id: 'Grocery', icon: ShoppingBag }
-          ].map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => onModeChange(mode.id)}
-              className={cn(
-                "h-full px-3 rounded-lg flex items-center justify-center transition-all relative overflow-hidden flex-1",
-                activeMode === mode.id 
-                  ? "bg-primary text-white shadow-lg shadow-primary/20 scale-100" 
-                  : "text-gray-500 scale-90 opacity-60"
-              )}
-            >
-              <mode.icon className="h-4 w-4" />
-              {activeMode === mode.id && (
-                 <div className="absolute -bottom-1.5 w-1 h-1 bg-white rounded-full" />
-              )}
-            </button>
-          ))}
+        {/* Skeuomorphic Toggle Switch (Matching the provided image) */}
+        <div 
+          onClick={() => onModeChange(activeMode === 'Food' ? 'Grocery' : 'Food')}
+          className="h-11 w-24 rounded-full p-[2px] cursor-pointer flex-shrink-0 relative active:scale-95 transition-transform"
+          style={{
+            background: 'linear-gradient(180deg, #E0E0E0 0%, #707070 100%)', // Metallic Silver Border
+            boxShadow: '0 4px 10px rgba(0,0,0,0.4)'
+          }}
+        >
+           <div className="w-full h-full bg-[#121212] rounded-full shadow-[inset_0_4px_8px_rgba(0,0,0,0.9)] flex items-center relative overflow-hidden">
+              {/* Embossed Labels on Track */}
+              <div className="absolute inset-0 flex items-center justify-between px-2.5">
+                 <span className={cn(
+                   "text-[7px] font-black transition-opacity duration-300 select-none",
+                   activeMode === 'Food' ? "text-white opacity-0" : "text-white opacity-30"
+                 )}>FOOD</span>
+                 <span className={cn(
+                   "text-[7px] font-black transition-opacity duration-300 select-none",
+                   activeMode === 'Grocery' ? "text-white opacity-0" : "text-white opacity-30"
+                 )}>GROC</span>
+              </div>
+
+              {/* High-End Metallic Handle (Thumb) */}
+              <div 
+                className={cn(
+                  "absolute w-8 h-8 rounded-full transition-all duration-500 ease-premium z-10 flex items-center justify-center",
+                  activeMode === 'Food' ? "left-1" : "left-[calc(100%-36px)]"
+                )}
+                style={{
+                  background: 'radial-gradient(circle at 35% 35%, #FFFFFF 0%, #D1D1D1 60%, #B0B0B0 100%)',
+                  boxShadow: '0 3px 6px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.8)'
+                }}
+              >
+                {/* Active Mode Icon in Thumb */}
+                {activeMode === 'Food' ? <Utensils className="h-3 w-3 text-gray-800" /> : <ShoppingBag className="h-3 w-3 text-gray-800" />}
+              </div>
+           </div>
         </div>
       </div>
     </div>
