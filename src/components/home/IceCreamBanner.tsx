@@ -14,8 +14,8 @@ export function IceCreamBanner() {
       const stored = localStorage.getItem('ice_cream_promo_end');
       if (stored) return parseInt(stored, 10);
       
-      // Set to 12 hours from now if not exists
-      const newEnd = Date.now() + 12 * 60 * 60 * 1000;
+      // Set to 17 hours from now if not exists (increased by 5 hours from original 12)
+      const newEnd = Date.now() + 17 * 60 * 60 * 1000;
       localStorage.setItem('ice_cream_promo_end', newEnd.toString());
       return newEnd;
     };
