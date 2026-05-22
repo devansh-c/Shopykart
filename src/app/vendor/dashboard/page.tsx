@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -29,7 +30,8 @@ import {
   ArrowDownLeft,
   FileText,
   User,
-  PhoneCall
+  PhoneCall,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -288,6 +290,17 @@ export default function VendorDashboard() {
                        <PhoneCall className="h-5 w-5" />
                      </button>
                    )}
+                </div>
+
+                {/* Delivery Address Section */}
+                <div className="flex items-start gap-3 mb-4 px-1">
+                   <div className="bg-primary/10 p-2 rounded-xl text-primary shrink-0">
+                      <MapPin className="h-4 w-4" />
+                   </div>
+                   <div>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Delivery Address</p>
+                      <span className="text-xs font-bold text-gray-700 leading-snug">{order.address || 'Address not provided'}</span>
+                   </div>
                 </div>
                 
                 <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
