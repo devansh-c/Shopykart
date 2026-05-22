@@ -19,7 +19,8 @@ import {
   Feather,
   Users,
   Receipt,
-  CircleDollarSign
+  CircleDollarSign,
+  Truck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -40,11 +41,13 @@ import { NotificationManagement } from '@/components/admin/NotificationManagemen
 import { CustomerManagement } from '@/components/admin/CustomerManagement';
 import { ChargeManagement } from '@/components/admin/ChargeManagement';
 import { StorePayoutManagement } from '@/components/admin/StorePayoutManagement';
+import { FleetManagement } from '@/components/admin/FleetManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'stores', label: 'Stores', icon: Store },
+  { id: 'fleet', label: 'Delivery Fleet', icon: Truck },
   { id: 'payouts', label: 'Store Payouts', icon: CircleDollarSign },
   { id: 'categories', label: 'Categories', icon: Tag },
   { id: 'catalog', label: 'Catalog', icon: Layers },
@@ -150,6 +153,8 @@ export default function AdminDashboard() {
         return <CustomerManagement />;
       case 'stores':
         return <StoreManagement />;
+      case 'fleet':
+        return <FleetManagement />;
       case 'payouts':
         return <StorePayoutManagement />;
       case 'categories':

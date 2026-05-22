@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Bike, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth, useFirestore } from '@/firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function DeliveryLoginPage() {
   const [email, setEmail] = useState('');
@@ -18,21 +19,39 @@ export default function DeliveryLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      const user = userCredential.user;
+
+      // Verify if user is a delivery partner
+      const partnerRef = doc(firestore, 'delivery_partners', user.uid);
+      const partnerSnap = await getDoc(partnerRef);
+
+      if (!partnerSnap.exists()) {
+        await signOut(auth);
+        toast({ 
+          variant: "destructive", 
+          title: "Access Denied", 
+          description: "This account is not registered as a Delivery Partner." 
+        });
+        setLoading(false);
+        return;
+      }
+
       toast({ title: "Welcome!", description: "Accessing Delivery Hub." });
       router.push('/delivery/dashboard');
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
         title: "Login Failed", 
-        description: "Invalid credentials. Delivery partners must be assigned by admin." 
+        description: "Invalid credentials. Please try again." 
       });
     } finally {
       setLoading(false);
@@ -87,6 +106,21 @@ export default function DeliveryLoginPage() {
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ENTER HUB"}
             </Button>
             
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+              <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-[#0B0B0B] px-2 text-gray-500">New Partner?</span></div>
+            </div>
+
+            <Button 
+              type="button" 
+              variant="outline"
+              className="w-full h-12 rounded-xl border-white/10 text-white font-black uppercase italic tracking-tighter hover:bg-white/5"
+              onClick={() => router.push('/delivery/register')}
+            >
+              BECOME A PARTNER
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+
             <Button 
               type="button" 
               variant="ghost"
