@@ -14,7 +14,8 @@ import {
   Coins,
   MessageCircle,
   Plus,
-  Minus
+  Minus,
+  Mail
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
@@ -35,7 +36,7 @@ export function CustomerManagement() {
   // Fetch all users ordered by newest first
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), orderBy('updatedAt', 'desc'));
+    return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: users, loading } = useCollection<any>(usersQuery);
@@ -45,11 +46,12 @@ export function CustomerManagement() {
     return users.filter(u => {
       const name = (u.fullName || '').toLowerCase();
       const phone = (u.phoneNumber || '');
+      const email = (u.email || '').toLowerCase();
       const city = (u.city || '').toLowerCase();
       const pincode = (u.pincode || '');
       
       const q = searchQuery.toLowerCase();
-      return name.includes(q) || phone.includes(q) || city.includes(q) || pincode.includes(q);
+      return name.includes(q) || phone.includes(q) || email.includes(q) || city.includes(q) || pincode.includes(q);
     });
   }, [users, searchQuery]);
 
@@ -82,12 +84,12 @@ export function CustomerManagement() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Customer Insights</h2>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Tracking {users?.length || 0} Registrations</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Tracking {users?.length || 0} Registered Users</p>
         </div>
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input 
-            placeholder="Search by name, phone or city..." 
+            placeholder="Search by name, phone or email..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
@@ -102,8 +104,8 @@ export function CustomerManagement() {
           </div>
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
-            const dateStr = user.updatedAt?.seconds 
-              ? format(new Date(user.updatedAt.seconds * 1000), 'MMM d, h:mm a') 
+            const dateStr = user.createdAt?.seconds 
+              ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, h:mm a') 
               : 'Recently';
 
             return (
@@ -122,8 +124,8 @@ export function CustomerManagement() {
                     <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate">
                       {user.fullName || 'New User'}
                     </h3>
-                    <div className="flex items-center gap-1 text-[10px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
-                      <Calendar className="h-3 w-3" /> {dateStr}
+                    <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
+                      <Calendar className="h-2.5 w-2.5" /> Registered: {dateStr}
                     </div>
                   </div>
                   
@@ -191,12 +193,14 @@ export function CustomerManagement() {
                           <button 
                             onClick={() => window.open(`tel:${user.phoneNumber}`)}
                             className="p-2 bg-green-500 text-white rounded-lg active:scale-90 transition-transform shadow-md"
+                            title="Call Now"
                           >
                             <PhoneCall className="h-3.5 w-3.5" />
                           </button>
                           <button 
                             onClick={() => window.open(`https://wa.me/91${user.phoneNumber}`)}
                             className="p-2 bg-green-50 text-green-600 rounded-lg active:scale-90 transition-transform"
+                            title="WhatsApp Now"
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
                           </button>
@@ -205,12 +209,17 @@ export function CustomerManagement() {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                    <span className="text-[10px] font-bold text-gray-500 truncate">{user.email || 'No Email'}</span>
+                  </div>
+
                   <div className="space-y-1">
                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Full Address</p>
                     <div className="flex items-start gap-2">
                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                        <p className="text-xs font-bold text-gray-800 leading-snug">
-                         {user.address || 'Not Provided'}
+                         {user.address || 'Address Not Provided'}
                        </p>
                     </div>
                   </div>
@@ -230,7 +239,8 @@ export function CustomerManagement() {
 
                 <div className="pt-2">
                    <div className="flex justify-between items-center px-1">
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ID: {user.id.slice(-8)}</span>
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UID: {user.id.slice(-8)}</span>
+                      <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[8px] uppercase">ShopyKart Member</Badge>
                    </div>
                 </div>
               </div>
@@ -239,7 +249,7 @@ export function CustomerManagement() {
         ) : (
           <div className="col-span-full text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
             <User className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">Waiting for registrations...</p>
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No customers registered yet</p>
           </div>
         )}
       </div>
