@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState, useRef } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, getDocs } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
@@ -19,17 +19,12 @@ import { compressImage } from '@/lib/image-utils';
 export function ProductManagement() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'products');
-  }, [firestore]);
-  
-  const { data: products, loading } = useCollection(productsQuery);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const { toast } = useToast();
 
   // Form states
   const [name, setName] = useState('');
@@ -37,6 +32,51 @@ export function ProductManagement() {
   const [category, setCategory] = useState('');
   const [restaurantName, setRestaurantName] = useState('');
   const [isVeg, setIsVeg] = useState(true);
+
+  // Fetch Products
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
+  const { data: products, loading } = useCollection(productsQuery);
+
+  // Fetch Vendors for bulk control
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
+
+  const handleBulkStatus = async (online: boolean) => {
+    if (!firestore || !vendors || vendors.length === 0) return;
+    
+    const confirmMsg = online 
+      ? "Do you want to OPEN ALL stores and products?" 
+      : "Are you sure? This will CLOSE ALL stores and products immediately.";
+    
+    if (!confirm(confirmMsg)) return;
+
+    setIsBulkUpdating(true);
+    try {
+      const batch = writeBatch(firestore);
+      
+      vendors.forEach((store) => {
+        const ref = doc(firestore, 'vendors', store.id);
+        batch.update(ref, { isOnline: online, updatedAt: serverTimestamp() });
+      });
+
+      await batch.commit();
+      toast({ 
+        title: online ? "All Systems Online" : "Network Closed Now", 
+        description: `Successfully updated ${vendors.length} stores.`,
+        variant: online ? "default" : "destructive"
+      });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Bulk Update Failed" });
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,14 +154,37 @@ export function ProductManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white p-4 rounded-3xl border shadow-sm">
-        <div className="relative flex-1 max-w-md">
+      {/* Search and Bulk Controls Bar */}
+      <div className="flex flex-col lg:flex-row gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
+        <div className="relative flex-1 w-full lg:max-w-xs">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search catalog..." className="pl-12 h-12 bg-muted/30 border-none rounded-2xl font-bold" />
         </div>
+
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          <Button 
+            disabled={isBulkUpdating}
+            onClick={() => handleBulkStatus(false)}
+            variant="destructive"
+            className="flex-1 h-12 rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-red-100"
+          >
+            {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-2" />}
+            CLOSE ALL NOW
+          </Button>
+          
+          <Button 
+            disabled={isBulkUpdating}
+            onClick={() => handleBulkStatus(true)}
+            className="flex-1 h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-green-100"
+          >
+            {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-2" />}
+            OPEN ALL
+          </Button>
+        </div>
+
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 rounded-2xl ml-4 h-12 px-6 font-black uppercase italic shadow-lg shadow-primary/20">
+            <Button className="w-full lg:w-auto bg-[#0B0B0B] hover:bg-black rounded-2xl h-12 px-6 font-black uppercase italic shadow-xl">
               <Plus className="h-5 w-5 mr-2" />
               NEW PRODUCT
             </Button>
