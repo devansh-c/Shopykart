@@ -1,7 +1,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -34,7 +34,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -213,14 +213,27 @@ export default function VendorDashboard() {
     toast({ title: "Removed" });
   };
 
+  const sortedAndFilteredOrders = useMemo(() => {
+    if (!orders) return [];
+    
+    // Sort all orders by time (newest first)
+    const sorted = [...orders].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    // Apply Filter
+    return sorted.filter(o => {
+      if (orderFilter === 'NEW ORDERS') return !['Delivered', 'Cancelled'].includes(o.status);
+      if (orderFilter === 'DELIVERED') return o.status === 'Delivered';
+      if (orderFilter === 'CANCELLED') return o.status === 'Cancelled';
+      return false;
+    });
+  }, [orders, orderFilter]);
+
   const renderContent = () => {
     if (activeMainTab === 'orders') {
-      const filteredOrders = orders?.filter(o => {
-        if (orderFilter === 'NEW ORDERS') return !['Delivered', 'Cancelled'].includes(o.status);
-        if (orderFilter === 'DELIVERED') return o.status === 'Delivered';
-        if (orderFilter === 'CANCELLED') return o.status === 'Cancelled';
-        return false;
-      }) || [];
       const pendingCount = orders?.filter(o => o.status === 'Placed').length || 0;
 
       return (
@@ -240,7 +253,7 @@ export default function VendorDashboard() {
                 <div><h2 className="font-black italic text-sm text-white">{pendingCount} NEW ORDERS</h2><p className="text-[10px] font-bold text-white/80">Ringtone Active</p></div>
               </div>
             )}
-            {filteredOrders.map((order: any) => (
+            {sortedAndFilteredOrders.map((order: any) => (
               <div key={order.id} className={cn("bg-white rounded-3xl p-5 shadow-sm border", order.status === 'Placed' ? "border-primary shadow-lg" : "border-gray-100")}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -357,7 +370,7 @@ export default function VendorDashboard() {
             <div onClick={() => fileInputRef.current?.click()} className={cn("relative h-48 w-full border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center overflow-hidden bg-muted/20", newProduct.imageUrl ? "border-primary/50" : "border-gray-200")}>{newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="" /> : <ImageIcon className="h-8 w-8 text-gray-300" />}</div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'product')} />
             <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
-            <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" /><Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}><SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent>{dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" /><Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}><SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent>{dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <Button onClick={handleAddProduct} className="w-full bg-primary rounded-2xl h-16 font-black uppercase italic shadow-xl">PUBLISH ITEM</Button>
           </div></DialogContent></Dialog></div>
           <div className="grid gap-3">{products?.map(p => (
