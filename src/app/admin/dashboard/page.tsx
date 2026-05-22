@@ -15,11 +15,11 @@ import {
   Tag,
   BellRing,
   Menu as MenuIcon,
-  CheckCircle2,
   Percent,
   Feather,
   Users,
-  Receipt
+  Receipt,
+  CircleDollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -39,11 +39,13 @@ import { BrandingManagement } from '@/components/admin/BrandingManagement';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { CustomerManagement } from '@/components/admin/CustomerManagement';
 import { ChargeManagement } from '@/components/admin/ChargeManagement';
+import { StorePayoutManagement } from '@/components/admin/StorePayoutManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'stores', label: 'Stores', icon: Store },
+  { id: 'payouts', label: 'Store Payouts', icon: CircleDollarSign },
   { id: 'categories', label: 'Categories', icon: Tag },
   { id: 'catalog', label: 'Catalog', icon: Layers },
   { id: 'design', label: 'Banners', icon: Feather },
@@ -148,6 +150,8 @@ export default function AdminDashboard() {
         return <CustomerManagement />;
       case 'stores':
         return <StoreManagement />;
+      case 'payouts':
+        return <StorePayoutManagement />;
       case 'categories':
         return <CategoryManagement />;
       case 'catalog':

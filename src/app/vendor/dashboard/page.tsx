@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -45,7 +46,7 @@ import { compressImage } from '@/lib/image-utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 
-type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
+type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
 
 export default function VendorDashboard() {
@@ -124,6 +125,13 @@ export default function VendorDashboard() {
     return collection(firestore, 'vendors', user.uid, 'products');
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
+
+  // Fetch real payout history
+  const payoutsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
+  }, [firestore, user]);
+  const { data: payoutHistory } = useCollection<any>(payoutQuery);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -217,14 +225,12 @@ export default function VendorDashboard() {
   const sortedAndFilteredOrders = useMemo(() => {
     if (!orders) return [];
     
-    // Sort all orders by time (newest first)
     const sorted = [...orders].sort((a, b) => {
       const timeA = a.createdAt?.seconds || 0;
       const timeB = b.createdAt?.seconds || 0;
       return timeB - timeA;
     });
 
-    // Apply Filter
     return sorted.filter(o => {
       if (orderFilter === 'NEW ORDERS') return !['Delivered', 'Cancelled'].includes(o.status);
       if (orderFilter === 'DELIVERED') return o.status === 'Delivered';
@@ -328,36 +334,44 @@ export default function VendorDashboard() {
          <div className="p-6 space-y-6">
            <div className="bg-black text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
              <div className="relative z-10">
-               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Available to Withdraw</span>
-               <h3 className="text-5xl font-black italic tracking-tighter mt-2">₹{vendorProfile?.walletBalance || '0.00'}</h3>
-               <Button className="w-full bg-white text-black mt-6 h-14 rounded-2xl font-black uppercase italic shadow-xl">WITHDRAW NOW</Button>
+               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total Payout Received</span>
+               <h3 className="text-5xl font-black italic tracking-tighter mt-2">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</h3>
+               <div className="mt-6 flex items-center gap-2 text-green-400">
+                  <Check className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Settled by Admin</span>
+               </div>
              </div>
              <div className="absolute top-0 right-0 h-full w-32 bg-primary/10 -skew-x-12 translate-x-10" />
            </div>
 
            <div className="space-y-4">
-             <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Recent Payouts</h4>
-             {[
-               { id: '#P-5541', date: 'Oct 24, 2023', amount: '₹12,450', status: 'Processing', type: 'up' },
-               { id: '#P-4321', date: 'Oct 20, 2023', amount: '₹8,900', status: 'Completed', type: 'down' },
-               { id: '#P-1290', date: 'Oct 15, 2023', amount: '₹15,200', status: 'Completed', type: 'down' }
-             ].map((tx, i) => (
-               <div key={i} className="bg-white p-5 rounded-3xl border border-gray-100 flex items-center justify-between">
-                 <div className="flex items-center gap-4">
-                   <div className={cn("p-3 rounded-2xl", tx.type === 'up' ? "bg-amber-50 text-amber-500" : "bg-green-50 text-green-500")}>
-                     {tx.type === 'up' ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownLeft className="h-5 w-5" />}
+             <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Recent Settlements</h4>
+             {payoutHistory && payoutHistory.length > 0 ? (
+               payoutHistory.map((tx: any) => (
+                 <div key={tx.id} className="bg-white p-5 rounded-3xl border border-gray-100 flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                     <div className="p-3 rounded-2xl bg-green-50 text-green-500">
+                       <ArrowDownLeft className="h-5 w-5" />
+                     </div>
+                     <div>
+                       <p className="text-sm font-black truncate max-w-[120px]">{tx.note || 'Settlement'}</p>
+                       <p className="text-[10px] font-bold text-gray-400 uppercase">
+                          {tx.date?.seconds ? format(new Date(tx.date.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+                       </p>
+                     </div>
                    </div>
-                   <div>
-                     <p className="text-sm font-black">{tx.id}</p>
-                     <p className="text-[10px] font-bold text-gray-400 uppercase">{tx.date}</p>
+                   <div className="text-right">
+                     <p className="text-sm font-black text-green-600">+ ₹{tx.amount}</p>
+                     <p className="text-[9px] font-black uppercase text-green-500">{tx.status}</p>
                    </div>
                  </div>
-                 <div className="text-right">
-                   <p className="text-sm font-black">{tx.amount}</p>
-                   <p className={cn("text-[9px] font-black uppercase", tx.status === 'Completed' ? "text-green-500" : "text-amber-500")}>{tx.status}</p>
-                 </div>
+               ))
+             ) : (
+               <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                  <CircleDollarSign className="h-12 w-12 mb-4" />
+                  <p className="font-black italic uppercase tracking-widest text-[10px]">No payout history yet</p>
                </div>
-             ))}
+             )}
            </div>
          </div>
        );
