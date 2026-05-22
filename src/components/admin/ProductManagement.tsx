@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,12 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { compressImage } from '@/lib/image-utils';
 
 export function ProductManagement() {
   const firestore = useFirestore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
@@ -34,6 +37,24 @@ export function ProductManagement() {
   const [category, setCategory] = useState('');
   const [restaurantName, setRestaurantName] = useState('');
   const [isVeg, setIsVeg] = useState(true);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      try {
+        const compressed = await compressImage(base64, 800, 800);
+        setSelectedImage(compressed);
+        toast({ title: "Photo Loaded", description: "Image from gallery added." });
+      } catch (err) {
+        toast({ variant: "destructive", title: "Upload Failed" });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleDelete = (id: string) => {
     if (!firestore) return;
@@ -137,21 +158,34 @@ export function ProductManagement() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Visual Branding</label>
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-5 bg-muted/10 p-4 rounded-3xl border border-dashed border-muted-foreground/20">
-                    <div className="h-24 w-24 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 border border-border/50">
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-24 w-24 rounded-2xl bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 border border-border/50 cursor-pointer hover:border-primary transition-all active:scale-95"
+                    >
                       {selectedImage ? (
                         <img src={selectedImage} alt="Preview" className="h-full w-full object-cover" />
                       ) : (
-                        <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
+                        <div className="flex flex-col items-center">
+                          <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
+                          <span className="text-[8px] font-black uppercase text-muted-foreground mt-1">Select</span>
+                        </div>
                       )}
                     </div>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleImageSelect} 
+                    />
                     <div className="flex-1 space-y-3">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">Choose a premium high-quality image from our curated gallery for better conversions.</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">Tap the box to pick from <span className="text-primary">Gallery</span>, or use our predefined list below.</p>
                       <Button 
                         variant="outline" 
                         onClick={() => setIsGalleryOpen(!isGalleryOpen)}
                         className="w-full rounded-xl border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] h-10 bg-white"
                       >
-                        {isGalleryOpen ? "CLOSE GALLERY" : "OPEN GALLERY"}
+                        {isGalleryOpen ? "CLOSE GALLERY" : "USE SHOPYKART IMAGES"}
                       </Button>
                     </div>
                   </div>
