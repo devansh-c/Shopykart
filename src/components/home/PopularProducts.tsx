@@ -21,7 +21,10 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
   const cartItem = cart.find((item: any) => item.id === product.id);
   const quantity = cartItem?.quantity || 0;
   const vendor = vendors?.find((v: any) => v.id === product.vendorId);
-  const isOffline = vendor?.isOnline === false;
+  
+  // A product is offline if its vendor is offline OR if it's explicitly marked as not available
+  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
+  
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
   return (
@@ -139,8 +142,8 @@ export function PopularProducts({
     result.sort((a, b) => {
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
-      const onlineA = vendorA?.isOnline !== false ? 1 : 0;
-      const onlineB = vendorB?.isOnline !== false ? 1 : 0;
+      const onlineA = (vendorA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
+      const onlineB = (vendorB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       
       if (onlineA !== onlineB) {
         return onlineB - onlineA;

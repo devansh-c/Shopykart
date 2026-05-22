@@ -65,11 +65,11 @@ function MenuContent() {
     });
 
     // Apply Sorting: Primary = Online Status, Secondary = SortBy
-    result.sort((a, b) => {
+    result.sort((a: any, b: any) => {
       const vA = allVendors.find(v => v.id === a.vendorId);
       const vB = allVendors.find(v => v.id === b.vendorId);
-      const onlineA = vA?.isOnline !== false ? 1 : 0;
-      const onlineB = vB?.isOnline !== false ? 1 : 0;
+      const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
+      const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
 
       if (onlineA !== onlineB) return onlineB - onlineA;
 
@@ -187,7 +187,7 @@ function MenuContent() {
             const quantity = cartItem?.quantity || 0;
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
             const vendor = allVendors?.find(v => v.id === product.vendorId);
-            const productIsOffline = vendor?.isOnline === false;
+            const productIsOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
 
             return (
               <div 
@@ -219,7 +219,7 @@ function MenuContent() {
                   <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <img 
                       src={imageUrl} 
-                      alt={product.name}
+                      alt={product.name} 
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />

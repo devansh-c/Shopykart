@@ -38,7 +38,7 @@ export function ProductManagement() {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
-  const { data: products, loading } = useCollection(productsQuery);
+  const { data: products, loading } = useCollection<any>(productsQuery);
 
   // Fetch Vendors for bulk control
   const vendorsQuery = useMemoFirebase(() => {
@@ -48,7 +48,7 @@ export function ProductManagement() {
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const handleBulkStatus = async (online: boolean) => {
-    if (!firestore || !vendors || vendors.length === 0) return;
+    if (!firestore || !vendors) return;
     
     const confirmMsg = online 
       ? "Do you want to OPEN ALL stores and products?" 
@@ -60,18 +60,28 @@ export function ProductManagement() {
     try {
       const batch = writeBatch(firestore);
       
+      // 1. Update all Vendors
       vendors.forEach((store) => {
         const ref = doc(firestore, 'vendors', store.id);
         batch.update(ref, { isOnline: online, updatedAt: serverTimestamp() });
       });
 
+      // 2. Update all Products in the root collection
+      if (products) {
+        products.forEach((product) => {
+          const ref = doc(firestore, 'products', product.id);
+          batch.update(ref, { isAvailable: online });
+        });
+      }
+
       await batch.commit();
       toast({ 
         title: online ? "All Systems Online" : "Network Closed Now", 
-        description: `Successfully updated ${vendors.length} stores.`,
+        description: `Successfully updated network status.`,
         variant: online ? "default" : "destructive"
       });
     } catch (err) {
+      console.error("Bulk update error:", err);
       toast({ variant: "destructive", title: "Bulk Update Failed" });
     } finally {
       setIsBulkUpdating(false);
@@ -123,6 +133,7 @@ export function ProductManagement() {
       isVeg,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
       badges: ['New'],
+      isAvailable: true, // Default to true
       createdAt: serverTimestamp(),
     };
 
