@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, query, where, orderBy } from 'firebase/firestore';
 import { 
   Navigation, 
@@ -18,12 +18,13 @@ import {
   PhoneCall,
   History,
   LayoutDashboard,
-  Clock
+  Clock,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
@@ -40,13 +41,20 @@ export default function DeliveryDashboard() {
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Fetch Delivery Partner Profile for Pincode Filtering
+  const partnerRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'delivery_partners', user.uid);
+  }, [firestore, user]);
+  const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/delivery/login');
     }
   }, [user, authLoading, router]);
 
-  // Query for Active Tasks
+  // Query for ALL Active Orders (we will filter by pincode in memory for better UX)
   const activeTasksQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -54,6 +62,24 @@ export default function DeliveryDashboard() {
       where('status', 'in', ['Ready for Pickup', 'Picked Up', 'Out for Delivery'])
     );
   }, [firestore]);
+
+  const { data: allActiveTasks, loading: activeLoading } = useCollection<any>(activeTasksQuery);
+
+  // Filter tasks: 
+  // 1. Show "Ready for Pickup" only if it matches partner's assigned pincode
+  // 2. Show "Picked Up" and "Out for Delivery" if assigned to this partner
+  const filteredActiveTasks = useMemo(() => {
+    if (!allActiveTasks || !partnerProfile) return [];
+
+    return allActiveTasks.filter(task => {
+      // If order is ready for pickup, only show if it's in boy's selected pincode
+      if (task.status === 'Ready for Pickup') {
+        return task.pincode === partnerProfile.assignedPincode;
+      }
+      // If already accepted/picked up, show only if it belongs to this boy
+      return task.deliveryPartnerId === user?.uid;
+    });
+  }, [allActiveTasks, partnerProfile, user]);
 
   // Query for Completed History
   const historyQuery = useMemoFirebase(() => {
@@ -66,12 +92,11 @@ export default function DeliveryDashboard() {
     );
   }, [firestore, user]);
 
-  const { data: activeTasks, loading: activeLoading } = useCollection<any>(activeTasksQuery);
   const { data: historyTasks, loading: historyLoading } = useCollection<any>(historyQuery);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const hasPendingPickup = activeTasks?.some(task => task.status === 'Ready for Pickup');
+    const hasPendingPickup = filteredActiveTasks?.some(task => task.status === 'Ready for Pickup');
     if (hasPendingPickup && isAudioEnabled) {
       if (!audioRef.current) {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -82,7 +107,7 @@ export default function DeliveryDashboard() {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
     }
     return () => { if (audioRef.current) audioRef.current.pause(); };
-  }, [activeTasks, isAudioEnabled]);
+  }, [filteredActiveTasks, isAudioEnabled]);
 
   const updateDelivery = (orderId: string, status: string) => {
     if (!firestore || !user) return;
@@ -106,20 +131,20 @@ export default function DeliveryDashboard() {
     window.open(url, '_blank');
   };
 
-  if (authLoading || activeLoading) return null;
-  if (!user) return null;
+  if (authLoading || activeLoading || profileLoading) return null;
+  if (!user || !partnerProfile) return null;
 
-  const pendingPickupsCount = activeTasks?.filter(t => t.status === 'Ready for Pickup').length || 0;
+  const pendingPickupsCount = filteredActiveTasks?.filter(t => t.status === 'Ready for Pickup').length || 0;
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-white p-6 pb-32">
       <header className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-black italic uppercase tracking-tighter">Delivery Hub</h1>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             <div className="bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 flex items-center gap-2 w-fit">
               <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Online</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Zone: {partnerProfile.assignedPincode}</span>
             </div>
             <button 
               onClick={() => setIsAudioEnabled(!isAudioEnabled)}
@@ -159,11 +184,11 @@ export default function DeliveryDashboard() {
           {pendingPickupsCount > 0 && ( activeTab === 'active' ) && (
             <div className="mb-6 bg-primary p-4 rounded-2xl flex items-center gap-4 animate-pulse shadow-lg shadow-primary/20">
               <div className="bg-white/20 p-2 rounded-xl"><BellRing className="h-6 w-6 text-white" /></div>
-              <div><h2 className="font-black italic uppercase text-sm leading-tight">{pendingPickupsCount} NEW PICKUP AVAILABLE</h2><p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Action Required</p></div>
+              <div><h2 className="font-black italic uppercase text-sm leading-tight">{pendingPickupsCount} NEW PICKUP IN YOUR ZONE</h2><p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Pincode {partnerProfile.assignedPincode}</p></div>
             </div>
           )}
 
-          {activeTasks?.map((task) => (
+          {filteredActiveTasks?.map((task) => (
             <div key={task.id} className={cn(
               "bg-white/5 backdrop-blur-md rounded-[2.5rem] p-6 border transition-all relative overflow-hidden",
               task.status === 'Ready for Pickup' ? "border-primary shadow-xl shadow-primary/5" : "border-white/10"
@@ -195,8 +220,11 @@ export default function DeliveryDashboard() {
             </div>
           ))}
 
-          {(!activeTasks || activeTasks.length === 0) && (
-            <div className="text-center py-20 opacity-30 flex flex-col items-center"><Package className="h-16 w-16 mb-4" /><p className="font-black italic uppercase tracking-widest text-sm">No active tasks</p></div>
+          {(!filteredActiveTasks || filteredActiveTasks.length === 0) && (
+            <div className="text-center py-20 opacity-30 flex flex-col items-center">
+              <ShieldAlert className="h-16 w-16 mb-4 text-gray-600" />
+              <p className="font-black italic uppercase tracking-widest text-sm">No orders in your zone ({partnerProfile.assignedPincode})</p>
+            </div>
           )}
         </div>
       ) : (

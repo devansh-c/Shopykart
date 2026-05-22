@@ -126,6 +126,7 @@ export default function CartPage() {
       status: 'Placed',
       instructions,
       address: fullFinalAddress,
+      pincode: customerPincode, // Store separate pincode for delivery filtering
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'unknown',
       restaurantName: cart[0]?.restaurantName || 'a store',

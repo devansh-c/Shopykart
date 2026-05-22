@@ -7,11 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Mail, Lock, User, Phone, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { Camera, Mail, Lock, User, Phone, ArrowLeft, Loader2, CheckCircle2, MapPin } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { compressImage } from '@/lib/image-utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function DeliveryRegistrationPage() {
   const router = useRouter();
@@ -27,6 +34,7 @@ export default function DeliveryRegistrationPage() {
     lastName: '',
     phone: '',
     email: '',
+    assignedPincode: '',
     password: '',
     confirmPassword: '',
   });
@@ -56,6 +64,11 @@ export default function DeliveryRegistrationPage() {
       return;
     }
 
+    if (!formData.assignedPincode) {
+      toast({ variant: "destructive", title: "Area Selection Required", description: "Please select a pincode to serve." });
+      return;
+    }
+
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password);
@@ -68,6 +81,7 @@ export default function DeliveryRegistrationPage() {
         fullName: `${formData.firstName} ${formData.lastName}`,
         phone: formData.phone,
         email: formData.email.trim().toLowerCase(),
+        assignedPincode: formData.assignedPincode,
         photoUrl: photo,
         status: 'active',
         role: 'delivery',
@@ -142,6 +156,16 @@ export default function DeliveryRegistrationPage() {
               className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
               required
             />
+
+            <Select value={formData.assignedPincode} onValueChange={(val) => setFormData({...formData, assignedPincode: val})}>
+              <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl">
+                <SelectValue placeholder="Select Serving Pincode" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1A1A1A] border-white/10 text-white rounded-xl">
+                <SelectItem value="284205">Ranipur (284205)</SelectItem>
+                <SelectItem value="284204">Mauranipur (284204)</SelectItem>
+              </SelectContent>
+            </Select>
 
             <Input 
               type="email"

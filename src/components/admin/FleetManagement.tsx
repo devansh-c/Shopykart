@@ -12,7 +12,8 @@ import {
   Calendar,
   User,
   ShieldCheck,
-  Search
+  Search,
+  MapPin
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
@@ -40,7 +41,8 @@ export function FleetManagement() {
     return partners.filter(p => 
       p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.phone?.includes(searchQuery) ||
-      p.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.assignedPincode?.includes(searchQuery)
     );
   }, [partners, searchQuery]);
 
@@ -62,7 +64,7 @@ export function FleetManagement() {
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input 
-            placeholder="Search partners..." 
+            placeholder="Search partners or pincodes..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
@@ -108,6 +110,10 @@ export function FleetManagement() {
                    <div className="flex items-center gap-2">
                       <div className="bg-white p-1.5 rounded-lg shadow-sm text-blue-500"><Mail className="h-3.5 w-3.5" /></div>
                       <span className="text-[10px] font-bold text-gray-500 truncate">{partner.email}</span>
+                   </div>
+                   <div className="flex items-center gap-2 pt-1">
+                      <div className="bg-primary/10 p-1.5 rounded-lg text-primary"><MapPin className="h-3.5 w-3.5" /></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">Zone: {partner.assignedPincode || 'Not Set'}</span>
                    </div>
                 </div>
 
