@@ -13,11 +13,8 @@ import {
   Navigation,
   Coins,
   MessageCircle,
-  Edit2,
   Plus,
-  Minus,
-  Check,
-  IceCream
+  Minus
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
@@ -120,11 +117,6 @@ export function CustomerManagement() {
                         <User className="h-7 w-7" />
                       )}
                     </div>
-                    {user.hasPlayedScreamGame && (
-                      <div className="absolute -top-2 -right-2 bg-amber-400 text-white p-1.5 rounded-full shadow-lg border-2 border-white">
-                        <IceCream className="h-3 w-3" />
-                      </div>
-                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate">
@@ -239,11 +231,6 @@ export function CustomerManagement() {
                 <div className="pt-2">
                    <div className="flex justify-between items-center px-1">
                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ID: {user.id.slice(-8)}</span>
-                      {user.hasPlayedScreamGame && (
-                        <Badge className="bg-blue-50 text-blue-700 border-none font-black text-[8px] px-2 py-0.5 rounded-full uppercase">
-                           GAME PLAYER
-                        </Badge>
-                      )}
                    </div>
                 </div>
               </div>

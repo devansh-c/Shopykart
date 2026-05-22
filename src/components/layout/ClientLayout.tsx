@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -11,7 +10,6 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
-import { PromoPopup } from '@/components/shared/PromoPopup';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 
 function AppContent({ children }: { children: React.ReactNode }) {
@@ -23,7 +21,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen">
       <div>
         {!isExcludedPath && <LocationRequest />}
-        {!isExcludedPath && <PromoPopup />}
         <NotificationHandler />
         <TelegramNotifier />
         {children}

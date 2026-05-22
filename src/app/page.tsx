@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -10,7 +9,6 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import { OffersSection } from '@/components/home/OffersSection';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { IceCreamBanner } from '@/components/home/IceCreamBanner';
 import { ShoppingBag, Rocket, Timer } from 'lucide-react';
 
 export default function ShopyKartApp() {
@@ -64,13 +62,6 @@ export default function ShopyKartApp() {
           </div>
         ) : (
           <>
-            {/* Countdown Ice Cream Banner */}
-            {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={50}>
-                <IceCreamBanner />
-              </ScrollReveal>
-            )}
-
             {/* Banner Slider */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={100}>
