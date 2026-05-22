@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -127,7 +126,7 @@ export default function VendorDashboard() {
   const { data: products } = useCollection<any>(productsQuery);
 
   // Fetch real payout history
-  const payoutsQuery = useMemoFirebase(() => {
+  const payoutQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
   }, [firestore, user]);
@@ -400,7 +399,7 @@ export default function VendorDashboard() {
     
     if (activeMainTab === 'account') {
       return (
-        <div className="p-6 space-y-8 animate-in fade-in duration-500">
+        <div className="p-6 space-y-8 animate-in fade-in duration-500 movie-payout-history">
           <div className="relative">
             <div onClick={() => bannerInputRef.current?.click()} className="h-40 w-full rounded-[2rem] overflow-hidden bg-muted relative group border border-gray-100">
               <img src={vendorProfile.bannerUrl} className="w-full h-full object-cover" alt="Banner" />
