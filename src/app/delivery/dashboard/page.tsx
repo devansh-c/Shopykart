@@ -138,27 +138,40 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-white p-6 pb-32">
-      <header className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-black italic uppercase tracking-tighter">Delivery Hub</h1>
-          <div className="flex flex-wrap gap-2 mt-2">
-            <div className="bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 flex items-center gap-2 w-fit">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Zone: {partnerProfile.assignedPincode}</span>
+      <header className="mb-10 flex justify-between items-start">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+             <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/20 bg-white/5 p-0.5 shadow-2xl">
+               <img 
+                 src={partnerProfile?.photoUrl || "https://picsum.photos/seed/delivery/200/200"} 
+                 className="h-full w-full object-cover rounded-[0.8rem]" 
+                 alt="Profile" 
+               />
+             </div>
+             <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-[#0B0B0B] shadow-sm" />
+          </div>
+          <div className="pt-1">
+            <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-1 leading-none">Welcome back,</p>
+            <h1 className="text-2xl font-black italic uppercase tracking-tighter leading-none mb-2">{partnerProfile?.fullName || 'Partner'}</h1>
+            <div className="flex items-center gap-2">
+              <div className="bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20 flex items-center gap-1.5 w-fit">
+                <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-green-500">Zone: {partnerProfile?.assignedPincode}</span>
+              </div>
+              <button 
+                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg border flex items-center gap-1.5 transition-all",
+                  isAudioEnabled ? "bg-primary/10 border-primary/30 text-primary" : "bg-white/5 border-white/10 text-gray-600"
+                )}
+              >
+                {isAudioEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+                <span className="text-[8px] font-black uppercase tracking-widest">{isAudioEnabled ? 'AUDIO ON' : 'SILENT'}</span>
+              </button>
             </div>
-            <button 
-              onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-              className={cn(
-                "px-3 py-1 rounded-full border flex items-center gap-2 transition-all",
-                isAudioEnabled ? "bg-primary/20 border-primary text-primary" : "bg-white/5 border-white/10 text-gray-500"
-              )}
-            >
-              {isAudioEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
-              <span className="text-[10px] font-black uppercase tracking-widest">{isAudioEnabled ? 'Sound ON' : 'Sound OFF'}</span>
-            </button>
           </div>
         </div>
-        <button onClick={handleSignOut} className="p-3 bg-white/5 rounded-2xl text-red-500 border border-white/5 active:scale-90 transition-all">
+        <button onClick={handleSignOut} className="p-3 bg-white/5 rounded-2xl text-red-500 border border-white/5 active:scale-90 transition-all mt-1 hover:bg-red-500/10">
           <LogOut className="h-5 w-5" />
         </button>
       </header>
