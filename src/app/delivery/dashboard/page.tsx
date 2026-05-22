@@ -19,7 +19,8 @@ import {
   History,
   LayoutDashboard,
   Clock,
-  ShieldAlert
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -41,20 +42,34 @@ export default function DeliveryDashboard() {
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Fetch Delivery Partner Profile for Pincode Filtering
+  // Fetch Delivery Partner Profile for Pincode Filtering and Authorization
   const partnerRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'delivery_partners', user.uid);
   }, [firestore, user]);
+  
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
+  // SECURITY LOCK: Redirect if not a partner or not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/delivery/login');
+      return;
     }
-  }, [user, authLoading, router]);
 
-  // Query for ALL Active Orders (we will filter by pincode in memory for better UX)
+    // If loading finished and no partner profile found for this user, it's a normal customer
+    if (!authLoading && !profileLoading && user && !partnerProfile) {
+      toast({ 
+        variant: "destructive", 
+        title: "Access Restricted", 
+        description: "Your account is not authorized to access the Delivery Hub." 
+      });
+      if (auth) signOut(auth); // Sign them out
+      router.push('/delivery/login');
+    }
+  }, [user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
+
+  // Query for ALL Active Orders
   const activeTasksQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -65,18 +80,14 @@ export default function DeliveryDashboard() {
 
   const { data: allActiveTasks, loading: activeLoading } = useCollection<any>(activeTasksQuery);
 
-  // Filter tasks: 
-  // 1. Show "Ready for Pickup" only if it matches partner's assigned pincode
-  // 2. Show "Picked Up" and "Out for Delivery" if assigned to this partner
+  // Filter tasks by zone
   const filteredActiveTasks = useMemo(() => {
     if (!allActiveTasks || !partnerProfile) return [];
 
     return allActiveTasks.filter(task => {
-      // If order is ready for pickup, only show if it's in boy's selected pincode
       if (task.status === 'Ready for Pickup') {
         return task.pincode === partnerProfile.assignedPincode;
       }
-      // If already accepted/picked up, show only if it belongs to this boy
       return task.deliveryPartnerId === user?.uid;
     });
   }, [allActiveTasks, partnerProfile, user]);
@@ -131,7 +142,16 @@ export default function DeliveryDashboard() {
     window.open(url, '_blank');
   };
 
-  if (authLoading || activeLoading || profileLoading) return null;
+  // Show loading while verifying identity
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If no profile, we return null (the useEffect handles redirect)
   if (!user || !partnerProfile) return null;
 
   const pendingPickupsCount = filteredActiveTasks?.filter(t => t.status === 'Ready for Pickup').length || 0;
@@ -194,7 +214,7 @@ export default function DeliveryDashboard() {
 
       {activeTab === 'active' ? (
         <div className="space-y-4">
-          {pendingPickupsCount > 0 && ( activeTab === 'active' ) && (
+          {pendingPickupsCount > 0 && (
             <div className="mb-6 bg-primary p-4 rounded-2xl flex items-center gap-4 animate-pulse shadow-lg shadow-primary/20">
               <div className="bg-white/20 p-2 rounded-xl"><BellRing className="h-6 w-6 text-white" /></div>
               <div><h2 className="font-black italic uppercase text-sm leading-tight">{pendingPickupsCount} NEW PICKUP IN YOUR ZONE</h2><p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Pincode {partnerProfile.assignedPincode}</p></div>
