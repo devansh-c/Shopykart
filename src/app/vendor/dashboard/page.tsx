@@ -43,6 +43,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { compressImage } from '@/lib/image-utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
 
 type MainTab = 'orders' | 'catalog' | 'business' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -258,9 +259,9 @@ export default function VendorDashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                       <Clock className="h-3 w-3" />
-                      {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString() : 'Now'}
+                      {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, hh:mm a') : 'Just now'}
                     </div>
                   </div>
                   <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-full bg-primary/5 text-primary">{order.status}</span>
