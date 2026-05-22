@@ -1,3 +1,4 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -7,19 +8,20 @@ import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const ordersQuery = useMemoFirebase(() => {
-    // If no user object, it might be a guest session not yet loaded
     if (!firestore || !user?.uid) return null;
-    
-    // We use a simple query without orderBy to avoid index issues in prototyping.
-    // Sorting is handled client-side in sortedOrders useMemo.
     return query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid)
@@ -65,7 +67,7 @@ export default function OrdersPage() {
                     <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
                     <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
                       <Clock className="h-3 w-3 mr-1" />
-                      {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Just now'}
+                      {isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Just now'}
                     </div>
                   </div>
                 </div>

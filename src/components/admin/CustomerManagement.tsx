@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -18,7 +19,7 @@ import {
   Mail
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,11 @@ export function CustomerManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adjustAmount, setAdjustAmount] = useState('');
   const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch all users ordered by newest first
   const usersQuery = useMemoFirebase(() => {
@@ -104,7 +110,7 @@ export function CustomerManagement() {
           </div>
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
-            const dateStr = user.createdAt?.seconds 
+            const dateStr = isMounted && user.createdAt?.seconds 
               ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, h:mm a') 
               : 'Recently';
 

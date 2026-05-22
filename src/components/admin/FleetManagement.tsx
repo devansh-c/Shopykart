@@ -16,7 +16,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,11 @@ export function FleetManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const partnersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -77,7 +82,7 @@ export function FleetManagement() {
           <div className="col-span-full flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : filteredPartners.length > 0 ? (
           filteredPartners.map((partner: any) => {
-            const dateStr = partner.createdAt?.seconds 
+            const dateStr = isMounted && partner.createdAt?.seconds 
               ? format(new Date(partner.createdAt.seconds * 1000), 'MMM d, yyyy') 
               : 'N/A';
 

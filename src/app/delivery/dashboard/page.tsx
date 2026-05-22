@@ -40,7 +40,12 @@ export default function DeliveryDashboard() {
   
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [isMounted, setIsMounted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch Delivery Partner Profile for Pincode Filtering and Authorization
   const partnerRef = useMemoFirebase(() => {
@@ -245,7 +250,7 @@ export default function DeliveryDashboard() {
               </div>
 
               <div className="space-y-3">
-                <Button onClick={() => openNavigation(task)} variant="outline" className="w-full h-12 rounded-2xl border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10"><Map className="h-3 w-3 mr-2" /> Open Smart Route</Button>
+                <button onClick={() => openNavigation(task)} className="w-full h-12 rounded-2xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 flex items-center justify-center"><Map className="h-3 w-3 mr-2" /> Open Smart Route</button>
                 {task.status === 'Ready for Pickup' && <Button onClick={() => updateDelivery(task.id, 'Picked Up')} className="w-full bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic h-14 text-lg shadow-xl shadow-primary/20">Accept & Pickup</Button>}
                 {task.status === 'Picked Up' && <Button onClick={() => updateDelivery(task.id, 'Out for Delivery')} className="w-full bg-blue-500 hover:bg-blue-600 rounded-2xl font-black uppercase italic h-14 text-lg">Mark Out for Delivery</Button>}
                 {task.status === 'Out for Delivery' && <Button onClick={() => updateDelivery(task.id, 'Delivered')} className="w-full bg-green-500 hover:bg-green-600 rounded-2xl font-black uppercase italic h-14 text-lg">Confirm Delivery</Button>}
@@ -269,7 +274,7 @@ export default function DeliveryDashboard() {
                     <h3 className="font-black italic text-lg">#{task.orderDisplayId || task.id.slice(-4)}</h3>
                     <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
                        <Clock className="h-3 w-3" />
-                       {task.createdAt?.seconds ? format(new Date(task.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Recently'}
+                       {isMounted && task.createdAt?.seconds ? format(new Date(task.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Recently'}
                     </div>
                  </div>
                  <div className="bg-green-500/20 px-3 py-1.5 rounded-full text-green-500 text-[8px] font-black uppercase tracking-widest">Delivered</div>

@@ -69,6 +69,11 @@ export default function VendorDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isEditPhoneOpen, setIsEditPhoneOpen] = useState(false);
   const [newPhone, setNewPhone] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [newProduct, setNewProduct] = useState({ 
     name: '', 
@@ -268,7 +273,7 @@ export default function VendorDashboard() {
                     <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
                     <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                       <Clock className="h-3 w-3" />
-                      {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, hh:mm a') : 'Just now'}
+                      {isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, hh:mm a') : 'Just now'}
                     </div>
                   </div>
                   <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-full bg-primary/5 text-primary">{order.status}</span>
@@ -368,7 +373,7 @@ export default function VendorDashboard() {
                      <div>
                        <p className="text-sm font-black truncate max-w-[120px]">{tx.note || 'Settlement'}</p>
                        <p className="text-[10px] font-bold text-gray-400 uppercase">
-                          {tx.date?.seconds ? format(new Date(tx.date.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+                          {isMounted && tx.date?.seconds ? format(new Date(tx.date.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
                        </p>
                      </div>
                    </div>
