@@ -24,8 +24,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
-const DEFAULT_LOGO = "https://picsum.photos/seed/shopykart-eats/200/200";
-
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
   const router = useRouter();
@@ -44,7 +42,7 @@ export default function CartPage() {
   const [customerCity, setCustomerCity] = useState('');
   const [customerPincode, setCustomerPincode] = useState('');
 
-  // Fetch Branding for Notification Icon
+  // Fetch Global Branding for Notification Logo
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
@@ -111,11 +109,9 @@ export default function CartPage() {
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
-    // Identity Logic: Essential for History Visibility
     const guestUid = 'guest_' + customerPhone;
     const finalUid = user?.uid || guestUid;
     
-    // Crucial: Save this UID to local storage so /orders page can fetch history
     localStorage.setItem('guest_uid', finalUid);
     localStorage.setItem('guest_name', customerName);
 
@@ -132,20 +128,18 @@ export default function CartPage() {
       status: 'Placed',
       instructions,
       address: fullFinalAddress,
-      pincode: customerPincode, // Store separate pincode for delivery filtering
+      pincode: customerPincode,
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'unknown',
       restaurantName: cart[0]?.restaurantName || 'a store',
-      coinsEarned: 10, // FIXED 10 COINS AS REQUESTED
+      coinsEarned: 10,
       coinsUsed: 0
     };
 
     setShowSuccess(true);
 
-    // 1. Create Order
     setDoc(orderRef, orderData)
       .then(async () => {
-        // 2. Update/Create User Profile for Admin Directory & Add Reward Coins
         const userRef = doc(firestore, 'users', finalUid);
         await setDoc(userRef, {
           fullName: customerName,
@@ -156,25 +150,36 @@ export default function CartPage() {
           uid: finalUid,
           updatedAt: serverTimestamp(),
           role: 'customer',
-          coins: increment(10) // ADD 10 COINS ON EVERY ORDER
+          coins: increment(10)
         }, { merge: true });
 
-        // Notifications using dynamic branding icon
-        const notifyIcon = branding?.notificationLogoUrl || DEFAULT_LOGO;
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-             navigator.serviceWorker.ready.then((registration) => {
-               registration.showNotification("Order Confirmed! 🚀", {
+        // Use global notify icon from branding
+        const notifyIcon = branding?.notificationLogoUrl || '';
+        
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+             try {
+               new Notification("Order Confirmed! 🚀", {
                  body: `Thank you ${customerName}! Your order is being prepared.`,
                  icon: notifyIcon,
                  badge: notifyIcon
                });
-             }).catch(() => {});
+             } catch (e) {
+               if ('serviceWorker' in navigator) {
+                 navigator.serviceWorker.ready.then((registration) => {
+                   registration.showNotification("Order Confirmed! 🚀", {
+                     body: `Thank you ${customerName}! Your order is being prepared.`,
+                     icon: notifyIcon,
+                     badge: notifyIcon
+                   });
+                 });
+               }
+             }
         }
         
         setTimeout(() => {
           clearCart();
           router.push(`/orders/track?id=${orderId}`);
-        }, 3000); // Increased delay to show the coin reward popup properly
+        }, 3000);
       })
       .catch((err: any) => {
         setShowSuccess(false);
@@ -323,7 +328,6 @@ export default function CartPage() {
               <span>₹{totalPrice.toFixed(2)}</span>
             </div>
             
-            {/* Dynamic Admin Charges */}
             {calculatedCharges.map((charge) => (
               <div key={charge.id} className="flex justify-between font-bold text-gray-500">
                 <span>{charge.name} {charge.type === 'percentage' ? `(${charge.value}%)` : ''}</span>

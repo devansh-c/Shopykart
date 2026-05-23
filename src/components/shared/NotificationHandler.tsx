@@ -4,10 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, onSnapshot, doc, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { BellRing, ShoppingBag } from 'lucide-react';
+import { BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const DEFAULT_LOGO = "https://picsum.photos/seed/shopykart-eats/200/200";
 
 export function NotificationHandler() {
   const { user } = useUser();
@@ -21,7 +19,7 @@ export function NotificationHandler() {
   const lastPersonalId = useRef<string | null>(null);
   const processedOrders = useRef<Set<string>>(new Set());
 
-  // Fetch dynamic notification logo from branding
+  // Fetch dynamic notification logo from branding (Admin Panel)
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
@@ -35,7 +33,8 @@ export function NotificationHandler() {
   }, [firestore, user]);
   const { data: profile } = useDoc<any>(profileRef);
 
-  const NOTIFY_ICON = branding?.notificationLogoUrl || DEFAULT_LOGO;
+  // Using Admin Set Logo. If not set, it will be blank/browser-default.
+  const NOTIFY_ICON = branding?.notificationLogoUrl || '';
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -57,32 +56,30 @@ export function NotificationHandler() {
       });
     } catch (e) {}
 
-    // Toast
+    // Toast Notification in UI
     toast({
       title: title,
       description: body,
       duration: 8000,
-      variant: isOrder ? "default" : "default",
+      variant: "default",
     });
 
-    // Native Notification
+    // Native Push Notification (Mobile/Desktop)
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      const options: NotificationOptions = {
+        body: body,
+        icon: NOTIFY_ICON,
+        badge: NOTIFY_ICON,
+        tag: isOrder ? 'new-order' : 'shopykart-alert',
+        silent: false
+      };
+
       try {
-        new Notification(title, {
-          body: body,
-          icon: NOTIFY_ICON,
-          badge: NOTIFY_ICON,
-          tag: isOrder ? 'new-order' : 'shopykart-alert'
-        });
+        new Notification(title, options);
       } catch (err) {
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification(title, {
-              body: body,
-              icon: NOTIFY_ICON,
-              badge: NOTIFY_ICON,
-              tag: isOrder ? 'new-order' : 'shopykart-alert'
-            });
+            registration.showNotification(title, options);
           }).catch(() => {});
         }
       }
@@ -92,11 +89,6 @@ export function NotificationHandler() {
   // 1. Order Listener (Admin & Vendor & Customer)
   useEffect(() => {
     if (!user || !firestore) return;
-
-    // Logic: 
-    // - Admin (email check or role) listens to ALL new orders
-    // - Vendor listens to orders where vendorId == uid
-    // - Customer listens to orders where userId == uid
     
     const isAdmin = user.email === 'admin@shopykart.com' || profile?.role === 'admin';
     const isVendor = profile?.role === 'vendor';
@@ -104,7 +96,6 @@ export function NotificationHandler() {
     let ordersQuery;
     
     if (isAdmin) {
-      // Admin listens to everything created in the last 1 hour to prevent old spam on load
       const oneHourAgo = new Timestamp(Timestamp.now().seconds - 3600, 0);
       ordersQuery = query(collection(firestore, 'orders'), where('createdAt', '>=', oneHourAgo));
     } else if (isVendor) {
@@ -119,7 +110,6 @@ export function NotificationHandler() {
         const orderId = change.doc.id;
         const newStatus = orderData.status;
 
-        // HANDLE NEW ORDERS (For Admin & Vendor)
         if (change.type === 'added' && newStatus === 'Placed') {
           if (!processedOrders.current.has(orderId)) {
             processedOrders.current.add(orderId);
@@ -135,7 +125,6 @@ export function NotificationHandler() {
           }
         }
 
-        // HANDLE STATUS UPDATES (For Customer & Admin)
         const oldStatus = lastStatuses.current[orderId];
         if (oldStatus && oldStatus !== newStatus) {
            let title = "Order Update";
@@ -151,7 +140,7 @@ export function NotificationHandler() {
     });
 
     return () => unsubscribe();
-  }, [user, firestore, profile, toast]);
+  }, [user, firestore, profile]);
 
   // 2. Broadcast Listener (Global Campaigns)
   useEffect(() => {
