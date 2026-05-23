@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -32,7 +31,7 @@ export function NotificationHandler() {
   // Fetch user profile to determine role
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'profile', 'data');
+    return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: profile } = useDoc<any>(profileRef);
 
@@ -100,7 +99,7 @@ export function NotificationHandler() {
     // - Customer listens to orders where userId == uid
     
     const isAdmin = user.email === 'admin@shopykart.com' || profile?.role === 'admin';
-    const isVendor = profile?.role === 'vendor' || !!localStorage.getItem('vendor_id'); // Fallback check
+    const isVendor = profile?.role === 'vendor';
 
     let ordersQuery;
     

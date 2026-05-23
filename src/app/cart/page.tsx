@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
-const BRAND_LOGO_URL = "https://picsum.photos/seed/shopykart-eats/200/200";
+const DEFAULT_LOGO = "https://picsum.photos/seed/shopykart-eats/200/200";
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
@@ -43,6 +43,13 @@ export default function CartPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerCity, setCustomerCity] = useState('');
   const [customerPincode, setCustomerPincode] = useState('');
+
+  // Fetch Branding for Notification Icon
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: branding } = useDoc<any>(brandingRef);
 
   // Fetch Dynamic Charges from Admin Panel
   const chargesQuery = useMemoFirebase(() => {
@@ -152,13 +159,14 @@ export default function CartPage() {
           coins: increment(10) // ADD 10 COINS ON EVERY ORDER
         }, { merge: true });
 
-        // Notifications
+        // Notifications using dynamic branding icon
+        const notifyIcon = branding?.notificationLogoUrl || DEFAULT_LOGO;
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
              navigator.serviceWorker.ready.then((registration) => {
                registration.showNotification("Order Confirmed! 🚀", {
                  body: `Thank you ${customerName}! Your order is being prepared.`,
-                 icon: BRAND_LOGO_URL,
-                 badge: BRAND_LOGO_URL
+                 icon: notifyIcon,
+                 badge: notifyIcon
                });
              }).catch(() => {});
         }
