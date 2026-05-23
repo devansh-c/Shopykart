@@ -74,6 +74,32 @@ export default function CartPage() {
   }, [firestore]);
   const { data: branding } = useDoc<any>(brandingRef);
 
+  // FETCH DYNAMIC CHARGES FROM ADMIN PANEL
+  const chargesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'checkout_charges');
+  }, [firestore]);
+  const { data: dbCharges } = useCollection<any>(chargesQuery);
+
+  const dynamicCharges = useMemo(() => {
+    if (!dbCharges) return [];
+    return dbCharges.map(charge => {
+      let amount = 0;
+      if (charge.type === 'fixed') {
+        amount = charge.value;
+      } else if (charge.type === 'percentage') {
+        amount = (totalPrice * charge.value) / 100;
+      }
+      return { ...charge, calculatedAmount: amount };
+    });
+  }, [dbCharges, totalPrice]);
+
+  const chargesTotalSum = useMemo(() => {
+    return dynamicCharges.reduce((acc, curr) => acc + curr.calculatedAmount, 0);
+  }, [dynamicCharges]);
+
+  const grandTotal = totalPrice + chargesTotalSum;
+
   // Load from local storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -84,15 +110,6 @@ export default function CartPage() {
       setCustomerPincode(localStorage.getItem('user_pincode') || '');
     }
   }, []);
-
-  const chargesTotal = useMemo(() => {
-    const deliveryFee = orderType === 'Delivery' ? 40 : 0;
-    const packagingFee = 10;
-    const gst = totalPrice * 0.05;
-    return { deliveryFee, packagingFee, gst, total: deliveryFee + packagingFee + gst };
-  }, [totalPrice, orderType]);
-
-  const grandTotal = totalPrice + chargesTotal.total;
 
   const handleCheckout = () => {
     if (!firestore || isPlacing) return;
@@ -263,7 +280,7 @@ export default function CartPage() {
            <h3 className="text-xs font-black uppercase text-gray-500 ml-1">Order Type</h3>
            <div className="grid grid-cols-4 gap-2">
               {[
-                { id: 'Delivery', icon: Bike, time: '~35 min' },
+                { id: 'Delivery', icon: Bike, time: 'Express' },
                 { id: 'Pickup', icon: ShoppingBag, time: 'Self' },
                 { id: 'Dine in', icon: Utensils, time: 'Table' },
                 { id: 'In Car', icon: Car, time: 'Valet' }
@@ -282,7 +299,7 @@ export default function CartPage() {
               ))}
            </div>
            <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 ml-1">
-             <Clock className="h-3 w-3" /> {orderType === 'Delivery' ? '~35 min - ₹40' : 'Ready in ~15 min'}
+             <Clock className="h-3 w-3" /> {orderType === 'Delivery' ? 'Express Delivery' : 'Ready soon'}
            </p>
         </div>
 
@@ -382,18 +399,14 @@ export default function CartPage() {
               <span>Item Total</span>
               <span>₹{totalPrice.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between font-bold text-gray-400">
-              <span>Delivery Fee</span>
-              <span>₹{chargesTotal.deliveryFee.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-gray-400">
-              <span>Packaging Fee</span>
-              <span>₹{chargesTotal.packagingFee.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-gray-400">
-              <span>GST (5%)</span>
-              <span>₹{chargesTotal.gst.toFixed(2)}</span>
-            </div>
+            
+            {/* DYNAMIC CHARGES FROM ADMIN */}
+            {dynamicCharges.map((charge: any) => (
+              <div key={charge.id} className="flex justify-between font-bold text-gray-400">
+                <span>{charge.name} {charge.type === 'percentage' && `(${charge.value}%)`}</span>
+                <span>₹{charge.calculatedAmount.toFixed(2)}</span>
+              </div>
+            ))}
           </div>
 
           <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
@@ -469,7 +482,7 @@ export default function CartPage() {
               </Button>
               <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
                  <Bike className="h-2.5 w-2.5 text-amber-500" />
-                 ~35 min
+                 Express
               </div>
            </div>
         </div>
