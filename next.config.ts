@@ -15,11 +15,6 @@ const nextConfig: NextConfig = {
   },
   /* ENSURE CLEAN URLS FOR HOSTS LIKE GODADDY */
   trailingSlash: true,
-  /* DISABLE NEXT.JS DEV INDICATORS */
-  devIndicators: {
-    appIsrStatus: false,
-    buildActivity: false,
-  },
 };
 
 export default nextConfig;
