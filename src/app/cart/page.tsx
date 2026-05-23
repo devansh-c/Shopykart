@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -18,7 +17,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, increment } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -130,7 +129,7 @@ export default function CartPage() {
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'unknown',
       restaurantName: cart[0]?.restaurantName || 'a store',
-      coinsEarned: Math.floor(grandTotal * 0.5),
+      coinsEarned: 10, // FIXED 10 COINS AS REQUESTED
       coinsUsed: 0
     };
 
@@ -139,7 +138,7 @@ export default function CartPage() {
     // 1. Create Order
     setDoc(orderRef, orderData)
       .then(async () => {
-        // 2. Update/Create User Profile for Admin Directory
+        // 2. Update/Create User Profile for Admin Directory & Add Reward Coins
         const userRef = doc(firestore, 'users', finalUid);
         await setDoc(userRef, {
           fullName: customerName,
@@ -149,7 +148,8 @@ export default function CartPage() {
           pincode: customerPincode,
           uid: finalUid,
           updatedAt: serverTimestamp(),
-          role: 'customer'
+          role: 'customer',
+          coins: increment(10) // ADD 10 COINS ON EVERY ORDER
         }, { merge: true });
 
         // Notifications
@@ -166,7 +166,7 @@ export default function CartPage() {
         setTimeout(() => {
           clearCart();
           router.push(`/orders/track?id=${orderId}`);
-        }, 1500);
+        }, 3000); // Increased delay to show the coin reward popup properly
       })
       .catch((err: any) => {
         setShowSuccess(false);

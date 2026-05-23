@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Coins, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function OrderSuccessOverlay({ isVisible }: { isVisible: boolean }) {
@@ -41,9 +40,26 @@ export function OrderSuccessOverlay({ isVisible }: { isVisible: boolean }) {
         <h2 className="text-3xl font-black italic uppercase tracking-tighter text-black text-center leading-none mb-2">
           ORDER<br /><span className="text-green-500">PLACED!</span>
         </h2>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground text-center">
+        
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground text-center mb-8">
           Preparing your deliciousness
         </p>
+
+        {/* COIN REWARD SECTION */}
+        <div className="relative z-10 animate-in zoom-in slide-in-from-bottom-4 duration-700 delay-300">
+           <div className="bg-gradient-to-r from-amber-400 to-amber-600 p-0.5 rounded-2xl shadow-lg shadow-amber-200">
+              <div className="bg-white rounded-[0.9rem] px-5 py-3 flex items-center gap-3">
+                 <div className="bg-amber-100 p-2 rounded-xl">
+                    <Coins className="h-6 w-6 text-amber-600 fill-amber-500" />
+                 </div>
+                 <div className="text-left">
+                    <span className="block text-[8px] font-black text-amber-600 uppercase tracking-widest leading-none mb-1">Bonus Reward</span>
+                    <h4 className="text-lg font-black text-gray-800 leading-none">+10 Bonus Coins</h4>
+                 </div>
+                 <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+              </div>
+           </div>
+        </div>
 
         {/* Floating Confetti dots */}
         <div className="absolute -top-4 -left-4 w-3 h-3 bg-red-400 rounded-full animate-bounce delay-100" />
