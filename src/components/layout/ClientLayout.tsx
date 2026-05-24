@@ -12,6 +12,7 @@ import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
+import { AdOverlay } from '@/components/shared/AdOverlay';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -41,6 +42,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
           {!isExcludedPath && <LocationRequest />}
           <NotificationHandler />
           <TelegramNotifier />
+          <AdOverlay />
           {children}
           {!isExcludedPath && <FloatingCart />}
         </div>
