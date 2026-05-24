@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from 'react';
@@ -20,7 +19,8 @@ import {
   Users,
   Receipt,
   CircleDollarSign,
-  Truck
+  Truck,
+  Megaphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +42,7 @@ import { CustomerManagement } from '@/components/admin/CustomerManagement';
 import { ChargeManagement } from '@/components/admin/ChargeManagement';
 import { StorePayoutManagement } from '@/components/admin/StorePayoutManagement';
 import { FleetManagement } from '@/components/admin/FleetManagement';
+import { MonetizationManagement } from '@/components/admin/MonetizationManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -55,6 +56,7 @@ const menuItems = [
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'charges', label: 'Tax & Charges', icon: Receipt },
+  { id: 'ads', label: 'Monetization', icon: Megaphone },
   { id: 'notifications', label: 'Notifications', icon: BellRing },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
@@ -169,6 +171,8 @@ export default function AdminDashboard() {
         return <DiscountManagement />;
       case 'charges':
         return <ChargeManagement />;
+      case 'ads':
+        return <MonetizationManagement />;
       case 'notifications':
         return <NotificationManagement />;
       case 'reviews':
