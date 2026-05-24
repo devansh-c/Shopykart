@@ -24,7 +24,8 @@ import {
   Car,
   ShoppingBasket,
   Clock,
-  Tag
+  Tag,
+  Zap
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -67,13 +68,6 @@ export default function CartPage() {
   }, [firestore]);
   const { data: crossSellProducts } = useCollection<any>(productsQuery);
 
-  // Fetch Global Branding
-  const brandingRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'app_settings', 'branding');
-  }, [firestore]);
-  const { data: branding } = useDoc<any>(brandingRef);
-
   // FETCH DYNAMIC CHARGES FROM ADMIN PANEL
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -111,7 +105,7 @@ export default function CartPage() {
     }
   }, []);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
 
     if (!customerName.trim() || customerPhone.length !== 10 || !customerAddress.trim() || customerPincode.length !== 6) {
@@ -123,8 +117,28 @@ export default function CartPage() {
       return;
     }
 
-    setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
+
+    // UPI Gateway Integration (Intent for Mobile Apps)
+    if (paymentMethod === 'online') {
+      const upiId = "9450355709@axl";
+      const payeeName = "ShopyKart";
+      const amount = grandTotal.toFixed(2);
+      const transactionNote = `ShopyKart Order ${orderId}`;
+      
+      const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+      
+      // Attempt to launch UPI intent
+      window.location.href = upiUrl;
+
+      // Small delay to let user finish payment and return
+      toast({
+        title: "Waiting for Payment",
+        description: "Please complete payment in your UPI app and return to confirm.",
+      });
+    }
+
+    setIsPlacing(true);
     const orderRef = doc(firestore, 'orders', orderId);
 
     const guestUid = 'guest_' + customerPhone;
@@ -153,30 +167,29 @@ export default function CartPage() {
 
     setShowSuccess(true);
 
-    setDoc(orderRef, orderData)
-      .then(async () => {
-        const userRef = doc(firestore, 'users', finalUid);
-        await setDoc(userRef, {
-          fullName: customerName,
-          phoneNumber: customerPhone,
-          address: fullFinalAddress,
-          city: customerCity,
-          pincode: customerPincode,
-          uid: finalUid,
-          updatedAt: serverTimestamp(),
-          coins: increment(10)
-        }, { merge: true });
+    try {
+      await setDoc(orderRef, orderData);
+      const userRef = doc(firestore, 'users', finalUid);
+      await setDoc(userRef, {
+        fullName: customerName,
+        phoneNumber: customerPhone,
+        address: fullFinalAddress,
+        city: customerCity,
+        pincode: customerPincode,
+        uid: finalUid,
+        updatedAt: serverTimestamp(),
+        coins: increment(10)
+      }, { merge: true });
 
-        setTimeout(() => {
-          clearCart();
-          router.push(`/orders/track?id=${orderId}`);
-        }, 3000);
-      })
-      .catch(() => {
-        setShowSuccess(false);
-        setIsPlacing(false);
-        toast({ variant: "destructive", title: "Order Failed" });
-      });
+      setTimeout(() => {
+        clearCart();
+        router.push(`/orders/track?id=${orderId}`);
+      }, 3000);
+    } catch (err) {
+      setShowSuccess(false);
+      setIsPlacing(false);
+      toast({ variant: "destructive", title: "Order Failed" });
+    }
   };
 
   if (totalItems === 0 && !showSuccess) {
@@ -351,11 +364,6 @@ export default function CartPage() {
                 className="h-12 rounded-xl bg-gray-50 border-none font-bold"
               />
             </div>
-
-            <div className="flex gap-3">
-               <Button variant="outline" className="flex-1 rounded-xl h-12 border-gray-200 text-gray-500 font-bold">Cancel</Button>
-               <Button className="flex-1 rounded-xl h-12 bg-primary font-black uppercase italic tracking-tighter">Use This Address</Button>
-            </div>
           </div>
         </div>
 
@@ -429,8 +437,8 @@ export default function CartPage() {
                 <div className="flex items-center gap-3">
                   <div className="bg-green-100 p-2 rounded-xl text-green-600"><CreditCard className="h-5 w-5" /></div>
                   <div>
-                    <h5 className="text-xs font-bold text-gray-800">Pay Online</h5>
-                    <p className="text-[9px] text-gray-400 font-medium">UPI, Debit / Credit Card, Netbanking</p>
+                    <h5 className="text-xs font-bold text-gray-800">Pay Online (UPI)</h5>
+                    <p className="text-[9px] text-gray-400 font-medium">Safe & Fast via Google Pay, PhonePe, Paytm</p>
                   </div>
                 </div>
                 <RadioGroupItem value="online" className="border-gray-300 text-green-600" />
@@ -467,7 +475,7 @@ export default function CartPage() {
            <div className="shrink-0">
               <div className="text-xl font-black text-gray-800 italic tracking-tighter">₹{grandTotal.toFixed(2)}</div>
               <div className="flex items-center gap-1 text-gray-400">
-                 <span className="text-[8px] font-black uppercase italic">{paymentMethod === 'online' ? '⚡ Online Payment' : '💵 Cash On Delivery'}</span>
+                 <span className="text-[8px] font-black uppercase italic">{paymentMethod === 'online' ? '⚡ UPI Payment' : '💵 Cash On Delivery'}</span>
                  <span className="text-[8px] text-gray-300">• Incl. taxes</span>
               </div>
            </div>
@@ -478,7 +486,7 @@ export default function CartPage() {
                 onClick={handleCheckout}
                 className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all"
               >
-                {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}
+                {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : paymentMethod === 'online' ? "Pay & Order" : "Place Order"}
               </Button>
               <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
                  <Bike className="h-2.5 w-2.5 text-amber-500" />
