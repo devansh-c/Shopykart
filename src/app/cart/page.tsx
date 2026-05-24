@@ -80,17 +80,18 @@ export default function CartPage() {
     if (!dbCharges) return [];
     return dbCharges.map(charge => {
       let amount = 0;
+      const chargeVal = Number(charge.value) || 0;
       if (charge.type === 'fixed') {
-        amount = charge.value;
+        amount = chargeVal;
       } else if (charge.type === 'percentage') {
-        amount = (totalPrice * charge.value) / 100;
+        amount = (totalPrice * chargeVal) / 100;
       }
       return { ...charge, calculatedAmount: amount };
     });
   }, [dbCharges, totalPrice]);
 
   const chargesTotalSum = useMemo(() => {
-    return dynamicCharges.reduce((acc, curr) => acc + curr.calculatedAmount, 0);
+    return dynamicCharges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamicCharges]);
 
   const grandTotal = totalPrice + chargesTotalSum;
@@ -113,28 +114,35 @@ export default function CartPage() {
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
-    const guestUid = 'guest_' + customerPhone;
+    const guestUid = 'guest_' + (customerPhone || Date.now());
     const finalUid = user?.uid || guestUid;
     
-    const fullFinalAddress = `${customerAddress}, ${customerCity}, ${customerState} - ${customerPincode}`;
+    const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''}, ${customerState || ''} - ${customerPincode || ''}`;
 
+    // Ensure no undefined values reach Firestore
     const orderData = {
-      userId: finalUid,
-      customerName,
-      customerPhone,
-      orderDisplayId: orderId,
-      items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price, vendorId: item.vendorId })),
-      total: grandTotal,
+      userId: String(finalUid),
+      customerName: String(customerName || 'Anonymous'),
+      customerPhone: String(customerPhone || ''),
+      orderDisplayId: String(orderId),
+      items: cart.map(item => ({ 
+        id: String(item.id), 
+        name: String(item.name), 
+        quantity: Number(item.quantity) || 1, 
+        price: Number(item.price) || 0, 
+        vendorId: String(item.vendorId || 'global') 
+      })),
+      total: Number(grandTotal) || Number(totalPrice) || 0,
       status: 'Placed',
-      orderType,
-      paymentMethod,
+      orderType: String(orderType || 'Delivery'),
+      paymentMethod: String(paymentMethod || 'cash'),
       paymentStatus: 'Pending',
-      address: fullFinalAddress,
-      pincode: customerPincode,
-      instructions,
+      address: String(fullFinalAddress),
+      pincode: String(customerPincode || ''),
+      instructions: String(instructions || ''),
       createdAt: serverTimestamp(),
-      vendorId: cart[0]?.vendorId || 'unknown',
-      restaurantName: cart[0]?.restaurantName || 'a store',
+      vendorId: String(cart[0]?.vendorId || 'global'),
+      restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
       coinsEarned: 10
     };
 
@@ -143,12 +151,12 @@ export default function CartPage() {
       
       const userRef = doc(firestore, 'users', finalUid);
       await setDoc(userRef, {
-        fullName: customerName,
-        phoneNumber: customerPhone,
-        address: fullFinalAddress,
-        city: customerCity,
-        pincode: customerPincode,
-        uid: finalUid,
+        fullName: String(customerName),
+        phoneNumber: String(customerPhone),
+        address: String(fullFinalAddress),
+        city: String(customerCity),
+        pincode: String(customerPincode),
+        uid: String(finalUid),
         updatedAt: serverTimestamp(),
         coins: increment(10)
       }, { merge: true });
@@ -160,8 +168,13 @@ export default function CartPage() {
         router.push(`/orders/track?id=${orderId}`);
       }, 3000);
     } catch (err) {
+      console.error("Order Creation Failed:", err);
       setIsPlacing(false);
-      toast({ variant: "destructive", title: "Order Failed", description: "Database connection error." });
+      toast({ 
+        variant: "destructive", 
+        title: "Order Failed", 
+        description: "Database connection error. Please try again." 
+      });
     }
   };
 
@@ -400,7 +413,7 @@ export default function CartPage() {
             {dynamicCharges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-gray-400">
                 <span>{charge.name} {charge.type === 'percentage' && `(${charge.value}%)`}</span>
-                <span>₹{charge.calculatedAmount.toFixed(2)}</span>
+                <span>₹{(Number(charge.calculatedAmount) || 0).toFixed(2)}</span>
               </div>
             ))}
           </div>
