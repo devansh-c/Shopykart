@@ -32,7 +32,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, limit } from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,9 @@ export default function CartPage() {
   const [addressType, setAddressType] = useState('Home');
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [paymentInitiated, setPaymentInitiated] = useState(false);
+  
+  // Ref to track if we've already started the auto-placement to avoid double triggers
+  const hasTriggeredRef = useRef(false);
 
   // User Details State
   const [customerName, setCustomerName] = useState('');
@@ -108,8 +111,9 @@ export default function CartPage() {
   }, []);
 
   const createOrderInFirestore = async () => {
-    if (!firestore || isPlacing) return;
+    if (!firestore || isPlacing || hasTriggeredRef.current) return;
     setIsPlacing(true);
+    hasTriggeredRef.current = true;
 
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
@@ -162,9 +166,28 @@ export default function CartPage() {
       }, 3000);
     } catch (err) {
       setIsPlacing(false);
+      hasTriggeredRef.current = false;
       toast({ variant: "destructive", title: "Order Failed", description: "Database connection error." });
     }
   };
+
+  /**
+   * AUTOMATIC ORDER PLACEMENT LOGIC
+   * Listens for the user returning to the app window after starting payment.
+   */
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (paymentInitiated && !showSuccess && !isPlacing && !hasTriggeredRef.current) {
+        // Short delay to ensure browser state is stable
+        setTimeout(() => {
+          createOrderInFirestore();
+        }, 1500);
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
+  }, [paymentInitiated, showSuccess, isPlacing]);
 
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
@@ -190,11 +213,11 @@ export default function CartPage() {
       // Launch UPI intent
       window.location.href = upiUrl;
 
-      // Update state to show verification button
+      // Update state to listen for return
       setPaymentInitiated(true);
       toast({
         title: "Payment Initiated",
-        description: "Once paid, click the confirm button to place your order.",
+        description: "Order will be placed automatically when you return.",
       });
       return;
     }
@@ -231,23 +254,23 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-5">
-        {/* Payment Confirmation Banner (Only for Online pending) */}
+        {/* Automatic Verification Banner */}
         {paymentInitiated && !showSuccess && (
-          <div className="bg-amber-50 border-2 border-amber-200 p-5 rounded-3xl animate-in fade-in zoom-in duration-500">
+          <div className="bg-green-50 border-2 border-green-200 p-5 rounded-3xl animate-in fade-in zoom-in duration-500">
              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-amber-500 p-2 rounded-xl text-white">
-                   <Zap className="h-5 w-5 animate-pulse" />
+                <div className="bg-green-500 p-2 rounded-xl text-white">
+                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
-                <h3 className="text-sm font-black uppercase text-amber-800 italic">Action Required</h3>
+                <h3 className="text-sm font-black uppercase text-green-800 italic">Waiting for Payment</h3>
              </div>
-             <p className="text-xs font-bold text-amber-900 leading-relaxed mb-4">
-                Aapne payment initiate kar di hai. UPI App mein payment poora karne ke baad neeche "Confirm & Place Order" button dabaayein.
+             <p className="text-xs font-bold text-green-900 leading-relaxed mb-4">
+                Jaisa hi aap UPI App se payment karke yahan wapas aayenge, aapka order automatically place ho jayega.
              </p>
              <button 
               onClick={() => setPaymentInitiated(false)}
-              className="text-[10px] font-black text-amber-600 uppercase tracking-widest underline underline-offset-4"
+              className="text-[10px] font-black text-gray-500 uppercase tracking-widest underline underline-offset-4"
              >
-                Change Payment Method
+                Cancel or Change Method
              </button>
           </div>
         )}
@@ -526,14 +549,14 @@ export default function CartPage() {
                 ) : (
                   paymentMethod === 'online' ? (
                     paymentInitiated ? (
-                      <span className="flex items-center gap-2">Confirm & Place <CheckCircle2 className="h-5 w-5" /></span>
+                      <span className="flex items-center gap-2">Processing <Loader2 className="h-5 w-5 animate-spin" /></span>
                     ) : "Pay & Order"
                   ) : "Place Order"
                 )}
               </Button>
               <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
                  <Bike className="h-2.5 w-2.5 text-amber-500" />
-                 {paymentInitiated ? 'Verification Pending' : 'Express'}
+                 {paymentInitiated ? 'Auto-Confirming...' : 'Express'}
               </div>
            </div>
         </div>
