@@ -1,21 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, ExternalLink, Sparkles } from 'lucide-react';
+import { X, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { usePathname } from 'next/navigation';
+import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview Interstitial Ad component for monetization.
- * Shows once per session after splash screen or after registration.
+ * Dynamically fetches Ad content from Admin Panel settings.
  */
 export function AdOverlay() {
-  const { user, loading } = useUser();
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
   const pathname = usePathname();
+  
   const [isVisible, setIsVisible] = useState(false);
   const [canClose, setCanClose] = useState(false);
-  const [hasShownThisSession, setHasShownThisSession] = useState(true); // Default true until check
+
+  // Fetch dynamic Ad settings from Firestore
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: settings, loading: settingsLoading } = useDoc<any>(brandingRef);
 
   useEffect(() => {
     // 1. Initial check: Is it a customer path? (Not admin/vendor/delivery)
@@ -27,27 +36,32 @@ export function AdOverlay() {
 
     // 2. Session check: Have we shown the ad already?
     const shown = sessionStorage.getItem('shopykart_ad_shown');
-    setHasShownThisSession(!!shown);
 
-    if (!shown && !loading && user) {
-      // Show ad with a slight delay to allow splash screen/auth transition to settle
+    // 3. Logic to show Ad if enabled in Admin Panel
+    if (!shown && !userLoading && !settingsLoading && user && settings?.isAdEnabled !== false && settings?.adImageUrl) {
       const timer = setTimeout(() => {
         setIsVisible(true);
         sessionStorage.setItem('shopykart_ad_shown', 'true');
         
-        // Enable close button after 2.5 seconds (Standard Ad practice)
+        // Enable close button after 2.5 seconds
         setTimeout(() => setCanClose(true), 2500);
       }, 2500);
 
       return () => clearTimeout(timer);
     }
-  }, [user, loading, pathname]);
+  }, [user, userLoading, settingsLoading, settings, pathname]);
 
   const handleClose = () => {
     setIsVisible(false);
   };
 
-  if (!isVisible) return null;
+  const handleLearnMore = () => {
+    if (settings?.adLinkUrl) {
+      window.open(settings.adLinkUrl, '_blank');
+    }
+  };
+
+  if (!isVisible || !settings?.adImageUrl) return null;
 
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/90 animate-in fade-in duration-500 backdrop-blur-md">
@@ -56,9 +70,9 @@ export function AdOverlay() {
         {/* Ad Content */}
         <div className="relative flex-1">
           <img 
-            src="https://picsum.photos/seed/ad-premium/1080/1920" 
+            src={settings.adImageUrl} 
             className="w-full h-full object-cover" 
-            alt="Sponsored Ad"
+            alt="Sponsored"
           />
           
           {/* Ad Overlays */}
@@ -69,19 +83,22 @@ export function AdOverlay() {
 
           <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black via-black/60 to-transparent text-white">
             <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none mb-3">
-              Upgrade Your<br /><span className="text-primary">Lifestyle.</span>
+              {settings.adTitle || 'Explore Quality.'}
             </h2>
             <p className="text-xs font-bold text-gray-300 uppercase tracking-widest leading-relaxed mb-6">
-              Experience premium quality products delivered instantly. Use code <span className="text-white">PREMIUM20</span> for 20% off.
+              {settings.adDescription || 'Discover premium offers and services in your city.'}
             </p>
-            <button className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic tracking-tighter flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-primary/30">
+            <button 
+              onClick={handleLearnMore}
+              className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic tracking-tighter flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-primary/30"
+            >
               LEARN MORE
               <ExternalLink className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Close Button - Appearing with delay */}
+        {/* Close Button */}
         <button 
           onClick={handleClose}
           disabled={!canClose}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, Megaphone, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,7 @@ export function BrandingManagement() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const notifyInputRef = useRef<HTMLInputElement>(null);
+  const adInputRef = useRef<HTMLInputElement>(null);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -35,6 +36,12 @@ export function BrandingManagement() {
     telegramBotToken: '',
     telegramChatId: '',
     enableTelegram: false,
+    // Ad Settings
+    adImageUrl: '',
+    adLinkUrl: '',
+    adTitle: '',
+    adDescription: '',
+    isAdEnabled: true,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -52,6 +59,11 @@ export function BrandingManagement() {
         telegramBotToken: settings.telegramBotToken || '',
         telegramChatId: settings.telegramChatId || '',
         enableTelegram: settings.enableTelegram || false,
+        adImageUrl: settings.adImageUrl || '',
+        adLinkUrl: settings.adLinkUrl || '',
+        adTitle: settings.adTitle || 'Upgrade Your Lifestyle',
+        adDescription: settings.adDescription || 'Experience premium quality products delivered instantly.',
+        isAdEnabled: settings.isAdEnabled !== false,
       });
     }
   }, [settings]);
@@ -63,10 +75,10 @@ export function BrandingManagement() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      const dimensions = field === 'logoUrl' ? 600 : 128;
-      const compressed = await compressImage(base64, dimensions, dimensions);
+      const dimensions = field === 'adImageUrl' ? 1080 : field === 'logoUrl' ? 600 : 128;
+      const compressed = await compressImage(base64, dimensions, dimensions === 1080 ? 1920 : dimensions);
       setFormData(prev => ({ ...prev, [field]: compressed }));
-      toast({ title: "Image Loaded", description: "Save changes to make it live app-wide." });
+      toast({ title: "Image Loaded", description: "Save changes to make it live." });
     };
     reader.readAsDataURL(file);
   };
@@ -100,7 +112,7 @@ export function BrandingManagement() {
         coinValue: parseFloat(formData.coinValue) || 0.5,
         updatedAt: serverTimestamp(),
       });
-      toast({ title: "Settings Saved!", description: "App identity and notification logo updated." });
+      toast({ title: "Settings Saved!", description: "All branding and ad changes are now live." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -114,6 +126,87 @@ export function BrandingManagement() {
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
+        {/* Monetization & Ad Control */}
+        <div className="lg:col-span-2 space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-primary/20 shadow-2xl text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 h-full w-32 bg-primary/5 -skew-x-12 translate-x-10" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/20 p-2 rounded-xl text-primary border border-primary/20"><Megaphone className="h-6 w-6" /></div>
+                <div>
+                  <h3 className="text-xl font-black italic uppercase tracking-tighter">Monetization Hub</h3>
+                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Sell ad space to local businesses</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{formData.isAdEnabled ? 'AD ACTIVE' : 'AD PAUSED'}</span>
+                <Switch 
+                  checked={formData.isAdEnabled}
+                  onCheckedChange={(checked) => setFormData({...formData, isAdEnabled: checked})}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div 
+                  onClick={() => adInputRef.current?.click()}
+                  className="relative aspect-[9/16] max-w-[200px] mx-auto border-2 border-dashed border-white/20 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-white/5 hover:border-primary transition-all"
+                >
+                  {formData.adImageUrl ? (
+                    <img src={formData.adImageUrl} className="h-full w-full object-cover" alt="Ad Preview" />
+                  ) : (
+                    <div className="flex flex-col items-center text-center p-4">
+                      <ImageIcon className="h-8 w-8 mb-2 opacity-20" />
+                      <span className="text-[10px] font-black uppercase text-gray-500">Upload Sponsored Image (9:16)</span>
+                    </div>
+                  )}
+                </div>
+                <input type="file" ref={adInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'adImageUrl')} />
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Sponsor Headline</label>
+                  <Input 
+                    value={formData.adTitle}
+                    onChange={(e) => setFormData({...formData, adTitle: e.target.value})}
+                    placeholder="e.g. New Gym Opening!" 
+                    className="h-12 bg-white/5 border-white/10 text-white rounded-xl font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Sponsor Description</label>
+                  <Textarea 
+                    value={formData.adDescription}
+                    onChange={(e) => setFormData({...formData, adDescription: e.target.value})}
+                    placeholder="Short marketing text..." 
+                    className="bg-white/5 border-white/10 text-white rounded-xl font-medium min-h-[80px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Target Link (WhatsApp or URL)</label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                    <Input 
+                      value={formData.adLinkUrl}
+                      onChange={(e) => setFormData({...formData, adLinkUrl: e.target.value})}
+                      placeholder="https://wa.me/91..." 
+                      className="pl-12 h-12 bg-white/5 border-primary/20 text-white rounded-xl font-bold focus-visible:ring-primary/20"
+                    />
+                  </div>
+                </div>
+                <div className="bg-primary/10 p-4 rounded-2xl border border-primary/20">
+                  <p className="text-[9px] font-bold text-primary uppercase leading-relaxed">
+                    💡 TIP: local businesses ko mahine ka subscription bechein. Yeh screen har naye/purane customer ko dikhayi jayegi!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Visual Identity & Master Logo Control */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm lg:col-span-2">
           <div className="flex items-center gap-3 mb-2">
