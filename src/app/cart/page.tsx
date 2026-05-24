@@ -53,11 +53,7 @@ export default function CartPage() {
   const [orderType, setOrderType] = useState('Delivery');
   const [addressType, setAddressType] = useState('Home');
   const [paymentMethod, setPaymentMethod] = useState('online');
-  const [paymentInitiated, setPaymentInitiated] = useState(false);
   
-  // Ref to track if we've already started the auto-placement to avoid double triggers
-  const hasTriggeredRef = useRef(false);
-
   // User Details State
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -111,9 +107,8 @@ export default function CartPage() {
   }, []);
 
   const createOrderInFirestore = async () => {
-    if (!firestore || isPlacing || hasTriggeredRef.current) return;
+    if (!firestore || isPlacing) return;
     setIsPlacing(true);
-    hasTriggeredRef.current = true;
 
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
@@ -133,7 +128,7 @@ export default function CartPage() {
       status: 'Placed',
       orderType,
       paymentMethod,
-      paymentStatus: paymentMethod === 'online' ? 'Paid' : 'Pending',
+      paymentStatus: 'Pending',
       address: fullFinalAddress,
       pincode: customerPincode,
       instructions,
@@ -166,28 +161,9 @@ export default function CartPage() {
       }, 3000);
     } catch (err) {
       setIsPlacing(false);
-      hasTriggeredRef.current = false;
       toast({ variant: "destructive", title: "Order Failed", description: "Database connection error." });
     }
   };
-
-  /**
-   * AUTOMATIC ORDER PLACEMENT LOGIC
-   * Listens for the user returning to the app window after starting payment.
-   */
-  useEffect(() => {
-    const handleWindowFocus = () => {
-      if (paymentInitiated && !showSuccess && !isPlacing && !hasTriggeredRef.current) {
-        // Short delay to ensure browser state is stable
-        setTimeout(() => {
-          createOrderInFirestore();
-        }, 1500);
-      }
-    };
-
-    window.addEventListener('focus', handleWindowFocus);
-    return () => window.removeEventListener('focus', handleWindowFocus);
-  }, [paymentInitiated, showSuccess, isPlacing]);
 
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
@@ -201,28 +177,6 @@ export default function CartPage() {
       return;
     }
 
-    // Step 1: Initiate UPI Payment (For Online only)
-    if (paymentMethod === 'online' && !paymentInitiated) {
-      const upiId = "9450355709@axl";
-      const payeeName = "ShopyKart";
-      const amount = grandTotal.toFixed(2);
-      const transactionNote = `ShopyKart Order Verification`;
-      
-      const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-      
-      // Launch UPI intent
-      window.location.href = upiUrl;
-
-      // Update state to listen for return
-      setPaymentInitiated(true);
-      toast({
-        title: "Payment Initiated",
-        description: "Order will be placed automatically when you return.",
-      });
-      return;
-    }
-
-    // Step 2: Final Placement (For Online confirmation or Cash immediately)
     await createOrderInFirestore();
   };
 
@@ -254,27 +208,6 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-5">
-        {/* Automatic Verification Banner */}
-        {paymentInitiated && !showSuccess && (
-          <div className="bg-green-50 border-2 border-green-200 p-5 rounded-3xl animate-in fade-in zoom-in duration-500">
-             <div className="flex items-center gap-3 mb-2">
-                <div className="bg-green-500 p-2 rounded-xl text-white">
-                   <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-                <h3 className="text-sm font-black uppercase text-green-800 italic">Waiting for Payment</h3>
-             </div>
-             <p className="text-xs font-bold text-green-900 leading-relaxed mb-4">
-                Jaisa hi aap UPI App se payment karke yahan wapas aayenge, aapka order automatically place ho jayega.
-             </p>
-             <button 
-              onClick={() => setPaymentInitiated(false)}
-              className="text-[10px] font-black text-gray-500 uppercase tracking-widest underline underline-offset-4"
-             >
-                Cancel or Change Method
-             </button>
-          </div>
-        )}
-
         {/* Your Order Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
@@ -484,7 +417,7 @@ export default function CartPage() {
               <span className="text-sm">💳</span>
               <h4 className="text-sm font-bold text-gray-800">Pay Using</h4>
            </div>
-           <RadioGroup value={paymentMethod} onValueChange={(val) => { setPaymentMethod(val); setPaymentInitiated(false); }} className="space-y-4">
+           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
               <label className={cn(
                 "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
                 paymentMethod === 'online' ? "border-green-500 bg-green-50/30" : "border-gray-100"
@@ -492,8 +425,8 @@ export default function CartPage() {
                 <div className="flex items-center gap-3">
                   <div className="bg-green-100 p-2 rounded-xl text-green-600"><CreditCard className="h-5 w-5" /></div>
                   <div>
-                    <h5 className="text-xs font-bold text-gray-800">Pay Online (UPI)</h5>
-                    <p className="text-[9px] text-gray-400 font-medium">Safe & Fast via Google Pay, PhonePe, Paytm</p>
+                    <h5 className="text-xs font-bold text-gray-800">Pay Online on Arrival</h5>
+                    <p className="text-[9px] text-gray-400 font-medium italic">Scan Delivery Partner's ID card to pay via any UPI app when food arrives.</p>
                   </div>
                 </div>
                 <RadioGroupItem value="online" className="border-gray-300 text-green-600" />
@@ -530,7 +463,7 @@ export default function CartPage() {
            <div className="shrink-0">
               <div className="text-xl font-black text-gray-800 italic tracking-tighter">₹{grandTotal.toFixed(2)}</div>
               <div className="flex items-center gap-1 text-gray-400">
-                 <span className="text-[8px] font-black uppercase italic">{paymentMethod === 'online' ? '⚡ UPI Payment' : '💵 Cash On Delivery'}</span>
+                 <span className="text-[8px] font-black uppercase italic">{paymentMethod === 'online' ? '⚡ UPI on Delivery' : '💵 Cash On Delivery'}</span>
                  <span className="text-[8px] text-gray-300">• Incl. taxes</span>
               </div>
            </div>
@@ -539,24 +472,13 @@ export default function CartPage() {
               <Button 
                 disabled={isPlacing}
                 onClick={handleCheckout}
-                className={cn(
-                  "h-14 px-10 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all",
-                  paymentInitiated ? "bg-green-600 hover:bg-green-700 text-white shadow-green-100" : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
-                )}
+                className="h-14 px-10 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all bg-primary hover:bg-primary/90 text-white shadow-primary/20"
               >
-                {isPlacing ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  paymentMethod === 'online' ? (
-                    paymentInitiated ? (
-                      <span className="flex items-center gap-2">Processing <Loader2 className="h-5 w-5 animate-spin" /></span>
-                    ) : "Pay & Order"
-                  ) : "Place Order"
-                )}
+                {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}
               </Button>
               <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
                  <Bike className="h-2.5 w-2.5 text-amber-500" />
-                 {paymentInitiated ? 'Auto-Confirming...' : 'Express'}
+                 Express Delivery
               </div>
            </div>
         </div>
