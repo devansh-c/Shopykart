@@ -25,7 +25,8 @@ import {
   ShoppingBasket,
   Clock,
   Tag,
-  Zap
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -52,6 +53,7 @@ export default function CartPage() {
   const [orderType, setOrderType] = useState('Delivery');
   const [addressType, setAddressType] = useState('Home');
   const [paymentMethod, setPaymentMethod] = useState('online');
+  const [paymentInitiated, setPaymentInitiated] = useState(false);
 
   // User Details State
   const [customerName, setCustomerName] = useState('');
@@ -105,40 +107,11 @@ export default function CartPage() {
     }
   }, []);
 
-  const handleCheckout = async () => {
+  const createOrderInFirestore = async () => {
     if (!firestore || isPlacing) return;
-
-    if (!customerName.trim() || customerPhone.length !== 10 || !customerAddress.trim() || customerPincode.length !== 6) {
-      toast({ 
-        variant: "destructive", 
-        title: "Incomplete Details", 
-        description: "Please fill all required address fields." 
-      });
-      return;
-    }
+    setIsPlacing(true);
 
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
-
-    // UPI Gateway Integration (Intent for Mobile Apps)
-    if (paymentMethod === 'online') {
-      const upiId = "9450355709@axl";
-      const payeeName = "ShopyKart";
-      const amount = grandTotal.toFixed(2);
-      const transactionNote = `ShopyKart Order ${orderId}`;
-      
-      const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-      
-      // Attempt to launch UPI intent
-      window.location.href = upiUrl;
-
-      // Small delay to let user finish payment and return
-      toast({
-        title: "Waiting for Payment",
-        description: "Please complete payment in your UPI app and return to confirm.",
-      });
-    }
-
-    setIsPlacing(true);
     const orderRef = doc(firestore, 'orders', orderId);
 
     const guestUid = 'guest_' + customerPhone;
@@ -151,11 +124,12 @@ export default function CartPage() {
       customerName,
       customerPhone,
       orderDisplayId: orderId,
-      items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price })),
+      items: cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price, vendorId: item.vendorId })),
       total: grandTotal,
       status: 'Placed',
       orderType,
       paymentMethod,
+      paymentStatus: paymentMethod === 'online' ? 'Paid' : 'Pending',
       address: fullFinalAddress,
       pincode: customerPincode,
       instructions,
@@ -165,10 +139,9 @@ export default function CartPage() {
       coinsEarned: 10
     };
 
-    setShowSuccess(true);
-
     try {
       await setDoc(orderRef, orderData);
+      
       const userRef = doc(firestore, 'users', finalUid);
       await setDoc(userRef, {
         fullName: customerName,
@@ -181,15 +154,53 @@ export default function CartPage() {
         coins: increment(10)
       }, { merge: true });
 
+      setShowSuccess(true);
+      
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
       }, 3000);
     } catch (err) {
-      setShowSuccess(false);
       setIsPlacing(false);
-      toast({ variant: "destructive", title: "Order Failed" });
+      toast({ variant: "destructive", title: "Order Failed", description: "Database connection error." });
     }
+  };
+
+  const handleCheckout = async () => {
+    if (!firestore || isPlacing) return;
+
+    if (!customerName.trim() || customerPhone.length !== 10 || !customerAddress.trim() || customerPincode.length !== 6) {
+      toast({ 
+        variant: "destructive", 
+        title: "Incomplete Details", 
+        description: "Please fill all required address fields." 
+      });
+      return;
+    }
+
+    // Step 1: Initiate UPI Payment (For Online only)
+    if (paymentMethod === 'online' && !paymentInitiated) {
+      const upiId = "9450355709@axl";
+      const payeeName = "ShopyKart";
+      const amount = grandTotal.toFixed(2);
+      const transactionNote = `ShopyKart Order Verification`;
+      
+      const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+      
+      // Launch UPI intent
+      window.location.href = upiUrl;
+
+      // Update state to show verification button
+      setPaymentInitiated(true);
+      toast({
+        title: "Payment Initiated",
+        description: "Once paid, click the confirm button to place your order.",
+      });
+      return;
+    }
+
+    // Step 2: Final Placement (For Online confirmation or Cash immediately)
+    await createOrderInFirestore();
   };
 
   if (totalItems === 0 && !showSuccess) {
@@ -220,6 +231,27 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Payment Confirmation Banner (Only for Online pending) */}
+        {paymentInitiated && !showSuccess && (
+          <div className="bg-amber-50 border-2 border-amber-200 p-5 rounded-3xl animate-in fade-in zoom-in duration-500">
+             <div className="flex items-center gap-3 mb-2">
+                <div className="bg-amber-500 p-2 rounded-xl text-white">
+                   <Zap className="h-5 w-5 animate-pulse" />
+                </div>
+                <h3 className="text-sm font-black uppercase text-amber-800 italic">Action Required</h3>
+             </div>
+             <p className="text-xs font-bold text-amber-900 leading-relaxed mb-4">
+                Aapne payment initiate kar di hai. UPI App mein payment poora karne ke baad neeche "Confirm & Place Order" button dabaayein.
+             </p>
+             <button 
+              onClick={() => setPaymentInitiated(false)}
+              className="text-[10px] font-black text-amber-600 uppercase tracking-widest underline underline-offset-4"
+             >
+                Change Payment Method
+             </button>
+          </div>
+        )}
+
         {/* Your Order Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
@@ -429,7 +461,7 @@ export default function CartPage() {
               <span className="text-sm">💳</span>
               <h4 className="text-sm font-bold text-gray-800">Pay Using</h4>
            </div>
-           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
+           <RadioGroup value={paymentMethod} onValueChange={(val) => { setPaymentMethod(val); setPaymentInitiated(false); }} className="space-y-4">
               <label className={cn(
                 "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
                 paymentMethod === 'online' ? "border-green-500 bg-green-50/30" : "border-gray-100"
@@ -484,13 +516,24 @@ export default function CartPage() {
               <Button 
                 disabled={isPlacing}
                 onClick={handleCheckout}
-                className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                className={cn(
+                  "h-14 px-10 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all",
+                  paymentInitiated ? "bg-green-600 hover:bg-green-700 text-white shadow-green-100" : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
+                )}
               >
-                {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : paymentMethod === 'online' ? "Pay & Order" : "Place Order"}
+                {isPlacing ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  paymentMethod === 'online' ? (
+                    paymentInitiated ? (
+                      <span className="flex items-center gap-2">Confirm & Place <CheckCircle2 className="h-5 w-5" /></span>
+                    ) : "Pay & Order"
+                  ) : "Place Order"
+                )}
               </Button>
               <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
                  <Bike className="h-2.5 w-2.5 text-amber-500" />
-                 Express
+                 {paymentInitiated ? 'Verification Pending' : 'Express'}
               </div>
            </div>
         </div>
