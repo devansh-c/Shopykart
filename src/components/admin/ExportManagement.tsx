@@ -15,7 +15,8 @@ import {
   Check,
   Zap,
   Info,
-  FileCode
+  FileCode,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +39,6 @@ export function ExportManagement() {
       const zip = new JSZip();
       const collections = ['products', 'vendors', 'orders', 'categories', 'coupons', 'users'];
       
-      // Fetch data from each collection and add to ZIP
       for (const colName of collections) {
         try {
           const snapshot = await getDocs(collection(firestore, colName));
@@ -49,7 +49,6 @@ export function ExportManagement() {
         }
       }
 
-      // Add a README to the ZIP
       zip.file("README.txt", "ShopyKart Database Backup\nGenerated on: " + new Date().toLocaleString());
 
       const content = await zip.generateAsync({ type: "blob" });
@@ -64,8 +63,7 @@ export function ExportManagement() {
   };
 
   const handleCopyCommand = () => {
-    // Command to zip project excluding heavy folders
-    const cmd = "zip -r shopykart-project.zip . -x \"node_modules/*\" \".next/*\" \"out/*\" \".git/*\"";
+    const cmd = "npm run zip-project";
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(cmd);
       setIsCopied(true);
@@ -76,6 +74,16 @@ export function ExportManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
+      {/* Visual Guide Header */}
+      <div className="bg-white p-6 rounded-[2rem] border border-primary/20 shadow-sm flex items-center gap-4">
+         <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <Zap className="h-6 w-6" />
+         </div>
+         <p className="text-xs font-bold text-gray-700 uppercase leading-relaxed">
+            Follow these steps to backup your business data and prepare for GitHub upload.
+         </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* 1. Database ZIP Export */}
@@ -97,10 +105,10 @@ export function ExportManagement() {
           <div className="bg-blue-50/50 p-6 rounded-3xl border-2 border-dashed border-blue-100 space-y-4 relative z-10">
              <div className="flex items-center gap-3">
                 <FileJson className="h-5 w-5 text-blue-500" />
-                <span className="text-[11px] font-black text-blue-700 uppercase">Includes: Products, Orders, Users</span>
+                <span className="text-[11px] font-black text-blue-700 uppercase leading-none">JSON Collections Backup</span>
              </div>
              <p className="text-[10px] text-blue-600/80 leading-relaxed font-bold uppercase italic">
-               Yeh option aapke poore business data ko ek ZIP file mein export kar dega. Ise aap kabhi bhi restore kar sakte hain.
+               This will bundle all your Products, Vendors, and Orders into a single ZIP file for manual backup.
              </p>
           </div>
 
@@ -126,23 +134,23 @@ export function ExportManagement() {
             </div>
             <div>
               <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code ZIP</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">GitHub Upload Optimizer</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">GitHub Ready Package</p>
             </div>
           </div>
 
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
              <div className="flex items-center gap-3 text-primary">
-                <Zap className="h-5 w-5" />
-                <span className="text-[11px] font-bold uppercase">Ready for GitHub (Under 1MB)</span>
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-[11px] font-bold uppercase leading-none">Excludes node_modules (Under 1MB)</span>
              </div>
              <p className="text-[10px] text-gray-400 leading-relaxed font-bold uppercase italic">
-               Browser se poora code zip nahi ho sakta. Lekin maine optimizations kar di hain. Aap apne computer par ZIP banaiye, size 25MB se kam hoga.
+               Terminal mein niche di gayi command chalaein. Phir Sidebar mein <span className="text-white">shopykart-project.zip</span> par Right-Click karke Download karein.
              </p>
           </div>
 
           <div className="relative group/cmd z-10">
-            <div className="bg-black border border-white/10 p-5 rounded-2xl font-mono text-[10px] text-green-400 overflow-x-auto whitespace-nowrap no-scrollbar pr-12">
-              zip -r shopykart.zip . -x "node_modules/*"
+            <div className="bg-black border border-white/10 p-5 rounded-2xl font-mono text-xs text-green-400 overflow-x-auto whitespace-nowrap no-scrollbar pr-12">
+              npm run zip-project
             </div>
             <button 
               onClick={handleCopyCommand}
@@ -152,44 +160,34 @@ export function ExportManagement() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between pt-2 relative z-10">
-             <div className="flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-green-500" />
-                <span className="text-[9px] font-black uppercase text-green-500">Security Configured</span>
-             </div>
-             <div className="bg-primary/20 text-primary px-3 py-1 rounded-full font-black text-[8px] uppercase tracking-widest">GITHUB_READY</div>
+          <div className="bg-white/5 p-4 rounded-2xl flex items-center justify-between border border-white/5">
+             <span className="text-[9px] font-black uppercase text-gray-500">Wait for command to finish...</span>
+             <ArrowRight className="h-4 w-4 text-primary animate-bounce-horizontal" />
           </div>
         </div>
 
       </div>
 
-      {/* Warning/Guide Section */}
-      <div className="bg-amber-50 p-8 rounded-[3.5rem] border-2 border-dashed border-amber-200">
-         <div className="flex items-start gap-4">
-            <AlertCircle className="h-8 w-8 text-amber-600 shrink-0 mt-1" />
-            <div className="space-y-5">
-               <h4 className="text-lg font-black uppercase text-amber-900 leading-none">Aapka ZIP Download Kyun Nahi Ho Raha?</h4>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[11px] font-bold text-amber-800 leading-relaxed uppercase">
-                  <div className="space-y-2">
-                    <p className="font-black text-black text-xs">1. Database ZIP vs Code ZIP:</p>
-                    <p>Upar wala "Database ZIP" button instantly kaam karega. Lekin "Source Code" (jispe aap kaam kar rahe hain) ko download karne ke liye browser ko poore computer ki files read karni padti hain jo browser security ki wajah se blocked hai.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="font-black text-black text-xs">2. 25MB Limit Solution:</p>
-                    <p>Maine project mein `.gitignore` daal diya hai. Aap apne PC par folder ko Right-click karke ZIP karein, bas `node_modules` ko shamil mat karna. ZIP ka size sirf 1MB banega!</p>
-                  </div>
-               </div>
+      {/* Step by Step Visual Guide */}
+      <div className="bg-white p-10 rounded-[3.5rem] border border-border shadow-sm">
+         <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-8 text-center">How to get your code?</h3>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="space-y-4">
+               <div className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center font-black">1</div>
+               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Run Command</p>
+               <p className="text-sm font-bold text-gray-700 leading-relaxed">Apne IDE ke <span className="text-primary font-black">Terminal</span> mein upar wali command paste karein aur Enter dabayein.</p>
+            </div>
+            <div className="space-y-4">
+               <div className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center font-black">2</div>
+               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Locate File</p>
+               <p className="text-sm font-bold text-gray-700 leading-relaxed">Left Sidebar (Files) mein <span className="text-primary font-black italic">shopykart-project.zip</span> naam ki file dhoondhein.</p>
+            </div>
+            <div className="space-y-4">
+               <div className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center font-black">3</div>
+               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Right-Click & Download</p>
+               <p className="text-sm font-bold text-gray-700 leading-relaxed">File par Right-Click karke <span className="bg-blue-600 text-white px-1.5 rounded">Download</span> select karein. Ab aap ise GitHub par upload kar sakte hain.</p>
             </div>
          </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm flex items-center justify-center gap-4">
-         <div className="bg-green-50 p-3 rounded-2xl text-green-600">
-            <Info className="h-6 w-6" />
-         </div>
-         <p className="text-[11px] font-bold text-gray-500 uppercase text-center leading-relaxed">
-           Tip: Database ZIP ko har hafte download karke safe rakhein. GitHub par sirf code upload hota hai, data nahi.
-         </p>
       </div>
     </div>
   );
