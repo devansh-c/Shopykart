@@ -9,6 +9,7 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import { OffersSection } from '@/components/home/OffersSection';
 import { ServicesSection } from '@/components/home/ServicesSection';
+import { TopTenProducts } from '@/components/home/TopTenProducts';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer } from 'lucide-react';
@@ -75,6 +76,13 @@ export default function ShopyKartApp() {
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={100}>
                 <OfferSlider />
+              </ScrollReveal>
+            )}
+
+            {/* Top 10 Products Section - NEW FEATURE */}
+            {!searchQuery && activeCategory === 'all' && (
+              <ScrollReveal delay={150}>
+                <TopTenProducts />
               </ScrollReveal>
             )}
 

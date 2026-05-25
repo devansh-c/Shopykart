@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -60,13 +60,11 @@ export function ProductManagement() {
     try {
       const batch = writeBatch(firestore);
       
-      // 1. Update all Vendors
       vendors.forEach((store) => {
         const ref = doc(firestore, 'vendors', store.id);
         batch.update(ref, { isOnline: online, updatedAt: serverTimestamp() });
       });
 
-      // 2. Update all Products in the root collection
       if (products) {
         products.forEach((product) => {
           const ref = doc(firestore, 'products', product.id);
@@ -81,11 +79,19 @@ export function ProductManagement() {
         variant: online ? "default" : "destructive"
       });
     } catch (err) {
-      console.error("Bulk update error:", err);
       toast({ variant: "destructive", title: "Bulk Update Failed" });
     } finally {
       setIsBulkUpdating(false);
     }
+  };
+
+  const handleToggleTopTen = async (id: string, current: boolean) => {
+    if (!firestore) return;
+    const ref = doc(firestore, 'products', id);
+    updateDoc(ref, { isTopTen: !current })
+      .then(() => {
+        toast({ title: !current ? "Added to Top 10" : "Removed from Top 10" });
+      });
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +104,6 @@ export function ProductManagement() {
       try {
         const compressed = await compressImage(base64, 800, 800);
         setSelectedImage(compressed);
-        toast({ title: "Photo Loaded", description: "Image from gallery added." });
       } catch (err) {
         toast({ variant: "destructive", title: "Upload Failed" });
       }
@@ -116,12 +121,12 @@ export function ProductManagement() {
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', err);
     });
-    toast({ title: "Product Deleted", description: "The product was successfully removed." });
+    toast({ title: "Product Deleted" });
   };
 
   const handleSave = () => {
     if (!firestore || !name || !price) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Name and Price are mandatory." });
+      toast({ variant: "destructive", title: "Missing Fields" });
       return;
     }
     
@@ -133,7 +138,8 @@ export function ProductManagement() {
       isVeg,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
       badges: ['New'],
-      isAvailable: true, // Default to true
+      isAvailable: true,
+      isTopTen: false,
       createdAt: serverTimestamp(),
     };
 
@@ -141,7 +147,7 @@ export function ProductManagement() {
       .then(() => {
         setIsAddOpen(false);
         resetForm();
-        toast({ title: "Product Saved", description: "Your product is now live on the menu." });
+        toast({ title: "Product Saved" });
       })
       .catch(async (e) => {
         const err = new FirestorePermissionError({ 
@@ -165,7 +171,6 @@ export function ProductManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Search and Bulk Controls Bar */}
       <div className="flex flex-col lg:flex-row gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
         <div className="relative flex-1 w-full lg:max-w-xs">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -177,16 +182,16 @@ export function ProductManagement() {
             disabled={isBulkUpdating}
             onClick={() => handleBulkStatus(false)}
             variant="destructive"
-            className="flex-1 h-12 rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-red-100"
+            className="flex-1 h-12 rounded-2xl font-black uppercase italic text-[10px] tracking-widest"
           >
             {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-2" />}
-            CLOSE ALL NOW
+            CLOSE ALL
           </Button>
           
           <Button 
             disabled={isBulkUpdating}
             onClick={() => handleBulkStatus(true)}
-            className="flex-1 h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-green-100"
+            className="flex-1 h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase italic text-[10px] tracking-widest"
           >
             {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-2" />}
             OPEN ALL
@@ -253,7 +258,7 @@ export function ProductManagement() {
                       onChange={handleImageSelect} 
                     />
                     <div className="flex-1 space-y-3">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">Tap the box to pick from <span className="text-primary">Gallery</span>, or use our predefined list below.</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">Tap the box to pick from <span className="text-primary">Gallery</span>.</p>
                       <Button 
                         variant="outline" 
                         onClick={() => setIsGalleryOpen(!isGalleryOpen)}
@@ -337,17 +342,19 @@ export function ProductManagement() {
                       <Store className="h-3 w-3 mr-1 text-primary/60" />
                       {product.restaurantName}
                     </div>
-                    <span className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em]">{product.category}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-black text-foreground italic tracking-tighter">₹{product.price}</span>
-                    <div className="flex gap-1">
-                      {product.badges?.map((b: string) => (
-                        <span key={b} className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/5 text-primary">
-                          {b}
-                        </span>
-                      ))}
-                    </div>
+                    <button 
+                      onClick={() => handleToggleTopTen(product.id, !!product.isTopTen)}
+                      className={cn(
+                        "h-8 px-3 rounded-xl flex items-center gap-1.5 transition-all text-[8px] font-black uppercase tracking-widest",
+                        product.isTopTen ? "bg-amber-500 text-white shadow-lg shadow-amber-200" : "bg-muted text-gray-400"
+                      )}
+                    >
+                      <Star className={cn("h-3 w-3", product.isTopTen ? "fill-white" : "fill-none")} />
+                      {product.isTopTen ? 'TOP 10 LIVE' : 'ADD TO TOP 10'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -362,9 +369,9 @@ export function ProductManagement() {
             </div>
           ))
         ) : (
-          <div className="col-span-full text-center py-32 bg-muted/10 rounded-[3rem] border-2 border-dashed border-muted-foreground/10">
+          <div className="col-span-full text-center py-32 bg-muted/10 rounded-[3rem] border-2 border-dashed">
             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground/20" />
-            <p className="text-muted-foreground font-black italic uppercase tracking-[0.2em] text-sm">Inventory Empty</p>
+            <p className="text-muted-foreground font-black italic uppercase text-sm">Inventory Empty</p>
           </div>
         )}
       </div>
