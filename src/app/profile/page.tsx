@@ -2,7 +2,7 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera, Share2, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -33,7 +33,6 @@ export default function ProfilePage() {
     { label: 'Active Cart', icon: ShoppingCart, path: '/cart' },
     { label: 'Personal Information', icon: User },
     { label: 'Delivery Addresses', icon: MapPin },
-    { label: 'Payment Methods', icon: CreditCard },
   ];
 
   const dashboardItems = [
@@ -50,6 +49,11 @@ export default function ProfilePage() {
         description: "This feature is coming soon in a future update.",
       });
     }
+  };
+
+  const handleShareApp = () => {
+    const shareText = `Hey! Check out ShopyKart for premium food delivery in Ranipur & Mauranipur. Download now: https://shopykart.co.in`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,9 +84,7 @@ export default function ProfilePage() {
     if (auth) {
       await signOut(auth).catch(() => {});
     }
-    localStorage.removeItem('guest_uid');
-    localStorage.removeItem('guest_name');
-    localStorage.removeItem('user_location_set');
+    localStorage.clear();
     toast({ title: "Signed Out", description: "Come back soon!" });
     window.location.href = '/';
   };
@@ -123,6 +125,9 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 text-center mt-12">
+        <div className="flex items-center justify-center gap-2 mb-1">
+           <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1">Gold Member</Badge>
+        </div>
         <h2 className="text-3xl font-black italic uppercase tracking-tighter">
           {displayName}
         </h2>
@@ -135,6 +140,24 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 mt-8 space-y-6">
+        {/* Share App Card */}
+        <button 
+          onClick={handleShareApp}
+          className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-all"
+        >
+          <div className="relative z-10 flex items-center gap-4">
+             <div className="bg-green-500 p-3 rounded-2xl shadow-lg shadow-green-500/20">
+                <Share2 className="h-6 w-6 text-white" />
+             </div>
+             <div className="text-left">
+                <h4 className="text-lg font-black italic uppercase tracking-tight">Share & Grow</h4>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Send invite to friends</p>
+             </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-600 relative z-10 group-hover:text-primary transition-colors" />
+          <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-10" />
+        </button>
+
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Personal Settings</h3>
           {mainItems.map((item) => (
