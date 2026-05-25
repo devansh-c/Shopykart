@@ -2,60 +2,48 @@ import fs from 'fs';
 import path from 'path';
 import JSZip from 'jszip';
 
-const zip = new JSZip();
+/**
+ * Optimized ZIP script for ShopyKart Project.
+ * Excludes heavy folders like node_modules to keep size under 25MB.
+ */
 
-function addFilesToZip(dir, zipFolder) {
+async function zipFolder(dir, zip, rootDir) {
   const files = fs.readdirSync(dir);
+  const exclude = ['node_modules', '.next', 'out', '.git', 'android', 'shopykart-project.zip', '.DS_Store'];
+
   for (const file of files) {
-    const fullPath = path.join(dir, file);
-    const stat = fs.statSync(fullPath);
+    if (exclude.includes(file)) continue;
     
-    // Exclude heavy/unnecessary folders for GitHub readiness
-    if ([
-      'node_modules', 
-      '.next', 
-      'out', 
-      '.git', 
-      'android', 
-      '.cache', 
-      '.turbopack'
-    ].includes(file)) continue;
-    
-    // Don't include the zip itself
-    if (file === 'shopykart-project.zip') continue;
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    const relativePath = path.relative(rootDir, filePath);
 
     if (stat.isDirectory()) {
-      addFilesToZip(fullPath, zipFolder.folder(file));
+      await zipFolder(filePath, zip, rootDir);
     } else {
-      const content = fs.readFileSync(fullPath);
-      zipFolder.file(file, content);
+      const content = fs.readFileSync(filePath);
+      zip.file(relativePath, content);
     }
   }
 }
 
 async function createZip() {
-  console.log('🚀 Generating optimized project ZIP for GitHub...');
-  
-  try {
-    addFilesToZip(process.cwd(), zip);
+  console.log('🚀 Starting project compression...');
+  const zip = new JSZip();
+  const rootDir = process.cwd();
 
-    const buffer = await zip.generateAsync({
-      type: 'nodebuffer',
+  try {
+    await zipFolder(rootDir, zip, rootDir);
+    const content = await zip.generateAsync({ 
+      type: 'nodebuffer', 
       compression: 'DEFLATE',
       compressionOptions: { level: 9 }
     });
-
-    fs.writeFileSync('shopykart-project.zip', buffer);
     
-    const size = (buffer.length / (1024 * 1024)).toFixed(2);
-    console.log(`✅ Success! Project compressed to ${size} MB.`);
-    console.log('--------------------------------------------');
-    console.log('1. Look at the left sidebar (Explorer).');
-    console.log('2. Find "shopykart-project.zip".');
-    console.log('3. Right-click on it and select "Download".');
-    console.log('--------------------------------------------');
+    fs.writeFileSync('shopykart-project.zip', content);
+    console.log('✅ SUCCESS: shopykart-project.zip is now ready in the root directory.');
   } catch (err) {
-    console.error('❌ Compression failed:', err);
+    console.error('❌ ERROR during compression:', err);
   }
 }
 
