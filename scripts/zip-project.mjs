@@ -4,38 +4,61 @@ import path from 'path';
 import JSZip from 'jszip';
 
 const zip = new JSZip();
-const outputFileName = 'shopykart-project.zip';
-const excludeFolders = ['node_modules', '.next', 'out', 'android', '.git', '.capacitor', 'build'];
-const excludeFiles = [outputFileName, '.DS_Store', 'node_modules.zip'];
+const outputFile = 'shopykart-project.zip';
 
-function addFilesToZip(dirPath, zipFolder) {
-  const files = fs.readdirSync(dirPath);
+// Folders and files to exclude from the ZIP
+const ignoreList = [
+  'node_modules',
+  '.next',
+  'out',
+  '.git',
+  'android',
+  '.env',
+  '.DS_Store',
+  outputFile
+];
+
+function addFilesToZip(dir, zipFolder) {
+  const files = fs.readdirSync(dir);
+
   for (const file of files) {
-    const fullPath = path.join(dirPath, file);
-    const stats = fs.statSync(fullPath);
-    
+    if (ignoreList.includes(file)) continue;
+
+    const filePath = path.join(dir, file);
+    const stats = fs.statSync(filePath);
+
     if (stats.isDirectory()) {
-      if (excludeFolders.includes(file)) continue;
-      const newZipFolder = zipFolder.folder(file);
-      addFilesToZip(fullPath, newZipFolder);
+      const subFolder = zipFolder.folder(file);
+      addFilesToZip(filePath, subFolder);
     } else {
-      if (excludeFiles.includes(file)) continue;
-      zipFolder.file(file, fs.readFileSync(fullPath));
+      const content = fs.readFileSync(filePath);
+      zipFolder.file(file, content);
     }
   }
 }
 
-console.log("🚀 Starting ZIP generation...");
-
-try {
-  addFilesToZip('.', zip);
+async function generateZip() {
+  console.log('🚀 Generating optimized project ZIP for GitHub...');
   
-  zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
-    .pipe(fs.createWriteStream(outputFileName))
-    .on('finish', () => {
-      console.log('✅ SUCCESS: ' + outputFileName + ' has been created in the root directory!');
-      console.log('👉 Now look at the file explorer on the left, right-click the file and select Download.');
+  try {
+    addFilesToZip(process.cwd(), zip);
+    
+    const content = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 9 }
     });
-} catch (error) {
-  console.error("❌ ZIP Error:", error);
+
+    fs.writeFileSync(outputFile, content);
+    const size = (content.length / (1024 * 1024)).toFixed(2);
+    
+    console.log(`✅ Success! Project compressed to ${size} MB.`);
+    console.log('\n1. Look at the left sidebar (Explorer).');
+    console.log(`2. Find "${outputFile}".`);
+    console.log('3. Right-click (or Long-press) on it and select "Download".\n');
+  } catch (err) {
+    console.error('❌ Error creating ZIP:', err);
+  }
 }
+
+generateZip();
