@@ -14,7 +14,7 @@
     "cap-copy": "npx cap copy",
     "cap-sync": "npx cap sync",
     "cap-open": "npx cap open android",
-    "zip-project": "zip -r shopykart-project.zip . -x \"node_modules/*\" \".next/*\" \"out/*\" \".git/*\" \"android/*\" \"shopykart-project.zip\""
+    "zip-project": "node scripts/zip-project.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
