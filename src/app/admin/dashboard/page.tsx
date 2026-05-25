@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -27,6 +27,9 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 // Admin Sub-components
 import { AdminOverview } from '@/components/admin/AdminOverview';
@@ -129,9 +132,12 @@ function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: {
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showOrderAlert, setShowOrderAlert] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
@@ -141,6 +147,33 @@ export default function AdminDashboard() {
       setIsAuthorized(true);
     }
   }, [router]);
+
+  // ALARM LOGIC FOR ADMIN
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
+  }, [firestore]);
+  const { data: newOrders } = useCollection<any>(ordersQuery);
+
+  useEffect(() => {
+    if (newOrders && newOrders.length > 0 && isAuthorized) {
+      setShowOrderAlert(true);
+      if (!audioRef.current) {
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audioRef.current.loop = true;
+      }
+      audioRef.current.play().catch(() => console.log("Audio play blocked"));
+    } else {
+      setShowOrderAlert(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, [newOrders, isAuthorized]);
 
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
@@ -191,6 +224,26 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row">
+      {/* NEW ORDER ALARM OVERLAY FOR ADMIN */}
+      <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
+        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20">
+          <div className="flex flex-col items-center gap-6 p-4">
+            <BellRing className="h-12 w-12 text-primary animate-bounce" />
+            <DialogTitle className="text-3xl font-black italic uppercase text-white">NEW ORDER ARRIVED!</DialogTitle>
+            <DialogDescription className="text-gray-400 font-bold text-xs uppercase">A new order is pending in the network.</DialogDescription>
+            <Button 
+              onClick={() => {
+                setShowOrderAlert(false);
+                setActiveTab('orders');
+              }} 
+              className="w-full h-14 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl"
+            >
+              VIEW ORDERS
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile Header */}
       <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">

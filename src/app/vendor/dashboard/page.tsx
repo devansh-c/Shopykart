@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -139,6 +138,7 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: payoutHistory } = useCollection<any>(payoutQuery);
 
+  // RINGING LOGIC FOR NEW ORDERS
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const hasNewOrder = orders?.some(o => o.status === 'Placed');
@@ -148,11 +148,17 @@ export default function VendorDashboard() {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch(e => console.log("Audio play blocked by browser. Click anywhere to enable."));
     } else {
       setShowOrderAlert(false);
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
   }, [orders]);
 
   const handleSignOut = async () => {
@@ -475,9 +481,20 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
+      {/* NEW ORDER ALARM OVERLAY */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
-        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20"><div className="flex flex-col items-center gap-6 p-4"><BellRing className="h-12 w-12 text-primary animate-bounce" /><DialogTitle className="text-3xl font-black italic uppercase text-white">NEW ORDER!</DialogTitle><Button onClick={() => setShowOrderAlert(false)} className="w-full h-14 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl">ACKNOWLEDGE</Button></div></DialogContent>
+        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20">
+          <div className="flex flex-col items-center gap-6 p-4">
+            <BellRing className="h-12 w-12 text-primary animate-bounce" />
+            <DialogTitle className="text-3xl font-black italic uppercase text-white">NEW ORDER!</DialogTitle>
+            <DialogDescription className="text-gray-400 font-bold text-xs uppercase">Please check orders tab to accept now.</DialogDescription>
+            <Button onClick={() => setShowOrderAlert(false)} className="w-full h-14 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl">
+              ACKNOWLEDGE
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
+
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted"><img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /></div>

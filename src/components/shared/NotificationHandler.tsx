@@ -6,11 +6,13 @@ import { collection, query, where, onSnapshot, doc, orderBy, limit, Timestamp } 
 import { useToast } from '@/hooks/use-toast';
 import { BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [permission, setPermission] = useState<string>('default');
   const [showPrompt, setShowPrompt] = useState(false);
   
@@ -75,7 +77,19 @@ export function NotificationHandler() {
       };
 
       try {
-        new Notification(title, options);
+        const n = new Notification(title, options);
+        n.onclick = (e) => {
+          e.preventDefault();
+          window.focus();
+          if (profile?.role === 'vendor') {
+            router.push('/vendor/dashboard');
+          } else if (profile?.role === 'admin' || user?.email === 'admin@shopykart.com') {
+            router.push('/admin/dashboard');
+          } else {
+            router.push('/orders');
+          }
+          n.close();
+        };
       } catch (err) {
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.ready.then((registration) => {
@@ -119,7 +133,7 @@ export function NotificationHandler() {
             
             triggerPush(
               `${rolePrefix}New Order #${displayId}! 🚀`, 
-              `Total: ₹${orderData.total} from ${orderData.restaurantName || 'a store'}.`,
+              `Total: ₹${orderData.total} from ${orderData.restaurantName || 'a store'}. Click to manage.`,
               true
             );
           }
@@ -140,7 +154,7 @@ export function NotificationHandler() {
     });
 
     return () => unsubscribe();
-  }, [user, firestore, profile]);
+  }, [user, firestore, profile, router]);
 
   // 2. Broadcast Listener (Global Campaigns)
   useEffect(() => {
