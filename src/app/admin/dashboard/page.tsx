@@ -20,7 +20,8 @@ import {
   Receipt,
   CircleDollarSign,
   Truck,
-  Megaphone
+  Megaphone,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +44,7 @@ import { ChargeManagement } from '@/components/admin/ChargeManagement';
 import { StorePayoutManagement } from '@/components/admin/StorePayoutManagement';
 import { FleetManagement } from '@/components/admin/FleetManagement';
 import { MonetizationManagement } from '@/components/admin/MonetizationManagement';
+import { ExportManagement } from '@/components/admin/ExportManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -59,6 +61,7 @@ const menuItems = [
   { id: 'ads', label: 'Monetization', icon: Megaphone },
   { id: 'notifications', label: 'Notifications', icon: BellRing },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
+  { id: 'export', label: 'Export & Backup', icon: Download },
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
 
@@ -177,6 +180,8 @@ export default function AdminDashboard() {
         return <NotificationManagement />;
       case 'reviews':
         return <ReviewManagement />;
+      case 'export':
+        return <ExportManagement />;
       case 'settings':
         return <BrandingManagement />;
       default:
