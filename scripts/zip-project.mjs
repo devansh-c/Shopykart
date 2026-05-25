@@ -1,50 +1,41 @@
+
 import fs from 'fs';
 import path from 'path';
 import JSZip from 'jszip';
 
-/**
- * Optimized ZIP script for ShopyKart Project.
- * Excludes heavy folders like node_modules to keep size under 25MB.
- */
+const zip = new JSZip();
+const outputFileName = 'shopykart-project.zip';
+const excludeFolders = ['node_modules', '.next', 'out', 'android', '.git', '.capacitor', 'build'];
+const excludeFiles = [outputFileName, '.DS_Store', 'node_modules.zip'];
 
-async function zipFolder(dir, zip, rootDir) {
-  const files = fs.readdirSync(dir);
-  const exclude = ['node_modules', '.next', 'out', '.git', 'android', 'shopykart-project.zip', '.DS_Store'];
-
+function addFilesToZip(dirPath, zipFolder) {
+  const files = fs.readdirSync(dirPath);
   for (const file of files) {
-    if (exclude.includes(file)) continue;
+    const fullPath = path.join(dirPath, file);
+    const stats = fs.statSync(fullPath);
     
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-    const relativePath = path.relative(rootDir, filePath);
-
-    if (stat.isDirectory()) {
-      await zipFolder(filePath, zip, rootDir);
+    if (stats.isDirectory()) {
+      if (excludeFolders.includes(file)) continue;
+      const newZipFolder = zipFolder.folder(file);
+      addFilesToZip(fullPath, newZipFolder);
     } else {
-      const content = fs.readFileSync(filePath);
-      zip.file(relativePath, content);
+      if (excludeFiles.includes(file)) continue;
+      zipFolder.file(file, fs.readFileSync(fullPath));
     }
   }
 }
 
-async function createZip() {
-  console.log('🚀 Starting project compression...');
-  const zip = new JSZip();
-  const rootDir = process.cwd();
+console.log("🚀 Starting ZIP generation...");
 
-  try {
-    await zipFolder(rootDir, zip, rootDir);
-    const content = await zip.generateAsync({ 
-      type: 'nodebuffer', 
-      compression: 'DEFLATE',
-      compressionOptions: { level: 9 }
+try {
+  addFilesToZip('.', zip);
+  
+  zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+    .pipe(fs.createWriteStream(outputFileName))
+    .on('finish', () => {
+      console.log('✅ SUCCESS: ' + outputFileName + ' has been created in the root directory!');
+      console.log('👉 Now look at the file explorer on the left, right-click the file and select Download.');
     });
-    
-    fs.writeFileSync('shopykart-project.zip', content);
-    console.log('✅ SUCCESS: shopykart-project.zip is now ready in the root directory.');
-  } catch (err) {
-    console.error('❌ ERROR during compression:', err);
-  }
+} catch (error) {
+  console.error("❌ ZIP Error:", error);
 }
-
-createZip();
