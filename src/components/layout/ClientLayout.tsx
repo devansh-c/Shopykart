@@ -13,6 +13,7 @@ import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
+import { HeatWaveOverlay } from '@/components/shared/HeatWaveOverlay';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -39,6 +40,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen">
       <AuthGuard>
         <div>
+          {/* Heat wave overlay blocks EVERYTHING for customers except dashboards */}
+          {!isExcludedPath && <HeatWaveOverlay />}
+          
           {!isExcludedPath && <LocationRequest />}
           <NotificationHandler />
           <TelegramNotifier />
