@@ -62,12 +62,30 @@ export default function CartPage() {
   const [customerPincode, setCustomerPincode] = useState('');
   const [customerState, setCustomerState] = useState('Uttar Pradesh');
 
-  // Fetch Cross-sell Products
+  // Fetch Vendors to check online status
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: allVendors } = useCollection<any>(vendorsQuery);
+
+  // Fetch Raw Cross-sell Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(5));
+    return query(collection(firestore, 'products'), limit(15));
   }, [firestore]);
-  const { data: crossSellProducts } = useCollection<any>(productsQuery);
+  const { data: dbProducts } = useCollection<any>(productsQuery);
+
+  // Filter Products: Only show if Vendor is ONLINE
+  const filteredCrossSell = useMemo(() => {
+    if (!dbProducts || !allVendors) return [];
+    
+    return dbProducts.filter((product: any) => {
+      const vendor = allVendors.find(v => v.id === product.vendorId);
+      // Product is suggested ONLY if store is online and product is available
+      return vendor?.isOnline !== false && product.isAvailable !== false;
+    }).slice(0, 5); // Just show top 5 open items
+  }, [dbProducts, allVendors]);
 
   // FETCH DYNAMIC CHARGES FROM ADMIN PANEL
   const chargesQuery = useMemoFirebase(() => {
@@ -265,15 +283,15 @@ export default function CartPage() {
           </button>
         </div>
 
-        {/* Complete Your Meal Section */}
-        {crossSellProducts && crossSellProducts.length > 0 && (
+        {/* Complete Your Meal Section - FILTERED FOR ONLINE ONLY */}
+        {filteredCrossSell.length > 0 && (
           <div className="space-y-3">
              <div className="flex items-center gap-2 px-1">
                 <Utensils className="h-4 w-4 text-gray-400" />
                 <h3 className="text-xs font-bold uppercase text-gray-500">Complete your meal</h3>
              </div>
              <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
-                {crossSellProducts.map((p) => (
+                {filteredCrossSell.map((p) => (
                   <div key={p.id} className="min-w-[140px] bg-white p-2 rounded-2xl border border-gray-100 shadow-sm flex flex-col group">
                      <div className="relative h-24 w-full rounded-xl overflow-hidden mb-2">
                         <Image src={p.imageUrl} alt={p.name} fill className="object-cover" />
