@@ -1,3 +1,4 @@
+
 # dependencies
 /node_modules
 /.pnp
@@ -12,7 +13,6 @@
 
 # production
 /build
-/dist
 
 # misc
 .DS_Store
@@ -24,7 +24,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env
 .env*.local
 
 # vercel
@@ -34,11 +33,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Android / iOS Capacitor builds
-/android/app/build
-/android/.gradle
-/android/local.properties
-/ios/App/build
+# capacitor
+/android
+/ios
 
-# Generated APKs
+# generated files
+*.zip
 *.apk
