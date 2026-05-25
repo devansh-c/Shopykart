@@ -24,6 +24,7 @@ import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 export function StoreManagement() {
@@ -50,6 +51,23 @@ export function StoreManagement() {
       v.town?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [vendors, searchQuery]);
+
+  const handleToggleStatus = async (id: string, online: boolean) => {
+    if (!firestore) return;
+    try {
+      const ref = doc(firestore, 'vendors', id);
+      await updateDoc(ref, { 
+        isOnline: online,
+        updatedAt: new Date()
+      });
+      toast({ 
+        title: online ? "Store Opened" : "Store Closed",
+        description: online ? "Customers can now order from this store." : "Store is now marked as closed."
+      });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    }
+  };
 
   const handleUpdateStore = async () => {
     if (!firestore || !editingStore) return;
@@ -168,13 +186,20 @@ export function StoreManagement() {
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => (
             <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative flex flex-col">
-              <div className="absolute top-0 right-0 p-4 flex gap-2">
-                <Badge className={cn("text-[8px] font-black uppercase tracking-widest border-none", store.isOnline !== false ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500")}>
-                  {store.isOnline !== false ? 'Online' : 'Offline'}
-                </Badge>
+              <div className="absolute top-0 right-0 p-4 flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-2 py-1.5 rounded-xl shadow-sm border border-border/50">
+                  <span className={cn("text-[8px] font-black uppercase tracking-widest", store.isOnline !== false ? "text-green-600" : "text-gray-400")}>
+                    {store.isOnline !== false ? 'Open' : 'Closed'}
+                  </span>
+                  <Switch 
+                    checked={store.isOnline !== false} 
+                    onCheckedChange={(val) => handleToggleStatus(store.id, val)}
+                    className="scale-75 data-[state=checked]:bg-green-500"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-6 mt-4">
                 <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border-2 border-primary/10">
                    {store.imageUrl ? (
                      <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
@@ -183,7 +208,7 @@ export function StoreManagement() {
                    )}
                 </div>
                 <div>
-                  <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight mb-1 truncate max-w-[150px]">{store.storeName}</h3>
+                  <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight mb-1 truncate max-w-[120px]">{store.storeName}</h3>
                   <div className="flex items-center gap-2">
                      <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{store.category}</span>
                      <span className="h-1 w-1 bg-gray-300 rounded-full" />
