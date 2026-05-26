@@ -79,7 +79,7 @@ export function AdOverlay() {
           
           {/* Ad Overlays */}
           <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-            <getSparklesIcon className="h-3 w-3 text-primary" />
+            <Sparkles className="h-3 w-3 text-primary" />
             <span className="text-[8px] font-black text-white uppercase tracking-widest">Sponsored</span>
           </div>
 
@@ -118,8 +118,4 @@ export function AdOverlay() {
       </div>
     </div>
   );
-}
-
-function getSparklesIcon({ className }: { className?: string }) {
-  return <Sparkles className={className} />;
 }
