@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -91,7 +92,6 @@ export function OrderManagement() {
                     </div>
                   </div>
 
-                  {/* Product List with Rates */}
                   <div className="bg-muted/20 rounded-2xl p-4 border border-border/30 space-y-2">
                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/50">
                        <ReceiptText className="h-3.5 w-3.5 text-primary" />
@@ -99,10 +99,25 @@ export function OrderManagement() {
                     </div>
                     {order.items?.map((item: any, i: number) => (
                       <div key={i} className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                        <div className="flex items-center gap-2">
+                           <span className={cn("text-gray-700", item.isCustom && "text-primary italic font-black")}>{item.quantity}x {item.name}</span>
+                           {item.isCustom && <Badge className="bg-primary/10 text-primary text-[6px] px-1 py-0 rounded">CUSTOM</Badge>}
+                        </div>
                         <span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
+                    
+                    {/* CUSTOM SURCHARGE DISPLAY FOR ADMIN */}
+                    {order.items?.some((i: any) => i.isCustom) && (
+                      <div className="flex justify-between items-center text-[10px] font-black text-primary italic pt-1">
+                         <div className="flex items-center gap-1.5">
+                            <Sparkles className="h-3 w-3" />
+                            <span>CUSTOM DISH SERVICE CHARGE</span>
+                         </div>
+                         <span>₹{order.items.reduce((acc: number, item: any) => acc + (item.customSurcharge || 0), 0)}</span>
+                      </div>
+                    )}
+
                     <div className="pt-2 mt-2 border-t border-dashed border-border/50 flex justify-between items-center">
                        <span className="text-[10px] font-black text-muted-foreground uppercase">Grand Total</span>
                        <span className="text-base font-black text-foreground italic tracking-tight">₹{order.total?.toFixed(2)}</span>
@@ -128,14 +143,6 @@ export function OrderManagement() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button 
-                    onClick={() => window.open(`/orders/track?id=${order.id}`, '_blank')}
-                    variant="default" 
-                    className="h-11 px-5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
-                  >
-                    TRACK
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
                 </div>
                 
                 {order.instructions && (
@@ -149,13 +156,6 @@ export function OrderManagement() {
           </div>
         ))}
       </div>
-      
-      {(!orders || orders.length === 0) && (
-        <div className="text-center py-20 bg-muted/10 rounded-[3rem] border-2 border-dashed border-border/60">
-           <Package className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
-           <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No orders recorded yet</p>
-        </div>
-      )}
     </div>
   );
 }
