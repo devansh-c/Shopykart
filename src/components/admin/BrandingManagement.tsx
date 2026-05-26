@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,7 +36,9 @@ export function BrandingManagement() {
     telegramBotToken: '',
     telegramChatId: '',
     enableTelegram: false,
-    isHeatWaveEnabled: false, // NEW FIELD
+    isHeatWaveEnabled: false,
+    heatWaveStartTime: '1:00 PM',
+    heatWaveEndTime: '3:00 PM',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +57,8 @@ export function BrandingManagement() {
         telegramChatId: settings.telegramChatId || '',
         enableTelegram: settings.enableTelegram || false,
         isHeatWaveEnabled: settings.isHeatWaveEnabled || false,
+        heatWaveStartTime: settings.heatWaveStartTime || '1:00 PM',
+        heatWaveEndTime: settings.heatWaveEndTime || '3:00 PM',
       });
     }
   }, [settings]);
@@ -166,28 +170,58 @@ export function BrandingManagement() {
           </div>
         </div>
 
-        {/* NEW: Emergency & Safety Protocols Card */}
+        {/* Emergency & Safety Protocols Card */}
         <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><ThermometerSun className="h-5 w-5" /></div>
               <h3 className="text-lg font-black italic uppercase">Emergency Mode</h3>
             </div>
-            <Switch 
-              checked={formData.isHeatWaveEnabled}
-              onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})}
-              className="data-[state=checked]:bg-orange-500"
-            />
+            <div className="flex items-center gap-2">
+               <span className="text-[10px] font-black uppercase text-gray-500">{formData.isHeatWaveEnabled ? 'ACTIVE' : 'OFF'}</span>
+               <Switch 
+                checked={formData.isHeatWaveEnabled}
+                onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})}
+                className="data-[state=checked]:bg-orange-500"
+              />
+            </div>
           </div>
           
-          <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
-            <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
-            <div>
-              <p className="text-[11px] font-black text-orange-500 uppercase leading-tight">Heat Wave Mode (Force Stop)</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                Jab yeh ON hoga, Customers order nahi kar payenge. Delivery Partners ki safety ke liye use karein.
-              </p>
-            </div>
+          <div className="space-y-4">
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black uppercase text-gray-500 ml-1 flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" /> Start Time
+                   </label>
+                   <Input 
+                      value={formData.heatWaveStartTime}
+                      onChange={(e) => setFormData({...formData, heatWaveStartTime: e.target.value})}
+                      placeholder="e.g. 1:00 PM"
+                      className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold"
+                   />
+                </div>
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black uppercase text-gray-500 ml-1 flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" /> End Time
+                   </label>
+                   <Input 
+                      value={formData.heatWaveEndTime}
+                      onChange={(e) => setFormData({...formData, heatWaveEndTime: e.target.value})}
+                      placeholder="e.g. 3:00 PM"
+                      className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold"
+                   />
+                </div>
+             </div>
+
+             <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-black text-orange-500 uppercase leading-tight">Status Display</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 leading-relaxed">
+                    Jab yeh ON hoga, Customers ko screen par dikhega ki {formData.heatWaveStartTime} se {formData.heatWaveEndTime} tak orders band hain.
+                  </p>
+                </div>
+             </div>
           </div>
         </div>
 
@@ -258,4 +292,3 @@ export function BrandingManagement() {
     </div>
   );
 }
-

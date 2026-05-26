@@ -8,7 +8,7 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview Emergency overlay for extreme heat.
- * Controlled manually by Admin from Dashboard.
+ * Controlled manually by Admin from Dashboard with dynamic start/end times.
  */
 export function HeatWaveOverlay() {
   const firestore = useFirestore();
@@ -59,10 +59,16 @@ export function HeatWaveOverlay() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Heat Wave Emergency</span>
           </div>
           
-          <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-[0.9]">
+          <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-[0.9]">
             DELIVERY<br /><span className="text-orange-500">PAUSED.</span>
           </h1>
           
+          <div className="bg-orange-500/10 border border-orange-500/20 px-6 py-3 rounded-2xl">
+             <p className="text-[12px] font-black text-white uppercase tracking-widest italic">
+                From <span className="text-orange-500">{settings?.heatWaveStartTime || '1:00 PM'}</span> To <span className="text-orange-500">{settings?.heatWaveEndTime || '3:00 PM'}</span>
+             </p>
+          </div>
+
           <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
             EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR DELIVERY PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED BY ADMIN.
           </p>
@@ -76,7 +82,7 @@ export function HeatWaveOverlay() {
               </div>
               <div>
                  <h4 className="text-xs font-black uppercase text-white">Status</h4>
-                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Resuming when heat subsides</p>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Resuming at {settings?.heatWaveEndTime || '3:00 PM'}</p>
               </div>
            </div>
 
@@ -102,4 +108,3 @@ export function HeatWaveOverlay() {
     </div>
   );
 }
-
