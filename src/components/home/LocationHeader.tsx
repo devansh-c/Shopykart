@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -15,7 +14,6 @@ import {
   ChevronRight,
   MapPin,
   Utensils,
-  PlusCircle,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -131,7 +129,7 @@ export function LocationHeader({
     <div className="w-full bg-[#0B0B0B] pb-4 pt-3 px-4 space-y-4 rounded-b-[2.5rem] shadow-2xl relative z-50">
       {/* Top Row: Location & Actions */}
       <div className="flex items-center justify-between">
-        <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
+        <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[55%] group">
           <div className="h-9 w-9 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
             <MapPin className="h-4 w-4" />
           </div>
@@ -145,6 +143,14 @@ export function LocationHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* CUSTOM DISH BUTTON MOVED HERE */}
+          <CustomDishDialog>
+            <button className="h-9 px-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-primary active:scale-90 transition-all group">
+              <Utensils className="h-4 w-4" />
+              <span className="text-[10px] font-black uppercase tracking-tight hidden xs:block">CUSTOM</span>
+            </button>
+          </CustomDishDialog>
+
           <Link href="/cart">
             <div className="relative">
               <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all duration-150">
@@ -157,6 +163,7 @@ export function LocationHeader({
               )}
             </div>
           </Link>
+
           <Sheet>
             <SheetTrigger asChild>
               <button className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all duration-150">
@@ -219,13 +226,6 @@ export function LocationHeader({
               </div>
             )}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-               {/* CUSTOM DISH BUTTON */}
-               <CustomDishDialog>
-                  <button className="p-1.5 text-primary active:scale-90 transition-all group">
-                    <Utensils className="h-4 w-4" />
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">CUSTOM DISH</span>
-                  </button>
-               </CustomDishDialog>
                <button onClick={handleCameraClick} className="p-1.5 text-primary active:scale-90 transition-all">
                 {isIdentifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </button>
