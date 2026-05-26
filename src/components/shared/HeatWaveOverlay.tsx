@@ -10,8 +10,10 @@ import { cn } from '@/lib/utils';
  */
 export function HeatWaveOverlay() {
   const [isActive, setIsActive] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const checkTime = () => {
       const now = new Date();
       const hours = now.getHours();
@@ -29,7 +31,7 @@ export function HeatWaveOverlay() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!isActive) return null;
+  if (!mounted || !isActive) return null;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-hidden">

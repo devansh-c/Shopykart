@@ -18,6 +18,7 @@ export function AdOverlay() {
   
   const [isVisible, setIsVisible] = useState(false);
   const [canClose, setCanClose] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Fetch dynamic Ad settings from Firestore
   const brandingRef = useMemoFirebase(() => {
@@ -27,6 +28,7 @@ export function AdOverlay() {
   const { data: settings, loading: settingsLoading } = useDoc<any>(brandingRef);
 
   useEffect(() => {
+    setMounted(true);
     // 1. Initial check: Is it a customer path? (Not admin/vendor/delivery)
     const isCustomerPath = !pathname?.startsWith('/admin') && 
                            !pathname?.startsWith('/vendor') && 
@@ -61,7 +63,7 @@ export function AdOverlay() {
     }
   };
 
-  if (!isVisible || !settings?.adImageUrl) return null;
+  if (!mounted || !isVisible || !settings?.adImageUrl) return null;
 
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/90 animate-in fade-in duration-500 backdrop-blur-md">
@@ -77,7 +79,7 @@ export function AdOverlay() {
           
           {/* Ad Overlays */}
           <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-            <Sparkles className="h-3 w-3 text-primary" />
+            <getSparklesIcon className="h-3 w-3 text-primary" />
             <span className="text-[8px] font-black text-white uppercase tracking-widest">Sponsored</span>
           </div>
 
@@ -116,4 +118,8 @@ export function AdOverlay() {
       </div>
     </div>
   );
+}
+
+function getSparklesIcon({ className }: { className?: string }) {
+  return <Sparkles className={className} />;
 }

@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useMemo, useState, memo } from "react"
+import { useMemo, useState, memo, useEffect } from "react"
 import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, Loader2, ShoppingBag } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
@@ -18,13 +17,11 @@ import {
 } from "@/components/ui/select"
 
 const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWishlist }: any) => {
-  const cartItem = cart.find((item: any) => item.id === product.id);
+  const cartItem = cart?.find((item: any) => item.id === product.id);
   const quantity = cartItem?.quantity || 0;
   const vendor = vendors?.find((v: any) => v.id === product.vendorId);
   
-  // A product is offline if its vendor is offline OR if it's explicitly marked as not available
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
-  
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
   return (
@@ -158,7 +155,7 @@ export function PopularProducts({
     return result;
   }, [searchQuery, category, sortBy, dbProducts, vendors, activeMode]);
 
-  if (loading) {
+  if (loading && !dbProducts) {
     return (
       <div className="px-4 py-8 space-y-6">
         <Skeleton className="h-6 w-40 rounded-full" />
@@ -167,15 +164,6 @@ export function PopularProducts({
         ))}
       </div>
     );
-  }
-
-  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') {
-     return (
-        <div className="text-center py-20 opacity-30 flex flex-col items-center">
-          {activeMode === 'Food' ? <Utensils className="h-12 w-12 mb-2" /> : <ShoppingBag className="h-12 w-12 mb-2" />}
-          <p className="text-xs font-black uppercase tracking-widest">No {activeMode} Items Found</p>
-        </div>
-     );
   }
 
   return (
@@ -214,6 +202,13 @@ export function PopularProducts({
             onWishlist={toggleWishlist}
           />
         ))}
+
+        {productsToDisplay.length === 0 && !loading && (
+           <div className="text-center py-20 opacity-30 flex flex-col items-center">
+            {activeMode === 'Food' ? <Utensils className="h-12 w-12 mb-2" /> : <ShoppingBag className="h-12 w-12 mb-2" />}
+            <p className="text-xs font-black uppercase tracking-widest">No {activeMode} Items Found</p>
+          </div>
+        )}
       </div>
     </div>
   );
