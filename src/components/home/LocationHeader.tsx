@@ -14,6 +14,7 @@ import {
   ChevronRight,
   MapPin,
   Utensils,
+  Sparkles,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -143,11 +144,14 @@ export function LocationHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* CUSTOM DISH BUTTON MOVED HERE */}
+          {/* PREMIUM CUSTOM DISH BUTTON */}
           <CustomDishDialog>
-            <button className="h-9 px-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-primary active:scale-90 transition-all group">
-              <Utensils className="h-4 w-4" />
-              <span className="text-[10px] font-black uppercase tracking-tight hidden xs:block">CUSTOM</span>
+            <button className="h-9 px-3 rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-500/30 flex items-center gap-2 text-amber-500 active:scale-90 transition-all group shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+              <div className="relative">
+                <Utensils className="h-4 w-4" />
+                <Sparkles className="absolute -top-1 -right-1 h-2 w-2 animate-pulse" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest hidden xs:block">SPECIAL</span>
             </button>
           </CustomDishDialog>
 
