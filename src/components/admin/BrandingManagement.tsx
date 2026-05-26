@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +37,7 @@ export function BrandingManagement() {
     telegramChatId: '',
     enableTelegram: false,
     isHeatWaveEnabled: false,
+    heatWaveAutoMode: false,
     heatWaveStartTime: '1:00 PM',
     heatWaveEndTime: '3:00 PM',
   });
@@ -57,6 +58,7 @@ export function BrandingManagement() {
         telegramChatId: settings.telegramChatId || '',
         enableTelegram: settings.enableTelegram || false,
         isHeatWaveEnabled: settings.isHeatWaveEnabled || false,
+        heatWaveAutoMode: settings.heatWaveAutoMode || false,
         heatWaveStartTime: settings.heatWaveStartTime || '1:00 PM',
         heatWaveEndTime: settings.heatWaveEndTime || '3:00 PM',
       });
@@ -121,7 +123,6 @@ export function BrandingManagement() {
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Visual Identity & Master Logo Control */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm lg:col-span-2">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-primary/10 p-2 rounded-xl text-primary"><ImageIcon className="h-5 w-5" /></div>
@@ -156,7 +157,6 @@ export function BrandingManagement() {
                   <BellRing className="h-8 w-8 text-primary opacity-20" />
                 )}
               </div>
-              <p className="text-[7px] font-bold text-center text-primary uppercase mt-1">This image will appear in all mobile alerts.</p>
               <input type="file" ref={notifyInputRef} className="hidden" accept="image/png" onChange={(e) => handleImageUpload(e, 'notificationLogoUrl')} />
             </div>
 
@@ -170,15 +170,14 @@ export function BrandingManagement() {
           </div>
         </div>
 
-        {/* Emergency & Safety Protocols Card */}
         <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><ThermometerSun className="h-5 w-5" /></div>
               <h3 className="text-lg font-black italic uppercase">Emergency Mode</h3>
             </div>
-            <div className="flex items-center gap-2">
-               <span className="text-[10px] font-black uppercase text-gray-500">{formData.isHeatWaveEnabled ? 'ACTIVE' : 'OFF'}</span>
+            <div className="flex flex-col items-end gap-1">
+               <span className="text-[8px] font-black uppercase text-gray-500">Manual Toggle</span>
                <Switch 
                 checked={formData.isHeatWaveEnabled}
                 onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})}
@@ -186,8 +185,20 @@ export function BrandingManagement() {
               />
             </div>
           </div>
-          
-          <div className="space-y-4">
+
+          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                   <CalendarClock className="h-4 w-4 text-blue-400" />
+                   <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Automatic Scheduler</span>
+                </div>
+                <Switch 
+                  checked={formData.heatWaveAutoMode}
+                  onCheckedChange={(checked) => setFormData({...formData, heatWaveAutoMode: checked})}
+                  className="data-[state=checked]:bg-blue-400"
+                />
+             </div>
+             
              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                    <label className="text-[9px] font-black uppercase text-gray-500 ml-1 flex items-center gap-1">
@@ -212,20 +223,18 @@ export function BrandingManagement() {
                    />
                 </div>
              </div>
+          </div>
 
-             <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
-                <div>
-                  <p className="text-[11px] font-black text-orange-500 uppercase leading-tight">Status Display</p>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 leading-relaxed">
-                    Jab yeh ON hoga, Customers ko screen par dikhega ki {formData.heatWaveStartTime} se {formData.heatWaveEndTime} tak orders band hain.
-                  </p>
-                </div>
-             </div>
+          <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
+             <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 leading-relaxed">
+               {formData.heatWaveAutoMode 
+                ? `System ${formData.heatWaveStartTime} par apne aap alert chalu kar dega.` 
+                : "Manual mode ON hai. Neeche button dabate hi restriction lag jayegi."}
+             </p>
           </div>
         </div>
 
-        {/* Telegram Alerts */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
@@ -257,7 +266,6 @@ export function BrandingManagement() {
           </div>
         </div>
 
-        {/* Economy Settings */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
            <div className="flex items-center gap-3 mb-2">
             <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600"><Coins className="h-5 w-5" /></div>

@@ -5,7 +5,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { ShoppingCart, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
@@ -15,6 +15,7 @@ export function FloatingCart() {
   const router = useRouter();
   const firestore = useFirestore();
   const [isVisible, setIsVisible] = useState(false);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(0);
   const prevItemsRef = useRef(totalItems);
 
   // Fetch Heat Wave Status
@@ -25,34 +26,51 @@ export function FloatingCart() {
   const { data: settings } = useDoc<any>(brandingRef);
 
   useEffect(() => {
-    // Show notification only when an item is added (count increases)
     if (totalItems > prevItemsRef.current) {
       setIsVisible(true);
-      
-      // Auto-hide after 5 seconds
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-      }, 5000);
-
+      const timer = setTimeout(() => setIsVisible(false), 5000);
       return () => clearTimeout(timer);
     }
-    
-    // Update ref for next check
     prevItemsRef.current = totalItems;
-    
-    // If cart becomes empty, hide it immediately
-    if (totalItems === 0) {
-      setIsVisible(false);
-    }
+    if (totalItems === 0) setIsVisible(false);
   }, [totalItems]);
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isInRange = useMemo(() => {
+    if (!settings?.heatWaveStartTime || !settings?.heatWaveEndTime) return false;
+    const parseTimeToMinutes = (timeStr: string) => {
+      try {
+        const [time, modifier] = timeStr.trim().split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (modifier === 'PM' && hours < 12) hours += 12;
+        if (modifier === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + (minutes || 0);
+      } catch (e) { return -1; }
+    };
+    const start = parseTimeToMinutes(settings.heatWaveStartTime);
+    const end = parseTimeToMinutes(settings.heatWaveEndTime);
+    if (start === -1 || end === -1) return false;
+    return start < end 
+      ? (currentTimeMinutes >= start && currentTimeMinutes <= end)
+      : (currentTimeMinutes >= start || currentTimeMinutes <= end);
+  }, [settings, currentTimeMinutes]);
 
   const isHiddenPage = ['/cart', '/admin', '/login'].some(path => pathname?.startsWith(path));
   const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
   
-  // Hide if in heat wave mode for customers
-  const isHeatWaveActive = settings?.isHeatWaveEnabled && !isExcludedPath;
+  // Logic to determine if restriction is active
+  const isRestrictionActive = (settings?.isHeatWaveEnabled === true) || (settings?.heatWaveAutoMode === true && isInRange);
   
-  if (isHiddenPage || totalItems === 0 || !isVisible || isHeatWaveActive) return null;
+  if (isHiddenPage || totalItems === 0 || !isVisible || (isRestrictionActive && !isExcludedPath)) return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-10 duration-500">

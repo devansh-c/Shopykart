@@ -1,18 +1,19 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Wind } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview Emergency overlay for extreme heat.
- * Controlled manually by Admin from Dashboard with dynamic start/end times.
+ * Controlled manually by Admin from Dashboard or via Automatic Scheduler.
  */
 export function HeatWaveOverlay() {
   const firestore = useFirestore();
   const [mounted, setMounted] = useState(false);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(0);
 
   // Fetch dynamic settings from Firestore
   const brandingRef = useMemoFirebase(() => {
@@ -24,10 +25,50 @@ export function HeatWaveOverlay() {
 
   useEffect(() => {
     setMounted(true);
+    // Track time for auto-mode
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  // Show overlay ONLY if manually enabled in Admin Panel
-  const isActive = settings?.isHeatWaveEnabled === true;
+  // Time Comparison Helper
+  const isInRange = useMemo(() => {
+    if (!settings?.heatWaveStartTime || !settings?.heatWaveEndTime) return false;
+
+    const parseTimeToMinutes = (timeStr: string) => {
+      try {
+        const [time, modifier] = timeStr.trim().split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (modifier === 'PM' && hours < 12) hours += 12;
+        if (modifier === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + (minutes || 0);
+      } catch (e) {
+        return -1;
+      }
+    };
+
+    const start = parseTimeToMinutes(settings.heatWaveStartTime);
+    const end = parseTimeToMinutes(settings.heatWaveEndTime);
+
+    if (start === -1 || end === -1) return false;
+
+    if (start < end) {
+      return currentTimeMinutes >= start && currentTimeMinutes <= end;
+    } else {
+      // Handles ranges crossing midnight
+      return currentTimeMinutes >= start || currentTimeMinutes <= end;
+    }
+  }, [settings, currentTimeMinutes]);
+
+  // Show overlay IF Manual Toggle is ON OR (Auto Mode is ON AND Time is in range)
+  const isManualActive = settings?.isHeatWaveEnabled === true;
+  const isAutoActive = settings?.heatWaveAutoMode === true && isInRange;
+  
+  const isActive = isManualActive || isAutoActive;
 
   if (!mounted || !isActive) return null;
 
@@ -70,7 +111,7 @@ export function HeatWaveOverlay() {
           </div>
 
           <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-            EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR DELIVERY PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED BY ADMIN.
+            EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR DELIVERY PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED {isAutoActive ? 'VIA AUTO-SCHEDULER' : 'BY ADMIN'}.
           </p>
         </div>
 

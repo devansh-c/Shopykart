@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Menu as MenuIcon, Package, Gift, User } from 'lucide-react';
@@ -21,19 +22,50 @@ export function BottomNav() {
   const pathname = usePathname();
   const { totalItems } = useCart();
   const firestore = useFirestore();
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(0);
 
-  // Fetch Heat Wave Status to hide nav if active
+  // Fetch Heat Wave Status
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
 
-  // Don't hide for Admin/Vendor/Delivery paths
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isInRange = useMemo(() => {
+    if (!settings?.heatWaveStartTime || !settings?.heatWaveEndTime) return false;
+    const parseTimeToMinutes = (timeStr: string) => {
+      try {
+        const [time, modifier] = timeStr.trim().split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (modifier === 'PM' && hours < 12) hours += 12;
+        if (modifier === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + (minutes || 0);
+      } catch (e) { return -1; }
+    };
+    const start = parseTimeToMinutes(settings.heatWaveStartTime);
+    const end = parseTimeToMinutes(settings.heatWaveEndTime);
+    if (start === -1 || end === -1) return false;
+    return start < end 
+      ? (currentTimeMinutes >= start && currentTimeMinutes <= end)
+      : (currentTimeMinutes >= start || currentTimeMinutes <= end);
+  }, [settings, currentTimeMinutes]);
+
   const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
   
-  // Hide if Heat Wave is active and it's a customer path
-  if (settings?.isHeatWaveEnabled && !isExcludedPath) {
+  // Logic to determine if restriction is active
+  const isRestrictionActive = (settings?.isHeatWaveEnabled === true) || (settings?.heatWaveAutoMode === true && isInRange);
+
+  if (isRestrictionActive && !isExcludedPath) {
     return null;
   }
 
