@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,7 @@ export function BrandingManagement() {
     telegramBotToken: '',
     telegramChatId: '',
     enableTelegram: false,
+    isHeatWaveEnabled: false, // NEW FIELD
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -52,6 +54,7 @@ export function BrandingManagement() {
         telegramBotToken: settings.telegramBotToken || '',
         telegramChatId: settings.telegramChatId || '',
         enableTelegram: settings.enableTelegram || false,
+        isHeatWaveEnabled: settings.isHeatWaveEnabled || false,
       });
     }
   }, [settings]);
@@ -100,7 +103,7 @@ export function BrandingManagement() {
         coinValue: parseFloat(formData.coinValue) || 0.5,
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      toast({ title: "Settings Saved!", description: "All branding changes are now live." });
+      toast({ title: "Settings Saved!", description: "All branding and emergency changes are now live." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -163,12 +166,37 @@ export function BrandingManagement() {
           </div>
         </div>
 
+        {/* NEW: Emergency & Safety Protocols Card */}
+        <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><ThermometerSun className="h-5 w-5" /></div>
+              <h3 className="text-lg font-black italic uppercase">Emergency Mode</h3>
+            </div>
+            <Switch 
+              checked={formData.isHeatWaveEnabled}
+              onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})}
+              className="data-[state=checked]:bg-orange-500"
+            />
+          </div>
+          
+          <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+            <div>
+              <p className="text-[11px] font-black text-orange-500 uppercase leading-tight">Heat Wave Mode (Force Stop)</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                Jab yeh ON hoga, Customers order nahi kar payenge. Delivery Partners ki safety ke liye use karein.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Telegram Alerts */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="bg-blue-500/10 p-2 rounded-xl text-blue-600"><Send className="h-5 w-5" /></div>
-              <h3 className="text-lg font-black italic uppercase">Telegram Integration</h3>
+              <h3 className="text-lg font-black italic uppercase">Telegram Alerts</h3>
             </div>
             <Switch 
               checked={formData.enableTelegram}
@@ -224,9 +252,10 @@ export function BrandingManagement() {
           className="w-full md:w-auto px-16 h-16 rounded-3xl bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all hover:bg-primary"
         >
           {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Save className="h-6 w-6 mr-3" />}
-          SAVE BRAND SETTINGS
+          SAVE ALL SETTINGS
         </Button>
       </div>
     </div>
   );
 }
+

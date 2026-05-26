@@ -1,38 +1,33 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Wind } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview Emergency overlay for extreme heat (48°C).
- * Updated: Active between 13:00 (1 PM) and 15:00 (3 PM).
+ * @fileOverview Emergency overlay for extreme heat.
+ * Controlled manually by Admin from Dashboard.
  */
 export function HeatWaveOverlay() {
-  const [isActive, setIsActive] = useState(false);
+  const firestore = useFirestore();
   const [mounted, setMounted] = useState(false);
+
+  // Fetch dynamic settings from Firestore
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+
+  const { data: settings } = useDoc<any>(brandingRef);
 
   useEffect(() => {
     setMounted(true);
-    const checkTime = () => {
-      const now = new Date();
-      const hours = now.getHours();
-      
-      // NEW TIMING: Active between 1:00 PM (13) and 3:00 PM (15)
-      if (hours >= 13 && hours < 15) {
-        setIsActive(true);
-      } else {
-        setIsActive(false);
-      }
-    };
-
-    // Run check immediately on mount
-    checkTime();
-    
-    // Continue checking every minute to auto-resume at 3 PM
-    const interval = setInterval(checkTime, 60000); 
-    return () => clearInterval(interval);
   }, []);
+
+  // Show overlay ONLY if manually enabled in Admin Panel
+  const isActive = settings?.isHeatWaveEnabled === true;
 
   if (!mounted || !isActive) return null;
 
@@ -69,7 +64,7 @@ export function HeatWaveOverlay() {
           </h1>
           
           <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-            EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR DELIVERY PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED.
+            EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR DELIVERY PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED BY ADMIN.
           </p>
         </div>
 
@@ -80,8 +75,8 @@ export function HeatWaveOverlay() {
                  <Clock className="h-6 w-6" />
               </div>
               <div>
-                 <h4 className="text-xs font-black uppercase text-white">Resuming Soon</h4>
-                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">At 3:00 PM IST Today</p>
+                 <h4 className="text-xs font-black uppercase text-white">Status</h4>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Resuming when heat subsides</p>
               </div>
            </div>
 
@@ -107,3 +102,4 @@ export function HeatWaveOverlay() {
     </div>
   );
 }
+
