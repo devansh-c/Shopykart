@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Emergency overlay for extreme heat (48°C).
- * Active between 14:00 (2 PM) and 16:00 (4 PM).
+ * Updated: Active between 13:00 (1 PM) and 15:00 (3 PM).
  */
 export function HeatWaveOverlay() {
   const [isActive, setIsActive] = useState(false);
@@ -18,16 +18,19 @@ export function HeatWaveOverlay() {
       const now = new Date();
       const hours = now.getHours();
       
-      // Active between 2:00 PM (14) and 4:00 PM (16)
-      if (hours >= 14 && hours < 16) {
+      // NEW TIMING: Active between 1:00 PM (13) and 3:00 PM (15)
+      if (hours >= 13 && hours < 15) {
         setIsActive(true);
       } else {
         setIsActive(false);
       }
     };
 
+    // Run check immediately on mount
     checkTime();
-    const interval = setInterval(checkTime, 60000); // Check every minute
+    
+    // Continue checking every minute to auto-resume at 3 PM
+    const interval = setInterval(checkTime, 60000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -78,7 +81,7 @@ export function HeatWaveOverlay() {
               </div>
               <div>
                  <h4 className="text-xs font-black uppercase text-white">Resuming Soon</h4>
-                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">At 4:00 PM IST Today</p>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">At 3:00 PM IST Today</p>
               </div>
            </div>
 
