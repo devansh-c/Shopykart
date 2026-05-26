@@ -6,13 +6,23 @@ import { ShoppingCart, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
   const pathname = usePathname();
   const router = useRouter();
+  const firestore = useFirestore();
   const [isVisible, setIsVisible] = useState(false);
   const prevItemsRef = useRef(totalItems);
+
+  // Fetch Heat Wave Status
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: settings } = useDoc<any>(brandingRef);
 
   useEffect(() => {
     // Show notification only when an item is added (count increases)
@@ -37,8 +47,12 @@ export function FloatingCart() {
   }, [totalItems]);
 
   const isHiddenPage = ['/cart', '/admin', '/login'].some(path => pathname?.startsWith(path));
+  const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
   
-  if (isHiddenPage || totalItems === 0 || !isVisible) return null;
+  // Hide if in heat wave mode for customers
+  const isHeatWaveActive = settings?.isHeatWaveEnabled && !isExcludedPath;
+  
+  if (isHiddenPage || totalItems === 0 || !isVisible || isHeatWaveActive) return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-10 duration-500">

@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { Home, Menu as MenuIcon, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -18,6 +20,22 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   const { totalItems } = useCart();
+  const firestore = useFirestore();
+
+  // Fetch Heat Wave Status to hide nav if active
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: settings } = useDoc<any>(brandingRef);
+
+  // Don't hide for Admin/Vendor/Delivery paths
+  const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
+  
+  // Hide if Heat Wave is active and it's a customer path
+  if (settings?.isHeatWaveEnabled && !isExcludedPath) {
+    return null;
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-t border-border/50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
