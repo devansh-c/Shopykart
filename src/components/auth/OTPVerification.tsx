@@ -39,6 +39,15 @@ export function OTPVerification() {
       return;
     }
 
+    if (formData.phoneNumber.startsWith('0')) {
+      toast({ 
+        variant: "destructive", 
+        title: "Invalid Phone", 
+        description: "Any phone number cannot start with zero" 
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       let uid = '';

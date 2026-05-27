@@ -53,6 +53,14 @@ export function EmailAuth() {
         toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter 10 digits." });
         return;
       }
+      if (phoneNumber.startsWith('0')) {
+        toast({ 
+          variant: "destructive", 
+          title: "Invalid Phone", 
+          description: "Any phone number cannot start with zero" 
+        });
+        return;
+      }
     }
 
     setLoading(true);

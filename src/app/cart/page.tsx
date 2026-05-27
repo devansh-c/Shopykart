@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -219,6 +218,16 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Incomplete Details", description: "Please fill all required fields." });
       return;
     }
+
+    if (customerPhone.startsWith('0')) {
+      toast({ 
+        variant: "destructive", 
+        title: "Invalid Phone", 
+        description: "Any phone number cannot start with zero" 
+      });
+      return;
+    }
+
     await createOrderInFirestore();
   };
 
@@ -301,7 +310,7 @@ export default function CartPage() {
               <Switch 
                 checked={useCoins} 
                 onCheckedChange={setUseCoins}
-                className="data-[state=checked]:bg-amber-500"
+                className="data-[state=checked]:bg-amber-50"
               />
             </div>
           </div>
