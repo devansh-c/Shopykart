@@ -3,12 +3,14 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { useState, useEffect } from 'react';
 
 const statusOptions = [
   "Placed",
@@ -24,6 +26,11 @@ const statusOptions = [
 export function OrderManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -74,21 +81,44 @@ export function OrderManagement() {
                   <Package className="h-8 w-8" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
                     <Badge className={cn("text-[9px] font-black uppercase tracking-widest rounded-full border-none", getStatusColor(order.status))}>
                       {order.status}
                     </Badge>
                   </div>
                   
+                  {/* TIME AND DATE DISPLAY */}
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-4">
+                    <Clock className="h-3 w-3 text-primary" />
+                    {isMounted && order.createdAt?.seconds 
+                      ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') 
+                      : 'Just now'}
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 mb-6">
-                    <div className="flex items-center text-xs font-bold text-muted-foreground">
-                      <User className="h-3.5 w-3.5 mr-2 text-primary" />
-                      <span className="truncate">{order.customerName || 'Premium User'} ({order.userId?.slice(-6)})</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Business Source</p>
+                      <div className="flex items-center text-xs font-black text-primary uppercase tracking-tighter">
+                        <Store className="h-3.5 w-3.5 mr-1.5" />
+                        {order.restaurantName || 'ShopyKart Select'}
+                      </div>
                     </div>
-                    <div className="flex items-center text-xs font-bold text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5 mr-2 text-primary" />
-                      <span className="truncate max-w-[200px]">{order.address}</span>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Customer Identity</p>
+                      <div className="flex items-center text-xs font-bold text-gray-700">
+                        <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                        <span className="truncate">{order.customerName || 'Premium User'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 md:col-span-2">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Delivery Location</p>
+                      <div className="flex items-start text-xs font-bold text-gray-600">
+                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-gray-400 shrink-0 mt-0.5" />
+                        <span className="truncate line-clamp-1">{order.address}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -107,7 +137,6 @@ export function OrderManagement() {
                       </div>
                     ))}
                     
-                    {/* CUSTOM SURCHARGE DISPLAY FOR ADMIN */}
                     {order.items?.some((i: any) => i.isCustom) && (
                       <div className="flex justify-between items-center text-[10px] font-black text-primary italic pt-1">
                          <div className="flex items-center gap-1.5">
