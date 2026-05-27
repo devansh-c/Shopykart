@@ -2,12 +2,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Wind } from 'lucide-react';
+import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Wind, Truck, Timer } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview Emergency overlay for extreme heat.
+ * @fileOverview Emergency overlay for extreme heat or high delivery demand.
  * Controlled manually by Admin from Dashboard or via Automatic Scheduler.
  */
 export function HeatWaveOverlay() {
@@ -72,11 +72,21 @@ export function HeatWaveOverlay() {
 
   if (!mounted || !isActive) return null;
 
+  const isHeat = settings?.emergencyType === 'heat';
+  const displayTitle = isHeat ? "HEAT WAVE" : "HIGH DEMAND";
+  const displaySubtitle = isHeat ? "DELIVERY PAUSED." : "BUSY NOW.";
+  const displayReason = isHeat 
+    ? "EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED."
+    : "WE ARE EXPERIENCING UNUSUALLY HIGH VOLUME. ALL DELIVERY PARTNERS ARE CURRENTLY BUSY.";
+
   return (
     <div className="fixed inset-0 z-[1000] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-hidden">
-      {/* Background Heat Animation */}
+      {/* Background Heat/Rush Animation */}
       <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-orange-600 via-transparent to-transparent animate-pulse" />
+        <div className={cn(
+          "absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] animate-pulse",
+          isHeat ? "from-orange-600 via-transparent to-transparent" : "from-blue-600 via-transparent to-transparent"
+        )} />
       </div>
 
       {/* Main Card */}
@@ -84,56 +94,78 @@ export function HeatWaveOverlay() {
         
         {/* Visual Identity */}
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-600/20 blur-3xl rounded-full animate-ping" />
-          <div className="relative h-32 w-32 rounded-[3rem] bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-[0_20px_50px_rgba(234,88,12,0.3)] border-4 border-white/10">
-            <ThermometerSun className="h-16 w-16 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+          <div className={cn(
+            "absolute inset-0 blur-3xl rounded-full animate-ping",
+            isHeat ? "bg-orange-600/20" : "bg-blue-600/20"
+          )} />
+          <div className={cn(
+            "relative h-32 w-32 rounded-[3rem] flex items-center justify-center shadow-2xl border-4 border-white/10",
+            isHeat ? "bg-gradient-to-br from-orange-500 to-red-600 shadow-orange-500/30" : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30"
+          )}>
+            {isHeat ? (
+              <ThermometerSun className="h-16 w-16 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+            ) : (
+              <Truck className="h-16 w-16 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+            )}
           </div>
           
-          <div className="absolute -top-4 -right-4 bg-white text-red-600 p-3 rounded-2xl shadow-2xl font-black italic text-xl border-2 border-red-50">
-            48°C
+          <div className={cn(
+            "absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-2xl font-black italic text-xl border-2",
+            isHeat ? "text-red-600 border-red-50" : "text-blue-600 border-blue-50"
+          )}>
+            {isHeat ? "48°C" : "BUSY"}
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 bg-red-600 text-white px-5 py-1.5 rounded-full shadow-lg animate-pulse">
+          <div className={cn(
+            "inline-flex items-center gap-2 text-white px-5 py-1.5 rounded-full shadow-lg animate-pulse",
+            isHeat ? "bg-red-600" : "bg-blue-600"
+          )}>
             <AlertTriangle className="h-4 w-4" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Heat Wave Emergency</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isHeat ? 'Heat Emergency' : 'Service Alert'}</span>
           </div>
           
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-[0.9]">
-            DELIVERY<br /><span className="text-orange-500">PAUSED.</span>
+            {displayTitle}<br /><span className={isHeat ? "text-orange-500" : "text-blue-400"}>{displaySubtitle}</span>
           </h1>
           
-          <div className="bg-orange-500/10 border border-orange-500/20 px-6 py-3 rounded-2xl">
+          <div className={cn(
+            "border px-6 py-3 rounded-2xl",
+            isHeat ? "bg-orange-500/10 border-orange-500/20" : "bg-blue-500/10 border-blue-500/20"
+          )}>
              <p className="text-[12px] font-black text-white uppercase tracking-widest italic">
-                From <span className="text-orange-500">{settings?.heatWaveStartTime || '1:00 PM'}</span> To <span className="text-orange-500">{settings?.heatWaveEndTime || '3:00 PM'}</span>
+                From <span className={isHeat ? "text-orange-500" : "text-blue-400"}>{settings?.heatWaveStartTime || '1:00 PM'}</span> To <span className={isHeat ? "text-orange-500" : "text-blue-400"}>{settings?.heatWaveEndTime || '3:00 PM'}</span>
              </p>
           </div>
 
           <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-            EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR DELIVERY PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED {isAutoActive ? 'VIA AUTO-SCHEDULER' : 'BY ADMIN'}.
+            {displayReason}
           </p>
         </div>
 
         {/* Info Grid */}
         <div className="grid grid-cols-1 gap-4 w-full pt-6">
            <div className="bg-white/5 backdrop-blur-md p-5 rounded-[2.5rem] border border-white/10 flex items-center gap-4 text-left">
-              <div className="bg-orange-500/20 p-3 rounded-2xl text-orange-500">
+              <div className={cn(
+                "p-3 rounded-2xl",
+                isHeat ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-400"
+              )}>
                  <Clock className="h-6 w-6" />
               </div>
               <div>
-                 <h4 className="text-xs font-black uppercase text-white">Status</h4>
+                 <h4 className="text-xs font-black uppercase text-white">ETA</h4>
                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Resuming at {settings?.heatWaveEndTime || '3:00 PM'}</p>
               </div>
            </div>
 
            <div className="bg-white/5 backdrop-blur-md p-5 rounded-[2.5rem] border border-white/10 flex items-center gap-4 text-left">
-              <div className="bg-blue-500/20 p-3 rounded-2xl text-blue-400">
-                 <Wind className="h-6 w-6" />
+              <div className="bg-green-500/20 p-3 rounded-2xl text-green-400">
+                 <ShieldAlert className="h-6 w-6" />
               </div>
               <div>
-                 <h4 className="text-xs font-black uppercase text-white">Stay Hydrated</h4>
-                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Drink water & stay indoors</p>
+                 <h4 className="text-xs font-black uppercase text-white">Status</h4>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Security Check Active</p>
               </div>
            </div>
         </div>
@@ -144,8 +176,15 @@ export function HeatWaveOverlay() {
         </div>
       </div>
 
-      {/* Decorative heat lines */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent animate-shimmer" />
+      {/* Decorative lines */}
+      <div className={cn(
+        "absolute bottom-0 left-0 w-full h-1 animate-shimmer",
+        isHeat ? "bg-gradient-to-r from-transparent via-orange-500 to-transparent" : "bg-gradient-to-r from-transparent via-blue-500 to-transparent"
+      )} />
     </div>
   );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(' ');
 }

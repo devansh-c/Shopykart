@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { compressImage } from '@/lib/image-utils';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function BrandingManagement() {
   const firestore = useFirestore();
@@ -38,8 +39,9 @@ export function BrandingManagement() {
     enableTelegram: false,
     isHeatWaveEnabled: false,
     heatWaveAutoMode: false,
-    heatWaveStartTime: '1:00 PM',
-    heatWaveEndTime: '3:00 PM',
+    heatWaveStartTime: '6:00 PM',
+    heatWaveEndTime: '7:00 PM',
+    emergencyType: 'busy', // 'heat' or 'busy'
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -59,8 +61,9 @@ export function BrandingManagement() {
         enableTelegram: settings.enableTelegram || false,
         isHeatWaveEnabled: settings.isHeatWaveEnabled || false,
         heatWaveAutoMode: settings.heatWaveAutoMode || false,
-        heatWaveStartTime: settings.heatWaveStartTime || '1:00 PM',
-        heatWaveEndTime: settings.heatWaveEndTime || '3:00 PM',
+        heatWaveStartTime: settings.heatWaveStartTime || '6:00 PM',
+        heatWaveEndTime: settings.heatWaveEndTime || '7:00 PM',
+        emergencyType: settings.emergencyType || 'heat',
       });
     }
   }, [settings]);
@@ -173,8 +176,8 @@ export function BrandingManagement() {
         <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><ThermometerSun className="h-5 w-5" /></div>
-              <h3 className="text-lg font-black italic uppercase">Emergency Mode</h3>
+              <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><AlertTriangle className="h-5 w-5" /></div>
+              <h3 className="text-lg font-black italic uppercase">Service Restriction</h3>
             </div>
             <div className="flex flex-col items-end gap-1">
                <span className="text-[8px] font-black uppercase text-gray-500">Manual Toggle</span>
@@ -187,7 +190,20 @@ export function BrandingManagement() {
           </div>
 
           <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
-             <div className="flex items-center justify-between">
+             <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Restriction Reason</label>
+                <Select value={formData.emergencyType} onValueChange={(val) => setFormData({...formData, emergencyType: val})}>
+                  <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold">
+                    <SelectValue placeholder="Select Reason" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
+                    <SelectItem value="heat">Extreme Heat Wave (48°C)</SelectItem>
+                    <SelectItem value="busy">High Delivery Demand (Rush Hour)</SelectItem>
+                  </SelectContent>
+                </Select>
+             </div>
+
+             <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-2">
                    <CalendarClock className="h-4 w-4 text-blue-400" />
                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Automatic Scheduler</span>
@@ -207,7 +223,7 @@ export function BrandingManagement() {
                    <Input 
                       value={formData.heatWaveStartTime}
                       onChange={(e) => setFormData({...formData, heatWaveStartTime: e.target.value})}
-                      placeholder="e.g. 1:00 PM"
+                      placeholder="e.g. 6:00 PM"
                       className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold"
                    />
                 </div>
@@ -218,7 +234,7 @@ export function BrandingManagement() {
                    <Input 
                       value={formData.heatWaveEndTime}
                       onChange={(e) => setFormData({...formData, heatWaveEndTime: e.target.value})}
-                      placeholder="e.g. 3:00 PM"
+                      placeholder="e.g. 7:00 PM"
                       className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold"
                    />
                 </div>
@@ -226,11 +242,11 @@ export function BrandingManagement() {
           </div>
 
           <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
-             <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+             {formData.emergencyType === 'heat' ? <ThermometerSun className="h-5 w-5 text-orange-500 shrink-0" /> : <Truck className="h-5 w-5 text-orange-500 shrink-0" />}
              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 leading-relaxed">
                {formData.heatWaveAutoMode 
-                ? `System ${formData.heatWaveStartTime} par apne aap alert chalu kar dega.` 
-                : "Manual mode ON hai. Neeche button dabate hi restriction lag jayegi."}
+                ? `System ${formData.heatWaveStartTime} par apne aap restriction chalu kar dega.` 
+                : "Manual mode ON hai. Neeche button dabate hi app block ho jayegi."}
              </p>
           </div>
         </div>
