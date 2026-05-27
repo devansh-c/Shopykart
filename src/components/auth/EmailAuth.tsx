@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils';
 type AuthView = 'login' | 'signup';
 
 export function EmailAuth() {
-  const [view, setView] = useState<AuthView>('login');
+  // Changed default view to 'signup' so registration opens first
+  const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const auth = useAuth();
@@ -57,7 +58,7 @@ export function EmailAuth() {
         toast({ 
           variant: "destructive", 
           title: "Invalid Phone", 
-          description: "Any phone number cannot start with zero" 
+          description: "any phone number cannot start with zero" 
         });
         return;
       }
