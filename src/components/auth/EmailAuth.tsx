@@ -17,8 +17,7 @@ import { cn } from '@/lib/utils';
 type AuthView = 'login' | 'signup';
 
 export function EmailAuth() {
-  // SET SIGNUP AS DEFAULT VIEW AS REQUESTED
-  const [view, setView] = useState<AuthView>('signup');
+  const [view, setView] = useState<AuthView>('login');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const auth = useAuth();
@@ -53,6 +52,7 @@ export function EmailAuth() {
         toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter 10 digits." });
         return;
       }
+      // MANDATORY ZERO CHECK
       if (phoneNumber.startsWith('0')) {
         toast({ 
           variant: "destructive", 
@@ -72,7 +72,7 @@ export function EmailAuth() {
 
         if (firestore) {
           await setDoc(doc(firestore, 'users', user.uid), {
-            fullName,
+            fullName: fullName.toUpperCase(),
             phoneNumber,
             email: trimmedEmail,
             uid: user.uid,
@@ -131,7 +131,7 @@ export function EmailAuth() {
                     type="text" 
                     placeholder="FULL NAME" 
                     value={fullName} 
-                    onChange={(e) => setFullName(e.target.value.toUpperCase())} 
+                    onChange={(e) => setFullName(e.target.value)} 
                     required 
                     className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl pl-12 pr-4 text-sm font-black tracking-widest text-white focus:outline-none focus:border-primary/50 transition-all" 
                   />
@@ -206,7 +206,7 @@ export function EmailAuth() {
               className={cn(
                 "text-[11px] font-black uppercase tracking-widest px-6 py-3 rounded-full transition-all border",
                 view === 'login' 
-                  ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-110" 
+                  ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" 
                   : "text-gray-500 border-white/5 hover:text-white"
               )}
             >
