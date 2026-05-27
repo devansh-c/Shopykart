@@ -121,7 +121,7 @@ export default function CartPage() {
   const coinDiscount = useMemo(() => {
     if (!useCoins || availableCoins <= 0) return 0;
     const potentialDiscount = availableCoins * coinValue;
-    // Cap discount at 50% of item total to keep business healthy, or item total
+    // Cap discount at item total to avoid negative bills
     return Math.min(totalPrice, potentialDiscount);
   }, [useCoins, availableCoins, coinValue, totalPrice]);
 
@@ -149,7 +149,7 @@ export default function CartPage() {
     
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''}, ${customerState || ''} - ${customerPincode || ''}`;
 
-    // Calculate coins actually consumed
+    // Calculate coins actually consumed based on discount applied
     const coinsUsed = useCoins ? Math.ceil(coinDiscount / coinValue) : 0;
 
     const orderData = {
@@ -194,7 +194,8 @@ export default function CartPage() {
         pincode: String(customerPincode),
         uid: String(finalUid),
         updatedAt: serverTimestamp(),
-        coins: increment(10 - coinsUsed) // Add 10 earned, subtract used
+        // Consumes used coins AND adds 10 bonus coins
+        coins: increment(10 - coinsUsed) 
       };
 
       await setDoc(userRef, userUpdateData, { merge: true });

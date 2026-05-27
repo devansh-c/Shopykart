@@ -74,7 +74,7 @@ export default function RewardsPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-black uppercase tracking-wider opacity-80">
                 <span>Value: ₹{(currentCoins * coinValue).toFixed(2)}</span>
-                <span>Earn on every order</span>
+                <span>Earn 10 coins on every order</span>
               </div>
               <Progress value={Math.min(100, (currentCoins / 5000) * 100)} className="h-2 bg-white/20" />
             </div>
@@ -111,8 +111,9 @@ export default function RewardsPage() {
                </div>
                <h2 className="text-2xl font-black italic uppercase tracking-tight">How it works?</h2>
                <div className="text-xs text-muted-foreground font-bold mt-2 leading-relaxed px-4 uppercase space-y-1">
-                 <p>Har order par <span className="text-primary">Bonus Coins</span> mileinge.</p>
-                 <p>Checkout ke waqt <span className="text-primary">1 Coin = ₹{coinValue}</span> ka discount milega!</p>
+                 <p>Har order par aapko <span className="text-primary">10 Bonus Coins</span> milenge.</p>
+                 <p>Checkout ke waqt unhe redeem karein: <span className="text-primary">1 Coin = ₹{coinValue}</span> ka discount!</p>
+                 <p className="pt-2 text-[10px] text-gray-400">Redeem karne par purane coins khatam ho jayenge aur naye 10 coins jud jayenge.</p>
                </div>
             </div>
           </div>
