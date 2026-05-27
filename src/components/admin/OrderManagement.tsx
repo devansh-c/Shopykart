@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -88,7 +88,6 @@ export function OrderManagement() {
                     </Badge>
                   </div>
                   
-                  {/* TIME AND DATE DISPLAY */}
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-4">
                     <Clock className="h-3 w-3 text-primary" />
                     {isMounted && order.createdAt?.seconds 
@@ -107,9 +106,23 @@ export function OrderManagement() {
 
                     <div className="flex flex-col gap-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Customer Identity</p>
-                      <div className="flex items-center text-xs font-bold text-gray-700">
-                        <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                        <span className="truncate">{order.customerName || 'Premium User'}</span>
+                      <div className="flex items-center justify-between bg-muted/20 p-2.5 rounded-xl border border-border/30">
+                        <div className="flex items-center text-xs font-bold text-gray-700 min-w-0">
+                          <User className="h-3.5 w-3.5 mr-1.5 text-gray-400 shrink-0" />
+                          <div className="flex flex-col truncate">
+                            <span className="truncate">{order.customerName || 'Premium User'}</span>
+                            <span className="text-[10px] font-black text-muted-foreground">{order.customerPhone || 'No Phone'}</span>
+                          </div>
+                        </div>
+                        {order.customerPhone && (
+                          <button 
+                            onClick={() => window.open(`tel:${order.customerPhone}`)}
+                            className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg shadow-lg shadow-green-500/20 active:scale-90 transition-all ml-2"
+                            title="Call Customer"
+                          >
+                            <PhoneCall className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
