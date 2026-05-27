@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Wind, Truck, Timer } from 'lucide-react';
+import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Truck, Timer } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
@@ -80,7 +80,7 @@ export function HeatWaveOverlay() {
     : "WE ARE EXPERIENCING UNUSUALLY HIGH VOLUME. ALL DELIVERY PARTNERS ARE CURRENTLY BUSY.";
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-hidden">
+    <div className="fixed inset-0 z-[1000] bg-[#0B0B0B] h-screen w-screen flex flex-col items-center justify-center p-8 overflow-hidden">
       {/* Background Heat/Rush Animation */}
       <div className="absolute inset-0 opacity-20">
         <div className={cn(
@@ -169,18 +169,9 @@ export function HeatWaveOverlay() {
               </div>
            </div>
         </div>
-
-        <div className="pt-10 opacity-30 flex flex-col items-center gap-2">
-           <ShieldAlert className="h-5 w-5 text-white" />
-           <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white">ShopyKart Safety Protocol</p>
-        </div>
       </div>
 
-      {/* Decorative lines */}
-      <div className={cn(
-        "absolute bottom-0 left-0 w-full h-1 animate-shimmer",
-        isHeat ? "bg-gradient-to-r from-transparent via-orange-500 to-transparent" : "bg-gradient-to-r from-transparent via-blue-500 to-transparent"
-      )} />
+      {/* Decorative line at bottom removed as per request to keep it extra clean */}
     </div>
   );
 }
