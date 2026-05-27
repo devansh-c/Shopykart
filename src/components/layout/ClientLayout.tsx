@@ -11,7 +11,7 @@ import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
-import { EmailAuth } from '@/components/auth/EmailAuth';
+import { QuickAccess } from '@/components/auth/QuickAccess';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { HeatWaveOverlay } from '@/components/shared/HeatWaveOverlay';
 
@@ -24,9 +24,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) return null;
 
-  // If no user and not an excluded path, force Email Auth
+  // Use QuickAccess detail-form for customers instead of Email/OTP
   if (!user && !isExcludedPath) {
-    return <EmailAuth />;
+    return <QuickAccess />;
   }
 
   return <>{children}</>;

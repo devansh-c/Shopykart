@@ -219,11 +219,12 @@ export default function CartPage() {
       return;
     }
 
+    // MANDATORY ZERO CHECK
     if (customerPhone.startsWith('0')) {
       toast({ 
         variant: "destructive", 
         title: "Invalid Phone", 
-        description: "Any phone number cannot start with zero" 
+        description: "any phone number cannot start with zero" 
       });
       return;
     }
