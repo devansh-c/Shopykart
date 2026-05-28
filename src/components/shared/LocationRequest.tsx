@@ -1,8 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Loader2, CheckCircle2, ChevronLeft, Building2, X, Home, PlusCircle, LocateFixed, AlertCircle, Search, Sparkles } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { 
+  MapPin, 
+  Navigation, 
+  Loader2, 
+  CheckCircle2, 
+  ChevronLeft, 
+  Building2, 
+  X, 
+  Home, 
+  PlusCircle, 
+  LocateFixed, 
+  AlertCircle, 
+  Search, 
+  Sparkles,
+  Map as MapIcon,
+  Globe
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore } from '@/firebase';
@@ -10,7 +26,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type ViewState = 'prompt' | 'manual';
+type ViewState = 'prompt' | 'manual' | 'searching';
 
 const ALLOWED_PINCODES = ['284205', '284204'];
 
@@ -22,20 +38,20 @@ export function LocationRequest() {
   const [view, setView] = useState<ViewState>('prompt');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [fetchingDetails, setFetchingDetails] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [manualData, setManualData] = useState({
     pincode: '',
-    state: '',
+    state: 'Uttar Pradesh',
     city: '',
     address: '',
     apartment: '',
+    plusCode: ''
   });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    // Check if location is already set in this session or storage
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
       const timer = setTimeout(() => setOpen(true), 1500);
@@ -50,47 +66,48 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
+  // Handle address search for "Map Pick" experience
   useEffect(() => {
-    if (manualData.pincode.length === 6) {
-      if (!ALLOWED_PINCODES.includes(manualData.pincode)) {
-        toast({
-          variant: "destructive",
-          title: "Service Not Available",
-          description: "We currently only serve Ranipur (284205) and Mauranipur (284204)."
-        });
-        return;
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.length > 3) {
+        handleSearch(searchQuery);
       }
+    }, 600);
 
-      const fetchPincodeDetails = async () => {
-        setFetchingDetails(true);
-        try {
-          const response = await fetch(`https://api.postalpincode.in/pincode/${manualData.pincode}`);
-          const data = await response.json();
-          
-          if (data && data[0] && data[0].Status === "Success") {
-            const postOffices = data[0].PostOffice;
-            const mainTown = postOffices.find((po: any) => po.BranchType === "Sub Post Office") || postOffices[0];
-            setManualData(prev => ({
-              ...prev,
-              city: mainTown.Name,
-              state: mainTown.State
-            }));
-          }
-        } catch (error) {
-          console.warn("Pincode API error:", error);
-        } finally {
-          setFetchingDetails(false);
-        }
-      };
-      fetchPincodeDetails();
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleSearch = async (query: string) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Ranipur Mauranipur Uttar Pradesh')}&addressdetails=1&limit=5`);
+      const data = await res.json();
+      setSearchResults(data);
+    } catch (e) {
+      console.warn("Search error:", e);
     }
-  }, [manualData.pincode, toast]);
+  };
+
+  const selectSearchResult = (item: any) => {
+    const addr = item.address;
+    const city = addr.city || addr.town || addr.village || '';
+    const pincode = addr.postcode || '';
+    
+    setManualData({
+      ...manualData,
+      address: item.display_name,
+      city: city,
+      pincode: pincode,
+      plusCode: `${item.lat},${item.lon}`
+    });
+    setView('manual');
+    setSearchResults([]);
+    setSearchQuery('');
+  };
 
   const saveLocationToDB = async (location: any) => {
     let townName = '';
     const fullAddr = (location.address || '').toLowerCase();
     
-    // Determine the serving town
     if (location.pincode === '284205' || fullAddr.includes('ranipur')) {
       townName = 'Ranipur';
     } else if (location.pincode === '284204' || fullAddr.includes('mauranipur')) {
@@ -100,8 +117,8 @@ export function LocationRequest() {
     if (!townName) {
       toast({
         variant: "destructive",
-        title: "Outside Service Area",
-        description: "Please select an address in Ranipur or Mauranipur."
+        title: "Service Not Available",
+        description: "We currently only serve Ranipur and Mauranipur."
       });
       setLoading(false);
       return;
@@ -111,16 +128,7 @@ export function LocationRequest() {
       localStorage.setItem('user_address', location.address);
       localStorage.setItem('user_town', townName);
       localStorage.setItem('user_location_set', 'true');
-      
-      if (location.latitude && location.longitude) {
-        localStorage.setItem('user_lat', location.latitude.toString());
-        localStorage.setItem('user_lng', location.longitude.toString());
-      } else {
-        localStorage.removeItem('user_lat');
-        localStorage.removeItem('user_lng');
-      }
-      
-      // Dispatch event to update UI instantly
+      localStorage.setItem('user_plus_code', location.plusCode || '');
       window.dispatchEvent(new CustomEvent('user-address-updated'));
     }
 
@@ -131,17 +139,15 @@ export function LocationRequest() {
       setLoading(false);
     }, 800);
 
-    // Sync to Firebase if user is logged in
     if (user && firestore) {
       const userRef = doc(firestore, 'users', user.uid);
-      const finalData = {
+      await setDoc(userRef, {
         address: location.address,
         city: townName,
         pincode: location.pincode || '',
+        plusCode: location.plusCode || '',
         updatedAt: serverTimestamp(),
-      };
-
-      setDoc(userRef, finalData, { merge: true }).catch(() => {});
+      }, { merge: true }).catch(() => {});
     }
   };
 
@@ -155,8 +161,9 @@ export function LocationRequest() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        const plusCode = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+        
         try {
-          // Precise Reverse Geocoding
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await response.json();
           
@@ -171,11 +178,9 @@ export function LocationRequest() {
           const detailedDisplay = data.display_name || `${house ? house + ', ' : ''}${road}, ${city}`;
           
           saveLocationToDB({ 
-            latitude, 
-            longitude, 
             address: detailedDisplay, 
-            type: 'gps',
-            pincode: pincode 
+            pincode: pincode,
+            plusCode: plusCode
           });
         } catch (error) {
           setLoading(false);
@@ -185,6 +190,7 @@ export function LocationRequest() {
       () => {
         setLoading(false);
         setView('manual');
+        toast({ variant: "destructive", title: "GPS Error", description: "Could not detect location. Please type manually." });
       },
       { timeout: 8000, enableHighAccuracy: true }
     );
@@ -193,8 +199,8 @@ export function LocationRequest() {
   const handleManualSave = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const fullAddressString = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}, ${manualData.city}, ${manualData.state} - ${manualData.pincode}`;
-    saveLocationToDB({ ...manualData, address: fullAddressString, type: 'manual' });
+    const fullAddressString = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}`;
+    saveLocationToDB({ ...manualData, address: fullAddressString });
   };
 
   return (
@@ -211,7 +217,7 @@ export function LocationRequest() {
                   Set Your <span className="text-primary">Spot</span>
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
-                  Quality delivery starting from your location
+                  Precise GPS detection & smart search
                 </DialogDescription>
               </div>
 
@@ -234,7 +240,7 @@ export function LocationRequest() {
                     <span className={cn("text-sm font-black uppercase", success ? "text-green-700" : "text-black")}>
                       {success ? 'Spot Fixed!' : 'Detect My Spot'}
                     </span>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase">GPS Auto-Detection</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Best for fast delivery</span>
                   </div>
                 </button>
 
@@ -245,15 +251,15 @@ export function LocationRequest() {
                 </div>
 
                 <button
-                  onClick={() => setView('manual')}
+                  onClick={() => setView('searching')}
                   className="flex items-center gap-4 p-6 rounded-[2rem] border-2 border-gray-50 bg-gray-50 w-full active:scale-[0.98]"
                 >
                   <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400">
-                    <PlusCircle className="h-6 w-6" />
+                    <MapIcon className="h-6 w-6" />
                   </div>
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-black uppercase text-black">Type Address</span>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase">Manual entry</span>
+                    <span className="text-sm font-black uppercase text-black">Pick on Smart Search</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Select exact point on map</span>
                   </div>
                 </button>
               </div>
@@ -265,39 +271,100 @@ export function LocationRequest() {
                  </p>
               </div>
             </div>
-          ) : (
+          ) : view === 'searching' ? (
             <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-              <button onClick={() => setView('prompt')} className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-8">
+              <button onClick={() => setView('prompt')} className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-6">
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Back
               </button>
 
-              <div className="mb-8">
+              <div className="space-y-6">
+                 <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Input 
+                      placeholder="Search Area / Landmark..." 
+                      className="h-14 rounded-2xl bg-gray-50 border-none pl-12 font-bold" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                 </div>
+
+                 <div className="space-y-2 max-h-[350px] overflow-y-auto no-scrollbar">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((item, i) => (
+                        <button 
+                          key={i} 
+                          onClick={() => selectSearchResult(item)}
+                          className="w-full text-left p-4 rounded-2xl hover:bg-gray-50 flex items-start gap-3 border border-transparent hover:border-gray-100 transition-all"
+                        >
+                           <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                           <div>
+                              <p className="text-xs font-black text-gray-800 leading-tight mb-1">{item.display_name.split(',')[0]}</p>
+                              <p className="text-[10px] text-gray-400 font-medium line-clamp-2">{item.display_name}</p>
+                           </div>
+                        </button>
+                      ))
+                    ) : searchQuery.length > 3 ? (
+                      <div className="flex flex-col items-center justify-center py-10 opacity-20">
+                         <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Searching map...</span>
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 opacity-20">
+                         <MapIcon className="h-12 w-12 mx-auto mb-2" />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Start typing to pick location</span>
+                      </div>
+                    )}
+                 </div>
+              </div>
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+              <button onClick={() => setView('searching')} className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-6">
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Change Selected Spot
+              </button>
+
+              <div className="mb-6">
                 <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter">
-                  Store <span className="text-primary">Details.</span>
+                  Finalize <span className="text-primary">Spot.</span>
                 </DialogTitle>
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-5">
+                <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
+                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <MapPin className="h-2.5 w-2.5" /> Selected Area
+                   </label>
+                   <p className="text-xs font-bold text-gray-800 line-clamp-2">{manualData.address}</p>
+                </div>
+
                 <Input 
-                  placeholder="Enter Pincode (284205/284204)" 
-                  className="rounded-2xl h-14 bg-gray-50 border-none font-black italic text-lg" 
-                  value={manualData.pincode} 
-                  maxLength={6}
-                  onChange={(e) => setManualData({...manualData, pincode: e.target.value.replace(/\D/g, '')})} 
+                  placeholder="House / Flat No / Landmark *" 
+                  className="rounded-2xl h-14 bg-gray-50 border-none font-bold" 
+                  value={manualData.apartment} 
+                  onChange={(e) => setManualData({...manualData, apartment: e.target.value})} 
                   required 
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input placeholder="Town" className="rounded-2xl h-12 bg-gray-50/50 border-none font-bold" value={manualData.city} readOnly />
-                  <Input placeholder="State" className="rounded-2xl h-12 bg-gray-50/50 border-none font-bold" value={manualData.state} readOnly />
+                  <Input 
+                    placeholder="Pincode *" 
+                    className="rounded-2xl h-14 bg-gray-50 border-none font-black italic text-lg" 
+                    value={manualData.pincode} 
+                    maxLength={6}
+                    onChange={(e) => setManualData({...manualData, pincode: e.target.value.replace(/\D/g, '')})} 
+                    required 
+                  />
+                  <div className="bg-blue-50/50 p-4 rounded-2xl flex flex-col justify-center border border-blue-100/50">
+                     <span className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Plus Code (Coord)</span>
+                     <span className="text-[10px] font-black text-blue-600 truncate">{manualData.plusCode || '0.0,0.0'}</span>
+                  </div>
                 </div>
 
-                <Input placeholder="Full Address Line" className="rounded-2xl h-14 bg-gray-50 border-none font-bold" value={manualData.address} onChange={(e) => setManualData({...manualData, address: e.target.value})} required />
-                <Input placeholder="House No / Landmark" className="rounded-2xl h-14 bg-gray-50 border-none font-bold" value={manualData.apartment} onChange={(e) => setManualData({...manualData, apartment: e.target.value})} />
-                
-                <Button type="submit" disabled={loading || fetchingDetails || manualData.pincode.length < 6} className="w-full h-16 bg-[#0B0B0B] text-white rounded-3xl font-black uppercase italic shadow-xl mt-6">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'CONFIRM ADDRESS'}
+                <Button type="submit" disabled={loading} className="w-full h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl mt-4 active:scale-95 transition-all">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'CONFIRM & UNLOCK'}
                 </Button>
               </form>
             </div>
