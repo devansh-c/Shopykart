@@ -15,6 +15,7 @@ import {
   MapPin,
   Utensils,
   Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -53,7 +54,8 @@ export function LocationHeader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState('Select Location');
+  const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
+  const [addressSubtitle, setAddressSubtitle] = useState('');
   const [wordIndex, setWordIndex] = useState(0);
 
   const { toast } = useToast();
@@ -69,11 +71,22 @@ export function LocationHeader({
   useEffect(() => {
     const updateAddress = () => {
       const savedAddress = localStorage.getItem('user_address');
+      const savedFullAddress = localStorage.getItem('user_full_precise_address');
+      const savedCity = localStorage.getItem('user_city');
+      
       if (savedAddress) {
-        // Now showing the descriptive address from storage
+        // Main title: Area or "Current Location"
         setCurrentAddress(savedAddress);
+        // Subtitle: Detailed area description
+        if (savedFullAddress) {
+          const details = savedFullAddress.split(',').slice(1, 4).join(',').trim();
+          setAddressSubtitle(details);
+        } else {
+          setAddressSubtitle(savedCity || 'Select your spot');
+        }
       } else {
         setCurrentAddress('Select Location');
+        setAddressSubtitle('Tap to detect your current spot');
       }
     };
 
@@ -128,36 +141,38 @@ export function LocationHeader({
 
   return (
     <div className="w-full bg-[#0B0B0B] pb-4 pt-3 px-4 space-y-4 rounded-b-[2.5rem] shadow-2xl relative z-50">
-      {/* Top Row: Location & Actions */}
+      {/* Top Row: Location Selector & Cart Actions */}
       <div className="flex items-center justify-between">
-        <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[55%] group">
-          <div className="h-9 w-9 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
-            <MapPin className="h-4 w-4" />
+        <div onClick={handleChangeLocation} className="flex items-center gap-3 cursor-pointer max-w-[65%] group">
+          <div className="h-10 w-10 bg-primary/20 rounded-2xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
+            <MapPin className="h-5 w-5" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-0.5">Deliver to</span>
             <div className="flex items-center gap-1">
-              <span className="text-white text-[11px] font-black truncate tracking-tight">{currentAddress}</span>
-              <ChevronRight className="h-3 w-3 text-primary shrink-0" />
+              <span className="text-white text-sm font-black truncate tracking-tight">{currentAddress}</span>
+              <ChevronDown className="h-4 w-4 text-primary shrink-0 transition-transform group-hover:translate-y-0.5" />
             </div>
+            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest truncate leading-none mt-0.5">
+              {addressSubtitle}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <CustomDishDialog>
-            <button className="h-9 px-3 rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-500/30 flex items-center gap-2 text-amber-500 active:scale-90 transition-all group shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            <button className="h-10 px-3 rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-500/30 flex items-center gap-2 text-amber-500 active:scale-90 transition-all group shadow-[0_0_15px_rgba(245,158,11,0.1)]">
               <div className="relative">
                 <Utensils className="h-4 w-4" />
                 <Sparkles className="absolute -top-1 -right-1 h-2 w-2 animate-pulse" />
               </div>
-              <span className="text-[9px] font-black uppercase tracking-widest hidden xs:block">SPECIAL</span>
+              <span className="text-[9px] font-black uppercase tracking-widest hidden xs:block">CONCIERGE</span>
             </button>
           </CustomDishDialog>
 
           <Link href="/cart">
             <div className="relative">
-              <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all duration-150">
-                <ShoppingBag className="h-4 w-4" />
+              <div className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all">
+                <ShoppingBag className="h-5 w-5" />
               </div>
               {totalItems > 0 && (
                 <div className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B]">
@@ -166,48 +181,14 @@ export function LocationHeader({
               )}
             </div>
           </Link>
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <button className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-all duration-150">
-                <Menu className="h-4 w-4" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="left" className="bg-[#0B0B0B] border-white/5 p-0 text-white rounded-r-[2rem]">
-              <SheetHeader className="p-8 border-b border-white/5">
-                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                <Logo className="justify-start bg-transparent shadow-none px-0" />
-              </SheetHeader>
-              <div className="p-6 space-y-2">
-                {[
-                  { label: 'My Profile', icon: User, href: '/profile' },
-                  { label: 'My Orders', icon: Package, href: '/orders' },
-                  { label: 'Rewards', icon: Gift, href: '/rewards' },
-                  { label: 'Wishlist', icon: Heart, href: '/wishlist' }
-                ].map((item) => (
-                  <Link key={item.label} href={item.href}>
-                    <button className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-white/5 p-3 rounded-xl">
-                          <item.icon className="h-5 w-5 text-primary" />
-                        </div>
-                        <span className="font-bold text-sm">{item.label}</span>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-600" />
-                    </button>
-                  </Link>
-                ))}
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
 
       <div className="flex justify-center">
-        <Logo className="scale-100 h-12" />
+        <Logo className="scale-90 h-10" />
       </div>
 
-      {/* Bottom Row: Search Bar & Metallic Mode Toggle */}
+      {/* Bottom Row: Search & Mode Toggle */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 group">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />

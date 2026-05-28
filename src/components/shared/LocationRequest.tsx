@@ -105,29 +105,23 @@ export function LocationRequest() {
     let detectedTown = '';
     const fullAddrLower = (location.address || '').toLowerCase();
     
-    // Determine the serving town based on address content
     if (fullAddrLower.includes('ranipur') || location.pincode === '284205') {
       detectedTown = 'Ranipur';
     } else if (fullAddrLower.includes('mauranipur') || location.pincode === '284204') {
       detectedTown = 'Mauranipur';
     }
 
-    // Even if town isn't perfectly matched, we save the precise GPS address
-    // but we need a "Serving Area" tag for vendor filtering
-    const servingTown = detectedTown || 'Other Area';
-
-    // Construct a beautiful display address: "Precise Area, Town Name"
-    // Extracting the specific area from the Nominatim display_name (usually the first part)
+    const servingTown = detectedTown || 'Local Area';
     const addressParts = location.address.split(',');
     const precisePart = addressParts[0].trim();
     const displayAddress = detectedTown 
       ? `${precisePart}, ${detectedTown}` 
-      : location.address;
+      : precisePart;
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_address', displayAddress);
       localStorage.setItem('user_full_precise_address', location.address);
-      localStorage.setItem('user_town', servingTown);
+      localStorage.setItem('user_city', servingTown);
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('user_plus_code', location.plusCode || '');
       window.dispatchEvent(new CustomEvent('user-address-updated'));
@@ -166,14 +160,12 @@ export function LocationRequest() {
         const plusCode = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
         
         try {
-          // Precise Reverse Geocoding
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await response.json();
           
           if (!data || !data.address) throw new Error("No data");
 
           const addr = data.address;
-          // Nominatim's display_name is the most precise real-world address string
           const fullPreciseAddress = data.display_name;
           
           saveLocationToDB({ 
@@ -186,10 +178,16 @@ export function LocationRequest() {
           setView('manual');
         }
       },
-      () => {
+      (error) => {
         setLoading(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          toast({ 
+            variant: "destructive", 
+            title: "Location Permission Denied", 
+            description: "Please enable GPS in settings or enter your address manually." 
+          });
+        }
         setView('manual');
-        toast({ variant: "destructive", title: "GPS Error", description: "Could not detect location. Please type manually." });
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -204,19 +202,19 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500">
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500">
         <div className="px-8 py-10">
           {view === 'prompt' ? (
             <div className="flex flex-col space-y-8">
               <div className="flex flex-col items-center text-center space-y-3">
                 <div className="h-16 w-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-2">
-                  <Sparkles className="h-8 w-8" />
+                  <MapPin className="h-8 w-8" />
                 </div>
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-black leading-none">
-                  Set Your <span className="text-primary">Spot</span>
+                  Delivery <span className="text-primary">Address</span>
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
-                  Precise GPS detection & smart search
+                  Pin your location for faster delivery
                 </DialogDescription>
               </div>
 
@@ -237,9 +235,9 @@ export function LocationRequest() {
                   </div>
                   <div className="flex flex-col items-start text-left">
                     <span className={cn("text-sm font-black uppercase", success ? "text-green-700" : "text-black")}>
-                      {success ? 'Spot Fixed!' : 'Detect My Spot'}
+                      {success ? 'Spot Detected!' : 'Use Current Location'}
                     </span>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Real-time precise location</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Detect via high-accuracy GPS</span>
                   </div>
                 </button>
 
@@ -254,11 +252,11 @@ export function LocationRequest() {
                   className="flex items-center gap-4 p-6 rounded-[2rem] border-2 border-gray-50 bg-gray-50 w-full active:scale-[0.98]"
                 >
                   <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400">
-                    <MapIcon className="h-6 w-6" />
+                    <Search className="h-6 w-6" />
                   </div>
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-black uppercase text-black">Pick on Smart Search</span>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Select exact point on map</span>
+                    <span className="text-sm font-black uppercase text-black">Enter Address Manually</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Search your area or street</span>
                   </div>
                 </button>
               </div>
@@ -266,7 +264,7 @@ export function LocationRequest() {
               <div className="bg-primary/5 p-4 rounded-2xl flex items-center justify-center gap-3">
                  <div className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
                  <p className="text-[9px] text-primary font-black uppercase tracking-widest text-center">
-                    Serving Ranipur & Mauranipur
+                    Premium Delivery Experience
                  </p>
               </div>
             </div>
@@ -281,7 +279,7 @@ export function LocationRequest() {
                  <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input 
-                      placeholder="Search Area / Landmark..." 
+                      placeholder="Search Landmark, Area or Road..." 
                       className="h-14 rounded-2xl bg-gray-50 border-none pl-12 font-bold" 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -307,12 +305,12 @@ export function LocationRequest() {
                     ) : searchQuery.length > 3 ? (
                       <div className="flex flex-col items-center justify-center py-10 opacity-20">
                          <Loader2 className="h-6 w-6 animate-spin mb-2" />
-                         <span className="text-[10px] font-black uppercase tracking-widest">Searching map...</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest">Searching...</span>
                       </div>
                     ) : (
                       <div className="text-center py-10 opacity-20">
                          <MapIcon className="h-12 w-12 mx-auto mb-2" />
-                         <span className="text-[10px] font-black uppercase tracking-widest">Start typing to pick location</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest">Type to find your spot</span>
                       </div>
                     )}
                  </div>
@@ -322,12 +320,12 @@ export function LocationRequest() {
             <div className="animate-in fade-in slide-in-from-right-8 duration-500">
               <button onClick={() => setView('searching')} className="flex items-center text-primary text-[10px] font-black uppercase tracking-widest mb-6">
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Change Selected Spot
+                Change Selection
               </button>
 
               <div className="mb-6">
                 <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter">
-                  Finalize <span className="text-primary">Spot.</span>
+                  Complete <span className="text-primary">Address.</span>
                 </DialogTitle>
               </div>
 
@@ -340,7 +338,7 @@ export function LocationRequest() {
                 </div>
 
                 <Input 
-                  placeholder="House / Flat No / Landmark *" 
+                  placeholder="House No. / Floor / Building *" 
                   className="rounded-2xl h-14 bg-gray-50 border-none font-bold" 
                   value={manualData.apartment} 
                   onChange={(e) => setManualData({...manualData, apartment: e.target.value})} 
@@ -357,13 +355,13 @@ export function LocationRequest() {
                     required 
                   />
                   <div className="bg-blue-50/50 p-4 rounded-2xl flex flex-col justify-center border border-blue-100/50">
-                     <span className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Plus Code (Coord)</span>
-                     <span className="text-[10px] font-black text-blue-600 truncate">{manualData.plusCode || '0.0,0.0'}</span>
+                     <span className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Precise Spot</span>
+                     <span className="text-[10px] font-black text-blue-600 truncate">{manualData.plusCode || 'Verified'}</span>
                   </div>
                 </div>
 
                 <Button type="submit" disabled={loading} className="w-full h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl mt-4 active:scale-95 transition-all">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'CONFIRM & UNLOCK'}
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Confirm & Save'}
                 </Button>
               </form>
             </div>
