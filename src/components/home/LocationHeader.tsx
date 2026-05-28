@@ -140,7 +140,7 @@ export function LocationHeader({
   };
 
   return (
-    <div className="w-full bg-[#0B0B0B] pb-4 pt-3 px-4 space-y-4 rounded-b-[2.5rem] shadow-2xl relative z-50">
+    <div className="w-full bg-[#0B0B0B] pb-6 pt-3 px-4 space-y-5 rounded-b-[2.5rem] shadow-2xl relative z-50">
       {/* Top Row: Location Selector & Cart Actions */}
       <div className="flex items-center justify-between">
         <div onClick={handleChangeLocation} className="flex items-center gap-3 cursor-pointer max-w-[65%] group">
@@ -184,8 +184,8 @@ export function LocationHeader({
         </div>
       </div>
 
-      <div className="flex justify-center">
-        <Logo className="scale-90 h-10" />
+      <div className="flex justify-center py-2">
+        <Logo className="scale-110" />
       </div>
 
       {/* Bottom Row: Search & Mode Toggle */}
