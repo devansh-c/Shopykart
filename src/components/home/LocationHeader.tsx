@@ -4,15 +4,9 @@
 import {
   Search,
   ShoppingBag,
-  Menu,
-  Heart,
   Camera,
   Mic,
   Loader2,
-  User,
-  Package,
-  Gift,
-  ChevronRight,
   MapPin,
   Utensils,
   Sparkles,
@@ -22,17 +16,9 @@ import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useRef, useState, useEffect, memo } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { identifyFood } from '@/ai/flows/visual-search-flow';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { CustomDishDialog } from './CustomDishDialog';
 
@@ -45,7 +31,7 @@ type LocationHeaderProps = {
 
 const SEARCH_WORDS = ["Pizza", "Burgers", "Sweets", "Pasta", "Biryani", "Shakes"];
 
-const SearchPlaceholder = memo(() => {
+function SearchPlaceholder() {
   const [wordIndex, setWordIndex] = useState(0);
 
   useEffect(() => {
@@ -66,9 +52,7 @@ const SearchPlaceholder = memo(() => {
       </span>
     </div>
   );
-});
-
-SearchPlaceholder.displayName = 'SearchPlaceholder';
+}
 
 export function LocationHeader({
   searchValue,
@@ -84,7 +68,6 @@ export function LocationHeader({
   const [addressSubtitle, setAddressSubtitle] = useState('');
 
   const { toast } = useToast();
-  const router = useRouter();
 
   useEffect(() => {
     const updateAddress = () => {
@@ -95,7 +78,8 @@ export function LocationHeader({
       if (savedAddress) {
         setCurrentAddress(savedAddress);
         if (savedFullAddress) {
-          const details = savedFullAddress.split(',').slice(1, 4).join(',').trim();
+          const parts = savedFullAddress.split(',');
+          const details = parts.length > 3 ? parts.slice(1, 4).join(',').trim() : parts.join(',').trim();
           setAddressSubtitle(details);
         } else {
           setAddressSubtitle(savedCity || 'Select your spot');
@@ -144,7 +128,7 @@ export function LocationHeader({
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        toast({ variant: 'destructive', title: 'Voice search not supported in this browser.' });
+        toast({ variant: 'destructive', title: 'Voice search not supported.' });
         return;
       }
       const recognition = new SpeechRecognition();
@@ -156,7 +140,7 @@ export function LocationHeader({
   };
 
   return (
-    <div className="w-full bg-[#0B0B0B] pb-4 pt-2 px-4 space-y-3 rounded-b-[2.5rem] shadow-2xl relative z-50 will-change-contents">
+    <div className="w-full bg-[#0B0B0B] pb-4 pt-2 px-4 space-y-3 rounded-b-[2.5rem] shadow-2xl relative z-50">
       <div className="flex items-center justify-between">
         <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
           <div className="h-9 w-9 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">

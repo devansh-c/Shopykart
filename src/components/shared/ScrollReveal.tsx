@@ -21,17 +21,18 @@ export function ScrollReveal({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          // Once visible, we can disconnect if we don't need re-reveal
           if (ref.current) observer.unobserve(ref.current);
         }
       },
       { 
-        threshold: 0.1,
-        rootMargin: '0px 0px -20px 0px'
+        threshold: 0.05,
+        rootMargin: '0px 0px -10px 0px'
       }
     );
 
@@ -49,10 +50,10 @@ export function ScrollReveal({
 
   const getDirectionClasses = () => {
     switch (direction) {
-      case 'up': return isVisible ? 'translate-y-0' : 'translate-y-8';
-      case 'down': return isVisible ? 'translate-y-0' : '-translate-y-8';
-      case 'left': return isVisible ? 'translate-x-0' : 'translate-x-8';
-      case 'right': return isVisible ? 'translate-x-0' : '-translate-x-8';
+      case 'up': return isVisible ? 'translate-y-0' : 'translate-y-4';
+      case 'down': return isVisible ? 'translate-y-0' : '-translate-y-4';
+      case 'left': return isVisible ? 'translate-x-0' : 'translate-x-4';
+      case 'right': return isVisible ? 'translate-x-0' : '-translate-x-4';
       default: return 'translate-y-0';
     }
   };
@@ -62,8 +63,8 @@ export function ScrollReveal({
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
       className={cn(
-        "transition-all duration-700 ease-premium will-change-transform",
-        isVisible ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]",
+        "transition-all duration-500 ease-out",
+        isVisible ? "opacity-100 scale-100" : "opacity-0 scale-[0.99]",
         getDirectionClasses(),
         className
       )}
