@@ -28,8 +28,6 @@ import { cn } from '@/lib/utils';
 
 type ViewState = 'prompt' | 'manual' | 'searching';
 
-const ALLOWED_PINCODES = ['284205', '284204'];
-
 export function LocationRequest() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -66,7 +64,6 @@ export function LocationRequest() {
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
 
-  // Handle address search for "Map Pick" experience
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchQuery.length > 3) {
@@ -105,28 +102,32 @@ export function LocationRequest() {
   };
 
   const saveLocationToDB = async (location: any) => {
-    let townName = '';
-    const fullAddr = (location.address || '').toLowerCase();
+    let detectedTown = '';
+    const fullAddrLower = (location.address || '').toLowerCase();
     
-    if (location.pincode === '284205' || fullAddr.includes('ranipur')) {
-      townName = 'Ranipur';
-    } else if (location.pincode === '284204' || fullAddr.includes('mauranipur')) {
-      townName = 'Mauranipur';
+    // Determine the serving town based on address content
+    if (fullAddrLower.includes('ranipur') || location.pincode === '284205') {
+      detectedTown = 'Ranipur';
+    } else if (fullAddrLower.includes('mauranipur') || location.pincode === '284204') {
+      detectedTown = 'Mauranipur';
     }
 
-    if (!townName) {
-      toast({
-        variant: "destructive",
-        title: "Service Not Available",
-        description: "We currently only serve Ranipur and Mauranipur."
-      });
-      setLoading(false);
-      return;
-    }
+    // Even if town isn't perfectly matched, we save the precise GPS address
+    // but we need a "Serving Area" tag for vendor filtering
+    const servingTown = detectedTown || 'Other Area';
+
+    // Construct a beautiful display address: "Precise Area, Town Name"
+    // Extracting the specific area from the Nominatim display_name (usually the first part)
+    const addressParts = location.address.split(',');
+    const precisePart = addressParts[0].trim();
+    const displayAddress = detectedTown 
+      ? `${precisePart}, ${detectedTown}` 
+      : location.address;
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user_address', location.address);
-      localStorage.setItem('user_town', townName);
+      localStorage.setItem('user_address', displayAddress);
+      localStorage.setItem('user_full_precise_address', location.address);
+      localStorage.setItem('user_town', servingTown);
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('user_plus_code', location.plusCode || '');
       window.dispatchEvent(new CustomEvent('user-address-updated'));
@@ -142,8 +143,9 @@ export function LocationRequest() {
     if (user && firestore) {
       const userRef = doc(firestore, 'users', user.uid);
       await setDoc(userRef, {
-        address: location.address,
-        city: townName,
+        address: displayAddress,
+        fullAddress: location.address,
+        city: servingTown,
         pincode: location.pincode || '',
         plusCode: location.plusCode || '',
         updatedAt: serverTimestamp(),
@@ -164,22 +166,19 @@ export function LocationRequest() {
         const plusCode = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
         
         try {
+          // Precise Reverse Geocoding
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await response.json();
           
           if (!data || !data.address) throw new Error("No data");
 
           const addr = data.address;
-          const house = addr.house_number || addr.building || addr.apartment || '';
-          const road = addr.road || addr.suburb || addr.neighbourhood || '';
-          const city = addr.city || addr.town || addr.village || '';
-          const pincode = addr.postcode || '';
-          
-          const detailedDisplay = data.display_name || `${house ? house + ', ' : ''}${road}, ${city}`;
+          // Nominatim's display_name is the most precise real-world address string
+          const fullPreciseAddress = data.display_name;
           
           saveLocationToDB({ 
-            address: detailedDisplay, 
-            pincode: pincode,
+            address: fullPreciseAddress, 
+            pincode: addr.postcode || '',
             plusCode: plusCode
           });
         } catch (error) {
@@ -192,15 +191,15 @@ export function LocationRequest() {
         setView('manual');
         toast({ variant: "destructive", title: "GPS Error", description: "Could not detect location. Please type manually." });
       },
-      { timeout: 8000, enableHighAccuracy: true }
+      { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
   const handleManualSave = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const fullAddressString = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}`;
-    saveLocationToDB({ ...manualData, address: fullAddressString });
+    const finalAddress = `${manualData.apartment ? manualData.apartment + ', ' : ''}${manualData.address}`;
+    saveLocationToDB({ ...manualData, address: finalAddress });
   };
 
   return (
@@ -240,7 +239,7 @@ export function LocationRequest() {
                     <span className={cn("text-sm font-black uppercase", success ? "text-green-700" : "text-black")}>
                       {success ? 'Spot Fixed!' : 'Detect My Spot'}
                     </span>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Best for fast delivery</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Real-time precise location</span>
                   </div>
                 </button>
 

@@ -70,8 +70,8 @@ export function LocationHeader({
     const updateAddress = () => {
       const savedAddress = localStorage.getItem('user_address');
       if (savedAddress) {
-        const parts = savedAddress.split(',');
-        setCurrentAddress(parts[0].trim() || savedAddress);
+        // Now showing the descriptive address from storage
+        setCurrentAddress(savedAddress);
       } else {
         setCurrentAddress('Select Location');
       }
@@ -144,7 +144,6 @@ export function LocationHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* PREMIUM CUSTOM DISH BUTTON */}
           <CustomDishDialog>
             <button className="h-9 px-3 rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-500/30 flex items-center gap-2 text-amber-500 active:scale-90 transition-all group shadow-[0_0_15px_rgba(245,158,11,0.1)]">
               <div className="relative">
