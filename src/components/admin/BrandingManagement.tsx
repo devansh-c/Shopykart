@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,7 +40,7 @@ export function BrandingManagement() {
     heatWaveAutoMode: false,
     heatWaveStartTime: '6:00 PM',
     heatWaveEndTime: '7:00 PM',
-    emergencyType: 'busy', // 'heat' or 'busy'
+    emergencyType: 'busy', // 'heat', 'busy', or 'no_delivery'
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -199,6 +198,7 @@ export function BrandingManagement() {
                   <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
                     <SelectItem value="heat">Extreme Heat Wave (48°C)</SelectItem>
                     <SelectItem value="busy">High Delivery Demand (Rush Hour)</SelectItem>
+                    <SelectItem value="no_delivery">Delivery Partners Unavailable (Staff Absence)</SelectItem>
                   </SelectContent>
                 </Select>
              </div>
@@ -242,7 +242,7 @@ export function BrandingManagement() {
           </div>
 
           <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
-             {formData.emergencyType === 'heat' ? <ThermometerSun className="h-5 w-5 text-orange-500 shrink-0" /> : <Truck className="h-5 w-5 text-orange-500 shrink-0" />}
+             {formData.emergencyType === 'heat' ? <ThermometerSun className="h-5 w-5 text-orange-500 shrink-0" /> : formData.emergencyType === 'no_delivery' ? <UserX className="h-5 w-5 text-orange-500 shrink-0" /> : <Truck className="h-5 w-5 text-orange-500 shrink-0" />}
              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 leading-relaxed">
                {formData.heatWaveAutoMode 
                 ? `System ${formData.heatWaveStartTime} par apne aap restriction chalu kar dega.` 

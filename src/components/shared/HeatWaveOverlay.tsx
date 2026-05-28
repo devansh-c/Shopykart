@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Truck, Timer } from 'lucide-react';
+import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Truck, Timer, UserX } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Emergency overlay for extreme heat or high delivery demand.
+ * @fileOverview Emergency overlay for extreme heat, high delivery demand, or lack of staff.
  * Controlled manually by Admin from Dashboard or via Automatic Scheduler.
  */
 export function HeatWaveOverlay() {
@@ -80,12 +79,24 @@ export function HeatWaveOverlay() {
 
   if (!mounted || !isActive) return null;
 
-  const isHeat = settings?.emergencyType === 'heat';
-  const displayTitle = isHeat ? "HEAT WAVE" : "HIGH DEMAND";
-  const displaySubtitle = isHeat ? "DELIVERY PAUSED." : "BUSY NOW.";
-  const displayReason = isHeat 
-    ? "EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED."
-    : "WE ARE EXPERIENCING UNUSUALLY HIGH VOLUME. ALL DELIVERY PARTNERS ARE CURRENTLY BUSY.";
+  const type = settings?.emergencyType || 'heat';
+  
+  let displayTitle = "HEAT WAVE";
+  let displaySubtitle = "DELIVERY PAUSED.";
+  let displayReason = "EXTREME TEMPERATURE DETECTED. FOR THE SAFETY OF OUR PARTNERS, SERVICES ARE TEMPORARILY SUSPENDED.";
+  let themeColor = "orange";
+
+  if (type === 'busy') {
+    displayTitle = "HIGH DEMAND";
+    displaySubtitle = "BUSY NOW.";
+    displayReason = "WE ARE EXPERIENCING UNUSUALLY HIGH VOLUME. ALL DELIVERY PARTNERS ARE CURRENTLY BUSY.";
+    themeColor = "blue";
+  } else if (type === 'no_delivery') {
+    displayTitle = "DELIVERY STOPPED";
+    displaySubtitle = "FLEET OFFLINE.";
+    displayReason = "OUR DELIVERY PARTNERS ARE UNAVAILABLE TODAY. SERVICES ARE TEMPORARILY SUSPENDED.";
+    themeColor = "red";
+  }
 
   return (
     <div className="fixed inset-0 z-[1000] bg-[#0B0B0B] h-screen w-screen flex flex-col items-center justify-center p-8 overflow-hidden">
@@ -93,7 +104,9 @@ export function HeatWaveOverlay() {
       <div className="absolute inset-0 opacity-20">
         <div className={cn(
           "absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] animate-pulse",
-          isHeat ? "from-orange-600 via-transparent to-transparent" : "from-blue-600 via-transparent to-transparent"
+          themeColor === 'orange' ? "from-orange-600 via-transparent to-transparent" : 
+          themeColor === 'blue' ? "from-blue-600 via-transparent to-transparent" :
+          "from-red-600 via-transparent to-transparent"
         )} />
       </div>
 
@@ -104,14 +117,20 @@ export function HeatWaveOverlay() {
         <div className="relative">
           <div className={cn(
             "absolute inset-0 blur-3xl rounded-full animate-ping",
-            isHeat ? "bg-orange-600/20" : "bg-blue-600/20"
+            themeColor === 'orange' ? "bg-orange-600/20" : 
+            themeColor === 'blue' ? "bg-blue-600/20" : 
+            "bg-red-600/20"
           )} />
           <div className={cn(
             "relative h-32 w-32 rounded-[3rem] flex items-center justify-center shadow-2xl border-4 border-white/10",
-            isHeat ? "bg-gradient-to-br from-orange-500 to-red-600 shadow-orange-500/30" : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30"
+            themeColor === 'orange' ? "bg-gradient-to-br from-orange-500 to-red-600 shadow-orange-500/30" : 
+            themeColor === 'blue' ? "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30" :
+            "bg-gradient-to-br from-red-500 to-rose-700 shadow-red-500/30"
           )}>
-            {isHeat ? (
+            {type === 'heat' ? (
               <ThermometerSun className="h-16 w-16 text-white animate-bounce" style={{ animationDuration: '3s' }} />
+            ) : type === 'no_delivery' ? (
+              <UserX className="h-16 w-16 text-white animate-bounce" style={{ animationDuration: '3s' }} />
             ) : (
               <Truck className="h-16 w-16 text-white animate-bounce" style={{ animationDuration: '3s' }} />
             )}
@@ -119,31 +138,37 @@ export function HeatWaveOverlay() {
           
           <div className={cn(
             "absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-2xl font-black italic text-xl border-2",
-            isHeat ? "text-red-600 border-red-50" : "text-blue-600 border-blue-50"
+            themeColor === 'orange' ? "text-red-600 border-red-50" : 
+            themeColor === 'blue' ? "text-blue-600 border-blue-50" :
+            "text-red-600 border-red-50"
           )}>
-            {isHeat ? "48°C" : "BUSY"}
+            {type === 'heat' ? "48°C" : type === 'no_delivery' ? "OFF" : "BUSY"}
           </div>
         </div>
 
         <div className="space-y-4">
           <div className={cn(
             "inline-flex items-center gap-2 text-white px-5 py-1.5 rounded-full shadow-lg animate-pulse",
-            isHeat ? "bg-red-600" : "bg-blue-600"
+            themeColor === 'orange' ? "bg-red-600" : 
+            themeColor === 'blue' ? "bg-blue-600" :
+            "bg-red-600"
           )}>
             <AlertTriangle className="h-4 w-4" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isHeat ? 'Heat Emergency' : 'Service Alert'}</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{type === 'heat' ? 'Heat Emergency' : type === 'no_delivery' ? 'Fleet Alert' : 'Service Alert'}</span>
           </div>
           
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-[0.9]">
-            {displayTitle}<br /><span className={isHeat ? "text-orange-500" : "text-blue-400"}>{displaySubtitle}</span>
+            {displayTitle}<br /><span className={themeColor === 'orange' ? "text-orange-500" : themeColor === 'blue' ? "text-blue-400" : "text-rose-500"}>{displaySubtitle}</span>
           </h1>
           
           <div className={cn(
             "border px-6 py-3 rounded-2xl",
-            isHeat ? "bg-orange-500/10 border-orange-500/20" : "bg-blue-500/10 border-blue-500/20"
+            themeColor === 'orange' ? "bg-orange-500/10 border-orange-500/20" : 
+            themeColor === 'blue' ? "bg-blue-500/10 border-blue-500/20" :
+            "bg-red-500/10 border-red-500/20"
           )}>
              <p className="text-[12px] font-black text-white uppercase tracking-widest italic">
-                From <span className={isHeat ? "text-orange-500" : "text-blue-400"}>{settings?.heatWaveStartTime || '1:00 PM'}</span> To <span className={isHeat ? "text-orange-500" : "text-blue-400"}>{settings?.heatWaveEndTime || '3:00 PM'}</span>
+                {type === 'no_delivery' ? "CHECK BACK TOMORROW" : `From ${settings?.heatWaveStartTime || '1:00 PM'} To ${settings?.heatWaveEndTime || '3:00 PM'}`}
              </p>
           </div>
 
@@ -157,13 +182,17 @@ export function HeatWaveOverlay() {
            <div className="bg-white/5 backdrop-blur-md p-5 rounded-[2.5rem] border border-white/10 flex items-center gap-4 text-left">
               <div className={cn(
                 "p-3 rounded-2xl",
-                isHeat ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-400"
+                themeColor === 'orange' ? "bg-orange-500/20 text-orange-500" : 
+                themeColor === 'blue' ? "bg-blue-500/20 text-blue-400" :
+                "bg-red-500/20 text-rose-500"
               )}>
                  <Clock className="h-6 w-6" />
               </div>
               <div>
-                 <h4 className="text-xs font-black uppercase text-white">ETA</h4>
-                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Resuming at {settings?.heatWaveEndTime || '3:00 PM'}</p>
+                 <h4 className="text-xs font-black uppercase text-white">Status</h4>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                   {type === 'no_delivery' ? "Offline due to staff absence" : `Resuming at ${settings?.heatWaveEndTime || '3:00 PM'}`}
+                 </p>
               </div>
            </div>
 
@@ -172,8 +201,8 @@ export function HeatWaveOverlay() {
                  <ShieldAlert className="h-6 w-6" />
               </div>
               <div>
-                 <h4 className="text-xs font-black uppercase text-white">Status</h4>
-                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Security Check Active</p>
+                 <h4 className="text-xs font-black uppercase text-white">Security</h4>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Auto-Protection System Active</p>
               </div>
            </div>
         </div>
