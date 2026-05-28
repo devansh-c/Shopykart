@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -30,7 +31,8 @@ import {
   FileText,
   User,
   PhoneCall,
-  MapPin
+  MapPin,
+  Navigation
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -131,14 +133,12 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  // Fetch real payout history
   const payoutQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
   }, [firestore, user]);
   const { data: payoutHistory } = useCollection<any>(payoutQuery);
 
-  // RINGING LOGIC FOR NEW ORDERS
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const hasNewOrder = orders?.some(o => o.status === 'Placed');
@@ -148,7 +148,7 @@ export default function VendorDashboard() {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      audioRef.current.play().catch(e => console.log("Audio play blocked by browser. Click anywhere to enable."));
+      audioRef.current.play().catch(e => console.log("Audio play blocked"));
     } else {
       setShowOrderAlert(false);
       if (audioRef.current) {
@@ -171,6 +171,16 @@ export default function VendorDashboard() {
     if (!firestore) return;
     await updateDoc(doc(firestore, 'orders', orderId), { status: nextStatus });
     toast({ title: "Updated", description: `Order is now ${nextStatus}` });
+  };
+
+  const handleTrackLocation = (order: any) => {
+    if (order.latitude && order.longitude) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+      window.open(url, '_blank');
+    } else {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
+      window.open(url, '_blank');
+    }
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'banner' | 'product') => {
@@ -294,16 +304,24 @@ export default function VendorDashboard() {
                       </div>
                    </div>
                    {order.customerPhone && (
-                     <button 
-                      onClick={() => window.open(`tel:${order.customerPhone}`)}
-                      className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl shadow-xl shadow-green-500/20 active:scale-90 transition-all"
-                     >
-                       <PhoneCall className="h-5 w-5" />
-                     </button>
+                     <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleTrackLocation(order)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-xl shadow-xl shadow-blue-600/20 active:scale-90 transition-all"
+                          title="Navigate"
+                        >
+                          <Navigation className="h-5 w-5" />
+                        </button>
+                        <button 
+                          onClick={() => window.open(`tel:${order.customerPhone}`)}
+                          className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl shadow-xl shadow-green-500/20 active:scale-90 transition-all"
+                        >
+                          <PhoneCall className="h-5 w-5" />
+                        </button>
+                     </div>
                    )}
                 </div>
 
-                {/* Delivery Address Section */}
                 <div className="flex items-start gap-3 mb-4 px-1">
                    <div className="bg-primary/10 p-2 rounded-xl text-primary shrink-0">
                       <MapPin className="h-4 w-4" />
@@ -311,6 +329,7 @@ export default function VendorDashboard() {
                    <div>
                       <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Delivery Address</p>
                       <span className="text-xs font-bold text-gray-700 leading-snug">{order.address || 'Address not provided'}</span>
+                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">GPS Pin Available ✅</p>}
                    </div>
                 </div>
                 
@@ -423,7 +442,7 @@ export default function VendorDashboard() {
     
     if (activeMainTab === 'account') {
       return (
-        <div className="p-6 space-y-8 animate-in fade-in duration-500 movie-payout-history">
+        <div className="p-6 space-y-8 animate-in fade-in duration-500">
           <div className="relative">
             <div onClick={() => bannerInputRef.current?.click()} className="h-40 w-full rounded-[2rem] overflow-hidden bg-muted relative group border border-gray-100">
               <img src={vendorProfile.bannerUrl} className="w-full h-full object-cover" alt="Banner" />
@@ -481,7 +500,6 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
-      {/* NEW ORDER ALARM OVERLAY */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20">
           <div className="flex flex-col items-center gap-6 p-4">

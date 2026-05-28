@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,17 @@ export function OrderManagement() {
     const ref = doc(firestore, 'orders', id);
     await updateDoc(ref, { status });
     toast({ title: "Status Updated", description: `Order #${id.slice(-4)} is now ${status}.` });
+  };
+
+  const handleTrackLocation = (order: any) => {
+    if (order.latitude && order.longitude) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+      window.open(url, '_blank');
+    } else {
+      // Fallback to text address search if GPS not available
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
+      window.open(url, '_blank');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -128,9 +139,18 @@ export function OrderManagement() {
 
                     <div className="flex flex-col gap-1 md:col-span-2">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Delivery Location</p>
-                      <div className="flex items-start text-xs font-bold text-gray-600">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-gray-400 shrink-0 mt-0.5" />
-                        <span className="truncate line-clamp-1">{order.address}</span>
+                      <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
+                        <div className="flex items-start text-xs font-bold text-gray-600 min-w-0 pr-4">
+                          <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary shrink-0 mt-0.5" />
+                          <span className="truncate line-clamp-1">{order.address}</span>
+                        </div>
+                        <button 
+                          onClick={() => handleTrackLocation(order)}
+                          className="shrink-0 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-blue-200 text-blue-600 text-[10px] font-black uppercase italic hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+                        >
+                          <Navigation className="h-3 w-3" />
+                          NAVIGATE
+                        </button>
                       </div>
                     </div>
                   </div>

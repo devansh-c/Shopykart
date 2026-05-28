@@ -47,7 +47,6 @@ export default function DeliveryDashboard() {
     setIsMounted(true);
   }, []);
 
-  // Fetch Delivery Partner Profile for Pincode Filtering and Authorization
   const partnerRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'delivery_partners', user.uid);
@@ -55,26 +54,23 @@ export default function DeliveryDashboard() {
   
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
-  // SECURITY LOCK: Redirect if not a partner or not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/delivery/login');
       return;
     }
 
-    // If loading finished and no partner profile found for this user, it's a normal customer
     if (!authLoading && !profileLoading && user && !partnerProfile) {
       toast({ 
         variant: "destructive", 
         title: "Access Restricted", 
         description: "Your account is not authorized to access the Delivery Hub." 
       });
-      if (auth) signOut(auth); // Sign them out
+      if (auth) signOut(auth);
       router.push('/delivery/login');
     }
   }, [user, authLoading, profileLoading, partnerProfile, router, auth, toast]);
 
-  // Query for ALL Active Orders
   const activeTasksQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -85,7 +81,6 @@ export default function DeliveryDashboard() {
 
   const { data: allActiveTasks, loading: activeLoading } = useCollection<any>(activeTasksQuery);
 
-  // Filter tasks by zone
   const filteredActiveTasks = useMemo(() => {
     if (!allActiveTasks || !partnerProfile) return [];
 
@@ -97,7 +92,6 @@ export default function DeliveryDashboard() {
     });
   }, [allActiveTasks, partnerProfile, user]);
 
-  // Query for Completed History
   const historyQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -143,11 +137,15 @@ export default function DeliveryDashboard() {
   };
 
   const openNavigation = (task: any) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
-    window.open(url, '_blank');
+    if (task.latitude && task.longitude) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${task.latitude},${task.longitude}`;
+      window.open(url, '_blank');
+    } else {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
+      window.open(url, '_blank');
+    }
   };
 
-  // Show loading while verifying identity
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
@@ -156,7 +154,6 @@ export default function DeliveryDashboard() {
     );
   }
 
-  // If no profile, we return null (the useEffect handles redirect)
   if (!user || !partnerProfile) return null;
 
   const pendingPickupsCount = filteredActiveTasks?.filter(t => t.status === 'Ready for Pickup').length || 0;
@@ -201,7 +198,6 @@ export default function DeliveryDashboard() {
         </button>
       </header>
 
-      {/* Tabs */}
       <div className="flex bg-white/5 p-1 rounded-2xl mb-8">
         <button 
           onClick={() => setActiveTab('active')}
@@ -245,6 +241,7 @@ export default function DeliveryDashboard() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-4 text-gray-400 text-xs"><MapPin className="h-3.5 w-3.5 text-primary" /><span className="truncate max-w-[180px] font-medium">{task.address}</span></div>
+                  {task.latitude && <p className="text-[7px] font-black text-green-500 mt-2 uppercase tracking-widest flex items-center gap-1"><Navigation className="h-2 w-2" /> GPS Captured</p>}
                 </div>
                 <button onClick={() => openNavigation(task)} className="bg-white/10 p-5 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group shadow-2xl"><Compass className={cn("h-7 w-7", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} /></button>
               </div>

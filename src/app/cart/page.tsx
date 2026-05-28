@@ -66,6 +66,9 @@ export default function CartPage() {
   const [customerPincode, setCustomerPincode] = useState('');
   const [customerState, setCustomerState] = useState('Uttar Pradesh');
 
+  // Fetch coordinates from local storage
+  const [coords, setCoords] = useState<{lat: number | null, lng: number | null}>({ lat: null, lng: null });
+
   // 1. Fetch Economy Settings (for coin value)
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -121,7 +124,6 @@ export default function CartPage() {
   const coinDiscount = useMemo(() => {
     if (!useCoins || availableCoins <= 0 || coinValue <= 0) return 0;
     const potentialDiscount = availableCoins * coinValue;
-    // Cap discount at item total to avoid negative bills
     return Math.min(totalPrice, potentialDiscount);
   }, [useCoins, availableCoins, coinValue, totalPrice]);
 
@@ -134,6 +136,14 @@ export default function CartPage() {
       setCustomerAddress(localStorage.getItem('user_address_line') || '');
       setCustomerCity(localStorage.getItem('user_city') || 'Ranipur');
       setCustomerPincode(localStorage.getItem('user_pincode') || '');
+      
+      const plusCode = localStorage.getItem('user_plus_code');
+      if (plusCode) {
+        const [lat, lng] = plusCode.split(',').map(Number);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setCoords({ lat, lng });
+        }
+      }
     }
   }, []);
 
@@ -148,9 +158,6 @@ export default function CartPage() {
     const finalUid = user?.uid || guestUid;
     
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''}, ${customerState || ''} - ${customerPincode || ''}`;
-
-    // Calculate coins actually consumed based on discount applied
-    // Safety check for division by zero
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
 
     const orderData = {
@@ -175,6 +182,8 @@ export default function CartPage() {
       address: String(fullFinalAddress),
       pincode: String(customerPincode || ''),
       instructions: String(instructions || ''),
+      latitude: coords.lat,
+      longitude: coords.lng,
       createdAt: serverTimestamp(),
       vendorId: String(cart[0]?.vendorId || 'global'),
       restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
@@ -195,12 +204,10 @@ export default function CartPage() {
         pincode: String(customerPincode),
         uid: String(finalUid),
         updatedAt: serverTimestamp(),
-        // Consumes used coins AND adds 10 bonus coins
         coins: increment(10 - coinsUsed) 
       };
 
       await setDoc(userRef, userUpdateData, { merge: true });
-
       setShowSuccess(true);
       
       setTimeout(() => {
@@ -221,7 +228,6 @@ export default function CartPage() {
       return;
     }
 
-    // MANDATORY ZERO CHECK
     if (customerPhone.startsWith('0')) {
       toast({ 
         variant: "destructive", 
@@ -296,7 +302,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* COIN REDEMPTION CARD */}
         {availableCoins > 0 && (
           <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-10" />
@@ -319,7 +324,6 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* Bill Details */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-5 w-5 text-blue-500" />
@@ -369,7 +373,10 @@ export default function CartPage() {
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-6">
             <MapPin className="h-5 w-5 text-primary" />
-            <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
+            <div className="flex-1">
+               <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
+               {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase">GPS Location Captured ✅</p>}
+            </div>
           </div>
           <div className="space-y-3">
               <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
