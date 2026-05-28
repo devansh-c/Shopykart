@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -118,7 +119,7 @@ export default function CartPage() {
 
   // COIN DISCOUNT CALCULATION
   const coinDiscount = useMemo(() => {
-    if (!useCoins || availableCoins <= 0) return 0;
+    if (!useCoins || availableCoins <= 0 || coinValue <= 0) return 0;
     const potentialDiscount = availableCoins * coinValue;
     // Cap discount at item total to avoid negative bills
     return Math.min(totalPrice, potentialDiscount);
@@ -149,7 +150,8 @@ export default function CartPage() {
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''}, ${customerState || ''} - ${customerPincode || ''}`;
 
     // Calculate coins actually consumed based on discount applied
-    const coinsUsed = useCoins ? Math.ceil(coinDiscount / coinValue) : 0;
+    // Safety check for division by zero
+    const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
 
     const orderData = {
       userId: String(finalUid),

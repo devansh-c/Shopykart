@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Truck, Timer } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Emergency overlay for extreme heat or high delivery demand.
@@ -41,11 +42,18 @@ export function HeatWaveOverlay() {
 
     const parseTimeToMinutes = (timeStr: string) => {
       try {
-        const [time, modifier] = timeStr.trim().split(' ');
+        if (!timeStr || typeof timeStr !== 'string') return -1;
+        const parts = timeStr.trim().split(' ');
+        if (parts.length < 2) return -1;
+        
+        const [time, modifier] = parts;
         let [hours, minutes] = time.split(':').map(Number);
+        
+        if (isNaN(hours)) return -1;
         if (modifier === 'PM' && hours < 12) hours += 12;
         if (modifier === 'AM' && hours === 12) hours = 0;
-        return hours * 60 + (minutes || 0);
+        
+        return hours * 60 + (isNaN(minutes) ? 0 : minutes);
       } catch (e) {
         return -1;
       }
@@ -170,12 +178,6 @@ export function HeatWaveOverlay() {
            </div>
         </div>
       </div>
-
-      {/* Decorative line at bottom removed as per request to keep it extra clean */}
     </div>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
 }
