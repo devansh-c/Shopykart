@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -21,7 +22,7 @@ import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
 import { identifyFood } from '@/ai/flows/visual-search-flow';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -44,6 +45,31 @@ type LocationHeaderProps = {
 
 const SEARCH_WORDS = ["Pizza", "Burgers", "Sweets", "Pasta", "Biryani", "Shakes"];
 
+const SearchPlaceholder = memo(() => {
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % SEARCH_WORDS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="absolute left-10 top-0 bottom-0 flex items-center pointer-events-none overflow-hidden h-full">
+      <span className="text-gray-500 text-[10px] font-bold mr-1">Search</span>
+      <span 
+        key={wordIndex}
+        className="text-primary text-[10px] font-black italic animate-placeholder-slide"
+      >
+        {SEARCH_WORDS[wordIndex]}
+      </span>
+    </div>
+  );
+});
+
+SearchPlaceholder.displayName = 'SearchPlaceholder';
+
 export function LocationHeader({
   searchValue,
   onSearchChange,
@@ -56,17 +82,9 @@ export function LocationHeader({
   const [isListening, setIsListening] = useState(false);
   const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
   const [addressSubtitle, setAddressSubtitle] = useState('');
-  const [wordIndex, setWordIndex] = useState(0);
 
   const { toast } = useToast();
   const router = useRouter();
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % SEARCH_WORDS.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const updateAddress = () => {
@@ -138,7 +156,7 @@ export function LocationHeader({
   };
 
   return (
-    <div className="w-full bg-[#0B0B0B] pb-4 pt-2 px-4 space-y-3 rounded-b-[2.5rem] shadow-2xl relative z-50">
+    <div className="w-full bg-[#0B0B0B] pb-4 pt-2 px-4 space-y-3 rounded-b-[2.5rem] shadow-2xl relative z-50 will-change-contents">
       <div className="flex items-center justify-between">
         <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
           <div className="h-9 w-9 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
@@ -194,17 +212,7 @@ export function LocationHeader({
               onChange={(e) => onSearchChange(e.target.value)}
               className="h-full w-full bg-transparent border-none pl-10 pr-20 text-white font-bold placeholder:text-transparent focus-visible:ring-0 text-xs"
             />
-            {!searchValue && (
-              <div className="absolute left-10 top-0 bottom-0 flex items-center pointer-events-none overflow-hidden h-full">
-                <span className="text-gray-500 text-[10px] font-bold mr-1">Search</span>
-                <span 
-                  key={wordIndex}
-                  className="text-primary text-[10px] font-black italic animate-placeholder-slide"
-                >
-                  {SEARCH_WORDS[wordIndex]}
-                </span>
-              </div>
-            )}
+            {!searchValue && <SearchPlaceholder />}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
                <button onClick={handleCameraClick} className="p-1.5 text-primary active:scale-90 transition-all">
                 {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}

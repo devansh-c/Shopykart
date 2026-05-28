@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, memo, useEffect } from "react"
@@ -26,7 +27,7 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
 
   return (
     <div className={cn(
-      "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-200",
+      "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-200 will-change-transform",
       isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
     )}>
       <div className="flex-1 pr-4">
@@ -47,6 +48,7 @@ const ProductItem = memo(({ product, cart, vendors, liked, onAdd, onRemove, onWi
             alt={product.name} 
             className="w-full h-full object-cover" 
             loading="lazy"
+            decoding="async"
             onError={(e) => { (e.target as any).src = 'https://placehold.co/400x300?text=No+Photo' }}
           />
           {isOffline && (
@@ -108,31 +110,27 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(100));
+    return query(collection(firestore, 'products'), limit(50));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
-    let result = [...dbProducts];
-    
-    result = result.filter(product => {
+    let result = dbProducts.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
-      const vendorMode = vendor?.category || 'Food';
-      return vendorMode === activeMode;
-    });
+      if (!vendor) return false;
+      const vendorMode = vendor.category || 'Food';
+      if (vendorMode !== activeMode) return false;
 
-    result = result.filter(product => {
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
       const restaurant = (product.restaurantName || '').toLowerCase();
+      const q = searchQuery.toLowerCase();
       
-      const matchesSearch = !searchQuery || name.includes(searchQuery.toLowerCase()) || 
-                          cat.includes(searchQuery.toLowerCase()) ||
-                          restaurant.includes(searchQuery.toLowerCase());
-                          
+      const matchesSearch = !q || name.includes(q) || cat.includes(q) || restaurant.includes(q);
       const matchesCategory = category === 'all' || product.category?.toLowerCase() === category.toLowerCase();
+      
       return matchesSearch && matchesCategory;
     });
 
@@ -142,9 +140,7 @@ export function PopularProducts({
       const onlineA = (vendorA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vendorB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       
-      if (onlineA !== onlineB) {
-        return onlineB - onlineA;
-      }
+      if (onlineA !== onlineB) return onlineB - onlineA;
       
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
@@ -159,7 +155,7 @@ export function PopularProducts({
     return (
       <div className="px-4 py-8 space-y-6">
         <Skeleton className="h-6 w-40 rounded-full" />
-        {[1, 2, 3].map((i) => (
+        {[1, 2].map((i) => (
           <div key={i} className="h-32 w-full bg-white rounded-3xl shadow-sm border animate-pulse" />
         ))}
       </div>
