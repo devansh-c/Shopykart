@@ -47,8 +47,12 @@ export function OrderManagement() {
   };
 
   const handleTrackLocation = (order: any) => {
+    // PRIORITY: Use GPS Coordinates for Pinpoint Accuracy as requested for Plus Codes speed
     if (order.latitude && order.longitude) {
       const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+      window.open(url, '_blank');
+    } else if (order.plusCode) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.plusCode)}`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
@@ -147,7 +151,7 @@ export function OrderManagement() {
                            <div>
                               <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">Plus Code Tracked</h4>
                               <p className="text-xs font-bold tracking-widest text-gray-300 uppercase">
-                                {order.plusCode || 'COORDINATES ONLY'}
+                                {order.plusCode || 'COORDINATES CAPTURED'}
                               </p>
                            </div>
                         </div>
@@ -156,7 +160,7 @@ export function OrderManagement() {
                           className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase italic active:scale-95 transition-all shadow-xl"
                         >
                           <Compass className="h-4 w-4 text-primary" />
-                          OPEN MAPS
+                          NAVIGATE TO PIN
                         </button>
                         <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-8" />
                       </div>

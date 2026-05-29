@@ -32,7 +32,8 @@ import {
   User,
   PhoneCall,
   MapPin,
-  Navigation
+  Navigation,
+  Compass
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -174,8 +175,12 @@ export default function VendorDashboard() {
   };
 
   const handleTrackLocation = (order: any) => {
+    // PLUS CODE ACCURACY: Prioritize Latitude/Longitude for pinpoint tracking as requested
     if (order.latitude && order.longitude) {
       const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+      window.open(url, '_blank');
+    } else if (order.plusCode) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.plusCode)}`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
@@ -304,23 +309,23 @@ export default function VendorDashboard() {
                         <h4 className="text-sm font-black italic tracking-tight leading-none uppercase">{order.customerName || 'Premium User'}</h4>
                       </div>
                    </div>
-                   {order.customerPhone && (
-                     <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleTrackLocation(order)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-xl shadow-xl shadow-blue-600/20 active:scale-90 transition-all"
-                          title="Navigate to Pin"
-                        >
-                          <Navigation className="h-5 w-5" />
-                        </button>
+                   <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleTrackLocation(order)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-xl shadow-xl shadow-blue-600/20 active:scale-90 transition-all"
+                        title="Navigate to Pin"
+                      >
+                        <Navigation className="h-5 w-5" />
+                      </button>
+                      {order.customerPhone && (
                         <button 
                           onClick={() => window.open(`tel:${order.customerPhone}`)}
                           className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl shadow-xl shadow-green-500/20 active:scale-90 transition-all"
                         >
                           <PhoneCall className="h-5 w-5" />
                         </button>
-                     </div>
-                   )}
+                      )}
+                   </div>
                 </div>
 
                 <div className="flex items-start gap-3 mb-4 px-1">
@@ -330,7 +335,7 @@ export default function VendorDashboard() {
                    <div>
                       <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Delivery Address</p>
                       <span className="text-xs font-bold text-gray-700 leading-snug">{order.address || 'Address not provided'}</span>
-                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">GPS Pin Enabled ✅</p>}
+                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">PLUS PIN ENABLED ✅</p>}
                    </div>
                 </div>
                 
