@@ -137,12 +137,12 @@ export default function DeliveryDashboard() {
   };
 
   const openNavigation = (task: any) => {
-    // FASTEST ROUTE: Using pinpoint coordinates as requested for Plus Code style speed
-    if (task.latitude && task.longitude) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${task.latitude},${task.longitude}`;
-      window.open(url, '_blank');
-    } else if (task.plusCode) {
+    // PLUS CODE ACCURACY: Use Plus Code for Google Maps search box instead of lat/lng numbers
+    if (task.plusCode) {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.plusCode)}`;
+      window.open(url, '_blank');
+    } else if (task.latitude && task.longitude) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${task.latitude},${task.longitude}`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
@@ -245,7 +245,7 @@ export default function DeliveryDashboard() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-4 text-gray-400 text-xs"><MapPin className="h-3.5 w-3.5 text-primary" /><span className="truncate max-w-[180px] font-medium">{task.address}</span></div>
-                  {task.latitude && <p className="text-[7px] font-black text-green-500 mt-2 uppercase tracking-widest flex items-center gap-1"><Navigation className="h-2 w-2" /> PLUS PIN ACTIVE ✅</p>}
+                  {task.plusCode && <p className="text-[7px] font-black text-green-500 mt-2 uppercase tracking-widest flex items-center gap-1"><Navigation className="h-2 w-2" /> PLUS PIN ACTIVE: {task.plusCode} ✅</p>}
                 </div>
                 <button onClick={() => openNavigation(task)} className="bg-white/10 p-5 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group shadow-2xl"><Compass className={cn("h-7 w-7", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} /></button>
               </div>
