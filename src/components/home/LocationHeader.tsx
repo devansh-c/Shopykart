@@ -64,8 +64,8 @@ export function LocationHeader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState('Detecting Location...');
-  const [addressSubtitle, setAddressSubtitle] = useState('');
+  const [currentAddress, setCurrentAddress] = useState('Select Location');
+  const [addressSubtitle, setAddressSubtitle] = useState('Tap to set area');
 
   const { toast } = useToast();
 
@@ -82,11 +82,11 @@ export function LocationHeader({
           const details = parts.length > 3 ? parts.slice(1, 4).join(',').trim() : parts.join(',').trim();
           setAddressSubtitle(details);
         } else {
-          setAddressSubtitle(savedCity || 'Select your spot');
+          setAddressSubtitle(savedCity || 'Your saved spot');
         }
       } else {
         setCurrentAddress('Select Location');
-        setAddressSubtitle('Tap to detect your current spot');
+        setAddressSubtitle('Tap to set your serving area');
       }
     };
 
