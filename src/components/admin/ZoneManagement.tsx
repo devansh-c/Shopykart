@@ -30,23 +30,16 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 
-// Dynamic Import for Leaflet (SSR issues)
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Polygon = dynamic(() => import('react-leaflet').then(mod => mod.Polygon), { ssr: false });
-const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents), { ssr: false });
-
-import 'leaflet/dist/leaflet.css';
-
-// Helper component for map clicks
-function MapEvents({ onMapClick }: { onMapClick: (latlng: any) => void }) {
-  useMapEvents({
-    click(e) {
-      onMapClick(e.latlng);
-    },
-  });
-  return null;
-}
+// We import the entire map logic as a single dynamic component to ensure all Leaflet hooks
+// work correctly within the MapContainer context and only on the client.
+const ZoneMapDrawing = dynamic(() => import('./ZoneMapDrawing'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] w-full bg-muted flex items-center justify-center rounded-3xl animate-pulse">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
+    </div>
+  )
+});
 
 export function ZoneManagement() {
   const firestore = useFirestore();
@@ -72,16 +65,8 @@ export function ZoneManagement() {
     isActive: true
   });
 
-  const handleMapClick = (latlng: any) => {
-    setBoundaryPoints(prev => [...prev, [latlng.lat, latlng.lng]]);
-  };
-
-  const clearLastPoint = () => {
-    setBoundaryPoints(prev => prev.slice(0, -1));
-  };
-
-  const clearAllPoints = () => {
-    setBoundaryPoints([]);
+  const handleMapUpdate = (points: [number, number][]) => {
+    setBoundaryPoints(points);
   };
 
   const handleSave = async () => {
@@ -95,7 +80,7 @@ export function ZoneManagement() {
       name: formData.name.trim(),
       city: formData.city.trim() || 'Local',
       pincodes: formData.pincodes.split(',').map(p => p.trim()).filter(p => p.length > 0),
-      boundary: boundaryPoints, // Storing coordinates as [lat, lng] array
+      boundary: boundaryPoints, 
       minOrder: parseFloat(formData.minOrder) || 0,
       deliveryCharge: parseFloat(formData.deliveryCharge) || 0,
       isActive: formData.isActive,
@@ -165,40 +150,18 @@ export function ZoneManagement() {
             </DialogHeader>
             
             <div className="flex-1 overflow-y-auto no-scrollbar p-6 pt-2 space-y-6">
-              {/* Map Marking Section */}
               <div className="space-y-3">
                  <div className="flex items-center justify-between px-1">
                     <label className="text-[10px] font-black uppercase text-primary flex items-center gap-1.5">
                        <Navigation className="h-3 w-3" /> Mark Area on Map
                     </label>
-                    <div className="flex gap-2">
-                       <button onClick={clearLastPoint} className="text-[8px] font-black uppercase bg-muted px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-amber-100 hover:text-amber-700 transition-colors">
-                          <Eraser className="h-2.5 w-2.5" /> Undo
-                       </button>
-                       <button onClick={clearAllPoints} className="text-[8px] font-black uppercase bg-red-50 text-red-600 px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-red-100 transition-colors">
-                          <Trash2 className="h-2.5 w-2.5" /> Clear Map
-                       </button>
-                    </div>
                  </div>
+                 
                  <div className="h-[300px] w-full bg-muted rounded-3xl overflow-hidden border-4 border-muted/20 relative">
-                    <MapContainer 
-                      center={[25.2443, 79.0838]} // Default center Ranipur area
-                      zoom={14} 
-                      style={{ height: '100%', width: '100%' }}
-                    >
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      <MapEvents onMapClick={handleMapClick} />
-                      {boundaryPoints.length > 2 && (
-                        <Polygon positions={boundaryPoints} color="#EF4444" fillOpacity={0.3} />
-                      )}
-                    </MapContainer>
-                    {boundaryPoints.length < 3 && (
-                       <div className="absolute inset-0 z-[10] bg-black/40 flex items-center justify-center pointer-events-none">
-                          <p className="text-white text-[10px] font-black uppercase tracking-widest bg-black/60 px-4 py-2 rounded-full border border-white/20">
-                             Tap 3 or more spots to mark an area
-                          </p>
-                       </div>
-                    )}
+                    <ZoneMapDrawing 
+                      points={boundaryPoints} 
+                      onUpdate={handleMapUpdate} 
+                    />
                  </div>
               </div>
 
