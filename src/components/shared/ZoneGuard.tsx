@@ -22,12 +22,10 @@ import { Button } from '@/components/ui/button';
 
 /**
  * Robust Point-in-Polygon Algorithm (Ray Casting)
- * vs: Array of points (can be [lat, lng] or {lat, lng})
  */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
   
-  // Ensure coordinates are numbers
   const x = Number(lat);
   const y = Number(lng);
   
@@ -50,7 +48,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const { user, loading: userLoading } = useUser();
   const [currentPincode, setCurrentPincode] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   // Fetch active zones
@@ -82,7 +79,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const currentZone = useMemo(() => {
     if (!activeZones || activeZones.length === 0) return null;
 
-    // 1. Try Map Boundary Check First (Most Accurate)
     if (currentCoords) {
       const matchedMapZone = activeZones.find(zone => {
         if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
@@ -93,7 +89,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       if (matchedMapZone) return matchedMapZone;
     }
 
-    // 2. Fallback to Pincode Check (If Map check fails or GPS unavailable)
     if (currentPincode) {
       const cleanPin = currentPincode.trim();
       return activeZones.find(zone => 
@@ -104,26 +99,18 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     return null;
   }, [activeZones, currentPincode, currentCoords]);
 
-  useEffect(() => {
-    if (!zonesLoading && !userLoading) {
-      const timer = setTimeout(() => setIsChecking(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [zonesLoading, userLoading]);
+  if (!mounted) return null;
 
-  if (!mounted || isChecking || zonesLoading || userLoading) {
-    return (
-      <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-8">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Verifying Delivery Zone...</p>
-      </div>
-    );
+  // We skip the "Verifying..." full screen loader to prevent the fetching screen the user complained about.
+  // The app will load immediately.
+  if (zonesLoading || userLoading) {
+    return <>{children}</>;
   }
 
   const hasLocation = !!localStorage.getItem('user_location_set');
   const noZonesDefined = !activeZones || activeZones.length === 0;
 
-  // IMPORTANT: If no zones are defined yet, don't block the user (allows setup)
+  // If no zones exist yet (first setup) or user hasn't picked a location, allow free browsing.
   if (noZonesDefined || !hasLocation || !!currentZone) {
     if (currentZone) {
       localStorage.setItem('active_zone_id', currentZone.id);
@@ -133,6 +120,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // ONLY block if they have a location set and it's NOT in our served zones.
   return (
     <div className="fixed inset-0 z-[500] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700 py-10">
