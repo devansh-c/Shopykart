@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -55,13 +54,11 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!zonesLoading && !userLoading) {
-      // Small delay for smooth transition
       const timer = setTimeout(() => setIsChecking(false), 500);
       return () => clearTimeout(timer);
     }
   }, [zonesLoading, userLoading]);
 
-  // Initial load / detection
   if (!mounted || isChecking || zonesLoading || userLoading) {
     return (
       <div className="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-8">
@@ -71,22 +68,18 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is in an active zone or no location set yet (let LocationRequest handle it), show app
   const hasLocation = !!localStorage.getItem('user_location_set');
   if (!hasLocation || !!currentZone) {
-    // If zone found, save its ID for filtering
     if (currentZone) {
       localStorage.setItem('active_zone_id', currentZone.id);
     }
     return <>{children}</>;
   }
 
-  // UNSERVED ZONE SCREEN
   return (
-    <div className="fixed inset-0 z-[1000] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
+    <div className="fixed inset-0 z-[500] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700 py-10">
         
-        {/* Animated Brand Identity */}
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
           <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden group">

@@ -18,7 +18,7 @@ import {
   Map as MapIcon,
   Globe
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore } from '@/firebase';
@@ -50,6 +50,8 @@ export function LocationRequest() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    // Auto-prompt only if no location is set
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
       const timer = setTimeout(() => setOpen(true), 1500);
@@ -60,6 +62,7 @@ export function LocationRequest() {
       setView('prompt');
       setOpen(true);
     };
+
     window.addEventListener('open-location-picker', handleOpen);
     return () => window.removeEventListener('open-location-picker', handleOpen);
   }, [user]);
@@ -122,6 +125,7 @@ export function LocationRequest() {
       localStorage.setItem('user_address', displayAddress);
       localStorage.setItem('user_full_precise_address', location.address);
       localStorage.setItem('user_city', servingTown);
+      localStorage.setItem('user_pincode', location.pincode || '');
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('user_plus_code', location.plusCode || '');
       window.dispatchEvent(new CustomEvent('user-address-updated'));
@@ -202,7 +206,9 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden z-[150] bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500">
+      {/* High Z-Index for Overlay to cover ZoneGuard */}
+      <DialogOverlay className="z-[2000]" />
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500 z-[2001]">
         <div className="px-8 py-10">
           {view === 'prompt' ? (
             <div className="flex flex-col space-y-8">
