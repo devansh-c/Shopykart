@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -51,7 +52,7 @@ export function LocationRequest() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Auto-prompt only if no location is set
+    // Auto-prompt dialog only if no location is set, but DO NOT fetch GPS yet
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
       const timer = setTimeout(() => setOpen(true), 1500);
@@ -206,7 +207,6 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* High Z-Index for Overlay to cover ZoneGuard */}
       <DialogOverlay className="z-[2000]" />
       <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500 z-[2001]">
         <div className="px-8 py-10">

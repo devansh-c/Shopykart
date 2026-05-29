@@ -79,11 +79,11 @@ export function ZoneManagement() {
     const zoneData = {
       name: formData.name.trim(),
       city: formData.city.trim() || 'Local',
-      pincodes: formData.pincodes.split(',').map(p => p.trim()).filter(p => p.length > 0),
-      boundary: boundaryPoints, 
+      pincodes: formData.pincodes ? formData.pincodes.split(',').map(p => p.trim()).filter(p => p.length > 0) : [],
+      boundary: boundaryPoints || [], 
       minOrder: parseFloat(formData.minOrder) || 0,
       deliveryCharge: parseFloat(formData.deliveryCharge) || 0,
-      isActive: formData.isActive,
+      isActive: formData.isActive === true,
       updatedAt: serverTimestamp()
     };
 
@@ -92,13 +92,17 @@ export function ZoneManagement() {
         await updateDoc(doc(firestore, 'zones', editingId), zoneData);
         toast({ title: "Zone Updated" });
       } else {
-        await addDoc(collection(firestore, 'zones'), { ...zoneData, createdAt: serverTimestamp() });
+        await addDoc(collection(firestore, 'zones'), { 
+          ...zoneData, 
+          createdAt: serverTimestamp() 
+        });
         toast({ title: "Zone Created" });
       }
       setIsAddOpen(false);
       resetForm();
     } catch (err) {
-      toast({ variant: "destructive", title: "Save Failed" });
+      console.error("Zone Save Error:", err);
+      toast({ variant: "destructive", title: "Save Failed", description: "Database error occurred." });
     }
   };
 
@@ -112,7 +116,7 @@ export function ZoneManagement() {
     setFormData({
       name: zone.name || '',
       city: zone.city || '',
-      pincodes: (zone.pincodes || []).join(', '),
+      pincodes: Array.isArray(zone.pincodes) ? zone.pincodes.join(', ') : '',
       minOrder: (zone.minOrder || 0).toString(),
       deliveryCharge: (zone.deliveryCharge || 0).toString(),
       isActive: zone.isActive !== false
@@ -227,7 +231,7 @@ export function ZoneManagement() {
                   <h3 className="font-black italic uppercase tracking-tighter text-lg leading-tight">{zone.name}</h3>
                   <div className="flex items-center gap-2">
                      <span className="text-[9px] font-black text-muted-foreground uppercase">{zone.city}</span>
-                     {zone.boundary && (
+                     {zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 0 && (
                        <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[8px] px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
                           <MousePointer2 className="h-2 w-2" /> Map Marked
                        </Badge>
