@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -149,7 +148,7 @@ export function OrderManagement() {
                            <div>
                               <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">GPS Verified Spot</h4>
                               <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase">
-                                {order.latitude ? `Accurate Pinpoint: ${order.latitude.toFixed(4)}, ${order.longitude.toFixed(4)}` : 'Manual Address Only'}
+                                {order.latitude ? `Accurate Pinpoint: ${Number(order.latitude).toFixed(4)}, ${Number(order.longitude).toFixed(4)}` : 'Manual Address Only'}
                               </p>
                            </div>
                         </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -163,8 +162,7 @@ export default function CartPage() {
             setCustomerPincode(pin);
             
             // We use the latitude/longitude as the most accurate "Plus Pin" source
-            // We don't generate a fake string anymore to prevent incorrect locations
-            const coordString = `${latitude.toFixed(6)},${longitude.longitude.toFixed(6)}`;
+            const coordString = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
             setPlusCode(coordString);
             
             localStorage.setItem('user_plus_code_string', coordString);
