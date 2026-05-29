@@ -41,22 +41,22 @@ function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen">
       <AuthGuard>
+        {/* GLOBAL COMPONENTS - Must be outside ZoneGuard to function when zone is blocked */}
+        <LocationRequest />
+        <NotificationHandler />
+        <TelegramNotifier />
+        
         <div>
           {/* Zone Guard blocks unserved areas for customers */}
           {!isExcludedPath ? (
             <ZoneGuard>
                <HeatWaveOverlay />
-               <LocationRequest />
-               <NotificationHandler />
-               <TelegramNotifier />
                <AdOverlay />
                {children}
                <FloatingCart />
             </ZoneGuard>
           ) : (
             <>
-               <NotificationHandler />
-               <TelegramNotifier />
                {children}
             </>
           )}

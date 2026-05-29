@@ -1,12 +1,16 @@
 
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
   const [shouldRender, setShouldRender] = useState(true);
+  const [taps, setTaps] = useState(0);
+  const router = useRouter();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Keep visible for exactly 2 seconds as requested
@@ -25,6 +29,22 @@ export function SplashScreen() {
     };
   }, []);
 
+  const handleTap = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    const nextTaps = taps + 1;
+    
+    if (nextTaps >= 5) {
+      setTaps(0);
+      router.push('/admin/dashboard');
+    } else {
+      setTaps(nextTaps);
+      timerRef.current = setTimeout(() => {
+        setTaps(0);
+      }, 2000);
+    }
+  };
+
   if (!shouldRender) return null;
 
   return (
@@ -35,10 +55,13 @@ export function SplashScreen() {
       )}
     >
       <div className="relative flex flex-col items-center">
-        <div className={cn(
-          "transition-all duration-500 transform flex flex-col items-center",
-          isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
-        )}>
+        <div 
+          onClick={handleTap}
+          className={cn(
+            "transition-all duration-500 transform flex flex-col items-center cursor-pointer active:scale-95",
+            isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
+          )}
+        >
           {/* Pill-shaped Branding */}
           <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-md shadow-[0_0_40px_rgba(197,160,33,0.2)] flex flex-col items-center">
             <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
