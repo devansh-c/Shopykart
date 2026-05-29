@@ -76,11 +76,18 @@ export function ZoneManagement() {
       return;
     }
 
+    // IMPORTANT: Firestore doesn't support nested arrays [[lat,lng]]. 
+    // We convert them to an array of objects [{lat, lng}].
+    const boundaryData = boundaryPoints.map(p => ({
+      lat: p[0],
+      lng: p[1]
+    }));
+
     const zoneData = {
       name: formData.name.trim(),
       city: formData.city.trim() || 'Local',
       pincodes: formData.pincodes ? formData.pincodes.split(',').map(p => p.trim()).filter(p => p.length > 0) : [],
-      boundary: boundaryPoints || [], 
+      boundary: boundaryData, 
       minOrder: parseFloat(formData.minOrder) || 0,
       deliveryCharge: parseFloat(formData.deliveryCharge) || 0,
       isActive: formData.isActive === true,
@@ -121,7 +128,13 @@ export function ZoneManagement() {
       deliveryCharge: (zone.deliveryCharge || 0).toString(),
       isActive: zone.isActive !== false
     });
-    setBoundaryPoints(zone.boundary || []);
+    
+    // Map objects back to arrays for Leaflet
+    const pts = Array.isArray(zone.boundary) 
+      ? zone.boundary.map((p: any) => [p.lat, p.lng] as [number, number]) 
+      : [];
+    setBoundaryPoints(pts);
+    
     setEditingId(zone.id);
     setIsAddOpen(true);
   };

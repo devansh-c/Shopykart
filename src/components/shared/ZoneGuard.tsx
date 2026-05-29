@@ -22,13 +22,20 @@ import { Button } from '@/components/ui/button';
 
 /**
  * Point-in-Polygon Algorithm (Ray Casting)
- * vs: Array of points [lat, lng]
+ * vs: Array of points (can be [lat, lng] or {lat, lng})
  */
-function isPointInPolygon(lat: number, lng: number, vs: [number, number][]) {
+function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = vs[i][0], yi = vs[i][1];
-    const xj = vs[j][0], yj = vs[j][1];
+    const pI = vs[i];
+    const pJ = vs[j];
+    
+    // Extract coordinates supporting both Array and Object formats
+    const xi = Array.isArray(pI) ? pI[0] : pI.lat;
+    const yi = Array.isArray(pI) ? pI[1] : pI.lng;
+    const xj = Array.isArray(pJ) ? pJ[0] : pJ.lat;
+    const yj = Array.isArray(pJ) ? pJ[1] : pJ.lng;
+
     const intersect = ((yi > lng) !== (yj > lng))
         && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
