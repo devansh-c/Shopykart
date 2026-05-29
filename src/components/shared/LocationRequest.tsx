@@ -52,7 +52,6 @@ export function LocationRequest() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Auto-prompt dialog only if no location is set, but DO NOT fetch GPS yet
     const hasLocation = localStorage.getItem('user_location_set');
     if (!hasLocation && user) {
       const timer = setTimeout(() => setOpen(true), 1500);
@@ -80,7 +79,7 @@ export function LocationRequest() {
 
   const handleSearch = async (query: string) => {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Ranipur Mauranipur Uttar Pradesh')}&addressdetails=1&limit=5`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Uttar Pradesh India')}&addressdetails=1&limit=5`);
       const data = await res.json();
       setSearchResults(data);
     } catch (e) {
@@ -165,7 +164,12 @@ export function LocationRequest() {
         const plusCode = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
         
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+          // Robust fetch with retry/timeout logic
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+            headers: { 'Accept-Language': 'en' }
+          });
+          
+          if (!response.ok) throw new Error("Network issue");
           const data = await response.json();
           
           if (!data || !data.address) throw new Error("No data");
@@ -176,25 +180,28 @@ export function LocationRequest() {
           saveLocationToDB({ 
             address: fullPreciseAddress, 
             pincode: addr.postcode || '',
-            plusCode: plusCode
+            plusCode: plusCode,
+            city: addr.city || addr.town || addr.village || 'Local'
           });
         } catch (error) {
+          console.error("Geocode error:", error);
           setLoading(false);
           setView('manual');
+          toast({ variant: "destructive", title: "Reverse Geocode Failed", description: "GPS worked but could not find address. Please enter manually." });
         }
       },
       (error) => {
         setLoading(false);
+        let msg = "Please enable GPS in settings.";
         if (error.code === error.PERMISSION_DENIED) {
-          toast({ 
-            variant: "destructive", 
-            title: "Location Permission Denied", 
-            description: "Please enable GPS in settings or enter your address manually." 
-          });
+          msg = "Permission denied. Please allow location access.";
+        } else if (error.code === error.TIMEOUT) {
+          msg = "GPS request timed out. Try again or enter manually.";
         }
+        toast({ variant: "destructive", title: "Location Error", description: msg });
         setView('manual');
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 0 }
     );
   };
 
@@ -207,7 +214,7 @@ export function LocationRequest() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogOverlay className="z-[2000]" />
+      <DialogOverlay className="z-[2000] bg-black/60 backdrop-blur-sm" />
       <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500 z-[2001]">
         <div className="px-8 py-10">
           {view === 'prompt' ? (
@@ -234,13 +241,13 @@ export function LocationRequest() {
                   )}
                 >
                   <div className={cn(
-                    "h-12 w-12 rounded-2xl flex items-center justify-center transition-all",
+                    "h-12 w-12 rounded-2xl flex items-center justify-center transition-all shrink-0",
                     success ? "bg-green-500 text-white" : "bg-white shadow-sm text-primary"
                   )}>
                     {loading && !success ? <Loader2 className="h-6 w-6 animate-spin" /> : <LocateFixed className="h-6 w-6" />}
                   </div>
-                  <div className="flex flex-col items-start text-left">
-                    <span className={cn("text-sm font-black uppercase", success ? "text-green-700" : "text-black")}>
+                  <div className="flex flex-col items-start text-left min-w-0">
+                    <span className={cn("text-sm font-black uppercase truncate w-full", success ? "text-green-700" : "text-black")}>
                       {success ? 'Spot Detected!' : 'Use Current Location'}
                     </span>
                     <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Detect via high-accuracy GPS</span>
@@ -257,11 +264,11 @@ export function LocationRequest() {
                   onClick={() => setView('searching')}
                   className="flex items-center gap-4 p-6 rounded-[2rem] border-2 border-gray-50 bg-gray-50 w-full active:scale-[0.98]"
                 >
-                  <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400">
+                  <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 shrink-0">
                     <Search className="h-6 w-6" />
                   </div>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-black uppercase text-black">Enter Address Manually</span>
+                  <div className="flex flex-col items-start text-left min-w-0">
+                    <span className="text-sm font-black uppercase text-black truncate w-full">Enter Address Manually</span>
                     <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Search your area or street</span>
                   </div>
                 </button>
@@ -286,7 +293,7 @@ export function LocationRequest() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input 
                       placeholder="Search Landmark, Area or Road..." 
-                      className="h-14 rounded-2xl bg-gray-50 border-none pl-12 font-bold" 
+                      className="h-14 rounded-2xl bg-gray-50 border-none pl-12 font-bold focus-visible:ring-1 focus-visible:ring-primary/20" 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       autoFocus
@@ -302,8 +309,8 @@ export function LocationRequest() {
                           className="w-full text-left p-4 rounded-2xl hover:bg-gray-50 flex items-start gap-3 border border-transparent hover:border-gray-100 transition-all"
                         >
                            <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                           <div>
-                              <p className="text-xs font-black text-gray-800 leading-tight mb-1">{item.display_name.split(',')[0]}</p>
+                           <div className="min-w-0">
+                              <p className="text-xs font-black text-gray-800 leading-tight mb-1 truncate">{item.display_name.split(',')[0]}</p>
                               <p className="text-[10px] text-gray-400 font-medium line-clamp-2">{item.display_name}</p>
                            </div>
                         </button>
@@ -336,38 +343,46 @@ export function LocationRequest() {
               </div>
 
               <form onSubmit={handleManualSave} className="space-y-5">
-                <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
+                <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100 shadow-inner">
                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                       <MapPin className="h-2.5 w-2.5" /> Selected Area
                    </label>
-                   <p className="text-xs font-bold text-gray-800 line-clamp-2">{manualData.address}</p>
+                   <p className="text-xs font-bold text-gray-800 line-clamp-2 leading-relaxed">{manualData.address}</p>
                 </div>
 
-                <Input 
-                  placeholder="House No. / Floor / Building *" 
-                  className="rounded-2xl h-14 bg-gray-50 border-none font-bold" 
-                  value={manualData.apartment} 
-                  onChange={(e) => setManualData({...manualData, apartment: e.target.value})} 
-                  required 
-                />
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">House / Flat / Building *</label>
+                     <Input 
+                      placeholder="e.g. House No. 24, Gold Villa" 
+                      className="rounded-2xl h-14 bg-gray-50 border-none font-bold focus-visible:ring-1 focus-visible:ring-primary/20" 
+                      value={manualData.apartment} 
+                      onChange={(e) => setManualData({...manualData, apartment: e.target.value})} 
+                      required 
+                    />
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    placeholder="Pincode *" 
-                    className="rounded-2xl h-14 bg-gray-50 border-none font-black italic text-lg" 
-                    value={manualData.pincode} 
-                    maxLength={6}
-                    onChange={(e) => setManualData({...manualData, pincode: e.target.value.replace(/\D/g, '')})} 
-                    required 
-                  />
-                  <div className="bg-blue-50/50 p-4 rounded-2xl flex flex-col justify-center border border-blue-100/50">
-                     <span className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Precise Spot</span>
-                     <span className="text-[10px] font-black text-blue-600 truncate">{manualData.plusCode || 'Verified'}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Pincode *</label>
+                       <Input 
+                        placeholder="284xxx" 
+                        className="rounded-2xl h-14 bg-gray-50 border-none font-black italic text-lg text-center tracking-widest" 
+                        value={manualData.pincode} 
+                        maxLength={6}
+                        onChange={(e) => setManualData({...manualData, pincode: e.target.value.replace(/\D/g, '')})} 
+                        required 
+                      />
+                    </div>
+                    <div className="bg-blue-50/50 p-4 rounded-2xl flex flex-col justify-center border border-blue-100/50">
+                       <span className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Precise Spot</span>
+                       <span className="text-[10px] font-black text-blue-600 truncate">{manualData.plusCode ? 'Verified' : 'Local'}</span>
+                    </div>
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl mt-4 active:scale-95 transition-all">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Confirm & Save'}
+                <Button type="submit" disabled={loading} className="w-full h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl mt-4 active:scale-95 transition-all shadow-primary/10">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Confirm & Save Address'}
                 </Button>
               </form>
             </div>
