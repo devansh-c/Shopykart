@@ -110,12 +110,12 @@ export function ZoneManagement() {
 
   const handleEdit = (zone: any) => {
     setFormData({
-      name: zone.name,
-      city: zone.city,
+      name: zone.name || '',
+      city: zone.city || '',
       pincodes: (zone.pincodes || []).join(', '),
-      minOrder: zone.minOrder.toString(),
+      minOrder: (zone.minOrder || 0).toString(),
       deliveryCharge: (zone.deliveryCharge || 0).toString(),
-      isActive: zone.isActive
+      isActive: zone.isActive !== false
     });
     setBoundaryPoints(zone.boundary || []);
     setEditingId(zone.id);
@@ -178,7 +178,7 @@ export function ZoneManagement() {
 
               <div className="space-y-1">
                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Legacy Pincode Support (Optional)</label>
-                 <Input value={formData.pincode} onChange={e => setFormData({...formData, pincode: e.target.value})} placeholder="284205" className="h-12 rounded-xl font-bold" />
+                 <Input value={formData.pincodes} onChange={e => setFormData({...formData, pincodes: e.target.value})} placeholder="284205" className="h-12 rounded-xl font-bold" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
