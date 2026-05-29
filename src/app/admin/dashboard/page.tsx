@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -21,7 +22,8 @@ import {
   CircleDollarSign,
   Truck,
   Megaphone,
-  Download
+  Download,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -48,9 +50,11 @@ import { StorePayoutManagement } from '@/components/admin/StorePayoutManagement'
 import { FleetManagement } from '@/components/admin/FleetManagement';
 import { MonetizationManagement } from '@/components/admin/MonetizationManagement';
 import { ExportManagement } from '@/components/admin/ExportManagement';
+import { ZoneManagement } from '@/components/admin/ZoneManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'zones', label: 'Serving Zones', icon: MapPin },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'stores', label: 'Stores', icon: Store },
   { id: 'fleet', label: 'Delivery Fleet', icon: Truck },
@@ -187,6 +191,8 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'dashboard':
         return <AdminOverview />;
+      case 'zones':
+        return <ZoneManagement />;
       case 'customers':
         return <CustomerManagement />;
       case 'stores':

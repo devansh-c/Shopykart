@@ -13,11 +13,26 @@
         "imageUrl": { "type": "string" },
         "isVeg": { "type": "boolean" },
         "vendorId": { "type": "string" },
+        "zoneId": { "type": "string" },
         "restaurantName": { "type": "string" },
         "town": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price", "vendorId"]
+    },
+    "ServingZone": {
+      "title": "Serving Zone",
+      "description": "Geographical delivery area",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "city": { "type": "string" },
+        "pincodes": { "type": "array", "items": { "type": "string" } },
+        "isActive": { "type": "boolean" },
+        "deliveryCharge": { "type": "number" },
+        "minOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     },
     "Order": {
       "title": "Order",
@@ -47,33 +62,17 @@
         "address": { "type": "string" },
         "city": { "type": "string" },
         "pincode": { "type": "string" },
+        "zoneId": { "type": "string" },
         "coins": { "type": "number", "default": 0 },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "CheckoutCharge": {
-      "title": "Checkout Charge",
-      "description": "Additional charges applied during checkout",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["fixed", "percentage"] },
-        "value": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },
   "firestore": {
+    "/zones/{zoneId}": { "schema": "#/entities/ServingZone", "description": "Global delivery zones" },
     "/vendors/{vendorId}": { "schema": "object", "description": "Store profiles" },
-    "/vendors/{vendorId}/products/{productId}": { "schema": "#/entities/Product", "description": "Vendor specific products" },
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders" },
-    "/banners/{bannerId}": { "schema": "object", "description": "Promotional banners" },
-    "/coupons/{couponId}": { "schema": "object", "description": "Discount codes" },
-    "/categories/{categoryId}": { "schema": "object", "description": "Food categories" },
-    "/vendor_applications/{appId}": { "schema": "object", "description": "New store requests" },
-    "/users/{userId}/fcmTokens/{tokenId}": { "schema": "object", "description": "User notification tokens" },
-    "/users/{userId}/profile/data": { "schema": "#/entities/UserProfile", "description": "User profile information" },
-    "/checkout_charges/{chargeId}": { "schema": "#/entities/CheckoutCharge", "description": "Dynamic tax and service charges" }
+    "/users/{userId}": { "schema": "#/entities/UserProfile", "description": "User profile information" }
   }
 }

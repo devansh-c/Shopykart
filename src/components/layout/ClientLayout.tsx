@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -14,6 +15,7 @@ import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { HeatWaveOverlay } from '@/components/shared/HeatWaveOverlay';
+import { ZoneGuard } from '@/components/shared/ZoneGuard';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -40,15 +42,24 @@ function AppContent({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen">
       <AuthGuard>
         <div>
-          {/* Heat wave overlay blocks EVERYTHING for customers except dashboards */}
-          {!isExcludedPath && <HeatWaveOverlay />}
-          
-          {!isExcludedPath && <LocationRequest />}
-          <NotificationHandler />
-          <TelegramNotifier />
-          <AdOverlay />
-          {children}
-          {!isExcludedPath && <FloatingCart />}
+          {/* Zone Guard blocks unserved areas for customers */}
+          {!isExcludedPath ? (
+            <ZoneGuard>
+               <HeatWaveOverlay />
+               <LocationRequest />
+               <NotificationHandler />
+               <TelegramNotifier />
+               <AdOverlay />
+               {children}
+               <FloatingCart />
+            </ZoneGuard>
+          ) : (
+            <>
+               <NotificationHandler />
+               <TelegramNotifier />
+               {children}
+            </>
+          )}
         </div>
       </AuthGuard>
     </div>

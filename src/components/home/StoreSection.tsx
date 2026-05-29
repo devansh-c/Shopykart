@@ -1,21 +1,26 @@
+
 "use client"
 
 import { Star, MapPin, Store } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { collection, query, where } from "firebase/firestore"
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
+  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    if (activeZoneId) {
+      return query(collection(firestore, 'vendors'), where('zoneId', '==', activeZoneId));
+    }
     return collection(firestore, 'vendors');
-  }, [firestore]);
+  }, [firestore, activeZoneId]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
@@ -42,7 +47,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     return (
       <div className="py-20 text-center opacity-30 px-6">
         <Store className="h-12 w-12 mx-auto mb-4" />
-        <p className="font-black italic uppercase tracking-widest text-sm">No {activeMode} Stores Found</p>
+        <p className="font-black italic uppercase tracking-widest text-sm">No {activeMode} Stores in Area</p>
       </div>
     );
   }
@@ -70,21 +75,12 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               )}
             >
               <div className="relative h-36 w-full bg-muted">
-                <Image 
-                  src={displayImage} 
-                  alt={store.storeName || 'Store'} 
-                  fill
-                  className="object-cover"
-                  loading="lazy"
-                  unoptimized 
-                />
-                
+                <Image src={displayImage} alt={store.storeName || 'Store'} fill className="object-cover" loading="lazy" unoptimized />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-xl uppercase italic tracking-tighter">Closed Now</span>
                   </div>
                 )}
-
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-xl flex items-center gap-1 shadow-sm">
                    <span className="text-[10px] font-black text-black">{store.rating || '4.4'}</span>
                    <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />

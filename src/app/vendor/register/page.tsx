@@ -18,11 +18,12 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  LocateFixed
+  LocateFixed,
+  MapPin
 } from 'lucide-react';
-import { useFirestore, useAuth } from '@/firebase';
+import { useFirestore, useAuth, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -48,13 +49,20 @@ export default function VendorRegistrationPage() {
   const [step, setStep] = useState<Step>('category');
   const [showPassword, setShowPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Fetch zones for assignment
+  const zonesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'zones');
+  }, [firestore]);
+  const { data: zones } = useCollection<any>(zonesQuery);
   
   const [formData, setFormData] = useState({
     category: '', 
     storeName: '',
     logo: '',
     cover: '',
-    zone: '', 
+    zoneId: '', 
     plusCode: '', 
     addressLine: '', 
     state: 'Uttar Pradesh', 
@@ -103,7 +111,7 @@ export default function VendorRegistrationPage() {
   const validateStep = () => {
     if (step === 'category') return !!formData.category;
     if (step === 'store-info') {
-      return !!formData.storeName && !!formData.logo && !!formData.cover && !!formData.zone && !!formData.addressLine && !!formData.state;
+      return !!formData.storeName && !!formData.logo && !!formData.cover && !!formData.zoneId && !!formData.addressLine && !!formData.state;
     }
     if (step === 'owner-info') {
       return !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.email && !!formData.password && formData.phone.length === 10;
@@ -116,22 +124,19 @@ export default function VendorRegistrationPage() {
     setIsProcessing(true);
 
     try {
-      // Step 1: Create Firebase User
-      const userCredential = await createUserWithEmailAndPassword(
-        auth, 
-        formData.email.trim().toLowerCase(), 
-        formData.password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password);
       const user = userCredential.user;
 
-      // Step 2: Create Store Entry (Directly in 'vendors' for instant login/visibility)
+      const selectedZone = zones?.find(z => z.id === formData.zoneId);
+
       const storeData = {
         id: user.uid,
         storeName: formData.storeName,
-        category: formData.category, // 'Food' or 'Grocery'
+        category: formData.category,
         imageUrl: formData.logo,
         bannerUrl: formData.cover,
-        town: formData.zone,
+        zoneId: formData.zoneId,
+        town: selectedZone?.name || 'Local',
         plusCode: formData.plusCode,
         address: formData.addressLine,
         state: formData.state,
@@ -141,7 +146,7 @@ export default function VendorRegistrationPage() {
         lastName: formData.lastName,
         phone: formData.phone,
         email: formData.email.trim().toLowerCase(),
-        status: 'approved', // Auto-approved for prototyping
+        status: 'approved',
         isOnline: true,
         walletBalance: 0,
         createdAt: serverTimestamp(),
@@ -149,10 +154,8 @@ export default function VendorRegistrationPage() {
       };
 
       await setDoc(doc(firestore, 'vendors', user.uid), storeData);
-
       setStep('success');
       toast({ title: "Store Created!", description: "Your business is now live on ShopyKart." });
-
     } catch (err: any) {
       toast({ variant: "destructive", title: "Registration Failed", description: err.message });
     } finally {
@@ -203,19 +206,27 @@ export default function VendorRegistrationPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Location</label>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Serving Zone *</label>
+                </div>
+                <Select value={formData.zoneId} onValueChange={(val) => updateFormData('zoneId', val)}>
+                   <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                      <SelectValue placeholder="Assign Serving Zone" />
+                   </SelectTrigger>
+                   <SelectContent className="rounded-2xl">
+                      {zones?.map((zone: any) => (
+                        <SelectItem key={zone.id} value={zone.id}>{zone.name} ({zone.city})</SelectItem>
+                      ))}
+                   </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Precise Location</label>
                   <button onClick={handleGetLocation} className="text-primary text-[9px] font-black uppercase flex items-center gap-1"><LocateFixed className="h-2.5 w-2.5" /> Auto Fill</button>
                 </div>
                 <Input placeholder="Plus Code or GPS" value={formData.plusCode} onChange={(e) => updateFormData('plusCode', e.target.value)} className="h-12 rounded-xl" />
               </div>
-
-              <Select value={formData.zone} onValueChange={(val) => updateFormData('zone', val)}>
-                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none"><SelectValue placeholder="Select Town / Zone *" /></SelectTrigger>
-                <SelectContent className="rounded-2xl">
-                  <SelectItem value="Ranipur">Ranipur (284205)</SelectItem>
-                  <SelectItem value="Mauranipur">Mauranipur (284204)</SelectItem>
-                </SelectContent>
-              </Select>
 
               <Textarea 
                 placeholder="Full Address Line *" 

@@ -7,7 +7,7 @@ import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit } from "firebase/firestore"
+import { collection, query, limit, where } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
@@ -30,17 +30,23 @@ export function PopularProducts({
   const [sortBy, setSortBy] = useState('recommended');
   
   const firestore = useFirestore();
+  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
 
+  // Fetch Vendors
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
+  // Fetch Products - Restricted by Active Zone
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    if (activeZoneId) {
+      return query(collection(firestore, 'products'), where('zoneId', '==', activeZoneId), limit(50));
+    }
     return query(collection(firestore, 'products'), limit(50));
-  }, [firestore]);
+  }, [firestore, activeZoneId]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
@@ -141,12 +147,7 @@ export function PopularProducts({
               
               <div className="relative w-32 h-32 shrink-0">
                 <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
-                  <img 
-                    src={imageUrl} 
-                    alt={product.name} 
-                    className="w-full h-full object-cover" 
-                    loading="lazy"
-                  />
+                  <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
                       <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed Now</span>
@@ -156,14 +157,7 @@ export function PopularProducts({
                 
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                   {quantity === 0 ? (
-                    <button 
-                      disabled={isOffline}
-                      onClick={() => addToCart({ ...product, imageUrl })}
-                      className={cn(
-                        "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-150 active:scale-95",
-                        isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none"
-                      )}
-                    >
+                    <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-150 active:scale-95", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
                       {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                     </button>
                   ) : (
@@ -185,7 +179,7 @@ export function PopularProducts({
         {productsToDisplay.length === 0 && !loading && (
            <div className="text-center py-20 opacity-30 flex flex-col items-center">
             {activeMode === 'Food' ? <Utensils className="h-12 w-12 mb-2" /> : <ShoppingBag className="h-12 w-12 mb-2" />}
-            <p className="text-xs font-black uppercase tracking-widest">No {activeMode} Items Found</p>
+            <p className="text-xs font-black uppercase tracking-widest">No Items in Your Zone</p>
           </div>
         )}
       </div>
