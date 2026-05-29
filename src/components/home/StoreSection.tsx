@@ -6,16 +6,27 @@ import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, where } from "firebase/firestore"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
-  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+
+  // Sync active zone from local storage reactively
+  useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
+  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // Strictly query by zone if it exists
     if (activeZoneId) {
       return query(collection(firestore, 'vendors'), where('zoneId', '==', activeZoneId));
     }
@@ -29,9 +40,11 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
-      return isApproved && matchesMode;
+      // Double-check zone assignment on the client side for extra safety
+      const matchesZone = !activeZoneId || v.zoneId === activeZoneId;
+      return isApproved && matchesMode && matchesZone;
     });
-  }, [dbVendors, loading, activeMode]);
+  }, [dbVendors, loading, activeMode, activeZoneId]);
 
   if (loading) {
     return (

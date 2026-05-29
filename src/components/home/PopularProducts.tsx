@@ -28,9 +28,19 @@ export function PopularProducts({
 }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   
   const firestore = useFirestore();
-  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+
+  // Sync active zone from local storage reactively
+  useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
+  }, []);
 
   // Fetch Vendors
   const vendorsQuery = useMemoFirebase(() => {
@@ -39,7 +49,7 @@ export function PopularProducts({
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  // Fetch All Products (Client-side filtering for prototype stability)
+  // Fetch All Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(100));
@@ -53,9 +63,13 @@ export function PopularProducts({
       const vendor = vendors.find(v => v.id === product.vendorId);
       if (!vendor) return false;
 
-      // 1. Zone Check: Product must belong to store in active zone OR have matching zoneId
-      const belongsToActiveZone = activeZoneId ? (product.zoneId === activeZoneId || vendor.zoneId === activeZoneId) : true;
-      if (!belongsToActiveZone) return false;
+      // 1. Zone Check: 
+      // If a zone is selected, ONLY show products from that zone.
+      // A product matches if its own zoneId or its vendor's zoneId matches the active zone.
+      if (activeZoneId) {
+        const belongsToActiveZone = (product.zoneId === activeZoneId || vendor.zoneId === activeZoneId);
+        if (!belongsToActiveZone) return false;
+      }
 
       // 2. Mode Check: Food vs Grocery
       const vendorMode = vendor.category || 'Food';
