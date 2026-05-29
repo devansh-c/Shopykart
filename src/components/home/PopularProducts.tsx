@@ -7,7 +7,7 @@ import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit, where } from "firebase/firestore"
+import { collection, query, limit } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
@@ -39,14 +39,11 @@ export function PopularProducts({
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  // Fetch Products - Restricted by Active Zone
+  // Fetch All Products (Client-side filtering for prototype stability)
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    if (activeZoneId) {
-      return query(collection(firestore, 'products'), where('zoneId', '==', activeZoneId), limit(50));
-    }
-    return query(collection(firestore, 'products'), limit(50));
-  }, [firestore, activeZoneId]);
+    return query(collection(firestore, 'products'), limit(100));
+  }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
@@ -55,9 +52,16 @@ export function PopularProducts({
     let result = dbProducts.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
       if (!vendor) return false;
+
+      // 1. Zone Check: Product must belong to store in active zone OR have matching zoneId
+      const belongsToActiveZone = activeZoneId ? (product.zoneId === activeZoneId || vendor.zoneId === activeZoneId) : true;
+      if (!belongsToActiveZone) return false;
+
+      // 2. Mode Check: Food vs Grocery
       const vendorMode = vendor.category || 'Food';
       if (vendorMode !== activeMode) return false;
 
+      // 3. Search & Category Check
       const name = (product.name || '').toLowerCase();
       const cat = (product.category || '').toLowerCase();
       const restaurant = (product.restaurantName || '').toLowerCase();
@@ -69,6 +73,7 @@ export function PopularProducts({
       return matchesSearch && matchesCategory;
     });
 
+    // Sorting Logic
     result.sort((a, b) => {
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
@@ -84,7 +89,7 @@ export function PopularProducts({
     });
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, vendors, activeMode]);
+  }, [searchQuery, category, sortBy, dbProducts, vendors, activeMode, activeZoneId]);
 
   if (loading && !dbProducts) {
     return (

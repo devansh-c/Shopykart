@@ -215,6 +215,7 @@ export default function VendorDashboard() {
       category: newProduct.category,
       isVeg: newProduct.isVeg,
       vendorId: user.uid, 
+      zoneId: vendorProfile.zoneId || null, // Ensuring products get the vendor's zone
       town: vendorProfile.town, 
       restaurantName: vendorProfile.storeName,
       createdAt: serverTimestamp(),
