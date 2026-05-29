@@ -47,12 +47,9 @@ export function OrderManagement() {
   };
 
   const handleTrackLocation = (order: any) => {
-    // PLUS CODE NAVIGATION: Using the Plus Code string directly for Google Maps search
-    // This ensures that the Plus Code appears in the Maps search bar instead of raw lat/lng
-    if (order.plusCode) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.plusCode)}`;
-      window.open(url, '_blank');
-    } else if (order.latitude && order.longitude) {
+    // ACCURATE GPS TRACKING: We prioritize verified coordinates (lat/lng) for navigation
+    // while using the descriptive address as a fallback.
+    if (order.latitude && order.longitude) {
       const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
       window.open(url, '_blank');
     } else {
@@ -141,18 +138,18 @@ export function OrderManagement() {
                       </div>
                     </div>
 
-                    {/* PLUS LOCATION DISPLAY (Pinpoint Delivery) */}
+                    {/* GPS LOCATION DISPLAY */}
                     <div className="flex flex-col gap-1 md:col-span-2">
-                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">Pinpoint Plus Location</p>
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">Precision Pin Location</p>
                       <div className="bg-black text-white p-4 rounded-2xl flex items-center justify-between group/loc relative overflow-hidden">
                         <div className="relative z-10 flex items-center gap-3">
                            <div className="bg-primary/20 p-2 rounded-xl text-primary border border-primary/20">
                               <MapIcon className="h-5 w-5" />
                            </div>
                            <div>
-                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">Plus Code Tracked</h4>
-                              <p className="text-xs font-bold tracking-widest text-gray-300 uppercase">
-                                {order.plusCode || 'COORDINATES CAPTURED'}
+                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">GPS Verified Spot</h4>
+                              <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase">
+                                {order.latitude ? `Accurate Pinpoint: ${order.latitude.toFixed(4)}, ${order.longitude.toFixed(4)}` : 'Manual Address Only'}
                               </p>
                            </div>
                         </div>
@@ -161,7 +158,7 @@ export function OrderManagement() {
                           className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase italic active:scale-95 transition-all shadow-xl"
                         >
                           <Compass className="h-4 w-4 text-primary" />
-                          NAVIGATE TO PLUS
+                          NAVIGATE TO PIN
                         </button>
                         <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-8" />
                       </div>

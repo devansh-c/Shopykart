@@ -144,37 +144,44 @@ export default function CartPage() {
         setCoords({ lat: latitude, lng: longitude });
         
         try {
-          // Fetch readable address + simulated Plus Code (Usually from Google, here simulated for free geocoding)
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          // Fetch real descriptive address from OpenStreetMap (Free, no key needed)
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await res.json();
+          
           if (data && data.address) {
-            const city = data.address.city || data.address.town || data.address.village || '';
+            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || '';
             const pin = data.address.postcode || '';
+            const road = data.address.road || data.address.neighbourhood || '';
+            const house = data.address.house_number || '';
             
-            // Simulating a Plus Code string if real API not present, or using address parts
-            const fakePlusCode = (latitude.toString().slice(-4) + "+" + longitude.toString().slice(-4)).toUpperCase();
+            // Construct a cleaner readable address
             const fullReadable = data.display_name;
+            const shortAddress = [house, road].filter(Boolean).join(', ');
 
-            setCustomerAddress(fullReadable);
+            setCustomerAddress(shortAddress || fullReadable);
             setCustomerCity(city);
             setCustomerPincode(pin);
-            setPlusCode(fakePlusCode);
             
-            localStorage.setItem('user_plus_code_string', fakePlusCode);
+            // We use the latitude/longitude as the most accurate "Plus Pin" source
+            // We don't generate a fake string anymore to prevent incorrect locations
+            const coordString = `${latitude.toFixed(6)},${longitude.longitude.toFixed(6)}`;
+            setPlusCode(coordString);
             
-            toast({ title: "PinPoint Location Captured", description: "Plus Code and Address updated." });
+            localStorage.setItem('user_plus_code_string', coordString);
+            
+            toast({ title: "Precision Pin Set", description: "Your exact delivery location has been captured." });
           }
         } catch (e) {
-          toast({ title: "GPS Pin Set", description: "Coordinates captured successfully." });
+          toast({ title: "GPS Pin Set", description: "Pinpoint coordinates captured." });
         } finally {
           setIsFetchingLocation(false);
         }
       },
       () => {
         setIsFetchingLocation(false);
-        toast({ variant: "destructive", title: "Access Denied", description: "Please enable GPS permission." });
+        toast({ variant: "destructive", title: "Access Denied", description: "Please enable GPS permission for pinpoint delivery." });
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -405,7 +412,7 @@ export default function CartPage() {
               <MapPin className="h-5 w-5 text-primary" />
               <div className="flex-1">
                  <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
-                 {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase tracking-widest mt-0.5">Plus Location Enabled ✅</p>}
+                 {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase tracking-widest mt-0.5">GPS Precision Locked ✅</p>}
               </div>
             </div>
             <button 
@@ -418,17 +425,16 @@ export default function CartPage() {
             </button>
           </div>
 
-          {/* PinPoint Visual Summary like in the screenshot */}
-          {plusCode && (
+          {coords.lat && (
             <div className="mb-6 p-4 bg-muted/20 rounded-2xl border border-border/50 animate-in fade-in slide-in-from-top-2">
                <div className="flex items-center gap-3">
                   <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-border/30">
                      <MapIcon className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-gray-800 uppercase tracking-tight">Current Plus Location</h4>
+                    <h4 className="text-xs font-black text-gray-800 uppercase tracking-tight">Verified Pinpoint Location</h4>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none mt-1">
-                      {plusCode} {customerCity}, {customerState}
+                      {customerCity}, {customerState} (Lat: {coords.lat.toFixed(4)})
                     </p>
                   </div>
                </div>
@@ -478,4 +484,3 @@ export default function CartPage() {
     </div>
   );
 }
-
