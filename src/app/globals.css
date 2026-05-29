@@ -31,18 +31,26 @@
 @layer base {
   * {
     @apply border-border;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
   }
+  
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter), sans-serif;
-    text-rendering: optimizeLegibility;
+    text-rendering: optimizeSpeed;
     -webkit-font-smoothing: antialiased;
   }
   
-  button, a {
-    @apply transition-all duration-150;
+  /* Super Snappy Interaction Global */
+  button, a, [role="button"], .interactive {
+    @apply transition-all duration-75 ease-out;
+    cursor: pointer;
+    will-change: transform, opacity;
+  }
+
+  button:active, a:active {
+    @apply scale-95;
   }
 }
 
@@ -101,7 +109,7 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border-2 border-[#C5A021] shadow-[0_12px_40px_rgba(197,160,33,0.18)] transition-all duration-200 relative overflow-hidden;
+  @apply bg-white rounded-[2rem] border-2 border-[#C5A021] shadow-[0_12px_40px_rgba(197,160,33,0.18)] transition-all duration-75 relative overflow-hidden;
   will-change: transform, opacity;
 }
 
@@ -111,7 +119,7 @@
 
 .premium-card::after {
   content: '';
-  @apply absolute inset-0 pointer-events-none rounded-[2rem] border border-transparent transition-colors duration-200;
+  @apply absolute inset-0 pointer-events-none rounded-[2rem] border border-transparent transition-colors duration-75;
 }
 
 /* Leaflet Overrides */
