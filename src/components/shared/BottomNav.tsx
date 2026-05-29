@@ -81,12 +81,12 @@ export function BottomNav() {
               key={item.label}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center space-y-1 w-full transition-all duration-300 relative",
+                "flex flex-col items-center justify-center space-y-1 w-full transition-all duration-150 relative active:scale-[0.90] touch-none",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">
-                <Icon className={cn("h-6 w-6 transition-transform", isActive && "scale-110")} />
+                <Icon className={cn("h-6 w-6 transition-transform duration-150", isActive && "scale-110")} />
                 {item.label === 'Orders' && totalItems > 0 && (
                   <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
                     {totalItems}

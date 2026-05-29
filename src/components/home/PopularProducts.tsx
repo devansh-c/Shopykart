@@ -113,7 +113,7 @@ export function PopularProducts({
         </div>
         
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase">
+          <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase transition-all duration-150 active:scale-95">
             <SlidersHorizontal className="h-3 w-3 mr-1.5" />
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
@@ -136,15 +136,15 @@ export function PopularProducts({
 
           return (
             <div key={product.id} className={cn(
-              "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-200",
+              "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-150",
               isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
             )}>
               <div className="flex-1 pr-4">
                 <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
                   <div className="h-full w-full bg-green-600 rounded-full" />
                 </div>
-                <Link href={`/product/view?id=${product.id}`} className={cn(isOffline && "pointer-events-none")}>
-                  <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight">{product.name}</h3>
+                <Link href={`/product/view?id=${product.id}`} className={cn("block group", isOffline && "pointer-events-none")}>
+                  <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight group-active:text-primary transition-colors">{product.name}</h3>
                   <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
                   <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Unknown Store'}</p>
                 </Link>
@@ -162,18 +162,18 @@ export function PopularProducts({
                 
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                   {quantity === 0 ? (
-                    <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-150 active:scale-95", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
+                    <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-150 active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
                       {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                     </button>
                   ) : (
                     <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
-                      <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Minus className="h-3 w-3" /></button>
+                      <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Minus className="h-3 w-3" /></button>
                       <span className="text-xs font-black min-w-[24px] text-center">{quantity}</span>
-                      <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full"><Plus className="h-4 w-4" /></button>
+                      <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Plus className="h-4 w-4" /></button>
                     </div>
                   )}
                 </div>
-                <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20 active:scale-90 transition-transform">
+                <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20 active:scale-75 transition-all">
                   <Heart className={cn("h-4 w-4", liked ? "fill-primary text-primary" : "text-gray-300")} />
                 </button>
               </div>
