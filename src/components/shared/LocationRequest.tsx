@@ -21,6 +21,10 @@ import { doc, setDoc, serverTimestamp, collection, query, where } from 'firebase
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Manual-only Location Picker.
+ * Does not auto-open on load. Only opens when triggered by user.
+ */
 export function LocationRequest() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -40,11 +44,8 @@ export function LocationRequest() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const hasLocation = localStorage.getItem('user_location_set');
-    if (!hasLocation && user) {
-      const timer = setTimeout(() => setOpen(true), 1500);
-      return () => clearTimeout(timer);
-    }
+    // Auto-open logic removed as per request.
+    // Location picker only opens when 'open-location-picker' event is fired.
 
     const handleOpen = () => {
       setSearchQuery('');
@@ -53,7 +54,7 @@ export function LocationRequest() {
 
     window.addEventListener('open-location-picker', handleOpen);
     return () => window.removeEventListener('open-location-picker', handleOpen);
-  }, [user]);
+  }, []);
 
   const filteredZones = useMemo(() => {
     if (!zones) return [];
@@ -70,7 +71,6 @@ export function LocationRequest() {
   const handleSelectZone = async (zone: any) => {
     setIsProcessing(true);
     
-    // Set a representative point (first point of boundary or legacy fallback)
     const lat = zone.boundary?.[0]?.lat || 25.2443;
     const lng = zone.boundary?.[0]?.lng || 79.0838;
     const pincode = zone.pincodes?.[0] || '';
@@ -195,4 +195,3 @@ export function LocationRequest() {
     </Dialog>
   );
 }
-
