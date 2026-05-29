@@ -21,23 +21,25 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 /**
- * Point-in-Polygon Algorithm (Ray Casting)
+ * Robust Point-in-Polygon Algorithm (Ray Casting)
  * vs: Array of points (can be [lat, lng] or {lat, lng})
  */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
+  if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
+  
+  // Ensure coordinates are numbers
+  const x = Number(lat);
+  const y = Number(lng);
+  
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const pI = vs[i];
-    const pJ = vs[j];
-    
-    // Extract coordinates supporting both Array and Object formats
-    const xi = Array.isArray(pI) ? pI[0] : pI.lat;
-    const yi = Array.isArray(pI) ? pI[1] : pI.lng;
-    const xj = Array.isArray(pJ) ? pJ[0] : pJ.lat;
-    const yj = Array.isArray(pJ) ? pJ[1] : pJ.lng;
+    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : vs[i].lat);
+    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : vs[i].lng);
+    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : vs[j].lat);
+    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : vs[j].lng);
 
-    const intersect = ((yi > lng) !== (yj > lng))
-        && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    const intersect = ((yi > y) !== (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
   return inside;
@@ -78,7 +80,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   const currentZone = useMemo(() => {
-    if (!activeZones) return null;
+    if (!activeZones || activeZones.length === 0) return null;
 
     // 1. Try Map Boundary Check First (Most Accurate)
     if (currentCoords) {
@@ -91,9 +93,12 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       if (matchedMapZone) return matchedMapZone;
     }
 
-    // 2. Fallback to Pincode Check
+    // 2. Fallback to Pincode Check (If Map check fails or GPS unavailable)
     if (currentPincode) {
-      return activeZones.find(zone => zone.pincodes && zone.pincodes.includes(currentPincode));
+      const cleanPin = currentPincode.trim();
+      return activeZones.find(zone => 
+        zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.includes(cleanPin)
+      );
     }
 
     return null;
@@ -118,6 +123,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const hasLocation = !!localStorage.getItem('user_location_set');
   const noZonesDefined = !activeZones || activeZones.length === 0;
 
+  // IMPORTANT: If no zones are defined yet, don't block the user (allows setup)
   if (noZonesDefined || !hasLocation || !!currentZone) {
     if (currentZone) {
       localStorage.setItem('active_zone_id', currentZone.id);
