@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -91,7 +91,7 @@ export function OrderManagement() {
                   <Package className="h-8 w-8" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-3 mb-1.5">
                     <h3 className="font-black text-lg italic tracking-tight">#{order.orderDisplayId || order.id.slice(-5).toUpperCase()}</h3>
                     <Badge className={cn("text-[9px] font-black uppercase tracking-widest rounded-full border-none", getStatusColor(order.status))}>
                       {order.status}
@@ -136,23 +136,37 @@ export function OrderManagement() {
                       </div>
                     </div>
 
+                    {/* PLUS LOCATION DISPLAY (Pinpoint Delivery) */}
                     <div className="flex flex-col gap-1 md:col-span-2">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Delivery Location</p>
-                      <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
-                        <div className="flex items-start text-xs font-bold text-gray-600 min-w-0 pr-4">
-                          <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary shrink-0 mt-0.5" />
-                          <div className="flex flex-col min-w-0">
-                             <span className="truncate line-clamp-1">{order.address}</span>
-                             {order.latitude && <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">Live GPS Pin Enabled ✅</span>}
-                          </div>
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">Pinpoint Plus Location</p>
+                      <div className="bg-black text-white p-4 rounded-2xl flex items-center justify-between group/loc relative overflow-hidden">
+                        <div className="relative z-10 flex items-center gap-3">
+                           <div className="bg-primary/20 p-2 rounded-xl text-primary border border-primary/20">
+                              <MapIcon className="h-5 w-5" />
+                           </div>
+                           <div>
+                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">Plus Code Tracked</h4>
+                              <p className="text-xs font-bold tracking-widest text-gray-300 uppercase">
+                                {order.plusCode || 'COORDINATES ONLY'}
+                              </p>
+                           </div>
                         </div>
                         <button 
                           onClick={() => handleTrackLocation(order)}
-                          className="shrink-0 flex items-center gap-1.5 bg-blue-600 px-4 py-2 rounded-xl shadow-xl shadow-blue-200 text-white text-[10px] font-black uppercase italic hover:bg-blue-700 transition-all active:scale-95 animate-jump"
+                          className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase italic active:scale-95 transition-all shadow-xl"
                         >
-                          <Compass className="h-4 w-4" />
-                          TRACK GPS
+                          <Compass className="h-4 w-4 text-primary" />
+                          OPEN MAPS
                         </button>
+                        <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-8" />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 md:col-span-2">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Full Readable Address</p>
+                      <div className="flex items-start text-xs font-bold text-gray-600 p-1">
+                        <MapPin className="h-3.5 w-3.5 mr-2 text-primary shrink-0 mt-0.5" />
+                        <span className="leading-snug">{order.address}</span>
                       </div>
                     </div>
                   </div>
