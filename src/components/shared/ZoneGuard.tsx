@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 /**
  * @fileOverview ZoneGuard validates if the customer is within an active serving zone.
  * Blocks entire app UI for customers if they are in an unserved area.
+ * MODIFIED: Bypasses blocking if no zones are defined in the system yet.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -69,13 +70,25 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }
 
   const hasLocation = !!localStorage.getItem('user_location_set');
-  if (!hasLocation || !!currentZone) {
+  
+  // NEW LOGIC: If Admin hasn't created any zones yet, don't block anyone.
+  // This allows the app to function normally until the first zone is defined.
+  const noZonesDefined = !activeZones || activeZones.length === 0;
+
+  if (noZonesDefined || !hasLocation || !!currentZone) {
     if (currentZone) {
       localStorage.setItem('active_zone_id', currentZone.id);
+    } else {
+      // Clear zone ID if we are in "No Zones Defined" mode or location not set
+      localStorage.removeItem('active_zone_id');
     }
     return <>{children}</>;
   }
 
+  // ONLY SHOW BLOCKING SCREEN IF:
+  // 1. Zones are defined in Admin Panel
+  // 2. Customer has set a location
+  // 3. Customer's pincode doesn't match any zone
   return (
     <div className="fixed inset-0 z-[500] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700 py-10">
