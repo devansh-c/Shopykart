@@ -215,7 +215,7 @@ export default function VendorDashboard() {
       category: newProduct.category,
       isVeg: newProduct.isVeg,
       vendorId: user.uid, 
-      zoneId: vendorProfile.zoneId || null, // Ensuring products get the vendor's zone
+      zoneId: vendorProfile.zoneId || null, 
       town: vendorProfile.town, 
       restaurantName: vendorProfile.storeName,
       createdAt: serverTimestamp(),
@@ -309,7 +309,7 @@ export default function VendorDashboard() {
                         <button 
                           onClick={() => handleTrackLocation(order)}
                           className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-xl shadow-xl shadow-blue-600/20 active:scale-90 transition-all"
-                          title="Navigate"
+                          title="Navigate to Pin"
                         >
                           <Navigation className="h-5 w-5" />
                         </button>
@@ -330,7 +330,7 @@ export default function VendorDashboard() {
                    <div>
                       <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Delivery Address</p>
                       <span className="text-xs font-bold text-gray-700 leading-snug">{order.address || 'Address not provided'}</span>
-                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">GPS Pin Available ✅</p>}
+                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">GPS Pin Enabled ✅</p>}
                    </div>
                 </div>
                 

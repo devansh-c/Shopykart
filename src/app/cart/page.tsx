@@ -151,7 +151,6 @@ export default function CartPage() {
         setCoords({ lat: latitude, lng: longitude });
         
         try {
-          // Simple reverse geocoding using Nominatim (OpenStreetMap)
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
           if (data && data.address) {
@@ -162,7 +161,7 @@ export default function CartPage() {
             setCustomerAddress(addr);
             setCustomerCity(city);
             setCustomerPincode(pin);
-            toast({ title: "Location Captured", description: "Precise address updated." });
+            toast({ title: "Location Captured", description: "Precise coordinates and address updated." });
           }
         } catch (e) {
           toast({ title: "GPS Pin Set", description: "Coordinates captured successfully." });
@@ -174,7 +173,7 @@ export default function CartPage() {
         setIsFetchingLocation(false);
         toast({ variant: "destructive", title: "Access Denied", description: "Please enable GPS permission." });
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
@@ -403,13 +402,13 @@ export default function CartPage() {
               <MapPin className="h-5 w-5 text-primary" />
               <div className="flex-1">
                  <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
-                 {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase">GPS Pin Captured ✅</p>}
+                 {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase tracking-widest mt-0.5">GPS Pin Captured ✅</p>}
               </div>
             </div>
             <button 
               onClick={handleGetCurrentLocation}
               disabled={isFetchingLocation}
-              className="flex items-center gap-1.5 bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+              className="flex items-center gap-1.5 bg-primary/5 px-4 py-2 rounded-xl border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
             >
               {isFetchingLocation ? <Loader2 className="h-3 w-3 animate-spin" /> : <LocateFixed className="h-3 w-3" />}
               {isFetchingLocation ? 'Fetching...' : 'GPS Auto-Fill'}
