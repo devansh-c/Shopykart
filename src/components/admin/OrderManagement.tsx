@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -51,7 +51,6 @@ export function OrderManagement() {
       const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
       window.open(url, '_blank');
     } else {
-      // Fallback to text address search if GPS not available
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
       window.open(url, '_blank');
     }
@@ -142,14 +141,17 @@ export function OrderManagement() {
                       <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
                         <div className="flex items-start text-xs font-bold text-gray-600 min-w-0 pr-4">
                           <MapPin className="h-3.5 w-3.5 mr-1.5 text-primary shrink-0 mt-0.5" />
-                          <span className="truncate line-clamp-1">{order.address}</span>
+                          <div className="flex flex-col min-w-0">
+                             <span className="truncate line-clamp-1">{order.address}</span>
+                             {order.latitude && <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">Live GPS Pin Enabled ✅</span>}
+                          </div>
                         </div>
                         <button 
                           onClick={() => handleTrackLocation(order)}
-                          className="shrink-0 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-blue-200 text-blue-600 text-[10px] font-black uppercase italic hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+                          className="shrink-0 flex items-center gap-1.5 bg-blue-600 px-4 py-2 rounded-xl shadow-xl shadow-blue-200 text-white text-[10px] font-black uppercase italic hover:bg-blue-700 transition-all active:scale-95 animate-jump"
                         >
-                          <Navigation className="h-3 w-3" />
-                          NAVIGATE
+                          <Compass className="h-4 w-4" />
+                          TRACK GPS
                         </button>
                       </div>
                     </div>
@@ -170,16 +172,6 @@ export function OrderManagement() {
                       </div>
                     ))}
                     
-                    {order.items?.some((i: any) => i.isCustom) && (
-                      <div className="flex justify-between items-center text-[10px] font-black text-primary italic pt-1">
-                         <div className="flex items-center gap-1.5">
-                            <Sparkles className="h-3 w-3" />
-                            <span>CUSTOM DISH SERVICE CHARGE</span>
-                         </div>
-                         <span>₹{order.items.reduce((acc: number, item: any) => acc + (item.customSurcharge || 0), 0)}</span>
-                      </div>
-                    )}
-
                     <div className="pt-2 mt-2 border-t border-dashed border-border/50 flex justify-between items-center">
                        <span className="text-[10px] font-black text-muted-foreground uppercase">Grand Total</span>
                        <span className="text-base font-black text-foreground italic tracking-tight">₹{order.total?.toFixed(2)}</span>

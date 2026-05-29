@@ -29,7 +29,8 @@ import {
   Zap,
   CheckCircle2,
   Sparkles,
-  Coins
+  Coins,
+  LocateFixed
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -58,6 +59,7 @@ export default function CartPage() {
   const [addressType, setAddressType] = useState('Home');
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [useCoins, setUseCoins] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -66,10 +68,8 @@ export default function CartPage() {
   const [customerPincode, setCustomerPincode] = useState('');
   const [customerState, setCustomerState] = useState('Uttar Pradesh');
 
-  // Fetch coordinates from local storage
   const [coords, setCoords] = useState<{lat: number | null, lng: number | null}>({ lat: null, lng: null });
 
-  // 1. Fetch Economy Settings (for coin value)
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
@@ -77,7 +77,6 @@ export default function CartPage() {
   const { data: branding } = useDoc<any>(brandingRef);
   const coinValue = branding?.coinValue || 0.5;
 
-  // 2. Fetch User Profile for current coins
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -85,19 +84,12 @@ export default function CartPage() {
   const { data: profile } = useDoc<any>(profileRef);
   const availableCoins = profile?.coins || 0;
 
-  const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'vendors');
-  }, [firestore]);
-  const { data: allVendors } = useCollection<any>(vendorsQuery);
-
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'checkout_charges');
   }, [firestore]);
   const { data: dbCharges } = useCollection<any>(chargesQuery);
 
-  // CUSTOM DISH SURCHARGE LOGIC
   const customSurchargeTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
   }, [cart]);
@@ -120,7 +112,6 @@ export default function CartPage() {
     return dynamicCharges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamicCharges]);
 
-  // COIN DISCOUNT CALCULATION
   const coinDiscount = useMemo(() => {
     if (!useCoins || availableCoins <= 0 || coinValue <= 0) return 0;
     const potentialDiscount = availableCoins * coinValue;
@@ -134,7 +125,7 @@ export default function CartPage() {
       setCustomerName(localStorage.getItem('user_name') || '');
       setCustomerPhone(localStorage.getItem('user_phone') || '');
       setCustomerAddress(localStorage.getItem('user_address_line') || '');
-      setCustomerCity(localStorage.getItem('user_city') || 'Ranipur');
+      setCustomerCity(localStorage.getItem('user_city') || '');
       setCustomerPincode(localStorage.getItem('user_pincode') || '');
       
       const plusCode = localStorage.getItem('user_plus_code');
@@ -146,6 +137,46 @@ export default function CartPage() {
       }
     }
   }, []);
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ variant: "destructive", title: "GPS Error", description: "Your browser doesn't support location." });
+      return;
+    }
+
+    setIsFetchingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoords({ lat: latitude, lng: longitude });
+        
+        try {
+          // Simple reverse geocoding using Nominatim (OpenStreetMap)
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          if (data && data.address) {
+            const addr = data.display_name;
+            const city = data.address.city || data.address.town || data.address.village || '';
+            const pin = data.address.postcode || '';
+            
+            setCustomerAddress(addr);
+            setCustomerCity(city);
+            setCustomerPincode(pin);
+            toast({ title: "Location Captured", description: "Precise address updated." });
+          }
+        } catch (e) {
+          toast({ title: "GPS Pin Set", description: "Coordinates captured successfully." });
+        } finally {
+          setIsFetchingLocation(false);
+        }
+      },
+      () => {
+        setIsFetchingLocation(false);
+        toast({ variant: "destructive", title: "Access Denied", description: "Please enable GPS permission." });
+      },
+      { enableHighAccuracy: true }
+    );
+  };
 
   const createOrderInFirestore = async () => {
     if (!firestore || isPlacing) return;
@@ -229,11 +260,7 @@ export default function CartPage() {
     }
 
     if (customerPhone.startsWith('0')) {
-      toast({ 
-        variant: "destructive", 
-        title: "Invalid Phone", 
-        description: "any phone number cannot start with zero" 
-      });
+      toast({ variant: "destructive", title: "Invalid Phone", description: "Phone number cannot start with zero." });
       return;
     }
 
@@ -371,12 +398,22 @@ export default function CartPage() {
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-6">
-            <MapPin className="h-5 w-5 text-primary" />
-            <div className="flex-1">
-               <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
-               {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase">GPS Location Captured ✅</p>}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              <div className="flex-1">
+                 <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
+                 {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase">GPS Pin Captured ✅</p>}
+              </div>
             </div>
+            <button 
+              onClick={handleGetCurrentLocation}
+              disabled={isFetchingLocation}
+              className="flex items-center gap-1.5 bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+            >
+              {isFetchingLocation ? <Loader2 className="h-3 w-3 animate-spin" /> : <LocateFixed className="h-3 w-3" />}
+              {isFetchingLocation ? 'Fetching...' : 'GPS Auto-Fill'}
+            </button>
           </div>
           <div className="space-y-3">
               <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
