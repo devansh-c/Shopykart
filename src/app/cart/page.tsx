@@ -190,27 +190,6 @@ export default function CartPage() {
     return () => window.removeEventListener('user-address-updated', updateLocalState);
   }, [profile]);
 
-  const handleUseGPS = () => {
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Not Supported" });
-      return;
-    }
-
-    setIsValidatingLocation(true);
-    
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-        validateAndSetCoords(lat, lng, accuracy);
-      },
-      (error) => {
-        setIsValidatingLocation(false);
-        toast({ variant: "destructive", title: "Location Error", description: "Please enable GPS." });
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
   const validateAndSetCoords = async (lat: number, lng: number, accuracy?: number) => {
     const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
@@ -420,19 +399,11 @@ export default function CartPage() {
 
           <div className="space-y-4">
               <div className="flex gap-2">
-                 <button 
-                  onClick={handleUseGPS}
-                  disabled={isValidatingLocation}
-                  className="flex-1 h-12 bg-primary/5 border-2 border-primary/10 rounded-xl flex items-center justify-center gap-2 text-primary font-black uppercase text-[10px] active:scale-95 transition-all"
-                 >
-                   {isValidatingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                   VERIFY GPS
-                 </button>
                  <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                     <DialogTrigger asChild>
-                      <button className="flex-1 h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px] active:scale-95 transition-all">
+                      <button className="w-full h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px] active:scale-95 transition-all">
                         <MapIcon className="h-4 w-4" />
-                        ADJUST PIN
+                        PIN LOCATION ON MAP
                       </button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl">
