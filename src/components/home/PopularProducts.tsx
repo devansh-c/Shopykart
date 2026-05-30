@@ -64,20 +64,14 @@ export function PopularProducts({
     let result = dbProducts.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
       
-      // Strict Zone Check:
-      // 1. Agar customer ne location choose ki hai, toh sirf us zone ke products dikhao.
-      // 2. Agar product Admin ne manually dala hai aur 'zoneId' match karta hai, toh dikhao.
       if (activeZoneId) {
         const productZoneId = product.zoneId || vendor?.zoneId;
         if (productZoneId !== activeZoneId) return false;
       }
 
-      // Mode Check (Food vs Grocery):
-      // Agar vendor se link hai, toh vendor ki category dekho, varna default 'Food'
       const productMode = vendor?.category || 'Food';
       if (productMode !== activeMode) return false;
 
-      // Search & Category Filters:
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower) || 
@@ -153,20 +147,20 @@ export function PopularProducts({
               "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-75",
               isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
             )}>
-              <div className="flex-1 pr-4">
-                <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
+              <div className="flex-1 pr-4 min-w-0">
+                <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
                   <div className="h-full w-full bg-green-600 rounded-full" />
                 </div>
                 <ProductQuickView product={product}>
-                  <button className={cn("block group text-left", isOffline && "pointer-events-none")}>
-                    <h3 className="font-bold text-xl text-[#1C1C1C] mb-2 italic tracking-tight group-active:text-primary transition-colors">{product.name}</h3>
+                  <button className={cn("block group text-left w-full", isOffline && "pointer-events-none")}>
+                    <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight group-active:text-primary transition-colors line-clamp-2">{product.name}</h3>
                     <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Unknown Store'}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate">from {product.restaurantName || 'Unknown Store'}</p>
                   </button>
                 </ProductQuickView>
               </div>
               
-              <div className="relative w-32 h-32 shrink-0">
+              <div className="relative w-28 h-28 shrink-0">
                 <ProductQuickView product={product}>
                   <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted", isOffline && "pointer-events-none")}>
                     <Image 
@@ -179,29 +173,29 @@ export function PopularProducts({
                     />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
-                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed Now</span>
+                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
                       </div>
                     )}
                   </button>
                 </ProductQuickView>
                 
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (
                     <ProductQuickView product={product}>
-                      <button disabled={isOffline} className={cn("w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-75 active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
+                      <button disabled={isOffline} className={cn("w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl transition-all duration-75 active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
                         {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>
                     </ProductQuickView>
                   ) : (
-                    <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
+                    <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
                       <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Minus className="h-3 w-3" /></button>
-                      <span className="text-xs font-black min-w-[24px] text-center">{quantity}</span>
-                      <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Plus className="h-4 w-4" /></button>
+                      <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
+                      <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Plus className="h-3.5 w-3.5" /></button>
                     </div>
                   )}
                 </div>
                 <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20 active:scale-75 transition-all">
-                  <Heart className={cn("h-4 w-4", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                  <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
                 </button>
               </div>
             </div>
@@ -218,3 +212,4 @@ export function PopularProducts({
     </div>
   );
 }
+

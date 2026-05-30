@@ -115,11 +115,11 @@ function MenuContent() {
               <div className="h-20 w-20 rounded-2xl overflow-hidden border-2 border-primary shadow-xl shrink-0">
                 <img src={vendorProfile?.imageUrl || `https://picsum.photos/seed/${vendorIdParam}/200/200`} className="h-full w-full object-cover" alt="Logo" />
               </div>
-              <div className="flex-1 pb-1">
-                <h1 className="text-3xl font-black italic uppercase text-white tracking-tighter leading-none mb-2">{vendorProfile?.storeName || 'Store Details'}</h1>
+              <div className="flex-1 pb-1 min-w-0">
+                <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none mb-2 truncate">{vendorProfile?.storeName || 'Store Details'}</h1>
                 <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-primary italic">
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {vendorProfile?.deliveryTime || '20 min'}</span>
-                  <span className="flex items-center gap-1 text-white/60"><MapPin className="h-3 w-3" /> {vendorProfile?.address || 'Nearby'}</span>
+                  <span className="flex items-center gap-1 shrink-0"><Clock className="h-3 w-3" /> {vendorProfile?.deliveryTime || '20 min'}</span>
+                  <span className="flex items-center gap-1 text-white/60 truncate"><MapPin className="h-3 w-3" /> {vendorProfile?.address || 'Nearby'}</span>
                 </div>
               </div>
             </div>
@@ -192,11 +192,11 @@ function MenuContent() {
                   productIsOffline ? "opacity-60 grayscale-[0.4]" : "opacity-100"
                 )}
               >
-                <div className="flex-1 pr-4">
+                <div className="flex-1 pr-4 min-w-0">
                   <ProductQuickView product={product}>
-                    <button className={cn("block text-left", (productIsOffline || isOffline) && "pointer-events-none")}>
+                    <button className={cn("block text-left w-full", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                        <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
                           <div className="h-full w-full bg-green-600 rounded-full" />
                         </div>
                         {product.badges?.map((badge: string) => (
@@ -205,14 +205,14 @@ function MenuContent() {
                           </span>
                         ))}
                       </div>
-                      <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
+                      <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground line-clamp-2">{product.name}</h3>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic truncate">from {product.restaurantName}</p>
                       <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{(product.price || 0).toFixed(2)}</div>
                     </button>
                   </ProductQuickView>
                 </div>
                 
-                <div className="relative w-32 h-32 flex-shrink-0">
+                <div className="relative w-28 h-28 flex-shrink-0">
                   <ProductQuickView product={product}>
                     <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <img 
@@ -228,13 +228,13 @@ function MenuContent() {
                       )}
                     </button>
                   </ProductQuickView>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2 z-20">
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                     {quantity === 0 ? (
                       <ProductQuickView product={product}>
                         <button 
                           disabled={productIsOffline || isOffline}
                           className={cn(
-                            "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all",
+                            "w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all",
                             (productIsOffline || isOffline) && "opacity-50 border-gray-300 text-gray-400 shadow-none"
                           )}
                         >
@@ -242,7 +242,7 @@ function MenuContent() {
                         </button>
                       </ProductQuickView>
                     ) : (
-                      <div className="flex items-center justify-between w-full h-10 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
+                      <div className="flex items-center justify-between w-full h-9 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
                         <button 
                           onClick={() => removeFromCart(product.id)}
                           className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
@@ -283,3 +283,4 @@ export default function MenuPage() {
     </Suspense>
   );
 }
+
