@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -83,7 +84,7 @@ export function NotificationHandler() {
           window.focus();
           if (profile?.role === 'vendor') {
             router.push('/vendor/dashboard');
-          } else if (profile?.role === 'admin' || user?.email === 'admin@shopykart.com') {
+          } else if (profile?.role === 'admin' || user?.email === 'ceo@shopykart.co.in') {
             router.push('/admin/dashboard');
           } else {
             router.push('/orders');
@@ -104,7 +105,8 @@ export function NotificationHandler() {
   useEffect(() => {
     if (!user || !firestore) return;
     
-    const isAdmin = user.email === 'admin@shopykart.com' || profile?.role === 'admin';
+    // Updated admin email identification
+    const isAdmin = user.email === 'ceo@shopykart.co.in' || profile?.role === 'admin';
     const isVendor = profile?.role === 'vendor';
 
     let ordersQuery;

@@ -29,8 +29,8 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     // Mock Admin Credentials for MVP
-    // In production, this would use Firebase Auth
-    if (email === 'admin@shopykart.com' && password === 'admin123') {
+    // Updated credentials as requested
+    if (email === 'ceo@shopykart.co.in' && password === 'Ping@123//') {
       localStorage.setItem('admin_auth', 'true');
       toast({ title: "Login Successful", description: "Welcome to the Admin Dashboard." });
       router.push('/admin/dashboard');
@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
               <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Email</label>
               <Input 
                 type="email" 
-                placeholder="admin@shopykart.com" 
+                placeholder="ceo@shopykart.co.in" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
