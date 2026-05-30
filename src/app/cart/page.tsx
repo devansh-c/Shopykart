@@ -99,7 +99,7 @@ export default function CartPage() {
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
   }, [cart]);
 
-  const dynamicCharges = useMemo(() => {
+  const dynamic_charges = useMemo(() => {
     if (!dbCharges) return [];
     return dbCharges.map(charge => {
       let amount = 0;
@@ -114,8 +114,8 @@ export default function CartPage() {
   }, [dbCharges, totalPrice]);
 
   const chargesTotalSum = useMemo(() => {
-    return dynamicCharges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
-  }, [dynamicCharges]);
+    return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
+  }, [dynamic_charges]);
 
   const coinDiscount = useMemo(() => {
     if (!useCoins || availableCoins <= 0 || coinValue <= 0) return 0;
@@ -363,62 +363,6 @@ export default function CartPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-5 w-5 text-blue-500" />
-            <h3 className="text-sm font-bold text-gray-800 uppercase">Bill Details</h3>
-          </div>
-
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between font-bold text-gray-400">
-              <span>Item Total</span>
-              <span>₹{totalPrice.toFixed(2)}</span>
-            </div>
-            
-            {customSurchargeTotal > 0 && (
-              <div className="flex justify-between font-black text-primary animate-in slide-in-from-left-4">
-                <div className="flex items-center gap-1.5">
-                   <Sparkles className="h-3 w-3" />
-                   <span>Custom Order Surcharge</span>
-                </div>
-                <span>₹{customSurchargeTotal.toFixed(2)}</span>
-              </div>
-            )}
-            
-            {dynamicCharges.map((charge: any) => (
-              <div key={charge.id} className="flex justify-between font-bold text-gray-400">
-                <span>{charge.name} {charge.type === 'percentage' && `(${charge.value}%)`}</span>
-                <span>₹{(Number(charge.calculatedAmount) || 0).toFixed(2)}</span>
-              </div>
-            ))}
-
-            {Number(deliveryTip) > 0 && (
-              <div className="flex justify-between font-black text-primary animate-in slide-in-from-bottom-2">
-                <div className="flex items-center gap-1.5">
-                   <Bike className="h-3.5 w-3.5" />
-                   <span>Delivery Tip</span>
-                </div>
-                <span>₹{Number(deliveryTip).toFixed(2)}</span>
-              </div>
-            )}
-
-            {useCoins && coinDiscount > 0 && (
-              <div className="flex justify-between font-black text-amber-600 animate-in slide-in-from-bottom-2">
-                <div className="flex items-center gap-1.5">
-                   <Zap className="h-3.5 w-3.5 fill-amber-500" />
-                   <span>Coins Discount Applied</span>
-                </div>
-                <span>- ₹{coinDiscount.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
-            <span className="text-lg font-black text-gray-700">Total Payable</span>
-            <span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span>
-          </div>
-        </div>
-
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -543,6 +487,63 @@ export default function CartPage() {
           )}
         </div>
 
+        {/* BILL DETAILS SECTION - MOVED ABOVE PAY USING */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-5 w-5 text-blue-500" />
+            <h3 className="text-sm font-bold text-gray-800 uppercase">Bill Details</h3>
+          </div>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between font-bold text-gray-400">
+              <span>Item Total</span>
+              <span>₹{totalPrice.toFixed(2)}</span>
+            </div>
+            
+            {customSurchargeTotal > 0 && (
+              <div className="flex justify-between font-black text-primary animate-in slide-in-from-left-4">
+                <div className="flex items-center gap-1.5">
+                   <Sparkles className="h-3 w-3" />
+                   <span>Custom Order Surcharge</span>
+                </div>
+                <span>₹{customSurchargeTotal.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {dynamic_charges.map((charge: any) => (
+              <div key={charge.id} className="flex justify-between font-bold text-gray-400">
+                <span>{charge.name} {charge.type === 'percentage' && `(${charge.value}%)`}</span>
+                <span>₹{(Number(charge.calculatedAmount) || 0).toFixed(2)}</span>
+              </div>
+            ))}
+
+            {Number(deliveryTip) > 0 && (
+              <div className="flex justify-between font-black text-primary animate-in slide-in-from-bottom-2">
+                <div className="flex items-center gap-1.5">
+                   <Bike className="h-3.5 w-3.5" />
+                   <span>Delivery Tip</span>
+                </div>
+                <span>₹{Number(deliveryTip).toFixed(2)}</span>
+              </div>
+            )}
+
+            {useCoins && coinDiscount > 0 && (
+              <div className="flex justify-between font-black text-amber-600 animate-in slide-in-from-bottom-2">
+                <div className="flex items-center gap-1.5">
+                   <Zap className="h-3.5 w-3.5 fill-amber-500" />
+                   <span>Coins Discount Applied</span>
+                </div>
+                <span>- ₹{coinDiscount.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
+            <span className="text-lg font-black text-gray-700">Total Payable</span>
+            <span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
            <div className="flex items-center gap-2 mb-6">
               <span className="text-sm">💳</span>
@@ -575,3 +576,4 @@ export default function CartPage() {
     </div>
   );
 }
+
