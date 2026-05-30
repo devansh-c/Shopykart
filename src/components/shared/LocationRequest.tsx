@@ -19,7 +19,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
@@ -124,7 +124,6 @@ export function LocationRequest() {
   const handleSelectZone = async (zone: any, customCoords?: [number, number]) => {
     setIsProcessing(true);
     
-    // PRECISION PLUS: Use sensor coordinates if available
     const finalLat = customCoords ? Number(customCoords[0].toFixed(8)) : null;
     const finalLng = customCoords ? Number(customCoords[1].toFixed(8)) : null;
 
@@ -144,14 +143,15 @@ export function LocationRequest() {
     }
 
     if (user && firestore) {
+      // Use setDoc with merge to prevent "No document to update" error
       const userRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
         address: zone.name,
         city: zone.city || 'Local',
         latitude: finalLat,
         longitude: finalLng,
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
     }
 
     setIsProcessing(false);

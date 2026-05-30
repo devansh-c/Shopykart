@@ -1,3 +1,4 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -8,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRef, useState } from 'react';
 import { compressImage } from '@/lib/image-utils';
 
@@ -67,8 +68,12 @@ export default function ProfilePage() {
       try {
         const compressed = await compressImage(base64, 400, 400);
         if (firestore && user) {
+          // Use setDoc with merge to prevent "No document to update" error
           const userRef = doc(firestore, 'users', user.uid);
-          await updateDoc(userRef, { profileImageUrl: compressed });
+          await setDoc(userRef, { 
+            profileImageUrl: compressed,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
           toast({ title: "Profile Updated", description: "Your new photo is now live." });
         }
       } catch (err) {

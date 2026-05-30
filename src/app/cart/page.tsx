@@ -40,7 +40,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, increment, query, limit, updateDoc, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, increment, query, limit, where } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -65,7 +65,7 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   const x = Number(lng);
   const y = Number(lat);
   let inside = false;
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+  for (let i = 0, j = vs.length - 1; i < points.length; j = i++) {
     const xi = Number(vs[i].lng ?? vs[i].longitude ?? (Array.isArray(vs[i]) ? vs[i][1] : 0));
     const yi = Number(vs[i].lat ?? vs[i].latitude ?? (Array.isArray(vs[i]) ? vs[i][0] : 0));
     const xj = Number(vs[j].lng ?? vs[j].longitude ?? (Array.isArray(vs[j]) ? vs[j][1] : 0));
@@ -92,7 +92,7 @@ export default function CartPage() {
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState(''); // Always starts empty
+  const [customerAddress, setCustomerAddress] = useState(''); 
   const [customerCity, setCustomerCity] = useState('');
   const [customerPincode, setCustomerPincode] = useState('');
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -160,14 +160,12 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount);
 
-  // Sync Initial State with Storage & Listen for global updates
   useEffect(() => {
     const updateLocalState = () => {
       if (typeof window === 'undefined') return;
       
       setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
       setCustomerPhone(profile?.phoneNumber || localStorage.getItem('user_phone') || '');
-      // customerAddress is purposely NOT pre-filled as per user request
       setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
       setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
       
@@ -201,7 +199,6 @@ export default function CartPage() {
       if (accuracy) setLocationAccuracy(accuracy);
 
       setCustomerCity(matchedZone.city || 'Local');
-      // customerAddress is NOT set to zone name to keep it empty for specific details
       
       localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
       localStorage.setItem('user_city', matchedZone.city || 'Local');
@@ -209,12 +206,13 @@ export default function CartPage() {
 
       if (user && firestore) {
         try {
-          await updateDoc(doc(firestore, 'users', user.uid), {
+          // Use setDoc with merge to prevent "No document to update" error
+          await setDoc(doc(firestore, 'users', user.uid), {
             latitude: finalLat,
             longitude: finalLng,
             city: matchedZone.city || 'Local',
             updatedAt: serverTimestamp()
-          });
+          }, { merge: true });
         } catch (e) {
           console.error("Firestore Save Error:", e);
         }
@@ -238,7 +236,6 @@ export default function CartPage() {
     if (!customerName.trim()) { toast({ variant: "destructive", title: "Missing Name" }); return; }
     if (customerPhone.length !== 10) { toast({ variant: "destructive", title: "Invalid Phone" }); return; }
     
-    // MANDATORY 15 CHARACTER ADDRESS VALIDATION
     if (customerAddress.trim().length < 15) { 
       toast({ 
         variant: "destructive", 
@@ -291,7 +288,8 @@ export default function CartPage() {
         instructions: instructions
       });
       
-      await updateDoc(doc(firestore, 'users', finalUid), {
+      // Use setDoc with merge here too for safety
+      await setDoc(doc(firestore, 'users', finalUid), {
         fullName: customerName,
         phoneNumber: customerPhone,
         address: customerAddress,
@@ -299,8 +297,9 @@ export default function CartPage() {
         pincode: customerPincode,
         latitude: latitude || null,
         longitude: longitude || null,
-        coins: increment(10 - coinsUsed) 
-      });
+        coins: increment(10 - coinsUsed),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
 
       setShowSuccess(true);
       setTimeout(() => {
