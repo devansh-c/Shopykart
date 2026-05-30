@@ -165,14 +165,15 @@ export function LocationRequest() {
       <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-300 z-[2001]">
         <div className="px-8 py-8">
           <div className="flex flex-col space-y-6">
-            <div className="flex flex-col items-center text-center space-y-2">
+            <DialogHeader className="flex flex-col items-center text-center space-y-2">
               <div className="h-14 w-14 bg-primary/10 rounded-[1.8rem] flex items-center justify-center text-primary mb-1 shadow-inner">
                 <MapPin className="h-7 w-7" />
               </div>
               <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                 DELIVERY <span className="text-primary">AREA.</span>
               </DialogTitle>
-            </div>
+              <DialogDescription className="sr-only">Choose your serving zone for accurate menu availability.</DialogDescription>
+            </DialogHeader>
 
             <div className="flex bg-muted/50 p-1 rounded-2xl">
               <button 

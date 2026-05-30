@@ -432,6 +432,9 @@ export default function CartPage() {
                       </button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl">
+                       <DialogHeader className="sr-only">
+                          <DialogTitle>Select Delivery Location</DialogTitle>
+                       </DialogHeader>
                        <MapPicker onConfirm={validateAndSetCoords} />
                     </DialogContent>
                  </Dialog>
