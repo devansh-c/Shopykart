@@ -59,7 +59,6 @@ export default function CartPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [useCoins, setUseCoins] = useState(false);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -72,8 +71,6 @@ export default function CartPage() {
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
-
-  const [coords, setCoords] = useState<{lat: number | null, lng: number | null}>({ lat: null, lng: null });
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -125,7 +122,6 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount);
 
-  // Synchronize state with profile data (Priority: Profile > LocalStorage)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
@@ -136,55 +132,6 @@ export default function CartPage() {
       setPlusCode(profile?.plusCode || localStorage.getItem('user_plus_code_string') || '');
     }
   }, [profile]);
-
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Error", description: "Your browser doesn't support location." });
-      return;
-    }
-
-    setIsFetchingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lng: longitude });
-        
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-          const data = await res.json();
-          
-          if (data && data.address) {
-            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || '';
-            const pin = data.address.postcode || '';
-            const road = data.address.road || data.address.neighbourhood || '';
-            const house = data.address.house_number || '';
-            
-            const fullReadable = data.display_name;
-            const shortAddress = [house, road].filter(Boolean).join(', ');
-
-            setCustomerAddress(shortAddress || fullReadable);
-            setCustomerCity(city);
-            setCustomerPincode(pin);
-            
-            const coordString = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
-            setPlusCode(coordString);
-            
-            localStorage.setItem('user_plus_code_string', coordString);
-            toast({ title: "Precision Pin Set", description: "Your exact delivery location has been captured." });
-          }
-        } catch (e) {
-          toast({ title: "GPS Pin Set", description: "Pinpoint coordinates captured." });
-        } finally {
-          setIsFetchingLocation(false);
-        }
-      },
-      () => {
-        setIsFetchingLocation(false);
-        toast({ variant: "destructive", title: "Access Denied", description: "Please enable GPS permission for pinpoint delivery." });
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-  };
 
   const createOrderInFirestore = async () => {
     if (!firestore || isPlacing) return;
@@ -227,8 +174,8 @@ export default function CartPage() {
       plusCode: String(plusCode || ''),
       pincode: String(customerPincode || ''),
       instructions: String(instructions || ''),
-      latitude: coords.lat || (profile?.latitude || null),
-      longitude: coords.lng || (profile?.longitude || null),
+      latitude: profile?.latitude || null,
+      longitude: profile?.longitude || null,
       createdAt: serverTimestamp(),
       vendorId: String(cart[0]?.vendorId || 'global'),
       restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
@@ -247,7 +194,6 @@ export default function CartPage() {
         address: String(customerAddress),
         city: String(customerCity),
         pincode: String(customerPincode),
-        plusCode: String(plusCode),
         updatedAt: serverTimestamp(),
         coins: increment(10 - coinsUsed) 
       };
@@ -268,14 +214,29 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
-    if (!customerName.trim() || customerPhone.length !== 10 || !customerAddress.trim() || customerPincode.length !== 6) {
-      toast({ variant: "destructive", title: "Incomplete Details", description: "Please fill all required fields." });
+    
+    // Strict Manual Validation
+    if (!customerName.trim()) {
+      toast({ variant: "destructive", title: "Missing Name", description: "Please enter your full name." });
       return;
     }
-    if (customerPhone.startsWith('0')) {
-      toast({ variant: "destructive", title: "Invalid Phone", description: "Phone number cannot start with zero." });
+    if (customerPhone.length !== 10 || customerPhone.startsWith('0')) {
+      toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a valid 10-digit number." });
       return;
     }
+    if (!customerAddress.trim()) {
+      toast({ variant: "destructive", title: "Missing Address", description: "Building and street details are required." });
+      return;
+    }
+    if (!customerCity.trim()) {
+      toast({ variant: "destructive", title: "Missing City", description: "Please enter your city." });
+      return;
+    }
+    if (customerPincode.length !== 6) {
+      toast({ variant: "destructive", title: "Invalid Pincode", description: "Please enter a valid 6-digit pincode." });
+      return;
+    }
+
     await createOrderInFirestore();
   };
 
@@ -363,49 +324,46 @@ export default function CartPage() {
           </div>
         )}
 
+        {/* MANUAL DELIVERY ADDRESS FORM */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              <div className="flex-1">
-                 <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
-                 {coords.lat && <p className="text-[8px] font-black text-green-600 uppercase tracking-widest mt-0.5">GPS Precision Locked ✅</p>}
-              </div>
-            </div>
-            <button 
-              onClick={handleGetCurrentLocation}
-              disabled={isFetchingLocation}
-              className="flex items-center gap-1.5 bg-primary/5 px-4 py-2 rounded-xl border border-primary/10 text-primary text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
-            >
-              {isFetchingLocation ? <Loader2 className="h-3 w-3 animate-spin" /> : <LocateFixed className="h-3 w-3" />}
-              {isFetchingLocation ? 'Pinning...' : 'GPS Auto-Fill'}
-            </button>
+          <div className="flex items-center gap-2 mb-6">
+            <MapPin className="h-5 w-5 text-primary" />
+            <h2 className="text-sm font-bold text-gray-800">Delivery Address</h2>
           </div>
 
-          {coords.lat && (
-            <div className="mb-6 p-4 bg-muted/20 rounded-2xl border border-border/50 animate-in fade-in slide-in-from-top-2">
-               <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-border/30">
-                     <MapIcon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-gray-800 uppercase tracking-tight">Verified Pinpoint Location</h4>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none mt-1">
-                      {customerCity}, {customerState} (Lat: {coords.lat.toFixed(4)})
-                    </p>
-                  </div>
-               </div>
-            </div>
-          )}
-
           <div className="space-y-3">
-              <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+              <Input 
+                placeholder="Full Name *" 
+                value={customerName} 
+                onChange={e => setCustomerName(e.target.value)} 
+                className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+              />
               <div className="grid grid-cols-2 gap-4">
-                <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <Input placeholder="City *" value={customerCity} onChange={e => setCustomerCity(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                <Input 
+                  placeholder="Pincode *" 
+                  value={customerPincode} 
+                  onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} 
+                  className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+                />
+                <Input 
+                  placeholder="City *" 
+                  value={customerCity} 
+                  onChange={e => setCustomerCity(e.target.value)} 
+                  className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+                />
               </div>
-              <Textarea placeholder="Building / Street / Landmark *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
-              <Input placeholder="10 Digit Mobile Number *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+              <Textarea 
+                placeholder="Building / Street / Landmark *" 
+                value={customerAddress} 
+                onChange={e => setCustomerAddress(e.target.value)} 
+                className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" 
+              />
+              <Input 
+                placeholder="10 Digit Mobile Number *" 
+                value={customerPhone} 
+                onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} 
+                className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+              />
           </div>
         </div>
 
@@ -487,7 +445,7 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* BILL DETAILS SECTION - MOVED ABOVE PAY USING */}
+        {/* BILL DETAILS SECTION */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-5 w-5 text-blue-500" />
@@ -576,4 +534,3 @@ export default function CartPage() {
     </div>
   );
 }
-
