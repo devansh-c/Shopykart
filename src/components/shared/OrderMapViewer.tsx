@@ -22,7 +22,13 @@ const markerIcon = L.icon({
 function MapResizer({ lat, lng }: { lat: number, lng: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([lat, lng], 16);
+    if (lat && lng) {
+      map.setView([lat, lng], 17);
+      // Essential for React-Leaflet inside Modals/Dialogs
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 400);
+    }
   }, [lat, lng, map]);
   return null;
 }
@@ -37,7 +43,7 @@ export default function OrderMapViewer({ lat, lng }: OrderMapViewerProps) {
     <div className="h-full w-full">
       <MapContainer 
         center={[lat, lng]} 
-        zoom={16} 
+        zoom={17} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
       >

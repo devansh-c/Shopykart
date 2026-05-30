@@ -58,8 +58,7 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * Standard Robust Point-in-Polygon Algorithm
- * X = Longitude, Y = Latitude
+ * Robust Point-in-Polygon Algorithm
  */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
@@ -67,10 +66,10 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   const y = Number(lat);
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(vs[i].lng || (Array.isArray(vs[i]) ? vs[i][1] : (vs[i].longitude || 0)));
-    const yi = Number(vs[i].lat || (Array.isArray(vs[i]) ? vs[i][0] : (vs[i].latitude || 0)));
-    const xj = Number(vs[j].lng || (Array.isArray(vs[j]) ? vs[j][1] : (vs[j].longitude || 0)));
-    const yj = Number(vs[j].lat || (Array.isArray(vs[j]) ? vs[j][0] : (vs[j].latitude || 0)));
+    const xi = Number(vs[i].lng ?? vs[i].longitude ?? (Array.isArray(vs[i]) ? vs[i][1] : 0));
+    const yi = Number(vs[i].lat ?? vs[i].latitude ?? (Array.isArray(vs[i]) ? vs[i][0] : 0));
+    const xj = Number(vs[j].lng ?? vs[j].longitude ?? (Array.isArray(vs[j]) ? vs[j][1] : 0));
+    const yj = Number(vs[j].lat ?? vs[j].latitude ?? (Array.isArray(vs[j]) ? vs[j][0] : 0));
     
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
@@ -162,6 +161,7 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount);
 
+  // Sync Initial State with Storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
@@ -169,194 +169,141 @@ export default function CartPage() {
       setCustomerAddress(profile?.address || localStorage.getItem('user_address_line') || '');
       setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
       setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
-      if (profile?.latitude) setLatitude(profile.latitude);
-      if (profile?.longitude) setLongitude(profile.longitude);
+      
+      const savedPlusCode = localStorage.getItem('user_plus_code');
+      if (profile?.latitude) {
+        setLatitude(Number(profile.latitude));
+        setLongitude(Number(profile.longitude));
+      } else if (savedPlusCode) {
+        const [lat, lng] = savedPlusCode.split(',').map(Number);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setLatitude(lat);
+          setLongitude(lng);
+        }
+      }
     }
   }, [profile]);
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Not Supported", description: "Your device does not support high accuracy location." });
+      toast({ variant: "destructive", title: "GPS Not Supported" });
       return;
     }
 
     setIsValidatingLocation(true);
     
-    const gpsOptions = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-        // Priority: Raw Device GPS coordinates
-        setLatitude(lat);
-        setLongitude(lng);
-        setLocationAccuracy(accuracy);
         validateAndSetCoords(lat, lng, accuracy);
       },
       (error) => {
         setIsValidatingLocation(false);
-        let errorMsg = "Permission Denied. Please enable location access.";
-        if (error.code === 2) errorMsg = "GPS is disabled. Please turn on location services.";
-        if (error.code === 3) errorMsg = "GPS signal timeout. Please try again outside.";
-        
-        toast({ 
-          variant: "destructive", 
-          title: "Location Error", 
-          description: errorMsg 
-        });
+        toast({ variant: "destructive", title: "Location Error", description: "Please enable GPS." });
       },
-      gpsOptions
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
   const validateAndSetCoords = (lat: number, lng: number, accuracy?: number) => {
-    // 1. Precision Map Polygon Match
-    let matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
+    const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
-    // 2. Fallback to Pincode match
-    if (!matchedZone && customerPincode && zones) {
-      matchedZone = zones.find(z => z.pincodes && Array.isArray(z.pincodes) && z.pincodes.includes(customerPincode.trim()));
-    }
-
     if (matchedZone) {
-      // ENSURE we store the RAW sensor data, not just zone data
-      setLatitude(lat);
-      setLongitude(lng);
+      const finalLat = Number(lat.toFixed(8));
+      const finalLng = Number(lng.toFixed(8));
+
+      setLatitude(finalLat);
+      setLongitude(finalLng);
       if (accuracy) setLocationAccuracy(accuracy);
 
       if (!customerCity) setCustomerCity(matchedZone.city || 'Local');
       if (!customerAddress) setCustomerAddress(matchedZone.name);
       
-      // Update session storage with RAW Precision Lat/Lng
-      localStorage.setItem('user_plus_code', `${lat},${lng}`);
+      localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
       localStorage.setItem('user_address_line', matchedZone.name);
       localStorage.setItem('user_city', matchedZone.city || 'Local');
       localStorage.setItem('active_zone_id', matchedZone.id);
       
-      toast({ title: "Precision Pin Locked!", description: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+      toast({ title: "Precision Pin Locked!", description: `Coordinates verified successfully.` });
     } else {
       toast({ 
         variant: "destructive", 
         title: "Service Unavailable", 
-        description: "Your exact GPS position is outside our delivery area." 
+        description: "Selected spot is outside our delivery area." 
       });
     }
     setIsValidatingLocation(false);
     setIsMapOpen(false);
   };
 
-  const createOrderInFirestore = async () => {
+  const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
-    setIsPlacing(true);
-
-    const orderId = Math.floor(10000 + Math.random() * 90000).toString();
-    const orderRef = doc(firestore, 'orders', orderId);
-
-    const finalUid = user?.uid;
-    if (!finalUid) {
-      toast({ variant: "destructive", title: "Auth Error", description: "Please sign in again." });
-      setIsPlacing(false);
-      return;
-    }
     
-    const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''} - ${customerPincode || ''}`;
-    const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
+    if (!customerName.trim()) { toast({ variant: "destructive", title: "Missing Name" }); return; }
+    if (customerPhone.length !== 10) { toast({ variant: "destructive", title: "Invalid Phone" }); return; }
+    if (!customerAddress.trim()) { toast({ variant: "destructive", title: "Missing Address" }); return; }
+    if (!customerCity.trim()) { toast({ variant: "destructive", title: "Missing City" }); return; }
+    if (customerPincode.length !== 6) { toast({ variant: "destructive", title: "Invalid Pincode" }); return; }
 
-    // Use current state for Latitude/Longitude to ensure accuracy
-    const orderData = {
-      userId: String(finalUid),
-      customerName: String(customerName || 'Anonymous'),
-      customerPhone: String(customerPhone || ''),
-      orderDisplayId: String(orderId),
-      items: cart.map(item => ({ 
-        id: String(item.id), 
-        name: String(item.name), 
-        quantity: Number(item.quantity) || 1, 
-        price: Number(item.price) || 0, 
-        isCustom: !!item.isCustom,
-        customSurcharge: Number(item.customSurcharge) || 0,
-        vendorId: String(item.vendorId || 'global') 
-      })),
-      total: Number(grandTotal) || 0,
-      deliveryTip: Number(deliveryTip) || 0,
-      status: 'Placed',
-      orderType: 'Delivery',
-      paymentMethod: String(paymentMethod || 'online'),
-      paymentStatus: 'Pending',
-      address: String(fullFinalAddress),
-      pincode: String(customerPincode || ''),
-      instructions: String(instructions || ''),
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null,
-      locationAccuracy: locationAccuracy ? Number(locationAccuracy) : null,
-      locationTimestamp: Date.now(),
-      createdAt: serverTimestamp(),
-      vendorId: String(cart[0]?.vendorId || 'global'),
-      restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
-      coinsEarned: 10,
-      coinsUsed: coinsUsed,
-      coinDiscount: coinDiscount
-    };
+    setIsPlacing(true);
+    const orderId = Math.floor(10000 + Math.random() * 90000).toString();
+    const finalUid = user?.uid;
+    if (!finalUid) return;
+
+    const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
+    const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
     try {
-      await setDoc(orderRef, orderData);
-      
-      const userRef = doc(firestore, 'users', finalUid);
-      const userUpdateData: any = {
-        fullName: String(customerName),
-        phoneNumber: String(customerPhone),
-        address: String(customerAddress),
-        city: String(customerCity),
-        pincode: String(customerPincode),
+      await setDoc(doc(firestore, 'orders', orderId), {
+        userId: finalUid,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        orderDisplayId: orderId,
+        items: cart.map(item => ({ 
+          id: item.id, 
+          name: item.name, 
+          quantity: item.quantity, 
+          price: item.price, 
+          isCustom: !!item.isCustom,
+          vendorId: item.vendorId || 'global' 
+        })),
+        total: grandTotal,
+        deliveryTip: deliveryTip,
+        status: 'Placed',
+        paymentMethod: paymentMethod,
+        paymentStatus: 'Pending',
+        address: fullFinalAddress,
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
-        updatedAt: serverTimestamp(),
-        coins: increment(10 - coinsUsed) 
-      };
-
-      await updateDoc(userRef, userUpdateData);
-      setShowSuccess(true);
+        locationAccuracy: locationAccuracy || null,
+        createdAt: serverTimestamp(),
+        vendorId: cart[0]?.vendorId || 'global',
+        restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
+        coinsEarned: 10,
+        coinsUsed: coinsUsed,
+        coinDiscount: coinDiscount
+      });
       
+      await updateDoc(doc(firestore, 'users', finalUid), {
+        fullName: customerName,
+        phoneNumber: customerPhone,
+        address: customerAddress,
+        city: customerCity,
+        pincode: customerPincode,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        coins: increment(10 - coinsUsed) 
+      });
+
+      setShowSuccess(true);
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
       }, 3000);
     } catch (err) {
-      console.error("Order Creation Failed:", err);
       setIsPlacing(false);
-      toast({ variant: "destructive", title: "Order Failed", description: "Database connection error." });
+      toast({ variant: "destructive", title: "Order Failed" });
     }
-  };
-
-  const handleCheckout = async () => {
-    if (!firestore || isPlacing) return;
-    
-    if (!customerName.trim()) {
-      toast({ variant: "destructive", title: "Missing Name", description: "Please enter your full name." });
-      return;
-    }
-    if (customerPhone.length !== 10 || customerPhone.startsWith('0')) {
-      toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a valid 10-digit number." });
-      return;
-    }
-    if (!customerAddress.trim()) {
-      toast({ variant: "destructive", title: "Missing Address", description: "Building and street details are required." });
-      return;
-    }
-    if (!customerCity.trim()) {
-      toast({ variant: "destructive", title: "Missing City", description: "Please enter your city." });
-      return;
-    }
-    if (customerPincode.length !== 6) {
-      toast({ variant: "destructive", title: "Invalid Pincode", description: "Please enter a valid 6-digit pincode." });
-      return;
-    }
-
-    await createOrderInFirestore();
   };
 
   if (totalItems === 0 && !showSuccess) {
@@ -396,9 +343,6 @@ export default function CartPage() {
               <div key={item.id} className="flex gap-4">
                 <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100">
                   <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                  {item.isCustom && (
-                    <div className="absolute top-0 left-0 bg-primary/90 text-white text-[6px] font-black px-1 py-0.5 rounded-br-lg">CUSTOM</div>
-                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
@@ -423,22 +367,17 @@ export default function CartPage() {
 
         {availableCoins > 0 && (
           <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-10" />
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-amber-500/20 rounded-2xl flex items-center justify-center border border-amber-500/20 shadow-inner">
+                <div className="h-12 w-12 bg-amber-500/20 rounded-2xl flex items-center justify-center border border-amber-500/20">
                   <Coins className="h-6 w-6 text-amber-500 fill-amber-500" />
                 </div>
                 <div>
                    <h3 className="text-sm font-black text-white italic uppercase tracking-tight">Redeem Coins</h3>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Balance: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(2)})</p>
+                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Balance: {availableCoins} Coins</p>
                 </div>
               </div>
-              <Switch 
-                checked={useCoins} 
-                onCheckedChange={setUseCoins}
-                className="data-[state=checked]:bg-amber-50"
-              />
+              <Switch checked={useCoins} onCheckedChange={setUseCoins} />
             </div>
           </div>
         )}
@@ -465,122 +404,34 @@ export default function CartPage() {
                   className="flex-1 h-12 bg-primary/5 border-2 border-primary/10 rounded-xl flex items-center justify-center gap-2 text-primary font-black uppercase text-[10px] active:scale-95 transition-all"
                  >
                    {isValidatingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                   VERIFY PINPOINT GPS
+                   VERIFY GPS
                  </button>
                  <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                     <DialogTrigger asChild>
                       <button className="flex-1 h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px] active:scale-95 transition-all">
                         <MapIcon className="h-4 w-4" />
-                        ADJUST ON MAP
+                        ADJUST PIN
                       </button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl">
                        <DialogHeader className="sr-only">
                           <DialogTitle>Select Delivery Location</DialogTitle>
                        </DialogHeader>
-                       <MapPicker onConfirm={(lat, lng) => {
-                          setLatitude(lat);
-                          setLongitude(lng);
-                          validateAndSetCoords(lat, lng);
-                       }} />
+                       <MapPicker onConfirm={(lat, lng) => validateAndSetCoords(lat, lng)} />
                     </DialogContent>
                  </Dialog>
               </div>
 
               <div className="space-y-3">
-                <Input 
-                  placeholder="Receiver's Full Name *" 
-                  value={customerName} 
-                  onChange={e => setCustomerName(e.target.value)} 
-                  className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
-                />
+                <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input 
-                    placeholder="Pincode *" 
-                    value={customerPincode} 
-                    onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} 
-                    className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
-                  />
-                  <Input 
-                    placeholder="City *" 
-                    value={customerCity} 
-                    onChange={e => setCustomerCity(e.target.value)} 
-                    className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
-                  />
+                  <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                  <Input placeholder="City *" value={customerCity} onChange={e => setCustomerCity(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 </div>
-                <Textarea 
-                  placeholder="Flat / House / Building Details *" 
-                  value={customerAddress} 
-                  onChange={e => setCustomerAddress(e.target.value)} 
-                  className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" 
-                />
-                <Input 
-                  placeholder="10 Digit Phone Number *" 
-                  value={customerPhone} 
-                  onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} 
-                  className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
-                />
+                <Textarea placeholder="Flat / House / Building Details *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
+                <Input placeholder="10 Digit Phone *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
               </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Bike className="h-5 w-5 text-primary" />
-            <h4 className="text-sm font-bold text-gray-800">Add Delivery Tip</h4>
-          </div>
-          <p className="text-[10px] text-gray-500 mb-4 font-medium uppercase tracking-tight">Your tip goes directly to the delivery partner.</p>
-          <div className="flex flex-wrap gap-2">
-            {[10, 20, 30, 40].map((amount) => (
-              <button
-                key={amount}
-                onClick={() => {
-                  setDeliveryTip(amount);
-                  setIsCustomTipOpen(false);
-                  setCustomTipValue('');
-                }}
-                className={cn(
-                  "px-4 py-2 rounded-xl border-2 font-black text-xs transition-all active:scale-95",
-                  deliveryTip === amount && !isCustomTipOpen ? "border-primary bg-primary/5 text-primary" : "border-gray-100 bg-gray-50 text-gray-600"
-                )}
-              >
-                ₹{amount}
-              </button>
-            ))}
-            <button
-              onClick={() => {
-                setIsCustomTipOpen(true);
-                setDeliveryTip(0);
-              }}
-              className={cn(
-                "px-4 py-2 rounded-xl border-2 font-black text-xs transition-all active:scale-95",
-                isCustomTipOpen ? "border-primary bg-primary/5 text-primary" : "border-gray-100 bg-gray-50 text-gray-600"
-              )}
-            >
-              Other
-            </button>
-          </div>
-          
-          {isCustomTipOpen && (
-            <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-400">₹</span>
-                <Input 
-                  type="number"
-                  placeholder="Min ₹5"
-                  value={customTipValue}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCustomTipValue(val);
-                    const numVal = Number(val);
-                    if (numVal >= 5) setDeliveryTip(numVal);
-                    else setDeliveryTip(0);
-                  }}
-                  className="pl-7 h-12 rounded-xl bg-gray-50 border-none font-bold"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
@@ -594,27 +445,15 @@ export default function CartPage() {
               <span>Item Total</span>
               <span>₹{totalPrice.toFixed(2)}</span>
             </div>
-            {customSurchargeTotal > 0 && (
-              <div className="flex justify-between font-black text-primary animate-in slide-in-from-left-4">
-                <span>Custom Order Surcharge</span>
-                <span>₹{customSurchargeTotal.toFixed(2)}</span>
-              </div>
-            )}
             {dynamic_charges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-gray-400">
                 <span>{charge.name}</span>
                 <span>₹{(Number(charge.calculatedAmount) || 0).toFixed(2)}</span>
               </div>
             ))}
-            {Number(deliveryTip) > 0 && (
-              <div className="flex justify-between font-black text-primary">
-                <span>Delivery Tip</span>
-                <span>₹{Number(deliveryTip).toFixed(2)}</span>
-              </div>
-            )}
             {useCoins && coinDiscount > 0 && (
               <div className="flex justify-between font-black text-amber-600">
-                <span>Coins Discount Applied</span>
+                <span>Coins Applied</span>
                 <span>- ₹{coinDiscount.toFixed(2)}</span>
               </div>
             )}
@@ -627,17 +466,13 @@ export default function CartPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-           <div className="flex items-center gap-2 mb-6">
-              <span className="text-sm">💳</span>
-              <h4 className="text-sm font-bold text-gray-800">Pay Using</h4>
-           </div>
            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
-              <label className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", paymentMethod === 'online' ? "border-green-500 bg-green-50/30" : "border-gray-100")}>
-                <div className="flex items-center gap-3"><div className="bg-green-100 p-2 rounded-xl text-green-600"><CreditCard className="h-5 w-5" /></div><div><h5 className="text-xs font-bold text-gray-800">Online on Arrival</h5><p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">UPI on delivery</p></div></div>
+              <label className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer", paymentMethod === 'online' ? "border-green-500 bg-green-50/30" : "border-gray-100")}>
+                <div className="flex items-center gap-3"><div className="bg-green-100 p-2 rounded-xl text-green-600"><CreditCard className="h-5 w-5" /></div><div><h5 className="text-xs font-bold">UPI on Delivery</h5><p className="text-[9px] font-bold text-gray-400">Safe & Secure</p></div></div>
                 <RadioGroupItem value="online" />
               </label>
-              <label className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer", paymentMethod === 'cash' ? "border-green-500 bg-green-50/30" : "border-gray-100")}>
-                <div className="flex items-center gap-3"><div className="bg-gray-100 p-2 rounded-xl text-gray-600"><Banknote className="h-5 w-5" /></div><div><h5 className="text-xs font-bold text-gray-800">Pay with Cash</h5><p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Cash on delivery</p></div></div>
+              <label className={cn("flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer", paymentMethod === 'cash' ? "border-green-500 bg-green-50/30" : "border-gray-100")}>
+                <div className="flex items-center gap-3"><div className="bg-gray-100 p-2 rounded-xl text-gray-600"><Banknote className="h-5 w-5" /></div><div><h5 className="text-xs font-bold">Cash on Delivery</h5><p className="text-[9px] font-bold text-gray-400">Pay at Doorstep</p></div></div>
                 <RadioGroupItem value="cash" />
               </label>
            </RadioGroup>
@@ -650,7 +485,7 @@ export default function CartPage() {
               <div className="text-xl font-black text-gray-800 italic">₹{grandTotal.toFixed(2)}</div>
               <span className="text-[8px] font-black uppercase text-gray-400">{paymentMethod === 'online' ? '⚡ UPI' : '💵 Cash'}</span>
            </div>
-           <Button disabled={isPlacing} onClick={handleCheckout} className="h-14 px-10 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20">
+           <Button disabled={isPlacing} onClick={handleCheckout} className="h-14 px-10 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 text-white shadow-xl">
               {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}
            </Button>
         </div>

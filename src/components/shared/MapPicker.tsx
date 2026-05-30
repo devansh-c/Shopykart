@@ -1,38 +1,37 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   MapContainer, 
   TileLayer, 
-  Marker, 
   useMapEvents,
   useMap
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
-import { Navigation, Check } from 'lucide-react';
-
-const icon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-});
+import { Check } from 'lucide-react';
 
 function MapManager({ currentPos }: { currentPos: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     map.setView(currentPos, map.getZoom());
+    // Fix container size on mount to ensure pin is centered
+    setTimeout(() => map.invalidateSize(), 300);
   }, [currentPos, map]);
   return null;
 }
 
 function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
   const map = useMapEvents({
-    move() {
+    moveend() {
       const center = map.getCenter();
-      onPositionChange([center.lat, center.lng]);
+      // Using precise number formatting to prevent rounding errors
+      onPositionChange([
+        Number(center.lat.toFixed(8)), 
+        Number(center.lng.toFixed(8))
+      ]);
     }
   });
 
@@ -61,7 +60,7 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
     <div className="h-full w-full relative">
       <MapContainer 
         center={currentPos} 
-        zoom={15} 
+        zoom={16} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
       >

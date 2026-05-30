@@ -34,7 +34,7 @@ const MapPicker = dynamic(() => import('./MapPicker'), {
 });
 
 /**
- * Standard Robust Point-in-Polygon Algorithm
+ * Robust Point-in-Polygon Algorithm
  */
 function isPointInPolygon(lat: number, lng: number, points: any[]) {
   if (!points || !Array.isArray(points) || points.length < 3) return false;
@@ -42,10 +42,11 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
   const y = Number(lat);
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const xi = Number(points[i].lng || (Array.isArray(points[i]) ? points[i][1] : points[i].longitude || 0));
-    const yi = Number(points[i].lat || (Array.isArray(points[i]) ? points[i][0] : points[i].latitude || 0));
-    const xj = Number(points[j].lng || (Array.isArray(points[j]) ? points[j][1] : points[j].longitude || 0));
-    const yj = Number(points[j].lat || (Array.isArray(points[j]) ? points[j][0] : points[j].latitude || 0));
+    const xi = Number(points[i].lng ?? points[i].longitude ?? (Array.isArray(points[i]) ? points[i][1] : 0));
+    const yi = Number(points[i].lat ?? points[i].latitude ?? (Array.isArray(points[i]) ? points[i][0] : 0));
+    const xj = Number(points[j].lng ?? points[j].longitude ?? (Array.isArray(points[j]) ? points[j][1] : 0));
+    const yj = Number(points[j].lat ?? points[j].latitude ?? (Array.isArray(points[j]) ? points[j][0] : 0));
+    
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
@@ -89,8 +90,7 @@ export function LocationRequest() {
     const q = searchQuery.toLowerCase();
     return zones.filter(zone => 
       zone.name?.toLowerCase().includes(q) || 
-      zone.city?.toLowerCase().includes(q) ||
-      (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.some((p: string) => p.includes(q)))
+      zone.city?.toLowerCase().includes(q)
     );
   }, [zones, searchQuery]);
 
@@ -110,11 +110,7 @@ export function LocationRequest() {
           handleSelectZone(matchedZone, [latitude, longitude]);
         } else {
           setIsProcessing(false);
-          toast({ 
-            variant: "destructive", 
-            title: "Outside Service Area", 
-            description: "Please pick a location manually from the list." 
-          });
+          toast({ variant: "destructive", title: "Outside Area" });
         }
       },
       () => {
@@ -128,20 +124,21 @@ export function LocationRequest() {
   const handleSelectZone = async (zone: any, customCoords?: [number, number]) => {
     setIsProcessing(true);
     
-    // PRIORITY: If we have sensor coordinates (customCoords), use them!
-    const finalLat = customCoords ? customCoords[0] : (zone.boundary?.[0]?.lat || 25.2443);
-    const finalLng = customCoords ? customCoords[1] : (zone.boundary?.[0]?.lng || 79.0838);
+    // PRECISION PLUS: Use sensor coordinates if available
+    const finalLat = customCoords ? Number(customCoords[0].toFixed(8)) : null;
+    const finalLng = customCoords ? Number(customCoords[1].toFixed(8)) : null;
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
+      if (finalLat && finalLng) {
+        localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
+      } else {
+        localStorage.removeItem('user_plus_code');
+      }
+      
       localStorage.setItem('user_address_line', zone.name);
       localStorage.setItem('user_city', zone.city || 'Local');
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('active_zone_id', zone.id);
-      
-      if (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.length > 0) {
-        localStorage.setItem('user_pincode', zone.pincodes[0]);
-      }
       
       window.dispatchEvent(new CustomEvent('user-address-updated'));
     }
@@ -154,18 +151,18 @@ export function LocationRequest() {
         latitude: finalLat,
         longitude: finalLng,
         updatedAt: serverTimestamp(),
-      }).catch(err => console.error("Profile update failed:", err));
+      });
     }
 
     setIsProcessing(false);
     setOpen(false);
-    toast({ title: `Precision Pin Locked!`, description: `Area: ${zone.name}` });
+    toast({ title: `Pin Verified!`, description: zone.name });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogOverlay className="z-[2000] bg-black/60 backdrop-blur-sm" />
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-300 z-[2001]">
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] z-[2001]">
         <div className="px-8 py-8">
           <div className="flex flex-col space-y-6">
             <DialogHeader className="flex flex-col items-center text-center space-y-2">
@@ -173,9 +170,9 @@ export function LocationRequest() {
                 <MapPin className="h-7 w-7" />
               </div>
               <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
-                DELIVERY <span className="text-primary">AREA.</span>
+                LOCATION <span className="text-primary">SYNC.</span>
               </DialogTitle>
-              <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Select your serving zone for accuracy</DialogDescription>
+              <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pinpoint Accuracy for Deliveries</DialogDescription>
             </DialogHeader>
 
             <div className="flex bg-muted/50 p-1 rounded-2xl">
@@ -198,7 +195,7 @@ export function LocationRequest() {
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input 
-                    placeholder="Search city, area or pincode..." 
+                    placeholder="Search your area..." 
                     className="h-12 rounded-2xl bg-gray-50 border-none pl-11 font-bold text-sm shadow-inner"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -208,10 +205,10 @@ export function LocationRequest() {
                 <button 
                   onClick={handleUseGPS}
                   disabled={isProcessing}
-                  className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all active:scale-95"
+                  className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all"
                 >
                   {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                  USE DEVICE GPS (PRECISION)
+                  USE SENSOR GPS
                 </button>
 
                 <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
@@ -219,11 +216,11 @@ export function LocationRequest() {
                     <button 
                       key={zone.id} 
                       onClick={() => handleSelectZone(zone)}
-                      className="w-full text-left p-4 rounded-2xl bg-gray-50/50 hover:bg-primary/5 flex items-center justify-between border-2 border-transparent transition-all group"
+                      className="w-full text-left p-4 rounded-2xl bg-gray-50/50 hover:bg-primary/5 flex items-center justify-between border-2 border-transparent transition-all"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-black text-gray-800 truncate uppercase italic">{zone.name}</p>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase">{zone.city} {zone.pincodes?.[0] ? `(${zone.pincodes[0]})` : ''}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase">{zone.city}</p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-gray-300" />
                     </button>
@@ -237,7 +234,7 @@ export function LocationRequest() {
                     onConfirm={(lat, lng) => {
                       const matched = zones?.find(z => isPointInPolygon(lat, lng, z.boundary || []));
                       if (matched) handleSelectZone(matched, [lat, lng]);
-                      else toast({ variant: "destructive", title: "Outside Zone", description: "Service unavailable in this specific map area." });
+                      else toast({ variant: "destructive", title: "Outside Zone" });
                     }} 
                   />
                 </div>
@@ -248,7 +245,7 @@ export function LocationRequest() {
         {isProcessing && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest mt-4">Verifying Precision Pin...</span>
+            <span className="text-[10px] font-black uppercase tracking-widest mt-4">Verifying Pin...</span>
           </div>
         )}
       </DialogContent>
