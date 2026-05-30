@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
@@ -10,6 +11,9 @@ export type CartItem = {
   imageUrl: string;
   isCustom?: boolean;
   vendorId?: string;
+  selectedOption?: { name: string; price: number } | null;
+  restaurantName?: string;
+  customSurcharge?: number;
 };
 
 type CartContextType = {
@@ -32,25 +36,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = useCallback((product: any) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      // Logic: If product has different options, treat as different cart items
+      const existing = prev.find((item) => 
+        item.id === product.id && 
+        item.selectedOption?.name === product.selectedOption?.name
+      );
+      
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          (item.id === product.id && item.selectedOption?.name === product.selectedOption?.name)
+            ? { ...item, quantity: item.quantity + (product.quantity || 1) } 
+            : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity: product.quantity || 1 }];
     });
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === productId);
-      if (existing && existing.quantity > 1) {
-        return prev.map((item) =>
-          item.id === productId ? { ...item, quantity: item.quantity - 1 } : item
-        );
+      // Find the first instance of this product ID to remove
+      const index = prev.findIndex(item => item.id === productId);
+      if (index === -1) return prev;
+      
+      const item = prev[index];
+      if (item.quantity > 1) {
+        const newCart = [...prev];
+        newCart[index] = { ...item, quantity: item.quantity - 1 };
+        return newCart;
       }
-      return prev.filter((item) => item.id !== productId);
+      return prev.filter((_, i) => i !== index);
     });
   }, []);
 
@@ -71,7 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   
   const totalPrice = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [cart]);
 
   const value = useMemo(() => ({

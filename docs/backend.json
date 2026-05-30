@@ -16,6 +16,17 @@
         "zoneId": { "type": "string" },
         "restaurantName": { "type": "string" },
         "town": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "price": { "type": "number" }
+            }
+          },
+          "maxItems": 5
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price", "vendorId"]

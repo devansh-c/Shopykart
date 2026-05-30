@@ -33,7 +33,8 @@ import {
   PhoneCall,
   MapPin,
   Navigation,
-  Compass
+  Compass,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -83,7 +84,8 @@ export default function VendorDashboard() {
     description: '', 
     category: '', 
     imageUrl: '', 
-    isVeg: true 
+    isVeg: true,
+    options: [] as { name: string; price: number }[]
   });
 
   const vendorRef = useMemoFirebase(() => {
@@ -203,6 +205,25 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddOption = () => {
+    if (newProduct.options.length < 5) {
+      setNewProduct({ ...newProduct, options: [...newProduct.options, { name: '', price: 0 }] });
+    } else {
+      toast({ variant: "destructive", title: "Max 5 Options" });
+    }
+  };
+
+  const handleRemoveOption = (idx: number) => {
+    setNewProduct({ ...newProduct, options: newProduct.options.filter((_, i) => i !== idx) });
+  };
+
+  const handleUpdateOption = (idx: number, field: 'name' | 'price', value: any) => {
+    const opts = [...newProduct.options];
+    if (field === 'price') opts[idx].price = parseFloat(value) || 0;
+    else opts[idx].name = value;
+    setNewProduct({ ...newProduct, options: opts });
+  };
+
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
@@ -216,6 +237,7 @@ export default function VendorDashboard() {
       description: newProduct.description,
       category: newProduct.category,
       isVeg: newProduct.isVeg,
+      options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid, 
       zoneId: vendorProfile.zoneId || null, 
       town: vendorProfile.town, 
@@ -227,7 +249,7 @@ export default function VendorDashboard() {
     setIsAddOpen(false);
     const tempId = editingId;
     setEditingId(null);
-    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true });
+    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
 
     if (tempId) {
       await updateDoc(doc(firestore, 'vendors', user.uid, 'products', tempId), productData);
@@ -338,9 +360,14 @@ export default function VendorDashboard() {
                 
                 <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
                   {order.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between text-xs font-bold text-gray-600">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span>₹{item.price * item.quantity}</span>
+                    <div key={i} className="flex flex-col text-xs font-bold text-gray-600">
+                      <div className="flex justify-between">
+                        <span>{item.quantity}x {item.name}</span>
+                        <span>₹{item.price * item.quantity}</span>
+                      </div>
+                      {item.selectedOption && (
+                        <span className="text-[9px] text-primary italic">Option: {item.selectedOption.name} (+₹{item.selectedOption.price})</span>
+                      )}
                     </div>
                   ))}
                   <div className="pt-2 border-t border-dashed border-gray-200 flex justify-between">
@@ -431,6 +458,24 @@ export default function VendorDashboard() {
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'product')} />
             <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
             <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" /><Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}><SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent>{dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            
+            {/* VENDOR OPTIONS MANAGEMENT */}
+            <div className="space-y-3 bg-muted/10 p-4 rounded-2xl border border-dashed">
+               <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">Options (Max 5)</span>
+                  <Button size="sm" variant="ghost" onClick={handleAddOption} className="h-7 text-[8px] font-black uppercase bg-primary/10 text-primary">Add</Button>
+               </div>
+               <div className="space-y-2">
+                  {newProduct.options.map((opt, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                       <Input placeholder="Option" value={opt.name} onChange={e => handleUpdateOption(i, 'name', e.target.value)} className="h-9 text-[11px] rounded-lg" />
+                       <Input type="number" placeholder="₹" value={opt.price || ''} onChange={e => handleUpdateOption(i, 'price', e.target.value)} className="h-9 w-16 text-[11px] rounded-lg" />
+                       <Button size="icon" variant="ghost" onClick={() => handleRemoveOption(i)} className="h-8 w-8 text-red-500"><X className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+               </div>
+            </div>
+
             <Button onClick={handleAddProduct} className="w-full bg-primary rounded-2xl h-16 font-black uppercase italic shadow-xl">PUBLISH ITEM</Button>
           </div></DialogContent></Dialog></div>
           <div className="grid gap-3">{products?.map(p => (

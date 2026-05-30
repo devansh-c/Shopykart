@@ -34,6 +34,7 @@ export function ProductManagement() {
   const [restaurantName, setRestaurantName] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [isVeg, setIsVeg] = useState(true);
+  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
 
   // Fetch Products
   const productsQuery = useMemoFirebase(() => {
@@ -104,6 +105,28 @@ export function ProductManagement() {
     toast({ title: "Product Deleted" });
   };
 
+  const handleAddOption = () => {
+    if (options.length < 5) {
+      setOptions([...options, { name: '', price: 0 }]);
+    } else {
+      toast({ variant: "destructive", title: "Limit Reached", description: "Max 5 options allowed." });
+    }
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateOption = (index: number, field: 'name' | 'price', value: any) => {
+    const newOptions = [...options];
+    if (field === 'price') {
+      newOptions[index].price = parseFloat(value) || 0;
+    } else {
+      newOptions[index].name = value;
+    }
+    setOptions(newOptions);
+  };
+
   const handleSave = () => {
     if (!firestore || !name || !price || !selectedZoneId) {
       toast({ variant: "destructive", title: "Missing Fields", description: "Name, Price, and Zone are required." });
@@ -124,6 +147,7 @@ export function ProductManagement() {
       badges: ['New'],
       isAvailable: true,
       isTopTen: false,
+      options: options.filter(opt => opt.name.trim() !== ''),
       createdAt: serverTimestamp(),
     };
 
@@ -141,7 +165,7 @@ export function ProductManagement() {
 
   const resetForm = () => {
     setName(''); setPrice(''); setCategory(''); setRestaurantName(''); setSelectedZoneId('');
-    setIsVeg(true); setSelectedImage(null); setIsGalleryOpen(false);
+    setIsVeg(true); setSelectedImage(null); setIsGalleryOpen(false); setOptions([]);
   };
 
   return (
@@ -209,6 +233,41 @@ export function ProductManagement() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store Name</label>
                   <Input value={restaurantName} onChange={e => setRestaurantName(e.target.value)} placeholder="e.g. Bun Burst" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                </div>
+              </div>
+
+              {/* OPTIONS SECTION */}
+              <div className="space-y-3 bg-muted/5 p-4 rounded-2xl border border-dashed border-muted-foreground/10">
+                <div className="flex items-center justify-between mb-2">
+                   <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Product Options (Max 5)</label>
+                   <Button type="button" variant="ghost" size="sm" onClick={handleAddOption} className="h-7 text-[8px] font-black uppercase bg-primary/10 text-primary rounded-lg">
+                      <Plus className="h-3 w-3 mr-1" /> Add Option
+                   </Button>
+                </div>
+                <div className="space-y-2">
+                   {options.map((opt, idx) => (
+                     <div key={idx} className="flex gap-2 items-center animate-in slide-in-from-left-2 duration-300">
+                        <Input 
+                          placeholder="Option Name" 
+                          value={opt.name} 
+                          onChange={e => handleUpdateOption(idx, 'name', e.target.value)}
+                          className="h-10 text-[11px] font-bold rounded-xl"
+                        />
+                        <Input 
+                          type="number" 
+                          placeholder="₹" 
+                          value={opt.price || ''} 
+                          onChange={e => handleUpdateOption(idx, 'price', e.target.value)}
+                          className="h-10 w-20 text-[11px] font-bold rounded-xl text-center"
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveOption(idx)} className="h-8 w-8 text-red-500 bg-red-50 rounded-lg">
+                          <X className="h-4 w-4" />
+                        </Button>
+                     </div>
+                   ))}
+                   {options.length === 0 && (
+                     <p className="text-[9px] text-muted-foreground font-bold italic text-center py-2 uppercase">No custom options added (Optional)</p>
+                   )}
                 </div>
               </div>
 

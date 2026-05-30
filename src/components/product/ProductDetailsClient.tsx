@@ -3,7 +3,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2 } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -27,6 +27,7 @@ export default function ProductDetailsClient() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
+  const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
 
   const firestore = useFirestore();
   const productRef = useMemoFirebase(() => {
@@ -47,11 +48,26 @@ export default function ProductDetailsClient() {
     return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
   }, [allDbProducts, productId, product]);
 
+  const totalPrice = useMemo(() => {
+    if (!product) return 0;
+    const base = product.price || 0;
+    const optPrice = selectedOption ? selectedOption.price : 0;
+    return (base + optPrice) * localQuantity;
+  }, [product, selectedOption, localQuantity]);
+
   const handleAddToCart = () => {
     if (!product) return;
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
-    addToCart({ ...product, imageUrl, quantity: localQuantity });
-    toast({ title: "Added to Cart", description: `${product.name} added successfully.` });
+    
+    addToCart({ 
+      ...product, 
+      imageUrl, 
+      quantity: localQuantity,
+      selectedOption: selectedOption,
+      price: product.price + (selectedOption?.price || 0)
+    });
+    
+    toast({ title: "Added to Cart", description: `${product.name} ${selectedOption ? `(${selectedOption.name})` : ''} added successfully.` });
   };
 
   const handleShare = async () => {
@@ -120,6 +136,7 @@ export default function ProductDetailsClient() {
   }
 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
+  const hasOptions = product.options && product.options.length > 0;
 
   return (
     <div className="min-h-screen bg-white pb-40">
@@ -162,15 +179,52 @@ export default function ProductDetailsClient() {
 
         <div className="text-2xl font-black text-primary mb-6">₹{(product.price || 0).toFixed(2)}</div>
 
-        <div className="space-y-4 mb-8">
-          <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
-          <Textarea 
-            placeholder="E.g. no onions, extra sauce..." 
-            className="rounded-2xl bg-muted/30 border-muted h-24 focus-visible:ring-primary/20"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-          />
-        </div>
+        {/* CUSTOM OPTIONS DISPLAY */}
+        {hasOptions ? (
+          <div className="space-y-4 mb-8">
+            <h3 className="text-base font-black text-foreground uppercase tracking-tight flex items-center justify-between">
+              Choose Variation
+              <span className="text-[9px] font-bold text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded-full">Optional</span>
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {product.options.map((opt: any, i: number) => (
+                <button 
+                  key={i}
+                  onClick={() => setSelectedOption(selectedOption?.name === opt.name ? null : opt)}
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl border-2 transition-all active:scale-[0.98]",
+                    selectedOption?.name === opt.name 
+                      ? "border-primary bg-primary/5 shadow-inner" 
+                      : "border-gray-100 bg-gray-50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                     <div className={cn(
+                       "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                       selectedOption?.name === opt.name ? "border-primary bg-primary" : "border-gray-300"
+                     )}>
+                       {selectedOption?.name === opt.name && <CheckCircle2 className="h-3 w-3 text-white" />}
+                     </div>
+                     <span className="text-sm font-black uppercase italic">{opt.name}</span>
+                  </div>
+                  <span className="text-sm font-black text-primary">
+                    {opt.price > 0 ? `+ ₹${opt.price}` : 'FREE'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 mb-8">
+            <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
+            <Textarea 
+              placeholder="E.g. no onions, extra sauce..." 
+              className="rounded-2xl bg-muted/30 border-muted h-24 focus-visible:ring-primary/20"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+            />
+          </div>
+        )}
 
         <div className="space-y-6 mb-12 border-t pt-8">
           <div className="flex items-center justify-between">
@@ -291,7 +345,7 @@ export default function ProductDetailsClient() {
             onClick={handleAddToCart}
             className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-all"
           >
-            Add to Cart • ₹{(product.price * localQuantity).toFixed(2)}
+            Add to Cart • ₹{totalPrice.toFixed(2)}
           </button>
         </div>
       </div>
