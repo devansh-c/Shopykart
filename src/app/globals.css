@@ -32,6 +32,8 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation !important;
+    /* Disable default browser behavior that slows down clicks */
+    -ms-touch-action: manipulation;
   }
   
   body {
@@ -42,15 +44,26 @@
     overflow-x: hidden;
   }
   
-  /* Super Snappy Interaction Global - Optimized for 75ms response */
+  /* Instant Interaction Logic - Fixed for Tailwind Support */
   button, a, [role="button"], .interactive {
-    @apply transition-all duration-75 ease-out;
+    @apply transition-[transform,opacity] duration-50 ease-out;
     cursor: pointer;
     will-change: transform, opacity;
   }
 
-  button:active, a:active {
-    @apply scale-95 opacity-90;
+  button:active, a:active, [role="button"]:active {
+    @apply scale-95 opacity-80;
+    transition-duration: 0ms; /* No delay on press */
+  }
+
+  /* Optimized animations for lists */
+  .animate-fast-fade {
+    animation: fast-fade 150ms ease-out forwards;
+  }
+
+  @keyframes fast-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 
@@ -60,11 +73,6 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
 }
 
 @keyframes running-line {
@@ -79,42 +87,17 @@
   100% { transform: translateY(-100%); opacity: 0; }
 }
 
-.animate-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.animate-shimmer::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
-  );
-  animation: shimmer 1.5s infinite;
-}
-
 .animate-running-line {
-  animation: running-line 2s infinite linear;
+  animation: running-line 1.5s infinite linear;
 }
 
 .animate-placeholder-slide {
-  animation: placeholder-slide 3s infinite ease-in-out;
+  animation: placeholder-slide 2.5s infinite ease-in-out;
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border-2 border-[#C5A021] shadow-[0_12px_40px_rgba(197,160,33,0.18)] transition-all duration-75 relative overflow-hidden;
+  @apply bg-white rounded-[2rem] border-2 border-border shadow-sm transition-all duration-75 relative overflow-hidden;
   will-change: transform, opacity;
-}
-
-.premium-card:active {
-  @apply scale-[0.98];
 }
 
 /* Optimized for CLS prevention */

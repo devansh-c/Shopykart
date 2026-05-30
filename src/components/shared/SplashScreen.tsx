@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -18,10 +17,10 @@ export function SplashScreen() {
       setIsVisible(false);
     }, 2000);
 
-    // Completely remove from DOM after a very short fade (2s + 0.3s transition)
+    // Optimized fade out - fast and clean
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
-    }, 2350);
+    }, 2200);
 
     return () => {
       clearTimeout(timer);
@@ -50,15 +49,15 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-300 ease-in-out",
-        isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-300 ease-in-out",
+        isVisible ? "opacity-100" : "opacity-0 pointer-events-none translate-y-2"
       )}
     >
       <div className="relative flex flex-col items-center">
         <div 
           onClick={handleTap}
           className={cn(
-            "transition-all duration-500 transform flex flex-col items-center cursor-pointer active:scale-95",
+            "transition-all duration-300 transform flex flex-col items-center cursor-pointer active:scale-95",
             isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
           )}
         >

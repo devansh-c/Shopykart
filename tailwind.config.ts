@@ -14,6 +14,9 @@ export default {
         headline: ['Inter', 'sans-serif'],
         code: ['monospace'],
       },
+      transitionDuration: {
+        '50': '50ms',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

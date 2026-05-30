@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -44,11 +43,10 @@ export function LocationRequest() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // FORCE OPEN EVERY TIME THE APP LOADS
-    // This satisfies the "jitni baar open ho har baar ye page open ho" requirement.
+    // REDUCED DELAY for instant feel
     const timer = setTimeout(() => {
       setOpen(true);
-    }, 500); // Slight delay for smoother entry after splash
+    }, 100); 
 
     const handleOpen = () => {
       setSearchQuery('');
@@ -104,17 +102,18 @@ export function LocationRequest() {
       }, { merge: true }).catch(() => {});
     }
 
+    // Faster completion animation
     setTimeout(() => {
       setIsProcessing(false);
       setOpen(false);
       toast({ title: `Location set to ${zone.name}`, description: "Showing stores available in your area." });
-    }, 600);
+    }, 200);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogOverlay className="z-[2000] bg-black/60 backdrop-blur-sm" />
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-500 z-[2001]">
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-300 z-[2001]">
         <div className="px-8 py-10">
           <div className="flex flex-col space-y-8">
             <div className="flex flex-col items-center text-center space-y-3">
@@ -188,7 +187,7 @@ export function LocationRequest() {
         </div>
 
         {isProcessing && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
              <div className="relative">
                 <div className="h-20 w-20 bg-primary rounded-[2rem] animate-bounce flex items-center justify-center shadow-2xl shadow-primary/20">
                    <span className="text-white text-3xl font-black italic">!</span>

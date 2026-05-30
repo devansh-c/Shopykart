@@ -1,11 +1,9 @@
-
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit, orderBy } from "firebase/firestore"
@@ -55,6 +53,15 @@ export function PopularProducts({
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
+  // OPTIMIZATION: Create a Map for O(1) vendor lookup during sorting/filtering
+  const vendorMap = useMemo(() => {
+    const map = new Map();
+    if (vendors) {
+      vendors.forEach(v => map.set(v.id, v));
+    }
+    return map;
+  }, [vendors]);
+
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
@@ -62,7 +69,7 @@ export function PopularProducts({
     const categoryLower = category.toLowerCase();
 
     let result = dbProducts.filter(product => {
-      const vendor = vendors.find(v => v.id === product.vendorId);
+      const vendor = vendorMap.get(product.vendorId);
       
       if (activeZoneId) {
         const productZoneId = product.zoneId || vendor?.zoneId;
@@ -82,9 +89,10 @@ export function PopularProducts({
       return matchesSearch && matchesCategory && product.isAvailable !== false;
     });
 
+    // Highly optimized sort using pre-mapped data
     result.sort((a, b) => {
-      const vA = vendors.find(v => v.id === a.vendorId);
-      const vB = vendors.find(v => v.id === b.vendorId);
+      const vA = vendorMap.get(a.vendorId);
+      const vB = vendorMap.get(b.vendorId);
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       
@@ -97,7 +105,7 @@ export function PopularProducts({
     });
 
     return result;
-  }, [searchQuery, category, sortBy, dbProducts, vendors, activeMode, activeZoneId]);
+  }, [searchQuery, category, sortBy, dbProducts, vendorMap, vendors, activeMode, activeZoneId]);
 
   if (loading && !dbProducts) {
     return (
@@ -137,7 +145,7 @@ export function PopularProducts({
         {productsToDisplay.map((product, index) => {
           const cartItem = cart?.find((item: any) => item.id === product.id);
           const quantity = cartItem?.quantity || 0;
-          const vendor = vendors?.find((v: any) => v.id === product.vendorId);
+          const vendor = vendorMap.get(product.vendorId);
           const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
           const liked = isInWishlist(product.id);
@@ -212,4 +220,3 @@ export function PopularProducts({
     </div>
   );
 }
-
