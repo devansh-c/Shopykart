@@ -99,7 +99,6 @@ export default function CartPage() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [isValidatingLocation, setIsValidatingLocation] = useState(false);
 
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
@@ -209,7 +208,6 @@ export default function CartPage() {
       localStorage.setItem('user_city', matchedZone.city || 'Local');
       localStorage.setItem('active_zone_id', matchedZone.id);
 
-      // FIX: Update Firestore immediately so state doesn't revert
       if (user && firestore) {
         try {
           await updateDoc(doc(firestore, 'users', user.uid), {
@@ -233,7 +231,6 @@ export default function CartPage() {
         description: "Selected spot is outside our delivery area." 
       });
     }
-    setIsValidatingLocation(false);
     setIsMapOpen(false);
   };
 
@@ -282,7 +279,8 @@ export default function CartPage() {
         restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
         coinsEarned: 10,
         coinsUsed: coinsUsed,
-        coinDiscount: coinDiscount
+        coinDiscount: coinDiscount,
+        instructions: instructions
       });
       
       await updateDoc(doc(firestore, 'users', finalUid), {
@@ -427,6 +425,79 @@ export default function CartPage() {
           </div>
         </div>
 
+        {/* DELIVERY TIP SECTION */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+           <div className="flex items-center gap-2 mb-4">
+              <div className="bg-amber-50 p-2 rounded-xl text-amber-600">
+                 <Bike className="h-5 w-5" />
+              </div>
+              <div>
+                 <h3 className="text-sm font-bold text-gray-800 uppercase">Delivery Tip</h3>
+                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">100% of the tip goes to the partner</p>
+              </div>
+           </div>
+
+           <div className="flex flex-wrap gap-3">
+              {[10, 20, 30, 50].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setDeliveryTip(deliveryTip === amount ? 0 : amount)}
+                  className={cn(
+                    "flex-1 min-w-[70px] h-12 rounded-xl border-2 transition-all flex items-center justify-center font-black italic text-xs",
+                    deliveryTip === amount 
+                      ? "border-primary bg-primary/5 text-primary shadow-inner" 
+                      : "border-gray-50 bg-gray-50 text-gray-400"
+                  )}
+                >
+                  ₹{amount}
+                </button>
+              ))}
+              <button
+                onClick={() => setIsCustomTipOpen(true)}
+                className={cn(
+                  "flex-1 min-w-[70px] h-12 rounded-xl border-2 transition-all flex items-center justify-center font-black italic text-[10px] uppercase",
+                  isCustomTipOpen || (deliveryTip > 0 && ![10, 20, 30, 50].includes(deliveryTip))
+                    ? "border-primary bg-primary/5 text-primary" 
+                    : "border-gray-50 bg-gray-50 text-gray-400"
+                )}
+              >
+                {deliveryTip > 0 && ![10, 20, 30, 50].includes(deliveryTip) ? `₹${deliveryTip}` : 'Custom'}
+              </button>
+           </div>
+
+           <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
+              <DialogContent className="rounded-[2.5rem] max-w-sm">
+                 <DialogHeader>
+                    <DialogTitle className="font-black italic uppercase text-center">Add Delivery Tip</DialogTitle>
+                 </DialogHeader>
+                 <div className="space-y-4 pt-4">
+                    <div className="relative">
+                       <Input 
+                        type="number" 
+                        placeholder="Enter amount (₹)" 
+                        value={customTipValue}
+                        onChange={(e) => setCustomTipValue(e.target.value)}
+                        className="h-16 rounded-2xl bg-muted/20 border-none text-center text-2xl font-black italic"
+                       />
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        const val = parseFloat(customTipValue);
+                        if (!isNaN(val) && val > 0) {
+                          setDeliveryTip(val);
+                          setIsCustomTipOpen(false);
+                          setCustomTipValue('');
+                        }
+                      }}
+                      className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-xl"
+                    >
+                      ADD TIP
+                    </Button>
+                 </div>
+              </DialogContent>
+           </Dialog>
+        </div>
+
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-5 w-5 text-blue-500" />
@@ -444,6 +515,12 @@ export default function CartPage() {
                 <span>₹{(Number(charge.calculatedAmount) || 0).toFixed(2)}</span>
               </div>
             ))}
+            {deliveryTip > 0 && (
+              <div className="flex justify-between font-bold text-gray-400">
+                <span>Delivery Tip</span>
+                <span>₹{deliveryTip.toFixed(2)}</span>
+              </div>
+            )}
             {useCoins && coinDiscount > 0 && (
               <div className="flex justify-between font-black text-amber-600">
                 <span>Coins Applied</span>
@@ -486,3 +563,4 @@ export default function CartPage() {
     </div>
   );
 }
+
