@@ -1,19 +1,24 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ThermometerSun, AlertTriangle, Clock, ShieldAlert, Truck, Timer, UserX } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 /**
  * @fileOverview Emergency overlay for extreme heat, high delivery demand, or lack of staff.
  * Controlled manually by Admin from Dashboard or via Automatic Scheduler.
+ * Includes a secret 5-tap shortcut to Admin Panel on the "Check back" text.
  */
 export function HeatWaveOverlay() {
   const firestore = useFirestore();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState(0);
+  const [taps, setTaps] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch dynamic settings from Firestore
   const brandingRef = useMemoFirebase(() => {
@@ -34,6 +39,23 @@ export function HeatWaveOverlay() {
     const interval = setInterval(updateTime, 30000); // Check every 30 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Secret shortcut handler
+  const handleSecretTap = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    const nextTaps = taps + 1;
+    
+    if (nextTaps >= 5) {
+      setTaps(0);
+      router.push('/admin/dashboard');
+    } else {
+      setTaps(nextTaps);
+      timerRef.current = setTimeout(() => {
+        setTaps(0);
+      }, 2000);
+    }
+  };
 
   // Time Comparison Helper
   const isInRange = useMemo(() => {
@@ -161,12 +183,15 @@ export function HeatWaveOverlay() {
             {displayTitle}<br /><span className={themeColor === 'orange' ? "text-orange-500" : themeColor === 'blue' ? "text-blue-400" : "text-rose-500"}>{displaySubtitle}</span>
           </h1>
           
-          <div className={cn(
-            "border px-6 py-3 rounded-2xl",
-            themeColor === 'orange' ? "bg-orange-500/10 border-orange-500/20" : 
-            themeColor === 'blue' ? "bg-blue-500/10 border-blue-500/20" :
-            "bg-red-500/10 border-red-500/20"
-          )}>
+          <div 
+            onClick={handleSecretTap}
+            className={cn(
+              "border px-6 py-3 rounded-2xl cursor-pointer active:scale-95 transition-all select-none",
+              themeColor === 'orange' ? "bg-orange-500/10 border-orange-500/20" : 
+              themeColor === 'blue' ? "bg-blue-500/10 border-blue-500/20" :
+              "bg-red-500/10 border-red-500/20"
+            )}
+          >
              <p className="text-[12px] font-black text-white uppercase tracking-widest italic">
                 {type === 'no_delivery' ? "CHECK BACK TOMORROW" : `From ${settings?.heatWaveStartTime || '1:00 PM'} To ${settings?.heatWaveEndTime || '3:00 PM'}`}
              </p>
