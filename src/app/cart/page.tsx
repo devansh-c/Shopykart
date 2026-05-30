@@ -92,7 +92,7 @@ export default function CartPage() {
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerAddress, setCustomerAddress] = useState(''); // Always starts empty
   const [customerCity, setCustomerCity] = useState('');
   const [customerPincode, setCustomerPincode] = useState('');
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -167,7 +167,7 @@ export default function CartPage() {
       
       setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
       setCustomerPhone(profile?.phoneNumber || localStorage.getItem('user_phone') || '');
-      setCustomerAddress(profile?.address || localStorage.getItem('user_address_line') || '');
+      // customerAddress is purposely NOT pre-filled as per user request
       setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
       setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
       
@@ -201,10 +201,9 @@ export default function CartPage() {
       if (accuracy) setLocationAccuracy(accuracy);
 
       setCustomerCity(matchedZone.city || 'Local');
-      setCustomerAddress(matchedZone.name);
+      // customerAddress is NOT set to zone name to keep it empty for specific details
       
       localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
-      localStorage.setItem('user_address_line', matchedZone.name);
       localStorage.setItem('user_city', matchedZone.city || 'Local');
       localStorage.setItem('active_zone_id', matchedZone.id);
 
@@ -213,7 +212,6 @@ export default function CartPage() {
           await updateDoc(doc(firestore, 'users', user.uid), {
             latitude: finalLat,
             longitude: finalLng,
-            address: matchedZone.name,
             city: matchedZone.city || 'Local',
             updatedAt: serverTimestamp()
           });
