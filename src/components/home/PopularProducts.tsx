@@ -63,14 +63,21 @@ export function PopularProducts({
 
     let result = dbProducts.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
-      if (!vendor) return false;
-
+      
+      // Strict Zone Check:
+      // 1. Agar customer ne location choose ki hai, toh sirf us zone ke products dikhao.
+      // 2. Agar product Admin ne manually dala hai aur 'zoneId' match karta hai, toh dikhao.
       if (activeZoneId) {
-        if (product.zoneId !== activeZoneId && vendor.zoneId !== activeZoneId) return false;
+        const productZoneId = product.zoneId || vendor?.zoneId;
+        if (productZoneId !== activeZoneId) return false;
       }
 
-      if ((vendor.category || 'Food') !== activeMode) return false;
+      // Mode Check (Food vs Grocery):
+      // Agar vendor se link hai, toh vendor ki category dekho, varna default 'Food'
+      const productMode = vendor?.category || 'Food';
+      if (productMode !== activeMode) return false;
 
+      // Search & Category Filters:
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower) || 
@@ -78,7 +85,7 @@ export function PopularProducts({
       
       const matchesCategory = category === 'all' || (product.category || '').toLowerCase() === categoryLower;
       
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesCategory && product.isAvailable !== false;
     });
 
     result.sort((a, b) => {

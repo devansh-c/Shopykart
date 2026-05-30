@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, getDocs } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -31,7 +31,7 @@ export function ProductManagement() {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
-  const [restaurantName, setRestaurantName] = useState('');
+  const [selectedVendorId, setSelectedVendorId] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [isVeg, setIsVeg] = useState(true);
   const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
@@ -43,7 +43,7 @@ export function ProductManagement() {
   }, [firestore]);
   const { data: products, loading } = useCollection<any>(productsQuery);
 
-  // Fetch Vendors for bulk control
+  // Fetch Vendors for selection
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
@@ -128,18 +128,20 @@ export function ProductManagement() {
   };
 
   const handleSave = () => {
-    if (!firestore || !name || !price || !selectedZoneId) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Name, Price, and Zone are required." });
+    if (!firestore || !name || !price || !selectedZoneId || !selectedVendorId) {
+      toast({ variant: "destructive", title: "Incomplete Form", description: "Store aur Area select karna zaroori hai." });
       return;
     }
     
     const zone = zones?.find(z => z.id === selectedZoneId);
+    const vendor = vendors?.find(v => v.id === selectedVendorId);
     
     const productData = {
       name,
       price: parseFloat(price),
       category: category.toLowerCase() || 'general',
-      restaurantName: restaurantName || 'ShopyKart Select',
+      vendorId: selectedVendorId,
+      restaurantName: vendor?.storeName || 'ShopyKart Select',
       zoneId: selectedZoneId,
       town: zone?.name || 'Local',
       isVeg,
@@ -155,7 +157,7 @@ export function ProductManagement() {
       .then(() => {
         setIsAddOpen(false);
         resetForm();
-        toast({ title: "Product Saved" });
+        toast({ title: "Product Saved & Live" });
       })
       .catch(async (e) => {
         const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
@@ -164,7 +166,7 @@ export function ProductManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setPrice(''); setCategory(''); setRestaurantName(''); setSelectedZoneId('');
+    setName(''); setPrice(''); setCategory(''); setSelectedVendorId(''); setSelectedZoneId('');
     setIsVeg(true); setSelectedImage(null); setIsGalleryOpen(false); setOptions([]);
   };
 
@@ -211,29 +213,38 @@ export function ProductManagement() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Serving Zone *</label>
-                 <Select value={selectedZoneId} onValueChange={setSelectedZoneId}>
-                   <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                      <SelectValue placeholder="Assign Area" />
-                   </SelectTrigger>
-                   <SelectContent className="rounded-2xl">
-                      {zones?.map((zone: any) => (
-                        <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
-                      ))}
-                   </SelectContent>
-                 </Select>
-              </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Category</label>
-                  <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Burgers, Pizza" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                   <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Assign to Store *</label>
+                   <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                     <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                        <SelectValue placeholder="Select Store" />
+                     </SelectTrigger>
+                     <SelectContent className="rounded-2xl">
+                        {vendors?.map((v: any) => (
+                          <SelectItem key={v.id} value={v.id}>{v.storeName}</SelectItem>
+                        ))}
+                     </SelectContent>
+                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store Name</label>
-                  <Input value={restaurantName} onChange={e => setRestaurantName(e.target.value)} placeholder="e.g. Bun Burst" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                   <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Serving Zone *</label>
+                   <Select value={selectedZoneId} onValueChange={setSelectedZoneId}>
+                     <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                        <SelectValue placeholder="Assign Area" />
+                     </SelectTrigger>
+                     <SelectContent className="rounded-2xl">
+                        {zones?.map((zone: any) => (
+                          <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                        ))}
+                     </SelectContent>
+                   </Select>
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Category (Tag)</label>
+                <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Burgers, Pizza" className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
               </div>
 
               {/* OPTIONS SECTION */}
@@ -265,9 +276,6 @@ export function ProductManagement() {
                         </Button>
                      </div>
                    ))}
-                   {options.length === 0 && (
-                     <p className="text-[9px] text-muted-foreground font-bold italic text-center py-2 uppercase">No custom options added (Optional)</p>
-                   )}
                 </div>
               </div>
 
