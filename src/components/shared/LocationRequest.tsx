@@ -34,18 +34,21 @@ const MapPicker = dynamic(() => import('./MapPicker'), {
 });
 
 /**
- * Robust Point-in-Polygon Algorithm with multi-format support
+ * Standard Robust Point-in-Polygon Algorithm
+ * X = Longitude, Y = Latitude
  */
-function isPointInPolygon(lat: number, lng: number, vs: any[]) {
-  if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
-  const x = Number(lat);
-  const y = Number(lng);
+function isPointInPolygon(lat: number, lng: number, points: any[]) {
+  if (!points || !Array.isArray(points) || points.length < 3) return false;
+  
+  const x = Number(lng);
+  const y = Number(lat);
+  
   let inside = false;
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : (vs[i].lat || vs[i].latitude));
-    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : (vs[i].lng || vs[i].longitude));
-    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : (vs[j].lat || vs[j].latitude));
-    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : (vs[j].lng || vs[j].longitude));
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = Number(points[i].lng || (Array.isArray(points[i]) ? points[i][1] : points[i].longitude || 0));
+    const yi = Number(points[i].lat || (Array.isArray(points[i]) ? points[i][0] : points[i].latitude || 0));
+    const xj = Number(points[j].lng || (Array.isArray(points[j]) ? points[j][1] : points[j].longitude || 0));
+    const yj = Number(points[j].lat || (Array.isArray(points[j]) ? points[j][0] : points[j].latitude || 0));
     
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
@@ -115,10 +118,10 @@ export function LocationRequest() {
         const { latitude, longitude } = pos.coords;
         setSelectedCoords([latitude, longitude]);
         
-        // 1. Try Map Precision Match
+        // Match Zone
         let matchedZone = zones?.find(zone => isPointInPolygon(latitude, longitude, zone.boundary || []));
         
-        // 2. If Map fails but user has a saved pincode, try matching that
+        // Pincode Fallback check if GPS was just outside line
         if (!matchedZone && zones) {
            const savedPin = localStorage.getItem('user_pincode');
            if (savedPin) {
@@ -139,12 +142,7 @@ export function LocationRequest() {
       },
       (error) => {
         setIsProcessing(false);
-        let errorMsg = "Could not fetch location.";
-        if (error.code === 1) errorMsg = "Location permission denied.";
-        else if (error.code === 2) errorMsg = "GPS is disabled.";
-        else if (error.code === 3) errorMsg = "Location request timed out.";
-        
-        toast({ variant: "destructive", title: "Location Error", description: errorMsg });
+        toast({ variant: "destructive", title: "Location Error", description: "Could not fetch GPS lock." });
       },
       gpsOptions
     );
@@ -156,14 +154,12 @@ export function LocationRequest() {
     const lng = customCoords ? customCoords[1] : (zone.boundary?.[0]?.lng || 79.0838);
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user_address', zone.name);
-      localStorage.setItem('user_full_precise_address', `${zone.name}, ${zone.city}`);
+      localStorage.setItem('user_address_line', zone.name);
       localStorage.setItem('user_city', zone.city || 'Local');
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('user_plus_code', `${lat},${lng}`);
       localStorage.setItem('active_zone_id', zone.id);
       
-      // If zone has pincodes, set the first one as default if not exists
       if (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.length > 0) {
         localStorage.setItem('user_pincode', zone.pincodes[0]);
       }
@@ -172,21 +168,18 @@ export function LocationRequest() {
     }
 
     if (user && firestore) {
-      await setDoc(doc(firestore, 'users', user.uid), {
+      await updateDoc(doc(firestore, 'users', user.uid), {
         address: zone.name,
         city: zone.city || 'Local',
-        plusCode: `${lat},${lng}`,
         latitude: lat,
         longitude: lng,
         updatedAt: serverTimestamp(),
-      }, { merge: true }).catch(() => {});
+      }).catch(() => {});
     }
 
-    setTimeout(() => {
-      setIsProcessing(false);
-      setOpen(false);
-      toast({ title: `Location set to ${zone.name}` });
-    }, 200);
+    setIsProcessing(false);
+    setOpen(false);
+    toast({ title: `Location set to ${zone.name}` });
   };
 
   return (

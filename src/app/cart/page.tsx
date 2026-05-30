@@ -58,18 +58,19 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * Robust Point-in-Polygon Algorithm with multi-format support
+ * Standard Robust Point-in-Polygon Algorithm
+ * X = Longitude, Y = Latitude
  */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
-  const x = Number(lat);
-  const y = Number(lng);
+  const x = Number(lng);
+  const y = Number(lat);
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : (vs[i].lat || vs[i].latitude));
-    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : (vs[i].lng || vs[i].longitude));
-    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : (vs[j].lat || vs[j].latitude));
-    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : (vs[j].lng || vs[j].longitude));
+    const xi = Number(vs[i].lng || (Array.isArray(vs[i]) ? vs[i][1] : (vs[i].longitude || 0)));
+    const yi = Number(vs[i].lat || (Array.isArray(vs[i]) ? vs[i][0] : (vs[i].latitude || 0)));
+    const xj = Number(vs[j].lng || (Array.isArray(vs[j]) ? vs[j][1] : (vs[j].longitude || 0)));
+    const yj = Number(vs[j].lat || (Array.isArray(vs[j]) ? vs[j][0] : (vs[j].latitude || 0)));
     
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
@@ -213,10 +214,10 @@ export default function CartPage() {
   };
 
   const validateAndSetCoords = (lat: number, lng: number) => {
-    // 1. Try Precision Map Polygon Match
+    // 1. Precision Map Polygon Match
     let matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
-    // 2. If Poly-match fails, try Pincode-match as a "Satisfied User" fallback
+    // 2. Fallback to Pincode match
     if (!matchedZone && customerPincode && zones) {
       matchedZone = zones.find(z => z.pincodes && Array.isArray(z.pincodes) && z.pincodes.includes(customerPincode.trim()));
     }
@@ -226,6 +227,12 @@ export default function CartPage() {
       setLongitude(lng);
       if (!customerCity) setCustomerCity(matchedZone.city || 'Local');
       if (!customerAddress) setCustomerAddress(matchedZone.name);
+      
+      // Update session storage
+      localStorage.setItem('user_address_line', matchedZone.name);
+      localStorage.setItem('user_city', matchedZone.city || 'Local');
+      localStorage.setItem('user_plus_code', `${lat},${lng}`);
+      
       toast({ title: "Location Verified!", description: `Precision detected at ${matchedZone.name}` });
     } else {
       toast({ 
@@ -255,7 +262,6 @@ export default function CartPage() {
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''} - ${customerPincode || ''}`;
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
 
-    // HIGH PRECISION GPS PAYLOAD
     const orderData = {
       userId: String(finalUid),
       customerName: String(customerName || 'Anonymous'),
@@ -279,7 +285,6 @@ export default function CartPage() {
       address: String(fullFinalAddress),
       pincode: String(customerPincode || ''),
       instructions: String(instructions || ''),
-      // ENSURING NUMBERS FOR PRECISION
       latitude: latitude ? Number(latitude) : null,
       longitude: longitude ? Number(longitude) : null,
       locationAccuracy: locationAccuracy ? Number(locationAccuracy) : null,
@@ -325,7 +330,6 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
     
-    // Strict Manual Validation
     if (!customerName.trim()) {
       toast({ variant: "destructive", title: "Missing Name", description: "Please enter your full name." });
       return;
@@ -434,7 +438,6 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* DELIVERY ADDRESS FORM WITH MAP PRECISION */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -516,13 +519,12 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* DELIVERY TIP SECTION */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4">
             <Bike className="h-5 w-5 text-primary" />
             <h4 className="text-sm font-bold text-gray-800">Add Delivery Tip</h4>
           </div>
-          <p className="text-[10px] text-gray-500 mb-4 font-medium uppercase tracking-tight">Your tip goes directly to the delivery partner to support them.</p>
+          <p className="text-[10px] text-gray-500 mb-4 font-medium uppercase tracking-tight">Your tip goes directly to the delivery partner.</p>
           <div className="flex flex-wrap gap-2">
             {[10, 20, 30, 40].map((amount) => (
               <button
@@ -552,18 +554,6 @@ export default function CartPage() {
             >
               Other
             </button>
-            {deliveryTip > 0 && (
-              <button 
-                onClick={() => {
-                  setDeliveryTip(0);
-                  setIsCustomTipOpen(false);
-                  setCustomTipValue('');
-                }}
-                className="ml-auto text-[10px] font-black text-red-500 uppercase tracking-widest"
-              >
-                Remove
-              </button>
-            )}
           </div>
           
           {isCustomTipOpen && (
@@ -578,23 +568,16 @@ export default function CartPage() {
                     const val = e.target.value;
                     setCustomTipValue(val);
                     const numVal = Number(val);
-                    if (numVal >= 5) {
-                      setDeliveryTip(numVal);
-                    } else {
-                      setDeliveryTip(0);
-                    }
+                    if (numVal >= 5) setDeliveryTip(numVal);
+                    else setDeliveryTip(0);
                   }}
-                  className="pl-7 h-12 rounded-xl bg-gray-50 border-none font-bold focus-visible:ring-1 focus-visible:ring-primary/20"
+                  className="pl-7 h-12 rounded-xl bg-gray-50 border-none font-bold"
                 />
               </div>
-              {Number(customTipValue) > 0 && Number(customTipValue) < 5 && (
-                <p className="text-[8px] text-red-500 font-black uppercase mt-1 ml-1">Minimum tip amount is ₹5</p>
-              )}
             </div>
           )}
         </div>
 
-        {/* BILL DETAILS SECTION */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-5 w-5 text-blue-500" />
@@ -606,40 +589,27 @@ export default function CartPage() {
               <span>Item Total</span>
               <span>₹{totalPrice.toFixed(2)}</span>
             </div>
-            
             {customSurchargeTotal > 0 && (
               <div className="flex justify-between font-black text-primary animate-in slide-in-from-left-4">
-                <div className="flex items-center gap-1.5">
-                   <Sparkles className="h-3 w-3" />
-                   <span>Custom Order Surcharge</span>
-                </div>
+                <span>Custom Order Surcharge</span>
                 <span>₹{customSurchargeTotal.toFixed(2)}</span>
               </div>
             )}
-            
             {dynamic_charges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-gray-400">
-                <span>{charge.name} {charge.type === 'percentage' && `(${charge.value}%)`}</span>
+                <span>{charge.name}</span>
                 <span>₹{(Number(charge.calculatedAmount) || 0).toFixed(2)}</span>
               </div>
             ))}
-
             {Number(deliveryTip) > 0 && (
-              <div className="flex justify-between font-black text-primary animate-in slide-in-from-bottom-2">
-                <div className="flex items-center gap-1.5">
-                   <Bike className="h-3.5 w-3.5" />
-                   <span>Delivery Tip</span>
-                </div>
+              <div className="flex justify-between font-black text-primary">
+                <span>Delivery Tip</span>
                 <span>₹{Number(deliveryTip).toFixed(2)}</span>
               </div>
             )}
-
             {useCoins && coinDiscount > 0 && (
-              <div className="flex justify-between font-black text-amber-600 animate-in slide-in-from-bottom-2">
-                <div className="flex items-center gap-1.5">
-                   <Zap className="h-3.5 w-3.5 fill-amber-500" />
-                   <span>Coins Discount Applied</span>
-                </div>
+              <div className="flex justify-between font-black text-amber-600">
+                <span>Coins Discount Applied</span>
                 <span>- ₹{coinDiscount.toFixed(2)}</span>
               </div>
             )}

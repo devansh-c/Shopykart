@@ -1,11 +1,13 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   MapContainer, 
   TileLayer, 
   Marker, 
-  useMapEvents 
+  useMapEvents,
+  useMap
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -18,15 +20,19 @@ const icon = L.icon({
   iconAnchor: [20, 40],
 });
 
+function MapManager({ currentPos }: { currentPos: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(currentPos, map.getZoom());
+  }, [currentPos, map]);
+  return null;
+}
+
 function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
-  const [position, setPosition] = useState<[number, number]>([25.2443, 79.0838]);
-  
   const map = useMapEvents({
     move() {
       const center = map.getCenter();
-      const newPos: [number, number] = [center.lat, center.lng];
-      setPosition(newPos);
-      onPositionChange(newPos);
+      onPositionChange([center.lat, center.lng]);
     }
   });
 
@@ -41,6 +47,16 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
 export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng: number) => void }) {
   const [currentPos, setCurrentPos] = useState<[number, number]>([25.2443, 79.0838]);
 
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCurrentPos([pos.coords.latitude, pos.coords.longitude]),
+        () => {},
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
+
   return (
     <div className="h-full w-full relative">
       <MapContainer 
@@ -50,6 +66,7 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
         zoomControl={false}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapManager currentPos={currentPos} />
         <LocationMarker onPositionChange={setCurrentPos} />
       </MapContainer>
       

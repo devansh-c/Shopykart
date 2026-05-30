@@ -21,21 +21,22 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 /**
- * Robust Point-in-Polygon Algorithm with multi-format support
+ * Standard Robust Point-in-Polygon Algorithm
+ * X = Longitude, Y = Latitude
  */
-function isPointInPolygon(lat: number, lng: number, vs: any[]) {
-  if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
+function isPointInPolygon(lat: number, lng: number, points: any[]) {
+  if (!points || !Array.isArray(points) || points.length < 3) return false;
   
-  const x = Number(lat);
-  const y = Number(lng);
+  const x = Number(lng);
+  const y = Number(lat);
   
   let inside = false;
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : (vs[i].lat || vs[i].latitude));
-    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : (vs[i].lng || vs[i].longitude));
-    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : (vs[j].lat || vs[j].latitude));
-    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : (vs[j].lng || vs[j].longitude));
-
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = Number(points[i].lng || (Array.isArray(points[i]) ? points[i][1] : points[i].longitude || 0));
+    const yi = Number(points[i].lat || (Array.isArray(points[i]) ? points[i][0] : points[i].latitude || 0));
+    const xj = Number(points[j].lng || (Array.isArray(points[j]) ? points[j][1] : points[j].longitude || 0));
+    const yj = Number(points[j].lat || (Array.isArray(points[j]) ? points[j][0] : points[j].latitude || 0));
+    
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
@@ -49,7 +50,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Fetch active zones
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
@@ -78,7 +78,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const currentZone = useMemo(() => {
     if (!activeZones || activeZones.length === 0) return null;
 
-    // 1. Check Precision GPS Coordinates first
     if (currentCoords) {
       const matchedMapZone = activeZones.find(zone => {
         if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
@@ -89,7 +88,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       if (matchedMapZone) return matchedMapZone;
     }
 
-    // 2. Fallback to Pincode match if GPS check fails (important for satisifed UX)
     if (currentPincode) {
       const cleanPin = currentPincode.trim();
       const matchedPinZone = activeZones.find(zone => 
@@ -102,28 +100,20 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, [activeZones, currentPincode, currentCoords]);
 
   if (!mounted) return null;
-
-  if (zonesLoading || userLoading) {
-    return <>{children}</>;
-  }
+  if (zonesLoading || userLoading) return <>{children}</>;
 
   const hasLocation = !!localStorage.getItem('user_location_set');
   const noZonesDefined = !activeZones || activeZones.length === 0;
 
   if (noZonesDefined || !hasLocation || !!currentZone) {
-    if (currentZone) {
-      localStorage.setItem('active_zone_id', currentZone.id);
-    } else {
-      localStorage.removeItem('active_zone_id');
-    }
+    if (currentZone) localStorage.setItem('active_zone_id', currentZone.id);
+    else localStorage.removeItem('active_zone_id');
     return <>{children}</>;
   }
 
-  // ONLY block if they have a location set and it's NOT in our served zones (by Poly OR Pincode).
   return (
     <div className="fixed inset-0 z-[500] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700 py-10">
-        
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
           <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden group">
@@ -140,11 +130,9 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             <Navigation className="h-4 w-4" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Boundary Error</span>
           </div>
-          
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
             SERVICE<br /><span className="text-primary">UNAVAILABLE.</span>
           </h1>
-          
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
             Aapki location hamare delivery area se bahar hai. Ham jaldi hi aapke tak pahonchenge!
           </p>
@@ -158,14 +146,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
              <Search className="h-5 w-5 mr-3" />
              CHANGE LOCATION
            </Button>
-
-           <div className="flex flex-col items-center gap-4 opacity-30">
-              <div className="flex items-center gap-2">
-                 <div className="h-1 w-1 bg-gray-400 rounded-full" />
-                 <p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Elite Network</p>
-                 <div className="h-1 w-1 bg-gray-400 rounded-full" />
-              </div>
-           </div>
         </div>
       </div>
     </div>
