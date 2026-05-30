@@ -31,7 +31,8 @@ import {
   Sparkles,
   Coins,
   LocateFixed,
-  Map as MapIcon
+  Map as MapIcon,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -67,6 +68,10 @@ export default function CartPage() {
   const [customerPincode, setCustomerPincode] = useState('');
   const [plusCode, setPlusCode] = useState('');
   const [customerState, setCustomerState] = useState('Uttar Pradesh');
+
+  const [deliveryTip, setDeliveryTip] = useState(0);
+  const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
+  const [customTipValue, setCustomTipValue] = useState('');
 
   const [coords, setCoords] = useState<{lat: number | null, lng: number | null}>({ lat: null, lng: null });
 
@@ -118,7 +123,7 @@ export default function CartPage() {
     return Math.min(totalPrice, potentialDiscount);
   }, [useCoins, availableCoins, coinValue, totalPrice]);
 
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal - coinDiscount);
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount);
 
   // Synchronize state with profile data (Priority: Profile > LocalStorage)
   useEffect(() => {
@@ -213,6 +218,7 @@ export default function CartPage() {
         vendorId: String(item.vendorId || 'global') 
       })),
       total: Number(grandTotal) || 0,
+      deliveryTip: Number(deliveryTip) || 0,
       status: 'Placed',
       orderType: 'Delivery',
       paymentMethod: String(paymentMethod || 'online'),
@@ -386,6 +392,16 @@ export default function CartPage() {
               </div>
             ))}
 
+            {Number(deliveryTip) > 0 && (
+              <div className="flex justify-between font-black text-primary animate-in slide-in-from-bottom-2">
+                <div className="flex items-center gap-1.5">
+                   <Bike className="h-3.5 w-3.5" />
+                   <span>Delivery Tip</span>
+                </div>
+                <span>₹{Number(deliveryTip).toFixed(2)}</span>
+              </div>
+            )}
+
             {useCoins && coinDiscount > 0 && (
               <div className="flex justify-between font-black text-amber-600 animate-in slide-in-from-bottom-2">
                 <div className="flex items-center gap-1.5">
@@ -447,6 +463,84 @@ export default function CartPage() {
               <Textarea placeholder="Building / Street / Landmark *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
               <Input placeholder="10 Digit Mobile Number *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
           </div>
+        </div>
+
+        {/* DELIVERY TIP SECTION */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Bike className="h-5 w-5 text-primary" />
+            <h4 className="text-sm font-bold text-gray-800">Add Delivery Tip</h4>
+          </div>
+          <p className="text-[10px] text-gray-500 mb-4 font-medium uppercase tracking-tight">Your tip goes directly to the delivery partner to support them.</p>
+          <div className="flex flex-wrap gap-2">
+            {[10, 20, 30, 40].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => {
+                  setDeliveryTip(amount);
+                  setIsCustomTipOpen(false);
+                  setCustomTipValue('');
+                }}
+                className={cn(
+                  "px-4 py-2 rounded-xl border-2 font-black text-xs transition-all active:scale-95",
+                  deliveryTip === amount && !isCustomTipOpen ? "border-primary bg-primary/5 text-primary" : "border-gray-100 bg-gray-50 text-gray-600"
+                )}
+              >
+                ₹{amount}
+              </button>
+            ))}
+            <button
+              onClick={() => {
+                setIsCustomTipOpen(true);
+                setDeliveryTip(0);
+              }}
+              className={cn(
+                "px-4 py-2 rounded-xl border-2 font-black text-xs transition-all active:scale-95",
+                isCustomTipOpen ? "border-primary bg-primary/5 text-primary" : "border-gray-100 bg-gray-50 text-gray-600"
+              )}
+            >
+              Other
+            </button>
+            {deliveryTip > 0 && (
+              <button 
+                onClick={() => {
+                  setDeliveryTip(0);
+                  setIsCustomTipOpen(false);
+                  setCustomTipValue('');
+                }}
+                className="ml-auto text-[10px] font-black text-red-500 uppercase tracking-widest"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          
+          {isCustomTipOpen && (
+            <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-400">₹</span>
+                <Input 
+                  type="number"
+                  placeholder="Min ₹5"
+                  value={customTipValue}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomTipValue(val);
+                    const numVal = Number(val);
+                    if (numVal >= 5) {
+                      setDeliveryTip(numVal);
+                    } else {
+                      setDeliveryTip(0);
+                    }
+                  }}
+                  className="pl-7 h-12 rounded-xl bg-gray-50 border-none font-bold focus-visible:ring-1 focus-visible:ring-primary/20"
+                />
+              </div>
+              {Number(customTipValue) > 0 && Number(customTipValue) < 5 && (
+                <p className="text-[8px] text-red-500 font-black uppercase mt-1 ml-1">Minimum tip amount is ₹5</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
