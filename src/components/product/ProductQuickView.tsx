@@ -72,7 +72,11 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-[92%] sm:max-w-md rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in zoom-in-95 duration-200">
+      <DialogContent className="max-w-[92%] sm:max-w-md rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in zoom-in-95 duration-200 focus:outline-none">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{product.name}</DialogTitle>
+        </DialogHeader>
+        
         <div className="bg-white">
           {/* Header Info Section - Screenshot Matching */}
           <div className="p-6 pb-4">

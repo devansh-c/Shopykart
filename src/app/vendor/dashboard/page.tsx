@@ -554,9 +554,12 @@ export default function VendorDashboard() {
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="sr-only">New Order Received</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col items-center gap-6 p-4">
             <BellRing className="h-12 w-12 text-primary animate-bounce" />
-            <DialogTitle className="text-3xl font-black italic uppercase text-white">NEW ORDER!</DialogTitle>
+            <h2 className="text-3xl font-black italic uppercase text-white">NEW ORDER!</h2>
             <DialogDescription className="text-gray-400 font-bold text-xs uppercase">Please check orders tab to accept now.</DialogDescription>
             <Button onClick={() => setShowOrderAlert(false)} className="w-full h-14 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl">
               ACKNOWLEDGE

@@ -233,9 +233,12 @@ export default function AdminDashboard() {
       {/* NEW ORDER ALARM OVERLAY FOR ADMIN */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="sr-only">New Order Alert</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col items-center gap-6 p-4">
             <BellRing className="h-12 w-12 text-primary animate-bounce" />
-            <DialogTitle className="text-3xl font-black italic uppercase text-white">NEW ORDER ARRIVED!</DialogTitle>
+            <h2 className="text-3xl font-black italic uppercase text-white">NEW ORDER ARRIVED!</h2>
             <DialogDescription className="text-gray-400 font-bold text-xs uppercase">A new order is pending in the network.</DialogDescription>
             <Button 
               onClick={() => {
