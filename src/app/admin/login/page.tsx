@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
               <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Email</label>
               <Input 
                 type="email" 
-                placeholder="ceo@shopykart.co.in" 
+                placeholder="admin@shopykart.com" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
