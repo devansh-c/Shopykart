@@ -43,7 +43,11 @@ function ProfileSync() {
       if (profile.address) localStorage.setItem('user_address_line', profile.address);
       if (profile.city) localStorage.setItem('user_city', profile.city);
       if (profile.pincode) localStorage.setItem('user_pincode', profile.pincode);
-      if (profile.plusCode) localStorage.setItem('user_plus_code_string', profile.plusCode);
+      
+      // CRITICAL FIX: Unify coordinate storage key
+      if (profile.latitude !== undefined && profile.longitude !== undefined && profile.latitude !== null) {
+        localStorage.setItem('user_plus_code', `${profile.latitude},${profile.longitude}`);
+      }
       
       // If profile exists, we consider location/identity set
       localStorage.setItem('user_location_set', 'true');

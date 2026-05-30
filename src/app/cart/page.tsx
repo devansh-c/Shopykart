@@ -161,9 +161,11 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount);
 
-  // Sync Initial State with Storage
+  // Sync Initial State with Storage & Listen for global updates
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const updateLocalState = () => {
+      if (typeof window === 'undefined') return;
+      
       setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
       setCustomerPhone(profile?.phoneNumber || localStorage.getItem('user_phone') || '');
       setCustomerAddress(profile?.address || localStorage.getItem('user_address_line') || '');
@@ -171,17 +173,21 @@ export default function CartPage() {
       setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
       
       const savedPlusCode = localStorage.getItem('user_plus_code');
-      if (profile?.latitude) {
-        setLatitude(Number(profile.latitude));
-        setLongitude(Number(profile.longitude));
-      } else if (savedPlusCode) {
+      if (savedPlusCode) {
         const [lat, lng] = savedPlusCode.split(',').map(Number);
         if (!isNaN(lat) && !isNaN(lng)) {
           setLatitude(lat);
           setLongitude(lng);
         }
+      } else if (profile?.latitude) {
+        setLatitude(Number(profile.latitude));
+        setLongitude(Number(profile.longitude));
       }
-    }
+    };
+
+    updateLocalState();
+    window.addEventListener('user-address-updated', updateLocalState);
+    return () => window.removeEventListener('user-address-updated', updateLocalState);
   }, [profile]);
 
   const handleUseGPS = () => {
@@ -205,7 +211,7 @@ export default function CartPage() {
     );
   };
 
-  const validateAndSetCoords = (lat: number, lng: number, accuracy?: number) => {
+  const validateAndSetCoords = async (lat: number, lng: number, accuracy?: number) => {
     const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
     if (matchedZone) {
@@ -216,14 +222,30 @@ export default function CartPage() {
       setLongitude(finalLng);
       if (accuracy) setLocationAccuracy(accuracy);
 
-      if (!customerCity) setCustomerCity(matchedZone.city || 'Local');
-      if (!customerAddress) setCustomerAddress(matchedZone.name);
+      setCustomerCity(matchedZone.city || 'Local');
+      setCustomerAddress(matchedZone.name);
       
       localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
       localStorage.setItem('user_address_line', matchedZone.name);
       localStorage.setItem('user_city', matchedZone.city || 'Local');
       localStorage.setItem('active_zone_id', matchedZone.id);
+
+      // FIX: Update Firestore immediately so state doesn't revert
+      if (user && firestore) {
+        try {
+          await updateDoc(doc(firestore, 'users', user.uid), {
+            latitude: finalLat,
+            longitude: finalLng,
+            address: matchedZone.name,
+            city: matchedZone.city || 'Local',
+            updatedAt: serverTimestamp()
+          });
+        } catch (e) {
+          console.error("Firestore Save Error:", e);
+        }
+      }
       
+      window.dispatchEvent(new CustomEvent('user-address-updated'));
       toast({ title: "Precision Pin Locked!", description: `Coordinates verified successfully.` });
     } else {
       toast({ 
