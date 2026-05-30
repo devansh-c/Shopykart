@@ -182,26 +182,26 @@ export default function CartPage() {
 
     setIsValidatingLocation(true);
     
-    // STRICT HIGH ACCURACY GPS OPTIONS
     const gpsOptions = {
       enableHighAccuracy: true,
       timeout: 10000,
-      maximumAge: 0 // NO CACHED DATA
+      maximumAge: 0
     };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+        // Priority: Raw Device GPS coordinates
         setLatitude(lat);
         setLongitude(lng);
         setLocationAccuracy(accuracy);
-        validateAndSetCoords(lat, lng);
+        validateAndSetCoords(lat, lng, accuracy);
       },
       (error) => {
         setIsValidatingLocation(false);
-        let errorMsg = "Permission Denied. Please enable location access in browser settings.";
+        let errorMsg = "Permission Denied. Please enable location access.";
         if (error.code === 2) errorMsg = "GPS is disabled. Please turn on location services.";
-        if (error.code === 3) errorMsg = "GPS signal timeout. Please try again outside or near a window.";
+        if (error.code === 3) errorMsg = "GPS signal timeout. Please try again outside.";
         
         toast({ 
           variant: "destructive", 
@@ -213,7 +213,7 @@ export default function CartPage() {
     );
   };
 
-  const validateAndSetCoords = (lat: number, lng: number) => {
+  const validateAndSetCoords = (lat: number, lng: number, accuracy?: number) => {
     // 1. Precision Map Polygon Match
     let matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
@@ -223,22 +223,26 @@ export default function CartPage() {
     }
 
     if (matchedZone) {
+      // ENSURE we store the RAW sensor data, not just zone data
       setLatitude(lat);
       setLongitude(lng);
+      if (accuracy) setLocationAccuracy(accuracy);
+
       if (!customerCity) setCustomerCity(matchedZone.city || 'Local');
       if (!customerAddress) setCustomerAddress(matchedZone.name);
       
-      // Update session storage
+      // Update session storage with RAW Precision Lat/Lng
+      localStorage.setItem('user_plus_code', `${lat},${lng}`);
       localStorage.setItem('user_address_line', matchedZone.name);
       localStorage.setItem('user_city', matchedZone.city || 'Local');
-      localStorage.setItem('user_plus_code', `${lat},${lng}`);
+      localStorage.setItem('active_zone_id', matchedZone.id);
       
-      toast({ title: "Location Verified!", description: `Precision detected at ${matchedZone.name}` });
+      toast({ title: "Precision Pin Locked!", description: `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}` });
     } else {
       toast({ 
         variant: "destructive", 
         title: "Service Unavailable", 
-        description: "Your live GPS position is outside our delivery area." 
+        description: "Your exact GPS position is outside our delivery area." 
       });
     }
     setIsValidatingLocation(false);
@@ -262,6 +266,7 @@ export default function CartPage() {
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''} - ${customerPincode || ''}`;
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
 
+    // Use current state for Latitude/Longitude to ensure accuracy
     const orderData = {
       userId: String(finalUid),
       customerName: String(customerName || 'Anonymous'),
@@ -447,7 +452,7 @@ export default function CartPage() {
             {latitude && (
                <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-lg border border-green-100">
                   <Navigation className="h-2.5 w-2.5 text-green-600" />
-                  <span className="text-[7px] font-black text-green-600 uppercase tracking-widest">GPS VERIFIED</span>
+                  <span className="text-[7px] font-black text-green-600 uppercase tracking-widest">PRECISION PIN ACTIVE ✅</span>
                </div>
             )}
           </div>

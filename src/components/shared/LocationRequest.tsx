@@ -19,7 +19,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
@@ -35,21 +35,17 @@ const MapPicker = dynamic(() => import('./MapPicker'), {
 
 /**
  * Standard Robust Point-in-Polygon Algorithm
- * X = Longitude, Y = Latitude
  */
 function isPointInPolygon(lat: number, lng: number, points: any[]) {
   if (!points || !Array.isArray(points) || points.length < 3) return false;
-  
   const x = Number(lng);
   const y = Number(lat);
-  
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
     const xi = Number(points[i].lng || (Array.isArray(points[i]) ? points[i][1] : points[i].longitude || 0));
     const yi = Number(points[i].lat || (Array.isArray(points[i]) ? points[i][0] : points[i].latitude || 0));
     const xj = Number(points[j].lng || (Array.isArray(points[j]) ? points[j][1] : points[j].longitude || 0));
     const yj = Number(points[j].lat || (Array.isArray(points[j]) ? points[j][0] : points[j].latitude || 0));
-    
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
@@ -64,7 +60,6 @@ export function LocationRequest() {
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
 
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -101,34 +96,16 @@ export function LocationRequest() {
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Not Supported", description: "Your browser does not support geolocation." });
+      toast({ variant: "destructive", title: "GPS Not Supported" });
       return;
     }
 
     setIsProcessing(true);
-    
-    const gpsOptions = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setSelectedCoords([latitude, longitude]);
-        
-        // Match Zone
         let matchedZone = zones?.find(zone => isPointInPolygon(latitude, longitude, zone.boundary || []));
         
-        // Pincode Fallback check if GPS was just outside line
-        if (!matchedZone && zones) {
-           const savedPin = localStorage.getItem('user_pincode');
-           if (savedPin) {
-             matchedZone = zones.find(z => z.pincodes && Array.isArray(z.pincodes) && z.pincodes.includes(savedPin.trim()));
-           }
-        }
-
         if (matchedZone) {
           handleSelectZone(matchedZone, [latitude, longitude]);
         } else {
@@ -136,28 +113,30 @@ export function LocationRequest() {
           toast({ 
             variant: "destructive", 
             title: "Outside Service Area", 
-            description: "GPS detects you are outside our delivery zones. Please pick a location manually." 
+            description: "Please pick a location manually from the list." 
           });
         }
       },
-      (error) => {
+      () => {
         setIsProcessing(false);
-        toast({ variant: "destructive", title: "Location Error", description: "Could not fetch GPS lock." });
+        toast({ variant: "destructive", title: "GPS Error" });
       },
-      gpsOptions
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
   const handleSelectZone = async (zone: any, customCoords?: [number, number]) => {
     setIsProcessing(true);
-    const lat = customCoords ? customCoords[0] : (zone.boundary?.[0]?.lat || 25.2443);
-    const lng = customCoords ? customCoords[1] : (zone.boundary?.[0]?.lng || 79.0838);
+    
+    // PRIORITY: If we have sensor coordinates (customCoords), use them!
+    const finalLat = customCoords ? customCoords[0] : (zone.boundary?.[0]?.lat || 25.2443);
+    const finalLng = customCoords ? customCoords[1] : (zone.boundary?.[0]?.lng || 79.0838);
 
     if (typeof window !== 'undefined') {
+      localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
       localStorage.setItem('user_address_line', zone.name);
       localStorage.setItem('user_city', zone.city || 'Local');
       localStorage.setItem('user_location_set', 'true');
-      localStorage.setItem('user_plus_code', `${lat},${lng}`);
       localStorage.setItem('active_zone_id', zone.id);
       
       if (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.length > 0) {
@@ -168,18 +147,19 @@ export function LocationRequest() {
     }
 
     if (user && firestore) {
-      await updateDoc(doc(firestore, 'users', user.uid), {
+      const userRef = doc(firestore, 'users', user.uid);
+      await updateDoc(userRef, {
         address: zone.name,
         city: zone.city || 'Local',
-        latitude: lat,
-        longitude: lng,
+        latitude: finalLat,
+        longitude: finalLng,
         updatedAt: serverTimestamp(),
-      }).catch(() => {});
+      }).catch(err => console.error("Profile update failed:", err));
     }
 
     setIsProcessing(false);
     setOpen(false);
-    toast({ title: `Location set to ${zone.name}` });
+    toast({ title: `Precision Pin Locked!`, description: `Area: ${zone.name}` });
   };
 
   return (
@@ -231,7 +211,7 @@ export function LocationRequest() {
                   className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all active:scale-95"
                 >
                   {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                  USE DEVICE GPS (AUTO DETECT)
+                  USE DEVICE GPS (PRECISION)
                 </button>
 
                 <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
@@ -268,7 +248,7 @@ export function LocationRequest() {
         {isProcessing && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest mt-4">Verifying Area...</span>
+            <span className="text-[10px] font-black uppercase tracking-widest mt-4">Verifying Precision Pin...</span>
           </div>
         )}
       </DialogContent>
