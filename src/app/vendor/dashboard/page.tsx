@@ -34,7 +34,8 @@ import {
   MapPin,
   Navigation,
   Compass,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -73,6 +74,7 @@ export default function VendorDashboard() {
   const [isEditPhoneOpen, setIsEditPhoneOpen] = useState(false);
   const [newPhone, setNewPhone] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -132,9 +134,19 @@ export default function VendorDashboard() {
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'vendors', user.uid, 'products'), orderBy('createdAt', 'desc'));
+    // We fetch from the subcollection, but without heavy ordering first to ensure visibility
+    return query(collection(firestore, 'vendors', user.uid, 'products'));
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
+
+  const sortedProducts = useMemo(() => {
+    if (!products) return [];
+    return [...products].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || Date.now();
+      const timeB = b.createdAt?.seconds || Date.now();
+      return timeB - timeA;
+    });
+  }, [products]);
 
   const payoutQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -177,7 +189,6 @@ export default function VendorDashboard() {
   };
 
   const handleTrackLocation = (order: any) => {
-    // ACCURATE GPS TRACKING: Forcing exact pinpoint navigation
     if (order.latitude && order.longitude) {
       const url = `https://www.google.com/maps/search/?api=1&query=${Number(order.latitude)},${Number(order.longitude)}`;
       window.open(url, '_blank');
@@ -231,6 +242,7 @@ export default function VendorDashboard() {
       return;
     }
 
+    setIsSubmitting(true);
     const productData = { 
       name: newProduct.name,
       price: parseFloat(newProduct.price),
@@ -242,37 +254,53 @@ export default function VendorDashboard() {
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid, 
       zoneId: vendorProfile.zoneId || null, 
-      town: vendorProfile.town, 
+      town: vendorProfile.town || 'Local', 
       restaurantName: vendorProfile.storeName,
       createdAt: serverTimestamp(),
       imageUrl: newProduct.imageUrl
     };
 
-    setIsAddOpen(false);
-    const tempId = editingId;
-    setEditingId(null);
-    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
-
     try {
+      const tempId = editingId;
       if (tempId) {
         await updateDoc(doc(firestore, 'vendors', user.uid, 'products', tempId), productData);
         await updateDoc(doc(firestore, 'products', tempId), productData);
       } else {
+        // Generate a shared ID
         const rootRef = doc(collection(firestore, 'products'));
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', rootRef.id), productData);
-        await setDoc(rootRef, productData);
+        const sharedId = rootRef.id;
+        
+        // 1. Save to global inventory
+        await setDoc(doc(firestore, 'products', sharedId), productData);
+        // 2. Save to vendor catalog
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', sharedId), productData);
       }
-      toast({ title: "Product Published", description: "Item is now live on ShopyKart Menu." });
+      
+      toast({ title: "Product Published", description: "Item is now live permanently." });
+      
+      // Clear form ONLY after success
+      setIsAddOpen(false);
+      setEditingId(null);
+      setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
     } catch (err) {
-      toast({ variant: "destructive", title: "Sync Error", description: "Could not publish globally." });
+      console.error("Save Error:", err);
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not save permanently. Try again." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (!firestore || !user) return;
-    await deleteDoc(doc(firestore, 'vendors', user.uid, 'products', id));
-    await deleteDoc(doc(firestore, 'products', id));
-    toast({ title: "Removed" });
+    if (!confirm("Remove this product permanently?")) return;
+    
+    try {
+      await deleteDoc(doc(firestore, 'vendors', user.uid, 'products', id));
+      await deleteDoc(doc(firestore, 'products', id));
+      toast({ title: "Removed Successfully" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Delete Failed" });
+    }
   };
 
   const sortedAndFilteredOrders = useMemo(() => {
@@ -338,7 +366,6 @@ export default function VendorDashboard() {
                       <button 
                         onClick={() => handleTrackLocation(order)}
                         className="bg-blue-600 hover:bg-blue-700 text-white p-3.5 rounded-xl shadow-xl shadow-blue-600/20 active:scale-90 transition-all"
-                        title="Navigate to Verified Pin"
                       >
                         <Navigation className="h-5 w-5" />
                       </button>
@@ -359,8 +386,8 @@ export default function VendorDashboard() {
                    </div>
                    <div>
                       <p className="text-[10px] font-black text-muted-foreground uppercase leading-none mb-1">Delivery Address</p>
-                      <span className="text-xs font-bold text-gray-700 leading-snug">{order.address || 'Address not provided'}</span>
-                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">PINPOINT GPS VERIFIED ✅</p>}
+                      <span className="text-xs font-bold text-gray-700 leading-snug">{order.address}</span>
+                      {order.latitude && <p className="text-[8px] font-black text-green-600 mt-1 uppercase tracking-widest">GPS VERIFIED ✅</p>}
                    </div>
                 </div>
                 
@@ -371,9 +398,6 @@ export default function VendorDashboard() {
                         <span>{item.quantity}x {item.name}</span>
                         <span>₹{item.price * item.quantity}</span>
                       </div>
-                      {item.selectedOption && (
-                        <span className="text-[9px] text-primary italic">Option: {item.selectedOption.name} (+₹{item.selectedOption.price})</span>
-                      )}
                     </div>
                   ))}
                   <div className="pt-2 border-t border-dashed border-gray-200 flex justify-between">
@@ -381,16 +405,6 @@ export default function VendorDashboard() {
                     <span className="text-sm font-black">₹{order.total}</span>
                   </div>
                 </div>
-
-                {order.instructions && (
-                  <div className="mb-4 bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
-                    <FileText className="h-4 w-4 text-amber-600 shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-black text-amber-600 uppercase mb-1">Customer Instructions:</p>
-                      <p className="text-xs font-bold text-amber-900 leading-relaxed italic">"{order.instructions}"</p>
-                    </div>
-                  </div>
-                )}
 
                 {orderFilter === 'NEW ORDERS' && (
                   <div className="flex gap-3">
@@ -458,37 +472,103 @@ export default function VendorDashboard() {
     if (activeMainTab === 'catalog') {
       return (
         <div className="p-4 space-y-4 pb-32">
-          <div className="flex items-center justify-between"><h2 className="text-xl font-black italic uppercase">Store Catalog</h2><Dialog open={isAddOpen} onOpenChange={setIsAddOpen}><DialogTrigger asChild><Button size="sm" className="bg-black rounded-xl font-black uppercase text-[10px]"><Plus className="h-3 w-3 mr-1" /> ADD ITEM</Button></DialogTrigger><DialogContent className="rounded-[2.5rem]"><DialogHeader><DialogTitle className="font-black italic uppercase">New Menu Item</DialogTitle></DialogHeader>
-          <div className="space-y-5 pt-4">
-            <div onClick={() => fileInputRef.current?.click()} className={cn("relative h-48 w-full border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center overflow-hidden bg-muted/20", newProduct.imageUrl ? "border-primary/50" : "border-gray-200")}>{newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="" /> : <ImageIcon className="h-8 w-8 text-gray-300" />}</div>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'product')} />
-            <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
-            <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" /><Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}><SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent>{dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-            
-            <div className="space-y-3 bg-muted/10 p-4 rounded-2xl border border-dashed">
-               <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">Options (Max 5)</span>
-                  <Button size="sm" variant="ghost" onClick={handleAddOption} className="h-7 text-[8px] font-black uppercase bg-primary/10 text-primary">Add</Button>
-               </div>
-               <div className="space-y-2">
-                  {newProduct.options.map((opt, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                       <Input placeholder="Option" value={opt.name} onChange={e => handleUpdateOption(i, 'name', e.target.value)} className="h-9 text-[11px] rounded-lg" />
-                       <Input type="number" placeholder="₹" value={opt.price || ''} onChange={e => handleUpdateOption(i, 'price', e.target.value)} className="h-9 w-16 text-[11px] rounded-lg" />
-                       <Button size="icon" variant="ghost" onClick={() => handleRemoveOption(i)} className="h-8 w-8 text-red-500"><X className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
-               </div>
-            </div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black italic uppercase">Store Catalog</h2>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-black rounded-xl font-black uppercase text-[10px]">
+                  <Plus className="h-3 w-3 mr-1" /> ADD ITEM
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[2.5rem]">
+                <DialogHeader>
+                  <DialogTitle className="font-black italic uppercase">New Menu Item</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest">
+                    Fill details to publish product permanently
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-5 pt-4">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className={cn(
+                      "relative h-48 w-full border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center overflow-hidden bg-muted/20", 
+                      newProduct.imageUrl ? "border-primary/50" : "border-gray-200"
+                    )}
+                  >
+                    {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="" /> : <ImageIcon className="h-8 w-8 text-gray-300" />}
+                  </div>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageSelect(e, 'product')} />
+                  
+                  <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
+                    <Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}>
+                      <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none font-bold">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-3 bg-muted/10 p-4 rounded-2xl border border-dashed">
+                     <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Options (Max 5)</span>
+                        <Button size="sm" variant="ghost" onClick={handleAddOption} className="h-7 text-[8px] font-black uppercase bg-primary/10 text-primary">Add</Button>
+                     </div>
+                     <div className="space-y-2">
+                        {newProduct.options.map((opt, i) => (
+                          <div key={i} className="flex gap-2 items-center">
+                             <Input placeholder="Option" value={opt.name} onChange={e => handleUpdateOption(i, 'name', e.target.value)} className="h-9 text-[11px] rounded-lg" />
+                             <Input type="number" placeholder="₹" value={opt.price || ''} onChange={e => handleUpdateOption(i, 'price', e.target.value)} className="h-9 w-16 text-[11px] rounded-lg" />
+                             <Button size="icon" variant="ghost" onClick={() => handleRemoveOption(i)} className="h-8 w-8 text-red-500"><X className="h-4 w-4" /></Button>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
 
-            <Button onClick={handleAddProduct} className="w-full bg-primary rounded-2xl h-16 font-black uppercase italic shadow-xl">PUBLISH ITEM</Button>
-          </div></DialogContent></Dialog></div>
-          <div className="grid gap-3">{products?.map(p => (
-            <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-4"><div className="h-20 w-20 rounded-2xl overflow-hidden bg-muted"><img src={p.imageUrl} className="h-full w-full object-cover" alt="" /></div><div><h4 className="font-black italic text-lg">{p.name}</h4><p className="text-primary font-black">₹{p.price}</p></div></div>
-              <div className="flex gap-2"><Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 h-10 w-10"><Trash2 className="h-4 w-4" /></Button></div>
-            </div>
-          ))}</div>
+                  <Button 
+                    onClick={handleAddProduct} 
+                    disabled={isSubmitting}
+                    className="w-full bg-primary rounded-2xl h-16 font-black uppercase italic shadow-xl"
+                  >
+                    {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH ITEM"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          
+          <div className="grid gap-3">
+            {sortedProducts.length > 0 ? sortedProducts.map(p => (
+              <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center justify-between animate-in fade-in duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-2xl overflow-hidden bg-muted shrink-0">
+                    <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-black italic text-lg truncate leading-tight uppercase">{p.name}</h4>
+                    <p className="text-primary font-black">₹{p.price}</p>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest bg-muted px-1.5 py-0.5 rounded-full mt-1 inline-block">
+                      {p.category}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 h-10 w-10 rounded-xl">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                <Utensils className="h-12 w-12 mb-4" />
+                <p className="font-black italic uppercase tracking-widest text-[10px]">No items in catalog</p>
+              </div>
+            )}
+          </div>
         </div>
       );
     }
