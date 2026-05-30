@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { ProductQuickView } from '@/components/product/ProductQuickView';
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
@@ -64,9 +65,11 @@ export default function WishlistPage() {
           return (
             <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300">
               <div className="relative aspect-square">
-                <Link href={`/product/view?id=${product.id}`}>
-                  <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" />
-                </Link>
+                <ProductQuickView product={product}>
+                  <button className="relative w-full h-full">
+                    <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" unoptimized />
+                  </button>
+                </ProductQuickView>
                 <button 
                   onClick={() => toggleWishlist(product.id)}
                   className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm text-primary"
@@ -75,10 +78,12 @@ export default function WishlistPage() {
                 </button>
               </div>
               <div className="p-3 flex-1 flex flex-col justify-between">
-                <Link href={`/product/view?id=${product.id}`}>
-                  <h3 className="font-bold text-xs line-clamp-2 min-h-[2rem] leading-tight mb-1">{product.name}</h3>
-                  <p className="text-primary font-black text-sm">₹{product.price.toFixed(2)}</p>
-                </Link>
+                <ProductQuickView product={product}>
+                  <button className="text-left block w-full">
+                    <h3 className="font-bold text-xs line-clamp-2 min-h-[2rem] leading-tight mb-1">{product.name}</h3>
+                    <p className="text-primary font-black text-sm">₹{product.price.toFixed(2)}</p>
+                  </button>
+                </ProductQuickView>
                 <button 
                   onClick={() => addToCart({ ...product, imageUrl })}
                   className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"

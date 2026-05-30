@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { ProductQuickView } from '@/components/product/ProductQuickView';
 import {
   Select,
   SelectContent,
@@ -30,14 +31,12 @@ function MenuContent() {
   
   const firestore = useFirestore();
 
-  // Fetch All Vendors (Needed for sorting by online status)
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: allVendors } = useCollection<any>(vendorsQuery);
 
-  // Fetch Specific Vendor Profile
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !vendorIdParam) return null;
     return doc(firestore, 'vendors', vendorIdParam);
@@ -46,7 +45,6 @@ function MenuContent() {
 
   const isOffline = vendorProfile?.isOnline === false;
 
-  // Fetch Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
@@ -64,7 +62,6 @@ function MenuContent() {
       return matchesSearch && matchesCategory && matchesVendor;
     });
 
-    // Apply Sorting: Primary = Online Status, Secondary = SortBy
     result.sort((a: any, b: any) => {
       const vA = allVendors.find(v => v.id === a.vendorId);
       const vB = allVendors.find(v => v.id === b.vendorId);
@@ -96,7 +93,6 @@ function MenuContent() {
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] pb-40">
-      {/* Dynamic Store Header */}
       {vendorIdParam && (
         <div className="relative h-64 w-full">
           <img 
@@ -109,7 +105,6 @@ function MenuContent() {
               <X className="h-5 w-5" />
             </Link>
             
-            {/* Closed Now Overlay for Menu Page */}
             {isOffline && (
                <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                   <span className="text-white font-black text-4xl uppercase italic tracking-tighter">Closed Now</span>
@@ -198,49 +193,54 @@ function MenuContent() {
                 )}
               >
                 <div className="flex-1 pr-4">
-                  <Link href={`/product/view?id=${product.id}`} className={cn("block", (productIsOffline || isOffline) && "pointer-events-none")}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                        <div className="h-full w-full bg-green-600 rounded-full" />
+                  <ProductQuickView product={product}>
+                    <button className={cn("block text-left", (productIsOffline || isOffline) && "pointer-events-none")}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-4 w-4 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                          <div className="h-full w-full bg-green-600 rounded-full" />
+                        </div>
+                        {product.badges?.map((badge: string) => (
+                          <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                            {badge}
+                          </span>
+                        ))}
                       </div>
-                      {product.badges?.map((badge: string) => (
-                        <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                    <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
-                    <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{(product.price || 0).toFixed(2)}</div>
-                  </Link>
+                      <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground">{product.name}</h3>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">from {product.restaurantName}</p>
+                      <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{(product.price || 0).toFixed(2)}</div>
+                    </button>
+                  </ProductQuickView>
                 </div>
                 
                 <div className="relative w-32 h-32 flex-shrink-0">
-                  <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
-                    <img 
-                      src={imageUrl} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {(productIsOffline || isOffline) && (
-                      <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
-                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
-                      </div>
-                    )}
-                  </div>
+                  <ProductQuickView product={product}>
+                    <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted", (productIsOffline || isOffline) && "pointer-events-none")}>
+                      <img 
+                        src={imageUrl} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {(productIsOffline || isOffline) && (
+                        <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
+                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
+                        </div>
+                      )}
+                    </button>
+                  </ProductQuickView>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-2 z-20">
                     {quantity === 0 ? (
-                      <button 
-                        disabled={productIsOffline || isOffline}
-                        onClick={() => addToCart({ ...product, imageUrl })}
-                        className={cn(
-                          "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all",
-                          (productIsOffline || isOffline) && "opacity-50 border-gray-300 text-gray-400 shadow-none"
-                        )}
-                      >
-                        {productIsOffline || isOffline ? 'CLOSED' : 'ADD TO BAG'}
-                      </button>
+                      <ProductQuickView product={product}>
+                        <button 
+                          disabled={productIsOffline || isOffline}
+                          className={cn(
+                            "w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase tracking-widest rounded-xl active:scale-95 transition-all",
+                            (productIsOffline || isOffline) && "opacity-50 border-gray-300 text-gray-400 shadow-none"
+                          )}
+                        >
+                          {productIsOffline || isOffline ? 'CLOSED' : 'ADD TO BAG'}
+                        </button>
+                      </ProductQuickView>
                     ) : (
                       <div className="flex items-center justify-between w-full h-10 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
                         <button 
