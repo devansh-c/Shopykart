@@ -4,7 +4,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -30,33 +30,40 @@ export default function OrderDetailsClient() {
 
   const orderRef = useMemoFirebase(() => {
     if (!firestore || !orderId) return null;
-    return doc(firestore, 'orders', orderId);
+    return doc(firestore, 'orders', String(orderId));
   }, [firestore, orderId]);
 
   const { data: order, loading } = useDoc<any>(orderRef);
 
   const handleCancelOrder = async () => {
-    if (!firestore || !orderId || order?.status !== 'Placed') return;
+    if (!firestore || !orderId || !order || order.status !== 'Placed') {
+      toast({ variant: "destructive", title: "Cannot Cancel", description: "Order status has already changed." });
+      return;
+    }
     
     const confirmCancel = window.confirm("Are you sure you want to cancel this order?");
     if (!confirmCancel) return;
 
     setIsCancelling(true);
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), {
+      const docRef = doc(firestore, 'orders', String(orderId));
+      await updateDoc(docRef, {
         status: 'Cancelled',
-        cancelledAt: new Date(),
-        cancelledBy: 'customer'
+        cancelledAt: serverTimestamp(),
+        cancelledBy: 'customer',
+        updatedAt: serverTimestamp()
       });
+      
       toast({
         title: "Order Cancelled",
         description: "Your order has been successfully cancelled.",
       });
     } catch (error) {
+      console.error("Cancellation Error:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not cancel order. Please contact support.",
+        title: "Cancellation Failed",
+        description: "Network error. Please try again or contact support.",
       });
     } finally {
       setIsCancelling(false);
@@ -119,7 +126,7 @@ export default function OrderDetailsClient() {
         </div>
 
         {isCancelled ? (
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center space-y-4">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center space-y-4 animate-in fade-in zoom-in duration-300">
              <div className="bg-red-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto text-red-500">
                 <AlertTriangle className="h-8 w-8" />
              </div>
@@ -136,7 +143,7 @@ export default function OrderDetailsClient() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-black text-sm uppercase mb-6 tracking-widest">Order Progress</h3>
+            <h3 className="font-black text-sm uppercase mb-6 tracking-widest text-gray-400">Order Progress</h3>
             <div className="space-y-0 ml-1">
               {steps.map((step, idx) => {
                 const isCompleted = idx <= currentStatusIdx;
@@ -154,7 +161,7 @@ export default function OrderDetailsClient() {
                         {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <Circle className="h-2 w-2 text-gray-300" />}
                       </div>
                     </div>
-                    <div className={cn("pb-6 text-sm font-black uppercase italic tracking-tighter", isCompleted ? "text-black" : "text-gray-400")}>
+                    <div className={cn("pb-6 text-sm font-black uppercase italic tracking-tighter transition-colors", isCompleted ? "text-black" : "text-gray-400")}>
                       {step.label}
                       {isCurrent && <span className="ml-2 inline-block h-1.5 w-1.5 bg-primary rounded-full animate-ping" />}
                     </div>
@@ -170,13 +177,13 @@ export default function OrderDetailsClient() {
              <div className="flex flex-col items-center text-center gap-4">
                 <div className="space-y-1">
                    <h4 className="font-black text-xs uppercase tracking-widest text-gray-400">Changed your mind?</h4>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase">You can cancel until the store accepts your order.</p>
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase leading-tight px-4">You can cancel until the store accepts your order.</p>
                 </div>
                 <Button 
                   disabled={isCancelling}
                   onClick={handleCancelOrder}
                   variant="outline" 
-                  className="w-full h-12 rounded-xl border-2 border-red-100 text-red-500 font-black uppercase italic text-[10px] tracking-[0.2em] hover:bg-red-50"
+                  className="w-full h-12 rounded-xl border-2 border-red-100 text-red-500 font-black uppercase italic text-[10px] tracking-[0.2em] hover:bg-red-50 active:scale-95 transition-all"
                 >
                   {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : "CANCEL ORDER"}
                 </Button>
@@ -185,16 +192,16 @@ export default function OrderDetailsClient() {
         )}
 
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="font-black text-sm uppercase tracking-tight mb-4">Summary</h3>
+          <h3 className="font-black text-sm uppercase tracking-tight mb-4 text-gray-400">Summary</h3>
           <div className="space-y-3">
             {order.items?.map((item: any, i: number) => (
               <div key={i} className="flex justify-between text-sm">
-                <span className="font-bold">{item.quantity}x {item.name}</span>
+                <span className="font-bold text-gray-700">{item.quantity}x {item.name}</span>
                 <span className="font-black">₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
-            <div className="pt-3 border-t border-dashed flex justify-between items-center">
-              <span className="text-base font-black uppercase italic">Total Paid</span>
+            <div className="pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
+              <span className="text-base font-black uppercase italic text-gray-500">Total Paid</span>
               <span className="text-xl font-black text-primary italic">₹{order.total?.toFixed(2)}</span>
             </div>
           </div>
