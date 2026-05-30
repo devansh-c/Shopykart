@@ -239,7 +239,17 @@ export default function CartPage() {
     
     if (!customerName.trim()) { toast({ variant: "destructive", title: "Missing Name" }); return; }
     if (customerPhone.length !== 10) { toast({ variant: "destructive", title: "Invalid Phone" }); return; }
-    if (!customerAddress.trim()) { toast({ variant: "destructive", title: "Missing Address" }); return; }
+    
+    // MANDATORY 15 CHARACTER ADDRESS VALIDATION
+    if (customerAddress.trim().length < 15) { 
+      toast({ 
+        variant: "destructive", 
+        title: "Address Too Short", 
+        description: "Please provide more details (Minimum 15 characters required)." 
+      }); 
+      return; 
+    }
+    
     if (!customerCity.trim()) { toast({ variant: "destructive", title: "Missing City" }); return; }
     if (customerPincode.length !== 6) { toast({ variant: "destructive", title: "Invalid Pincode" }); return; }
 
@@ -417,7 +427,6 @@ export default function CartPage() {
                 <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <div className="grid grid-cols-2 gap-3">
                   <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                  {/* City field is now READ-ONLY and locked to the selected town */}
                   <Input 
                     placeholder="City *" 
                     value={customerCity} 
@@ -425,7 +434,12 @@ export default function CartPage() {
                     className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-70 cursor-not-allowed" 
                   />
                 </div>
-                <Textarea placeholder="Flat / House / Building Details *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
+                <Textarea 
+                  placeholder="Flat / House / Building Details (Min 15 chars) *" 
+                  value={customerAddress} 
+                  onChange={e => setCustomerAddress(e.target.value)} 
+                  className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" 
+                />
                 <Input placeholder="10 Digit Phone *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
               </div>
           </div>
@@ -569,4 +583,3 @@ export default function CartPage() {
     </div>
   );
 }
-
