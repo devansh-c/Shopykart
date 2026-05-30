@@ -97,6 +97,7 @@ export default function CartPage() {
   const [customerPincode, setCustomerPincode] = useState('');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isValidatingLocation, setIsValidatingLocation] = useState(false);
 
@@ -180,16 +181,19 @@ export default function CartPage() {
 
     setIsValidatingLocation(true);
     
-    // HIGH ACCURACY GPS OPTIONS
+    // STRICT HIGH ACCURACY GPS OPTIONS
     const gpsOptions = {
       enableHighAccuracy: true,
       timeout: 10000,
-      maximumAge: 0 // No cached data
+      maximumAge: 0 // NO CACHED DATA
     };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
+        const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+        setLatitude(lat);
+        setLongitude(lng);
+        setLocationAccuracy(accuracy);
         validateAndSetCoords(lat, lng);
       },
       (error) => {
@@ -215,9 +219,6 @@ export default function CartPage() {
     // 2. If Poly-match fails, try Pincode-match as a "Satisfied User" fallback
     if (!matchedZone && customerPincode && zones) {
       matchedZone = zones.find(z => z.pincodes && Array.isArray(z.pincodes) && z.pincodes.includes(customerPincode.trim()));
-      if (matchedZone) {
-        console.log("GPS was slightly out of poly, but pincode matched. Approving.");
-      }
     }
 
     if (matchedZone) {
@@ -254,6 +255,7 @@ export default function CartPage() {
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''} - ${customerPincode || ''}`;
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
 
+    // HIGH PRECISION GPS PAYLOAD
     const orderData = {
       userId: String(finalUid),
       customerName: String(customerName || 'Anonymous'),
@@ -277,8 +279,11 @@ export default function CartPage() {
       address: String(fullFinalAddress),
       pincode: String(customerPincode || ''),
       instructions: String(instructions || ''),
-      latitude: latitude,
-      longitude: longitude,
+      // ENSURING NUMBERS FOR PRECISION
+      latitude: latitude ? Number(latitude) : null,
+      longitude: longitude ? Number(longitude) : null,
+      locationAccuracy: locationAccuracy ? Number(locationAccuracy) : null,
+      locationTimestamp: Date.now(),
       createdAt: serverTimestamp(),
       vendorId: String(cart[0]?.vendorId || 'global'),
       restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
@@ -297,8 +302,8 @@ export default function CartPage() {
         address: String(customerAddress),
         city: String(customerCity),
         pincode: String(customerPincode),
-        latitude: latitude,
-        longitude: longitude,
+        latitude: latitude ? Number(latitude) : null,
+        longitude: longitude ? Number(longitude) : null,
         updatedAt: serverTimestamp(),
         coins: increment(10 - coinsUsed) 
       };
@@ -452,20 +457,24 @@ export default function CartPage() {
                   className="flex-1 h-12 bg-primary/5 border-2 border-primary/10 rounded-xl flex items-center justify-center gap-2 text-primary font-black uppercase text-[10px] active:scale-95 transition-all"
                  >
                    {isValidatingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                   USE HIGH ACCURACY GPS
+                   VERIFY PINPOINT GPS
                  </button>
                  <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                     <DialogTrigger asChild>
                       <button className="flex-1 h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px] active:scale-95 transition-all">
                         <MapIcon className="h-4 w-4" />
-                        PICK ON MAP
+                        ADJUST ON MAP
                       </button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl">
                        <DialogHeader className="sr-only">
                           <DialogTitle>Select Delivery Location</DialogTitle>
                        </DialogHeader>
-                       <MapPicker onConfirm={validateAndSetCoords} />
+                       <MapPicker onConfirm={(lat, lng) => {
+                          setLatitude(lat);
+                          setLongitude(lng);
+                          validateAndSetCoords(lat, lng);
+                       }} />
                     </DialogContent>
                  </Dialog>
               </div>

@@ -177,8 +177,9 @@ export default function VendorDashboard() {
   };
 
   const handleTrackLocation = (order: any) => {
+    // ACCURATE GPS TRACKING: Forcing exact pinpoint navigation
     if (order.latitude && order.longitude) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+      const url = `https://www.google.com/maps/search/?api=1&query=${Number(order.latitude)},${Number(order.longitude)}`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;

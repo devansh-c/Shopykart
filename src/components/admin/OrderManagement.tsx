@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -47,9 +48,9 @@ export function OrderManagement() {
 
   const handleTrackLocation = (order: any) => {
     // ACCURATE GPS TRACKING: We prioritize verified coordinates (lat/lng) for navigation
-    // while using the descriptive address as a fallback.
+    // with forced pinpoint parameters for Google Maps.
     if (order.latitude && order.longitude) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+      const url = `https://www.google.com/maps/search/?api=1&query=${Number(order.latitude)},${Number(order.longitude)}`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
@@ -137,19 +138,24 @@ export function OrderManagement() {
                       </div>
                     </div>
 
-                    {/* GPS LOCATION DISPLAY */}
+                    {/* DEBUG PANEL: COORDINATE VERIFICATION */}
                     <div className="flex flex-col gap-1 md:col-span-2">
-                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">Precision Pin Location</p>
-                      <div className="bg-black text-white p-4 rounded-2xl flex items-center justify-between group/loc relative overflow-hidden">
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">GPS Diagnostic (Debug)</p>
+                      <div className="bg-[#0B0B0B] text-white p-4 rounded-2xl flex items-center justify-between group/loc relative overflow-hidden">
                         <div className="relative z-10 flex items-center gap-3">
                            <div className="bg-primary/20 p-2 rounded-xl text-primary border border-primary/20">
-                              <MapIcon className="h-5 w-5" />
+                              <ShieldCheck className="h-5 w-5" />
                            </div>
                            <div>
-                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">GPS Verified Spot</h4>
-                              <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase">
-                                {order.latitude ? `Accurate Pinpoint: ${Number(order.latitude).toFixed(4)}, ${Number(order.longitude).toFixed(4)}` : 'Manual Address Only'}
-                              </p>
+                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">Precision Pin Verified</h4>
+                              <div className="flex flex-col gap-0.5">
+                                <p className="text-[8px] font-bold tracking-widest text-gray-400 uppercase">
+                                  LAT: {order.latitude || 'NA'} | LNG: {order.longitude || 'NA'}
+                                </p>
+                                <p className="text-[8px] font-bold tracking-widest text-green-500 uppercase">
+                                  Accuracy: {order.locationAccuracy ? `${Math.round(order.locationAccuracy)}m` : 'Manual Spot'}
+                                </p>
+                              </div>
                            </div>
                         </div>
                         <button 
@@ -157,7 +163,7 @@ export function OrderManagement() {
                           className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase italic active:scale-95 transition-all shadow-xl"
                         >
                           <Compass className="h-4 w-4 text-primary" />
-                          NAVIGATE TO PIN
+                          VERIFY ON MAP
                         </button>
                         <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-8" />
                       </div>

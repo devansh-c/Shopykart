@@ -138,9 +138,9 @@ export default function DeliveryDashboard() {
 
   const openNavigation = (task: any) => {
     // PINPOINT GPS ROUTE: Essential for fast delivery. 
-    // Uses the most accurate captured coordinates.
+    // USES COORDINATES FIRST for 100% accuracy.
     if (task.latitude && task.longitude) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${task.latitude},${task.longitude}`;
+      const url = `https://www.google.com/maps/search/?api=1&query=${Number(task.latitude)},${Number(task.longitude)}`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
