@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Store, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Store, Mail, Lock, ArrowRight, Loader2, Fingerprint } from 'lucide-react';
 import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function VendorLoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Store ID or Email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -26,16 +26,38 @@ export default function VendorLoginPage() {
     if (!auth || !firestore) return;
     setLoading(true);
 
+    const input = identifier.trim().toLowerCase();
+    let loginEmail = input;
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      // 1. Logic: If not an email, it's a Store ID. Find its virtual email.
+      if (!input.includes('@')) {
+        const q = query(collection(firestore, 'vendors'), where('storeId', '==', input));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          toast({ 
+            variant: "destructive", 
+            title: "Access Denied", 
+            description: "No store found with this ID." 
+          });
+          setLoading(false);
+          return;
+        }
+        
+        const vendorData = querySnapshot.docs[0].data();
+        loginEmail = vendorData.email; // Virtual email found
+      }
+
+      // 2. Standard Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
-      // Crucial: Check if this user exists in the 'vendors' collection
+      // 3. Verify vendor document exists
       const vendorRef = doc(firestore, 'vendors', user.uid);
       const vendorSnap = await getDoc(vendorRef);
 
       if (!vendorSnap.exists()) {
-        // Not a vendor! Force sign out and show error.
         await signOut(auth);
         toast({ 
           variant: "destructive", 
@@ -46,12 +68,12 @@ export default function VendorLoginPage() {
         return;
       }
 
-      toast({ title: "Welcome Back!", description: "Accessing your vendor dashboard." });
+      toast({ title: "Welcome Back!", description: `Store: ${vendorSnap.data().storeName}` });
       router.push('/vendor/dashboard');
     } catch (err: any) {
       let msg = "Invalid credentials or network error.";
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        msg = "Wrong email or password.";
+        msg = "Wrong ID or password.";
       }
       toast({ variant: "destructive", title: "Login Failed", description: msg });
       setLoading(false);
@@ -65,27 +87,27 @@ export default function VendorLoginPage() {
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4">
             <Store className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">Vendor Login</CardTitle>
-          <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Manage your ShopyKart business</p>
+          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">Vendor Access</CardTitle>
+          <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">ShopyKart Business Portal</p>
         </CardHeader>
         <CardContent className="px-8 pb-10">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email Address</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store ID or Email</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  type="email" 
-                  placeholder="name@store.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black"
+                  type="text" 
+                  placeholder="e.g. MyStore123" 
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black font-bold"
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Password</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Security Password</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -93,7 +115,7 @@ export default function VendorLoginPage() {
                   placeholder="••••••••" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black"
+                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black font-bold"
                   required
                 />
               </div>
@@ -103,7 +125,7 @@ export default function VendorLoginPage() {
               className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-all"
               disabled={loading}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "SIGN IN"}
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ENTER DASHBOARD"}
             </Button>
             
             <div className="relative py-4">

@@ -19,11 +19,12 @@ import {
   EyeOff,
   Loader2,
   LocateFixed,
-  MapPin
+  MapPin,
+  Fingerprint
 } from 'lucide-react';
 import { useFirestore, useAuth, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -60,6 +61,7 @@ export default function VendorRegistrationPage() {
   const [formData, setFormData] = useState({
     category: '', 
     storeName: '',
+    storeId: '', // NEW: Store ID system
     logo: '',
     cover: '',
     zoneId: '', 
@@ -71,7 +73,7 @@ export default function VendorRegistrationPage() {
     firstName: '',
     lastName: '',
     phone: '',
-    email: '',
+    email: '', // Backend will use virtual email if storeId is primary
     password: '',
   });
 
@@ -111,10 +113,11 @@ export default function VendorRegistrationPage() {
   const validateStep = () => {
     if (step === 'category') return !!formData.category;
     if (step === 'store-info') {
-      return !!formData.storeName && !!formData.logo && !!formData.cover && !!formData.zoneId && !!formData.addressLine && !!formData.state;
+      const hasNumber = /\d/.test(formData.storeId);
+      return !!formData.storeName && !!formData.storeId && hasNumber && !!formData.logo && !!formData.cover && !!formData.zoneId && !!formData.addressLine;
     }
     if (step === 'owner-info') {
-      return !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.email && !!formData.password && formData.phone.length === 10;
+      return !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.password && formData.phone.length === 10;
     }
     return true;
   };
@@ -123,14 +126,36 @@ export default function VendorRegistrationPage() {
     if (!firestore || !auth || isProcessing) return;
     setIsProcessing(true);
 
+    const cleanStoreId = formData.storeId.trim().toLowerCase();
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email.trim().toLowerCase(), formData.password);
+      // 1. Check if Store ID exists
+      const q = query(collection(firestore, 'vendors'), where('storeId', '==', cleanStoreId));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        toast({ 
+          variant: "destructive", 
+          title: "Already Store Created", 
+          description: "This Store ID is taken. Please use a different number." 
+        });
+        setIsProcessing(false);
+        setStep('store-info');
+        return;
+      }
+
+      // 2. Generate Virtual Email for Firebase Auth
+      const virtualEmail = `${cleanStoreId}@vendors.shopykart.com`;
+
+      // 3. Create Auth User
+      const userCredential = await createUserWithEmailAndPassword(auth, virtualEmail, formData.password);
       const user = userCredential.user;
 
       const selectedZone = zones?.find(z => z.id === formData.zoneId);
 
       const storeData = {
         id: user.uid,
+        storeId: cleanStoreId,
         storeName: formData.storeName,
         category: formData.category,
         imageUrl: formData.logo,
@@ -145,7 +170,7 @@ export default function VendorRegistrationPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
-        email: formData.email.trim().toLowerCase(),
+        email: virtualEmail,
         status: 'approved',
         isOnline: true,
         walletBalance: 0,
@@ -155,7 +180,7 @@ export default function VendorRegistrationPage() {
 
       await setDoc(doc(firestore, 'vendors', user.uid), storeData);
       setStep('success');
-      toast({ title: "Store Created!", description: "Your business is now live on ShopyKart." });
+      toast({ title: "Store Created!", description: `ID: ${cleanStoreId} is now live.` });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Registration Failed", description: err.message });
     } finally {
@@ -193,7 +218,21 @@ export default function VendorRegistrationPage() {
                 <h2 className="text-xl font-black italic uppercase">Store Info</h2>
               </div>
               
-              <Input placeholder="Store Name *" value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} className="h-12 rounded-xl" />
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Official Name</label>
+                <Input placeholder="e.g. Sharma Sweets" value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} className="h-12 rounded-xl font-bold" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1"><Fingerprint className="h-2.5 w-2.5" /> Unique Store ID (Name + Number)</label>
+                <Input 
+                  placeholder="e.g. SharmaSweets709" 
+                  value={formData.storeId} 
+                  onChange={(e) => updateFormData('storeId', e.target.value.replace(/\s/g, ''))} 
+                  className="h-12 rounded-xl bg-primary/5 border-primary/20 font-black italic uppercase tracking-widest text-primary" 
+                />
+                <p className="text-[8px] font-bold text-gray-400 uppercase px-1">ID must contain at least one number (0-9).</p>
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div onClick={() => logoInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
@@ -205,9 +244,7 @@ export default function VendorRegistrationPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Serving Zone *</label>
-                </div>
+                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Serving Zone *</label>
                 <Select value={formData.zoneId} onValueChange={(val) => updateFormData('zoneId', val)}>
                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
                       <SelectValue placeholder="Assign Serving Zone" />
@@ -220,20 +257,15 @@ export default function VendorRegistrationPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Precise Location</label>
-                  <button onClick={handleGetLocation} className="text-primary text-[9px] font-black uppercase flex items-center gap-1"><LocateFixed className="h-2.5 w-2.5" /> Auto Fill</button>
-                </div>
-                <Input placeholder="Plus Code or GPS" value={formData.plusCode} onChange={(e) => updateFormData('plusCode', e.target.value)} className="h-12 rounded-xl" />
+              <div className="space-y-1">
+                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Address Line</label>
+                 <Textarea 
+                  placeholder="Full Address Details..." 
+                  value={formData.addressLine} 
+                  onChange={(e) => updateFormData('addressLine', e.target.value)} 
+                  className="rounded-xl min-h-[80px]"
+                />
               </div>
-
-              <Textarea 
-                placeholder="Full Address Line *" 
-                value={formData.addressLine} 
-                onChange={(e) => updateFormData('addressLine', e.target.value)} 
-                className="rounded-xl min-h-[80px]"
-              />
 
               <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-lg shadow-primary/20">NEXT STEP</Button>
             </div>
@@ -250,9 +282,9 @@ export default function VendorRegistrationPage() {
                 <Input placeholder="Last Name *" value={formData.lastName} onChange={(e) => updateFormData('lastName', e.target.value)} className="h-12 rounded-xl" />
               </div>
               <Input placeholder="Phone Number *" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className="h-12 rounded-xl" maxLength={10} />
-              <Input placeholder="Email Address *" type="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)} className="h-12 rounded-xl" />
+              
               <div className="relative">
-                <Input placeholder="Password *" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} className="h-12 rounded-xl pr-10" />
+                <Input placeholder="Login Password *" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} className="h-12 rounded-xl pr-10" />
                 <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
               </div>
               <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4 shadow-lg shadow-primary/20">REVIEW & SUBMIT</Button>
@@ -295,7 +327,7 @@ export default function VendorRegistrationPage() {
                 </div>
               </div>
               <h2 className="text-2xl font-black italic uppercase text-blue-600">BUSINESS LIVE!</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase px-4">Your store is now active. You can login and start adding products.</p>
+              <p className="text-xs font-black text-muted-foreground uppercase px-4">Your Store ID is: <span className="text-black">{formData.storeId}</span>. Use this ID to login.</p>
               <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">LOGIN TO DASHBOARD</Button>
             </div>
           )}
