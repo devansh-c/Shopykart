@@ -132,7 +132,7 @@ export default function VendorDashboard() {
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, 'vendors', user.uid, 'products');
+    return query(collection(firestore, 'vendors', user.uid, 'products'), orderBy('createdAt', 'desc'));
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
@@ -177,7 +177,6 @@ export default function VendorDashboard() {
   };
 
   const handleTrackLocation = (order: any) => {
-    // Verified coordinate navigation for stores
     if (order.latitude && order.longitude) {
       const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
       window.open(url, '_blank');
@@ -235,8 +234,10 @@ export default function VendorDashboard() {
       name: newProduct.name,
       price: parseFloat(newProduct.price),
       description: newProduct.description,
-      category: newProduct.category,
+      category: newProduct.category.toLowerCase(),
       isVeg: newProduct.isVeg,
+      isAvailable: true,
+      isTopTen: false,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid, 
       zoneId: vendorProfile.zoneId || null, 
@@ -251,15 +252,19 @@ export default function VendorDashboard() {
     setEditingId(null);
     setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
 
-    if (tempId) {
-      await updateDoc(doc(firestore, 'vendors', user.uid, 'products', tempId), productData);
-      await updateDoc(doc(firestore, 'products', tempId), productData);
-    } else {
-      const rootRef = doc(collection(firestore, 'products'));
-      await setDoc(doc(firestore, 'vendors', user.uid, 'products', rootRef.id), productData);
-      await setDoc(rootRef, productData);
+    try {
+      if (tempId) {
+        await updateDoc(doc(firestore, 'vendors', user.uid, 'products', tempId), productData);
+        await updateDoc(doc(firestore, 'products', tempId), productData);
+      } else {
+        const rootRef = doc(collection(firestore, 'products'));
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', rootRef.id), productData);
+        await setDoc(rootRef, productData);
+      }
+      toast({ title: "Product Published", description: "Item is now live on ShopyKart Menu." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not publish globally." });
     }
-    toast({ title: "Product Saved" });
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -459,7 +464,6 @@ export default function VendorDashboard() {
             <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" />
             <div className="grid grid-cols-2 gap-4"><Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-14 rounded-2xl bg-muted/10 border-none px-5 font-bold" /><Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}><SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger><SelectContent>{dynamicCategories?.map((c:any) => <SelectItem key={c.id} value={c.name.toLowerCase()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             
-            {/* VENDOR OPTIONS MANAGEMENT */}
             <div className="space-y-3 bg-muted/10 p-4 rounded-2xl border border-dashed">
                <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary">Options (Max 5)</span>

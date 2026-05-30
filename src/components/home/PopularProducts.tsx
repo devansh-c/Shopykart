@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit } from "firebase/firestore"
+import { collection, query, limit, orderBy } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
@@ -49,14 +50,14 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(100));
+    // Order by createdAt desc so new products show up first in the limited list
+    return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(100));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
-    // Performance optimized filtering
     const searchLower = searchQuery.toLowerCase();
     const categoryLower = category.toLowerCase();
 
@@ -64,10 +65,12 @@ export function PopularProducts({
       const vendor = vendors.find(v => v.id === product.vendorId);
       if (!vendor) return false;
 
+      // Ensure product or vendor matches active zone
       if (activeZoneId) {
         if (product.zoneId !== activeZoneId && vendor.zoneId !== activeZoneId) return false;
       }
 
+      // Ensure mode (Food/Grocery) matches
       if ((vendor.category || 'Food') !== activeMode) return false;
 
       const matchesSearch = !searchLower || 
@@ -80,7 +83,6 @@ export function PopularProducts({
       return matchesSearch && matchesCategory;
     });
 
-    // Stability: Only sort if the data or sort criteria changed
     result.sort((a, b) => {
       const vA = vendors.find(v => v.id === a.vendorId);
       const vB = vendors.find(v => v.id === b.vendorId);
@@ -164,7 +166,7 @@ export function PopularProducts({
                     alt={product.name} 
                     fill 
                     className="object-cover" 
-                    loading={index < 4 ? "eager" : "lazy"} // Eager load first few for better UX
+                    loading={index < 4 ? "eager" : "lazy"} 
                     unoptimized 
                   />
                   {isOffline && (
