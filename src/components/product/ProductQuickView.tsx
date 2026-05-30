@@ -174,20 +174,20 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
             )}
           </div>
 
-          {/* Fixed Footer with snappier interaction */}
+          {/* Fixed Footer with more compact interaction */}
           <div className="p-6 bg-gray-50 border-t border-gray-100 pb-10">
              <div className="flex items-center gap-4">
-                <div className="flex items-center bg-white rounded-2xl h-16 px-2 border border-gray-100 shadow-sm">
+                <div className="flex items-center bg-white rounded-2xl h-12 px-2 border border-gray-100 shadow-sm">
                    <button 
                     onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
-                    className="h-12 w-12 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors"
+                    className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors"
                    >
-                     <Minus className="h-5 w-5" />
+                     <Minus className="h-4 w-4" />
                    </button>
-                   <span className="w-12 text-center text-xl font-black italic">{localQuantity}</span>
+                   <span className="w-10 text-center text-lg font-black italic">{localQuantity}</span>
                    <button 
                     onClick={() => setLocalQuantity(localQuantity + 1)}
-                    className="h-12 w-12 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors"
+                    className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors"
                    >
                      <Plus className="h-5 w-5" />
                    </button>
@@ -195,9 +195,9 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
 
                 <Button 
                   onClick={handleAddToCart}
-                  className="flex-1 h-16 bg-primary hover:bg-primary/90 text-white rounded-3xl font-black uppercase italic text-lg tracking-tighter shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] font-black uppercase italic text-xs tracking-tighter shadow-xl shadow-primary/20 active:scale-95 transition-all"
                 >
-                  <ShoppingBag className="h-5 w-5 mr-2" />
+                  <ShoppingBag className="h-4 w-4 mr-2" />
                   ADD TO BAG • ₹{(currentPrice * localQuantity).toFixed(2)}
                 </Button>
              </div>
