@@ -7,7 +7,7 @@ import {
   Search, 
   Loader2, 
   CheckCircle2, 
-  Map as MapIcon,
+  Map as MapIcon, 
   Navigation,
   Sparkles,
   Building2,
@@ -22,8 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Manual-only Location Picker.
- * Does not auto-open on load. Only opens when triggered by user.
+ * @fileOverview Mandatory Location Picker.
+ * Opens automatically every time the app loads/refreshes.
  */
 export function LocationRequest() {
   const { user } = useUser();
@@ -44,8 +44,11 @@ export function LocationRequest() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Auto-open logic removed as per request.
-    // Location picker only opens when 'open-location-picker' event is fired.
+    // FORCE OPEN EVERY TIME THE APP LOADS
+    // This satisfies the "jitni baar open ho har baar ye page open ho" requirement.
+    const timer = setTimeout(() => {
+      setOpen(true);
+    }, 500); // Slight delay for smoother entry after splash
 
     const handleOpen = () => {
       setSearchQuery('');
@@ -53,7 +56,10 @@ export function LocationRequest() {
     };
 
     window.addEventListener('open-location-picker', handleOpen);
-    return () => window.removeEventListener('open-location-picker', handleOpen);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('open-location-picker', handleOpen);
+    };
   }, []);
 
   const filteredZones = useMemo(() => {
@@ -185,7 +191,7 @@ export function LocationRequest() {
           <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-300">
              <div className="relative">
                 <div className="h-20 w-20 bg-primary rounded-[2rem] animate-bounce flex items-center justify-center shadow-2xl shadow-primary/20">
-                   <Sparkles className="h-10 w-10 text-white" />
+                   <span className="text-white text-3xl font-black italic">!</span>
                 </div>
              </div>
              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mt-6">Switching Area...</p>
