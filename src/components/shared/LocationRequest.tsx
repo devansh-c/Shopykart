@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Globe,
   Crosshair,
-  Check
+  Check,
+  AlertTriangle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -94,14 +95,23 @@ export function LocationRequest() {
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Not Supported" });
+      toast({ variant: "destructive", title: "GPS Not Supported", description: "Your browser does not support geolocation." });
       return;
     }
 
     setIsProcessing(true);
+    
+    // HIGH ACCURACY GPS OPTIONS
+    const gpsOptions = {
+      enableHighAccuracy: true, // Force precise device GPS
+      timeout: 10000,           // 10 second timeout
+      maximumAge: 0             // No cached location data
+    };
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords;
+        const { latitude, longitude, accuracy } = pos.coords;
+        console.log(`GPS Location Captured: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`);
         setSelectedCoords([latitude, longitude]);
         
         // Find if this point is in any zone
@@ -114,15 +124,28 @@ export function LocationRequest() {
           toast({ 
             variant: "destructive", 
             title: "Outside Service Area", 
-            description: "Service unavailable in your current area." 
+            description: "GPS detects you are outside our delivery zones. Please pick a location manually." 
           });
         }
       },
-      () => {
+      (error) => {
         setIsProcessing(false);
-        toast({ variant: "destructive", title: "Permission Denied", description: "Please enable location access." });
+        let errorMsg = "Could not fetch location.";
+        if (error.code === 1) {
+          errorMsg = "Location permission denied. Please allow access in settings.";
+        } else if (error.code === 2) {
+          errorMsg = "GPS is disabled on your device. Please turn it on.";
+        } else if (error.code === 3) {
+          errorMsg = "Location request timed out. Please try again.";
+        }
+        
+        toast({ 
+          variant: "destructive", 
+          title: "Location Error", 
+          description: errorMsg 
+        });
       },
-      { enableHighAccuracy: true }
+      gpsOptions
     );
   };
 
@@ -155,7 +178,7 @@ export function LocationRequest() {
     setTimeout(() => {
       setIsProcessing(false);
       setOpen(false);
-      toast({ title: `Location set to ${zone.name}` });
+      toast({ title: `Location set to ${zone.name}`, description: "Menu updated for your area." });
     }, 200);
   };
 
@@ -172,7 +195,7 @@ export function LocationRequest() {
               <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                 DELIVERY <span className="text-primary">AREA.</span>
               </DialogTitle>
-              <DialogDescription className="sr-only">Choose your serving zone for accurate menu availability.</DialogDescription>
+              <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Select your serving zone for accuracy</DialogDescription>
             </DialogHeader>
 
             <div className="flex bg-muted/50 p-1 rounded-2xl">
@@ -207,8 +230,8 @@ export function LocationRequest() {
                   disabled={isProcessing}
                   className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all active:scale-95"
                 >
-                  <Crosshair className="h-4 w-4" />
-                  USE CURRENT GPS LOCATION
+                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+                  USE DEVICE GPS (HIGH ACCURACY)
                 </button>
 
                 <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
@@ -234,7 +257,7 @@ export function LocationRequest() {
                     onConfirm={(lat, lng) => {
                       const matched = zones?.find(z => isPointInPolygon(lat, lng, z.boundary || []));
                       if (matched) handleSelectZone(matched, [lat, lng]);
-                      else toast({ variant: "destructive", title: "Outside Zone", description: "Service unavailable here." });
+                      else toast({ variant: "destructive", title: "Outside Zone", description: "Service unavailable in this specific map area." });
                     }} 
                   />
                 </div>

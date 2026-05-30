@@ -169,21 +169,37 @@ export default function CartPage() {
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Not Supported" });
+      toast({ variant: "destructive", title: "GPS Not Supported", description: "Your device does not support high accuracy location." });
       return;
     }
 
     setIsValidatingLocation(true);
+    
+    // HIGH ACCURACY GPS OPTIONS
+    const gpsOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0 // No cached data
+    };
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         validateAndSetCoords(lat, lng);
       },
-      () => {
+      (error) => {
         setIsValidatingLocation(false);
-        toast({ variant: "destructive", title: "Permission Denied", description: "Please enable location access." });
+        let errorMsg = "Permission Denied. Please enable location access in browser settings.";
+        if (error.code === 2) errorMsg = "GPS is disabled. Please turn on location services.";
+        if (error.code === 3) errorMsg = "GPS signal timeout. Please try again outside or near a window.";
+        
+        toast({ 
+          variant: "destructive", 
+          title: "Location Error", 
+          description: errorMsg 
+        });
       },
-      { enableHighAccuracy: true }
+      gpsOptions
     );
   };
 
@@ -195,12 +211,12 @@ export default function CartPage() {
       setLongitude(lng);
       setCustomerCity(matchedZone.city || 'Local');
       setCustomerAddress(prev => prev || matchedZone.name);
-      toast({ title: "Location Verified!", description: `Spot: ${matchedZone.name}` });
+      toast({ title: "Location Verified!", description: `Precision detected at ${matchedZone.name}` });
     } else {
       toast({ 
         variant: "destructive", 
         title: "Service Unavailable", 
-        description: "Your selected spot is outside our delivery zones." 
+        description: "Your live GPS position is outside our delivery area." 
       });
     }
     setIsValidatingLocation(false);
@@ -358,7 +374,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <div className="h-3 w-3 border border-green-600 rounded-sm flex items-center justify-center p-0.5">
+                    <div className="h-3.5 w-3.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5">
                       <div className="h-full w-full bg-green-600 rounded-full" />
                     </div>
                     <h3 className="font-bold text-sm text-gray-800 truncate">{item.name}</h3>
@@ -422,7 +438,7 @@ export default function CartPage() {
                   className="flex-1 h-12 bg-primary/5 border-2 border-primary/10 rounded-xl flex items-center justify-center gap-2 text-primary font-black uppercase text-[10px] active:scale-95 transition-all"
                  >
                    {isValidatingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                   USE CURRENT GPS
+                   USE HIGH ACCURACY GPS
                  </button>
                  <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                     <DialogTrigger asChild>
