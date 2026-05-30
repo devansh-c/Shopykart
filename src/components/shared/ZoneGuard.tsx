@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 /**
- * Robust Point-in-Polygon Algorithm (Ray Casting)
+ * Robust Point-in-Polygon Algorithm with multi-format support
  */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
@@ -31,13 +31,12 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : vs[i].lat);
-    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : vs[i].lng);
-    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : vs[j].lat);
-    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : vs[j].lng);
+    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : (vs[i].lat || vs[i].latitude));
+    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : (vs[i].lng || vs[i].longitude));
+    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : (vs[j].lat || vs[j].latitude));
+    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : (vs[j].lng || vs[j].longitude));
 
-    const intersect = ((yi > y) !== (yj > y))
-        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
   return inside;
@@ -79,6 +78,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const currentZone = useMemo(() => {
     if (!activeZones || activeZones.length === 0) return null;
 
+    // 1. Check Precision GPS Coordinates first
     if (currentCoords) {
       const matchedMapZone = activeZones.find(zone => {
         if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
@@ -89,11 +89,13 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       if (matchedMapZone) return matchedMapZone;
     }
 
+    // 2. Fallback to Pincode match if GPS check fails (important for satisifed UX)
     if (currentPincode) {
       const cleanPin = currentPincode.trim();
-      return activeZones.find(zone => 
+      const matchedPinZone = activeZones.find(zone => 
         zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.includes(cleanPin)
       );
+      if (matchedPinZone) return matchedPinZone;
     }
 
     return null;
@@ -101,8 +103,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   if (!mounted) return null;
 
-  // We skip the "Verifying..." full screen loader to prevent the fetching screen the user complained about.
-  // The app will load immediately.
   if (zonesLoading || userLoading) {
     return <>{children}</>;
   }
@@ -110,7 +110,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const hasLocation = !!localStorage.getItem('user_location_set');
   const noZonesDefined = !activeZones || activeZones.length === 0;
 
-  // If no zones exist yet (first setup) or user hasn't picked a location, allow free browsing.
   if (noZonesDefined || !hasLocation || !!currentZone) {
     if (currentZone) {
       localStorage.setItem('active_zone_id', currentZone.id);
@@ -120,7 +119,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // ONLY block if they have a location set and it's NOT in our served zones.
+  // ONLY block if they have a location set and it's NOT in our served zones (by Poly OR Pincode).
   return (
     <div className="fixed inset-0 z-[500] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700 py-10">

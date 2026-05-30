@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -33,7 +34,7 @@ const MapPicker = dynamic(() => import('./MapPicker'), {
 });
 
 /**
- * Robust Point-in-Polygon Algorithm (Ray Casting)
+ * Robust Point-in-Polygon Algorithm with multi-format support
  */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
@@ -41,10 +42,11 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   const y = Number(lng);
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(vs[i].lat);
-    const yi = Number(vs[i].lng);
-    const xj = Number(vs[j].lat);
-    const yj = Number(vs[j].lng);
+    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : (vs[i].lat || vs[i].latitude));
+    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : (vs[i].lng || vs[i].longitude));
+    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : (vs[j].lat || vs[j].latitude));
+    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : (vs[j].lng || vs[j].longitude));
+    
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
@@ -89,7 +91,8 @@ export function LocationRequest() {
     const q = searchQuery.toLowerCase();
     return zones.filter(zone => 
       zone.name?.toLowerCase().includes(q) || 
-      zone.city?.toLowerCase().includes(q)
+      zone.city?.toLowerCase().includes(q) ||
+      (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.some((p: string) => p.includes(q)))
     );
   }, [zones, searchQuery]);
 
@@ -101,22 +104,28 @@ export function LocationRequest() {
 
     setIsProcessing(true);
     
-    // HIGH ACCURACY GPS OPTIONS
     const gpsOptions = {
-      enableHighAccuracy: true, // Force precise device GPS
-      timeout: 10000,           // 10 second timeout
-      maximumAge: 0             // No cached location data
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
     };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        console.log(`GPS Location Captured: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`);
+        const { latitude, longitude } = pos.coords;
         setSelectedCoords([latitude, longitude]);
         
-        // Find if this point is in any zone
-        const matchedZone = zones?.find(zone => isPointInPolygon(latitude, longitude, zone.boundary || []));
+        // 1. Try Map Precision Match
+        let matchedZone = zones?.find(zone => isPointInPolygon(latitude, longitude, zone.boundary || []));
         
+        // 2. If Map fails but user has a saved pincode, try matching that
+        if (!matchedZone && zones) {
+           const savedPin = localStorage.getItem('user_pincode');
+           if (savedPin) {
+             matchedZone = zones.find(z => z.pincodes && Array.isArray(z.pincodes) && z.pincodes.includes(savedPin.trim()));
+           }
+        }
+
         if (matchedZone) {
           handleSelectZone(matchedZone, [latitude, longitude]);
         } else {
@@ -131,19 +140,11 @@ export function LocationRequest() {
       (error) => {
         setIsProcessing(false);
         let errorMsg = "Could not fetch location.";
-        if (error.code === 1) {
-          errorMsg = "Location permission denied. Please allow access in settings.";
-        } else if (error.code === 2) {
-          errorMsg = "GPS is disabled on your device. Please turn it on.";
-        } else if (error.code === 3) {
-          errorMsg = "Location request timed out. Please try again.";
-        }
+        if (error.code === 1) errorMsg = "Location permission denied.";
+        else if (error.code === 2) errorMsg = "GPS is disabled.";
+        else if (error.code === 3) errorMsg = "Location request timed out.";
         
-        toast({ 
-          variant: "destructive", 
-          title: "Location Error", 
-          description: errorMsg 
-        });
+        toast({ variant: "destructive", title: "Location Error", description: errorMsg });
       },
       gpsOptions
     );
@@ -161,6 +162,12 @@ export function LocationRequest() {
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('user_plus_code', `${lat},${lng}`);
       localStorage.setItem('active_zone_id', zone.id);
+      
+      // If zone has pincodes, set the first one as default if not exists
+      if (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.length > 0) {
+        localStorage.setItem('user_pincode', zone.pincodes[0]);
+      }
+      
       window.dispatchEvent(new CustomEvent('user-address-updated'));
     }
 
@@ -178,7 +185,7 @@ export function LocationRequest() {
     setTimeout(() => {
       setIsProcessing(false);
       setOpen(false);
-      toast({ title: `Location set to ${zone.name}`, description: "Menu updated for your area." });
+      toast({ title: `Location set to ${zone.name}` });
     }, 200);
   };
 
@@ -218,7 +225,7 @@ export function LocationRequest() {
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input 
-                    placeholder="Search city or area..." 
+                    placeholder="Search city, area or pincode..." 
                     className="h-12 rounded-2xl bg-gray-50 border-none pl-11 font-bold text-sm shadow-inner"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,7 +238,7 @@ export function LocationRequest() {
                   className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all active:scale-95"
                 >
                   {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                  USE DEVICE GPS (HIGH ACCURACY)
+                  USE DEVICE GPS (AUTO DETECT)
                 </button>
 
                 <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
@@ -243,7 +250,7 @@ export function LocationRequest() {
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-black text-gray-800 truncate uppercase italic">{zone.name}</p>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase">{zone.city}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase">{zone.city} {zone.pincodes?.[0] ? `(${zone.pincodes[0]})` : ''}</p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-gray-300" />
                     </button>
@@ -261,9 +268,6 @@ export function LocationRequest() {
                     }} 
                   />
                 </div>
-                <p className="text-[8px] font-black text-center text-gray-400 uppercase tracking-widest px-4">
-                  Drag the map to position the pin exactly on your delivery spot
-                </p>
               </div>
             )}
           </div>

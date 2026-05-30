@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -56,16 +57,20 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
+/**
+ * Robust Point-in-Polygon Algorithm with multi-format support
+ */
 function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
   const x = Number(lat);
   const y = Number(lng);
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(vs[i].lat);
-    const yi = Number(vs[i].lng);
-    const xj = Number(vs[j].lat);
-    const yj = Number(vs[j].lng);
+    const xi = Number(Array.isArray(vs[i]) ? vs[i][0] : (vs[i].lat || vs[i].latitude));
+    const yi = Number(Array.isArray(vs[i]) ? vs[i][1] : (vs[i].lng || vs[i].longitude));
+    const xj = Number(Array.isArray(vs[j]) ? vs[j][0] : (vs[j].lat || vs[j].latitude));
+    const yj = Number(Array.isArray(vs[j]) ? vs[j][1] : (vs[j].lng || vs[j].longitude));
+    
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
@@ -204,13 +209,22 @@ export default function CartPage() {
   };
 
   const validateAndSetCoords = (lat: number, lng: number) => {
-    const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
+    // 1. Try Precision Map Polygon Match
+    let matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
+    // 2. If Poly-match fails, try Pincode-match as a "Satisfied User" fallback
+    if (!matchedZone && customerPincode && zones) {
+      matchedZone = zones.find(z => z.pincodes && Array.isArray(z.pincodes) && z.pincodes.includes(customerPincode.trim()));
+      if (matchedZone) {
+        console.log("GPS was slightly out of poly, but pincode matched. Approving.");
+      }
+    }
+
     if (matchedZone) {
       setLatitude(lat);
       setLongitude(lng);
-      setCustomerCity(matchedZone.city || 'Local');
-      setCustomerAddress(prev => prev || matchedZone.name);
+      if (!customerCity) setCustomerCity(matchedZone.city || 'Local');
+      if (!customerAddress) setCustomerAddress(matchedZone.name);
       toast({ title: "Location Verified!", description: `Precision detected at ${matchedZone.name}` });
     } else {
       toast({ 
