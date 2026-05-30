@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -17,7 +18,6 @@ import { cn } from '@/lib/utils';
 type AuthView = 'login' | 'signup';
 
 export function EmailAuth() {
-  // Changed default view to 'signup' so registration opens first
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -53,12 +53,11 @@ export function EmailAuth() {
         toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter 10 digits." });
         return;
       }
-      // MANDATORY ZERO CHECK
       if (phoneNumber.startsWith('0')) {
         toast({ 
           variant: "destructive", 
           title: "Invalid Phone", 
-          description: "any phone number cannot start with zero" 
+          description: "Phone number cannot start with zero." 
         });
         return;
       }
@@ -71,18 +70,25 @@ export function EmailAuth() {
         const user = userCredential.user;
         await updateProfile(user, { displayName: fullName });
 
+        const userData = {
+          fullName: fullName.toUpperCase(),
+          phoneNumber,
+          email: trimmedEmail,
+          uid: user.uid,
+          coins: 10,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          role: 'customer'
+        };
+
         if (firestore) {
-          await setDoc(doc(firestore, 'users', user.uid), {
-            fullName: fullName.toUpperCase(),
-            phoneNumber,
-            email: trimmedEmail,
-            uid: user.uid,
-            coins: 10,
-            updatedAt: serverTimestamp(),
-            createdAt: serverTimestamp(),
-            role: 'customer'
-          }, { merge: true });
+          await setDoc(doc(firestore, 'users', user.uid), userData, { merge: true });
         }
+
+        // Lock in LocalStorage immediately for instant UI response
+        localStorage.setItem('user_name', fullName.toUpperCase());
+        localStorage.setItem('user_phone', phoneNumber);
+        
         toast({ title: "Welcome to ShopyKart!", description: `Profile created successfully, ${fullName}.` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
@@ -109,7 +115,6 @@ export function EmailAuth() {
   return (
     <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-500 overflow-y-auto no-scrollbar">
       <div className="max-w-sm mx-auto w-full space-y-8 py-10">
-        
         <div className="flex flex-col items-center text-center space-y-6">
           <Logo className="scale-125 mb-2 border-white/10" />
           <div className="space-y-2">
@@ -117,7 +122,7 @@ export function EmailAuth() {
               {view === 'signup' ? 'Join ShopyKart' : 'Welcome Back'}
             </h1>
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">
-              {view === 'signup' ? 'Create your secure identity' : 'Premium Delivery Network'}
+              {view === 'signup' ? 'Create your permanent identity' : 'Premium Delivery Network'}
             </p>
           </div>
         </div>
@@ -221,13 +226,12 @@ export function EmailAuth() {
                 className="text-[10px] font-bold uppercase tracking-widest text-primary/60 flex items-center gap-1.5 hover:text-primary transition-colors"
               >
                 <MessageCircle className="h-3 w-3" />
-                Forgot Secret Key? WhatsApp Admin
+                Forgot Password? WhatsApp Admin
               </button>
             )}
           </div>
         </div>
       </div>
-
       <div className="mt-auto pb-10 flex flex-col items-center gap-2 opacity-20">
          <Sparkles className="h-5 w-5 text-white" />
          <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white">Identity Secured System</p>

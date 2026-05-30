@@ -4,7 +4,7 @@
 import { CartProvider } from '@/components/cart/CartProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
-import { FirebaseClientProvider, useUser } from '@/firebase';
+import { FirebaseClientProvider, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
@@ -16,6 +16,42 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { HeatWaveOverlay } from '@/components/shared/HeatWaveOverlay';
 import { ZoneGuard } from '@/components/shared/ZoneGuard';
+import { useEffect } from 'react';
+import { doc } from 'firebase/firestore';
+
+/**
+ * @fileOverview ProfileSync ensures that once a user is logged in, 
+ * their Firestore profile data is always available in localStorage 
+ * for a persistent, "one-time" setup experience.
+ */
+function ProfileSync() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: profile } = useDoc<any>(profileRef);
+
+  useEffect(() => {
+    if (profile && typeof window !== 'undefined') {
+      // Sync Firestore data to localStorage for instant UI access across refreshes
+      if (profile.fullName) localStorage.setItem('user_name', profile.fullName);
+      if (profile.phoneNumber) localStorage.setItem('user_phone', profile.phoneNumber);
+      if (profile.address) localStorage.setItem('user_address_line', profile.address);
+      if (profile.city) localStorage.setItem('user_city', profile.city);
+      if (profile.pincode) localStorage.setItem('user_pincode', profile.pincode);
+      if (profile.plusCode) localStorage.setItem('user_plus_code_string', profile.plusCode);
+      
+      // If profile exists, we consider location/identity set
+      localStorage.setItem('user_location_set', 'true');
+    }
+  }, [profile]);
+
+  return null;
+}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -41,6 +77,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen">
       <AuthGuard>
+        <ProfileSync />
         {/* GLOBAL COMPONENTS - Must be outside ZoneGuard to function when zone is blocked */}
         <LocationRequest />
         <NotificationHandler />

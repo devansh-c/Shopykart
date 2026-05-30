@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -119,16 +120,17 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal - coinDiscount);
 
+  // Synchronize state with profile data (Priority: Profile > LocalStorage)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setCustomerName(localStorage.getItem('user_name') || '');
-      setCustomerPhone(localStorage.getItem('user_phone') || '');
-      setCustomerAddress(localStorage.getItem('user_address_line') || '');
-      setCustomerCity(localStorage.getItem('user_city') || '');
-      setCustomerPincode(localStorage.getItem('user_pincode') || '');
-      setPlusCode(localStorage.getItem('user_plus_code_string') || '');
+      setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
+      setCustomerPhone(profile?.phoneNumber || localStorage.getItem('user_phone') || '');
+      setCustomerAddress(profile?.address || localStorage.getItem('user_address_line') || '');
+      setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
+      setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
+      setPlusCode(profile?.plusCode || localStorage.getItem('user_plus_code_string') || '');
     }
-  }, []);
+  }, [profile]);
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -143,7 +145,6 @@ export default function CartPage() {
         setCoords({ lat: latitude, lng: longitude });
         
         try {
-          // Fetch real descriptive address from OpenStreetMap (Free, no key needed)
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
           const data = await res.json();
           
@@ -153,7 +154,6 @@ export default function CartPage() {
             const road = data.address.road || data.address.neighbourhood || '';
             const house = data.address.house_number || '';
             
-            // Construct a cleaner readable address
             const fullReadable = data.display_name;
             const shortAddress = [house, road].filter(Boolean).join(', ');
 
@@ -161,12 +161,10 @@ export default function CartPage() {
             setCustomerCity(city);
             setCustomerPincode(pin);
             
-            // We use the latitude/longitude as the most accurate "Plus Pin" source
             const coordString = `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
             setPlusCode(coordString);
             
             localStorage.setItem('user_plus_code_string', coordString);
-            
             toast({ title: "Precision Pin Set", description: "Your exact delivery location has been captured." });
           }
         } catch (e) {
@@ -190,8 +188,12 @@ export default function CartPage() {
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const orderRef = doc(firestore, 'orders', orderId);
 
-    const guestUid = 'guest_' + (customerPhone || Date.now());
-    const finalUid = user?.uid || guestUid;
+    const finalUid = user?.uid;
+    if (!finalUid) {
+      toast({ variant: "destructive", title: "Auth Error", description: "Please sign in again." });
+      setIsPlacing(false);
+      return;
+    }
     
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''}, ${customerState || ''} - ${customerPincode || ''}`;
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
@@ -219,8 +221,8 @@ export default function CartPage() {
       plusCode: String(plusCode || ''),
       pincode: String(customerPincode || ''),
       instructions: String(instructions || ''),
-      latitude: coords.lat,
-      longitude: coords.lng,
+      latitude: coords.lat || (profile?.latitude || null),
+      longitude: coords.lng || (profile?.longitude || null),
       createdAt: serverTimestamp(),
       vendorId: String(cart[0]?.vendorId || 'global'),
       restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
@@ -236,16 +238,15 @@ export default function CartPage() {
       const userUpdateData: any = {
         fullName: String(customerName),
         phoneNumber: String(customerPhone),
-        address: String(fullFinalAddress),
+        address: String(customerAddress),
         city: String(customerCity),
         pincode: String(customerPincode),
         plusCode: String(plusCode),
-        uid: String(finalUid),
         updatedAt: serverTimestamp(),
         coins: increment(10 - coinsUsed) 
       };
 
-      await setDoc(userRef, userUpdateData, { merge: true });
+      await updateDoc(userRef, userUpdateData);
       setShowSuccess(true);
       
       setTimeout(() => {
@@ -265,12 +266,10 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Incomplete Details", description: "Please fill all required fields." });
       return;
     }
-
     if (customerPhone.startsWith('0')) {
       toast({ variant: "destructive", title: "Invalid Phone", description: "Phone number cannot start with zero." });
       return;
     }
-
     await createOrderInFirestore();
   };
 
