@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MapPin, 
   Search, 
   Loader2, 
-  CheckCircle2, 
   Map as MapIcon, 
   Navigation,
   Sparkles,
   Building2,
   ChevronRight,
-  Globe
+  Globe,
+  Crosshair,
+  Check
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -19,20 +20,46 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { doc, setDoc, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('./MapPicker'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] w-full bg-muted flex items-center justify-center rounded-3xl animate-pulse">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
+    </div>
+  )
+});
 
 /**
- * @fileOverview Mandatory Location Picker.
- * Opens automatically every time the app loads/refreshes.
+ * Robust Point-in-Polygon Algorithm (Ray Casting)
  */
+function isPointInPolygon(lat: number, lng: number, vs: any[]) {
+  if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
+  const x = Number(lat);
+  const y = Number(lng);
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = Number(vs[i].lat);
+    const yi = Number(vs[i].lng);
+    const xj = Number(vs[j].lat);
+    const yj = Number(vs[j].lng);
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 export function LocationRequest() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedCoords, setSelectedCoords] = useState<[number, number] | null>(null);
 
-  // Fetch active zones from Admin Panel
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
@@ -42,17 +69,12 @@ export function LocationRequest() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    // REDUCED DELAY for instant feel
-    const timer = setTimeout(() => {
-      setOpen(true);
-    }, 100); 
-
+    const timer = setTimeout(() => setOpen(true), 100);
     const handleOpen = () => {
       setSearchQuery('');
+      setView('list');
       setOpen(true);
     };
-
     window.addEventListener('open-location-picker', handleOpen);
     return () => {
       clearTimeout(timer);
@@ -63,27 +85,56 @@ export function LocationRequest() {
   const filteredZones = useMemo(() => {
     if (!zones) return [];
     if (!searchQuery.trim()) return zones;
-    
     const q = searchQuery.toLowerCase();
     return zones.filter(zone => 
       zone.name?.toLowerCase().includes(q) || 
-      zone.city?.toLowerCase().includes(q) ||
-      (zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.some((p: string) => p.includes(q)))
+      zone.city?.toLowerCase().includes(q)
     );
   }, [zones, searchQuery]);
 
-  const handleSelectZone = async (zone: any) => {
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) {
+      toast({ variant: "destructive", title: "GPS Not Supported" });
+      return;
+    }
+
     setIsProcessing(true);
-    
-    const lat = zone.boundary?.[0]?.lat || 25.2443;
-    const lng = zone.boundary?.[0]?.lng || 79.0838;
-    const pincode = zone.pincodes?.[0] || '';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setSelectedCoords([latitude, longitude]);
+        
+        // Find if this point is in any zone
+        const matchedZone = zones?.find(zone => isPointInPolygon(latitude, longitude, zone.boundary || []));
+        
+        if (matchedZone) {
+          handleSelectZone(matchedZone, [latitude, longitude]);
+        } else {
+          setIsProcessing(false);
+          toast({ 
+            variant: "destructive", 
+            title: "Outside Service Area", 
+            description: "Service unavailable in your current area." 
+          });
+        }
+      },
+      () => {
+        setIsProcessing(false);
+        toast({ variant: "destructive", title: "Permission Denied", description: "Please enable location access." });
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const handleSelectZone = async (zone: any, customCoords?: [number, number]) => {
+    setIsProcessing(true);
+    const lat = customCoords ? customCoords[0] : (zone.boundary?.[0]?.lat || 25.2443);
+    const lng = customCoords ? customCoords[1] : (zone.boundary?.[0]?.lng || 79.0838);
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('user_address', zone.name);
       localStorage.setItem('user_full_precise_address', `${zone.name}, ${zone.city}`);
       localStorage.setItem('user_city', zone.city || 'Local');
-      localStorage.setItem('user_pincode', pincode);
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('user_plus_code', `${lat},${lng}`);
       localStorage.setItem('active_zone_id', zone.id);
@@ -91,22 +142,20 @@ export function LocationRequest() {
     }
 
     if (user && firestore) {
-      const userRef = doc(firestore, 'users', user.uid);
-      await setDoc(userRef, {
+      await setDoc(doc(firestore, 'users', user.uid), {
         address: zone.name,
-        fullAddress: `${zone.name}, ${zone.city}`,
         city: zone.city || 'Local',
-        pincode: pincode,
         plusCode: `${lat},${lng}`,
+        latitude: lat,
+        longitude: lng,
         updatedAt: serverTimestamp(),
       }, { merge: true }).catch(() => {});
     }
 
-    // Faster completion animation
     setTimeout(() => {
       setIsProcessing(false);
       setOpen(false);
-      toast({ title: `Location set to ${zone.name}`, description: "Showing stores available in your area." });
+      toast({ title: `Location set to ${zone.name}` });
     }, 200);
   };
 
@@ -114,86 +163,91 @@ export function LocationRequest() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogOverlay className="z-[2000] bg-black/60 backdrop-blur-sm" />
       <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] transition-all duration-300 z-[2001]">
-        <div className="px-8 py-10">
-          <div className="flex flex-col space-y-8">
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="h-16 w-16 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary mb-2 shadow-inner border border-primary/5">
-                <MapPin className="h-8 w-8" />
+        <div className="px-8 py-8">
+          <div className="flex flex-col space-y-6">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="h-14 w-14 bg-primary/10 rounded-[1.8rem] flex items-center justify-center text-primary mb-1 shadow-inner">
+                <MapPin className="h-7 w-7" />
               </div>
-              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-black leading-none">
+              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
                 DELIVERY <span className="text-primary">AREA.</span>
               </DialogTitle>
-              <DialogDescription className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-                Select your service zone to continue
-              </DialogDescription>
             </div>
 
-            <div className="space-y-6">
-               <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+            <div className="flex bg-muted/50 p-1 rounded-2xl">
+              <button 
+                onClick={() => setView('list')}
+                className={cn("flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", view === 'list' ? "bg-white shadow-sm" : "text-gray-400")}
+              >
+                SELECT ZONE
+              </button>
+              <button 
+                onClick={() => setView('map')}
+                className={cn("flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", view === 'map' ? "bg-white shadow-sm" : "text-gray-400")}
+              >
+                PICK ON MAP
+              </button>
+            </div>
+
+            {view === 'list' ? (
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input 
-                    placeholder="Search your city or area..." 
-                    className="h-14 rounded-2xl bg-gray-50 border-none pl-12 font-bold focus-visible:ring-1 focus-visible:ring-primary/20 text-sm shadow-inner"
+                    placeholder="Search city or area..." 
+                    className="h-12 rounded-2xl bg-gray-50 border-none pl-11 font-bold text-sm shadow-inner"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-               </div>
+                </div>
 
-               <div className="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar pb-4">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Available Serving Zones</p>
-                  
-                  {zonesLoading ? (
-                    <div className="flex flex-col items-center justify-center py-10 opacity-30">
-                       <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                       <span className="text-[8px] font-black uppercase tracking-widest">Loading Zones...</span>
-                    </div>
-                  ) : filteredZones.length > 0 ? (
-                    filteredZones.map((zone) => (
-                      <button 
-                        key={zone.id} 
-                        disabled={isProcessing}
-                        onClick={() => handleSelectZone(zone)}
-                        className="w-full text-left p-5 rounded-[1.8rem] bg-gray-50/50 hover:bg-primary/5 flex items-center justify-between border-2 border-transparent hover:border-primary/10 transition-all group active:scale-[0.98]"
-                      >
-                         <div className="flex items-center gap-4 min-w-0">
-                            <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary shrink-0">
-                               <Navigation className="h-5 w-5 group-hover:animate-pulse" />
-                            </div>
-                            <div className="min-w-0">
-                               <p className="text-sm font-black text-gray-800 leading-tight mb-0.5 truncate uppercase italic">{zone.name}</p>
-                               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter truncate">{zone.city} • Pincode served</p>
-                            </div>
-                         </div>
-                         <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-primary transition-colors" />
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 px-6 bg-gray-50 rounded-[2.5rem] border border-dashed">
-                       <Globe className="h-10 w-10 mx-auto text-gray-200 mb-3" />
-                       <p className="text-[11px] font-black uppercase text-gray-400 tracking-tighter">No zones found matching "{searchQuery}"</p>
-                       <p className="text-[8px] font-bold text-gray-300 uppercase mt-1">We are expanding to more areas soon!</p>
-                    </div>
-                  )}
-               </div>
-            </div>
-            
-            <div className="bg-primary/5 p-4 rounded-2xl flex items-center justify-center gap-3">
-               <div className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
-               <p className="text-[9px] text-primary font-black uppercase tracking-widest text-center">
-                  Select a zone to unlock local stores
-               </p>
-            </div>
+                <button 
+                  onClick={handleUseGPS}
+                  disabled={isProcessing}
+                  className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all active:scale-95"
+                >
+                  <Crosshair className="h-4 w-4" />
+                  USE CURRENT GPS LOCATION
+                </button>
+
+                <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
+                  {filteredZones.map((zone) => (
+                    <button 
+                      key={zone.id} 
+                      onClick={() => handleSelectZone(zone)}
+                      className="w-full text-left p-4 rounded-2xl bg-gray-50/50 hover:bg-primary/5 flex items-center justify-between border-2 border-transparent transition-all group"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-gray-800 truncate uppercase italic">{zone.name}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase">{zone.city}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 animate-in fade-in zoom-in duration-300">
+                <div className="h-[300px] w-full bg-muted rounded-[2rem] overflow-hidden border-2 border-gray-100 relative">
+                  <MapPicker 
+                    onConfirm={(lat, lng) => {
+                      const matched = zones?.find(z => isPointInPolygon(lat, lng, z.boundary || []));
+                      if (matched) handleSelectZone(matched, [lat, lng]);
+                      else toast({ variant: "destructive", title: "Outside Zone", description: "Service unavailable here." });
+                    }} 
+                  />
+                </div>
+                <p className="text-[8px] font-black text-center text-gray-400 uppercase tracking-widest px-4">
+                  Drag the map to position the pin exactly on your delivery spot
+                </p>
+              </div>
+            )}
           </div>
         </div>
-
         {isProcessing && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
-             <div className="relative">
-                <div className="h-20 w-20 bg-primary rounded-[2rem] animate-bounce flex items-center justify-center shadow-2xl shadow-primary/20">
-                   <span className="text-white text-3xl font-black italic">!</span>
-                </div>
-             </div>
-             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mt-6">Switching Area...</p>
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <span className="text-[10px] font-black uppercase tracking-widest mt-4">Verifying Area...</span>
           </div>
         )}
       </DialogContent>

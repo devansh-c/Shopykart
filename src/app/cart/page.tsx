@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -129,7 +128,7 @@ export default function CartPage() {
       setCustomerAddress(profile?.address || localStorage.getItem('user_address_line') || '');
       setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
       setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
-      setPlusCode(profile?.plusCode || localStorage.getItem('user_plus_code_string') || '');
+      setPlusCode(profile?.plusCode || localStorage.getItem('user_plus_code') || '');
     }
   }, [profile]);
 
@@ -149,6 +148,15 @@ export default function CartPage() {
     
     const fullFinalAddress = `${customerAddress || ''}, ${customerCity || ''}, ${customerState || ''} - ${customerPincode || ''}`;
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
+
+    // Determine GPS Coords from plusCode string
+    let lat = null;
+    let lng = null;
+    if (plusCode && plusCode.includes(',')) {
+      const parts = plusCode.split(',');
+      lat = parseFloat(parts[0]);
+      lng = parseFloat(parts[1]);
+    }
 
     const orderData = {
       userId: String(finalUid),
@@ -174,8 +182,8 @@ export default function CartPage() {
       plusCode: String(plusCode || ''),
       pincode: String(customerPincode || ''),
       instructions: String(instructions || ''),
-      latitude: profile?.latitude || null,
-      longitude: profile?.longitude || null,
+      latitude: lat || profile?.latitude || null,
+      longitude: lng || profile?.longitude || null,
       createdAt: serverTimestamp(),
       vendorId: String(cart[0]?.vendorId || 'global'),
       restaurantName: String(cart[0]?.restaurantName || 'ShopyKart Store'),
