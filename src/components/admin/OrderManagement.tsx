@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,13 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import dynamic from 'next/dynamic';
+
+const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
+  ssr: false,
+  loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
+});
 
 const statusOptions = [
   "Placed",
@@ -27,6 +34,8 @@ export function OrderManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [selectedOrderCoords, setSelectedOrderCoords] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -46,15 +55,12 @@ export function OrderManagement() {
     toast({ title: "Status Updated", description: `Order #${id.slice(-4)} is now ${status}.` });
   };
 
-  const handleTrackLocation = (order: any) => {
-    // ACCURATE GPS TRACKING: We prioritize verified coordinates (lat/lng) for navigation
-    // with forced pinpoint parameters for Google Maps.
+  const handleOpenMap = (order: any) => {
     if (order.latitude && order.longitude) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${Number(order.latitude)},${Number(order.longitude)}`;
-      window.open(url, '_blank');
+      setSelectedOrderCoords({ lat: Number(order.latitude), lng: Number(order.longitude) });
+      setIsMapOpen(true);
     } else {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
-      window.open(url, '_blank');
+      toast({ variant: "destructive", title: "No Coordinates", description: "This order only has a text address." });
     }
   };
 
@@ -138,16 +144,15 @@ export function OrderManagement() {
                       </div>
                     </div>
 
-                    {/* DEBUG PANEL: COORDINATE VERIFICATION */}
                     <div className="flex flex-col gap-1 md:col-span-2">
-                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">GPS Diagnostic (Debug)</p>
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">GPS Diagnostic</p>
                       <div className="bg-[#0B0B0B] text-white p-4 rounded-2xl flex items-center justify-between group/loc relative overflow-hidden">
                         <div className="relative z-10 flex items-center gap-3">
                            <div className="bg-primary/20 p-2 rounded-xl text-primary border border-primary/20">
                               <ShieldCheck className="h-5 w-5" />
                            </div>
                            <div>
-                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">Precision Pin Verified</h4>
+                              <h4 className="text-[11px] font-black italic uppercase text-primary leading-none mb-1">Precision Pin Locked</h4>
                               <div className="flex flex-col gap-0.5">
                                 <p className="text-[8px] font-bold tracking-widest text-gray-400 uppercase">
                                   LAT: {order.latitude || 'NA'} | LNG: {order.longitude || 'NA'}
@@ -159,11 +164,11 @@ export function OrderManagement() {
                            </div>
                         </div>
                         <button 
-                          onClick={() => handleTrackLocation(order)}
+                          onClick={() => handleOpenMap(order)}
                           className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase italic active:scale-95 transition-all shadow-xl"
                         >
                           <Compass className="h-4 w-4 text-primary" />
-                          VERIFY ON MAP
+                          VIEW INTERNAL MAP
                         </button>
                         <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-8" />
                       </div>
@@ -231,6 +236,38 @@ export function OrderManagement() {
           </div>
         ))}
       </div>
+
+      {/* Internal SDK Map Modal */}
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+        <DialogContent className="rounded-[2.5rem] max-w-2xl h-[80vh] p-0 overflow-hidden border-none shadow-2xl">
+           <DialogHeader className="p-6 bg-white border-b absolute top-0 left-0 right-0 z-50">
+              <DialogTitle className="font-black italic uppercase text-center flex items-center justify-center gap-2">
+                 <Compass className="h-5 w-5 text-primary" />
+                 Customer Location Map
+              </DialogTitle>
+           </DialogHeader>
+           
+           <div className="h-full w-full pt-16 relative">
+              {selectedOrderCoords && (
+                 <OrderMapViewer lat={selectedOrderCoords.lat} lng={selectedOrderCoords.lng} />
+              )}
+           </div>
+
+           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+              <Button 
+                onClick={() => {
+                   if (selectedOrderCoords) {
+                     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedOrderCoords.lat},${selectedOrderCoords.lng}`, '_blank');
+                   }
+                }}
+                className="bg-black/80 backdrop-blur-md text-white rounded-2xl h-12 px-8 font-black uppercase italic text-xs shadow-2xl border border-white/10 hover:bg-black"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                OPEN IN GOOGLE MAPS
+              </Button>
+           </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

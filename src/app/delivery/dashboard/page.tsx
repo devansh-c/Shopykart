@@ -20,7 +20,9 @@ import {
   LayoutDashboard,
   Clock,
   ShieldAlert,
-  Loader2
+  Loader2,
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +32,13 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import dynamic from 'next/dynamic';
+
+const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
+  ssr: false,
+  loading: () => <div className="h-full w-full bg-white/5 animate-pulse rounded-3xl" />
+});
 
 export default function DeliveryDashboard() {
   const firestore = useFirestore();
@@ -41,6 +50,9 @@ export default function DeliveryDashboard() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [isMounted, setIsMounted] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [selectedTaskCoords, setSelectedTaskCoords] = useState<{lat: number, lng: number} | null>(null);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -136,13 +148,12 @@ export default function DeliveryDashboard() {
     router.push('/delivery/login');
   };
 
-  const openNavigation = (task: any) => {
-    // PINPOINT GPS ROUTE: Essential for fast delivery. 
-    // USES COORDINATES FIRST for 100% accuracy.
+  const openInternalMap = (task: any) => {
     if (task.latitude && task.longitude) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${Number(task.latitude)},${Number(task.longitude)}`;
-      window.open(url, '_blank');
+      setSelectedTaskCoords({ lat: Number(task.latitude), lng: Number(task.longitude) });
+      setIsMapOpen(true);
     } else {
+      // Fallback to address search if no coordinates
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
       window.open(url, '_blank');
     }
@@ -245,11 +256,11 @@ export default function DeliveryDashboard() {
                   <div className="flex items-center gap-2 mt-4 text-gray-400 text-xs"><MapPin className="h-3.5 w-3.5 text-primary" /><span className="truncate max-w-[180px] font-medium">{task.address}</span></div>
                   {task.latitude && <p className="text-[7px] font-black text-green-500 mt-2 uppercase tracking-widest flex items-center gap-1"><Navigation className="h-2 w-2" /> GPS PRECISION ACTIVE ✅</p>}
                 </div>
-                <button onClick={() => openNavigation(task)} className="bg-white/10 p-5 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group shadow-2xl"><Compass className={cn("h-7 w-7", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} /></button>
+                <button onClick={() => openInternalMap(task)} className="bg-white/10 p-5 rounded-2xl border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-all active:scale-95 group shadow-2xl"><Compass className={cn("h-7 w-7", task.status === 'Ready for Pickup' ? "text-primary animate-pulse" : "text-white group-hover:text-primary")} /></button>
               </div>
 
               <div className="space-y-3">
-                <button onClick={() => openNavigation(task)} className="w-full h-12 rounded-2xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 flex items-center justify-center"><Map className="h-3 w-3 mr-2" /> OPEN PRECISION PIN</button>
+                <button onClick={() => openInternalMap(task)} className="w-full h-12 rounded-2xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 flex items-center justify-center"><Map className="h-3 w-3 mr-2" /> TRACK ON INTERNAL MAP</button>
                 {task.status === 'Ready for Pickup' && <Button onClick={() => updateDelivery(task.id, 'Picked Up')} className="w-full bg-primary hover:bg-primary/90 rounded-2xl font-black uppercase italic h-14 text-lg shadow-xl shadow-primary/20">Accept & Pickup</Button>}
                 {task.status === 'Picked Up' && <Button onClick={() => updateDelivery(task.id, 'Out for Delivery')} className="w-full bg-blue-500 hover:bg-blue-600 rounded-2xl font-black uppercase italic h-14 text-lg">Mark Out for Delivery</Button>}
                 {task.status === 'Out for Delivery' && <Button onClick={() => updateDelivery(task.id, 'Delivered')} className="w-full bg-green-500 hover:bg-green-600 rounded-2xl font-black uppercase italic h-14 text-lg">Confirm Delivery</Button>}
@@ -293,6 +304,45 @@ export default function DeliveryDashboard() {
           )}
         </div>
       )}
+
+      {/* Internal SDK Map Modal for Delivery Hub */}
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+        <DialogContent className="rounded-[2.5rem] max-w-full sm:max-w-xl h-[85vh] p-0 overflow-hidden bg-[#1A1A1A] border border-white/10 shadow-2xl focus:outline-none">
+           <DialogHeader className="p-6 bg-[#0B0B0B] border-b border-white/5 absolute top-0 left-0 right-0 z-50">
+              <DialogTitle className="font-black italic uppercase text-center flex items-center justify-center gap-2 text-white">
+                 <Map className="h-5 w-5 text-primary" />
+                 Navigation Assistant
+              </DialogTitle>
+           </DialogHeader>
+           
+           <div className="h-full w-full pt-16 relative">
+              {selectedTaskCoords && (
+                 <OrderMapViewer lat={selectedTaskCoords.lat} lng={selectedTaskCoords.lng} />
+              )}
+           </div>
+
+           <div className="absolute bottom-8 left-0 right-0 px-6 z-50 flex flex-col gap-3">
+              <Button 
+                onClick={() => {
+                   if (selectedTaskCoords) {
+                     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedTaskCoords.lat},${selectedTaskCoords.lng}`, '_blank');
+                   }
+                }}
+                className="w-full bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] h-14 font-black uppercase italic text-sm shadow-2xl active:scale-95 transition-all"
+              >
+                <ExternalLink className="h-5 w-5 mr-2" />
+                START NAVIGATING (EXTERNAL)
+              </Button>
+              <Button 
+                variant="ghost"
+                onClick={() => setIsMapOpen(false)}
+                className="w-full text-gray-400 font-bold uppercase text-[10px] tracking-widest"
+              >
+                CLOSE ASSISTANT
+              </Button>
+           </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
