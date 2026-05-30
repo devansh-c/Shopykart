@@ -64,6 +64,16 @@ export function OrderManagement() {
     }
   };
 
+  const handleGoogleNav = (order: any) => {
+    if (order.latitude && order.longitude) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`;
+      window.open(url, '_blank');
+    } else {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
+      window.open(url, '_blank');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'Placed': return "bg-gray-100 text-gray-600";
@@ -132,15 +142,26 @@ export function OrderManagement() {
                             <span className="text-[10px] font-black text-muted-foreground">{order.customerPhone || 'No Phone'}</span>
                           </div>
                         </div>
-                        {order.customerPhone && (
-                          <button 
-                            onClick={() => window.open(`tel:${order.customerPhone}`)}
-                            className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg shadow-lg shadow-green-500/20 active:scale-90 transition-all ml-2"
-                            title="Call Customer"
-                          >
-                            <PhoneCall className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <div className="flex gap-1.5 ml-2">
+                          {order.latitude && (
+                            <button 
+                              onClick={() => handleGoogleNav(order)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg shadow-lg shadow-blue-500/20 active:scale-90 transition-all"
+                              title="Google Maps Navigation"
+                            >
+                              <Navigation className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {order.customerPhone && (
+                            <button 
+                              onClick={() => window.open(`tel:${order.customerPhone}`)}
+                              className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg shadow-lg shadow-green-500/20 active:scale-90 transition-all"
+                              title="Call Customer"
+                            >
+                              <PhoneCall className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -257,13 +278,13 @@ export function OrderManagement() {
               <Button 
                 onClick={() => {
                    if (selectedOrderCoords) {
-                     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedOrderCoords.lat},${selectedOrderCoords.lng}`, '_blank');
+                     window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedOrderCoords.lat},${selectedOrderCoords.lng}`, '_blank');
                    }
                 }}
                 className="bg-black/80 backdrop-blur-md text-white rounded-2xl h-12 px-8 font-black uppercase italic text-xs shadow-2xl border border-white/10 hover:bg-black"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                OPEN IN GOOGLE MAPS
+                START NAVIGATING (EXTERNAL)
               </Button>
            </div>
         </DialogContent>

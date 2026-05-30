@@ -153,7 +153,16 @@ export default function DeliveryDashboard() {
       setSelectedTaskCoords({ lat: Number(task.latitude), lng: Number(task.longitude) });
       setIsMapOpen(true);
     } else {
-      // Fallback to address search if no coordinates
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
+      window.open(url, '_blank');
+    }
+  };
+
+  const handleGoogleNav = (task: any) => {
+    if (task.latitude && task.longitude) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${task.latitude},${task.longitude}`;
+      window.open(url, '_blank');
+    } else {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.address)}`;
       window.open(url, '_blank');
     }
@@ -249,9 +258,25 @@ export default function DeliveryDashboard() {
                         <div className="bg-white/10 p-2 rounded-xl text-primary"><User className="h-4 w-4" /></div>
                         <div><p className="text-[10px] font-black text-gray-500 uppercase mb-1 leading-none">Customer</p><span className="text-xs font-black uppercase italic tracking-tighter">{task.customerName || 'Premium User'}</span></div>
                     </div>
-                    {task.customerPhone && (
-                      <button onClick={() => window.open(`tel:${task.customerPhone}`)} className="bg-green-600 hover:bg-green-500 p-3.5 rounded-xl text-white shadow-xl shadow-green-600/20 active:scale-90 transition-all"><PhoneCall className="h-5 w-5" /></button>
-                    )}
+                    <div className="flex gap-2">
+                       {task.latitude && (
+                         <button 
+                           onClick={() => handleGoogleNav(task)} 
+                           className="bg-blue-600 hover:bg-blue-500 p-3.5 rounded-xl text-white shadow-xl shadow-blue-600/20 active:scale-90 transition-all"
+                           title="Google Maps Navigation"
+                         >
+                           <Navigation className="h-5 w-5" />
+                         </button>
+                       )}
+                       {task.customerPhone && (
+                         <button 
+                           onClick={() => window.open(`tel:${task.customerPhone}`)} 
+                           className="bg-green-600 hover:bg-green-500 p-3.5 rounded-xl text-white shadow-xl shadow-green-600/20 active:scale-90 transition-all"
+                         >
+                           <PhoneCall className="h-5 w-5" />
+                         </button>
+                       )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 mt-4 text-gray-400 text-xs"><MapPin className="h-3.5 w-3.5 text-primary" /><span className="truncate max-w-[180px] font-medium">{task.address}</span></div>
                   {task.latitude && <p className="text-[7px] font-black text-green-500 mt-2 uppercase tracking-widest flex items-center gap-1"><Navigation className="h-2 w-2" /> GPS PRECISION ACTIVE ✅</p>}
@@ -325,7 +350,7 @@ export default function DeliveryDashboard() {
               <Button 
                 onClick={() => {
                    if (selectedTaskCoords) {
-                     window.open(`https://www.google.com/maps/search/?api=1&query=${selectedTaskCoords.lat},${selectedTaskCoords.lng}`, '_blank');
+                     window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedTaskCoords.lat},${selectedTaskCoords.lng}`, '_blank');
                    }
                 }}
                 className="w-full bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] h-14 font-black uppercase italic text-sm shadow-2xl active:scale-95 transition-all"
