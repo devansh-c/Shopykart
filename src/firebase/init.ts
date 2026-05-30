@@ -34,10 +34,14 @@ export function initializeFirebase() {
     });
 
     try {
-      firestore = getFirestore(firebaseApp);
+      // CRITICAL FIX: Use experimentalForceLongPolling to prevent connectivity errors 
+      // in restricted network environments or cloud IDEs (e.g., code=unavailable).
+      firestore = initializeFirestore(firebaseApp, {
+        experimentalForceLongPolling: true,
+      });
     } catch (e) {
-      // Fallback for environments where default getFirestore might fail
-      firestore = initializeFirestore(firebaseApp, {});
+      // Fallback if initializeFirestore is already called elsewhere
+      firestore = getFirestore(firebaseApp);
     }
 
     return { firebaseApp, firestore, auth };
