@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
@@ -6,6 +5,7 @@ import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag } fro
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -32,7 +32,6 @@ export function PopularProducts({
   
   const firestore = useFirestore();
 
-  // Sync active zone from local storage reactively
   useEffect(() => {
     const updateZone = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -42,14 +41,12 @@ export function PopularProducts({
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // Fetch Vendors
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  // Fetch All Products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(100));
@@ -59,40 +56,36 @@ export function PopularProducts({
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
+    // Performance optimized filtering
+    const searchLower = searchQuery.toLowerCase();
+    const categoryLower = category.toLowerCase();
+
     let result = dbProducts.filter(product => {
       const vendor = vendors.find(v => v.id === product.vendorId);
       if (!vendor) return false;
 
-      // 1. Zone Check: 
-      // If a zone is selected, ONLY show products from that zone.
-      // A product matches if its own zoneId or its vendor's zoneId matches the active zone.
       if (activeZoneId) {
-        const belongsToActiveZone = (product.zoneId === activeZoneId || vendor.zoneId === activeZoneId);
-        if (!belongsToActiveZone) return false;
+        if (product.zoneId !== activeZoneId && vendor.zoneId !== activeZoneId) return false;
       }
 
-      // 2. Mode Check: Food vs Grocery
-      const vendorMode = vendor.category || 'Food';
-      if (vendorMode !== activeMode) return false;
+      if ((vendor.category || 'Food') !== activeMode) return false;
 
-      // 3. Search & Category Check
-      const name = (product.name || '').toLowerCase();
-      const cat = (product.category || '').toLowerCase();
-      const restaurant = (product.restaurantName || '').toLowerCase();
-      const q = searchQuery.toLowerCase();
+      const matchesSearch = !searchLower || 
+        (product.name || '').toLowerCase().includes(searchLower) || 
+        (product.category || '').toLowerCase().includes(searchLower) || 
+        (product.restaurantName || '').toLowerCase().includes(searchLower);
       
-      const matchesSearch = !q || name.includes(q) || cat.includes(q) || restaurant.includes(q);
-      const matchesCategory = category === 'all' || product.category?.toLowerCase() === category.toLowerCase();
+      const matchesCategory = category === 'all' || (product.category || '').toLowerCase() === categoryLower;
       
       return matchesSearch && matchesCategory;
     });
 
-    // Sorting Logic
+    // Stability: Only sort if the data or sort criteria changed
     result.sort((a, b) => {
-      const vendorA = vendors.find(v => v.id === a.vendorId);
-      const vendorB = vendors.find(v => v.id === b.vendorId);
-      const onlineA = (vendorA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
-      const onlineB = (vendorB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
+      const vA = vendors.find(v => v.id === a.vendorId);
+      const vB = vendors.find(v => v.id === b.vendorId);
+      const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
+      const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       
       if (onlineA !== onlineB) return onlineB - onlineA;
       
@@ -109,15 +102,15 @@ export function PopularProducts({
     return (
       <div className="px-4 py-8 space-y-6">
         <Skeleton className="h-6 w-40 rounded-full" />
-        {[1, 2].map((i) => (
-          <div key={i} className="h-32 w-full bg-white rounded-3xl shadow-sm border animate-pulse" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-44 w-full bg-white rounded-[2rem] border animate-pulse" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-8">
+    <div className="px-4 py-8 content-visibility-auto">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
@@ -127,7 +120,7 @@ export function PopularProducts({
         </div>
         
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[100px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase transition-all duration-150 active:scale-95">
+          <SelectTrigger className="w-[110px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase transition-all duration-75 active:scale-95">
             <SlidersHorizontal className="h-3 w-3 mr-1.5" />
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
@@ -140,7 +133,7 @@ export function PopularProducts({
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {productsToDisplay.map((product) => {
+        {productsToDisplay.map((product, index) => {
           const cartItem = cart?.find((item: any) => item.id === product.id);
           const quantity = cartItem?.quantity || 0;
           const vendor = vendors?.find((v: any) => v.id === product.vendorId);
@@ -150,7 +143,7 @@ export function PopularProducts({
 
           return (
             <div key={product.id} className={cn(
-              "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-150",
+              "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-75",
               isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
             )}>
               <div className="flex-1 pr-4">
@@ -166,7 +159,14 @@ export function PopularProducts({
               
               <div className="relative w-32 h-32 shrink-0">
                 <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
-                  <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
+                  <Image 
+                    src={imageUrl} 
+                    alt={product.name} 
+                    fill 
+                    className="object-cover" 
+                    loading={index < 4 ? "eager" : "lazy"} // Eager load first few for better UX
+                    unoptimized 
+                  />
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
                       <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed Now</span>
@@ -176,7 +176,7 @@ export function PopularProducts({
                 
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[90%] z-20">
                   {quantity === 0 ? (
-                    <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-150 active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
+                    <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("w-full h-10 bg-white text-primary border-2 border-primary shadow-lg font-black text-[10px] uppercase rounded-xl transition-all duration-75 active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
                       {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                     </button>
                   ) : (

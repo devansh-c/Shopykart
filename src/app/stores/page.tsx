@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,6 +9,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,10 +35,13 @@ export default function StoresPage() {
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
+    const searchLower = searchQuery.toLowerCase();
+
     return dbVendors.filter(v => {
       const matchesZone = !activeZoneId || v.zoneId === activeZoneId;
-      const matchesSearch = v.storeName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          v.category?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !searchLower || 
+        v.storeName?.toLowerCase().includes(searchLower) || 
+        v.category?.toLowerCase().includes(searchLower);
       const isApproved = v.status === 'approved' || !v.status;
       return matchesZone && matchesSearch && isApproved;
     }).sort((a, b) => {
@@ -69,10 +72,12 @@ export default function StoresPage() {
         </div>
       </div>
 
-      <div className="px-6 space-y-6">
+      <div className="px-6 space-y-6 content-visibility-auto">
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <div className="space-y-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-72 w-full bg-white rounded-[2rem] border animate-pulse" />
+            ))}
           </div>
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => {

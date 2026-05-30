@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -26,7 +25,7 @@ export function TopTenProducts() {
   if (loading || !topProducts || topProducts.length === 0) return null;
 
   return (
-    <div className="py-6 overflow-hidden">
+    <div className="py-6 overflow-hidden content-visibility-auto">
       <div className="px-6 mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-foreground">
           Top <span className="text-primary">Ten</span> Specials
@@ -40,7 +39,6 @@ export function TopTenProducts() {
           
           return (
             <div key={product.id} className="relative min-w-[150px] group">
-              {/* Massive Outline Number behind the card */}
               <div 
                 className="absolute -left-10 bottom-0 text-[160px] font-black leading-none select-none opacity-20 pointer-events-none transition-all group-hover:opacity-40"
                 style={{ 
@@ -53,8 +51,7 @@ export function TopTenProducts() {
                 {index + 1}
               </div>
 
-              {/* Product Card */}
-              <div className="relative z-10 bg-white rounded-2xl overflow-hidden shadow-xl border border-border/40 transition-transform group-active:scale-95">
+              <div className="relative z-10 bg-white rounded-2xl overflow-hidden shadow-xl border border-border/40 transition-transform group-active:scale-95 will-change-transform">
                 <Link href={`/product/view?id=${product.id}`}>
                   <div className="relative aspect-[3/4] w-full bg-muted">
                     <Image 
@@ -62,6 +59,8 @@ export function TopTenProducts() {
                       alt={product.name}
                       fill
                       className="object-cover"
+                      priority={index < 2} // Improve above-the-fold visual stability
+                      sizes="150px"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, MapPin, Store } from "lucide-react"
@@ -14,7 +13,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
 
-  // Sync active zone from local storage reactively
   useEffect(() => {
     const updateZone = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -26,7 +24,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Strictly query by zone if it exists
     if (activeZoneId) {
       return query(collection(firestore, 'vendors'), where('zoneId', '==', activeZoneId));
     }
@@ -36,17 +33,16 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
-    if (loading || !dbVendors) return [];
+    if (!dbVendors) return [];
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
-      // Double-check zone assignment on the client side for extra safety
       const matchesZone = !activeZoneId || v.zoneId === activeZoneId;
       return isApproved && matchesMode && matchesZone;
     });
-  }, [dbVendors, loading, activeMode, activeZoneId]);
+  }, [dbVendors, activeMode, activeZoneId]);
 
-  if (loading) {
+  if (loading && !dbVendors) {
     return (
       <div className="py-2 px-4 flex space-x-4 overflow-hidden">
         {[1, 2].map((i) => (
@@ -56,17 +52,17 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     );
   }
 
-  if (filteredVendors.length === 0) {
+  if (filteredVendors.length === 0 && !loading) {
     return (
-      <div className="py-20 text-center opacity-30 px-6">
-        <Store className="h-12 w-12 mx-auto mb-4" />
-        <p className="font-black italic uppercase tracking-widest text-sm">No {activeMode} Stores in Area</p>
+      <div className="py-10 text-center opacity-30 px-6">
+        <Store className="h-10 w-10 mx-auto mb-2" />
+        <p className="font-black italic uppercase tracking-widest text-[10px]">No {activeMode} Stores in Area</p>
       </div>
     );
   }
 
   return (
-    <div className="py-2">
+    <div className="py-2 content-visibility-auto">
       <div className="flex items-center justify-between mb-4 px-6">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
           {activeMode} Stores
@@ -88,7 +84,14 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               )}
             >
               <div className="relative h-36 w-full bg-muted">
-                <Image src={displayImage} alt={store.storeName || 'Store'} fill className="object-cover" loading="lazy" unoptimized />
+                <Image 
+                  src={displayImage} 
+                  alt={store.storeName || 'Store'} 
+                  fill 
+                  className="object-cover" 
+                  loading="lazy" 
+                  unoptimized 
+                />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-xl uppercase italic tracking-tighter">Closed Now</span>
