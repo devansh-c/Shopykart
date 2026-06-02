@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, getDocs } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, getDocs, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
@@ -26,6 +26,7 @@ export function ProductManagement() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -101,8 +102,22 @@ export function ProductManagement() {
 
   const handleDelete = (id: string) => {
     if (!firestore) return;
+    if (!confirm("Remove product?")) return;
     deleteDoc(doc(firestore, 'products', id));
     toast({ title: "Product Deleted" });
+  };
+
+  const handleEdit = (p: any) => {
+    setEditingId(p.id);
+    setName(p.name);
+    setPrice(p.price.toString());
+    setCategory(p.category);
+    setSelectedVendorId(p.vendorId);
+    setSelectedZoneId(p.zoneId || '');
+    setIsVeg(p.isVeg !== false);
+    setSelectedImage(p.imageUrl);
+    setOptions(p.options || []);
+    setIsAddOpen(true);
   };
 
   const handleAddOption = () => {
@@ -127,21 +142,21 @@ export function ProductManagement() {
     setOptions(newOptions);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!firestore || !name || !price || !selectedVendorId) {
       toast({ variant: "destructive", title: "Incomplete Form", description: "Store select karna zaroori hai." });
       return;
     }
     
     const vendor = vendors?.find(v => v.id === selectedVendorId);
-    // CRITICAL: Force zone synchronization with vendor if not manually overridden
+    // CRITICAL: Force zone synchronization with vendor
     const finalZoneId = selectedZoneId || vendor?.zoneId || null;
     const zone = zones?.find(z => z.id === finalZoneId);
     
     const productData = {
       name: name.trim(),
       price: parseFloat(price),
-      category: category.toLowerCase() || 'general',
+      category: category.toLowerCase().trim() || 'general',
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'ShopyKart Select',
       zoneId: finalZoneId,
@@ -152,23 +167,30 @@ export function ProductManagement() {
       isAvailable: true,
       isTopTen: false,
       options: options.filter(opt => opt.name.trim() !== ''),
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
-    addDoc(collection(firestore, 'products'), productData)
-      .then(() => {
-        setIsAddOpen(false);
-        resetForm();
-        toast({ title: "Product Saved & Live" });
-      })
-      .catch(async (e) => {
-        const err = new FirestorePermissionError({ path: 'products', operation: 'create', requestResourceData: productData });
-        errorEmitter.emit('permission-error', err);
-      });
+    try {
+      if (editingId) {
+        await updateDoc(doc(firestore, 'products', editingId), productData);
+        toast({ title: "Product Updated" });
+      } else {
+        await addDoc(collection(firestore, 'products'), {
+          ...productData,
+          createdAt: serverTimestamp(),
+        });
+        toast({ title: "Product Created" });
+      }
+      setIsAddOpen(false);
+      resetForm();
+    } catch (e: any) {
+      const err = new FirestorePermissionError({ path: 'products', operation: editingId ? 'update' : 'create', requestResourceData: productData });
+      errorEmitter.emit('permission-error', err);
+    }
   };
 
   const resetForm = () => {
+    setEditingId(null);
     setName(''); setPrice(''); setCategory(''); setSelectedVendorId(''); setSelectedZoneId('');
     setIsVeg(true); setSelectedImage(null); setIsGalleryOpen(false); setOptions([]);
   };
@@ -192,7 +214,7 @@ export function ProductManagement() {
           </Button>
         </div>
 
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <Dialog open={isAddOpen} onOpenChange={(v) => { setIsAddOpen(v); if(!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="w-full lg:w-auto bg-[#0B0B0B] hover:bg-black rounded-2xl h-12 px-6 font-black uppercase italic shadow-xl">
               <Plus className="h-5 w-5 mr-2" />
@@ -201,7 +223,7 @@ export function ProductManagement() {
           </DialogTrigger>
           <DialogContent className="rounded-[2.5rem] max-w-lg overflow-hidden flex flex-col max-h-[92vh] border-none shadow-2xl">
             <DialogHeader className="p-8 pb-4">
-              <DialogTitle className="font-black text-2xl italic uppercase tracking-tighter">Inventory Update</DialogTitle>
+              <DialogTitle className="font-black text-2xl italic uppercase tracking-tighter">{editingId ? 'Edit Item' : 'Inventory Update'}</DialogTitle>
             </DialogHeader>
             
             <div className="flex-1 overflow-y-auto p-8 pt-0 space-y-6 no-scrollbar">
@@ -317,7 +339,7 @@ export function ProductManagement() {
 
             <div className="p-8 border-t bg-muted/5">
               <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic h-16 rounded-3xl shadow-xl shadow-primary/20 text-lg tracking-tighter active:scale-95 transition-all">
-                PUBLISH TO MENU
+                {editingId ? "UPDATE PRODUCT" : "PUBLISH TO MENU"}
               </Button>
             </div>
           </DialogContent>
@@ -357,7 +379,7 @@ export function ProductManagement() {
                 </div>
               </div>
               <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl text-blue-500 bg-white shadow-lg border-none active:scale-90"><Edit className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" onClick={() => handleEdit(product)} className="h-10 w-10 rounded-xl text-blue-500 bg-white shadow-lg border-none active:scale-90"><Edit className="h-4 w-4" /></Button>
                 <Button variant="outline" size="icon" onClick={() => handleDelete(product.id)} className="h-10 w-10 rounded-xl text-red-500 bg-white shadow-lg border-none active:scale-90"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>

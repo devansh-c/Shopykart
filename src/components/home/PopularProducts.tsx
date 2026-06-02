@@ -70,42 +70,40 @@ export function PopularProducts({
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
-    const searchLower = searchQuery.toLowerCase();
-    const categoryLower = category.toLowerCase();
+    const searchLower = searchQuery.toLowerCase().trim();
+    const categoryLower = category.toLowerCase().trim();
+    const modeLower = activeMode.toLowerCase().trim();
+    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // 1. Zone ID Fallback Logic (Product -> Vendor)
+      // 1. Zone ID Verification (Product -> Vendor Sync)
       const productZoneId = product.zoneId || vendor?.zoneId;
-      
-      // 2. City Fallback Logic (Product Town -> Vendor Town)
-      const productTown = (product.town || vendor?.town || '').toLowerCase();
-      const targetCity = (activeCity || '').toLowerCase();
+      const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
-      // If customer has a zone selected, we must enforce it strictly but fairly
-      if (activeZoneId) {
-        const matchesById = productZoneId === activeZoneId;
-        const matchesByTown = productTown && targetCity && productTown.includes(targetCity);
+      // IF customer has selected a zone, we prioritize showing items from THAT zone/town
+      if (activeZoneId || targetCityNormalized) {
+        const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
+        const matchesTown = targetCityNormalized && productTown.includes(targetCityNormalized);
         
-        // If it doesn't match by ID AND doesn't match by Town name, hide it.
-        // This allows items with missing zoneIds but correct towns to still show up.
-        if (!matchesById && !matchesByTown) return false;
+        // Show only if matches ID OR Town Name
+        if (!matchesZoneId && !matchesTown) return false;
       }
 
-      // 3. Category/Mode Filtering
-      const productMode = vendor?.category || 'Food';
-      if (productMode !== activeMode) return false;
+      // 2. Mode Filtering (Food / Grocery) - Robust matching
+      const vendorCat = (vendor?.category || 'Food').toLowerCase().trim();
+      if (vendorCat !== modeLower) return false;
 
-      // 4. Search & Category Tags
+      // 3. Search & Category Tags
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower) || 
         (product.restaurantName || '').toLowerCase().includes(searchLower);
       
-      const matchesCategory = category === 'all' || (product.category || '').toLowerCase() === categoryLower;
+      const matchesCategory = category === 'all' || (product.category || '').toLowerCase().trim() === categoryLower;
       
-      // 5. Availability Check
+      // 4. Availability Check
       const isAvailable = product.isAvailable !== false;
       
       return matchesSearch && matchesCategory && isAvailable;
@@ -123,7 +121,6 @@ export function PopularProducts({
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
       
-      // Default: Newest first (already handled by query, but good for stability)
       return 0;
     });
 
