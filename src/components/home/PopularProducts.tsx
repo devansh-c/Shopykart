@@ -54,8 +54,7 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Increased limit to 500 to ensure no product is left behind in MVP
-    return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(500));
+    return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(1000));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
@@ -77,50 +76,46 @@ export function PopularProducts({
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
-      
-      // 1. Zone ID Verification (Product -> Vendor Sync)
-      const productZoneId = product.zoneId || vendor?.zoneId;
-      const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
+      if (!vendor) return false;
 
-      // IF customer has selected a zone, we prioritize showing items from THAT zone/town
-      if (activeZoneId || targetCityNormalized) {
-        const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
+      // 1. Strict Zone Filtering
+      const productZoneId = product.zoneId || vendor.zoneId;
+      const productTown = (product.town || vendor.town || '').toLowerCase().trim();
+
+      // Logic: If user has selected a zone, product MUST belong to it
+      if (activeZoneId) {
+        const matchesZoneId = productZoneId === activeZoneId;
         const matchesTown = targetCityNormalized && productTown.includes(targetCityNormalized);
         
-        // Show only if matches ID OR Town Name
+        // Final gate: Must match ID or Town String
         if (!matchesZoneId && !matchesTown) return false;
       }
 
-      // 2. Mode Filtering (Food / Grocery) - Robust matching
-      const vendorCat = (vendor?.category || 'Food').toLowerCase().trim();
+      // 2. Mode Filtering (Food / Grocery)
+      const vendorCat = (vendor.category || 'Food').toLowerCase().trim();
       if (vendorCat !== modeLower) return false;
 
-      // 3. Search & Category Tags
+      // 3. Search & Category
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
-        (product.category || '').toLowerCase().includes(searchLower) || 
-        (product.restaurantName || '').toLowerCase().includes(searchLower);
+        (product.category || '').toLowerCase().includes(searchLower);
       
       const matchesCategory = category === 'all' || (product.category || '').toLowerCase().trim() === categoryLower;
       
-      // 4. Availability Check
       const isAvailable = product.isAvailable !== false;
       
       return matchesSearch && matchesCategory && isAvailable;
     });
 
-    // Sorting Logic: Online Stores First
+    // Sort by Online Stores first
     result.sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
-      
       if (onlineA !== onlineB) return onlineB - onlineA;
-      
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
-      
       return 0;
     });
 
@@ -130,7 +125,6 @@ export function PopularProducts({
   if (loading && !dbProducts) {
     return (
       <div className="px-4 py-8 space-y-6">
-        <Skeleton className="h-6 w-40 rounded-full" />
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-44 w-full bg-white rounded-[2rem] border animate-pulse" />
         ))}
@@ -143,13 +137,13 @@ export function PopularProducts({
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
-          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase">
-            {searchQuery ? 'Search Results' : `All ${activeMode} Products`}
+          <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
+            {searchQuery ? 'Results' : `ALL ${activeMode.toUpperCase()}`}
           </h2>
         </div>
         
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[110px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase transition-all duration-75 active:scale-95">
+          <SelectTrigger className="w-[110px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase">
             <SlidersHorizontal className="h-3 w-3 mr-1.5" />
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
@@ -163,7 +157,7 @@ export function PopularProducts({
 
       <div className="grid grid-cols-1 gap-6">
         {productsToDisplay.length > 0 ? (
-          productsToDisplay.map((product, index) => {
+          productsToDisplay.map((product) => {
             const cartItem = cart?.find((item: any) => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
             const vendor = vendorMap.get(product.vendorId);
@@ -173,7 +167,7 @@ export function PopularProducts({
 
             return (
               <div key={product.id} className={cn(
-                "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-75 animate-in fade-in slide-in-from-bottom-2",
+                "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-75",
                 isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
               )}>
                 <div className="flex-1 pr-4 min-w-0">
@@ -182,27 +176,20 @@ export function PopularProducts({
                   </div>
                   <ProductQuickView product={product}>
                     <button className={cn("block group text-left w-full", isOffline && "pointer-events-none")}>
-                      <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight group-active:text-primary transition-colors line-clamp-2 uppercase">{product.name}</h3>
+                      <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
                       <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
-                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate">from {product.restaurantName || vendor?.storeName || 'ShopyKart Store'}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate">from {product.restaurantName || vendor?.storeName}</p>
                     </button>
                   </ProductQuickView>
                 </div>
                 
                 <div className="relative w-28 h-28 shrink-0">
                   <ProductQuickView product={product}>
-                    <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner", isOffline && "pointer-events-none")}>
-                      <Image 
-                        src={imageUrl} 
-                        alt={product.name} 
-                        fill 
-                        className="object-cover" 
-                        loading={index < 6 ? "eager" : "lazy"} 
-                        unoptimized 
-                      />
+                    <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted", isOffline && "pointer-events-none")}>
+                      <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                       {isOffline && (
-                        <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2 text-center">
-                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
+                        <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center">
+                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter">Closed</span>
                         </div>
                       )}
                     </button>
@@ -211,19 +198,19 @@ export function PopularProducts({
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                     {quantity === 0 ? (
                       <ProductQuickView product={product}>
-                        <button disabled={isOffline} className={cn("w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl transition-all duration-75 active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 shadow-none pointer-events-none")}>
+                        <button disabled={isOffline} className={cn("w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 pointer-events-none")}>
                           {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                         </button>
                       </ProductQuickView>
                     ) : (
-                      <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg overflow-hidden">
-                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Minus className="h-3 w-3" /></button>
+                      <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg">
+                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
                         <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-black/10 h-full active:bg-black/20"><Plus className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-md z-20 active:scale-75 transition-all">
+                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20">
                     <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
                   </button>
                 </div>
@@ -231,10 +218,9 @@ export function PopularProducts({
             );
           })
         ) : (
-          <div className="text-center py-24 opacity-30 flex flex-col items-center animate-pulse">
-            {activeMode === 'Food' ? <Utensils className="h-16 w-16 mb-4" /> : <ShoppingBag className="h-16 w-16 mb-4" />}
-            <p className="text-sm font-black uppercase tracking-[0.2em] italic">No {activeMode} Items Found in {activeCity || 'Area'}</p>
-            <p className="text-[10px] font-bold mt-2 uppercase">Please verify your serving area.</p>
+          <div className="text-center py-24 opacity-30 flex flex-col items-center">
+            <Utensils className="h-16 w-16 mb-4" />
+            <p className="text-sm font-black uppercase tracking-[0.2em] italic">No Items in {activeCity || 'Area'}</p>
           </div>
         )}
       </div>

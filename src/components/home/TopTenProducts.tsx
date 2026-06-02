@@ -8,16 +8,18 @@ import Link from "next/link"
 import { useCart } from "@/components/cart/CartProvider"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 
 export function TopTenProducts() {
   const firestore = useFirestore();
   const { addToCart } = useCart();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeCity, setActiveCity] = useState<string | null>(null);
 
   useEffect(() => {
     const updateZone = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveCity(localStorage.getItem('user_city'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -26,12 +28,7 @@ export function TopTenProducts() {
 
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    let q = query(
-      collection(firestore, 'products'),
-      where('isTopTen', '==', true),
-      limit(20) // Get more to filter by zone in memo
-    );
-    return q;
+    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(20));
   }, [firestore]);
 
   const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
@@ -42,13 +39,25 @@ export function TopTenProducts() {
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  const filteredTopProducts = (allTopProducts || []).filter(p => {
-    const vendor = vendors?.find(v => v.id === p.vendorId);
-    const productZoneId = p.zoneId || vendor?.zoneId;
+  const filteredTopProducts = useMemo(() => {
+    if (!allTopProducts || !vendors) return [];
+    const targetCity = (activeCity || '').toLowerCase().trim();
 
-    if (!activeZoneId) return true;
-    return productZoneId === activeZoneId;
-  }).slice(0, 10);
+    return allTopProducts.filter(p => {
+      const vendor = vendors.find(v => v.id === p.vendorId);
+      if (!vendor) return false;
+
+      const productZoneId = p.zoneId || vendor.zoneId;
+      const productTown = (p.town || vendor.town || '').toLowerCase().trim();
+
+      if (activeZoneId) {
+        const matchesId = productZoneId === activeZoneId;
+        const matchesTown = targetCity && productTown.includes(targetCity);
+        if (!matchesId && !matchesTown) return false;
+      }
+      return true;
+    }).slice(0, 10);
+  }, [allTopProducts, vendors, activeZoneId, activeCity]);
 
   if (loading || filteredTopProducts.length === 0) return null;
 
@@ -58,7 +67,6 @@ export function TopTenProducts() {
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-foreground">
           Top <span className="text-primary">Ten</span> Specials
         </h2>
-        <span className="text-[8px] font-black uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded-full tracking-[0.2em]">Trending Now</span>
       </div>
 
       <div className="flex overflow-x-auto space-x-12 px-8 no-scrollbar pb-8 pt-4">
@@ -73,57 +81,29 @@ export function TopTenProducts() {
               isOffline && "grayscale opacity-80"
             )}>
               <div 
-                className="absolute -left-10 bottom-0 text-[160px] font-black leading-none select-none opacity-20 pointer-events-none transition-all group-hover:opacity-40"
-                style={{ 
-                  WebkitTextStroke: '2px #333', 
-                  color: 'transparent',
-                  fontStyle: 'italic',
-                  zIndex: 0
-                }}
+                className="absolute -left-10 bottom-0 text-[160px] font-black leading-none select-none opacity-20 pointer-events-none"
+                style={{ WebkitTextStroke: '2px #333', color: 'transparent', fontStyle: 'italic', zIndex: 0 }}
               >
                 {index + 1}
               </div>
 
-              <div className="relative z-10 bg-white rounded-2xl overflow-hidden shadow-xl border border-border/40 transition-transform group-active:scale-95 will-change-transform">
-                <Link 
-                  href={isOffline ? '#' : `/product/view?id=${product.id}`}
-                  className={cn(isOffline && "pointer-events-none")}
-                >
+              <div className="relative z-10 bg-white rounded-2xl overflow-hidden shadow-xl border border-border/40 group-active:scale-95">
+                <Link href={isOffline ? '#' : `/product/view?id=${product.id}`} className={cn(isOffline && "pointer-events-none")}>
                   <div className="relative aspect-[3/4] w-full bg-muted">
-                    <Image 
-                      src={imageUrl} 
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      priority={index < 2} 
-                      sizes="150px"
-                      unoptimized
-                    />
-                    
+                    <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2">
-                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">
-                          Closed
-                        </span>
+                        <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed</span>
                       </div>
                     )}
-
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    
                     <div className="absolute bottom-0 left-0 right-0 p-3">
-                       <span className="bg-red-600 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded shadow-lg block w-fit mb-1">
-                         {isOffline ? 'OFFLINE' : 'TOP RATED'}
-                       </span>
                        <h3 className="text-white text-xs font-black uppercase italic leading-none truncate">{product.name}</h3>
                     </div>
                   </div>
                 </Link>
-                
                 {!isOffline && (
-                  <button 
-                    onClick={() => addToCart({ ...product, imageUrl })}
-                    className="absolute top-2 right-2 bg-white/90 backdrop-blur-md p-1.5 rounded-lg text-primary shadow-lg active:scale-90 transition-transform"
-                  >
+                  <button onClick={() => addToCart({ ...product, imageUrl })} className="absolute top-2 right-2 bg-white/90 backdrop-blur-md p-1.5 rounded-lg text-primary shadow-lg">
                     <Plus className="h-4 w-4" />
                   </button>
                 )}

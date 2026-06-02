@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Star, MapPin, Store } from "lucide-react"
@@ -12,10 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeCity, setActiveCity] = useState<string | null>(null);
 
   useEffect(() => {
     const updateZone = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveCity(localStorage.getItem('user_city'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -24,7 +27,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Always fetch all approved vendors and filter in memo for best performance & reactivity
     return collection(firestore, 'vendors');
   }, [firestore]);
 
@@ -32,21 +34,26 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
+    const targetCity = (activeCity || '').toLowerCase().trim();
+
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
       
-      // CRITICAL: Filter by the customer's selected Zone ID
-      const matchesZone = !activeZoneId || v.zoneId === activeZoneId;
+      // Strict Zone Match
+      if (activeZoneId) {
+        const matchesId = v.zoneId === activeZoneId;
+        const matchesTown = targetCity && (v.town || '').toLowerCase().includes(targetCity);
+        if (!matchesId && !matchesTown) return false;
+      }
       
-      return isApproved && matchesMode && matchesZone;
+      return isApproved && matchesMode;
     }).sort((a, b) => {
-      // Sort online stores first
       const onlineA = a.isOnline !== false ? 1 : 0;
       const onlineB = b.isOnline !== false ? 1 : 0;
       return onlineB - onlineA;
     });
-  }, [dbVendors, activeMode, activeZoneId]);
+  }, [dbVendors, activeMode, activeZoneId, activeCity]);
 
   if (loading && !dbVendors) {
     return (
@@ -58,14 +65,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     );
   }
 
-  if (filteredVendors.length === 0 && !loading) {
-    return (
-      <div className="py-10 text-center opacity-30 px-6">
-        <Store className="h-10 w-10 mx-auto mb-2" />
-        <p className="font-black italic uppercase tracking-widest text-[10px]">No {activeMode} Stores in Your Area</p>
-      </div>
-    );
-  }
+  if (filteredVendors.length === 0 && !loading) return null;
 
   return (
     <div className="py-2 content-visibility-auto">
@@ -90,14 +90,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               )}
             >
               <div className="relative h-36 w-full bg-muted">
-                <Image 
-                  src={displayImage} 
-                  alt={store.storeName || 'Store'} 
-                  fill 
-                  className="object-cover" 
-                  loading="lazy" 
-                  unoptimized 
-                />
+                <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-xl uppercase italic tracking-tighter">Closed Now</span>
@@ -111,18 +104,13 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
               <div className="p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-lg font-black text-foreground italic tracking-tight leading-tight truncate mr-2">{store.storeName}</h3>
+                  <h3 className="text-lg font-black text-foreground italic tracking-tight truncate leading-tight mr-2">{store.storeName}</h3>
                   <div className="flex items-center gap-1 text-muted-foreground text-[7px] font-black uppercase tracking-widest bg-muted/50 px-1.5 py-0.5 rounded-full shrink-0">
                     <MapPin className="h-1.5 w-1.5 text-primary" />
                     {store.town || 'Local'}
                   </div>
                 </div>
-
-                <div className="flex items-center text-[9px] font-bold text-muted-foreground mb-3">
-                  <span className="truncate">{store.category || 'Food'} • Fast Delivery</span>
-                </div>
-
-                <div className="flex justify-between items-center pt-3 border-t border-dashed border-border/60">
+                <div className="flex justify-between items-center pt-3 border-t border-dashed border-border/60 mt-3">
                   <div className="flex items-center gap-2">
                      <div className={cn("h-1.5 w-1.5 rounded-full", isOffline ? "bg-red-500" : "bg-green-500 animate-pulse")} />
                      <span className={cn("text-[8px] font-black uppercase tracking-widest", isOffline ? "text-red-500" : "text-green-600")}>
