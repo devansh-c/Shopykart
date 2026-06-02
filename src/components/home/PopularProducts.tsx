@@ -138,7 +138,7 @@ export function PopularProducts({
         <div className="flex items-center space-x-1.5">
           <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
-            {searchQuery ? 'Results' : `ALL ${activeMode.toUpperCase()}`}
+            {searchQuery ? 'Results' : `ALL ${activeMode.toUpperCase()} ITEMS`}
           </h2>
         </div>
         
