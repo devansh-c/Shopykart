@@ -134,7 +134,6 @@ export default function VendorDashboard() {
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // We fetch from the subcollection, but without heavy ordering first to ensure visibility
     return query(collection(firestore, 'vendors', user.uid, 'products'));
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
@@ -235,6 +234,20 @@ export default function VendorDashboard() {
     setNewProduct({ ...newProduct, options: opts });
   };
 
+  const handleEditProduct = (product: any) => {
+    setEditingId(product.id);
+    setNewProduct({
+      name: product.name,
+      price: product.price.toString(),
+      description: product.description || '',
+      category: product.category,
+      imageUrl: product.imageUrl,
+      isVeg: product.isVeg !== false,
+      options: Array.isArray(product.options) ? [...product.options] : []
+    });
+    setIsAddOpen(true);
+  };
+
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
@@ -256,38 +269,37 @@ export default function VendorDashboard() {
       zoneId: vendorProfile.zoneId || null, 
       town: vendorProfile.town || 'Local', 
       restaurantName: vendorProfile.storeName,
-      createdAt: serverTimestamp(),
+      createdAt: editingId ? (sortedProducts.find(p => p.id === editingId)?.createdAt || serverTimestamp()) : serverTimestamp(),
+      updatedAt: serverTimestamp(),
       imageUrl: newProduct.imageUrl
     };
 
     try {
-      const tempId = editingId;
-      if (tempId) {
-        await updateDoc(doc(firestore, 'vendors', user.uid, 'products', tempId), productData);
-        await updateDoc(doc(firestore, 'products', tempId), productData);
-      } else {
-        // Generate a shared ID
-        const rootRef = doc(collection(firestore, 'products'));
-        const sharedId = rootRef.id;
-        
-        // 1. Save to global inventory
-        await setDoc(doc(firestore, 'products', sharedId), productData);
-        // 2. Save to vendor catalog
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', sharedId), productData);
-      }
+      const targetId = editingId || doc(collection(firestore, 'products')).id;
       
-      toast({ title: "Product Published", description: "Item is now live permanently." });
+      // 1. Save to global inventory
+      await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
+      // 2. Save to vendor catalog
+      await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
       
-      // Clear form ONLY after success
+      toast({ 
+        title: editingId ? "Product Updated" : "Product Published", 
+        description: "Item is now live permanently." 
+      });
+      
       setIsAddOpen(false);
-      setEditingId(null);
-      setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
+      resetProductForm();
     } catch (err) {
       console.error("Save Error:", err);
       toast({ variant: "destructive", title: "Sync Error", description: "Could not save permanently. Try again." });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetProductForm = () => {
+    setEditingId(null);
+    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -372,7 +384,7 @@ export default function VendorDashboard() {
                       {order.customerPhone && (
                         <button 
                           onClick={() => window.open(`tel:${order.customerPhone}`)}
-                          className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl shadow-xl shadow-green-500/20 active:scale-90 transition-all"
+                          className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-xl shadow-xl shadow-green-600/20 active:scale-90 transition-all"
                         >
                           <PhoneCall className="h-5 w-5" />
                         </button>
@@ -474,7 +486,7 @@ export default function VendorDashboard() {
         <div className="p-4 space-y-4 pb-32">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black italic uppercase">Store Catalog</h2>
-            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetProductForm(); }}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-black rounded-xl font-black uppercase text-[10px]">
                   <Plus className="h-3 w-3 mr-1" /> ADD ITEM
@@ -482,7 +494,7 @@ export default function VendorDashboard() {
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem]">
                 <DialogHeader>
-                  <DialogTitle className="font-black italic uppercase">New Menu Item</DialogTitle>
+                  <DialogTitle className="font-black italic uppercase">{editingId ? 'Edit Menu Item' : 'New Menu Item'}</DialogTitle>
                   <DialogDescription className="text-[10px] font-bold uppercase tracking-widest">
                     Fill details to publish product permanently
                   </DialogDescription>
@@ -534,7 +546,7 @@ export default function VendorDashboard() {
                     disabled={isSubmitting}
                     className="w-full bg-primary rounded-2xl h-16 font-black uppercase italic shadow-xl"
                   >
-                    {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH ITEM"}
+                    {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : editingId ? "UPDATE ITEM" : "PUBLISH ITEM"}
                   </Button>
                 </div>
               </DialogContent>
@@ -557,6 +569,9 @@ export default function VendorDashboard() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleEditProduct(p)} className="text-blue-500 bg-blue-50 h-10 w-10 rounded-xl">
+                    <Edit className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 h-10 w-10 rounded-xl">
                     <Trash2 className="h-4 w-4" />
                   </Button>
