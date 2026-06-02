@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +15,10 @@ const MapPicker = dynamic(() => import('./MapPicker'), {
   loading: () => <div className="h-[400px] w-full bg-muted animate-pulse rounded-3xl" />
 });
 
+/**
+ * @fileOverview LocationRequest handles area selection and pinpoint mapping.
+ * Updated to show on every app launch as requested.
+ */
 export function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
@@ -34,17 +39,14 @@ export function LocationRequest() {
     };
     window.addEventListener('open-location-picker', handleOpen);
     
-    const isSet = localStorage.getItem('user_location_set');
-    if (!isSet) {
-      // Auto-open after splash screen (2s) + small delay
-      const timer = setTimeout(() => setIsOpen(true), 2500);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('open-location-picker', handleOpen);
-      };
-    }
+    // User requested to show this EVERY time the app is opened (on mount)
+    // Auto-open after splash screen (2s) + small delay
+    const timer = setTimeout(() => setIsOpen(true), 2500);
 
-    return () => window.removeEventListener('open-location-picker', handleOpen);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('open-location-picker', handleOpen);
+    };
   }, []);
 
   const handleZoneSelect = async (zone: any) => {
@@ -76,7 +78,6 @@ export function LocationRequest() {
 
   const handleMapConfirm = async (lat: number, lng: number) => {
     // Point-in-polygon logic is handled in Cart, here we just set the spot
-    // For simplicity, we find the nearest zone or just set coordinates
     localStorage.setItem('user_plus_code', `${lat},${lng}`);
     localStorage.setItem('user_location_set', 'true');
     
