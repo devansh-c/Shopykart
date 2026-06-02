@@ -24,11 +24,9 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    if (activeZoneId) {
-      return query(collection(firestore, 'vendors'), where('zoneId', '==', activeZoneId));
-    }
+    // Always fetch all approved vendors and filter in memo for best performance & reactivity
     return collection(firestore, 'vendors');
-  }, [firestore, activeZoneId]);
+  }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
@@ -37,8 +35,16 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
+      
+      // CRITICAL: Filter by the customer's selected Zone ID
       const matchesZone = !activeZoneId || v.zoneId === activeZoneId;
+      
       return isApproved && matchesMode && matchesZone;
+    }).sort((a, b) => {
+      // Sort online stores first
+      const onlineA = a.isOnline !== false ? 1 : 0;
+      const onlineB = b.isOnline !== false ? 1 : 0;
+      return onlineB - onlineA;
     });
   }, [dbVendors, activeMode, activeZoneId]);
 
@@ -56,7 +62,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     return (
       <div className="py-10 text-center opacity-30 px-6">
         <Store className="h-10 w-10 mx-auto mb-2" />
-        <p className="font-black italic uppercase tracking-widest text-[10px]">No {activeMode} Stores in Area</p>
+        <p className="font-black italic uppercase tracking-widest text-[10px]">No {activeMode} Stores in Your Area</p>
       </div>
     );
   }

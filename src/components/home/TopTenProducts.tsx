@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -8,21 +7,33 @@ import Link from "next/link"
 import { useCart } from "@/components/cart/CartProvider"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react"
 
 export function TopTenProducts() {
   const firestore = useFirestore();
   const { addToCart } = useCart();
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
+  }, []);
 
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
+    let q = query(
       collection(firestore, 'products'),
       where('isTopTen', '==', true),
-      limit(10)
+      limit(20) // Get more to filter by zone in memo
     );
+    return q;
   }, [firestore]);
 
-  const { data: topProducts, loading } = useCollection<any>(topTenQuery);
+  const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -30,7 +41,13 @@ export function TopTenProducts() {
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  if (loading || !topProducts || topProducts.length === 0) return null;
+  const filteredTopProducts = (allTopProducts || []).filter(p => {
+    if (!activeZoneId) return true;
+    const vendor = vendors?.find(v => v.id === p.vendorId);
+    return (p.zoneId || vendor?.zoneId) === activeZoneId;
+  }).slice(0, 10);
+
+  if (loading || filteredTopProducts.length === 0) return null;
 
   return (
     <div className="py-6 overflow-hidden content-visibility-auto">
@@ -42,7 +59,7 @@ export function TopTenProducts() {
       </div>
 
       <div className="flex overflow-x-auto space-x-12 px-8 no-scrollbar pb-8 pt-4">
-        {topProducts.map((product, index) => {
+        {filteredTopProducts.map((product, index) => {
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/600`;
           const vendor = vendors?.find(v => v.id === product.vendorId);
           const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
@@ -77,9 +94,9 @@ export function TopTenProducts() {
                       className="object-cover"
                       priority={index < 2} 
                       sizes="150px"
+                      unoptimized
                     />
                     
-                    {/* CLOSED OVERLAY */}
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2">
                         <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">
@@ -92,7 +109,7 @@ export function TopTenProducts() {
                     
                     <div className="absolute bottom-0 left-0 right-0 p-3">
                        <span className="bg-red-600 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded shadow-lg block w-fit mb-1">
-                         {isOffline ? 'OFFLINE' : 'RECENTLY ADDED'}
+                         {isOffline ? 'OFFLINE' : 'TOP RATED'}
                        </span>
                        <h3 className="text-white text-xs font-black uppercase italic leading-none truncate">{product.name}</h3>
                     </div>

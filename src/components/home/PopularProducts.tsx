@@ -53,7 +53,6 @@ export function PopularProducts({
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
-  // OPTIMIZATION: Create a Map for O(1) vendor lookup during sorting/filtering
   const vendorMap = useMemo(() => {
     const map = new Map();
     if (vendors) {
@@ -71,10 +70,9 @@ export function PopularProducts({
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      if (activeZoneId) {
-        const productZoneId = product.zoneId || vendor?.zoneId;
-        if (productZoneId !== activeZoneId) return false;
-      }
+      // CRITICAL: Filter by the customer's selected Zone ID
+      const productZoneId = product.zoneId || vendor?.zoneId;
+      if (activeZoneId && productZoneId !== activeZoneId) return false;
 
       const productMode = vendor?.category || 'Food';
       if (productMode !== activeMode) return false;
@@ -89,7 +87,6 @@ export function PopularProducts({
       return matchesSearch && matchesCategory && product.isAvailable !== false;
     });
 
-    // Highly optimized sort using pre-mapped data
     result.sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
