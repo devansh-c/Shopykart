@@ -61,7 +61,7 @@ export default function VendorRegistrationPage() {
   const [formData, setFormData] = useState({
     category: '', 
     storeName: '',
-    storeId: '', // NEW: Store ID system
+    storeId: '', // Unique Store ID system
     logo: '',
     cover: '',
     zoneId: '', 
@@ -73,7 +73,7 @@ export default function VendorRegistrationPage() {
     firstName: '',
     lastName: '',
     phone: '',
-    email: '', // Backend will use virtual email if storeId is primary
+    email: '', 
     password: '',
   });
 
@@ -91,23 +91,6 @@ export default function VendorRegistrationPage() {
       updateFormData(type, compressed);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "Error", description: "GPS not supported." });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const code = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
-        updateFormData('plusCode', code);
-        toast({ title: "Location Captured", description: `Plus Code: ${code}` });
-      },
-      () => {
-        toast({ variant: "destructive", title: "GPS Error", description: "Please enter manually." });
-      }
-    );
   };
 
   const validateStep = () => {
@@ -136,8 +119,8 @@ export default function VendorRegistrationPage() {
       if (!querySnapshot.empty) {
         toast({ 
           variant: "destructive", 
-          title: "Already Store Created", 
-          description: "This Store ID is taken. Please use a different number." 
+          title: "ID Not Available", 
+          description: "This Store ID is taken. Please use a different combination." 
         });
         setIsProcessing(false);
         setStep('store-info');
@@ -162,15 +145,14 @@ export default function VendorRegistrationPage() {
         bannerUrl: formData.cover,
         zoneId: formData.zoneId,
         town: selectedZone?.name || 'Local',
-        plusCode: formData.plusCode,
         address: formData.addressLine,
         state: formData.state,
-        fssai: formData.fssai,
         rating: parseFloat(formData.rating) || 4.5,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
         email: virtualEmail,
+        password: formData.password, // SAVING PLAIN TEXT FOR ADMIN VISIBILITY
         status: 'approved',
         isOnline: true,
         walletBalance: 0,

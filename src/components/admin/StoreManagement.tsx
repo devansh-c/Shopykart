@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { 
   Store, 
   User, 
@@ -15,7 +15,10 @@ import {
   Search,
   Check,
   Power,
-  PowerOff
+  PowerOff,
+  Fingerprint,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +51,8 @@ export function StoreManagement() {
     return vendors.filter(v => 
       v.storeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.phone?.includes(searchQuery) ||
-      v.town?.toLowerCase().includes(searchQuery.toLowerCase())
+      v.town?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.storeId?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [vendors, searchQuery]);
 
@@ -58,7 +62,7 @@ export function StoreManagement() {
       const ref = doc(firestore, 'vendors', id);
       await updateDoc(ref, { 
         isOnline: online,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       });
       toast({ 
         title: online ? "Store Opened" : "Store Closed",
@@ -78,10 +82,12 @@ export function StoreManagement() {
         phone: editingStore.phone,
         category: editingStore.category,
         town: editingStore.town,
-        updatedAt: new Date()
+        storeId: editingStore.storeId?.trim().toLowerCase() || '',
+        password: editingStore.password || '',
+        updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Store Updated", description: "Business details saved successfully." });
+      toast({ title: "Store Updated", description: "Business credentials saved successfully." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     }
@@ -110,7 +116,7 @@ export function StoreManagement() {
       
       vendors.forEach((store) => {
         const ref = doc(firestore, 'vendors', store.id);
-        batch.update(ref, { isOnline: online, updatedAt: new Date() });
+        batch.update(ref, { isOnline: online, updatedAt: serverTimestamp() });
       });
 
       await batch.commit();
@@ -172,7 +178,7 @@ export function StoreManagement() {
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input 
-            placeholder="Search stores..." 
+            placeholder="Search stores or ID..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
@@ -217,6 +223,28 @@ export function StoreManagement() {
                 </div>
               </div>
 
+              {/* STORE CREDENTIALS FOR ADMIN */}
+              <div className="bg-[#0B0B0B] rounded-2xl p-4 mb-4 border border-white/5 space-y-2">
+                <div className="flex items-center justify-between text-[8px] font-black text-primary uppercase tracking-widest">
+                   <span>Store Credentials</span>
+                   <Badge className="bg-primary/20 text-primary border-none text-[6px] h-3">ACTIVE LOGIN</Badge>
+                </div>
+                <div className="flex items-center gap-3">
+                   <div className="p-1.5 rounded-lg bg-white/5 text-gray-400"><Fingerprint className="h-3 w-3" /></div>
+                   <div className="flex flex-col">
+                      <span className="text-[7px] font-bold text-gray-500 uppercase">STORE ID</span>
+                      <span className="text-[11px] font-black text-white italic tracking-widest uppercase">{store.storeId || 'EMAIL LOGIN'}</span>
+                   </div>
+                </div>
+                <div className="flex items-center gap-3">
+                   <div className="p-1.5 rounded-lg bg-white/5 text-gray-400"><Lock className="h-3 w-3" /></div>
+                   <div className="flex flex-col">
+                      <span className="text-[7px] font-bold text-gray-500 uppercase">PASSWORD</span>
+                      <span className="text-[11px] font-black text-white tracking-widest uppercase">{store.password || '••••••••'}</span>
+                   </div>
+                </div>
+              </div>
+
               <div className="bg-muted/30 rounded-2xl p-4 space-y-3 mb-6">
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
@@ -249,12 +277,12 @@ export function StoreManagement() {
                     <DialogTrigger asChild>
                        <Button variant="outline" className="flex-1 rounded-2xl h-12 font-black uppercase italic text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5">
                           <Edit className="h-3.5 w-3.5 mr-2" />
-                          EDIT STORE
+                          EDIT CREDENTIALS
                        </Button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-sm">
                        <DialogHeader>
-                          <DialogTitle className="font-black italic uppercase text-center text-xl">Modify Store</DialogTitle>
+                          <DialogTitle className="font-black italic uppercase text-center text-xl">Modify Store Access</DialogTitle>
                        </DialogHeader>
                        <div className="space-y-4 pt-4">
                           <div className="space-y-1">
@@ -265,6 +293,33 @@ export function StoreManagement() {
                                className="h-12 rounded-xl bg-muted/20 border-none font-bold"
                              />
                           </div>
+
+                          {/* CREDENTIALS EDITING SECTION */}
+                          <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
+                             <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">
+                                   <Fingerprint className="h-2.5 w-2.5" /> Unique Store ID
+                                </label>
+                                <Input 
+                                  value={editingStore?.storeId} 
+                                  onChange={e => setEditingStore({...editingStore, storeId: e.target.value.replace(/\s/g, '')})}
+                                  placeholder="e.g. BurgerKing123"
+                                  className="h-12 rounded-xl bg-white border-primary/20 font-black italic text-primary uppercase"
+                                />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">
+                                   <KeyRound className="h-2.5 w-2.5" /> Security Password
+                                </label>
+                                <Input 
+                                  value={editingStore?.password} 
+                                  onChange={e => setEditingStore({...editingStore, password: e.target.value})}
+                                  placeholder="Set Security Code"
+                                  className="h-12 rounded-xl bg-white border-primary/20 font-black tracking-widest"
+                                />
+                             </div>
+                          </div>
+
                           <div className="space-y-1">
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Contact Number</label>
                              <Input 
@@ -273,6 +328,7 @@ export function StoreManagement() {
                                className="h-12 rounded-xl bg-muted/20 border-none font-bold"
                              />
                           </div>
+                          
                           <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
@@ -295,9 +351,10 @@ export function StoreManagement() {
                                 </Select>
                              </div>
                           </div>
+                          
                           <Button onClick={handleUpdateStore} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 mt-4">
                              <Check className="h-5 w-5 mr-2" />
-                             SAVE CHANGES
+                             SAVE MASTER UPDATES
                           </Button>
                        </div>
                     </DialogContent>
