@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,9 +15,19 @@ import { Check } from 'lucide-react';
 function MapManager({ currentPos }: { currentPos: [number, number] }) {
   const map = useMap();
   useEffect(() => {
+    if (!map) return;
+
     map.setView(currentPos, map.getZoom());
+    
     // Fix container size on mount to ensure pin is centered
-    setTimeout(() => map.invalidateSize(), 300);
+    // Added safety check and cleanup to prevent "_leaflet_pos" undefined error
+    const timer = setTimeout(() => {
+      if (map && (map as any)._container) {
+        map.invalidateSize();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [currentPos, map]);
   return null;
 }

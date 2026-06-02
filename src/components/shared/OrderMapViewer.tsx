@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -22,12 +21,20 @@ const markerIcon = L.icon({
 function MapResizer({ lat, lng }: { lat: number, lng: number }) {
   const map = useMap();
   useEffect(() => {
+    if (!map) return;
+
     if (lat && lng) {
       map.setView([lat, lng], 17);
+      
       // Essential for React-Leaflet inside Modals/Dialogs
-      setTimeout(() => {
-        map.invalidateSize();
+      // Added safety check and cleanup to prevent "_leaflet_pos" undefined error
+      const timer = setTimeout(() => {
+        if (map && (map as any)._container) {
+          map.invalidateSize();
+        }
       }, 400);
+
+      return () => clearTimeout(timer);
     }
   }, [lat, lng, map]);
   return null;
