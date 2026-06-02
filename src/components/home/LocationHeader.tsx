@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -46,7 +45,7 @@ function SearchPlaceholder() {
       <span className="text-gray-500 text-[10px] font-bold mr-1">Search</span>
       <span 
         key={wordIndex}
-        className="text-primary text-[10px] font-black italic animate-placeholder-slide"
+        className="text-white text-[10px] font-black italic animate-placeholder-slide"
       >
         {SEARCH_WORDS[wordIndex]}
       </span>
@@ -198,10 +197,10 @@ export function LocationHeader({
             />
             {!searchValue && <SearchPlaceholder />}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-               <button onClick={handleCameraClick} className="p-1.5 text-primary active:scale-90 transition-all">
+               <button onClick={handleCameraClick} className="p-1.5 text-white active:scale-90 transition-all">
                 {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
-              <button onClick={handleMicClick} className={cn("p-1.5 text-primary active:scale-90 transition-all", isListening && "animate-pulse text-red-500")}>
+              <button onClick={handleMicClick} className={cn("p-1.5 text-white active:scale-90 transition-all", isListening && "animate-pulse text-red-500")}>
                 <Mic className="h-3.5 w-3.5" />
               </button>
             </div>
