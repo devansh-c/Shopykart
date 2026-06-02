@@ -32,6 +32,8 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation !important;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
   
   body {
@@ -42,25 +44,27 @@
     overflow-x: hidden;
   }
   
-  /* Super Optimized Instant Interaction */
+  /* Absolute Zero Latency Interaction */
   button, a, [role="button"], .interactive {
-    @apply transition-[transform,opacity,background-color] duration-50 ease-out;
     cursor: pointer;
-    will-change: transform, opacity;
+    user-select: none;
+    -webkit-user-drag: none;
+    transition: none !important; /* Kill all transition delays for core clicking */
+    will-change: transform;
   }
 
   button:active, a:active, [role="button"]:active {
-    @apply scale-[0.95] opacity-80;
-    transition-duration: 0ms !important; /* Total Zero Delay */
+    @apply scale-[0.92] opacity-80;
+    transition: transform 0s !important; /* Forced Instant Scale */
   }
 
   /* Optimized animations for lists */
   .animate-fast-fade {
-    animation: fast-fade 100ms ease-out forwards;
+    animation: fast-fade 50ms ease-out forwards;
   }
 
   @keyframes fast-fade {
-    from { opacity: 0; transform: translateY(2px); }
+    from { opacity: 0; transform: translateY(1px); }
     to { opacity: 1; transform: translateY(0); }
   }
 }
@@ -94,8 +98,8 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border-2 border-border shadow-sm transition-all duration-50 relative overflow-hidden;
-  will-change: transform, opacity;
+  @apply bg-white rounded-[2rem] border-2 border-border shadow-sm relative overflow-hidden;
+  will-change: transform;
 }
 
 /* Force instant response for nav items */
