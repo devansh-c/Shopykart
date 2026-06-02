@@ -12,6 +12,17 @@ import { collection } from "firebase/firestore"
 
 export function OfferSlider() {
   const firestore = useFirestore();
+  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
+  }, []);
+
   const bannersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'banners');
@@ -19,13 +30,22 @@ export function OfferSlider() {
 
   const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
   
-  if (loading || !dbBanners || dbBanners.length === 0) return null;
+  const filteredBanners = React.useMemo(() => {
+    if (!dbBanners) return [];
+    // If user has a zone selected, only show banners for that zone
+    if (activeZoneId) {
+      return dbBanners.filter((b: any) => b.zoneId === activeZoneId);
+    }
+    return dbBanners;
+  }, [dbBanners, activeZoneId]);
+
+  if (loading || !filteredBanners || filteredBanners.length === 0) return null;
 
   return (
     <div className="w-full px-4">
       <Carousel className="w-full" opts={{ loop: true }}>
         <CarouselContent>
-          {dbBanners.map((banner: any, index: number) => (
+          {filteredBanners.map((banner: any, index: number) => (
             <CarouselItem key={banner.id}>
               <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl bg-muted">
                 <Image
@@ -33,8 +53,9 @@ export function OfferSlider() {
                   alt={banner.title || 'Offer'}
                   fill
                   className="object-cover"
-                  priority={index === 0} // LCP Optimization
+                  priority={index === 0}
                   sizes="(max-width: 768px) 100vw, 800px"
+                  unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
                   <h3 className="text-white text-2xl font-black italic tracking-tighter leading-none mb-1">
