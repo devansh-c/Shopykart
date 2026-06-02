@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -34,7 +35,8 @@ export function PopularProducts({
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
+      const zid = localStorage.getItem('active_zone_id');
+      setActiveZoneId(zid);
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -70,9 +72,16 @@ export function PopularProducts({
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // CRITICAL: Filter by the customer's selected Zone ID
+      // SMART ZONE FILTERING:
+      // Check product's explicit zoneId, if missing, check vendor's zoneId
       const productZoneId = product.zoneId || vendor?.zoneId;
-      if (activeZoneId && productZoneId !== activeZoneId) return false;
+      
+      // If customer has a zone selected, we must enforce it
+      if (activeZoneId) {
+        if (productZoneId && productZoneId !== activeZoneId) return false;
+        // If data is missing (old products), we fallback to vendor info or show it to prevent "ghost" items
+        if (!productZoneId) return false; 
+      }
 
       const productMode = vendor?.category || 'Food';
       if (productMode !== activeMode) return false;

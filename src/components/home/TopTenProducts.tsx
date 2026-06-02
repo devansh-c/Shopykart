@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -42,9 +43,11 @@ export function TopTenProducts() {
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const filteredTopProducts = (allTopProducts || []).filter(p => {
-    if (!activeZoneId) return true;
     const vendor = vendors?.find(v => v.id === p.vendorId);
-    return (p.zoneId || vendor?.zoneId) === activeZoneId;
+    const productZoneId = p.zoneId || vendor?.zoneId;
+
+    if (!activeZoneId) return true;
+    return productZoneId === activeZoneId;
   }).slice(0, 10);
 
   if (loading || filteredTopProducts.length === 0) return null;

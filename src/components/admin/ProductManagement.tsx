@@ -128,13 +128,15 @@ export function ProductManagement() {
   };
 
   const handleSave = () => {
-    if (!firestore || !name || !price || !selectedZoneId || !selectedVendorId) {
-      toast({ variant: "destructive", title: "Incomplete Form", description: "Store aur Area select karna zaroori hai." });
+    if (!firestore || !name || !price || !selectedVendorId) {
+      toast({ variant: "destructive", title: "Incomplete Form", description: "Store select karna zaroori hai." });
       return;
     }
     
-    const zone = zones?.find(z => z.id === selectedZoneId);
     const vendor = vendors?.find(v => v.id === selectedVendorId);
+    // Explicitly use selected zone or fallback to vendor's zone
+    const finalZoneId = selectedZoneId || vendor?.zoneId || null;
+    const zone = zones?.find(z => z.id === finalZoneId);
     
     const productData = {
       name,
@@ -142,8 +144,8 @@ export function ProductManagement() {
       category: category.toLowerCase() || 'general',
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'ShopyKart Select',
-      zoneId: selectedZoneId,
-      town: zone?.name || 'Local',
+      zoneId: finalZoneId,
+      town: zone?.name || vendor?.town || 'Local',
       isVeg,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
       badges: ['New'],
@@ -228,10 +230,10 @@ export function ProductManagement() {
                    </Select>
                 </div>
                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Serving Zone *</label>
+                   <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Serving Zone (Manual Override)</label>
                    <Select value={selectedZoneId} onValueChange={setSelectedZoneId}>
                      <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                        <SelectValue placeholder="Assign Area" />
+                        <SelectValue placeholder="Auto from Store" />
                      </SelectTrigger>
                      <SelectContent className="rounded-2xl">
                         {zones?.map((zone: any) => (
