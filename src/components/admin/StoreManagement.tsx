@@ -78,10 +78,10 @@ export function StoreManagement() {
     try {
       const ref = doc(firestore, 'vendors', editingStore.id);
       await updateDoc(ref, {
-        storeName: editingStore.storeName,
-        phone: editingStore.phone,
-        category: editingStore.category,
-        town: editingStore.town,
+        storeName: editingStore.storeName || '',
+        phone: editingStore.phone || '',
+        category: editingStore.category || 'Food',
+        town: editingStore.town || 'Local',
         storeId: editingStore.storeId?.trim().toLowerCase() || '',
         password: editingStore.password || '',
         updatedAt: serverTimestamp()
@@ -288,7 +288,7 @@ export function StoreManagement() {
                           <div className="space-y-1">
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
                              <Input 
-                               value={editingStore?.storeName} 
+                               value={editingStore?.storeName || ''} 
                                onChange={e => setEditingStore({...editingStore, storeName: e.target.value})}
                                className="h-12 rounded-xl bg-muted/20 border-none font-bold"
                              />
@@ -301,7 +301,7 @@ export function StoreManagement() {
                                    <Fingerprint className="h-2.5 w-2.5" /> Unique Store ID
                                 </label>
                                 <Input 
-                                  value={editingStore?.storeId} 
+                                  value={editingStore?.storeId || ''} 
                                   onChange={e => setEditingStore({...editingStore, storeId: e.target.value.replace(/\s/g, '')})}
                                   placeholder="e.g. BurgerKing123"
                                   className="h-12 rounded-xl bg-white border-primary/20 font-black italic text-primary uppercase"
@@ -312,7 +312,7 @@ export function StoreManagement() {
                                    <KeyRound className="h-2.5 w-2.5" /> Security Password
                                 </label>
                                 <Input 
-                                  value={editingStore?.password} 
+                                  value={editingStore?.password || ''} 
                                   onChange={e => setEditingStore({...editingStore, password: e.target.value})}
                                   placeholder="Set Security Code"
                                   className="h-12 rounded-xl bg-white border-primary/20 font-black tracking-widest"
@@ -323,7 +323,7 @@ export function StoreManagement() {
                           <div className="space-y-1">
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Contact Number</label>
                              <Input 
-                               value={editingStore?.phone} 
+                               value={editingStore?.phone || ''} 
                                onChange={e => setEditingStore({...editingStore, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})}
                                className="h-12 rounded-xl bg-muted/20 border-none font-bold"
                              />
@@ -332,7 +332,7 @@ export function StoreManagement() {
                           <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
-                                <Select value={editingStore?.category} onValueChange={v => setEditingStore({...editingStore, category: v})}>
+                                <Select value={editingStore?.category || 'Food'} onValueChange={v => setEditingStore({...editingStore, category: v})}>
                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
                                       <SelectItem value="Food">Food</SelectItem>
@@ -342,7 +342,7 @@ export function StoreManagement() {
                              </div>
                              <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Town / Zone</label>
-                                <Select value={editingStore?.town} onValueChange={v => setEditingStore({...editingStore, town: v})}>
+                                <Select value={editingStore?.town || 'Ranipur'} onValueChange={v => setEditingStore({...editingStore, town: v})}>
                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
                                       <SelectItem value="Ranipur">Ranipur</SelectItem>
