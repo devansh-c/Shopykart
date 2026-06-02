@@ -42,25 +42,25 @@
     overflow-x: hidden;
   }
   
-  /* Instant Interaction Logic - Super Optimized */
+  /* Super Optimized Instant Interaction */
   button, a, [role="button"], .interactive {
-    @apply transition-[transform,opacity,background-color] duration-75 ease-out;
+    @apply transition-[transform,opacity,background-color] duration-50 ease-out;
     cursor: pointer;
     will-change: transform, opacity;
   }
 
   button:active, a:active, [role="button"]:active {
-    @apply scale-[0.96] opacity-80;
-    transition-duration: 0ms !important; /* Force instant visual feedback */
+    @apply scale-[0.95] opacity-70;
+    transition-duration: 0ms !important; /* Total Zero Delay */
   }
 
   /* Optimized animations for lists */
   .animate-fast-fade {
-    animation: fast-fade 150ms ease-out forwards;
+    animation: fast-fade 100ms ease-out forwards;
   }
 
   @keyframes fast-fade {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(2px); }
     to { opacity: 1; transform: translateY(0); }
   }
 }
@@ -94,8 +94,14 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border-2 border-border shadow-sm transition-all duration-75 relative overflow-hidden;
+  @apply bg-white rounded-[2rem] border-2 border-border shadow-sm transition-all duration-50 relative overflow-hidden;
   will-change: transform, opacity;
+}
+
+/* Force instant response for nav items */
+.nav-item-active {
+  @apply scale-[0.9] opacity-80;
+  transition: none !important;
 }
 
 /* Optimized for CLS prevention */

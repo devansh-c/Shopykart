@@ -73,10 +73,10 @@ export default function StoresPage() {
       </div>
 
       <div className="px-6 space-y-6 content-visibility-auto">
-        {loading ? (
+        {loading && !dbVendors ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-72 w-full bg-white rounded-[2rem] border animate-pulse" />
+              <div key={i} className="h-72 w-full bg-white rounded-[2rem] border-2 border-border/40 animate-pulse" />
             ))}
           </div>
         ) : filteredVendors.length > 0 ? (
