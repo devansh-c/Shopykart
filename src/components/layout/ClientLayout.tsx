@@ -1,7 +1,6 @@
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
-import { Toaster } from '@/components/ui/toaster';
 import { FloatingCart } from '@/components/shared/FloatingCart';
 import { FirebaseClientProvider, useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
@@ -64,7 +63,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
       <FirebaseErrorListener />
       <CartProvider>
         <AppContent>{children}</AppContent>
-        <Toaster />
       </CartProvider>
     </FirebaseClientProvider>
   );

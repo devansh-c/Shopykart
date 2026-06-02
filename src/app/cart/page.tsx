@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -42,7 +41,6 @@ import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, limit, where } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
@@ -82,7 +80,6 @@ export default function CartPage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   
   const [showSuccess, setShowSuccess] = useState(false);
   const [instructions, setInstructions] = useState('');
@@ -102,7 +99,7 @@ export default function CartPage() {
 
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
-  const [customTipValue, setCustomTipValue] = useState('');
+  const [customTipValue, setCustomerTipValue] = useState('');
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -206,7 +203,6 @@ export default function CartPage() {
 
       if (user && firestore) {
         try {
-          // Use setDoc with merge to prevent "No document to update" error
           await setDoc(doc(firestore, 'users', user.uid), {
             latitude: finalLat,
             longitude: finalLng,
@@ -219,13 +215,8 @@ export default function CartPage() {
       }
       
       window.dispatchEvent(new CustomEvent('user-address-updated'));
-      toast({ title: "Precision Pin Locked!", description: `Coordinates verified successfully.` });
     } else {
-      toast({ 
-        variant: "destructive", 
-        title: "Service Unavailable", 
-        description: "Selected spot is outside our delivery area." 
-      });
+      // Zone error without toast
     }
     setIsMapOpen(false);
   };
@@ -233,20 +224,11 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
     
-    if (!customerName.trim()) { toast({ variant: "destructive", title: "Missing Name" }); return; }
-    if (customerPhone.length !== 10) { toast({ variant: "destructive", title: "Invalid Phone" }); return; }
-    
-    if (customerAddress.trim().length < 15) { 
-      toast({ 
-        variant: "destructive", 
-        title: "Address Too Short", 
-        description: "Please provide more details (Minimum 15 characters required)." 
-      }); 
-      return; 
-    }
-    
-    if (!customerCity.trim()) { toast({ variant: "destructive", title: "Missing City" }); return; }
-    if (customerPincode.length !== 6) { toast({ variant: "destructive", title: "Invalid Pincode" }); return; }
+    if (!customerName.trim()) return;
+    if (customerPhone.length !== 10) return;
+    if (customerAddress.trim().length < 15) return;
+    if (!customerCity.trim()) return;
+    if (customerPincode.length !== 6) return;
 
     setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
@@ -288,7 +270,6 @@ export default function CartPage() {
         instructions: instructions
       });
       
-      // Use setDoc with merge here too for safety
       await setDoc(doc(firestore, 'users', finalUid), {
         fullName: customerName,
         phoneNumber: customerPhone,
@@ -308,7 +289,6 @@ export default function CartPage() {
       }, 3000);
     } catch (err) {
       setIsPlacing(false);
-      toast({ variant: "destructive", title: "Order Failed" });
     }
   };
 
@@ -442,7 +422,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* DELIVERY TIP SECTION */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
            <div className="flex items-center gap-2 mb-4">
               <div className="bg-amber-50 p-2 rounded-xl text-amber-600">
@@ -493,7 +472,7 @@ export default function CartPage() {
                         type="number" 
                         placeholder="Enter amount (₹)" 
                         value={customTipValue}
-                        onChange={(e) => setCustomTipValue(e.target.value)}
+                        onChange={(e) => setCustomerTipValue(e.target.value)}
                         className="h-16 rounded-2xl bg-muted/20 border-none text-center text-2xl font-black italic"
                        />
                     </div>
@@ -503,7 +482,7 @@ export default function CartPage() {
                         if (!isNaN(val) && val > 0) {
                           setDeliveryTip(val);
                           setIsCustomTipOpen(false);
-                          setCustomTipValue('');
+                          setCustomerTipValue('');
                         }
                       }}
                       className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-xl"
