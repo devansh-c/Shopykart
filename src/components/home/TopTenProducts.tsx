@@ -41,18 +41,20 @@ export function TopTenProducts() {
 
   const filteredTopProducts = useMemo(() => {
     if (!allTopProducts || !vendors) return [];
-    const targetCity = (activeCity || '').toLowerCase().trim();
+    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       if (!vendor) return false;
 
+      // STRICT ZONE FILTERING
       const productZoneId = p.zoneId || vendor.zoneId;
       const productTown = (p.town || vendor.town || '').toLowerCase().trim();
 
-      if (activeZoneId) {
-        const matchesId = productZoneId === activeZoneId;
-        const matchesTown = targetCity && productTown.includes(targetCity);
+      if (activeZoneId || targetCityNormalized) {
+        const matchesId = activeZoneId && productZoneId === activeZoneId;
+        const matchesTown = targetCityNormalized && productTown === targetCityNormalized;
+        
         if (!matchesId && !matchesTown) return false;
       }
       return true;

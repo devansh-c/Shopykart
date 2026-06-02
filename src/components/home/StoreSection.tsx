@@ -34,16 +34,18 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
-    const targetCity = (activeCity || '').toLowerCase().trim();
+    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
       
-      // Strict Zone Match
-      if (activeZoneId) {
-        const matchesId = v.zoneId === activeZoneId;
-        const matchesTown = targetCity && (v.town || '').toLowerCase().includes(targetCity);
+      // STRICT ZONE FILTERING
+      if (activeZoneId || targetCityNormalized) {
+        const matchesId = activeZoneId && v.zoneId === activeZoneId;
+        const matchesTown = targetCityNormalized && (v.town || '').toLowerCase().trim() === targetCityNormalized;
+        
+        // Exact match required
         if (!matchesId && !matchesTown) return false;
       }
       

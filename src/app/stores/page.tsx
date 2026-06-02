@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -14,11 +15,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeCity, setActiveCity] = useState<string | null>(null);
   const firestore = useFirestore();
 
   useEffect(() => {
     const updateZone = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveCity(localStorage.getItem('user_city'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -36,20 +39,30 @@ export default function StoresPage() {
     if (!dbVendors) return [];
     
     const searchLower = searchQuery.toLowerCase();
+    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      const matchesZone = !activeZoneId || v.zoneId === activeZoneId;
+      // STRICT ZONE FILTERING
+      if (activeZoneId || targetCityNormalized) {
+        const matchesZone = activeZoneId && v.zoneId === activeZoneId;
+        const matchesTown = targetCityNormalized && (v.town || '').toLowerCase().trim() === targetCityNormalized;
+        
+        // Exact match required
+        if (!matchesZone && !matchesTown) return false;
+      }
+
       const matchesSearch = !searchLower || 
         v.storeName?.toLowerCase().includes(searchLower) || 
         v.category?.toLowerCase().includes(searchLower);
       const isApproved = v.status === 'approved' || !v.status;
-      return matchesZone && matchesSearch && isApproved;
+      
+      return matchesSearch && isApproved;
     }).sort((a, b) => {
       const onlineA = a.isOnline !== false ? 1 : 0;
       const onlineB = b.isOnline !== false ? 1 : 0;
       return onlineB - onlineA;
     });
-  }, [dbVendors, activeZoneId, searchQuery]);
+  }, [dbVendors, activeZoneId, activeCity, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-32">

@@ -78,16 +78,16 @@ export function PopularProducts({
       const vendor = vendorMap.get(product.vendorId);
       if (!vendor) return false;
 
-      // 1. Strict Zone Filtering
+      // STRICT ZONE FILTERING
       const productZoneId = product.zoneId || vendor.zoneId;
       const productTown = (product.town || vendor.town || '').toLowerCase().trim();
 
-      // Logic: If user has selected a zone, product MUST belong to it
-      if (activeZoneId) {
-        const matchesZoneId = productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && productTown.includes(targetCityNormalized);
+      // If user has a location set, we MUST filter strictly
+      if (activeZoneId || targetCityNormalized) {
+        const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
+        const matchesTown = targetCityNormalized && productTown === targetCityNormalized;
         
-        // Final gate: Must match ID or Town String
+        // Final gate: If it doesn't match ID and doesn't match Town Name exactly, skip it
         if (!matchesZoneId && !matchesTown) return false;
       }
 

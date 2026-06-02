@@ -75,8 +75,9 @@ export function ProductManagement() {
     }
     
     const vendor = vendors?.find(v => v.id === selectedVendorId);
-    const finalZoneId = selectedZoneId || vendor?.zoneId || null;
-    const zone = zones?.find(z => z.id === finalZoneId);
+    // STRICT INHERITANCE: Force product to match Vendor's town and zone
+    const finalZoneId = vendor?.zoneId || null;
+    const finalTown = vendor?.town || 'Local';
     
     const productData = {
       name: name.trim(),
@@ -85,7 +86,7 @@ export function ProductManagement() {
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'Store',
       zoneId: finalZoneId,
-      town: zone?.name || vendor?.town || 'Local',
+      town: finalTown,
       isVeg,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
       isAvailable: true,
