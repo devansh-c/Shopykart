@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useMemo } from 'react';
@@ -80,8 +79,9 @@ export function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
+              prefetch={true}
               className={cn(
-                "flex flex-col items-center justify-center space-y-1 w-full transition-all duration-75 relative active:scale-[0.90] touch-none",
+                "flex flex-col items-center justify-center space-y-1 w-full transition-all duration-75 relative active:scale-[0.92] touch-manipulation",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >

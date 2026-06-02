@@ -32,8 +32,6 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation !important;
-    /* Disable default browser behavior that slows down clicks */
-    -ms-touch-action: manipulation;
   }
   
   body {
@@ -44,16 +42,16 @@
     overflow-x: hidden;
   }
   
-  /* Instant Interaction Logic - Fixed for Tailwind Support */
+  /* Instant Interaction Logic - Super Optimized */
   button, a, [role="button"], .interactive {
-    @apply transition-[transform,opacity] duration-50 ease-out;
+    @apply transition-[transform,opacity,background-color] duration-75 ease-out;
     cursor: pointer;
     will-change: transform, opacity;
   }
 
   button:active, a:active, [role="button"]:active {
-    @apply scale-95 opacity-80;
-    transition-duration: 0ms; /* No delay on press */
+    @apply scale-[0.96] opacity-80;
+    transition-duration: 0ms !important; /* Force instant visual feedback */
   }
 
   /* Optimized animations for lists */
