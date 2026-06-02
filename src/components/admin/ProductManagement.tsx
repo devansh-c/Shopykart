@@ -134,12 +134,12 @@ export function ProductManagement() {
     }
     
     const vendor = vendors?.find(v => v.id === selectedVendorId);
-    // Explicitly use selected zone or fallback to vendor's zone
+    // CRITICAL: Force zone synchronization with vendor if not manually overridden
     const finalZoneId = selectedZoneId || vendor?.zoneId || null;
     const zone = zones?.find(z => z.id === finalZoneId);
     
     const productData = {
-      name,
+      name: name.trim(),
       price: parseFloat(price),
       category: category.toLowerCase() || 'general',
       vendorId: selectedVendorId,
@@ -153,6 +153,7 @@ export function ProductManagement() {
       isTopTen: false,
       options: options.filter(opt => opt.name.trim() !== ''),
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
 
     addDoc(collection(firestore, 'products'), productData)
@@ -230,10 +231,10 @@ export function ProductManagement() {
                    </Select>
                 </div>
                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Serving Zone (Manual Override)</label>
+                   <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Serving Zone (Override)</label>
                    <Select value={selectedZoneId} onValueChange={setSelectedZoneId}>
                      <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                        <SelectValue placeholder="Auto from Store" />
+                        <SelectValue placeholder="Inherit from Store" />
                      </SelectTrigger>
                      <SelectContent className="rounded-2xl">
                         {zones?.map((zone: any) => (
