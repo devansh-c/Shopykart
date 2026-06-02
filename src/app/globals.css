@@ -44,18 +44,20 @@
     overflow-x: hidden;
   }
   
-  /* Absolute Zero Latency Interaction */
+  /* Absolute Zero Latency Interaction Engine */
   button, a, [role="button"], .interactive {
     cursor: pointer;
     user-select: none;
     -webkit-user-drag: none;
     transition: none !important; /* Kill all transition delays for core clicking */
     will-change: transform;
+    outline: none !important;
   }
 
-  button:active, a:active, [role="button"]:active {
-    @apply scale-[0.92] opacity-80;
+  button:active, a:active, [role="button"]:active, .interactive:active {
+    @apply scale-[0.94] opacity-80;
     transition: transform 0s !important; /* Forced Instant Scale */
+    transform: scale(0.94) !important;
   }
 
   /* Optimized animations for lists */
@@ -100,6 +102,7 @@
 .premium-card {
   @apply bg-white rounded-[2rem] border-2 border-border shadow-sm relative overflow-hidden;
   will-change: transform;
+  transition: none !important;
 }
 
 /* Force instant response for nav items */

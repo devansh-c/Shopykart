@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -73,10 +72,14 @@ export function FloatingCart() {
   if (isHiddenPage || totalItems === 0 || !isVisible || (isRestrictionActive && !isExcludedPath)) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-10 duration-500">
+    <div className="fixed bottom-20 left-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-10 duration-300">
       <button 
-        onClick={() => router.push('/cart')}
-        className="w-full h-14 bg-[#0B0B0B] text-white rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-white/5 active:scale-[0.98] transition-all group animate-jump"
+        onClick={() => {
+          // Pre-fetch for absolute speed
+          router.prefetch('/cart');
+          router.push('/cart');
+        }}
+        className="w-full h-14 bg-[#0B0B0B] text-white rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-white/5 active:scale-[0.94] transition-none group"
       >
         <div className="flex items-center gap-3">
           <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
@@ -93,8 +96,8 @@ export function FloatingCart() {
         </div>
         
         <div className="flex items-center gap-2">
-          <span className="text-xs font-black uppercase tracking-widest italic group-hover:mr-1 transition-all">View Cart</span>
-          <div className="bg-white/10 p-1 rounded-full group-hover:bg-primary transition-colors">
+          <span className="text-xs font-black uppercase tracking-widest italic">View Cart</span>
+          <div className="bg-white/10 p-1 rounded-full group-hover:bg-primary transition-colors duration-75">
             <ArrowRight className="h-4 w-4" />
           </div>
         </div>
