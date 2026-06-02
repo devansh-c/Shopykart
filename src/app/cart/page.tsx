@@ -65,7 +65,7 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   const x = Number(lng);
   const y = Number(lat);
   let inside = false;
-  for (let i = 0, j = vs.length - 1; i < points.length; j = i++) {
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
     const xi = Number(vs[i].lng ?? vs[i].longitude ?? (Array.isArray(vs[i]) ? vs[i][1] : 0));
     const yi = Number(vs[i].lat ?? vs[i].latitude ?? (Array.isArray(vs[i]) ? vs[i][0] : 0));
     const xj = Number(vs[j].lng ?? vs[j].longitude ?? (Array.isArray(vs[j]) ? vs[j][1] : 0));

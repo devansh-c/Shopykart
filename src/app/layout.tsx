@@ -5,63 +5,64 @@ import { Inter } from 'next/font/google';
 
 const inter = Inter({
   subsets: ['latin'],
-  display: 'swap',
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
-  variable: '--font-inter',
-});
+    display: 'swap',
+      weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+        variable: '--font-inter',
+        });
 
-export const metadata: Metadata = {
-  title: 'ShopyKart | Premium Food Delivery',
-  description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
-  icons: {
-    icon: [
-      {
-        url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: [
-      {
-        url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
-      },
-    ],
-  },
-  alternates: {
-    canonical: 'https://shopykart.co.in',
-  },
-  openGraph: {
-    type: 'website',
-    url: 'https://shopykart.co.in/',
-    title: 'ShopyKart | Premium Food Delivery',
-    siteName: 'ShopyKart',
-    description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
-  },
-  other: {
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
-  }
-};
+        export const metadata: Metadata = {
+          title: 'ShopyKart | Premium Food Delivery',
+            description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
+              icons: {
+                  icon: [
+                        {
+                                url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
+                                        type: 'image/svg+xml',
+                                              },
+                                                  ],
+                                                      apple: [
+                                                            {
+                                                                    url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
+                                                                          },
+                                                                              ],
+                                                                                },
+                                                                                  alternates: {
+                                                                                      canonical: 'https://shopykart.co.in',
+                                                                                        },
+                                                                                          openGraph: {
+                                                                                              type: 'website',
+                                                                                                  url: 'https://shopykart.co.in/',
+                                                                                                      title: 'ShopyKart | Premium Food Delivery',
+                                                                                                          siteName: 'ShopyKart',
+                                                                                                              description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
+                                                                                                                },
+                                                                                                                  other: {
+                                                                                                                      'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                                                                                                          'Pragma': 'no-cache',
+                                                                                                                              'Expires': '0',
+                                                                                                                                }
+                                                                                                                                };
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
-  themeColor: '#EF4444',
-};
+                                                                                                                                export const viewport: Viewport = {
+                                                                                                                                  width: 'device-width',
+                                                                                                                                    initialScale: 1,
+                                                                                                                                      maximumScale: 1,
+                                                                                                                                        userScalable: false,
+                                                                                                                                          viewportFit: 'cover',
+                                                                                                                                            themeColor: '#EF4444',
+                                                                                                                                            };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased bg-[#FAFAFA] text-foreground">
-        <ClientLayout>{children}</ClientLayout>
-      </body>
-    </html>
-  );
-}
+                                                                                                                                            export default function RootLayout({
+                                                                                                                                              children,
+                                                                                                                                              }: Readonly<{
+                                                                                                                                                children: React.ReactNode;
+                                                                                                                                                }>) {
+                                                                                                                                                  return (
+                                                                                                                                                      <html lang="en" className={inter.variable}>
+                                                                                                                                                            <body className="antialiased bg-[#FAFAFA] text-foreground">
+                                                                                                                                                                    <ClientLayout>{children}</ClientLayout>
+                                                                                                                                                                          </body>
+                                                                                                                                                                              </html>
+                                                                                                                                                                                );
+                                                                                                                                                                                }
+                                                                                                                                                                                

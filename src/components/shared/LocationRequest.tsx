@@ -1,51 +1,30 @@
-
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  MapPin, 
-  Search, 
-  Loader2, 
-  Map as MapIcon, 
-  Navigation,
-  Sparkles,
-  Building2,
-  ChevronRight,
-  Globe,
-  Crosshair,
-  Check,
-  AlertTriangle
-} from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogOverlay } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const MapPicker = dynamic(() => import('./MapPicker'), { 
   ssr: false,
-  loading: () => (
-    <div className="h-[300px] w-full bg-muted flex items-center justify-center rounded-3xl animate-pulse">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
-    </div>
-  )
+  loading: () => <div className="h-[400px] w-full bg-muted animate-pulse rounded-3xl" />
 });
 
 /**
- * Robust Point-in-Polygon Algorithm
+ * Standard Point-in-Polygon Algorithm
  */
-function isPointInPolygon(lat: number, lng: number, points: any[]) {
-  if (!points || !Array.isArray(points) || points.length < 3) return false;
+function isPointInPolygon(lat: number, lng: number, vs: any[]) {
+  if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
   const x = Number(lng);
   const y = Number(lat);
   let inside = false;
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const xi = Number(points[i].lng ?? points[i].longitude ?? (Array.isArray(points[i]) ? points[i][1] : 0));
-    const yi = Number(points[i].lat ?? points[i].latitude ?? (Array.isArray(points[i]) ? points[i][0] : 0));
-    const xj = Number(points[j].lng ?? points[j].longitude ?? (Array.isArray(points[j]) ? points[j][1] : 0));
-    const yj = Number(points[j].lat ?? points[j].latitude ?? (Array.isArray(points[j]) ? points[j][0] : 0));
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = Number(vs[i].lng ?? vs[i].longitude ?? (Array.isArray(vs[i]) ? vs[i][1] : 0));
+    const yi = Number(vs[i].lat ?? vs[i].latitude ?? (Array.isArray(vs[i]) ? vs[i][0] : 0));
+    const xj = Number(vs[j].lng ?? vs[j].longitude ?? (Array.isArray(vs[j]) ? vs[j][1] : 0));
+    const yj = Number(vs[j].lat ?? vs[j].latitude ?? (Array.isArray(vs[j]) ? vs[j][0] : 0));
     
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
@@ -54,200 +33,79 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 }
 
 export function LocationRequest() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [view, setView] = useState<'list' | 'map'>('list');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
-
-  const { data: zones, loading: zonesLoading } = useCollection<any>(zonesQuery);
+  const { data: zones } = useCollection<any>(zonesQuery);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const timer = setTimeout(() => setOpen(true), 100);
-    const handleOpen = () => {
-      setSearchQuery('');
-      setView('list');
-      setOpen(true);
-    };
+    const handleOpen = () => setIsOpen(true);
     window.addEventListener('open-location-picker', handleOpen);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('open-location-picker', handleOpen);
-    };
+    
+    // Auto-open if location is not set for first-time users
+    const isSet = localStorage.getItem('user_location_set');
+    if (!isSet) {
+      const timer = setTimeout(() => setIsOpen(true), 3000);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('open-location-picker', handleOpen);
+      };
+    }
+
+    return () => window.removeEventListener('open-location-picker', handleOpen);
   }, []);
 
-  const filteredZones = useMemo(() => {
-    if (!zones) return [];
-    if (!searchQuery.trim()) return zones;
-    const q = searchQuery.toLowerCase();
-    return zones.filter(zone => 
-      zone.name?.toLowerCase().includes(q) || 
-      zone.city?.toLowerCase().includes(q)
-    );
-  }, [zones, searchQuery]);
-
-  const handleUseGPS = () => {
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Not Supported" });
-      return;
-    }
-
-    setIsProcessing(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        let matchedZone = zones?.find(zone => isPointInPolygon(latitude, longitude, zone.boundary || []));
-        
-        if (matchedZone) {
-          handleSelectZone(matchedZone, [latitude, longitude]);
-        } else {
-          setIsProcessing(false);
-          toast({ variant: "destructive", title: "Outside Area" });
-        }
-      },
-      () => {
-        setIsProcessing(false);
-        toast({ variant: "destructive", title: "GPS Error" });
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  const handleSelectZone = async (zone: any, customCoords?: [number, number]) => {
-    setIsProcessing(true);
+  const handleConfirm = async (lat: number, lng: number) => {
+    const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
     
-    const finalLat = customCoords ? Number(customCoords[0].toFixed(8)) : null;
-    const finalLng = customCoords ? Number(customCoords[1].toFixed(8)) : null;
-
-    if (typeof window !== 'undefined') {
-      if (finalLat && finalLng) {
-        localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
-      } else {
-        localStorage.removeItem('user_plus_code');
-      }
-      
-      localStorage.setItem('user_address_line', zone.name);
-      localStorage.setItem('user_city', zone.city || 'Local');
+    if (matchedZone) {
+      // Save precise coordinates
+      localStorage.setItem('user_plus_code', `${lat},${lng}`);
+      localStorage.setItem('user_city', matchedZone.city || 'Local');
+      localStorage.setItem('user_address', matchedZone.name);
+      localStorage.setItem('active_zone_id', matchedZone.id);
       localStorage.setItem('user_location_set', 'true');
-      localStorage.setItem('active_zone_id', zone.id);
-      
+
+      if (user && firestore) {
+        try {
+          await setDoc(doc(firestore, 'users', user.uid), {
+            latitude: lat,
+            longitude: lng,
+            city: matchedZone.city || 'Local',
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (e) {
+          console.error("Profile location sync error:", e);
+        }
+      }
+
       window.dispatchEvent(new CustomEvent('user-address-updated'));
+      toast({ title: "Location Set!", description: `Welcome to ShopyKart ${matchedZone.city}.` });
+      setIsOpen(false);
+    } else {
+      toast({ 
+        variant: "destructive", 
+        title: "Service Unavailable", 
+        description: "Sorry, this area is currently outside our delivery zone." 
+      });
     }
-
-    if (user && firestore) {
-      // Use setDoc with merge to prevent "No document to update" error
-      const userRef = doc(firestore, 'users', user.uid);
-      await setDoc(userRef, {
-        address: zone.name,
-        city: zone.city || 'Local',
-        latitude: finalLat,
-        longitude: finalLng,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-
-    setIsProcessing(false);
-    setOpen(false);
-    toast({ title: `Pin Verified!`, description: zone.name });
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogOverlay className="z-[2000] bg-black/60 backdrop-blur-sm" />
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-full sm:max-w-md border-none shadow-2xl overflow-hidden bg-white p-0 focus:outline-none flex flex-col sm:bottom-auto bottom-0 top-auto translate-y-0 sm:translate-y-[-50%] z-[2001]">
-        <div className="px-8 py-8">
-          <div className="flex flex-col space-y-6">
-            <DialogHeader className="flex flex-col items-center text-center space-y-2">
-              <div className="h-14 w-14 bg-primary/10 rounded-[1.8rem] flex items-center justify-center text-primary mb-1 shadow-inner">
-                <MapPin className="h-7 w-7" />
-              </div>
-              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
-                LOCATION <span className="text-primary">SYNC.</span>
-              </DialogTitle>
-              <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pinpoint Accuracy for Deliveries</DialogDescription>
-            </DialogHeader>
-
-            <div className="flex bg-muted/50 p-1 rounded-2xl">
-              <button 
-                onClick={() => setView('list')}
-                className={cn("flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", view === 'list' ? "bg-white shadow-sm" : "text-gray-400")}
-              >
-                SELECT ZONE
-              </button>
-              <button 
-                onClick={() => setView('map')}
-                className={cn("flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", view === 'map' ? "bg-white shadow-sm" : "text-gray-400")}
-              >
-                PICK ON MAP
-              </button>
-            </div>
-
-            {view === 'list' ? (
-              <div className="space-y-4">
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input 
-                    placeholder="Search your area..." 
-                    className="h-12 rounded-2xl bg-gray-50 border-none pl-11 font-bold text-sm shadow-inner"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                <button 
-                  onClick={handleUseGPS}
-                  disabled={isProcessing}
-                  className="w-full h-14 bg-primary/5 border-2 border-primary/10 rounded-2xl flex items-center justify-center gap-3 text-primary font-black uppercase italic text-xs hover:bg-primary/10 transition-all"
-                >
-                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                  USE SENSOR GPS
-                </button>
-
-                <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
-                  {filteredZones.map((zone) => (
-                    <button 
-                      key={zone.id} 
-                      onClick={() => handleSelectZone(zone)}
-                      className="w-full text-left p-4 rounded-2xl bg-gray-50/50 hover:bg-primary/5 flex items-center justify-between border-2 border-transparent transition-all"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-black text-gray-800 truncate uppercase italic">{zone.name}</p>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase">{zone.city}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 animate-in fade-in zoom-in duration-300">
-                <div className="h-[300px] w-full bg-muted rounded-[2rem] overflow-hidden border-2 border-gray-100 relative">
-                  <MapPicker 
-                    onConfirm={(lat, lng) => {
-                      const matched = zones?.find(z => isPointInPolygon(lat, lng, z.boundary || []));
-                      if (matched) handleSelectZone(matched, [lat, lng]);
-                      else toast({ variant: "destructive", title: "Outside Zone" });
-                    }} 
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl h-[520px] focus:outline-none">
+        <DialogHeader className="p-6 bg-white border-b sticky top-0 z-50">
+          <DialogTitle className="font-black italic uppercase text-center text-lg">Select Delivery Area</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 h-full">
+          <MapPicker onConfirm={handleConfirm} />
         </div>
-        {isProcessing && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest mt-4">Verifying Pin...</span>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
