@@ -50,7 +50,7 @@
   }
 
   button:active, a:active, [role="button"]:active {
-    @apply scale-[0.95] opacity-70;
+    @apply scale-[0.95] opacity-80;
     transition-duration: 0ms !important; /* Total Zero Delay */
   }
 
