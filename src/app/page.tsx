@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -10,7 +9,6 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import { OffersSection } from '@/components/home/OffersSection';
 import { ServicesSection } from '@/components/home/ServicesSection';
 import { TopTenProducts } from '@/components/home/TopTenProducts';
-import { BottomNav } from '@/components/shared/BottomNav';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer } from 'lucide-react';
 
@@ -20,8 +18,7 @@ export default function ShopyKartApp() {
   const [activeMode, setActiveMode] = useState('Food'); // 'Food' or 'Grocery'
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-32">
-      {/* Header now scrolls with the page */}
+    <div className="min-h-screen bg-[#F8F9FA]">
       <LocationHeader 
         searchValue={searchQuery} 
         onSearchChange={setSearchQuery} 
@@ -57,50 +54,39 @@ export default function ShopyKartApp() {
                    <span className="text-[8px] font-black uppercase text-gray-400">24/7 Access</span>
                 </div>
              </div>
-
-             <div className="mt-12 p-1.5 bg-green-50 rounded-full flex items-center gap-3 pr-4 border border-green-100/50">
-                <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center text-white font-black text-[10px]">!</div>
-                <span className="text-[9px] font-black uppercase text-green-700 tracking-widest">Get notified on launch</span>
-             </div>
           </div>
         ) : (
           <>
-            {/* Services Section - NEW POSITION */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={50}>
                 <ServicesSection />
               </ScrollReveal>
             )}
 
-            {/* Banner Slider */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={100}>
                 <OfferSlider />
               </ScrollReveal>
             )}
 
-            {/* Top 10 Products Section - NEW FEATURE */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={150}>
                 <TopTenProducts />
               </ScrollReveal>
             )}
 
-            {/* Stores Section - Vertical List */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={200}>
                 <StoreSection activeMode={activeMode} />
               </ScrollReveal>
             )}
 
-            {/* Coupons Section - Positioned above Categories as requested */}
             {!searchQuery && (
               <ScrollReveal delay={250}>
                 <OffersSection />
               </ScrollReveal>
             )}
 
-            {/* Categories Section */}
             <ScrollReveal delay={300}>
               <CategoryList 
                 activeCategory={activeCategory} 
@@ -108,7 +94,6 @@ export default function ShopyKartApp() {
               />
             </ScrollReveal>
 
-            {/* All Products Section */}
             <div className="px-1">
               <PopularProducts 
                 searchQuery={searchQuery} 
@@ -119,8 +104,6 @@ export default function ShopyKartApp() {
           </>
         )}
       </main>
-
-      <BottomNav />
     </div>
   );
 }

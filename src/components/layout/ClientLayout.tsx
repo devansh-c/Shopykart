@@ -2,6 +2,7 @@
 
 import { CartProvider } from '@/components/cart/CartProvider';
 import { FloatingCart } from '@/components/shared/FloatingCart';
+import { BottomNav } from '@/components/shared/BottomNav';
 import { FirebaseClientProvider, useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
 import { LocationRequest } from '@/components/shared/LocationRequest';
@@ -14,7 +15,7 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode } from 'react';
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useUser();
@@ -46,7 +47,7 @@ function AppContent({ children }: { children: ReactNode }) {
     <div className="relative min-h-screen">
       <SplashScreen isAppReady={!loading} />
       <AuthGuard>
-        <div className="page-enter">
+        <div className="page-enter pb-32">
           {!isExcludedPath && <LocationRequest />}
           <NotificationHandler />
           <TelegramNotifier />
@@ -54,6 +55,7 @@ function AppContent({ children }: { children: ReactNode }) {
           <WelcomeBonusOverlay />
           {children}
           {!isExcludedPath && <FloatingCart />}
+          {!isExcludedPath && <BottomNav />}
         </div>
       </AuthGuard>
       <Toaster />
