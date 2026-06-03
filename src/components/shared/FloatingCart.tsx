@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -5,22 +6,17 @@ import { ShoppingCart, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 
 /**
- * @fileOverview FloatingCart component optimized for Premium Smoothness and Zero Latency.
- * Positioned exactly above the Bottom Navigation.
+ * @fileOverview FloatingCart component positioned exactly above the Bottom Navigation.
+ * Optimized for Premium Smoothness and reliability.
  */
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
   const pathname = usePathname();
-  const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const prevItemsRef = useRef(totalItems);
-
-  // Prefetch cart page immediately for instant jump
-  useEffect(() => {
-    router.prefetch('/cart');
-  }, [router]);
 
   useEffect(() => {
     if (totalItems > prevItemsRef.current) {
@@ -34,14 +30,10 @@ export function FloatingCart() {
   
   if (isHiddenPage || totalItems === 0 || !isVisible) return null;
 
-  const handleNavigate = () => {
-    router.push('/cart');
-  };
-
   return (
-    <div className="fixed bottom-[76px] left-4 right-4 z-[9998] animate-in slide-in-from-bottom-8 fade-in duration-500">
-      <button 
-        onClick={handleNavigate}
+    <div className="fixed bottom-[76px] left-4 right-4 z-[99998] animate-in slide-in-from-bottom-8 fade-in duration-500">
+      <Link 
+        href="/cart"
         className="w-full h-15 bg-[#0B0B0B] text-white rounded-[1.5rem] flex items-center justify-between px-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/10 active:scale-[0.96] transition-all duration-300 group touch-manipulation pointer-events-auto overflow-hidden py-3"
       >
         {/* Shine effect */}
@@ -67,7 +59,7 @@ export function FloatingCart() {
             <ArrowRight className="h-3.5 w-3.5" />
           </div>
         </div>
-      </button>
+      </Link>
     </div>
   );
 }

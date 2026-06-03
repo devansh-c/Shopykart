@@ -1,9 +1,11 @@
+
 "use client"
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
+import Link from 'next/link';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -13,12 +15,15 @@ const navItems = [
   { label: 'Profile', icon: User, href: '/profile' },
 ];
 
+/**
+ * @fileOverview High-reliability Bottom Navigation.
+ * Uses standard Link components for 100% navigation success in static exports.
+ */
 export function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { totalItems } = useCart();
 
-  // Exclusion logic for admin/vendor panels only
+  // Hide on Admin/Vendor/Delivery panels
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery');
@@ -28,19 +33,18 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,16px)] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] h-16 sm:h-20">
-      <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-[99999] bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      <div className="flex justify-around items-center h-16 sm:h-20 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,16px)]">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
 
           return (
-            <button
+            <Link
               key={item.label}
-              onClick={() => router.push(item.href)}
-              onPointerDown={() => router.prefetch(item.href)}
+              href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-90 relative",
+                "flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-90 relative touch-manipulation",
                 isActive ? "text-primary" : "text-gray-400"
               )}
             >
@@ -61,7 +65,7 @@ export function BottomNav() {
               {isActive && (
                 <div className="absolute bottom-0 w-8 h-1 bg-primary rounded-t-full" />
               )}
-            </button>
+            </Link>
           );
         })}
       </div>

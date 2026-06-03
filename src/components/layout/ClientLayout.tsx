@@ -57,13 +57,9 @@ function AppContent({ children }: { children: ReactNode }) {
             {children}
           </main>
           
-          {/* FLOATING CART AND BOTTOM NAV - ABSOLUTE PRIORITY */}
-          {!isExcludedPath && (
-            <div className="contents">
-              <FloatingCart />
-              <BottomNav />
-            </div>
-          )}
+          {/* FLOATING CART AND BOTTOM NAV - GLOBAL PRIORITY RENDER */}
+          {!isExcludedPath && <FloatingCart />}
+          {!isExcludedPath && <BottomNav />}
         </div>
       </AuthGuard>
       <Toaster />
