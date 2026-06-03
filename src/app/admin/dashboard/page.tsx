@@ -24,7 +24,8 @@ import {
   Megaphone,
   Download,
   MapPin,
-  FileText
+  FileText,
+  LifeBuoy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,7 @@ import { MonetizationManagement } from '@/components/admin/MonetizationManagemen
 import { ExportManagement } from '@/components/admin/ExportManagement';
 import { ZoneManagement } from '@/components/admin/ZoneManagement';
 import { PageManagement } from '@/components/admin/PageManagement';
+import { TicketManagement } from '@/components/admin/TicketManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -68,6 +70,7 @@ const menuItems = [
   { id: 'charges', label: 'Tax & Charges', icon: Receipt },
   { id: 'ads', label: 'Monetization', icon: Megaphone },
   { id: 'notifications', label: 'Notifications', icon: BellRing },
+  { id: 'tickets', label: 'Support Tickets', icon: LifeBuoy },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'pages', label: 'Policy Pages', icon: FileText },
   { id: 'export', label: 'Export & Backup', icon: Download },
@@ -104,7 +107,7 @@ function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: {
                 onCloseMobile();
               }}
               className={cn(
-                "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-500 group",
                 isActive 
                   ? "bg-primary text-white shadow-lg shadow-primary/20" 
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -217,6 +220,8 @@ export default function AdminDashboard() {
         return <MonetizationManagement />;
       case 'notifications':
         return <NotificationManagement />;
+      case 'tickets':
+        return <TicketManagement />;
       case 'reviews':
         return <ReviewManagement />;
       case 'pages':

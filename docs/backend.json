@@ -77,6 +77,19 @@
         "coins": { "type": "number", "default": 0 },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Ticket": {
+      "title": "Support Ticket",
+      "description": "Customer help request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "description": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -84,6 +97,7 @@
     "/vendors/{vendorId}": { "schema": "object", "description": "Store profiles" },
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders" },
-    "/users/{userId}": { "schema": "#/entities/UserProfile", "description": "User profile information" }
+    "/users/{userId}": { "schema": "#/entities/UserProfile", "description": "User profile information" },
+    "/tickets/{ticketId}": { "schema": "#/entities/Ticket", "description": "Support tickets" }
   }
 }
