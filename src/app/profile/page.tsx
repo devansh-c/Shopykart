@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -142,7 +143,7 @@ export default function ProfilePage() {
           className="relative group cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-transform overflow-hidden bg-muted">
+          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-none overflow-hidden bg-muted">
             {profile?.profileImageUrl ? (
               <AvatarImage src={profile.profileImageUrl} className="object-cover" />
             ) : null}
@@ -151,7 +152,7 @@ export default function ProfilePage() {
             </AvatarFallback>
           </Avatar>
           
-          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6 group-hover:scale-110 transition-transform">
+          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6 group-hover:scale-110 transition-none">
             <Camera className="h-4 w-4 text-primary" />
           </div>
           
@@ -187,7 +188,7 @@ export default function ProfilePage() {
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
              <button 
               onClick={() => window.open('mailto:ceo@shopykart.co.in')}
-              className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all"
+              className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none"
              >
                 <div className="flex items-center gap-4">
                    <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><Mail className="h-5 w-5" /></div>
@@ -196,12 +197,12 @@ export default function ProfilePage() {
                       <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Get response from CEO</span>
                    </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-blue-200 group-hover:text-blue-600 transition-colors" />
+                <ChevronRight className="h-4 w-4 text-blue-200 transition-none" />
              </button>
 
              <button 
               onClick={() => window.open('https://wa.me/919450355709')}
-              className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all"
+              className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none"
              >
                 <div className="flex items-center gap-4">
                    <div className="bg-green-100 p-2.5 rounded-xl text-green-600"><MessageCircle className="h-5 w-5" /></div>
@@ -210,12 +211,12 @@ export default function ProfilePage() {
                       <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Fastest Support</span>
                    </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-green-200 group-hover:text-green-600 transition-colors" />
+                <ChevronRight className="h-4 w-4 text-green-200 transition-none" />
              </button>
 
              <Dialog open={isTicketOpen} onOpenChange={(val) => { setIsTicketOpen(val); if(!val) setTicketState('form'); }}>
                 <DialogTrigger asChild>
-                  <button className="w-full bg-amber-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all">
+                  <button className="w-full bg-amber-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none">
                       <div className="flex items-center gap-4">
                         <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600"><LifeBuoy className="h-5 w-5" /></div>
                         <div className="text-left">
@@ -223,7 +224,7 @@ export default function ProfilePage() {
                             <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Official Complaint</span>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-amber-200 group-hover:text-amber-600 transition-colors" />
+                      <ChevronRight className="h-4 w-4 text-amber-200 transition-none" />
                   </button>
                 </DialogTrigger>
                 <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
@@ -267,13 +268,13 @@ export default function ProfilePage() {
                         <Button 
                           onClick={handleRaiseTicket}
                           disabled={isRaising || !ticketData.description.trim() || ticketData.phone.length !== 10}
-                          className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-all"
+                          className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-none"
                         >
                           {isRaising ? <Loader2 className="h-6 w-6 animate-spin" /> : "RAISE A TICKET"}
                         </Button>
                      </div>
                    ) : (
-                     <div className="p-10 text-center space-y-6 animate-in zoom-in duration-500">
+                     <div className="p-10 text-center space-y-6 animate-in zoom-in duration-300">
                         <div className="relative mx-auto w-24 h-24">
                            <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
                            <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
@@ -291,7 +292,7 @@ export default function ProfilePage() {
                         </div>
                         <Button 
                           onClick={() => setIsTicketOpen(false)}
-                          className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic"
+                          className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-none"
                         >
                           OKAY, GOT IT
                         </Button>
@@ -305,7 +306,7 @@ export default function ProfilePage() {
         {/* Share App Card */}
         <button 
           onClick={handleShareApp}
-          className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-all"
+          className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-none"
         >
           <div className="relative z-10 flex items-center gap-4">
              <div className="bg-green-500 p-3 rounded-2xl shadow-lg shadow-green-500/20">
@@ -316,7 +317,7 @@ export default function ProfilePage() {
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Send invite to friends</p>
              </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-600 relative z-10 group-hover:text-primary transition-colors" />
+          <ChevronRight className="h-5 w-5 text-gray-600 relative z-10 transition-none" />
           <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-10" />
         </button>
 
@@ -326,7 +327,7 @@ export default function ProfilePage() {
             <button 
               key={item.label}
               onClick={() => handleAction(item)}
-              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all hover:border-primary/20"
+              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-none"
             >
               <div className="flex items-center space-x-4">
                 <div className="bg-secondary/40 p-2.5 rounded-xl text-primary">
@@ -349,7 +350,7 @@ export default function ProfilePage() {
                     key={page.id}
                     onClick={() => router.push(`/pages/view?id=${page.id}`)}
                     className={cn(
-                      "w-full p-5 flex items-center justify-between active:bg-muted/50 transition-all",
+                      "w-full p-5 flex items-center justify-between active:bg-muted/50 transition-none",
                       idx !== pages.length - 1 && "border-b border-gray-50"
                     )}
                   >
@@ -372,7 +373,7 @@ export default function ProfilePage() {
             <button 
               key={item.label}
               onClick={() => handleAction(item)}
-              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-all hover:bg-primary/5"
+              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-none"
             >
               <div className="flex items-center space-x-4">
                 <div className="bg-primary/10 p-2.5 rounded-xl text-primary">
@@ -390,7 +391,7 @@ export default function ProfilePage() {
 
         <button 
           onClick={handleSignOut}
-          className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 hover:bg-red-50 transition-colors mt-6"
+          className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-none mt-6"
         >
           <div className="bg-red-50 p-2.5 rounded-xl">
             <LogOut className="h-5 w-5" />
