@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: 'https://shopykart.co.in',
+    canonical: 'https://shopykart.co.in/',
   },
   openGraph: {
     type: 'website',
