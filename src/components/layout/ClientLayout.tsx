@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -12,6 +13,7 @@ import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
+import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { ReactNode, useState, useEffect } from 'react';
 
 function AuthGuard({ children }: { children: ReactNode }) {
@@ -49,6 +51,7 @@ function AppContent({ children }: { children: ReactNode }) {
           <NotificationHandler />
           <TelegramNotifier />
           <AdOverlay />
+          <WelcomeBonusOverlay />
           {children}
           {!isExcludedPath && <FloatingCart />}
         </div>

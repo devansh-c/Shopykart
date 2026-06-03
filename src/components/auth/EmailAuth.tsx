@@ -85,7 +85,9 @@ export function EmailAuth() {
           await setDoc(doc(firestore, 'users', user.uid), userData, { merge: true });
         }
 
-        // Lock in LocalStorage immediately for instant UI response
+        // SET WELCOME BONUS FLAG
+        localStorage.setItem('show_welcome_bonus', 'true');
+        
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('user_phone', phoneNumber);
         localStorage.setItem('shopykart_session_active', 'true');
