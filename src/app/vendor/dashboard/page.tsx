@@ -89,6 +89,13 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  // Fetch Categories for the dropdown
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+  const { data: globalCategories } = useCollection<any>(categoriesQuery);
+
   useEffect(() => {
     if (!authLoading && (!user || (user && !profileLoading && !vendorProfile))) {
       router.push('/vendor/login');
@@ -116,7 +123,7 @@ export default function VendorDashboard() {
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
-      toast({ variant: "destructive", title: "Missing Info" });
+      toast({ variant: "destructive", title: "Missing Info", description: "Please fill name, price, category and image." });
       return;
     }
 
@@ -175,6 +182,32 @@ export default function VendorDashboard() {
       await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: online, updatedAt: serverTimestamp() });
       toast({ title: online ? "Store Opened" : "Store Closed" });
     } catch (e) { toast({ variant: "destructive", title: "Failed to toggle status" }); }
+  };
+
+  const addOption = () => {
+    setNewProduct(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const removeOption = (index: number) => {
+    setNewProduct(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateOption = (index: number, field: 'name' | 'price', value: string) => {
+    setNewProduct(prev => {
+      const updated = [...prev.options];
+      if (field === 'price') {
+        updated[index].price = parseFloat(value) || 0;
+      } else {
+        updated[index].name = value;
+      }
+      return { ...prev, options: updated };
+    });
   };
 
   if (authLoading || profileLoading || !vendorProfile) return <div className="min-h-screen bg-white" />;
@@ -287,21 +320,87 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-4 animate-in fade-in duration-500">
               <div className="flex justify-between items-center mb-4">
                  <h2 className="text-xl font-black italic uppercase tracking-tight">Live Catalog</h2>
-                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                 <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
                     <DialogTrigger asChild><Button className="bg-[#0B0B0B] rounded-xl h-10 font-black uppercase text-[9px] tracking-widest active:scale-95 transition-none shadow-lg"><Plus className="mr-1 h-3.5 w-3.5" /> ADD ITEM</Button></DialogTrigger>
-                    <DialogContent className="rounded-[2.5rem] max-w-sm">
+                    <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar">
                        <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Manage Dish</DialogTitle></DialogHeader>
                        <div className="space-y-4 pt-4">
-                          <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Input placeholder="Price (₹)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Input placeholder="Category (e.g. Burgers)" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <div onClick={() => fileInputRef.current?.click()} className="h-32 border-2 border-dashed border-border rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
-                             {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="Preview" /> : <ImageIcon className="h-8 w-8 opacity-20 group-hover:opacity-40 transition-opacity" />}
+                          {/* Image at Top */}
+                          <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed border-border rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group relative">
+                             {newProduct.imageUrl ? (
+                               <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="Preview" />
+                             ) : (
+                               <div className="flex flex-col items-center gap-2">
+                                  <ImageIcon className="h-8 w-8 opacity-20 group-hover:opacity-40 transition-opacity" />
+                                  <span className="text-[10px] font-black uppercase text-muted-foreground">Upload Dish Photo</span>
+                               </div>
+                             )}
+                             {newProduct.imageUrl && (
+                               <div className="absolute bottom-2 right-2 bg-black/60 p-2 rounded-lg text-white">
+                                  <Camera className="h-3.5 w-3.5" />
+                               </div>
+                             )}
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => {
                              const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); }
                           }} />
-                          <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-16 bg-primary rounded-[1.5rem] font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-none">{isSubmitting ? 'Syncing...' : 'Publish Item'}</Button>
+
+                          <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          <Input placeholder="Price (₹)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          
+                          {/* Dynamic Category Selector */}
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category</label>
+                             <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
+                                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                   <SelectValue placeholder="Click to choose category" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl">
+                                   {globalCategories?.map((cat: any) => (
+                                     <SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>
+                                   ))}
+                                </SelectContent>
+                             </Select>
+                          </div>
+
+                          {/* Restore Options Section */}
+                          <div className="space-y-3 pt-2">
+                             <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black uppercase text-primary">Dish Variations</h4>
+                                <Button variant="ghost" onClick={addOption} className="h-7 px-3 text-[9px] font-black bg-primary/10 text-primary rounded-lg">
+                                   <Plus className="h-3 w-3 mr-1" /> ADD OPTION
+                                </Button>
+                             </div>
+                             <div className="space-y-2">
+                                {newProduct.options.map((opt, idx) => (
+                                  <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded-xl border border-gray-100">
+                                     <Input 
+                                       placeholder="Variation Name" 
+                                       value={opt.name} 
+                                       onChange={(e) => updateOption(idx, 'name', e.target.value)}
+                                       className="h-9 rounded-lg text-[11px] font-bold border-none" 
+                                     />
+                                     <Input 
+                                       placeholder="Price" 
+                                       type="number"
+                                       value={opt.price} 
+                                       onChange={(e) => updateOption(idx, 'price', e.target.value)}
+                                       className="h-9 w-20 rounded-lg text-[11px] font-bold border-none" 
+                                     />
+                                     <Button variant="ghost" onClick={() => removeOption(idx)} className="h-9 w-9 p-0 text-red-400">
+                                        <X className="h-4 w-4" />
+                                     </Button>
+                                  </div>
+                                ))}
+                                {newProduct.options.length === 0 && (
+                                   <p className="text-[9px] font-bold text-gray-400 italic text-center py-2 uppercase">No addons added yet</p>
+                                )}
+                             </div>
+                          </div>
+
+                          <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-16 bg-primary rounded-[1.5rem] font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-none mt-4">
+                             {isSubmitting ? 'Syncing...' : 'Publish Item'}
+                          </Button>
                        </div>
                     </DialogContent>
                  </Dialog>
