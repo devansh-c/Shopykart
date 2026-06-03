@@ -47,13 +47,17 @@ function AppContent({ children }: { children: ReactNode }) {
     <div className="relative min-h-screen">
       <SplashScreen isAppReady={!loading} />
       <AuthGuard>
-        <div className="page-enter pb-32">
-          {!isExcludedPath && <LocationRequest />}
-          <NotificationHandler />
-          <TelegramNotifier />
-          <AdOverlay />
-          <WelcomeBonusOverlay />
-          {children}
+        <div className="relative min-h-screen flex flex-col page-enter">
+          <main className="flex-1 pb-40">
+            {!isExcludedPath && <LocationRequest />}
+            <NotificationHandler />
+            <TelegramNotifier />
+            <AdOverlay />
+            <WelcomeBonusOverlay />
+            {children}
+          </main>
+          
+          {/* NAVIGATIONS MOVED TO TOP-LEVEL OF AUTHGUARD TREE */}
           {!isExcludedPath && <FloatingCart />}
           {!isExcludedPath && <BottomNav />}
         </div>
