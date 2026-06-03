@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Scissors, Sparkles, ChevronRight, Star } from 'lucide-react';
@@ -14,7 +13,7 @@ export function BeautySalonSection() {
     <div className="px-4 py-4">
       <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">New Services</h2>
-        <span className="text-[9px] font-black text-primary bg-primary/5 px-3 py-1 rounded-full uppercase tracking-widest border border-primary/10">Limited Launch</span>
+        <span className="text-[9px] font-black text-primary bg-primary/5 px-3 py-1 rounded-full uppercase tracking-widest border border-primary/10 animate-pulse">Launching 5 June</span>
       </div>
 
       <Link 
