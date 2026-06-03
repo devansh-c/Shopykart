@@ -289,7 +289,7 @@ export default function CartPage() {
         {availableCoins > 0 && (
           <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 bg-amber-500/20 rounded-2xl flex items-center justify-center border border-amber-500/20"><Coins className="h-6 w-6 text-amber-500 fill-amber-500" /></div>
+              <div className="h-12 w-12 bg-amber-50/20 rounded-2xl flex items-center justify-center border border-amber-500/20"><Coins className="h-6 w-6 text-amber-500 fill-amber-500" /></div>
               <div><h3 className="text-sm font-black text-white italic uppercase">Redeem Coins</h3><p className="text-[9px] font-bold text-gray-400 uppercase">Balance: {availableCoins}</p></div>
             </div>
             <Switch checked={useCoins} onCheckedChange={setUseCoins} />
@@ -315,7 +315,7 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* DELIVERY TIP SECTION - NEW */}
+        {/* DELIVERY TIP SECTION */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
            <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
@@ -327,30 +327,36 @@ export default function CartPage() {
               </div>
            </div>
 
-           <div className="flex flex-wrap gap-2">
-              {[20, 30, 50].map((amount) => (
-                <button
-                  key={amount}
-                  onPointerDown={(e) => { e.preventDefault(); setDeliveryTip(amount === deliveryTip ? 0 : amount); }}
-                  className={cn(
-                    "h-10 px-5 rounded-xl border-2 font-black text-xs transition-none active:scale-90",
-                    deliveryTip === amount 
-                      ? "bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-200" 
-                      : "bg-white border-gray-100 text-gray-500"
+           <div className="flex flex-wrap gap-x-2 gap-y-4 pt-2">
+              {[10, 20, 30, 50].map((amount) => (
+                <div key={amount} className="relative">
+                  {amount === 20 && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-100 text-amber-700 text-[6px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 uppercase tracking-tighter whitespace-nowrap z-10">
+                      Most Tipped
+                    </div>
                   )}
-                >
-                  ₹{amount}
-                </button>
+                  <button
+                    onPointerDown={(e) => { e.preventDefault(); setDeliveryTip(amount === deliveryTip ? 0 : amount); }}
+                    className={cn(
+                      "h-10 px-5 rounded-xl border-2 font-black text-xs transition-none active:scale-90",
+                      deliveryTip === amount 
+                        ? "bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-200" 
+                        : "bg-white border-gray-100 text-gray-500"
+                    )}
+                  >
+                    ₹{amount}
+                  </button>
+                </div>
               ))}
               <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
                  <DialogTrigger asChild>
                     <button className={cn(
                       "h-10 px-5 rounded-xl border-2 border-dashed font-black text-xs transition-none active:scale-90",
-                      deliveryTip > 50 || (deliveryTip > 0 && ![20, 30, 50].includes(deliveryTip))
+                      deliveryTip > 50 || (deliveryTip > 0 && ![10, 20, 30, 50].includes(deliveryTip))
                         ? "bg-amber-600 border-amber-600 text-white"
                         : "bg-white border-gray-200 text-gray-400"
                     )}>
-                      {deliveryTip > 0 && ![20, 30, 50].includes(deliveryTip) ? `₹${deliveryTip}` : 'ADD CUSTOM'}
+                      {deliveryTip > 0 && ![10, 20, 30, 50].includes(deliveryTip) ? `₹${deliveryTip}` : 'ADD CUSTOM'}
                     </button>
                  </DialogTrigger>
                  <DialogContent className="rounded-[2.5rem] max-w-sm">
