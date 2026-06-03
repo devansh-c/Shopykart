@@ -1,3 +1,4 @@
+
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -41,6 +42,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
@@ -48,6 +50,7 @@ export default function ProfilePage() {
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isUploading, setIsUploading] = useState(false);
@@ -77,8 +80,8 @@ export default function ProfilePage() {
   const mainItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
     { label: 'Active Cart', icon: ShoppingCart, path: '/cart' },
-    { label: 'Personal Information', icon: User },
-    { label: 'Delivery Addresses', icon: MapPin },
+    { label: 'Personal Information', icon: User, path: '' },
+    { label: 'Delivery Addresses', icon: MapPin, path: '' },
   ];
 
   const dashboardItems = [
@@ -89,6 +92,11 @@ export default function ProfilePage() {
   const handleAction = (item: any) => {
     if (item.path) {
       router.push(item.path);
+    } else {
+      toast({
+        title: "Coming Soon",
+        description: `${item.label} section is being upgraded.`,
+      });
     }
   };
 
@@ -113,9 +121,11 @@ export default function ProfilePage() {
             profileImageUrl: compressed,
             updatedAt: serverTimestamp()
           }, { merge: true });
+          toast({ title: "Profile Updated", description: "Image changed successfully." });
         }
       } catch (err) {
         console.error("Upload Failed");
+        toast({ variant: "destructive", title: "Upload Failed" });
       } finally {
         setIsUploading(false);
       }
@@ -141,6 +151,7 @@ export default function ProfilePage() {
       setTicketData({ description: '', phone: '' });
     } catch (err) {
       console.error("Ticket error:", err);
+      toast({ variant: "destructive", title: "Could not raise ticket" });
     } finally {
       setIsRaising(false);
     }
@@ -177,7 +188,7 @@ export default function ProfilePage() {
         
         <div 
           className="relative group cursor-pointer active:scale-95 transition-all duration-300"
-          onPointerDown={() => fileInputRef.current?.click()}
+          onClick={() => fileInputRef.current?.click()}
         >
           <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 overflow-hidden bg-muted transition-all duration-500">
             {profile?.profileImageUrl ? (
@@ -219,11 +230,11 @@ export default function ProfilePage() {
 
       <div className="px-4 mt-8 space-y-6">
         <button 
-          onPointerDown={handleShareApp}
+          onClick={handleShareApp}
           className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-all duration-300"
         >
           <div className="relative z-10 flex items-center gap-4">
-             <div className="bg-green-50 p-3 rounded-2xl shadow-lg shadow-green-500/20">
+             <div className="bg-green-500 p-3 rounded-2xl shadow-lg shadow-green-500/20">
                 <Share2 className="h-6 w-6 text-white" />
              </div>
              <div className="text-left">
@@ -239,7 +250,7 @@ export default function ProfilePage() {
           {mainItems.map((item) => (
             <button 
               key={item.label}
-              onPointerDown={() => handleAction(item)}
+              onClick={() => handleAction(item)}
               className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all duration-300"
             >
               <div className="flex items-center space-x-4">
@@ -261,11 +272,11 @@ export default function ProfilePage() {
               return (
                 <button 
                   key={page.id}
-                  onPointerDown={() => router.push(`/pages/view?id=${page.id}`)}
+                  onClick={() => router.push(`/pages/view?id=${page.id}`)}
                   className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all duration-300"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
+                    <div className="bg-blue-50/50 p-2.5 rounded-xl text-blue-600">
                       <Icon className="h-5 w-5" />
                     </div>
                     <span className="text-sm font-bold italic uppercase tracking-tight">{page.title}</span>
@@ -282,7 +293,7 @@ export default function ProfilePage() {
           {dashboardItems.map((item) => (
             <button 
               key={item.label}
-              onPointerDown={() => handleAction(item)}
+              onClick={() => handleAction(item)}
               className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-all duration-300"
             >
               <div className="flex items-center space-x-4">
@@ -303,7 +314,7 @@ export default function ProfilePage() {
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assistance Center</h3>
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
              <button 
-              onPointerDown={() => setIsSupportExpanded(!isSupportExpanded)}
+              onClick={() => setIsSupportExpanded(!isSupportExpanded)}
               className="w-full bg-primary/5 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300"
              >
                 <div className="flex items-center gap-4">
@@ -321,7 +332,7 @@ export default function ProfilePage() {
                isSupportExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
              )}>
                   <button 
-                    onPointerDown={() => window.open('mailto:ceo@shopykart.co.in')}
+                    onClick={() => window.open('mailto:ceo@shopykart.co.in')}
                     className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-blue-100/50"
                   >
                       <div className="flex items-center gap-4">
@@ -335,7 +346,7 @@ export default function ProfilePage() {
                   </button>
 
                   <button 
-                    onPointerDown={() => window.open('https://wa.me/919450355709')}
+                    onClick={() => window.open('https://wa.me/919450355709')}
                     className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-green-100/50"
                   >
                       <div className="flex items-center gap-4">
@@ -400,7 +411,7 @@ export default function ProfilePage() {
                               </div>
 
                               <Button 
-                                onPointerDown={handleRaiseTicket}
+                                onClick={handleRaiseTicket}
                                 disabled={isRaising || !ticketData.description.trim() || ticketData.phone.length !== 10}
                                 className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-all duration-300"
                               >
@@ -420,7 +431,7 @@ export default function ProfilePage() {
                                 <p className="text-sm font-bold text-green-600 uppercase tracking-tighter">Request ID: #{Math.floor(1000 + Math.random() * 9000)}</p>
                               </div>
                               <Button 
-                                onPointerDown={() => setIsTicketOpen(false)}
+                                onClick={() => setIsTicketOpen(false)}
                                 className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-all duration-300"
                               >
                                 OKAY, GOT IT
@@ -434,7 +445,7 @@ export default function ProfilePage() {
         </div>
 
         <button 
-          onPointerDown={handleSignOut}
+          onClick={handleSignOut}
           className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-all duration-300 mt-6 active:scale-95"
         >
           <div className="bg-red-50 p-2.5 rounded-xl">
