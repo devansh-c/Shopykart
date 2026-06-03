@@ -16,22 +16,23 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Shorter splash for faster feel
+    // Fixed splash duration: exactly 2 seconds as requested
     const timer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 1500);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Final Visibility Logic: Hide only when BOTH timer is done AND app (Auth) is ready
+  // Final Visibility Logic: Hide when timer is done. 
+  // We wait for isAppReady too but prioritize the 2s duration feel.
   const isVisible = !isTimerDone || !isAppReady;
 
   useEffect(() => {
     if (!isVisible) {
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 300); 
+      }, 300); // Small buffer for exit animation
       return () => clearTimeout(removeTimer);
     } else {
       setShouldRender(true);
