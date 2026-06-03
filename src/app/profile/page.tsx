@@ -2,7 +2,7 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera, Share2, MessageCircle, FileText, Info, LifeBuoy, Mail, Sparkles, CheckCircle2 } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera, Share2, MessageCircle, FileText, Info, LifeBuoy, Mail, Sparkles, CheckCircle2, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isUploading, setIsUploading] = useState(false);
+  const [isSupportExpanded, setIsSupportExpanded] = useState(false);
   const [isTicketOpen, setIsTicketOpen] = useState(false);
   const [ticketState, setTicketState] = useState<'form' | 'success'>('form');
   const [isRaising, setIsRaising] = useState(false);
@@ -111,7 +112,6 @@ export default function ProfilePage() {
         updatedAt: serverTimestamp()
       });
       setTicketState('success');
-      // Reset form
       setTicketData({ description: '', phone: '' });
     } catch (err) {
       console.error("Ticket error:", err);
@@ -182,127 +182,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 mt-8 space-y-6">
-        {/* Help & Support Section */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Help & Support</h3>
-          <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
-             <button 
-              onClick={() => window.open('mailto:ceo@shopykart.co.in')}
-              className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none"
-             >
-                <div className="flex items-center gap-4">
-                   <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><Mail className="h-5 w-5" /></div>
-                   <div className="text-left">
-                      <span className="text-sm font-bold block leading-none">Email Now</span>
-                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Get response from CEO</span>
-                   </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-blue-200 transition-none" />
-             </button>
-
-             <button 
-              onClick={() => window.open('https://wa.me/919450355709')}
-              className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none"
-             >
-                <div className="flex items-center gap-4">
-                   <div className="bg-green-100 p-2.5 rounded-xl text-green-600"><MessageCircle className="h-5 w-5" /></div>
-                   <div className="text-left">
-                      <span className="text-sm font-bold block leading-none">WhatsApp Now</span>
-                      <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Fastest Support</span>
-                   </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-green-200 transition-none" />
-             </button>
-
-             <Dialog open={isTicketOpen} onOpenChange={(val) => { setIsTicketOpen(val); if(!val) setTicketState('form'); }}>
-                <DialogTrigger asChild>
-                  <button className="w-full bg-amber-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600"><LifeBuoy className="h-5 w-5" /></div>
-                        <div className="text-left">
-                            <span className="text-sm font-bold block leading-none">Raise a Ticket</span>
-                            <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Official Complaint</span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-amber-200 transition-none" />
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-                   {ticketState === 'form' ? (
-                     <div className="p-8 space-y-6">
-                        <div className="flex flex-col items-center text-center space-y-2">
-                           <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100">
-                              <LifeBuoy className="h-8 w-8" />
-                           </div>
-                           <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Support Request</DialogTitle>
-                           <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Compulsory Information Required</DialogDescription>
-                        </div>
-
-                        <div className="space-y-4">
-                           <div className="space-y-1.5">
-                              <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Describe your issue *</label>
-                              <Textarea 
-                                placeholder="E.g. My order #12345 was missing an item..." 
-                                value={ticketData.description}
-                                onChange={e => setTicketData({...ticketData, description: e.target.value})}
-                                className="h-32 rounded-2xl bg-gray-50 border-none font-medium focus-visible:ring-1 focus-visible:ring-amber-500/20"
-                                required
-                              />
-                           </div>
-                           <div className="space-y-1.5">
-                              <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Callback Phone Number *</label>
-                              <div className="relative">
-                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                 <Input 
-                                    type="tel"
-                                    placeholder="10 Digit Number" 
-                                    value={ticketData.phone}
-                                    onChange={e => setTicketData({...ticketData, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})}
-                                    className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold"
-                                    required
-                                 />
-                              </div>
-                           </div>
-                        </div>
-
-                        <Button 
-                          onClick={handleRaiseTicket}
-                          disabled={isRaising || !ticketData.description.trim() || ticketData.phone.length !== 10}
-                          className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-none"
-                        >
-                          {isRaising ? <Loader2 className="h-6 w-6 animate-spin" /> : "RAISE A TICKET"}
-                        </Button>
-                     </div>
-                   ) : (
-                     <div className="p-10 text-center space-y-6 animate-in zoom-in duration-300">
-                        <div className="relative mx-auto w-24 h-24">
-                           <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
-                           <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
-                              <CheckCircle2 className="h-14 w-14 text-white" />
-                           </div>
-                        </div>
-                        <div className="space-y-2">
-                           <h2 className="text-2xl font-black italic uppercase text-gray-800 leading-tight">Ticket Raised!</h2>
-                           <p className="text-sm font-bold text-green-600 uppercase tracking-tighter">Request ID: #{Math.floor(1000 + Math.random() * 9000)}</p>
-                        </div>
-                        <div className="bg-muted/30 p-6 rounded-3xl border border-dashed">
-                           <p className="text-xs font-black text-gray-600 uppercase leading-relaxed">
-                              "Wait 1-2 hour for call"
-                           </p>
-                        </div>
-                        <Button 
-                          onClick={() => setIsTicketOpen(false)}
-                          className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-none"
-                        >
-                          OKAY, GOT IT
-                        </Button>
-                     </div>
-                   )}
-                </DialogContent>
-             </Dialog>
-          </div>
-        </div>
-
         {/* Share App Card */}
         <button 
           onClick={handleShareApp}
@@ -387,6 +266,145 @@ export default function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-primary" />
             </button>
           ))}
+        </div>
+
+        {/* Help & Support Section - MOVED TO BOTTOM */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assistance Center</h3>
+          <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
+             <button 
+              onClick={() => setIsSupportExpanded(!isSupportExpanded)}
+              className="w-full bg-primary/5 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none"
+             >
+                <div className="flex items-center gap-4">
+                   <div className="bg-primary/10 p-2.5 rounded-xl text-primary"><Headphones className="h-5 w-5" /></div>
+                   <div className="text-left">
+                      <span className="text-sm font-black italic uppercase leading-none block">Need Support?</span>
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Connect with our team</span>
+                   </div>
+                </div>
+                {isSupportExpanded ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />}
+             </button>
+
+             {isSupportExpanded && (
+               <div className="space-y-2 pt-1 animate-in slide-in-from-top-2 duration-200">
+                  <button 
+                    onClick={() => window.open('mailto:ceo@shopykart.co.in')}
+                    className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-blue-100/50"
+                  >
+                      <div className="flex items-center gap-4">
+                        <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><Mail className="h-5 w-5" /></div>
+                        <div className="text-left">
+                            <span className="text-sm font-bold block leading-none">Email Now</span>
+                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Get response from CEO</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-blue-200 transition-none" />
+                  </button>
+
+                  <button 
+                    onClick={() => window.open('https://wa.me/919450355709')}
+                    className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-green-100/50"
+                  >
+                      <div className="flex items-center gap-4">
+                        <div className="bg-green-100 p-2.5 rounded-xl text-green-600"><MessageCircle className="h-5 w-5" /></div>
+                        <div className="text-left">
+                            <span className="text-sm font-bold block leading-none">WhatsApp Now</span>
+                            <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Fastest Support</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-green-200 transition-none" />
+                  </button>
+
+                  <Dialog open={isTicketOpen} onOpenChange={(val) => { setIsTicketOpen(val); if(!val) setTicketState('form'); }}>
+                      <DialogTrigger asChild>
+                        <button className="w-full bg-amber-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-amber-100/50">
+                            <div className="flex items-center gap-4">
+                              <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600"><LifeBuoy className="h-5 w-5" /></div>
+                              <div className="text-left">
+                                  <span className="text-sm font-bold block leading-none">Raise a Ticket</span>
+                                  <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Official Complaint</span>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-amber-200 transition-none" />
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+                        {ticketState === 'form' ? (
+                          <div className="p-8 space-y-6">
+                              <div className="flex flex-col items-center text-center space-y-2">
+                                <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100">
+                                    <LifeBuoy className="h-8 w-8" />
+                                </div>
+                                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Support Request</DialogTitle>
+                                <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Compulsory Information Required</DialogDescription>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Describe your issue *</label>
+                                    <Textarea 
+                                      placeholder="E.g. My order #12345 was missing an item..." 
+                                      value={ticketData.description}
+                                      onChange={e => setTicketData({...ticketData, description: e.target.value})}
+                                      className="h-32 rounded-2xl bg-gray-50 border-none font-medium focus-visible:ring-1 focus-visible:ring-amber-500/20"
+                                      required
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Callback Phone Number *</label>
+                                    <div className="relative">
+                                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                      <Input 
+                                          type="tel"
+                                          placeholder="10 Digit Number" 
+                                          value={ticketData.phone}
+                                          onChange={e => setTicketData({...ticketData, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})}
+                                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold"
+                                          required
+                                      />
+                                    </div>
+                                </div>
+                              </div>
+
+                              <Button 
+                                onClick={handleRaiseTicket}
+                                disabled={isRaising || !ticketData.description.trim() || ticketData.phone.length !== 10}
+                                className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-none"
+                              >
+                                {isRaising ? <Loader2 className="h-6 w-6 animate-spin" /> : "RAISE A TICKET"}
+                              </Button>
+                          </div>
+                        ) : (
+                          <div className="p-10 text-center space-y-6 animate-in zoom-in duration-300">
+                              <div className="relative mx-auto w-24 h-24">
+                                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
+                                <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
+                                    <CheckCircle2 className="h-14 w-14 text-white" />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <h2 className="text-2xl font-black italic uppercase text-gray-800 leading-tight">Ticket Raised!</h2>
+                                <p className="text-sm font-bold text-green-600 uppercase tracking-tighter">Request ID: #{Math.floor(1000 + Math.random() * 9000)}</p>
+                              </div>
+                              <div className="bg-muted/30 p-6 rounded-3xl border border-dashed">
+                                <p className="text-xs font-black text-gray-600 uppercase leading-relaxed">
+                                    "Wait 1-2 hour for call"
+                                </p>
+                              </div>
+                              <Button 
+                                onClick={() => setIsTicketOpen(false)}
+                                className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-none"
+                              >
+                                OKAY, GOT IT
+                              </Button>
+                          </div>
+                        )}
+                      </DialogContent>
+                  </Dialog>
+               </div>
+             )}
+          </div>
         </div>
 
         <button 
