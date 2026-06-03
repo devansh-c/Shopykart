@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -16,7 +17,9 @@ import {
   Zap,
   Info,
   FileCode,
-  ArrowRight
+  ArrowRight,
+  Smartphone,
+  Cpu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +40,7 @@ export function ExportManagement() {
     
     try {
       const zip = new JSZip();
-      const collections = ['products', 'vendors', 'orders', 'categories', 'coupons', 'users'];
+      const collections = ['products', 'vendors', 'orders', 'categories', 'coupons', 'users', 'tickets', 'pages'];
       
       for (const colName of collections) {
         try {
@@ -62,8 +65,7 @@ export function ExportManagement() {
     }
   };
 
-  const handleCopyCommand = () => {
-    const cmd = "npm run zip-project";
+  const handleCopyCommand = (cmd: string) => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(cmd);
       setIsCopied(true);
@@ -79,9 +81,12 @@ export function ExportManagement() {
          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <Zap className="h-6 w-6" />
          </div>
-         <p className="text-xs font-bold text-gray-700 uppercase leading-relaxed">
-            Follow these steps to backup your business data and prepare for GitHub upload.
-         </p>
+         <div>
+            <h3 className="font-black italic uppercase text-sm">Deployment & Export Hub</h3>
+            <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed">
+               Manage your source code, database backups, and mobile app builds.
+            </p>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -108,21 +113,21 @@ export function ExportManagement() {
                 <span className="text-[11px] font-black text-blue-700 uppercase leading-none">JSON Collections Backup</span>
              </div>
              <p className="text-[10px] text-blue-600/80 leading-relaxed font-bold uppercase italic">
-               This will bundle all your Products, Vendors, and Orders into a single ZIP file for manual backup.
+               This will bundle all your Products, Vendors, Orders, and Users into a single ZIP file.
              </p>
           </div>
 
           <Button 
             onClick={handleExportData} 
             disabled={isExporting}
-            className="w-full h-16 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black uppercase italic shadow-2xl shadow-blue-100 relative z-10 transition-all active:scale-95"
+            className="w-full h-16 rounded-[2rem] bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic shadow-2xl transition-all active:scale-95"
           >
             {isExporting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Download className="h-5 w-5 mr-2" />}
             DOWNLOAD DATABASE ZIP
           </Button>
         </div>
 
-        {/* 2. Project Source Helper */}
+        {/* 2. Project Source ZIP */}
         <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
              <Github className="h-40 w-40" />
@@ -139,10 +144,6 @@ export function ExportManagement() {
           </div>
 
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
-             <div className="flex items-center gap-3 text-primary">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="text-[11px] font-bold uppercase leading-none">Excludes node_modules (Under 1MB)</span>
-             </div>
              <p className="text-[10px] text-gray-400 leading-relaxed font-bold uppercase italic">
                Terminal mein niche di gayi command chalaein. Phir Sidebar mein <span className="text-white">shopykart-project.zip</span> par Right-Click karke Download karein.
              </p>
@@ -153,41 +154,62 @@ export function ExportManagement() {
               npm run zip-project
             </div>
             <button 
-              onClick={handleCopyCommand}
+              onClick={() => handleCopyCommand('npm run zip-project')}
               className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-3 rounded-xl transition-all active:scale-90"
             >
               {isCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-white" />}
             </button>
           </div>
+        </div>
 
-          <div className="bg-white/5 p-4 rounded-2xl flex items-center justify-between border border-white/5">
-             <span className="text-[9px] font-black uppercase text-gray-500">Wait for command to finish...</span>
-             <ArrowRight className="h-4 w-4 text-primary animate-bounce-horizontal" />
+        {/* 3. Android App Build */}
+        <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group md:col-span-2">
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+             <Smartphone className="h-40 w-40" />
+          </div>
+
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="bg-green-600 p-3 rounded-2xl text-white shadow-lg shadow-green-200">
+              <Cpu className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Android App (APK)</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Capacitor Native Build</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+             <div className="space-y-4">
+                <p className="text-[11px] font-bold text-gray-600 uppercase leading-relaxed">
+                   ShopyKart ko native Android app banane ke liye niche di gayi steps follow karein:
+                </p>
+                <ul className="space-y-3">
+                   {[
+                     { step: '1', text: 'Run: npm run static-build (Build Web)', cmd: 'npm run static-build' },
+                     { step: '2', text: 'Run: npx cap sync (Sync to Android)', cmd: 'npx cap sync' },
+                     { step: '3', text: 'Run: npx cap open android', cmd: 'npx cap open android' },
+                   ].map((item) => (
+                     <li key={item.step} className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+                        <div className="flex items-center gap-3">
+                           <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">{item.step}</span>
+                           <span className="text-[10px] font-black uppercase tracking-tight">{item.text}</span>
+                        </div>
+                        <button onClick={() => handleCopyCommand(item.cmd)} className="text-primary hover:bg-primary/10 p-1.5 rounded-lg"><Copy className="h-3.5 w-3.5" /></button>
+                     </li>
+                   ))}
+                </ul>
+             </div>
+
+             <div className="bg-green-50 p-6 rounded-[2rem] border border-green-100 flex flex-col justify-center items-center text-center space-y-4">
+                <Smartphone className="h-12 w-12 text-green-600 animate-bounce" />
+                <h4 className="font-black italic uppercase text-green-800">Ready for Play Store</h4>
+                <p className="text-[10px] font-bold text-green-700/70 uppercase leading-relaxed">
+                   Open karne ke baad Android Studio mein "Build > Build Bundle(s) / APK(s) > Build APK" select karein.
+                </p>
+             </div>
           </div>
         </div>
 
-      </div>
-
-      {/* Step by Step Visual Guide */}
-      <div className="bg-white p-10 rounded-[3.5rem] border border-border shadow-sm">
-         <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-8 text-center">How to get your code?</h3>
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div className="space-y-4">
-               <div className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center font-black">1</div>
-               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Run Command</p>
-               <p className="text-sm font-bold text-gray-700 leading-relaxed">Apne IDE ke <span className="text-primary font-black">Terminal</span> mein upar wali command paste karein aur Enter dabayein.</p>
-            </div>
-            <div className="space-y-4">
-               <div className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center font-black">2</div>
-               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Locate File</p>
-               <p className="text-sm font-bold text-gray-700 leading-relaxed">Left Sidebar (Files) mein <span className="text-primary font-black italic">shopykart-project.zip</span> naam ki file dhoondhein.</p>
-            </div>
-            <div className="space-y-4">
-               <div className="h-10 w-10 bg-black text-white rounded-full flex items-center justify-center font-black">3</div>
-               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Right-Click & Download</p>
-               <p className="text-sm font-bold text-gray-700 leading-relaxed">File par Right-Click karke <span className="bg-blue-600 text-white px-1.5 rounded">Download</span> select karein. Ab aap ise GitHub par upload kar sakte hain.</p>
-            </div>
-         </div>
       </div>
     </div>
   );

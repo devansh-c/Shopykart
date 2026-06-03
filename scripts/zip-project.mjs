@@ -1,64 +1,58 @@
 
 import fs from 'fs';
 import path from 'path';
-import JSZip from 'jszip';
+import archiver from 'jszip'; // Using jszip as it's already in package.json
+import { fileURLToPath } from 'url';
 
-const zip = new JSZip();
-const outputFile = 'shopykart-project.zip';
+/**
+ * @fileOverview Script to bundle the entire project into a ZIP file.
+ * Excludes heavy folders like node_modules and .next.
+ */
 
-// Folders and files to exclude from the ZIP
-const ignoreList = [
-  'node_modules',
-  '.next',
-  'out',
-  '.git',
-  'android',
-  '.env',
-  '.DS_Store',
-  outputFile
-];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.join(__dirname, '..');
+const zipName = 'shopykart-project.zip';
 
-function addFilesToZip(dir, zipFolder) {
-  const files = fs.readdirSync(dir);
+async function zipDirectory(sourceDir, outPath) {
+  const zip = new archiver();
 
-  for (const file of files) {
-    if (ignoreList.includes(file)) continue;
+  const excludeDirs = ['node_modules', '.next', 'out', '.git', '.firebase'];
+  const excludeFiles = [zipName, '.DS_Store', 'package-lock.json'];
 
-    const filePath = path.join(dir, file);
-    const stats = fs.statSync(filePath);
+  function addFilesToZip(dir, zipFolder) {
+    const files = fs.readdirSync(dir);
 
-    if (stats.isDirectory()) {
-      const subFolder = zipFolder.folder(file);
-      addFilesToZip(filePath, subFolder);
-    } else {
-      const content = fs.readFileSync(filePath);
-      zipFolder.file(file, content);
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+
+      if (stat.isDirectory()) {
+        if (!excludeDirs.includes(file)) {
+          addFilesToZip(filePath, zipFolder.folder(file));
+        }
+      } else {
+        if (!excludeFiles.includes(file)) {
+          const content = fs.readFileSync(filePath);
+          zipFolder.file(file, content);
+        }
+      }
     }
   }
+
+  console.log('📦 Starting compression...');
+  addFilesToZip(sourceDir, zip);
+
+  const content = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 9 }
+  });
+
+  fs.writeFileSync(outPath, content);
+  console.log(`✅ Success! Project bundled to: ${outPath}`);
 }
 
-async function generateZip() {
-  console.log('🚀 Generating optimized project ZIP for GitHub...');
-  
-  try {
-    addFilesToZip(process.cwd(), zip);
-    
-    const content = await zip.generateAsync({
-      type: 'nodebuffer',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 9 }
-    });
-
-    fs.writeFileSync(outputFile, content);
-    const size = (content.length / (1024 * 1024)).toFixed(2);
-    
-    console.log(`✅ Success! Project compressed to ${size} MB.`);
-    console.log('\n1. Look at the left sidebar (Explorer).');
-    console.log(`2. Find "${outputFile}".`);
-    console.log('3. Right-click (or Long-press) on it and select "Download".\n');
-  } catch (err) {
-    console.error('❌ Error creating ZIP:', err);
-  }
-}
-
-generateZip();
+zipDirectory(rootDir, path.join(rootDir, zipName)).catch(err => {
+  console.error('❌ Zip Failed:', err);
+});
