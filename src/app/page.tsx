@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -7,7 +8,6 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import { OffersSection } from '@/components/home/OffersSection';
-import { ServicesSection } from '@/components/home/ServicesSection';
 import { TopTenProducts } from '@/components/home/TopTenProducts';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer } from 'lucide-react';
@@ -59,35 +59,29 @@ export default function ShopyKartApp() {
           <>
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={50}>
-                <ServicesSection />
-              </ScrollReveal>
-            )}
-
-            {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={100}>
                 <OfferSlider />
               </ScrollReveal>
             )}
 
             {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={150}>
+              <ScrollReveal delay={100}>
                 <TopTenProducts />
               </ScrollReveal>
             )}
 
             {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={200}>
+              <ScrollReveal delay={150}>
                 <StoreSection activeMode={activeMode} />
               </ScrollReveal>
             )}
 
             {!searchQuery && (
-              <ScrollReveal delay={250}>
+              <ScrollReveal delay={200}>
                 <OffersSection />
               </ScrollReveal>
             )}
 
-            <ScrollReveal delay={300}>
+            <ScrollReveal delay={250}>
               <CategoryList 
                 activeCategory={activeCategory} 
                 onCategoryChange={setActiveCategory} 
