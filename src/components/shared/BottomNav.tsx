@@ -1,12 +1,10 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -17,68 +15,18 @@ const navItems = [
 ];
 
 /**
- * @fileOverview BottomNav with extreme low latency switching.
- * Prefetches all main routes and uses onPointerDown for instant navigation.
+ * @fileOverview BottomNav with 5 premium options.
+ * Optimized for TRUE Zero Latency and Premium Smoothness.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
-  const firestore = useFirestore();
-  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(0);
 
   // Prefetch all top level routes for instant switching
   useEffect(() => {
     navItems.forEach(item => router.prefetch(item.href));
   }, [router]);
-
-  // Fetch Heat Wave Status
-  const brandingRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'app_settings', 'branding');
-  }, [firestore]);
-  const { data: settings } = useDoc<any>(brandingRef);
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 60000); 
-    return () => clearInterval(interval);
-  }, []);
-
-  const isRestrictionActive = useMemo(() => {
-    if (!settings) return false;
-    if (settings.isHeatWaveEnabled === true) return true;
-    
-    if (settings.heatWaveAutoMode === true && settings.heatWaveStartTime && settings.heatWaveEndTime) {
-      const parseTimeToMinutes = (timeStr: string) => {
-        try {
-          const [time, modifier] = timeStr.trim().split(' ');
-          let [hours, minutes] = time.split(':').map(Number);
-          if (modifier === 'PM' && hours < 12) hours += 12;
-          if (modifier === 'AM' && hours === 12) hours = 0;
-          return hours * 60 + (minutes || 0);
-        } catch (e) { return -1; }
-      };
-      const start = parseTimeToMinutes(settings.heatWaveStartTime);
-      const end = parseTimeToMinutes(settings.heatWaveEndTime);
-      if (start !== -1 && end !== -1) {
-        return start < end 
-          ? (currentTimeMinutes >= start && currentTimeMinutes <= end)
-          : (currentTimeMinutes >= start || currentTimeMinutes <= end);
-      }
-    }
-    return false;
-  }, [settings, currentTimeMinutes]);
-
-  const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
-  
-  if (isRestrictionActive && !isExcludedPath) {
-    return null;
-  }
 
   const handleNav = (href: string) => {
     if (pathname !== href) {
@@ -86,9 +34,15 @@ export function BottomNav() {
     }
   };
 
+  const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
+  
+  if (isExcludedPath) {
+    return null;
+  }
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border/50 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-border/40 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.06)] animate-in slide-in-from-bottom-full duration-500">
+      <div className="flex justify-around items-center h-18 max-w-lg mx-auto px-2 py-3">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -98,21 +52,31 @@ export function BottomNav() {
               key={item.label}
               onPointerDown={(e) => { e.preventDefault(); handleNav(item.href); }}
               className={cn(
-                "flex flex-col items-center justify-center space-y-1 w-full h-full transition-none relative active:scale-[0.88] touch-manipulation",
+                "flex flex-col items-center justify-center space-y-1.5 w-full h-full transition-all duration-300 relative active:scale-[0.85] touch-manipulation",
                 isActive ? "text-primary" : "text-gray-400"
               )}
             >
               <div className="relative">
-                <Icon className={cn("h-6 w-6", isActive && "scale-110")} />
+                <div className={cn(
+                  "p-1.5 rounded-xl transition-all duration-500",
+                  isActive ? "bg-primary/5 scale-110 shadow-inner" : "bg-transparent"
+                )}>
+                  <Icon className={cn("h-5.5 w-5.5", isActive && "stroke-[2.5]")} />
+                </div>
                 {item.label === 'Orders' && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white">
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-in zoom-in duration-300">
                     {totalItems}
                   </span>
                 )}
               </div>
-              <span className="text-[9px] font-black tracking-widest uppercase italic">{item.label}</span>
+              <span className={cn(
+                "text-[9px] font-black tracking-widest uppercase italic transition-all duration-300",
+                isActive ? "opacity-100 translate-y-0" : "opacity-60"
+              )}>
+                {item.label}
+              </span>
               {isActive && (
-                <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full" />
+                <div className="absolute -bottom-1 w-5 h-1 bg-primary rounded-full animate-in fade-in zoom-in duration-500" />
               )}
             </button>
           );
