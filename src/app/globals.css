@@ -34,7 +34,8 @@
     touch-action: manipulation !important;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    transition: none !important; /* KILL ALL GLOBAL DELAYS */
+    transition: none !important; /* ZERO DELAY */
+    animation-duration: 0s !important; /* KILL ENTRANCE DELAYS */
   }
   
   body {
@@ -47,37 +48,27 @@
   
   /* Extreme Zero Latency Interaction Engine */
   button, a, [role="button"], .interactive {
-    cursor: pointer;
-    user-select: none;
+    cursor: pointer !important;
+    user-select: none !important;
     -webkit-user-drag: none;
     transition: none !important; 
     will-change: transform;
     outline: none !important;
-    animation-duration: 0s !important; 
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.95) !important; /* Deeper Snappy scale */
-    opacity: 0.8;
+    transform: scale(0.92) !important; /* Deep Snappy scale */
+    opacity: 0.8 !important;
     transition: none !important; 
   }
 
-  .animate-fast-fade {
-    animation: fast-fade 1ms ease-out forwards;
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
-
-  @keyframes fast-fade {
-    from { opacity: 0; transform: translateY(0); }
-    to { opacity: 1; transform: translateY(0); }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 @keyframes running-line {
@@ -85,19 +76,9 @@
   100% { transform: translateX(100%); }
 }
 
-@keyframes placeholder-slide {
-  0% { transform: translateY(100%); opacity: 0; }
-  10% { transform: translateY(0); opacity: 1; }
-  90% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-100%); opacity: 0; }
-}
-
 .animate-running-line {
-  animation: running-line 1s infinite linear;
-}
-
-.animate-placeholder-slide {
-  animation: placeholder-slide 2s infinite ease-in-out;
+  animation: running-line 1s infinite linear !important;
+  animation-duration: 1s !important; /* Keep only meaningful animations */
 }
 
 .premium-card {
@@ -107,12 +88,7 @@
 }
 
 .premium-card:active {
-  @apply scale-[0.98];
-  transition: none !important;
-}
-
-.nav-item-active {
-  @apply scale-[0.9] opacity-90;
+  @apply scale-[0.96] !important;
   transition: none !important;
 }
 

@@ -9,8 +9,8 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview FloatingCart component optimized for Extreme Zero Latency.
- * Triggers navigation on any touch interaction to kill tap delay.
+ * @fileOverview FloatingCart component optimized for TRUE Zero Latency.
+ * Uses onPointerDown for instant navigation firing.
  */
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
@@ -33,7 +33,6 @@ export function FloatingCart() {
   }, [router]);
 
   useEffect(() => {
-    // Show instantly if item added
     if (totalItems > prevItemsRef.current) {
       setIsVisible(true);
     }
@@ -78,21 +77,16 @@ export function FloatingCart() {
   if (isHiddenPage || totalItems === 0 || !isVisible || (isRestrictionActive && !isExcludedPath)) return null;
 
   // Hyper-Direct Navigation Handler
-  const handleNavigate = () => {
+  const handleNavigate = (e: React.MouseEvent | React.PointerEvent) => {
+    e.preventDefault();
     router.push('/cart');
   };
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-40">
       <button 
-        onClick={handleNavigate}
-        onPointerDown={() => router.prefetch('/cart')}
-        onTouchStart={() => {
-          router.prefetch('/cart');
-          // Start navigation on touch start for ultra-snappy feel
-          // but handleNavigate is still there for accessibility/click
-        }}
-        className="w-full h-14 bg-[#0B0B0B] text-white rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-white/5 active:scale-[0.96] transition-none group touch-manipulation pointer-events-auto"
+        onPointerDown={handleNavigate}
+        className="w-full h-14 bg-[#0B0B0B] text-white rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-white/5 active:scale-[0.94] transition-none group touch-manipulation pointer-events-auto"
       >
         <div className="flex items-center gap-3">
           <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-none">
@@ -100,7 +94,7 @@ export function FloatingCart() {
           </div>
           <div className="flex flex-col items-start">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Item Added</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Item Added</span>
               <span className="h-1 w-1 bg-gray-600 rounded-full" />
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{totalItems} Total</span>
             </div>

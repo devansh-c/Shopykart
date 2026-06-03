@@ -72,6 +72,10 @@ export function BottomNav() {
     return null;
   }
 
+  const handleNav = (href: string) => {
+    router.push(href);
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border/50 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2">
@@ -80,12 +84,9 @@ export function BottomNav() {
           const Icon = item.icon;
 
           return (
-            <Link
+            <button
               key={item.label}
-              href={item.href}
-              prefetch={true}
-              onPointerDown={() => router.prefetch(item.href)}
-              onTouchStart={() => router.prefetch(item.href)}
+              onPointerDown={() => handleNav(item.href)}
               className={cn(
                 "flex flex-col items-center justify-center space-y-1 w-full h-full transition-none relative active:scale-[0.88] touch-manipulation",
                 isActive ? "text-primary" : "text-gray-400"
@@ -103,7 +104,7 @@ export function BottomNav() {
               {isActive && (
                 <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full" />
               )}
-            </Link>
+            </button>
           );
         })}
       </div>
