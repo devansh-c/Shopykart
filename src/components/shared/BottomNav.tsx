@@ -1,4 +1,3 @@
-
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -29,8 +28,8 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom,16px)] shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,16px)] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] h-16 sm:h-20">
+      <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -38,25 +37,23 @@ export function BottomNav() {
           return (
             <button
               key={item.label}
-              onPointerDown={(e) => { 
-                e.preventDefault(); 
-                router.push(item.href);
-              }}
+              onClick={() => router.push(item.href)}
+              onPointerDown={() => router.prefetch(item.href)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-90",
+                "flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-90 relative",
                 isActive ? "text-primary" : "text-gray-400"
               )}
             >
               <div className="relative">
-                <Icon className={cn("h-5 w-5 mb-0.5", isActive && "stroke-[2.5]")} />
+                <Icon className={cn("h-5 w-5 mb-0.5", isActive && "stroke-[3]")} />
                 {item.label === 'Orders' && totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-primary text-white text-[7px] font-black h-3.5 w-3.5 rounded-full flex items-center justify-center border border-white">
+                  <span className="absolute -top-2 -right-2 bg-primary text-white text-[7px] font-black h-3.5 w-3.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                     {totalItems}
                   </span>
                 )}
               </div>
               <span className={cn(
-                "text-[9px] font-black uppercase tracking-tight",
+                "text-[9px] font-black uppercase tracking-tighter mt-0.5",
                 isActive ? "opacity-100" : "opacity-60"
               )}>
                 {item.label}

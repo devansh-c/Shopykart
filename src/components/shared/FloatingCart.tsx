@@ -8,6 +8,7 @@ import { useEffect, useState, useRef } from 'react';
 
 /**
  * @fileOverview FloatingCart component optimized for Premium Smoothness and Zero Latency.
+ * Positioned exactly above the Bottom Navigation.
  */
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
@@ -33,17 +34,15 @@ export function FloatingCart() {
   
   if (isHiddenPage || totalItems === 0 || !isVisible) return null;
 
-  const handleNavigate = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleNavigate = () => {
     router.push('/cart');
   };
 
   return (
-    <div className="fixed bottom-22 left-4 right-4 z-40 animate-in slide-in-from-bottom-8 fade-in duration-500">
+    <div className="fixed bottom-[76px] left-4 right-4 z-[9998] animate-in slide-in-from-bottom-8 fade-in duration-500">
       <button 
-        onPointerDown={handleNavigate}
-        className="w-full h-15 bg-[#0B0B0B] text-white rounded-[1.5rem] flex items-center justify-between px-5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10 active:scale-[0.96] transition-all duration-300 group touch-manipulation pointer-events-auto overflow-hidden"
+        onClick={handleNavigate}
+        className="w-full h-15 bg-[#0B0B0B] text-white rounded-[1.5rem] flex items-center justify-between px-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/10 active:scale-[0.96] transition-all duration-300 group touch-manipulation pointer-events-auto overflow-hidden py-3"
       >
         {/* Shine effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-1000" />
