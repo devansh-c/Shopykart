@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,7 +45,7 @@
     overflow-x: hidden;
   }
   
-  /* Absolute Zero Latency Interaction Engine */
+  /* Extreme Zero Latency Interaction Engine */
   button, a, [role="button"], .interactive {
     cursor: pointer;
     user-select: none;
@@ -52,6 +53,7 @@
     transition: none !important; /* KILL ALL DELAYS */
     will-change: transform;
     outline: none !important;
+    animation-duration: 0s !important; /* Force instant animations for base interaction */
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {

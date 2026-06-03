@@ -5,7 +5,6 @@ import { BottomNav } from '@/components/shared/BottomNav';
 import { 
   User, 
   MapPin, 
-  CreditCard, 
   LogOut, 
   ChevronRight, 
   Heart, 
@@ -178,10 +177,10 @@ export default function ProfilePage() {
         <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
         
         <div 
-          className="relative group cursor-pointer"
+          className="relative group cursor-pointer active:scale-95 transition-none"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 active:scale-95 transition-none overflow-hidden bg-muted">
+          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 transition-none overflow-hidden bg-muted">
             {profile?.profileImageUrl ? (
               <AvatarImage src={profile.profileImageUrl} className="object-cover" />
             ) : null}
@@ -190,7 +189,7 @@ export default function ProfilePage() {
             </AvatarFallback>
           </Avatar>
           
-          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6 group-hover:scale-110 transition-none">
+          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6 transition-none">
             <Camera className="h-4 w-4 text-primary" />
           </div>
           
@@ -220,7 +219,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 mt-8 space-y-6">
-        {/* Share App Card */}
         <button 
           onClick={handleShareApp}
           className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-none"
@@ -235,7 +233,6 @@ export default function ProfilePage() {
              </div>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-600 relative z-10 transition-none" />
-          <div className="absolute top-0 right-0 h-full w-24 bg-primary/5 -skew-x-12 translate-x-10" />
         </button>
 
         <div className="space-y-3">
@@ -257,7 +254,6 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Dynamic Pages Section - Each in individual box */}
         {pages && pages.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Information & Legal</h3>
@@ -304,7 +300,6 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Help & Support Section - Need Support Toggle */}
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assistance Center</h3>
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
@@ -323,7 +318,7 @@ export default function ProfilePage() {
              </button>
 
              {isSupportExpanded && (
-               <div className="space-y-2 pt-1 animate-in slide-in-from-top-2 duration-200">
+               <div className="space-y-2 pt-1 animate-in slide-in-from-top-1 duration-75">
                   <button 
                     onClick={() => window.open('mailto:ceo@shopykart.co.in')}
                     className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-blue-100/50"
@@ -335,7 +330,7 @@ export default function ProfilePage() {
                             <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Get response from CEO</span>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-blue-200 transition-none" />
+                      <ChevronRight className="h-4 w-4 text-blue-200" />
                   </button>
 
                   <button 
@@ -349,7 +344,7 @@ export default function ProfilePage() {
                             <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Fastest Support</span>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-green-200 transition-none" />
+                      <ChevronRight className="h-4 w-4 text-green-200" />
                   </button>
 
                   <Dialog open={isTicketOpen} onOpenChange={(val) => { setIsTicketOpen(val); if(!val) setTicketState('form'); }}>
@@ -362,10 +357,10 @@ export default function ProfilePage() {
                                   <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Official Complaint</span>
                               </div>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-amber-200 transition-none" />
+                            <ChevronRight className="h-4 w-4 text-amber-200" />
                         </button>
                       </DialogTrigger>
-                      <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+                      <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none transition-none">
                         {ticketState === 'form' ? (
                           <div className="p-8 space-y-6">
                               <div className="flex flex-col items-center text-center space-y-2">
@@ -423,11 +418,6 @@ export default function ProfilePage() {
                                 <h2 className="text-2xl font-black italic uppercase text-gray-800 leading-tight">Ticket Raised!</h2>
                                 <p className="text-sm font-bold text-green-600 uppercase tracking-tighter">Request ID: #{Math.floor(1000 + Math.random() * 9000)}</p>
                               </div>
-                              <div className="bg-muted/30 p-6 rounded-3xl border border-dashed">
-                                <p className="text-xs font-black text-gray-600 uppercase leading-relaxed">
-                                    "Wait 1-2 hour for call"
-                                </p>
-                              </div>
                               <Button 
                                 onClick={() => setIsTicketOpen(false)}
                                 className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-none"
@@ -445,7 +435,7 @@ export default function ProfilePage() {
 
         <button 
           onClick={handleSignOut}
-          className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-none mt-6"
+          className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-none mt-6 active:scale-95"
         >
           <div className="bg-red-50 p-2.5 rounded-xl">
             <LogOut className="h-5 w-5" />
