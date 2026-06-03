@@ -69,7 +69,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
           <DialogTitle>{product.name}</DialogTitle>
         </DialogHeader>
         
-        <div className="bg-white relative">
+        <div className="bg-white relative max-h-[90vh] overflow-y-auto no-scrollbar pb-32">
           <button 
             onClick={() => setIsOpen(false)}
             className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border border-border/50 flex items-center justify-center text-gray-400 active:scale-90 transition-none z-50"
@@ -166,30 +166,30 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
             )}
           </div>
 
-          <div className="p-5 bg-gray-50 border-t border-gray-100 pb-8">
-             <div className="flex items-center gap-3">
-                <div className="flex items-center bg-white rounded-xl h-11 px-1.5 border border-gray-100 shadow-sm">
+          <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-24 z-[60]">
+             <div className="flex items-center gap-3 max-w-md mx-auto">
+                <div className="flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm">
                    <button 
                     onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-none"
+                    className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"
                    >
-                     <Minus className="h-3.5 w-3.5" />
+                     <Minus className="h-4 w-4" />
                    </button>
                    <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
                    <button 
                     onClick={() => setLocalQuantity(localQuantity + 1)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-none"
+                    className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"
                    >
-                     <Plus className="h-3.5 w-3.5" />
+                     <Plus className="h-4 w-4" />
                    </button>
                 </div>
 
                 <Button 
                   onClick={handleAddToCart}
-                  className="flex-1 h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none"
                 >
-                  <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
-                  ADD TO BAG • ₹{(currentPrice * localQuantity).toFixed(2)}
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  ADD • ₹{(currentPrice * localQuantity).toFixed(2)}
                 </Button>
              </div>
           </div>
