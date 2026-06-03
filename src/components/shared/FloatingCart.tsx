@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -9,8 +8,8 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 
 /**
- * @fileOverview Hyper-Responsive FloatingCart.
- * Positioned exactly 80px above the Bottom Navigation to ensure zero overlap.
+ * @fileOverview Optimized FloatingCart.
+ * Positioned exactly above the 64px BottomNav with a small gap.
  */
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
@@ -31,16 +30,14 @@ export function FloatingCart() {
   if (isHiddenPage || totalItems === 0 || !isVisible) return null;
 
   return (
-    <div className="fixed bottom-[80px] left-4 right-4 z-[9998] animate-in slide-in-from-bottom-8 fade-in duration-300 pointer-events-none">
+    <div className="fixed bottom-[72px] left-4 right-4 z-[9998] animate-in slide-in-from-bottom-4 fade-in duration-300 pointer-events-none">
       <Link 
         href="/cart"
-        prefetch={true}
-        className="w-full h-15 bg-[#0B0B0B] text-white rounded-[1.5rem] flex items-center justify-between px-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/10 active:scale-[0.96] transition-all duration-200 group touch-manipulation pointer-events-auto overflow-hidden py-3"
+        prefetch={false}
+        className="w-full bg-[#0B0B0B] text-white rounded-[1.5rem] flex items-center justify-between px-5 shadow-[0_15px_35px_rgba(0,0,0,0.3)] border border-white/10 active:scale-[0.96] transition-all duration-200 group touch-manipulation pointer-events-auto py-3.5"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-active:translate-x-full transition-transform duration-700" />
-        
         <div className="flex items-center gap-4 relative z-10">
-          <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:rotate-12">
+          <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
             <ShoppingCart className="h-5 w-5" />
           </div>
           <div className="flex flex-col items-start">

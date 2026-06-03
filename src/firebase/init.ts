@@ -1,9 +1,7 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
-  getFirestore, 
   Firestore, 
   initializeFirestore, 
   persistentLocalCache, 
@@ -18,8 +16,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Robust Firebase initialization singleton.
- * Uses persistent cache and FORCED long-polling to prevent [code=unavailable] errors
- * especially in environments with restricted WebSocket access.
+ * Forces HTTP long-polling to bypass WebSocket/Connection-timeout errors seen in screenshot.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -31,25 +28,24 @@ export function initializeFirebase() {
       appInstance = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
       authInstance = getAuth(appInstance);
       
-      // Ensure local persistence for a snappy auth feel
       setPersistence(authInstance, browserLocalPersistence).catch((err) => {
         console.warn("Auth persistence error:", err);
       });
 
-      // CRITICAL: Force Long Polling to bypass WebSocket blocks which cause [code=unavailable]
+      // CRITICAL FIX: The "Could not reach backend" error is often due to WebSocket blocks.
+      // We force Long Polling and set an aggressive detect mode to ensure connection.
       firestoreInstance = initializeFirestore(appInstance, {
         experimentalForceLongPolling: true,
-        experimentalAutoDetectLongPolling: false, // Force it strictly
+        experimentalAutoDetectLongPolling: false,
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager()
         })
       });
 
+      console.log("ShopyKart Firebase: Forced Connection Engine Active ✅");
+
     } catch (error) {
       console.error("Firebase initialization failed:", error);
-      if (appInstance && !firestoreInstance) {
-        firestoreInstance = getFirestore(appInstance);
-      }
     }
   }
 

@@ -15,8 +15,8 @@ const navItems = [
 ];
 
 /**
- * @fileOverview Hyper-Responsive Bottom Navigation.
- * Uses Next.js Link for instant pre-fetching and zero-lag page transitions.
+ * @fileOverview Bulletproof Bottom Navigation.
+ * Prefetch disabled to ensure clicks work even on unstable connections.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -27,13 +27,11 @@ export function BottomNav() {
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery');
   
-  if (isExcludedPath) {
-    return null;
-  }
+  if (isExcludedPath) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
-      <div className="flex justify-around items-center h-16 sm:h-20 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,16px)]">
+      <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)]">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -42,7 +40,7 @@ export function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              prefetch={true}
+              prefetch={false} // CRITICAL: Disable prefetch to prevent navigation stalls on weak networks
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-90 relative touch-manipulation outline-none",
                 isActive ? "text-primary" : "text-gray-400"
