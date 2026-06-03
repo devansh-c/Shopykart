@@ -120,6 +120,19 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: payoutHistory } = useCollection<any>(payoutsQuery);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setNewProduct({ 
+      name: '', 
+      price: '', 
+      description: '', 
+      category: '', 
+      imageUrl: '', 
+      isVeg: true, 
+      options: [] 
+    });
+  };
+
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
@@ -151,8 +164,7 @@ export default function VendorDashboard() {
       await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
       setIsAddOpen(false);
-      setEditingId(null);
-      setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
+      resetForm();
       toast({ title: "Product Synced!" });
     } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
     finally { setIsSubmitting(false); }
