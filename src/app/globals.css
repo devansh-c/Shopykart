@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,7 +32,6 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
-    touch-action: manipulation !important;
   }
   
   body {
@@ -42,11 +42,11 @@
     overflow-x: hidden;
   }
   
-  /* Premium Motion Engine - Ultra Fluid */
+  /* Premium Motion Engine - Ultra Fluid & Instant */
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     will-change: transform, opacity;
     outline: none !important;
   }
@@ -54,7 +54,7 @@
   button:active, a:active, [role="button"]:active, .interactive:active {
     transform: scale(0.94);
     opacity: 0.85;
-    transition-duration: 0.1s; /* Instant feedback on press */
+    transition-duration: 0.05s;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -76,43 +76,37 @@
 }
 
 .premium-card {
-  @apply bg-white rounded-[2rem] border-2 border-border/50 shadow-sm relative overflow-hidden;
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .premium-card:active {
-  @apply scale-[0.97] border-primary/20 shadow-lg;
+  @apply scale-[0.98] border-primary/10 shadow-lg;
 }
 
 /* Smooth Page Entrances */
 .page-enter {
-  animation: page-fade-in 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  animation: page-fade-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
 @keyframes page-fade-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.99);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-/* Smooth Navigation Highlights */
-.nav-highlight-active {
-  @apply text-primary scale-110;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* Ensure fixed elements are always on top */
+nav.fixed {
+  isolation: isolate;
+  backface-visibility: hidden;
 }
 
-/* Custom Checkbox/Radio Smoothness */
-[data-state="checked"] {
-  animation: check-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes check-pop {
-  0% { transform: scale(0.8); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+/* Global Transition Speed Overdrive */
+.transition-all {
+  transition-duration: 250ms !important;
 }

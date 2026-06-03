@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -39,16 +40,17 @@ function AuthGuard({ children }: { children: ReactNode }) {
 function AppContent({ children }: { children: ReactNode }) {
   const { loading } = useUser();
   const pathname = usePathname();
+  
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery');
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen flex flex-col">
       <SplashScreen isAppReady={!loading} />
       <AuthGuard>
         <div className="relative min-h-screen flex flex-col page-enter">
-          <main className="flex-1 pb-40">
+          <main className="flex-1 pb-44">
             {!isExcludedPath && <LocationRequest />}
             <NotificationHandler />
             <TelegramNotifier />
@@ -57,9 +59,13 @@ function AppContent({ children }: { children: ReactNode }) {
             {children}
           </main>
           
-          {/* NAVIGATIONS MOVED TO TOP-LEVEL OF AUTHGUARD TREE */}
-          {!isExcludedPath && <FloatingCart />}
-          {!isExcludedPath && <BottomNav />}
+          {/* NAVIGATIONS FORCED TO BOTTOM OF AUTH TREE WITH HIGHEST PRIORITY */}
+          {!isExcludedPath && (
+            <>
+              <FloatingCart />
+              <BottomNav />
+            </>
+          )}
         </div>
       </AuthGuard>
       <Toaster />
