@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -45,7 +44,7 @@ function AppContent({ children }: { children: ReactNode }) {
     <div className="relative min-h-screen">
       <SplashScreen isAppReady={!loading} />
       <AuthGuard>
-        <div>
+        <div className="page-enter">
           {!isExcludedPath && <LocationRequest />}
           <NotificationHandler />
           <TelegramNotifier />

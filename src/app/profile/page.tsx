@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -172,15 +171,15 @@ export default function ProfilePage() {
   const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Identity Verified';
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32">
+    <div className="min-h-screen bg-[#F9FAFB] pb-32 page-enter">
       <div className="bg-primary h-56 relative flex flex-col items-center justify-center pt-8">
         <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
         
         <div 
-          className="relative group cursor-pointer active:scale-95 transition-none"
+          className="relative group cursor-pointer active:scale-95 transition-transform duration-300"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 transition-none overflow-hidden bg-muted">
+          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 overflow-hidden bg-muted transition-all duration-500">
             {profile?.profileImageUrl ? (
               <AvatarImage src={profile.profileImageUrl} className="object-cover" />
             ) : null}
@@ -189,7 +188,7 @@ export default function ProfilePage() {
             </AvatarFallback>
           </Avatar>
           
-          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6 transition-none">
+          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6">
             <Camera className="h-4 w-4 text-primary" />
           </div>
           
@@ -203,7 +202,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="px-4 text-center mt-12">
+      <div className="px-4 text-center mt-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div className="flex items-center justify-center gap-2 mb-1">
            <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1">Gold Member</Badge>
         </div>
@@ -221,7 +220,7 @@ export default function ProfilePage() {
       <div className="px-4 mt-8 space-y-6">
         <button 
           onClick={handleShareApp}
-          className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-none"
+          className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-all duration-300"
         >
           <div className="relative z-10 flex items-center gap-4">
              <div className="bg-green-50 p-3 rounded-2xl shadow-lg shadow-green-500/20">
@@ -232,7 +231,7 @@ export default function ProfilePage() {
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Send invite to friends</p>
              </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-600 relative z-10 transition-none" />
+          <ChevronRight className="h-5 w-5 text-gray-600 relative z-10 transition-transform group-hover:translate-x-1" />
         </button>
 
         <div className="space-y-3">
@@ -241,7 +240,7 @@ export default function ProfilePage() {
             <button 
               key={item.label}
               onClick={() => handleAction(item)}
-              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-none"
+              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all duration-300"
             >
               <div className="flex items-center space-x-4">
                 <div className="bg-secondary/40 p-2.5 rounded-xl text-primary">
@@ -263,7 +262,7 @@ export default function ProfilePage() {
                 <button 
                   key={page.id}
                   onClick={() => router.push(`/pages/view?id=${page.id}`)}
-                  className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-none"
+                  className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all duration-300"
                 >
                   <div className="flex items-center space-x-4">
                     <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
@@ -284,7 +283,7 @@ export default function ProfilePage() {
             <button 
               key={item.label}
               onClick={() => handleAction(item)}
-              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-none"
+              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-all duration-300"
             >
               <div className="flex items-center space-x-4">
                 <div className="bg-primary/10 p-2.5 rounded-xl text-primary">
@@ -305,7 +304,7 @@ export default function ProfilePage() {
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
              <button 
               onClick={() => setIsSupportExpanded(!isSupportExpanded)}
-              className="w-full bg-primary/5 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none"
+              className="w-full bg-primary/5 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300"
              >
                 <div className="flex items-center gap-4">
                    <div className="bg-primary/10 p-2.5 rounded-xl text-primary"><Headphones className="h-5 w-5" /></div>
@@ -314,14 +313,16 @@ export default function ProfilePage() {
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Connect with our team</span>
                    </div>
                 </div>
-                {isSupportExpanded ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />}
+                {isSupportExpanded ? <ChevronUp className="h-4 w-4 text-primary transition-transform duration-300" /> : <ChevronDown className="h-4 w-4 text-primary transition-transform duration-300" />}
              </button>
 
-             {isSupportExpanded && (
-               <div className="space-y-2 pt-1 animate-in slide-in-from-top-1 duration-75">
+             <div className={cn(
+               "space-y-2 pt-1 transition-all duration-500 ease-in-out overflow-hidden",
+               isSupportExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+             )}>
                   <button 
                     onClick={() => window.open('mailto:ceo@shopykart.co.in')}
-                    className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-blue-100/50"
+                    className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-blue-100/50"
                   >
                       <div className="flex items-center gap-4">
                         <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><Mail className="h-5 w-5" /></div>
@@ -335,7 +336,7 @@ export default function ProfilePage() {
 
                   <button 
                     onClick={() => window.open('https://wa.me/919450355709')}
-                    className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-green-100/50"
+                    className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-green-100/50"
                   >
                       <div className="flex items-center gap-4">
                         <div className="bg-green-100 p-2.5 rounded-xl text-green-600"><MessageCircle className="h-5 w-5" /></div>
@@ -349,7 +350,7 @@ export default function ProfilePage() {
 
                   <Dialog open={isTicketOpen} onOpenChange={(val) => { setIsTicketOpen(val); if(!val) setTicketState('form'); }}>
                       <DialogTrigger asChild>
-                        <button className="w-full bg-amber-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-none border border-amber-100/50">
+                        <button className="w-full bg-amber-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-amber-100/50">
                             <div className="flex items-center gap-4">
                               <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600"><LifeBuoy className="h-5 w-5" /></div>
                               <div className="text-left">
@@ -360,11 +361,11 @@ export default function ProfilePage() {
                             <ChevronRight className="h-4 w-4 text-amber-200" />
                         </button>
                       </DialogTrigger>
-                      <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none transition-none">
+                      <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none transition-all duration-500">
                         {ticketState === 'form' ? (
                           <div className="p-8 space-y-6">
                               <div className="flex flex-col items-center text-center space-y-2">
-                                <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100">
+                                <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100 animate-in zoom-in duration-500">
                                     <LifeBuoy className="h-8 w-8" />
                                 </div>
                                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Support Request</DialogTitle>
@@ -378,7 +379,7 @@ export default function ProfilePage() {
                                       placeholder="E.g. My order #12345 was missing an item..." 
                                       value={ticketData.description}
                                       onChange={e => setTicketData({...ticketData, description: e.target.value})}
-                                      className="h-32 rounded-2xl bg-gray-50 border-none font-medium focus-visible:ring-1 focus-visible:ring-amber-500/20"
+                                      className="h-32 rounded-2xl bg-gray-50 border-none font-medium focus-visible:ring-1 focus-visible:ring-amber-500/20 transition-all duration-300"
                                       required
                                     />
                                 </div>
@@ -391,7 +392,7 @@ export default function ProfilePage() {
                                           placeholder="10 Digit Number" 
                                           value={ticketData.phone}
                                           onChange={e => setTicketData({...ticketData, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})}
-                                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold"
+                                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold transition-all duration-300"
                                           required
                                       />
                                     </div>
@@ -401,13 +402,13 @@ export default function ProfilePage() {
                               <Button 
                                 onClick={handleRaiseTicket}
                                 disabled={isRaising || !ticketData.description.trim() || ticketData.phone.length !== 10}
-                                className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-none"
+                                className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-all duration-300"
                               >
                                 {isRaising ? <Loader2 className="h-6 w-6 animate-spin" /> : "RAISE A TICKET"}
                               </Button>
                           </div>
                         ) : (
-                          <div className="p-10 text-center space-y-6 animate-in zoom-in duration-300">
+                          <div className="p-10 text-center space-y-6 animate-in zoom-in duration-700">
                               <div className="relative mx-auto w-24 h-24">
                                 <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
                                 <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
@@ -420,7 +421,7 @@ export default function ProfilePage() {
                               </div>
                               <Button 
                                 onClick={() => setIsTicketOpen(false)}
-                                className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-none"
+                                className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-all duration-300"
                               >
                                 OKAY, GOT IT
                               </Button>
@@ -435,7 +436,7 @@ export default function ProfilePage() {
 
         <button 
           onClick={handleSignOut}
-          className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-none mt-6 active:scale-95"
+          className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-all duration-300 mt-6 active:scale-95"
         >
           <div className="bg-red-50 p-2.5 rounded-xl">
             <LogOut className="h-5 w-5" />

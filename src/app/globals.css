@@ -34,32 +34,29 @@
     touch-action: manipulation !important;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    transition: none !important; /* ZERO DELAY */
-    animation-duration: 0s !important; /* KILL ENTRANCE DELAYS */
   }
   
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter), sans-serif;
-    text-rendering: optimizeSpeed;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
   
-  /* Extreme Zero Latency Interaction Engine */
+  /* Premium Smooth Interaction Engine */
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
     -webkit-user-drag: none;
-    transition: none !important; 
+    transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.2s ease;
     will-change: transform;
     outline: none !important;
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.92) !important; /* Deep Snappy scale */
-    opacity: 0.8 !important;
-    transition: none !important; 
+    transform: scale(0.95);
+    opacity: 0.8;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -77,22 +74,35 @@
 }
 
 .animate-running-line {
-  animation: running-line 1s infinite linear !important;
-  animation-duration: 1s !important; /* Keep only meaningful animations */
+  animation: running-line 1s infinite linear;
 }
 
 .premium-card {
   @apply bg-white rounded-[2rem] border-2 border-border shadow-sm relative overflow-hidden;
-  will-change: transform;
-  transition: none !important;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .premium-card:active {
-  @apply scale-[0.96] !important;
-  transition: none !important;
+  @apply scale-[0.98];
 }
 
 .content-visibility-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 500px;
+}
+
+/* Smooth Page Entrances */
+.page-enter {
+  animation: page-fade-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
