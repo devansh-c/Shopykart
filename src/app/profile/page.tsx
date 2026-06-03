@@ -186,14 +186,14 @@ export default function ProfilePage() {
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Help & Support</h3>
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
              <button 
-              onClick={() => window.open('mailto:support@shopykart.co.in')}
+              onClick={() => window.open('mailto:ceo@shopykart.co.in')}
               className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all"
              >
                 <div className="flex items-center gap-4">
                    <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><Mail className="h-5 w-5" /></div>
                    <div className="text-left">
                       <span className="text-sm font-bold block leading-none">Email Now</span>
-                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Get response in 24h</span>
+                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Get response from CEO</span>
                    </div>
                 </div>
                 <ChevronRight className="h-4 w-4 text-blue-200 group-hover:text-blue-600 transition-colors" />
