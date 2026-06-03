@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -17,10 +16,10 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Phase 1: Minimum 2 seconds timer
+    // Shorter splash for faster feel
     const timer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 2000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -32,7 +31,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     if (!isVisible) {
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 300); // Fixed: Added missing closing parenthesis
+      }, 300); 
       return () => clearTimeout(removeTimer);
     } else {
       setShouldRender(true);

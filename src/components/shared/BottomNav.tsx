@@ -85,6 +85,7 @@ export function BottomNav() {
               href={item.href}
               prefetch={true}
               onPointerDown={() => router.prefetch(item.href)}
+              onTouchStart={() => router.prefetch(item.href)}
               className={cn(
                 "flex flex-col items-center justify-center space-y-1 w-full h-full transition-none relative active:scale-[0.88] touch-manipulation",
                 isActive ? "text-primary" : "text-gray-400"

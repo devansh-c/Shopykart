@@ -49,20 +49,20 @@
     cursor: pointer;
     user-select: none;
     -webkit-user-drag: none;
-    transition: none !important; /* Kill all transition delays for core clicking */
+    transition: transform 0.08s cubic-bezier(0, 0, 0.2, 1) !important;
     will-change: transform;
     outline: none !important;
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    @apply scale-[0.94] opacity-80;
-    transition: transform 0s !important; /* Forced Instant Scale */
-    transform: scale(0.94) !important;
+    transform: scale(0.92) !important;
+    opacity: 0.8;
+    transition: transform 0s !important; /* Forced Instant Scale on Press */
   }
 
   /* Optimized animations for lists */
   .animate-fast-fade {
-    animation: fast-fade 50ms ease-out forwards;
+    animation: fast-fade 30ms ease-out forwards;
   }
 
   @keyframes fast-fade {
@@ -92,16 +92,21 @@
 }
 
 .animate-running-line {
-  animation: running-line 1.5s infinite linear;
+  animation: running-line 1s infinite linear;
 }
 
 .animate-placeholder-slide {
-  animation: placeholder-slide 2.5s infinite ease-in-out;
+  animation: placeholder-slide 2s infinite ease-in-out;
 }
 
 .premium-card {
   @apply bg-white rounded-[2rem] border-2 border-border shadow-sm relative overflow-hidden;
   will-change: transform;
+  transition: transform 0.1s ease-out !important;
+}
+
+.premium-card:active {
+  @apply scale-[0.96];
   transition: none !important;
 }
 
