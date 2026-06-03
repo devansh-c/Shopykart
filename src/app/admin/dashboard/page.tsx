@@ -23,10 +23,10 @@ import {
   Truck,
   Megaphone,
   Download,
-  MapPin
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -51,6 +51,7 @@ import { FleetManagement } from '@/components/admin/FleetManagement';
 import { MonetizationManagement } from '@/components/admin/MonetizationManagement';
 import { ExportManagement } from '@/components/admin/ExportManagement';
 import { ZoneManagement } from '@/components/admin/ZoneManagement';
+import { PageManagement } from '@/components/admin/PageManagement';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -68,6 +69,7 @@ const menuItems = [
   { id: 'ads', label: 'Monetization', icon: Megaphone },
   { id: 'notifications', label: 'Notifications', icon: BellRing },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
+  { id: 'pages', label: 'Policy Pages', icon: FileText },
   { id: 'export', label: 'Export & Backup', icon: Download },
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
@@ -135,7 +137,6 @@ function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { toast } = useToast();
   const firestore = useFirestore();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -181,7 +182,6 @@ export default function AdminDashboard() {
 
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
-    toast({ title: "Logged Out", description: "You have been signed out." });
     router.push('/');
   };
 
@@ -219,6 +219,8 @@ export default function AdminDashboard() {
         return <NotificationManagement />;
       case 'reviews':
         return <ReviewManagement />;
+      case 'pages':
+        return <PageManagement />;
       case 'export':
         return <ExportManagement />;
       case 'settings':

@@ -2,19 +2,17 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera, Share2, MessageCircle } from 'lucide-react';
+import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera, Share2, MessageCircle, FileText, Info } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useRef, useState } from 'react';
 import { compressImage } from '@/lib/image-utils';
 
 export default function ProfilePage() {
-  const { toast } = useToast();
   const router = useRouter();
   const { user } = useUser();
   const auth = useAuth();
@@ -28,6 +26,13 @@ export default function ProfilePage() {
   }, [firestore, user]);
 
   const { data: profile } = useDoc<any>(profileRef);
+
+  // Fetch dynamic pages for legal/info section
+  const pagesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'pages');
+  }, [firestore]);
+  const { data: pages } = useCollection<any>(pagesQuery);
   
   const mainItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
@@ -44,11 +49,6 @@ export default function ProfilePage() {
   const handleAction = (item: any) => {
     if (item.path) {
       router.push(item.path);
-    } else {
-      toast({
-        title: item.label,
-        description: "This feature is coming soon in a future update.",
-      });
     }
   };
 
@@ -68,16 +68,14 @@ export default function ProfilePage() {
       try {
         const compressed = await compressImage(base64, 400, 400);
         if (firestore && user) {
-          // Use setDoc with merge to prevent "No document to update" error
           const userRef = doc(firestore, 'users', user.uid);
           await setDoc(userRef, { 
             profileImageUrl: compressed,
             updatedAt: serverTimestamp()
           }, { merge: true });
-          toast({ title: "Profile Updated", description: "Your new photo is now live." });
         }
       } catch (err) {
-        toast({ variant: "destructive", title: "Upload Failed" });
+        console.error("Upload Failed");
       } finally {
         setIsUploading(false);
       }
@@ -93,7 +91,6 @@ export default function ProfilePage() {
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_phone');
     localStorage.removeItem('user_location_set');
-    toast({ title: "Signed Out", description: "Come back soon!" });
     window.location.href = '/';
   };
 
@@ -184,6 +181,33 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+
+        {/* Dynamic Pages Section */}
+        {pages && pages.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Information & Legal</h3>
+            <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden">
+               {pages.map((page: any, idx: number) => (
+                  <button 
+                    key={page.id}
+                    onClick={() => router.push(`/pages/view?id=${page.id}`)}
+                    className={cn(
+                      "w-full p-5 flex items-center justify-between active:bg-muted/50 transition-all",
+                      idx !== pages.length - 1 && "border-b border-gray-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                       <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                          <FileText className="h-4 w-4" />
+                       </div>
+                       <span className="text-sm font-bold italic uppercase tracking-tight">{page.title}</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-300" />
+                  </button>
+               ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Business & Portals</h3>
