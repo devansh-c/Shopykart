@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -14,6 +13,7 @@ import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
+import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect } from 'react';
 
 function AuthGuard({ children }: { children: ReactNode }) {
@@ -56,6 +56,7 @@ function AppContent({ children }: { children: ReactNode }) {
           {!isExcludedPath && <FloatingCart />}
         </div>
       </AuthGuard>
+      <Toaster />
     </div>
   );
 }
