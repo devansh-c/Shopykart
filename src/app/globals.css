@@ -49,24 +49,24 @@
     cursor: pointer;
     user-select: none;
     -webkit-user-drag: none;
-    transition: transform 0.08s cubic-bezier(0, 0, 0.2, 1) !important;
+    transition: none !important; /* KILL ALL DELAYS */
     will-change: transform;
     outline: none !important;
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.92) !important;
-    opacity: 0.8;
-    transition: transform 0s !important; /* Forced Instant Scale on Press */
+    transform: scale(0.94) !important; /* Slightly tighter for speed feel */
+    opacity: 0.9;
+    transition: none !important; /* Forced Instant Scale on Press */
   }
 
   /* Optimized animations for lists */
   .animate-fast-fade {
-    animation: fast-fade 30ms ease-out forwards;
+    animation: fast-fade 10ms ease-out forwards;
   }
 
   @keyframes fast-fade {
-    from { opacity: 0; transform: translateY(1px); }
+    from { opacity: 0; transform: translateY(0); }
     to { opacity: 1; transform: translateY(0); }
   }
 }
@@ -102,17 +102,17 @@
 .premium-card {
   @apply bg-white rounded-[2rem] border-2 border-border shadow-sm relative overflow-hidden;
   will-change: transform;
-  transition: transform 0.1s ease-out !important;
+  transition: none !important;
 }
 
 .premium-card:active {
-  @apply scale-[0.96];
+  @apply scale-[0.97];
   transition: none !important;
 }
 
 /* Force instant response for nav items */
 .nav-item-active {
-  @apply scale-[0.9] opacity-80;
+  @apply scale-[0.9] opacity-90;
   transition: none !important;
 }
 

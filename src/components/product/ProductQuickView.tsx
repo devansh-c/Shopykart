@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -54,11 +53,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
     });
     
     setIsOpen(false);
-    toast({ 
-      title: "Added to Bag", 
-      description: `${product.name} has been added.` 
-    });
-    
+    // Silent add for speed
     setLocalQuantity(1);
     setSelectedOption(null);
     setInstructions('');
@@ -69,7 +64,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 focus:outline-none bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%]">
+      <DialogContent className="sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in fade-in zoom-in duration-75 focus:outline-none bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%]">
         <DialogHeader className="sr-only">
           <DialogTitle>{product.name}</DialogTitle>
         </DialogHeader>
@@ -77,7 +72,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
         <div className="bg-white relative">
           <button 
             onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border border-border/50 flex items-center justify-center text-gray-400 active:scale-90 transition-all z-50"
+            className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border border-border/50 flex items-center justify-center text-gray-400 active:scale-90 transition-none z-50"
           >
             <X className="h-4 w-4" />
           </button>
@@ -112,7 +107,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
                       <div className="text-2xl font-black text-gray-900 italic tracking-tighter">₹ {(currentPrice || 0).toFixed(2)}</div>
                       <button 
                         onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                        className={cn("p-2 rounded-xl bg-gray-50 transition-all active:scale-75", liked ? "text-primary shadow-inner" : "text-gray-300")}
+                        className={cn("p-2 rounded-xl bg-gray-50 transition-none active:scale-75", liked ? "text-primary shadow-inner" : "text-gray-300")}
                       >
                         <Heart className={cn("h-5 w-5", liked && "fill-primary")} />
                       </button>
@@ -136,13 +131,13 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
                         key={idx}
                         onClick={() => setSelectedOption(isSelected ? null : opt)}
                         className={cn(
-                          "w-full flex items-center justify-between p-4 rounded-[1.25rem] border-2 transition-all active:scale-[0.98]",
+                          "w-full flex items-center justify-between p-4 rounded-[1.25rem] border-2 transition-none active:scale-[0.98]",
                           isSelected ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50/50"
                         )}
                       >
                          <div className="flex items-center gap-3">
                             <div className={cn(
-                              "h-5 w-5 rounded-lg border-2 flex items-center justify-center transition-colors",
+                              "h-5 w-5 rounded-lg border-2 flex items-center justify-center transition-none",
                               isSelected ? "border-primary bg-primary" : "border-gray-300 bg-white"
                             )}>
                               {isSelected && <CheckCircle2 className="h-3 w-3 text-white" />}
@@ -176,14 +171,14 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
                 <div className="flex items-center bg-white rounded-xl h-11 px-1.5 border border-gray-100 shadow-sm">
                    <button 
                     onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-none"
                    >
                      <Minus className="h-3.5 w-3.5" />
                    </button>
                    <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
                    <button 
                     onClick={() => setLocalQuantity(localQuantity + 1)}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-none"
                    >
                      <Plus className="h-3.5 w-3.5" />
                    </button>
@@ -191,7 +186,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
 
                 <Button 
                   onClick={handleAddToCart}
-                  className="flex-1 h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                  className="flex-1 h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none"
                 >
                   <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
                   ADD TO BAG • ₹{(currentPrice * localQuantity).toFixed(2)}
@@ -203,4 +198,3 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
     </Dialog>
   );
 }
-

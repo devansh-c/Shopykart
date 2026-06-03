@@ -128,7 +128,6 @@ export function PopularProducts({
     <div className="px-4 py-8 content-visibility-auto">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-1.5">
-          {/* Changed header label to include emoji and correct text */}
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
             {searchQuery ? 'Results' : `⚡ ALL ${activeMode.toUpperCase()} ITEMS`}
           </h2>
@@ -159,7 +158,7 @@ export function PopularProducts({
 
             return (
               <div key={product.id} className={cn(
-                "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-all duration-75",
+                "premium-card p-6 flex justify-between items-start bg-white overflow-hidden relative transition-none",
                 isOffline ? "opacity-60 grayscale-[0.5]" : "opacity-100"
               )}>
                 <div className="flex-1 pr-4 min-w-0">
@@ -190,19 +189,19 @@ export function PopularProducts({
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                     {quantity === 0 ? (
                       <ProductQuickView product={product}>
-                        <button disabled={isOffline} className={cn("w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 pointer-events-none")}>
+                        <button disabled={isOffline} className={cn("w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl transition-none active:scale-90", isOffline && "opacity-50 border-gray-300 text-gray-400 pointer-events-none")}>
                           {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                         </button>
                       </ProductQuickView>
                     ) : (
                       <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg">
-                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
                         <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20">
+                  <button onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20">
                     <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
                   </button>
                 </div>
