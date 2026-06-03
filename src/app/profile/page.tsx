@@ -2,7 +2,35 @@
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
-import { User, MapPin, CreditCard, LogOut, ChevronRight, Heart, ShoppingCart, Store, Bike, Loader2, Phone, Camera, Share2, MessageCircle, FileText, Info, LifeBuoy, Mail, Sparkles, CheckCircle2, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
+import { 
+  User, 
+  MapPin, 
+  CreditCard, 
+  LogOut, 
+  ChevronRight, 
+  Heart, 
+  ShoppingCart, 
+  Store, 
+  Bike, 
+  Loader2, 
+  Phone, 
+  Camera, 
+  Share2, 
+  MessageCircle, 
+  FileText, 
+  Info, 
+  LifeBuoy, 
+  Mail, 
+  Sparkles, 
+  CheckCircle2, 
+  ChevronDown, 
+  ChevronUp, 
+  Headphones,
+  ShieldCheck,
+  ScrollText,
+  XCircle,
+  Undo2
+} from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
@@ -131,6 +159,16 @@ export default function ProfilePage() {
     window.location.href = '/';
   };
 
+  const getPageIcon = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes('privacy')) return ShieldCheck;
+    if (t.includes('terms') || t.includes('condition')) return ScrollText;
+    if (t.includes('cancel')) return XCircle;
+    if (t.includes('refund') || t.includes('return')) return Undo2;
+    if (t.includes('about')) return Info;
+    return FileText;
+  };
+
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
   const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Identity Verified';
 
@@ -188,7 +226,7 @@ export default function ProfilePage() {
           className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-none"
         >
           <div className="relative z-10 flex items-center gap-4">
-             <div className="bg-green-500 p-3 rounded-2xl shadow-lg shadow-green-500/20">
+             <div className="bg-green-50 p-3 rounded-2xl shadow-lg shadow-green-500/20">
                 <Share2 className="h-6 w-6 text-white" />
              </div>
              <div className="text-left">
@@ -219,30 +257,28 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Dynamic Pages Section */}
+        {/* Dynamic Pages Section - Each in individual box */}
         {pages && pages.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Information & Legal</h3>
-            <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden">
-               {pages.map((page: any, idx: number) => (
-                  <button 
-                    key={page.id}
-                    onClick={() => router.push(`/pages/view?id=${page.id}`)}
-                    className={cn(
-                      "w-full p-5 flex items-center justify-between active:bg-muted/50 transition-none",
-                      idx !== pages.length - 1 && "border-b border-gray-50"
-                    )}
-                  >
-                    <div className="flex items-center gap-4">
-                       <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                          <FileText className="h-4 w-4" />
-                       </div>
-                       <span className="text-sm font-bold italic uppercase tracking-tight">{page.title}</span>
+            {pages.map((page: any) => {
+              const Icon = getPageIcon(page.title);
+              return (
+                <button 
+                  key={page.id}
+                  onClick={() => router.push(`/pages/view?id=${page.id}`)}
+                  className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-none"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300" />
-                  </button>
-               ))}
-            </div>
+                    <span className="text-sm font-bold italic uppercase tracking-tight">{page.title}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -268,7 +304,7 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Help & Support Section - MOVED TO BOTTOM */}
+        {/* Help & Support Section - Need Support Toggle */}
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assistance Center</h3>
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
