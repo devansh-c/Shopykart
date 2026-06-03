@@ -176,8 +176,8 @@ export default function ProfilePage() {
         <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
         
         <div 
-          className="relative group cursor-pointer active:scale-95 transition-transform duration-300"
-          onClick={() => fileInputRef.current?.click()}
+          className="relative group cursor-pointer active:scale-95 transition-all duration-300"
+          onPointerDown={() => fileInputRef.current?.click()}
         >
           <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 overflow-hidden bg-muted transition-all duration-500">
             {profile?.profileImageUrl ? (
@@ -219,7 +219,7 @@ export default function ProfilePage() {
 
       <div className="px-4 mt-8 space-y-6">
         <button 
-          onClick={handleShareApp}
+          onPointerDown={handleShareApp}
           className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between text-white shadow-xl shadow-gray-200 relative overflow-hidden group active:scale-95 transition-all duration-300"
         >
           <div className="relative z-10 flex items-center gap-4">
@@ -239,7 +239,7 @@ export default function ProfilePage() {
           {mainItems.map((item) => (
             <button 
               key={item.label}
-              onClick={() => handleAction(item)}
+              onPointerDown={() => handleAction(item)}
               className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all duration-300"
             >
               <div className="flex items-center space-x-4">
@@ -261,7 +261,7 @@ export default function ProfilePage() {
               return (
                 <button 
                   key={page.id}
-                  onClick={() => router.push(`/pages/view?id=${page.id}`)}
+                  onPointerDown={() => router.push(`/pages/view?id=${page.id}`)}
                   className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all duration-300"
                 >
                   <div className="flex items-center space-x-4">
@@ -282,7 +282,7 @@ export default function ProfilePage() {
           {dashboardItems.map((item) => (
             <button 
               key={item.label}
-              onClick={() => handleAction(item)}
+              onPointerDown={() => handleAction(item)}
               className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-all duration-300"
             >
               <div className="flex items-center space-x-4">
@@ -303,7 +303,7 @@ export default function ProfilePage() {
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assistance Center</h3>
           <div className="bg-white rounded-[2rem] border border-border/40 shadow-sm overflow-hidden p-2 space-y-2">
              <button 
-              onClick={() => setIsSupportExpanded(!isSupportExpanded)}
+              onPointerDown={() => setIsSupportExpanded(!isSupportExpanded)}
               className="w-full bg-primary/5 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300"
              >
                 <div className="flex items-center gap-4">
@@ -321,7 +321,7 @@ export default function ProfilePage() {
                isSupportExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
              )}>
                   <button 
-                    onClick={() => window.open('mailto:ceo@shopykart.co.in')}
+                    onPointerDown={() => window.open('mailto:ceo@shopykart.co.in')}
                     className="w-full bg-blue-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-blue-100/50"
                   >
                       <div className="flex items-center gap-4">
@@ -335,7 +335,7 @@ export default function ProfilePage() {
                   </button>
 
                   <button 
-                    onClick={() => window.open('https://wa.me/919450355709')}
+                    onPointerDown={() => window.open('https://wa.me/919450355709')}
                     className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all duration-300 border border-green-100/50"
                   >
                       <div className="flex items-center gap-4">
@@ -400,7 +400,7 @@ export default function ProfilePage() {
                               </div>
 
                               <Button 
-                                onClick={handleRaiseTicket}
+                                onPointerDown={handleRaiseTicket}
                                 disabled={isRaising || !ticketData.description.trim() || ticketData.phone.length !== 10}
                                 className="w-full h-16 bg-[#0B0B0B] hover:bg-amber-600 text-white rounded-3xl font-black uppercase italic shadow-xl active:scale-95 transition-all duration-300"
                               >
@@ -420,7 +420,7 @@ export default function ProfilePage() {
                                 <p className="text-sm font-bold text-green-600 uppercase tracking-tighter">Request ID: #{Math.floor(1000 + Math.random() * 9000)}</p>
                               </div>
                               <Button 
-                                onClick={() => setIsTicketOpen(false)}
+                                onPointerDown={() => setIsTicketOpen(false)}
                                 className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic transition-all duration-300"
                               >
                                 OKAY, GOT IT
@@ -430,12 +430,11 @@ export default function ProfilePage() {
                       </DialogContent>
                   </Dialog>
                </div>
-             )}
           </div>
         </div>
 
         <button 
-          onClick={handleSignOut}
+          onPointerDown={handleSignOut}
           className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 transition-all duration-300 mt-6 active:scale-95"
         >
           <div className="bg-red-50 p-2.5 rounded-xl">
