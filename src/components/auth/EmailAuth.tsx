@@ -88,10 +88,12 @@ export function EmailAuth() {
         // Lock in LocalStorage immediately for instant UI response
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('user_phone', phoneNumber);
+        localStorage.setItem('shopykart_session_active', 'true');
         
         toast({ title: "Welcome to ShopyKart!", description: `Profile created successfully, ${fullName}.` });
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
+        localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Login Successful", description: "Accessing the network." });
       }
     } catch (err: any) {

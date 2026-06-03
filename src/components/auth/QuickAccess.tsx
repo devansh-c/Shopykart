@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -86,6 +87,7 @@ export function QuickAccess() {
       localStorage.setItem('user_city', formData.city.toUpperCase());
       localStorage.setItem('user_pincode', formData.pincode);
       localStorage.setItem('user_location_set', 'true');
+      localStorage.setItem('shopykart_session_active', 'true');
 
       toast({ title: "Welcome to ShopyKart!", description: "Access granted successfully." });
       
@@ -101,7 +103,7 @@ export function QuickAccess() {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col p-8 animate-in fade-in duration-500 overflow-y-auto no-scrollbar pointer-events-auto">
+    <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar pointer-events-auto">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-10 py-10">
         <div className="text-left">
           <div className="bg-primary/20 h-16 w-16 rounded-[2rem] flex items-center justify-center text-primary mb-8 border border-primary/20">

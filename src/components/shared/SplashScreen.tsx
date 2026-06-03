@@ -1,32 +1,43 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
-export function SplashScreen() {
-  const [isVisible, setIsVisible] = useState(true);
+interface SplashScreenProps {
+  isAppReady?: boolean;
+}
+
+export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
+  const [isTimerDone, setIsTimerDone] = useState(false);
   const [shouldRender, setShouldRender] = useState(true);
   const [taps, setTaps] = useState(0);
   const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Keep visible for exactly 2 seconds as requested
+    // Phase 1: Minimum 2 seconds timer
     const timer = setTimeout(() => {
-      setIsVisible(false);
+      setIsTimerDone(true);
     }, 2000);
 
-    // Optimized fade out - fast and clean
-    const removeTimer = setTimeout(() => {
-      setShouldRender(false);
-    }, 2200);
-
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(removeTimer);
-    };
+    return () => clearTimeout(timer);
   }, []);
+
+  // Final Visibility Logic: Hide only when BOTH timer is done AND app (Auth) is ready
+  const isVisible = !isTimerDone || !isAppReady;
+
+  useEffect(() => {
+    if (!isVisible) {
+      const removeTimer = setTimeout(() => {
+        setShouldRender(false);
+      }, 300); // Fixed: Added missing closing parenthesis
+      return () => clearTimeout(removeTimer);
+    } else {
+      setShouldRender(true);
+    }
+  }, [isVisible]);
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -49,7 +60,7 @@ export function SplashScreen() {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-300 ease-in-out",
+        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-500 ease-in-out",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none translate-y-2"
       )}
     >

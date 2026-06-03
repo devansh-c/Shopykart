@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -12,7 +13,7 @@ import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useUser();
@@ -34,6 +35,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
 }
 
 function AppContent({ children }: { children: ReactNode }) {
+  const { loading } = useUser();
   const pathname = usePathname();
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -41,6 +43,7 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen">
+      <SplashScreen isAppReady={!loading} />
       <AuthGuard>
         <div>
           {!isExcludedPath && <LocationRequest />}
@@ -58,7 +61,6 @@ function AppContent({ children }: { children: ReactNode }) {
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <FirebaseClientProvider>
-      <SplashScreen />
       <BrandingLoader />
       <FirebaseErrorListener />
       <CartProvider>

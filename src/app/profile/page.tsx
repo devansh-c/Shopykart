@@ -89,7 +89,10 @@ export default function ProfilePage() {
     if (auth) {
       await signOut(auth).catch(() => {});
     }
-    localStorage.clear();
+    localStorage.removeItem('shopykart_session_active');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_phone');
+    localStorage.removeItem('user_location_set');
     toast({ title: "Signed Out", description: "Come back soon!" });
     window.location.href = '/';
   };
