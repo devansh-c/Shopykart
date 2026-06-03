@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -57,14 +56,14 @@
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.94) !important; /* Slightly tighter for speed feel */
-    opacity: 0.9;
+    transform: scale(0.96) !important; /* Snappy scale */
+    opacity: 0.85;
     transition: none !important; /* Forced Instant Scale on Press */
   }
 
   /* Optimized animations for lists */
   .animate-fast-fade {
-    animation: fast-fade 10ms ease-out forwards;
+    animation: fast-fade 1ms ease-out forwards;
   }
 
   @keyframes fast-fade {
@@ -108,7 +107,7 @@
 }
 
 .premium-card:active {
-  @apply scale-[0.97];
+  @apply scale-[0.98];
   transition: none !important;
 }
 

@@ -24,6 +24,11 @@ export function FloatingCart() {
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
 
+  // Prefetch cart page for zero-latency navigation
+  useEffect(() => {
+    router.prefetch('/cart');
+  }, [router]);
+
   useEffect(() => {
     if (totalItems > prevItemsRef.current) {
       setIsVisible(true);
@@ -66,23 +71,24 @@ export function FloatingCart() {
   const isHiddenPage = ['/cart', '/admin', '/login'].some(path => pathname?.startsWith(path));
   const isExcludedPath = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor') || pathname?.startsWith('/delivery');
   
-  // Logic to determine if restriction is active
   const isRestrictionActive = (settings?.isHeatWaveEnabled === true) || (settings?.heatWaveAutoMode === true && isInRange);
   
   if (isHiddenPage || totalItems === 0 || !isVisible || (isRestrictionActive && !isExcludedPath)) return null;
 
+  const handleNavigate = () => {
+    router.push('/cart');
+  };
+
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-10 duration-300">
+    <div className="fixed bottom-20 left-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-10 duration-75">
       <button 
-        onClick={() => {
-          // Pre-fetch for absolute speed
-          router.prefetch('/cart');
-          router.push('/cart');
-        }}
-        className="w-full h-14 bg-[#0B0B0B] text-white rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-white/5 active:scale-[0.94] transition-none group"
+        onClick={handleNavigate}
+        onPointerDown={() => router.prefetch('/cart')}
+        onTouchStart={() => router.prefetch('/cart')}
+        className="w-full h-14 bg-[#0B0B0B] text-white rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-white/5 active:scale-[0.96] transition-none group touch-manipulation"
       >
         <div className="flex items-center gap-3">
-          <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="bg-primary h-10 w-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-none">
             <ShoppingCart className="h-5 w-5" />
           </div>
           <div className="flex flex-col items-start">
@@ -97,7 +103,7 @@ export function FloatingCart() {
         
         <div className="flex items-center gap-2">
           <span className="text-xs font-black uppercase tracking-widest italic">View Cart</span>
-          <div className="bg-white/10 p-1 rounded-full group-hover:bg-primary transition-colors duration-75">
+          <div className="bg-white/10 p-1 rounded-full transition-none">
             <ArrowRight className="h-4 w-4" />
           </div>
         </div>
