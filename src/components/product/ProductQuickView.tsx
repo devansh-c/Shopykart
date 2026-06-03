@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -53,10 +54,14 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
     });
     
     setIsOpen(false);
-    // Silent add for speed
     setLocalQuantity(1);
     setSelectedOption(null);
     setInstructions('');
+    
+    toast({
+      title: "Added to Bag",
+      description: `${product.name} added successfully.`
+    });
   };
 
   return (
@@ -64,7 +69,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in fade-in zoom-in duration-75 focus:outline-none bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%]">
+      <DialogContent className="sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in fade-in zoom-in duration-75 focus:outline-none bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] z-[11000]">
         <DialogHeader className="sr-only">
           <DialogTitle>{product.name}</DialogTitle>
         </DialogHeader>
@@ -166,7 +171,8 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
             )}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-24 z-[60]">
+          {/* ACTION BAR: Higher Z-Index and clear padding to ensure visibility over BottomNav */}
+          <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className="flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm">
                    <button 
