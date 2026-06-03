@@ -34,6 +34,7 @@
     touch-action: manipulation !important;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    transition: none !important; /* KILL ALL GLOBAL DELAYS */
   }
   
   body {
@@ -49,19 +50,18 @@
     cursor: pointer;
     user-select: none;
     -webkit-user-drag: none;
-    transition: none !important; /* KILL ALL DELAYS */
+    transition: none !important; 
     will-change: transform;
     outline: none !important;
-    animation-duration: 0s !important; /* Force instant animations for base interaction */
+    animation-duration: 0s !important; 
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.96) !important; /* Snappy scale */
-    opacity: 0.85;
-    transition: none !important; /* Forced Instant Scale on Press */
+    transform: scale(0.95) !important; /* Deeper Snappy scale */
+    opacity: 0.8;
+    transition: none !important; 
   }
 
-  /* Optimized animations for lists */
   .animate-fast-fade {
     animation: fast-fade 1ms ease-out forwards;
   }
@@ -111,13 +111,11 @@
   transition: none !important;
 }
 
-/* Force instant response for nav items */
 .nav-item-active {
   @apply scale-[0.9] opacity-90;
   transition: none !important;
 }
 
-/* Optimized for CLS prevention */
 .content-visibility-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 500px;
