@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,12 +16,21 @@ const navItems = [
   { label: 'Profile', icon: User, href: '/profile' },
 ];
 
+/**
+ * @fileOverview BottomNav with extreme low latency switching.
+ * Prefetches all main routes and uses onPointerDown for instant navigation.
+ */
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
   const firestore = useFirestore();
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState(0);
+
+  // Prefetch all top level routes for instant switching
+  useEffect(() => {
+    navItems.forEach(item => router.prefetch(item.href));
+  }, [router]);
 
   // Fetch Heat Wave Status
   const brandingRef = useMemoFirebase(() => {
@@ -73,7 +81,9 @@ export function BottomNav() {
   }
 
   const handleNav = (href: string) => {
-    router.push(href);
+    if (pathname !== href) {
+      router.push(href);
+    }
   };
 
   return (
@@ -86,7 +96,7 @@ export function BottomNav() {
           return (
             <button
               key={item.label}
-              onPointerDown={() => handleNav(item.href)}
+              onPointerDown={(e) => { e.preventDefault(); handleNav(item.href); }}
               className={cn(
                 "flex flex-col items-center justify-center space-y-1 w-full h-full transition-none relative active:scale-[0.88] touch-manipulation",
                 isActive ? "text-primary" : "text-gray-400"

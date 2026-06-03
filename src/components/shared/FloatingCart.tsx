@@ -10,7 +10,7 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview FloatingCart component optimized for TRUE Zero Latency.
- * Uses onPointerDown for instant navigation firing.
+ * Uses onPointerDown for instant navigation firing and prefetching for speed.
  */
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
@@ -28,6 +28,7 @@ export function FloatingCart() {
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
 
+  // Prefetch cart page immediately for instant jump
   useEffect(() => {
     router.prefetch('/cart');
   }, [router]);
@@ -79,6 +80,8 @@ export function FloatingCart() {
   // Hyper-Direct Navigation Handler
   const handleNavigate = (e: React.MouseEvent | React.PointerEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    // Use immediate jump
     router.push('/cart');
   };
 
