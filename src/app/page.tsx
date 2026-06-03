@@ -58,37 +58,39 @@ export default function ShopyKartApp() {
           </div>
         ) : (
           <>
+            {/* NEW SERVICES (SALON) SECTION AT TOP */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={50}>
+                <BeautySalonSection />
+              </ScrollReveal>
+            )}
+
+            {/* BANNER (OFFER SLIDER) BELOW NEW SERVICES */}
+            {!searchQuery && activeCategory === 'all' && (
+              <ScrollReveal delay={150}>
                 <OfferSlider />
               </ScrollReveal>
             )}
 
             {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={100}>
-                <BeautySalonSection />
-              </ScrollReveal>
-            )}
-
-            {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={150}>
+              <ScrollReveal delay={200}>
                 <TopTenProducts />
               </ScrollReveal>
             )}
 
             {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={200}>
+              <ScrollReveal delay={250}>
                 <StoreSection activeMode={activeMode} />
               </ScrollReveal>
             )}
 
             {!searchQuery && (
-              <ScrollReveal delay={250}>
+              <ScrollReveal delay={300}>
                 <OffersSection />
               </ScrollReveal>
             )}
 
-            <ScrollReveal delay={300}>
+            <ScrollReveal delay={350}>
               <CategoryList 
                 activeCategory={activeCategory} 
                 onCategoryChange={setActiveCategory} 
