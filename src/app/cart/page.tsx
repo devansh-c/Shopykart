@@ -18,7 +18,8 @@ import {
   ShoppingBasket,
   Coins,
   Map as MapIcon,
-  Navigation
+  Navigation,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -79,7 +80,7 @@ export default function CartPage() {
 
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
-  const [customTipValue, setCustomerTipValue] = useState('');
+  const [customTipValue, setCustomTipValue] = useState('');
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -229,6 +230,15 @@ export default function CartPage() {
     }
   };
 
+  const handleCustomTip = () => {
+    const val = parseFloat(customTipValue);
+    if (!isNaN(val) && val >= 0) {
+      setDeliveryTip(val);
+      setIsCustomTipOpen(false);
+      setCustomTipValue('');
+    }
+  };
+
   if (totalItems === 0 && !showSuccess) {
     return (
       <div className="min-h-screen bg-[#F5F6F7] flex flex-col items-center justify-center p-6 text-center">
@@ -304,11 +314,82 @@ export default function CartPage() {
               </div>
           </div>
         </div>
+
+        {/* DELIVERY TIP SECTION - NEW */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
+           <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+                 <Bike className="h-5 w-5" />
+              </div>
+              <div>
+                 <h3 className="text-sm font-black uppercase tracking-tight">Delivery Tip</h3>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-none">Thank your delivery partner</p>
+              </div>
+           </div>
+
+           <div className="flex flex-wrap gap-2">
+              {[20, 30, 50].map((amount) => (
+                <button
+                  key={amount}
+                  onPointerDown={(e) => { e.preventDefault(); setDeliveryTip(amount === deliveryTip ? 0 : amount); }}
+                  className={cn(
+                    "h-10 px-5 rounded-xl border-2 font-black text-xs transition-none active:scale-90",
+                    deliveryTip === amount 
+                      ? "bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-200" 
+                      : "bg-white border-gray-100 text-gray-500"
+                  )}
+                >
+                  ₹{amount}
+                </button>
+              ))}
+              <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
+                 <DialogTrigger asChild>
+                    <button className={cn(
+                      "h-10 px-5 rounded-xl border-2 border-dashed font-black text-xs transition-none active:scale-90",
+                      deliveryTip > 50 || (deliveryTip > 0 && ![20, 30, 50].includes(deliveryTip))
+                        ? "bg-amber-600 border-amber-600 text-white"
+                        : "bg-white border-gray-200 text-gray-400"
+                    )}>
+                      {deliveryTip > 0 && ![20, 30, 50].includes(deliveryTip) ? `₹${deliveryTip}` : 'ADD CUSTOM'}
+                    </button>
+                 </DialogTrigger>
+                 <DialogContent className="rounded-[2.5rem] max-w-sm">
+                    <DialogHeader>
+                       <DialogTitle className="font-black italic uppercase text-center">Add Delivery Tip</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                       <Input 
+                        type="number" 
+                        placeholder="Enter amount (₹)" 
+                        value={customTipValue}
+                        onChange={e => setCustomTipValue(e.target.value)}
+                        className="h-14 rounded-2xl bg-gray-50 border-none text-xl font-black text-center"
+                       />
+                       <Button onClick={handleCustomTip} className="w-full h-14 rounded-2xl bg-primary font-black uppercase italic">CONFIRM TIP</Button>
+                    </div>
+                 </DialogContent>
+              </Dialog>
+              {deliveryTip > 0 && (
+                <button 
+                  onClick={() => setDeliveryTip(0)}
+                  className="h-10 px-3 rounded-xl bg-red-50 text-red-500 font-black text-[9px] uppercase"
+                >
+                  CLEAR
+                </button>
+              )}
+           </div>
+
+           <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed italic">
+             100% of this tip goes to your delivery partner. Thank you for being kind! <Heart className="inline h-2.5 w-2.5 text-red-400 fill-red-400" />
+           </p>
+        </div>
+
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2"><FileText className="h-5 w-5 text-blue-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Bill Details</h3></div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between font-bold text-gray-400"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
             {dynamic_charges.map((charge: any) => (<div key={charge.id} className="flex justify-between font-bold text-gray-400"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>))}
+            {deliveryTip > 0 && (<div className="flex justify-between font-bold text-amber-600"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>)}
             {useCoins && coinDiscount > 0 && (<div className="flex justify-between font-black text-amber-600"><span>Coins Applied</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>)}
           </div>
           <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center"><span className="text-lg font-black text-gray-700">Total Payable</span><span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span></div>
