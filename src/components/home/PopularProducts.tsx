@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -8,7 +7,6 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit, orderBy } from "firebase/firestore"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import {
   Select,
@@ -82,32 +80,26 @@ export function PopularProducts({
       const productZoneId = product.zoneId || vendor.zoneId;
       const productTown = (product.town || vendor.town || '').toLowerCase().trim();
 
-      // If user has a location set, we MUST filter strictly
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
         const matchesTown = targetCityNormalized && productTown === targetCityNormalized;
-        
-        // Final gate: If it doesn't match ID and doesn't match Town Name exactly, skip it
         if (!matchesZoneId && !matchesTown) return false;
       }
 
-      // 2. Mode Filtering (Food / Grocery)
+      // Mode Filtering
       const vendorCat = (vendor.category || 'Food').toLowerCase().trim();
       if (vendorCat !== modeLower) return false;
 
-      // 3. Search & Category
+      // Search & Category
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
-      
       const matchesCategory = category === 'all' || (product.category || '').toLowerCase().trim() === categoryLower;
-      
       const isAvailable = product.isAvailable !== false;
       
       return matchesSearch && matchesCategory && isAvailable;
     });
 
-    // Sort by Online Stores first
     result.sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
@@ -136,9 +128,9 @@ export function PopularProducts({
     <div className="px-4 py-8 content-visibility-auto">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-1.5">
-          <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
+          {/* Changed header label to include emoji and correct text */}
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
-            {searchQuery ? 'Results' : `ALL ${activeMode.toUpperCase()} ITEMS`}
+            {searchQuery ? 'Results' : `⚡ ALL ${activeMode.toUpperCase()} ITEMS`}
           </h2>
         </div>
         

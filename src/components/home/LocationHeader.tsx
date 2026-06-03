@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { identifyFood } from '@/ai/flows/visual-search-flow';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { CustomDishDialog } from './CustomDishDialog';
 
@@ -66,8 +65,6 @@ export function LocationHeader({
   const [currentAddress, setCurrentAddress] = useState('Select Location');
   const [addressSubtitle, setAddressSubtitle] = useState('Tap to set area');
 
-  const { toast } = useToast();
-
   useEffect(() => {
     const updateAddress = () => {
       const savedAddress = localStorage.getItem('user_address');
@@ -113,9 +110,8 @@ export function LocationHeader({
       try {
         const result = await identifyFood({ photoDataUri: base64String });
         onSearchChange(result.identifiedFood);
-        toast({ title: 'Success', description: `Identified: ${result.identifiedFood}` });
       } catch (err) {
-        toast({ variant: 'destructive', title: 'Failed', description: 'Could not identify food.' });
+        console.error('Identification failed');
       } finally {
         setIsIdentifying(false);
       }
@@ -126,10 +122,7 @@ export function LocationHeader({
   const handleMicClick = () => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        toast({ variant: 'destructive', title: 'Voice search not supported.' });
-        return;
-      }
+      if (!SpeechRecognition) return;
       const recognition = new SpeechRecognition();
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event: any) => onSearchChange(event.results[0][0].transcript);
@@ -142,13 +135,15 @@ export function LocationHeader({
     <div className="w-full bg-[#0B0B0B] pb-4 pt-2 px-4 space-y-3 rounded-b-[2.5rem] shadow-2xl relative z-50">
       <div className="flex items-center justify-between">
         <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
-          <div className="h-9 w-9 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20 group-active:scale-90 transition-transform">
+          {/* Changed MapPin background and text to White/Glass */}
+          <div className="h-9 w-9 bg-white/10 rounded-xl flex items-center justify-center text-white border border-white/10 group-active:scale-90 transition-transform">
             <MapPin className="h-4 w-4" />
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1">
               <span className="text-white text-[13px] font-black truncate tracking-tight">{currentAddress}</span>
-              <ChevronDown className="h-3.5 w-3.5 text-primary shrink-0 transition-transform group-hover:translate-y-0.5" />
+              {/* Changed Chevron to white */}
+              <ChevronDown className="h-3.5 w-3.5 text-white shrink-0 transition-transform group-hover:translate-y-0.5" />
             </div>
             <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest truncate leading-none mt-0.5">
               {addressSubtitle}
@@ -173,8 +168,8 @@ export function LocationHeader({
                 <ShoppingBag className="h-4 w-4" />
               </div>
               {totalItems > 0 && (
-                <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center border-2 border-[#0B0B0B]">
-                  <span className="text-[7px] font-black text-white">{totalItems}</span>
+                <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-white rounded-full flex items-center justify-center border-2 border-[#0B0B0B]">
+                  <span className="text-[7px] font-black text-black">{totalItems}</span>
                 </div>
               )}
             </div>
@@ -189,7 +184,7 @@ export function LocationHeader({
       <div className="flex items-center gap-3">
         <div className="relative flex-1 group">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
-          <div className="relative h-11 w-full bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-primary/50 transition-all">
+          <div className="relative h-11 w-full bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-white/30 transition-all">
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -200,7 +195,8 @@ export function LocationHeader({
                <button onClick={handleCameraClick} className="p-1.5 text-white active:scale-90 transition-all">
                 {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
-              <button onClick={handleMicClick} className={cn("p-1.5 text-white active:scale-90 transition-all", isListening && "animate-pulse text-red-500")}>
+              {/* Changed Mic listening color to white pulse */}
+              <button onClick={handleMicClick} className={cn("p-1.5 text-white active:scale-90 transition-all", isListening && "animate-pulse")}>
                 <Mic className="h-3.5 w-3.5" />
               </button>
             </div>
