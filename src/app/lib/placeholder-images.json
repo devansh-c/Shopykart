@@ -1,3 +1,4 @@
+
 {
   "placeholderImages": [
     {
@@ -5,6 +6,12 @@
       "description": "ShopyKart Signature Selection Banner",
       "imageUrl": "https://picsum.photos/seed/shopy-hero/800/400",
       "imageHint": "gourmet burger"
+    },
+    {
+      "id": "category-all",
+      "description": "All Categories",
+      "imageUrl": "https://picsum.photos/seed/all-cat/100/100",
+      "imageHint": "food spread"
     },
     {
       "id": "category-snacks",
@@ -71,6 +78,12 @@
       "description": "Free Ice Cream Promo",
       "imageUrl": "https://picsum.photos/seed/promo-ice/1080/1080",
       "imageHint": "creamy ice cream"
+    },
+    {
+      "id": "salon-promo",
+      "description": "Beauty and Salon Services",
+      "imageUrl": "https://picsum.photos/seed/shopy-salon/600/400",
+      "imageHint": "beauty salon"
     }
   ]
 }

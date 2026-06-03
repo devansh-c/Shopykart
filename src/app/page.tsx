@@ -9,6 +9,7 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import { OffersSection } from '@/components/home/OffersSection';
 import { TopTenProducts } from '@/components/home/TopTenProducts';
+import { BeautySalonSection } from '@/components/home/BeautySalonSection';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer } from 'lucide-react';
 
@@ -65,23 +66,29 @@ export default function ShopyKartApp() {
 
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={100}>
-                <TopTenProducts />
+                <BeautySalonSection />
               </ScrollReveal>
             )}
 
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={150}>
+                <TopTenProducts />
+              </ScrollReveal>
+            )}
+
+            {!searchQuery && activeCategory === 'all' && (
+              <ScrollReveal delay={200}>
                 <StoreSection activeMode={activeMode} />
               </ScrollReveal>
             )}
 
             {!searchQuery && (
-              <ScrollReveal delay={200}>
+              <ScrollReveal delay={250}>
                 <OffersSection />
               </ScrollReveal>
             )}
 
-            <ScrollReveal delay={250}>
+            <ScrollReveal delay={300}>
               <CategoryList 
                 activeCategory={activeCategory} 
                 onCategoryChange={setActiveCategory} 
