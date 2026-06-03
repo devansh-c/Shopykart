@@ -22,14 +22,12 @@ function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
 
-  // Paths that don't require customer login
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery');
 
   if (loading) return null;
 
-  // If no user and not an excluded path, force Email Auth
   if (!user && !isExcludedPath) {
     return <EmailAuth />;
   }
@@ -38,8 +36,8 @@ function AuthGuard({ children }: { children: ReactNode }) {
 }
 
 function AppContent({ children }: { children: ReactNode }) {
-  const { loading } = useUser();
   const pathname = usePathname();
+  const { loading } = useUser();
   
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -49,7 +47,7 @@ function AppContent({ children }: { children: ReactNode }) {
     <div className="relative min-h-screen flex flex-col">
       <SplashScreen isAppReady={!loading} />
       <AuthGuard>
-        <div className="relative min-h-screen flex flex-col page-enter">
+        <div className="relative min-h-screen flex flex-col overflow-x-hidden">
           <main className="flex-1 pb-44">
             {!isExcludedPath && <LocationRequest />}
             <NotificationHandler />
@@ -59,12 +57,12 @@ function AppContent({ children }: { children: ReactNode }) {
             {children}
           </main>
           
-          {/* NAVIGATIONS FORCED TO BOTTOM OF AUTH TREE WITH HIGHEST PRIORITY */}
+          {/* FLOATING CART AND BOTTOM NAV - ABSOLUTE PRIORITY */}
           {!isExcludedPath && (
-            <>
+            <div className="contents">
               <FloatingCart />
               <BottomNav />
-            </>
+            </div>
           )}
         </div>
       </AuthGuard>
