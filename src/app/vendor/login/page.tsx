@@ -10,6 +10,7 @@ import { Store, Mail, Lock, ArrowRight, Loader2, Fingerprint, HeartPulse } from 
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 function LoginPageContent() {
   const searchParams = useSearchParams();
@@ -94,6 +95,8 @@ function LoginPageContent() {
       }
       toast({ variant: "destructive", title: "Login Failed", description: msg });
       setLoading(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -172,6 +175,15 @@ function LoginPageContent() {
             >
               {isMedical ? 'REGISTER AS MEDICAL STORE' : 'JOIN AS VENDOR'}
               <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost"
+              className="w-full h-12 text-gray-500 font-bold uppercase text-[10px] tracking-widest mt-2"
+              onClick={() => router.push('/')}
+            >
+              BACK TO HOME
             </Button>
           </form>
         </CardContent>
