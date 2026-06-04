@@ -1,6 +1,6 @@
 'use client';
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp, setLogLevel } from 'firebase/app';
 import { 
   Firestore, 
   initializeFirestore, 
@@ -35,13 +35,18 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      // 3. ULTRA-RELIABLE CONNECTION SETTINGS:
+      // 3. Prevent Console Noise: Next.js Dev Red Screen usually intercepts console.error.
+      // Firebase logs connection timeouts as errors. We set it to silent for cleaner dev experience.
+      setLogLevel('silent');
+
+      // 4. ULTRA-RELIABLE CONNECTION SETTINGS:
       // - experimentalForceLongPolling: true (Bypasses all WebSocket blocks)
       // - experimentalAutoDetectLongPolling: false (No timeout waiting for WebSockets)
-      // - useFetchStreams: false (Improves compatibility with Android WebViews/APK)
+      // - useFetchStreams: false (Crucial for Android WebViews/APK stability)
       firestoreInstance = initializeFirestore(appInstance, {
         experimentalForceLongPolling: true,
         experimentalAutoDetectLongPolling: false,
+        useFetchStreams: false, 
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
           cacheSizeBytes: CACHE_SIZE_UNLIMITED
