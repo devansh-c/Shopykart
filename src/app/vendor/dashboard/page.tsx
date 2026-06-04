@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -88,12 +87,23 @@ export default function VendorDashboard() {
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
 
-  // LIVE ORDER ALARM LOGIC - FORCE REAL TIME SYNC
+  // LIVE ORDER ALARM LOGIC - REMOVED ORDERBY TO PREVENT INDEX ERROR
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
-  const { data: orders } = useCollection<any>(ordersQuery);
+  
+  const { data: rawOrders } = useCollection<any>(ordersQuery);
+
+  // Client-side sorting by date to avoid composite index requirements
+  const orders = useMemo(() => {
+    if (!rawOrders) return [];
+    return [...rawOrders].sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0;
+      const dateB = b.createdAt?.seconds || 0;
+      return dateB - dateA;
+    });
+  }, [rawOrders]);
 
   // ALARM ONLY FOR 'Placed' STATUS.
   const pendingOrders = useMemo(() => orders?.filter(o => o.status === 'Placed') || [], [orders]);
@@ -191,7 +201,7 @@ export default function VendorDashboard() {
   if (authLoading || profileLoading || !vendorProfile) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
       {/* NEW ORDER ALARM OVERLAY - PERSISTENT REAL-TIME INTERFACE */}
       <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
         <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/40 p-10 shadow-[0_0_80px_rgba(239,68,68,0.4)] animate-in zoom-in duration-300">

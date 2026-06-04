@@ -79,7 +79,7 @@ export function NotificationHandler() {
     // Listen for orders relevant to this user (Admin, Vendor, or Customer)
     const isAdmin = user.email === 'ceo@shopykart.co.in';
     
-    // Vendor or Admin New Order query
+    // Vendor or Admin New Order query - SIMPLE QUERY TO AVOID INDEX ERROR
     const ordersQuery = query(
       collection(firestore, 'orders'), 
       where('status', '==', 'Placed')
@@ -102,12 +102,10 @@ export function NotificationHandler() {
       });
     });
 
-    // Customer Status Change Listener
+    // Customer Status Change Listener - REMOVED ORDERBY TO PREVENT INDEX ERROR
     const customerQuery = query(
       collection(firestore, 'orders'),
-      where('userId', '==', user.uid),
-      orderBy('updatedAt', 'desc'),
-      limit(5)
+      where('userId', '==', user.uid)
     );
 
     const unsubscribeCustomer = onSnapshot(customerQuery, (snapshot) => {
