@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -16,6 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+/**
+ * @fileOverview PopularProducts with strict isolation between Food, Grocery, and Medical.
+ */
 export function PopularProducts({ 
   searchQuery = '', 
   category = 'all',
@@ -76,7 +80,12 @@ export function PopularProducts({
       const vendor = vendorMap.get(product.vendorId);
       if (!vendor) return false;
 
-      // STRICT ZONE FILTERING
+      // 1. STRICT SERVICE ISOLATION: Check if vendor belongs to current mode
+      // This ensures Medical never shows Grocery, and vice versa.
+      const vendorServiceType = (vendor.category || 'Food').toLowerCase().trim();
+      if (vendorServiceType !== modeLower) return false;
+
+      // 2. STRICT ZONE FILTERING
       const productZoneId = product.zoneId || vendor.zoneId;
       const productTown = (product.town || vendor.town || '').toLowerCase().trim();
 
@@ -86,14 +95,11 @@ export function PopularProducts({
         if (!matchesZoneId && !matchesTown) return false;
       }
 
-      // Mode Filtering
-      const vendorCat = (vendor.category || 'Food').toLowerCase().trim();
-      if (vendorCat !== modeLower) return false;
-
-      // Search & Category
+      // 3. Search & Category
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
+      
       const matchesCategory = category === 'all' || (product.category || '').toLowerCase().trim() === categoryLower;
       const isAvailable = product.isAvailable !== false;
       
@@ -129,7 +135,7 @@ export function PopularProducts({
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-1.5">
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
-            {searchQuery ? 'Results' : `⚡ ALL ${activeMode.toUpperCase()} ITEMS`}
+            {searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} CATALOG`}
           </h2>
         </div>
         
@@ -210,8 +216,8 @@ export function PopularProducts({
           })
         ) : (
           <div className="text-center py-24 opacity-30 flex flex-col items-center">
-            <Utensils className="h-16 w-16 mb-4" />
-            <p className="text-sm font-black uppercase tracking-[0.2em] italic">No Items in {activeCity || 'Area'}</p>
+            <Loader2 className="h-12 w-12 mb-4 animate-spin text-muted-foreground" />
+            <p className="text-sm font-black uppercase tracking-[0.2em] italic">Initializing {activeMode} Items...</p>
           </div>
         )}
       </div>

@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
+/**
+ * @fileOverview CategoryList with strict service isolation.
+ * Ensures Medical, Grocery, and Food categories never mix.
+ */
 export function CategoryList({ 
   activeCategory = 'all', 
   onCategoryChange,
@@ -27,10 +31,12 @@ export function CategoryList({
 
   const filteredCategories = useMemo(() => {
     if (!dbCategories) return [];
-    // Only show categories matching the current service mode
+    // STRICT ISOLATION: Only show categories matching the exact current service mode
     return dbCategories.filter(cat => {
-      const type = cat.serviceType || 'Food'; // Default existing to Food
-      return type === serviceMode;
+      // Normalizing types to handle legacy data if any
+      const catType = (cat.serviceType || 'Food').toLowerCase();
+      const targetType = serviceMode.toLowerCase();
+      return catType === targetType;
     });
   }, [dbCategories, serviceMode]);
 
@@ -40,7 +46,7 @@ export function CategoryList({
     <div className="py-4">
       <div className="flex items-center justify-between px-6 mb-5">
         <h2 className="text-2xl font-black italic tracking-tighter uppercase">
-          {serviceMode === 'Medical' ? 'Healthcare Categories' : 'Categories'}
+          {serviceMode === 'Medical' ? 'Healthcare Menu' : `${serviceMode} Categories`}
         </h2>
       </div>
       <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar">
