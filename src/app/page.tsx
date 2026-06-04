@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -10,6 +9,7 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import { OffersSection } from '@/components/home/OffersSection';
 import { TopTenProducts } from '@/components/home/TopTenProducts';
 import { BeautySalonSection } from '@/components/home/BeautySalonSection';
+import { MedicalCareSection } from '@/components/home/MedicalCareSection';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer } from 'lucide-react';
 
@@ -58,11 +58,16 @@ export default function ShopyKartApp() {
           </div>
         ) : (
           <>
-            {/* NEW SERVICES (SALON) SECTION AT TOP */}
+            {/* NEW SERVICES SECTIONS AT TOP */}
             {!searchQuery && activeCategory === 'all' && (
-              <ScrollReveal delay={50}>
-                <BeautySalonSection />
-              </ScrollReveal>
+              <div className="space-y-1">
+                <ScrollReveal delay={50}>
+                  <BeautySalonSection />
+                </ScrollReveal>
+                <ScrollReveal delay={100}>
+                  <MedicalCareSection />
+                </ScrollReveal>
+              </div>
             )}
 
             {/* BANNER (OFFER SLIDER) BELOW NEW SERVICES */}

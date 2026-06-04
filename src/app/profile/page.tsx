@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -28,7 +27,8 @@ import {
   ShieldCheck,
   ScrollText,
   XCircle,
-  Undo2
+  Undo2,
+  HeartPulse
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +85,7 @@ export default function ProfilePage() {
   ];
 
   const dashboardItems = [
+    { label: 'Join as Medical Store', icon: HeartPulse, path: '/vendor/register?type=Medical', description: 'Sell healthcare products & medicine', highlight: true },
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
   ];
@@ -294,10 +295,16 @@ export default function ProfilePage() {
             <button 
               key={item.label}
               onClick={() => handleAction(item)}
-              className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.98] transition-all duration-300"
+              className={cn(
+                "w-full rounded-2xl p-4 flex items-center justify-between border shadow-sm active:scale-[0.98] transition-all duration-300",
+                item.highlight ? "bg-teal-50 border-teal-100" : "bg-white border-primary/10"
+              )}
             >
               <div className="flex items-center space-x-4">
-                <div className="bg-primary/10 p-2.5 rounded-xl text-primary">
+                <div className={cn(
+                  "p-2.5 rounded-xl",
+                  item.highlight ? "bg-teal-100 text-teal-600" : "bg-primary/10 text-primary"
+                )}>
                   <item.icon className="h-5 w-5" />
                 </div>
                 <div className="text-left">
@@ -305,7 +312,7 @@ export default function ProfilePage() {
                   <span className="text-[10px] text-muted-foreground font-medium">{item.description}</span>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-primary" />
+              <ChevronRight className={cn("h-4 w-4", item.highlight ? "text-teal-400" : "text-primary")} />
             </button>
           ))}
         </div>

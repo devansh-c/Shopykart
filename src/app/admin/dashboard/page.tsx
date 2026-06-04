@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -25,7 +24,8 @@ import {
   Download,
   MapPin,
   FileText,
-  LifeBuoy
+  LifeBuoy,
+  HeartPulse
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,8 @@ const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'zones', label: 'Serving Zones', icon: MapPin },
   { id: 'customers', label: 'Customers', icon: Users },
-  { id: 'stores', label: 'Stores', icon: Store },
+  { id: 'stores', label: 'All Stores', icon: Store },
+  { id: 'medical', label: 'Medical Stores', icon: HeartPulse },
   { id: 'fleet', label: 'Delivery Fleet', icon: Truck },
   { id: 'payouts', label: 'Store Payouts', icon: CircleDollarSign },
   { id: 'categories', label: 'Categories', icon: Tag },
@@ -200,6 +201,9 @@ export default function AdminDashboard() {
         return <CustomerManagement />;
       case 'stores':
         return <StoreManagement />;
+      case 'medical':
+        // Filter StoreManagement for Medical only
+        return <StoreManagement categoryFilter="Medical" />;
       case 'fleet':
         return <FleetManagement />;
       case 'payouts':
@@ -215,7 +219,7 @@ export default function AdminDashboard() {
       case 'discounts':
         return <DiscountManagement />;
       case 'charges':
-        return <ChargeManagement />;
+        return <Receipt />;
       case 'ads':
         return <MonetizationManagement />;
       case 'notifications':

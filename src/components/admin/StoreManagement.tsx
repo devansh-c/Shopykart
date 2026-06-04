@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where } from 'firebase/firestore';
 import { 
   Store, 
   User, 
@@ -18,7 +17,8 @@ import {
   PowerOff,
   Fingerprint,
   Lock,
-  KeyRound
+  KeyRound,
+  HeartPulse
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
-export function StoreManagement() {
+export function StoreManagement({ categoryFilter }: { categoryFilter?: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,8 +41,12 @@ export function StoreManagement() {
   // Fetch Live Stores
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), orderBy('updatedAt', 'desc'));
-  }, [firestore]);
+    let baseQuery = collection(firestore, 'vendors');
+    if (categoryFilter) {
+      return query(baseQuery, where('category', '==', categoryFilter), orderBy('updatedAt', 'desc'));
+    }
+    return query(baseQuery, orderBy('updatedAt', 'desc'));
+  }, [firestore, categoryFilter]);
 
   const { data: vendors, loading } = useCollection<any>(vendorsQuery);
 
@@ -105,8 +109,8 @@ export function StoreManagement() {
     if (!firestore || !vendors || vendors.length === 0) return;
     
     const confirmMsg = online 
-      ? "Do you want to OPEN ALL stores in the network?" 
-      : "CRITICAL: Do you want to CLOSE ALL stores in the network immediately?";
+      ? "Do you want to OPEN ALL stores in the current list?" 
+      : "CRITICAL: Do you want to CLOSE ALL stores in the current list immediately?";
     
     if (!confirm(confirmMsg)) return;
 
@@ -121,7 +125,7 @@ export function StoreManagement() {
 
       await batch.commit();
       toast({ 
-        title: online ? "All Stores Opened" : "All Stores Closed", 
+        title: online ? "Stores Opened" : "Stores Closed", 
         description: `Successfully updated ${vendors.length} stores.`,
         variant: online ? "default" : "destructive"
       });
@@ -140,11 +144,11 @@ export function StoreManagement() {
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
              <div className="bg-primary/20 p-3 rounded-2xl border border-primary/20">
-                <Power className="h-6 w-6 text-primary" />
+                {categoryFilter === 'Medical' ? <HeartPulse className="h-6 w-6 text-primary" /> : <Power className="h-6 w-6 text-primary" />}
              </div>
              <div>
-                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">Master Network Control</h3>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Control all {vendors?.length || 0} stores with one click</p>
+                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">{categoryFilter ? `${categoryFilter} Network Control` : 'Master Network Control'}</h3>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Control all {vendors?.length || 0} stores in this section</p>
              </div>
           </div>
           
@@ -155,7 +159,7 @@ export function StoreManagement() {
               className="flex-1 md:flex-none h-12 rounded-xl bg-green-600 hover:bg-green-500 font-black uppercase italic text-[10px] tracking-widest"
              >
                {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-2" />}
-               OPEN ALL STORES
+               OPEN ALL
              </Button>
              <Button 
               disabled={isBulkUpdating}
@@ -163,7 +167,7 @@ export function StoreManagement() {
               className="flex-1 md:flex-none h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase italic text-[10px] tracking-widest"
              >
                {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-2" />}
-               CLOSE ALL STORES
+               CLOSE ALL
              </Button>
           </div>
         </div>
@@ -172,7 +176,9 @@ export function StoreManagement() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-4">
         <div>
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Store Directory</h2>
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">
+            {categoryFilter ? `${categoryFilter} Directory` : 'Store Directory'}
+          </h2>
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Monitor and Edit Live Vendors</p>
         </div>
         <div className="relative w-full md:w-72">
@@ -337,6 +343,7 @@ export function StoreManagement() {
                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
                                       <SelectItem value="Food">Food</SelectItem>
                                       <SelectItem value="Grocery">Grocery</SelectItem>
+                                      <SelectItem value="Medical">Medical</SelectItem>
                                    </SelectContent>
                                 </Select>
                              </div>
