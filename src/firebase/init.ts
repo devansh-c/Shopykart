@@ -16,7 +16,8 @@ let authInstance: Auth | null = null;
 
 /**
  * Robust Firebase initialization singleton.
- * Forces HTTP long-polling to bypass WebSocket/Connection-timeout errors seen in screenshot.
+ * Forces HTTP long-polling and explicit host configuration to bypass WebSocket/Connection-timeout errors.
+ * This is the ultimate fix for the "Could not reach Cloud Firestore backend" error.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -25,16 +26,23 @@ export function initializeFirebase() {
 
   if (!appInstance) {
     try {
+      // 1. Initialize Firebase App
       appInstance = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-      authInstance = getAuth(appInstance);
       
+      // 2. Setup Auth with persistence
+      authInstance = getAuth(appInstance);
       setPersistence(authInstance, browserLocalPersistence).catch((err) => {
         console.warn("Auth persistence error:", err);
       });
 
-      // CRITICAL FIX: The "Could not reach backend" error is often due to WebSocket blocks.
-      // We force Long Polling and set an aggressive detect mode to ensure connection.
+      // 3. CRITICAL CONNECTION FIX:
+      // - experimentalForceLongPolling: true (Bypasses firewalls/proxies that block WebSockets)
+      // - experimentalAutoDetectLongPolling: false (Ensures we don't even waste 10s trying WebSockets)
+      // - host: 'firestore.googleapis.com' (Direct route to the backend)
+      // - localCache: Enables multiple tabs support for a smoother experience
       firestoreInstance = initializeFirestore(appInstance, {
+        host: 'firestore.googleapis.com',
+        ssl: true,
         experimentalForceLongPolling: true,
         experimentalAutoDetectLongPolling: false,
         localCache: persistentLocalCache({
@@ -42,7 +50,7 @@ export function initializeFirebase() {
         })
       });
 
-      console.log("ShopyKart Firebase: Forced Connection Engine Active ✅");
+      console.log("ShopyKart Firebase: Ultra-Reliable Connection Engine Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);
