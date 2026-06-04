@@ -75,7 +75,6 @@ export default function CartPage() {
   const [customerPincode, setCustomerPincode] = useState('');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
   const [deliveryTip, setDeliveryTip] = useState(0);
@@ -399,6 +398,41 @@ export default function CartPage() {
           </div>
           <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center"><span className="text-lg font-black text-gray-700">Total Payable</span><span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span></div>
         </div>
+
+        {/* PAYMENT METHOD SELECTOR */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="h-5 w-5 text-purple-500" />
+            <h3 className="text-sm font-bold text-gray-800 uppercase">Payment Method</h3>
+          </div>
+          <RadioGroup 
+            value={paymentMethod} 
+            onValueChange={setPaymentMethod}
+            className="grid grid-cols-2 gap-4"
+          >
+            <div 
+              onClick={() => setPaymentMethod('online')}
+              className={cn(
+                "relative p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 text-center",
+                paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50"
+              )}
+            >
+              <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-400")} />
+              <span className={cn("text-[10px] font-black uppercase tracking-tight", paymentMethod === 'online' ? "text-primary" : "text-gray-500")}>Pay Online</span>
+            </div>
+            
+            <div 
+              onClick={() => setPaymentMethod('cash')}
+              className={cn(
+                "relative p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 text-center",
+                paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50"
+              )}
+            >
+              <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-400")} />
+              <span className={cn("text-[10px] font-black uppercase tracking-tight", paymentMethod === 'cash' ? "text-primary" : "text-gray-500")}>Cash On Delivery</span>
+            </div>
+          </RadioGroup>
+        </div>
       </div>
 
       {/* STICKY ACTION FOOTER WITH QUANTITY INFO */}
@@ -408,7 +442,7 @@ export default function CartPage() {
               <div className="flex items-center gap-1.5 mb-0.5">
                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalItems} {totalItems === 1 ? 'Item' : 'Items'}</span>
                  <div className="h-1 w-1 bg-gray-300 rounded-full" />
-                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none italic">{paymentMethod === 'online' ? '⚡ UPI' : '💵 CASH'}</span>
+                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none italic">{paymentMethod === 'online' ? '⚡ ONLINE' : '💵 CASH'}</span>
               </div>
               <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹{grandTotal.toFixed(2)}</div>
            </div>
