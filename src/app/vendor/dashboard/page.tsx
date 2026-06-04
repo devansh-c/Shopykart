@@ -1,7 +1,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -188,6 +188,9 @@ export default function VendorDashboard() {
       {/* NEW ORDER ALARM OVERLAY */}
       <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
         <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/30 p-8 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>URGENT: NEW ORDER ALARM</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col items-center gap-6 py-6">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />

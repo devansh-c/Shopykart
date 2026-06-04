@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Integrated Notification Engine with Audible Cloud Alerts.
- * Handles Real-time Order Sounds and Native Push Notifications for APK/Web.
+ * Enhanced to act as an "Emergency Alert" for vendors with high-priority sticky behavior.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -66,8 +66,8 @@ export function NotificationHandler() {
       audio.play().catch(() => console.log("Interaction required for audio"));
     } catch (e) {}
 
-    // 2. MODAL ALERT: Visual feedback for broadcasts
-    if (isBroadcast) {
+    // 2. MODAL ALERT: Disruptive visual feedback for orders/broadcasts
+    if (isBroadcast || isOrder) {
       setActiveAlert({ title, message: body });
       setIsAlertOpen(true);
     }
@@ -85,9 +85,10 @@ export function NotificationHandler() {
         icon: NOTIFY_ICON,
         badge: NOTIFY_ICON,
         tag: isOrder ? 'new-order' : 'shopykart-alert',
+        renotify: isOrder, // Buzzer will repeat if new order comes while old one exists
         requireInteraction: isOrder, // Keeps notification on screen until vendor reacts
         silent: false,
-        vibrate: [500, 200, 500, 200, 500] // Powerful vibration pattern
+        vibrate: [500, 200, 500, 200, 500, 200, 1000] // Extended vibration for orders
       };
 
       try {
@@ -184,14 +185,17 @@ export function NotificationHandler() {
     <>
       <Dialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white">
+           <DialogHeader className="sr-only">
+              <DialogTitle>{activeAlert?.title || 'System Alert'}</DialogTitle>
+           </DialogHeader>
            <div className="bg-primary h-2 w-full" />
            <div className="p-8 space-y-6 text-center">
               <div className="relative bg-primary/10 h-20 w-20 rounded-[2rem] flex items-center justify-center text-primary mx-auto border border-primary/20">
                  <Megaphone className="h-10 w-10 animate-bounce" />
               </div>
-              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-tight">
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-tight">
                 {activeAlert?.title}
-              </DialogTitle>
+              </h2>
               <div className="bg-muted/30 p-6 rounded-3xl border border-border/50">
                  <p className="text-base font-black italic text-gray-800 leading-relaxed">
                    "{activeAlert?.message}"
