@@ -2,17 +2,17 @@
 'use client';
 
 import { HeartPulse, Sparkles, ChevronRight, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Medical & Care compact card for grid layout.
+ * Updated to handle mode switching.
  */
-export function MedicalCareSection() {
+export function MedicalCareSection({ onClick }: { onClick?: () => void }) {
   return (
-    <Link 
-      href="/menu?category=medical"
-      className="relative block w-full group overflow-hidden rounded-[2rem] h-44 shadow-2xl shadow-blue-100/50 active:scale-[0.98] transition-all duration-300 border border-white/10"
+    <button 
+      onClick={onClick}
+      className="relative block w-full group overflow-hidden rounded-[2rem] h-44 shadow-2xl shadow-blue-100/50 active:scale-[0.98] transition-all duration-300 border border-white/10 text-left"
     >
       {/* Main Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0D9488] via-[#0891B2] to-[#0284C7] group-hover:scale-105 transition-transform duration-700" />
@@ -50,6 +50,6 @@ export function MedicalCareSection() {
 
       {/* Scanline Animation */}
       <div className="absolute top-0 left-0 w-full h-[1px] bg-white/10 blur-[0.5px] animate-pulse" />
-    </Link>
+    </button>
   );
 }

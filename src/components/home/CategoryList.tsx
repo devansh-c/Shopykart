@@ -1,11 +1,21 @@
+
 "use client"
 
+import { useMemo } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-export function CategoryList({ activeCategory = 'all', onCategoryChange }: { activeCategory?: string, onCategoryChange?: (id: string) => void }) {
+export function CategoryList({ 
+  activeCategory = 'all', 
+  onCategoryChange,
+  serviceMode = 'Food' 
+}: { 
+  activeCategory?: string, 
+  onCategoryChange?: (id: string) => void,
+  serviceMode?: string
+}) {
   const firestore = useFirestore();
 
   const categoriesQuery = useMemoFirebase(() => {
@@ -15,12 +25,23 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: { act
 
   const { data: dbCategories, loading } = useCollection<any>(categoriesQuery);
 
-  if (loading || !dbCategories || dbCategories.length === 0) return null;
+  const filteredCategories = useMemo(() => {
+    if (!dbCategories) return [];
+    // Only show categories matching the current service mode
+    return dbCategories.filter(cat => {
+      const type = cat.serviceType || 'Food'; // Default existing to Food
+      return type === serviceMode;
+    });
+  }, [dbCategories, serviceMode]);
+
+  if (loading || filteredCategories.length === 0) return null;
 
   return (
     <div className="py-4">
       <div className="flex items-center justify-between px-6 mb-5">
-        <h2 className="text-2xl font-black italic tracking-tighter uppercase">Categories</h2>
+        <h2 className="text-2xl font-black italic tracking-tighter uppercase">
+          {serviceMode === 'Medical' ? 'Healthcare Categories' : 'Categories'}
+        </h2>
       </div>
       <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar">
         <button 
@@ -38,7 +59,7 @@ export function CategoryList({ activeCategory = 'all', onCategoryChange }: { act
           </span>
         </button>
 
-        {dbCategories.map((cat) => {
+        {filteredCategories.map((cat) => {
           const catId = cat.name.toLowerCase();
           const isActive = activeCategory === catId;
 

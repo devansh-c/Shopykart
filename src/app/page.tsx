@@ -12,12 +12,18 @@ import { TopTenProducts } from '@/components/home/TopTenProducts';
 import { BeautySalonSection } from '@/components/home/BeautySalonSection';
 import { MedicalCareSection } from '@/components/home/MedicalCareSection';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { ShoppingBag, Rocket, Timer } from 'lucide-react';
+import { ShoppingBag, Rocket, Timer, HeartPulse, Stethoscope, ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const [activeMode, setActiveMode] = useState('Food'); // 'Food' or 'Grocery'
+  const [activeMode, setActiveMode] = useState('Food'); // 'Food', 'Grocery', or 'Medical'
+
+  const handleBackToFood = () => {
+    setActiveMode('Food');
+    setActiveCategory('all');
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
@@ -57,6 +63,46 @@ export default function ShopyKartApp() {
                 </div>
              </div>
           </div>
+        ) : activeMode === 'Medical' ? (
+          <div className="animate-in fade-in duration-700">
+            <div className="px-6 py-4 flex items-center gap-4">
+              <Button onClick={handleBackToFood} variant="ghost" size="icon" className="rounded-xl bg-white shadow-sm border">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800 flex items-center gap-2">
+                  <HeartPulse className="h-6 w-6 text-primary" />
+                  Medical Hub
+                </h2>
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">24/7 Pharmacy Network</p>
+              </div>
+            </div>
+
+            <ScrollReveal delay={100}>
+              <CategoryList 
+                activeCategory={activeCategory} 
+                onCategoryChange={setActiveCategory}
+                serviceMode="Medical"
+              />
+            </ScrollReveal>
+
+            <div className="px-1">
+              <PopularProducts 
+                searchQuery={searchQuery} 
+                category={activeCategory} 
+                activeMode="Medical"
+              />
+            </div>
+
+            {/* Empty state if nothing added yet */}
+            <div className="flex flex-col items-center justify-center py-20 px-10 text-center opacity-40">
+               <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Stethoscope className="h-10 w-10 text-muted-foreground" />
+               </div>
+               <h3 className="font-black italic uppercase text-sm">Initializing Medical Care</h3>
+               <p className="text-[9px] font-bold uppercase tracking-widest mt-1">Onboarding certified pharmacies in your area.</p>
+            </div>
+          </div>
         ) : (
           <>
             {/* NEW SERVICES GRID AT TOP */}
@@ -71,7 +117,7 @@ export default function ShopyKartApp() {
                     <BeautySalonSection />
                   </ScrollReveal>
                   <ScrollReveal delay={100}>
-                    <MedicalCareSection />
+                    <MedicalCareSection onClick={() => { setActiveMode('Medical'); setActiveCategory('all'); }} />
                   </ScrollReveal>
                 </div>
               </div>
@@ -105,7 +151,8 @@ export default function ShopyKartApp() {
             <ScrollReveal delay={350}>
               <CategoryList 
                 activeCategory={activeCategory} 
-                onCategoryChange={setActiveCategory} 
+                onCategoryChange={setActiveCategory}
+                serviceMode="Food"
               />
             </ScrollReveal>
 

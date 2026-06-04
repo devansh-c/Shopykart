@@ -1,16 +1,16 @@
+
 "use client"
 
 import { useState, useRef } from 'react';
-import { Plus, Trash2, Image as ImageIcon, Loader2, ImagePlus, Edit } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, Loader2, ImagePlus, Edit, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
 
 export function CategoryManagement() {
@@ -27,6 +27,7 @@ export function CategoryManagement() {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [name, setName] = useState('');
+  const [serviceType, setServiceType] = useState('Food');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -51,6 +52,7 @@ export function CategoryManagement() {
     setIsProcessing(true);
     const data = {
       name,
+      serviceType, // Add serviceType to category
       imageUrl: selectedImage,
       updatedAt: serverTimestamp(),
     };
@@ -62,7 +64,7 @@ export function CategoryManagement() {
         toast({ title: "Category Updated" });
       } else {
         await addDoc(collection(firestore, 'categories'), { ...data, createdAt: serverTimestamp() });
-        toast({ title: "Category Created" });
+        toast({ title: "Category Created", description: `Published in ${serviceType} section.` });
       }
       setIsAddOpen(false);
       resetForm();
@@ -75,6 +77,7 @@ export function CategoryManagement() {
 
   const resetForm = () => {
     setName('');
+    setServiceType('Food');
     setSelectedImage(null);
     setEditingId(null);
     setIsProcessing(false);
@@ -82,6 +85,7 @@ export function CategoryManagement() {
 
   const handleEdit = (cat: any) => {
     setName(cat.name);
+    setServiceType(cat.serviceType || 'Food');
     setSelectedImage(cat.imageUrl);
     setEditingId(cat.id);
     setIsAddOpen(true);
@@ -98,7 +102,10 @@ export function CategoryManagement() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black italic uppercase text-gray-800">Manage Categories</h2>
+        <div>
+          <h2 className="text-xl font-black italic uppercase text-gray-800">Master Categories</h2>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Organize Food, Grocery & Medical separately</p>
+        </div>
         <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="bg-[#1E293B] rounded-xl font-black uppercase text-[10px] tracking-widest"><Plus className="h-4 w-4 mr-2" /> NEW CATEGORY</Button>
@@ -107,15 +114,38 @@ export function CategoryManagement() {
             <DialogHeader className="p-6 pb-2">
                <DialogTitle className="font-black italic uppercase text-center text-xl">{editingId ? 'Edit Category' : 'Add Category'}</DialogTitle>
             </DialogHeader>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-5">
               <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 hover:border-primary/40 transition-all">
                 {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" alt="Preview" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo</span></div>}
               </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
               
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Category Name</label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Burgers, Pizza, Shakes" className="h-12 rounded-xl font-bold" />
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category Name</label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Tablets, Skin Care, Burgers" className="h-12 rounded-xl font-bold" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-primary ml-1">Assigned Service Section *</label>
+                  <Select value={serviceType} onValueChange={setServiceType}>
+                    <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-none font-bold">
+                      <SelectValue placeholder="Select Service" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="Food">Food Section</SelectItem>
+                      <SelectItem value="Grocery">Grocery Section</SelectItem>
+                      <SelectItem value="Medical">Medical & Care Section</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-2xl flex gap-3">
+                 <Info className="h-4 w-4 text-blue-600 shrink-0" />
+                 <p className="text-[9px] font-bold text-blue-800 uppercase leading-relaxed">
+                   Category sirf wahi dikhegi jahan aapne ise assign kiya hai.
+                 </p>
               </div>
 
               <Button onClick={handleSave} disabled={isProcessing} className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
@@ -133,6 +163,7 @@ export function CategoryManagement() {
               <img src={cat.imageUrl} className="h-full w-full object-cover" alt={cat.name} />
             </div>
             <span className="font-black text-[11px] uppercase tracking-tighter text-gray-800">{cat.name}</span>
+            <span className="text-[7px] font-black text-primary uppercase mt-1 bg-primary/5 px-2 py-0.5 rounded-full">{cat.serviceType || 'Food'}</span>
             
             <div className="absolute inset-0 bg-black/60 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
               <button onClick={() => handleEdit(cat)} className="bg-white p-2.5 rounded-xl text-blue-600 active:scale-90 transition-transform"><Edit className="h-4 w-4" /></button>
