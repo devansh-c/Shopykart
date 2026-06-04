@@ -1,6 +1,7 @@
 
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+// This script runs in the background even when the app is closed.
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
 // ShopyKart Firebase Config
 firebase.initializeApp({
@@ -14,15 +15,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background Message Handler
+// Handle Background Messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
-  const notificationTitle = payload.notification.title || 'ShopyKart Notification';
+  console.log('[firebase-messaging-sw.js] Background Message received: ', payload);
+
+  const notificationTitle = payload.notification.title || 'New Order Arrived! 🚨';
   const notificationOptions = {
-    body: payload.notification.body || 'You have a new update.',
-    icon: 'https://picsum.photos/seed/shopykart-eats/200/200',
-    badge: 'https://picsum.photos/seed/shopykart-eats/200/200',
+    body: payload.notification.body || 'You have a new order on ShopyKart.',
+    icon: '/icon.png', // Ensure this exists in your public folder
+    badge: '/icon.png',
+    tag: 'shopykart-order',
+    renotify: true,
+    requireInteraction: true,
+    vibrate: [500, 200, 500, 200, 500, 200, 1000],
     data: payload.data
   };
 
