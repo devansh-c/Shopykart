@@ -59,14 +59,36 @@ export function NotificationHandler() {
       setIsAlertOpen(true);
     }
 
-    // 3. SYSTEM NOTIFICATION
+    // 3. SYSTEM NOTIFICATION (FIXED for mobile compatibility)
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body: body,
-        icon: '/icon.png',
-        tag: isOrder ? 'new-order' : 'status-update',
-        requireInteraction: true
-      });
+      // Use Service Worker registration to show notification (Required for mobile Chrome/WebView)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+            body: body,
+            icon: '/icon.png',
+            tag: isOrder ? 'new-order' : 'status-update',
+            requireInteraction: true,
+            vibrate: [200, 100, 200]
+          });
+        }).catch(err => {
+          console.warn("Service worker notification failed:", err);
+          // Last resort fallback with try-catch
+          try {
+            new Notification(title, { body });
+          } catch (e) {}
+        });
+      } else {
+        // Fallback for environments without service worker
+        try {
+          new Notification(title, {
+            body: body,
+            icon: '/icon.png',
+            tag: isOrder ? 'new-order' : 'status-update',
+            requireInteraction: true
+          });
+        } catch (e) {}
+      }
     }
     
     toast({ title: title.toUpperCase(), description: body });
