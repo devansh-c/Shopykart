@@ -250,7 +250,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-44">
+    <div className="min-h-screen bg-[#F8F9FA] pb-60">
       <OrderSuccessOverlay isVisible={showSuccess} />
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
@@ -399,7 +399,6 @@ export default function CartPage() {
           <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center"><span className="text-lg font-black text-gray-700">Total Payable</span><span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span></div>
         </div>
 
-        {/* PAYMENT METHOD SELECTOR - CLEARLY BELOW BILL DETAILS */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard className="h-5 w-5 text-purple-500" />
@@ -435,8 +434,8 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* STICKY ACTION FOOTER WITH QUANTITY INFO ON LEFT, BUTTON ON RIGHT */}
-      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      {/* STICKY ACTION FOOTER - HIGHER Z-INDEX TO BE ABOVE EVERYTHING */}
+      <div className="fixed bottom-0 left-0 right-0 z-[20000] bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-15px_50px_rgba(0,0,0,0.15)]">
         <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
            <div className="flex flex-col">
               <div className="flex items-center gap-1.5 mb-0.5">

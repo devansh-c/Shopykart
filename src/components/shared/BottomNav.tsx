@@ -16,16 +16,17 @@ const navItems = [
 
 /**
  * @fileOverview Bulletproof Bottom Navigation.
- * Prefetch disabled to ensure clicks work even on unstable connections.
+ * Hidden on Cart page to prevent overlapping with the Checkout button.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const { totalItems } = useCart();
 
-  // Hide on Admin/Vendor/Delivery panels
+  // Hide on Admin/Vendor/Delivery panels and Cart page
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
-                         pathname?.startsWith('/delivery');
+                         pathname?.startsWith('/delivery') ||
+                         pathname === '/cart';
   
   if (isExcludedPath) return null;
 
@@ -40,7 +41,7 @@ export function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              prefetch={false} // CRITICAL: Disable prefetch to prevent navigation stalls on weak networks
+              prefetch={false}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-90 relative touch-manipulation outline-none",
                 isActive ? "text-primary" : "text-gray-400"
