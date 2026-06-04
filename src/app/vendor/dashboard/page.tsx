@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -87,14 +88,14 @@ export default function VendorDashboard() {
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
 
-  // LIVE ORDER ALARM LOGIC
+  // LIVE ORDER ALARM LOGIC - FORCE REAL TIME SYNC
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid), orderBy('createdAt', 'desc'));
   }, [firestore, user]);
   const { data: orders } = useCollection<any>(ordersQuery);
 
-  // ALARM ONLY FOR 'Placed' STATUS. Status change stops the alarm instantly.
+  // ALARM ONLY FOR 'Placed' STATUS.
   const pendingOrders = useMemo(() => orders?.filter(o => o.status === 'Placed') || [], [orders]);
 
   useEffect(() => {
@@ -104,7 +105,7 @@ export default function VendorDashboard() {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      audioRef.current.play().catch(() => console.log("Autoplay blocked"));
+      audioRef.current.play().catch(() => console.log("Sound play required interaction"));
     } else {
       setShowOrderAlarm(false);
       if (audioRef.current) {
@@ -172,15 +173,10 @@ export default function VendorDashboard() {
       await updateDoc(doc(firestore, 'orders', orderId), { 
         status, 
         updatedAt: serverTimestamp(),
-        // Trigger status-specific logic in NotificationHandler
         lastStatusUpdate: serverTimestamp() 
       });
       toast({ title: `Order ${status}` });
-      
-      // If we accepted the order, stop alarm UI
-      if (status === 'Accepted') {
-        setShowOrderAlarm(false);
-      }
+      if (status === 'Accepted') setShowOrderAlarm(false);
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
@@ -196,26 +192,35 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
-      {/* NEW ORDER ALARM OVERLAY - Persistent until 'Accepted' */}
+      {/* NEW ORDER ALARM OVERLAY - PERSISTENT REAL-TIME INTERFACE */}
       <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
-        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/30 p-8 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
+        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/40 p-10 shadow-[0_0_80px_rgba(239,68,68,0.4)] animate-in zoom-in duration-300">
           <DialogHeader className="sr-only">
             <DialogTitle>URGENT: NEW ORDER ALARM</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-6 py-6">
+          <div className="flex flex-col items-center gap-8">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-              <BellRing className="h-20 w-20 text-primary animate-bounce relative z-10" />
+              <div className="absolute inset-0 bg-primary/30 rounded-full animate-ping" />
+              <div className="relative bg-primary h-24 w-24 rounded-full flex items-center justify-center shadow-2xl">
+                 <BellRing className="h-12 w-12 text-white animate-bounce" />
+              </div>
             </div>
-            <h2 className="text-4xl font-black italic uppercase text-white leading-none tracking-tighter">NEW ORDER<br />ARRIVED!</h2>
-            <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Action required for #{pendingOrders[0]?.orderDisplayId || 'Order'}</p>
+            <div className="space-y-2">
+               <h2 className="text-4xl font-black italic uppercase text-white leading-none tracking-tighter">ORDER<br />PLACED!</h2>
+               <p className="text-gray-500 font-bold text-[10px] uppercase tracking-[0.3em]">Action required immediately</p>
+            </div>
+            
+            <div className="w-full bg-white/5 p-4 rounded-2xl border border-white/10 text-left">
+               <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-black text-primary uppercase">Order Details</span>
+                  <span className="text-white font-black italic">#{pendingOrders[0]?.orderDisplayId}</span>
+               </div>
+               <p className="text-white font-black text-lg">₹{pendingOrders[0]?.total?.toFixed(2)}</p>
+            </div>
+
             <Button 
-              onClick={() => { 
-                if (pendingOrders[0]) {
-                  updateOrderStatus(pendingOrders[0].id, 'Accepted');
-                }
-              }} 
-              className="w-full h-16 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl active:scale-95 transition-all"
+              onClick={() => { if (pendingOrders[0]) updateOrderStatus(pendingOrders[0].id, 'Accepted'); }} 
+              className="w-full h-18 py-8 bg-white text-black hover:bg-gray-100 rounded-3xl font-black italic text-xl shadow-2xl active:scale-95 transition-all"
             >
               ACCEPT NOW
             </Button>
@@ -266,7 +271,6 @@ export default function VendorDashboard() {
                    </div>
                    {orderFilter === 'NEW ORDERS' && (
                      <div className="flex gap-2">
-                        {/* SEQUENTIAL WORKFLOW BUTTONS */}
                         {o.status === 'Placed' && (
                           <Button onClick={() => updateOrderStatus(o.id, 'Accepted')} className="flex-1 bg-black h-12 rounded-2xl font-black uppercase text-xs shadow-xl">Accept Order</Button>
                         )}
@@ -277,7 +281,7 @@ export default function VendorDashboard() {
                           <Button onClick={() => updateOrderStatus(o.id, 'Ready for Pickup')} className="flex-1 bg-green-600 h-12 rounded-2xl font-black uppercase text-xs">Ready for Pickup</Button>
                         )}
                         {o.status === 'Ready for Pickup' && (
-                          <div className="flex-1 flex items-center justify-center bg-muted h-12 rounded-2xl font-black uppercase text-[10px] text-gray-400">Waiting for Delivery Partner</div>
+                          <div className="flex-1 flex items-center justify-center bg-muted h-12 rounded-2xl font-black uppercase text-[10px] text-gray-400">Waiting for Pickup</div>
                         )}
                         
                         {['Placed', 'Accepted'].includes(o.status) && (

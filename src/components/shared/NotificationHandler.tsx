@@ -22,7 +22,6 @@ export function NotificationHandler() {
   const [activeAlert, setActiveAlert] = useState<{ title: string, message: string, type?: string } | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   
-  const lastStatuses = useRef<Record<string, string>>({});
   const processedOrders = useRef<Set<string>>(new Set());
 
   // FCM Token Registration
@@ -31,100 +30,115 @@ export function NotificationHandler() {
       const registerFCM = async () => {
         const token = await requestPushToken();
         if (token) {
-          // Save token to user profile so backend can send push messages
           await setDoc(doc(firestore, 'users', user.uid), {
             fcmToken: token,
             lastTokenUpdate: serverTimestamp()
           }, { merge: true });
-          console.log("FCM Token registered for background alerts ✅");
+          console.log("FCM Token registered ✅");
         }
       };
       registerFCM();
     }
   }, [user, firestore]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
-      if (Notification.permission === 'default' && user) {
-        const timer = setTimeout(() => setShowPrompt(true), 5000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [user]);
-
   const triggerPush = (title: string, body: string, isOrder = false, type = 'general') => {
-    // 1. SOUND ALERT
+    // 1. LOUD SOUND
     try {
-      const isCritical = isOrder || type === 'delivery-task';
-      const soundUrl = isCritical 
-        ? 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' 
-        : 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3';
+      const soundUrl = isOrder ? 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3';
       const audio = new Audio(soundUrl);
       audio.volume = 1.0;
       audio.play().catch(() => {});
     } catch (e) {}
 
-    // 2. MODAL ALERT (Foreground)
+    // 2. MODAL ALERT for high priority
     if (isOrder || type === 'delivery-task') {
       setActiveAlert({ title, message: body, type });
       setIsAlertOpen(true);
     }
 
-    // 3. TOAST
-    toast({ title: title.toUpperCase(), description: body });
-
-    // 4. BROWSER/APK SYSTEM NOTIFICATION
+    // 3. SYSTEM NOTIFICATION
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      const options = {
+      new Notification(title, {
         body: body,
         icon: '/icon.png',
         tag: isOrder ? 'new-order' : 'status-update',
-        requireInteraction: true,
-        vibrate: [200, 100, 200]
-      };
-      new Notification(title, options);
+        requireInteraction: true
+      });
     }
+    
+    toast({ title: title.toUpperCase(), description: body });
   };
 
-  // Foreground Listeners (onSnapshot)
+  // REAL-TIME ORDER MONITORING
   useEffect(() => {
     if (!user || !firestore) return;
     
-    // Admin/Vendor Order Listener
+    // Listen for orders relevant to this user (Admin, Vendor, or Customer)
     const isAdmin = user.email === 'ceo@shopykart.co.in';
-    const ordersQuery = isAdmin 
-      ? query(collection(firestore, 'orders'), where('status', '==', 'Placed'))
-      : query(collection(firestore, 'orders'), where('userId', '==', user.uid));
+    
+    // Vendor or Admin New Order query
+    const ordersQuery = query(
+      collection(firestore, 'orders'), 
+      where('status', '==', 'Placed')
+    );
     
     const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         const data = change.doc.data();
         const id = change.doc.id;
 
-        if (change.type === 'added' && data.status === 'Placed' && isAdmin) {
-          if (!processedOrders.current.has(id)) {
+        if (change.type === 'added') {
+          // If I'm the designated vendor or admin
+          const isMyOrder = data.vendorId === user.uid || isAdmin;
+          
+          if (isMyOrder && !processedOrders.current.has(id)) {
             processedOrders.current.add(id);
-            triggerPush(`🚨 NEW ORDER ARRIVED!`, `Order of ₹${data.total} from ${data.customerName}`, true);
+            triggerPush(`🚨 NEW ORDER ARRIVED!`, `₹${data.total} order from ${data.customerName}`, true, 'vendor-order');
           }
         }
       });
     });
 
-    return () => unsubscribe();
+    // Customer Status Change Listener
+    const customerQuery = query(
+      collection(firestore, 'orders'),
+      where('userId', '==', user.uid),
+      orderBy('updatedAt', 'desc'),
+      limit(5)
+    );
+
+    const unsubscribeCustomer = onSnapshot(customerQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'modified') {
+          const data = change.doc.data();
+          const status = data.status;
+          if (status !== 'Placed') {
+            triggerPush(`Update: ${status}`, `Your order #${data.orderDisplayId} is now ${status}.`);
+          }
+        }
+      });
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeCustomer();
+    };
   }, [user, firestore]);
 
   const requestPermission = async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
-    setShowPrompt(false);
     const status = await Notification.requestPermission();
     setPermission(status);
+    setShowPrompt(false);
   };
 
   return (
     <>
       <Dialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-8 text-center bg-white shadow-2xl">
+           <DialogHeader className="sr-only">
+             <DialogTitle>Notification Alert</DialogTitle>
+           </DialogHeader>
            <div className="h-20 w-20 rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6">
               <Megaphone className="h-10 w-10 animate-bounce" />
            </div>
@@ -134,12 +148,12 @@ export function NotificationHandler() {
         </DialogContent>
       </Dialog>
 
-      {showPrompt && user && permission === 'default' && (
+      {showPrompt && user && (
         <div className="fixed top-20 left-4 right-4 z-[5000] animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="bg-primary/20 p-2 rounded-xl"><BellRing className="h-5 v-5 text-primary animate-ring" /></div>
-              <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-primary">Enable Alerts</span><span className="text-xs font-bold">Receive instant order rings.</span></div>
+              <div className="bg-primary/20 p-2 rounded-xl"><BellRing className="h-5 v-5 text-primary" /></div>
+              <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-primary">Enable Alerts</span><span className="text-xs font-bold">Never miss a new order.</span></div>
             </div>
             <Button onClick={requestPermission} className="bg-primary text-white rounded-xl h-10 px-6 font-black uppercase italic text-[10px] tracking-widest">ALLOW</Button>
           </div>
