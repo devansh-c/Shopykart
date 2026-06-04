@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -28,13 +27,17 @@ export function NotificationHandler() {
   useEffect(() => {
     if (user && firestore) {
       const registerFCM = async () => {
-        const token = await requestPushToken();
-        if (token) {
-          await setDoc(doc(firestore, 'users', user.uid), {
-            fcmToken: token,
-            lastTokenUpdate: serverTimestamp()
-          }, { merge: true });
-          console.log("FCM Token registered ✅");
+        try {
+          const token = await requestPushToken();
+          if (token) {
+            await setDoc(doc(firestore, 'users', user.uid), {
+              fcmToken: token,
+              lastTokenUpdate: serverTimestamp()
+            }, { merge: true });
+            console.log("FCM Identity Verified ✅");
+          }
+        } catch (e) {
+          console.warn("FCM skip: Registration not completed.");
         }
       };
       registerFCM();
