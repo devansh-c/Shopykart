@@ -1,7 +1,8 @@
+
 "use client"
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +20,10 @@ import {
   Loader2,
   LocateFixed,
   MapPin,
-  Fingerprint
+  Fingerprint,
+  HeartPulse,
+  User,
+  Lock
 } from 'lucide-react';
 import { useFirestore, useAuth, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -32,25 +36,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from '@/components/ui/textarea';
 import { compressImage } from '@/lib/image-utils';
 
-type Step = 'category' | 'store-info' | 'owner-info' | 'commission' | 'success';
+type Step = 'form' | 'commission' | 'success';
 
-export default function VendorRegistrationPage() {
+function RegistrationContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isMedicalFlow = searchParams.get('type') === 'Medical';
+  
   const { toast } = useToast();
   const firestore = useFirestore();
   const auth = useAuth();
   
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
-  const [step, setStep] = useState<Step>('category');
+  const [step, setStep] = useState<Step>('form');
   const [showPassword, setShowPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch zones for assignment
+  // Fetch zones for assignment (Required for visibility in app)
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'zones');
@@ -58,50 +61,32 @@ export default function VendorRegistrationPage() {
   const { data: zones } = useCollection<any>(zonesQuery);
   
   const [formData, setFormData] = useState({
-    category: '', 
     storeName: '',
-    storeId: '', // Unique Store ID system
-    logo: '',
-    cover: '',
-    zoneId: '', 
-    plusCode: '', 
-    addressLine: '', 
-    state: 'Uttar Pradesh', 
-    rating: '4.5', 
-    fssai: '', 
-    firstName: '',
-    lastName: '',
+    storeId: '', 
+    ownerName: '',
     phone: '',
-    email: '', 
+    zoneId: '', 
     password: '',
+    confirmPassword: '',
   });
 
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      const compressed = await compressImage(base64, type === 'cover' ? 800 : 400, type === 'cover' ? 400 : 400);
-      updateFormData(type, compressed);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const validateStep = () => {
-    if (step === 'category') return !!formData.category;
-    if (step === 'store-info') {
-      const hasNumber = /\d/.test(formData.storeId);
-      return !!formData.storeName && !!formData.storeId && hasNumber && !!formData.logo && !!formData.cover && !!formData.zoneId && !!formData.addressLine;
-    }
-    if (step === 'owner-info') {
-      return !!formData.firstName && !!formData.lastName && !!formData.phone && !!formData.password && formData.phone.length === 10;
-    }
-    return true;
+  const validateForm = () => {
+    const hasNumber = /\d/.test(formData.storeId);
+    return (
+      !!formData.storeName && 
+      !!formData.storeId && 
+      hasNumber && 
+      !!formData.ownerName && 
+      !!formData.phone && 
+      formData.phone.length === 10 &&
+      !!formData.password && 
+      formData.password === formData.confirmPassword &&
+      !!formData.zoneId
+    );
   };
 
   const handleSubmit = async () => {
@@ -119,10 +104,9 @@ export default function VendorRegistrationPage() {
         toast({ 
           variant: "destructive", 
           title: "ID Not Available", 
-          description: "This Store ID is taken. Please use a different combination." 
+          description: "This Store ID is taken. Use a different name + number combination." 
         });
         setIsProcessing(false);
-        setStep('store-info');
         return;
       }
 
@@ -139,22 +123,19 @@ export default function VendorRegistrationPage() {
         id: user.uid,
         storeId: cleanStoreId,
         storeName: formData.storeName,
-        category: formData.category,
-        imageUrl: formData.logo,
-        bannerUrl: formData.cover,
-        zoneId: formData.zoneId,
+        category: isMedicalFlow ? 'Medical' : 'Food', // Logic: default to Food if not Medical
         town: selectedZone?.name || 'Local',
-        address: formData.addressLine,
-        state: formData.state,
-        rating: parseFloat(formData.rating) || 4.5,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        zoneId: formData.zoneId,
+        firstName: formData.ownerName.split(' ')[0] || '',
+        lastName: formData.ownerName.split(' ').slice(1).join(' ') || '',
+        fullName: formData.ownerName,
         phone: formData.phone,
         email: virtualEmail,
-        password: formData.password, // SAVING PLAIN TEXT FOR ADMIN VISIBILITY
+        password: formData.password, 
         status: 'approved',
         isOnline: true,
         walletBalance: 0,
+        imageUrl: isMedicalFlow ? 'https://picsum.photos/seed/medical/400/400' : 'https://picsum.photos/seed/food/400/400',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -173,129 +154,159 @@ export default function VendorRegistrationPage() {
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
         <CardContent className="p-8">
-          {step === 'category' && (
+          {step === 'form' && (
             <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Business Type</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => updateFormData('category', 'Food')} className={cn("p-8 rounded-[2rem] border-2 flex flex-col items-center gap-4 transition-all active:scale-95", formData.category === 'Food' ? "border-primary bg-primary/5" : "border-border")}>
-                  <div className="bg-primary/10 p-4 rounded-2xl text-primary"><Utensils className="h-10 w-10" /></div>
-                  <span className="font-black uppercase italic text-xs">Food</span>
-                </button>
-                <button onClick={() => updateFormData('category', 'Grocery')} className={cn("p-8 rounded-[2rem] border-2 flex flex-col items-center gap-4 transition-all active:scale-95", formData.category === 'Grocery' ? "border-primary bg-primary/5" : "border-border")}>
-                  <div className="bg-primary/10 p-4 rounded-2xl text-primary"><ShoppingBag className="h-10 w-10" /></div>
-                  <span className="font-black uppercase italic text-xs">Grocery</span>
-                </button>
-              </div>
-              <Button disabled={!formData.category} onClick={() => setStep('store-info')} className="w-full h-14 rounded-2xl bg-primary font-black uppercase italic shadow-lg shadow-primary/20">NEXT</Button>
-            </div>
-          )}
-
-          {step === 'store-info' && (
-            <div className="space-y-4 max-h-[75vh] overflow-y-auto no-scrollbar pr-1">
-              <div className="flex items-center gap-2 mb-2 sticky top-0 bg-white z-10 py-1">
-                <button onClick={() => setStep('category')} className="p-2 bg-muted rounded-xl"><ChevronLeft className="h-4 w-4" /></button>
-                <h2 className="text-xl font-black italic uppercase">Store Info</h2>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Official Name</label>
-                <Input placeholder="e.g. Sharma Sweets" value={formData.storeName} onChange={(e) => updateFormData('storeName', e.target.value)} className="h-12 rounded-xl font-bold" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1"><Fingerprint className="h-2.5 w-2.5" /> Unique Store ID (Name + Number)</label>
-                <Input 
-                  placeholder="e.g. SharmaSweets709" 
-                  value={formData.storeId} 
-                  onChange={(e) => updateFormData('storeId', e.target.value.replace(/\s/g, ''))} 
-                  className="h-12 rounded-xl bg-primary/5 border-primary/20 font-black italic uppercase tracking-widest text-primary" 
-                />
-                <p className="text-[8px] font-bold text-gray-400 uppercase px-1">ID must contain at least one number (0-9).</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div onClick={() => logoInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                  {formData.logo ? <img src={formData.logo} className="h-full w-full object-cover" alt="Logo" /> : <><Camera className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Logo *</span></>}
+              <div className="text-center space-y-2">
+                <div className={cn(
+                  "mx-auto h-16 w-16 rounded-[1.5rem] flex items-center justify-center mb-2",
+                  isMedicalFlow ? "bg-teal-50 text-teal-600" : "bg-primary/5 text-primary"
+                )}>
+                  {isMedicalFlow ? <HeartPulse className="h-8 w-8" /> : <Utensils className="h-8 w-8" />}
                 </div>
-                <div onClick={() => coverInputRef.current?.click()} className="h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/30">
-                  {formData.cover ? <img src={formData.cover} className="h-full w-full object-cover" alt="Cover" /> : <><ImageIcon className="h-5 text-muted-foreground" /><span className="text-[8px] font-black uppercase mt-1">Banner *</span></>}
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+                  {isMedicalFlow ? 'Join as Medical Store' : 'Vendor Registration'}
+                </h2>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enter Business Credentials</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Name</label>
+                  <div className="relative">
+                    <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input 
+                      placeholder="e.g. City Pharmacy" 
+                      value={formData.storeName} 
+                      onChange={e => updateFormData('storeName', e.target.value)} 
+                      className="h-12 pl-12 rounded-xl font-bold bg-muted/20 border-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">
+                    <Fingerprint className="h-2.5 w-2.5" /> Unique Store ID (Name + Number)
+                  </label>
+                  <Input 
+                    placeholder="e.g. CityPharmacy709" 
+                    value={formData.storeId} 
+                    onChange={e => updateFormData('storeId', e.target.value.replace(/\s/g, ''))} 
+                    className="h-12 rounded-xl bg-primary/5 border-2 border-primary/10 font-black italic uppercase tracking-widest text-primary" 
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Owner Name</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input 
+                      placeholder="Owner Full Name" 
+                      value={formData.ownerName} 
+                      onChange={e => updateFormData('ownerName', e.target.value)} 
+                      className="h-12 pl-12 rounded-xl font-bold bg-muted/20 border-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Phone Number</label>
+                  <Input 
+                    type="tel"
+                    placeholder="10 Digit Number" 
+                    value={formData.phone} 
+                    onChange={e => updateFormData('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                    className="h-12 rounded-xl font-bold bg-muted/20 border-none" 
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Serving Zone</label>
+                  <Select value={formData.zoneId} onValueChange={(val) => updateFormData('zoneId', val)}>
+                     <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                        <SelectValue placeholder="Assign Serving Area" />
+                     </SelectTrigger>
+                     <SelectContent className="rounded-2xl">
+                        {zones?.map((zone: any) => (
+                          <SelectItem key={zone.id} value={zone.id}>{zone.name} ({zone.city})</SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Password</label>
+                    <Input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={formData.password} 
+                      onChange={e => updateFormData('password', e.target.value)} 
+                      className="h-12 rounded-xl bg-muted/20 border-none font-bold" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Confirm</label>
+                    <Input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={formData.confirmPassword} 
+                      onChange={e => updateFormData('confirmPassword', e.target.value)} 
+                      className="h-12 rounded-xl bg-muted/20 border-none font-bold" 
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Serving Zone *</label>
-                <Select value={formData.zoneId} onValueChange={(val) => updateFormData('zoneId', val)}>
-                   <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                      <SelectValue placeholder="Assign Serving Zone" />
-                   </SelectTrigger>
-                   <SelectContent className="rounded-2xl">
-                      {zones?.map((zone: any) => (
-                        <SelectItem key={zone.id} value={zone.id}>{zone.name} ({zone.city})</SelectItem>
-                      ))}
-                   </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Address Line</label>
-                 <Textarea 
-                  placeholder="Full Address Details..." 
-                  value={formData.addressLine} 
-                  onChange={(e) => updateFormData('addressLine', e.target.value)} 
-                  className="rounded-xl min-h-[80px]"
-                />
-              </div>
-
-              <Button disabled={!validateStep()} onClick={() => setStep('owner-info')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-lg shadow-primary/20">NEXT STEP</Button>
-            </div>
-          )}
-
-          {step === 'owner-info' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <button onClick={() => setStep('store-info')} className="p-2 bg-muted rounded-xl"><ChevronLeft className="h-4 w-4" /></button>
-                <h2 className="text-xl font-black italic uppercase">Owner Details</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="First Name *" value={formData.firstName} onChange={(e) => updateFormData('firstName', e.target.value)} className="h-12 rounded-xl" />
-                <Input placeholder="Last Name *" value={formData.lastName} onChange={(e) => updateFormData('lastName', e.target.value)} className="h-12 rounded-xl" />
-              </div>
-              <Input placeholder="Phone Number *" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className="h-12 rounded-xl" maxLength={10} />
-              
-              <div className="relative">
-                <Input placeholder="Login Password *" type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => updateFormData('password', e.target.value)} className="h-12 rounded-xl pr-10" />
-                <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-              </div>
-              <Button disabled={!validateStep()} onClick={() => setStep('commission')} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic mt-4 shadow-lg shadow-primary/20">REVIEW & SUBMIT</Button>
+              <Button 
+                disabled={!validateForm()} 
+                onClick={() => setStep('commission')} 
+                className="w-full h-16 rounded-2xl bg-black hover:bg-gray-900 text-white font-black uppercase italic shadow-xl transition-all"
+              >
+                NEXT STEP
+              </Button>
             </div>
           )}
 
           {step === 'commission' && (
-            <div className="space-y-6 text-center">
-              <div className="bg-primary/5 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-2">
+            <div className="space-y-8 text-center py-4">
+              <div className="bg-primary/5 h-20 w-20 rounded-full flex items-center justify-center mx-auto">
                 <ShieldCheck className="h-10 w-10 text-primary" />
               </div>
               
-              <div className="bg-black text-white p-10 rounded-[3rem] space-y-4 shadow-2xl relative overflow-hidden">
-                <div className="flex justify-center">
-                  <span className="bg-[#EF4444] text-white text-[10px] font-black px-5 py-2 rounded-full uppercase italic tracking-tighter">
-                    ₹5 COMMISSION
-                  </span>
+              <div className="space-y-4">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter">Agreement</h2>
+                <div className="bg-[#0B0B0B] text-white p-10 rounded-[3rem] space-y-4 shadow-2xl relative overflow-hidden">
+                  <div className="flex justify-center">
+                    <span className="bg-[#EF4444] text-white text-[10px] font-black px-5 py-2 rounded-full uppercase italic tracking-tighter">
+                      ₹5 COMMISSION
+                    </span>
+                  </div>
+                  <p className="text-base font-black leading-tight text-white uppercase italic tracking-tighter">
+                    PER SUCCESSFUL ORDER<br />CHARGED.
+                  </p>
+                  <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
                 </div>
-                <p className="text-base font-black leading-tight text-white uppercase italic tracking-tighter">
-                  PER SUCCESSFUL ORDER<br />CHARGED.
+                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-6">
+                  By submitting, you agree to pay ₹5 on every order processed through the ShopyKart network.
                 </p>
               </div>
 
-              <Button 
-                onClick={handleSubmit} 
-                disabled={isProcessing}
-                className="w-full h-16 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-3xl font-black uppercase italic text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
-              >
-                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "I AGREE & SUBMIT"}
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={isProcessing}
+                  className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                >
+                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "I AGREE & SUBMIT"}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setStep('form')}
+                  className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                >
+                  Back to form
+                </Button>
+              </div>
             </div>
           )}
 
@@ -307,15 +318,27 @@ export default function VendorRegistrationPage() {
                   <CheckCircle2 className="h-14 w-14 text-white" />
                 </div>
               </div>
-              <h2 className="text-2xl font-black italic uppercase text-blue-600">BUSINESS LIVE!</h2>
-              <p className="text-xs font-black text-muted-foreground uppercase px-4">Your Store ID is: <span className="text-black">{formData.storeId}</span>. Use this ID to login.</p>
-              <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black uppercase italic text-lg shadow-xl shadow-blue-200">LOGIN TO DASHBOARD</Button>
+              <h2 className="text-3xl font-black italic uppercase text-blue-600 leading-none">BUSINESS LIVE!</h2>
+              <div className="bg-muted/30 p-5 rounded-2xl border border-dashed border-muted-foreground/20">
+                <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Your Login ID:</p>
+                <span className="text-lg font-black text-black italic uppercase tracking-widest">{formData.storeId}</span>
+              </div>
+              <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-[2rem] bg-black text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all">
+                LOGIN TO DASHBOARD
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
-      <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} />
-      <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} />
     </div>
   );
 }
+
+export default function VendorRegistrationPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <RegistrationContent />
+    </Suspense>
+  );
+}
+
