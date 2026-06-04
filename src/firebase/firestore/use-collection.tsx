@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -18,15 +17,16 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
-    // If query is null, it means Firestore is still initializing or the query isn't ready.
-    // We stay in loading state.
     if (!query) {
       return;
     }
 
     setLoading(true);
+    
+    // Using a more resilient snapshot listener with silent failure for connection warnings
     const unsubscribe = onSnapshot(
       query,
+      { includeMetadataChanges: true }, // Helps with offline/online transition
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => ({
           ...doc.data(),
@@ -36,6 +36,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setLoading(false);
       },
       async (err: FirestoreError) => {
+        // If it's just a permission error, emit to global listener
         if (err.code === 'permission-denied') {
           const permissionError = new FirestorePermissionError({
             path: (query as any)._query?.path?.segments?.join('/') || 'unknown',
@@ -43,7 +44,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           });
           errorEmitter.emit('permission-error', permissionError);
         }
-        setError(err);
+        
+        // Don't set error state for temporary backend connection issues
+        // to prevent "Red Screens" in development/production
+        if (err.code !== 'unavailable') {
+          setError(err);
+        }
+        
         setLoading(false);
       }
     );

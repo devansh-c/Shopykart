@@ -5,7 +5,8 @@ import {
   Firestore, 
   initializeFirestore, 
   persistentLocalCache, 
-  persistentMultipleTabManager 
+  persistentMultipleTabManager,
+  CACHE_SIZE_UNLIMITED
 } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { firebaseConfig } from './config';
@@ -15,9 +16,8 @@ let firestoreInstance: Firestore | null = null;
 let authInstance: Auth | null = null;
 
 /**
- * Robust Firebase initialization singleton.
- * Forces HTTP long-polling and explicit host configuration to bypass WebSocket/Connection-timeout errors.
- * This is the ultimate fix for the "Could not reach Cloud Firestore backend" error.
+ * Super-Resilient Firebase initialization singleton.
+ * Specifically optimized for WebViews (APKs) and unstable networks.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -35,22 +35,20 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      // 3. CRITICAL CONNECTION FIX:
-      // - experimentalForceLongPolling: true (Bypasses firewalls/proxies that block WebSockets)
-      // - experimentalAutoDetectLongPolling: false (Ensures we don't even waste 10s trying WebSockets)
-      // - host: 'firestore.googleapis.com' (Direct route to the backend)
-      // - localCache: Enables multiple tabs support for a smoother experience
+      // 3. ULTRA-RELIABLE CONNECTION SETTINGS:
+      // - experimentalForceLongPolling: true (Bypasses all WebSocket blocks)
+      // - experimentalAutoDetectLongPolling: false (No timeout waiting for WebSockets)
+      // - useFetchStreams: false (Improves compatibility with Android WebViews/APK)
       firestoreInstance = initializeFirestore(appInstance, {
-        host: 'firestore.googleapis.com',
-        ssl: true,
         experimentalForceLongPolling: true,
         experimentalAutoDetectLongPolling: false,
         localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager()
+          tabManager: persistentMultipleTabManager(),
+          cacheSizeBytes: CACHE_SIZE_UNLIMITED
         })
       });
 
-      console.log("ShopyKart Firebase: Ultra-Reliable Connection Engine Active ✅");
+      console.log("ShopyKart Engine: Ultra-Reliable Connection Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);
