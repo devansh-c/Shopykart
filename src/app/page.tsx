@@ -74,7 +74,7 @@ export default function ShopyKartApp() {
                   <HeartPulse className="h-6 w-6 text-primary" />
                   Medical Hub
                 </h2>
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">24/7 Pharmacy Network</p>
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Premium Healthcare Marketplace</p>
               </div>
             </div>
 
@@ -86,6 +86,8 @@ export default function ShopyKartApp() {
               />
             </ScrollReveal>
 
+            {/* STORES SECTION HIDDEN IN MEDICAL AS REQUESTED */}
+            
             <div className="px-1">
               <PopularProducts 
                 searchQuery={searchQuery} 
@@ -93,19 +95,9 @@ export default function ShopyKartApp() {
                 activeMode="Medical"
               />
             </div>
-
-            {/* Empty state if nothing added yet */}
-            <div className="flex flex-col items-center justify-center py-20 px-10 text-center opacity-40">
-               <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Stethoscope className="h-10 w-10 text-muted-foreground" />
-               </div>
-               <h3 className="font-black italic uppercase text-sm">Initializing Medical Care</h3>
-               <p className="text-[9px] font-bold uppercase tracking-widest mt-1">Onboarding certified pharmacies in your area.</p>
-            </div>
           </div>
         ) : (
           <>
-            {/* NEW SERVICES GRID AT TOP */}
             {!searchQuery && activeCategory === 'all' && (
               <div className="px-4 py-4">
                 <div className="flex items-center justify-between mb-4 px-2">
@@ -123,7 +115,6 @@ export default function ShopyKartApp() {
               </div>
             )}
 
-            {/* BANNER (OFFER SLIDER) BELOW NEW SERVICES */}
             {!searchQuery && activeCategory === 'all' && (
               <ScrollReveal delay={150}>
                 <OfferSlider />

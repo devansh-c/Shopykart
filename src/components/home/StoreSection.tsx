@@ -57,6 +57,9 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     });
   }, [dbVendors, activeMode, activeZoneId, activeCity]);
 
+  // STORES HIDDEN IN MEDICAL MODE
+  if (activeMode === 'Medical') return null;
+
   if (loading && !dbVendors) {
     return (
       <div className="py-2 px-4 flex space-x-4 overflow-hidden">
