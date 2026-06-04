@@ -85,7 +85,7 @@ export default function ProfilePage() {
   ];
 
   const dashboardItems = [
-    { label: 'Join as Medical Store', icon: HeartPulse, path: '/vendor/register?type=Medical', description: 'Sell healthcare products & medicine', highlight: true },
+    { label: 'Join as Medical Store', icon: HeartPulse, path: '/vendor/login?type=Medical', description: 'Sell healthcare products & medicine', highlight: true },
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
   ];

@@ -1,18 +1,20 @@
-
 "use client"
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Store, Mail, Lock, ArrowRight, Loader2, Fingerprint } from 'lucide-react';
-import { useAuth, useFirestore } from '@/firebase';
+import { Store, Mail, Lock, ArrowRight, Loader2, Fingerprint, HeartPulse } from 'lucide-react';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
-export default function VendorLoginPage() {
+function LoginPageContent() {
+  const searchParams = useSearchParams();
+  const isMedical = searchParams.get('type') === 'Medical';
+  
   const [identifier, setIdentifier] = useState(''); // Store ID or Email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,21 @@ export default function VendorLoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user, loading: authLoading } = useUser();
+
+  // AUTO-REDIRECT IF ALREADY LOGGED IN AS VENDOR
+  useEffect(() => {
+    if (!authLoading && user && firestore) {
+      const checkProfile = async () => {
+        const vendorRef = doc(firestore, 'vendors', user.uid);
+        const vendorSnap = await getDoc(vendorRef);
+        if (vendorSnap.exists()) {
+          router.push('/vendor/dashboard');
+        }
+      };
+      checkProfile();
+    }
+  }, [user, authLoading, firestore, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +66,7 @@ export default function VendorLoginPage() {
         loginEmail = vendorData.email; // Virtual email found
       }
 
-      // 2. Standard Firebase Auth
+      // 2. Standard Firebase Auth (Local Persistence is set in init.ts)
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
@@ -84,10 +101,15 @@ export default function VendorLoginPage() {
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
         <CardHeader className="text-center pt-10">
-          <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4">
-            <Store className="h-8 w-8 text-primary" />
+          <div className={cn(
+            "mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4",
+            isMedical ? "bg-teal-50 text-teal-600" : "bg-primary/10 text-primary"
+          )}>
+            {isMedical ? <HeartPulse className="h-8 w-8" /> : <Store className="h-8 w-8" />}
           </div>
-          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">Vendor Access</CardTitle>
+          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">
+            {isMedical ? 'Medical Access' : 'Vendor Access'}
+          </CardTitle>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">ShopyKart Business Portal</p>
         </CardHeader>
         <CardContent className="px-8 pb-10">
@@ -122,7 +144,10 @@ export default function VendorLoginPage() {
             </div>
             <Button 
               type="submit" 
-              className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-all"
+              className={cn(
+                "w-full h-14 rounded-2xl font-black uppercase italic text-lg shadow-xl active:scale-[0.98] transition-all",
+                isMedical ? "bg-teal-600 hover:bg-teal-700 shadow-teal-100" : "bg-primary hover:bg-primary/90 shadow-primary/20"
+              )}
               disabled={loading}
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "ENTER DASHBOARD"}
@@ -130,22 +155,35 @@ export default function VendorLoginPage() {
             
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
-              <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-white px-2 text-muted-foreground">New here?</span></div>
+              <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-white px-2 text-muted-foreground">New Partner?</span></div>
             </div>
 
             <Button 
               type="button" 
               variant="outline"
-              className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black uppercase italic tracking-tighter hover:bg-primary/5"
-              onClick={() => router.push('/vendor/register')}
+              className={cn(
+                "w-full h-12 rounded-xl border-2 font-black uppercase italic tracking-tighter",
+                isMedical 
+                  ? "border-teal-100 text-teal-600 hover:bg-teal-50" 
+                  : "border-primary/20 text-primary hover:bg-primary/5"
+              )}
+              onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : '/vendor/register')}
               disabled={loading}
             >
-              JOIN AS VENDOR
+              {isMedical ? 'REGISTER AS MEDICAL STORE' : 'JOIN AS VENDOR'}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function VendorLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
