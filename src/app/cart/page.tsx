@@ -262,7 +262,7 @@ export default function CartPage() {
           <div className="flex items-center gap-2 mb-4">
              <ShoppingBasket className="h-5 w-5 text-gray-400" />
              <h2 className="text-sm font-bold text-gray-800">Your Order</h2>
-             <span className="ml-auto text-[10px] font-bold text-gray-400 uppercase">{totalItems} item</span>
+             <span className="ml-auto text-[10px] font-bold text-gray-400 uppercase">{totalItems} items</span>
           </div>
           <div className="space-y-4">
             {cart.map((item) => (
@@ -287,7 +287,7 @@ export default function CartPage() {
           </div>
         </div>
         {availableCoins > 0 && (
-          <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 flex items-center justify-between">
+          <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 items-center justify-between flex">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-amber-50/20 rounded-2xl flex items-center justify-center border border-amber-500/20"><Coins className="h-6 w-6 text-amber-500 fill-amber-500" /></div>
               <div><h3 className="text-sm font-black text-white italic uppercase">Redeem Coins</h3><p className="text-[9px] font-bold text-gray-400 uppercase">Balance: {availableCoins}</p></div>
@@ -315,7 +315,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* DELIVERY TIP SECTION */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
            <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
@@ -401,12 +400,36 @@ export default function CartPage() {
           <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center"><span className="text-lg font-black text-gray-700">Total Payable</span><span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span></div>
         </div>
       </div>
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 pb-safe shadow-2xl">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-6">
-           <div><div className="text-xl font-black text-gray-800 italic">₹{grandTotal.toFixed(2)}</div><span className="text-[8px] font-black uppercase text-gray-400">{paymentMethod === 'online' ? '⚡ UPI' : '💵 Cash'}</span></div>
-           <Button disabled={isPlacing} onClick={handleCheckout} className="h-14 px-10 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 text-white shadow-xl">{isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Place Order"}</Button>
+
+      {/* STICKY ACTION FOOTER WITH QUANTITY INFO */}
+      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
+           <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalItems} {totalItems === 1 ? 'Item' : 'Items'}</span>
+                 <div className="h-1 w-1 bg-gray-300 rounded-full" />
+                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none italic">{paymentMethod === 'online' ? '⚡ UPI' : '💵 CASH'}</span>
+              </div>
+              <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹{grandTotal.toFixed(2)}</div>
+           </div>
+           
+           <Button 
+            disabled={isPlacing} 
+            onClick={handleCheckout} 
+            className="flex-1 h-14 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 text-white shadow-xl active:scale-[0.98] transition-all group"
+           >
+              {isPlacing ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <span>PLACE ORDER</span>
+                  <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              )}
+           </Button>
         </div>
       </div>
+      
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl"><DialogHeader className="sr-only"><DialogTitle>Select Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => validateAndSetCoords(lat, lng)} /></DialogContent></Dialog>
     </div>
   );
