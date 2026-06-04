@@ -24,7 +24,8 @@ import {
   Store,
   XCircle,
   X,
-  Loader2
+  Loader2,
+  ListPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -87,7 +88,7 @@ export default function VendorDashboard() {
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
 
-  // LIVE ORDER ALARM LOGIC - REMOVED ORDERBY TO PREVENT INDEX ERROR
+  // LIVE ORDER ALARM LOGIC
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
@@ -95,7 +96,6 @@ export default function VendorDashboard() {
   
   const { data: rawOrders } = useCollection<any>(ordersQuery);
 
-  // Client-side sorting by date to avoid composite index requirements
   const orders = useMemo(() => {
     if (!rawOrders) return [];
     return [...rawOrders].sort((a, b) => {
@@ -105,7 +105,6 @@ export default function VendorDashboard() {
     });
   }, [rawOrders]);
 
-  // ALARM ONLY FOR 'Placed' STATUS.
   const pendingOrders = useMemo(() => orders?.filter(o => o.status === 'Placed') || [], [orders]);
 
   useEffect(() => {
@@ -115,7 +114,7 @@ export default function VendorDashboard() {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.loop = true;
       }
-      audioRef.current.play().catch(() => console.log("Sound play required interaction"));
+      audioRef.current.play().catch(() => console.log("Sound play interaction needed"));
     } else {
       setShowOrderAlarm(false);
       if (audioRef.current) {
@@ -141,6 +140,29 @@ export default function VendorDashboard() {
   const resetForm = () => {
     setEditingId(null);
     setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
+  };
+
+  const handleAddOption = () => {
+    setNewProduct({
+      ...newProduct,
+      options: [...newProduct.options, { name: '', price: 0 }]
+    });
+  };
+
+  const handleRemoveOption = (index: number) => {
+    const updated = [...newProduct.options];
+    updated.splice(index, 1);
+    setNewProduct({ ...newProduct, options: updated });
+  };
+
+  const handleUpdateOption = (index: number, field: 'name' | 'price', value: string) => {
+    const updated = [...newProduct.options];
+    if (field === 'price') {
+      updated[index].price = parseFloat(value) || 0;
+    } else {
+      updated[index].name = value;
+    }
+    setNewProduct({ ...newProduct, options: updated });
   };
 
   const handleAddProduct = async () => {
@@ -202,9 +224,9 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
-      {/* NEW ORDER ALARM OVERLAY - PERSISTENT REAL-TIME INTERFACE */}
+      {/* NEW ORDER ALARM OVERLAY */}
       <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
-        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/40 p-10 shadow-[0_0_80px_rgba(239,68,68,0.4)] animate-in zoom-in duration-300">
+        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/40 p-10 shadow-[0_0_80px_rgba(239,68,68,0.4)]">
           <DialogHeader className="sr-only">
             <DialogTitle>URGENT: NEW ORDER ALARM</DialogTitle>
           </DialogHeader>
@@ -309,7 +331,7 @@ export default function VendorDashboard() {
                  <h2 className="text-xl font-black italic uppercase">Dish Catalog</h2>
                  <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
                     <DialogTrigger asChild><Button className="bg-black rounded-xl h-10 font-black uppercase text-[9px] tracking-widest"><Plus className="mr-1 h-3.5 w-3.5" /> ADD ITEM</Button></DialogTrigger>
-                    <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar">
+                    <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[90vh] overflow-y-auto no-scrollbar">
                        <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Manage Dish</DialogTitle></DialogHeader>
                        <div className="space-y-4 pt-4">
                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed border-border rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
@@ -317,11 +339,44 @@ export default function VendorDashboard() {
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Input placeholder="Price (₹)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          <Input placeholder="Base Price (₹)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold" />
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
                              <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
+
+                          {/* VARIETIES / ADDONS SECTION */}
+                          <div className="space-y-3 pt-2">
+                             <div className="flex items-center justify-between px-1">
+                                <label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><ListPlus className="h-3 w-3" /> Varieties / Addons</label>
+                                <Button type="button" onClick={handleAddOption} variant="ghost" className="h-7 text-[8px] font-black uppercase border border-primary/20 text-primary rounded-lg">+ ADD VARIETY</Button>
+                             </div>
+                             
+                             <div className="space-y-2">
+                                {newProduct.options.map((opt, idx) => (
+                                  <div key={idx} className="flex gap-2 items-center animate-in slide-in-from-right-2 duration-300">
+                                    <Input 
+                                      placeholder="Name (e.g. Full)" 
+                                      value={opt.name} 
+                                      onChange={e => handleUpdateOption(idx, 'name', e.target.value)}
+                                      className="h-10 rounded-xl text-[10px] font-bold"
+                                    />
+                                    <Input 
+                                      type="number" 
+                                      placeholder="Price" 
+                                      value={opt.price} 
+                                      onChange={e => handleUpdateOption(idx, 'price', e.target.value)}
+                                      className="h-10 w-20 rounded-xl text-[10px] font-bold text-center"
+                                    />
+                                    <Button onClick={() => handleRemoveOption(idx)} variant="ghost" size="icon" className="h-10 w-10 text-red-400 bg-red-50 rounded-xl shrink-0"><X className="h-4 w-4" /></Button>
+                                  </div>
+                                ))}
+                                {newProduct.options.length === 0 && (
+                                  <p className="text-[8px] text-center text-gray-400 uppercase italic py-2">No varieties added yet</p>
+                                )}
+                             </div>
+                          </div>
+
                           <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-16 bg-primary rounded-[1.5rem] font-black uppercase italic shadow-xl shadow-primary/20">{isSubmitting ? 'Syncing...' : 'Publish Item'}</Button>
                        </div>
                     </DialogContent>
@@ -330,7 +385,7 @@ export default function VendorDashboard() {
               <div className="grid grid-cols-1 gap-3">
                  {products?.map(p => (
                    <div key={p.id} className="bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm">
-                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4><p className="text-primary font-black text-xs italic mt-0.5">₹{p.price}</p></div></div>
+                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4><p className="text-primary font-black text-xs italic mt-0.5">₹{p.price}</p>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
                       <div className="flex gap-2">
                         <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
                         <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
