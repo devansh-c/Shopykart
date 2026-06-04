@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef } from 'react';
@@ -87,7 +86,7 @@ export default function VendorRegistrationPage() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      const compressed = await compressImage(base64, type === 'cover' ? 1200 : 400, type === 'cover' ? 600 : 400);
+      const compressed = await compressImage(base64, type === 'cover' ? 800 : 400, type === 'cover' ? 400 : 400);
       updateFormData(type, compressed);
     };
     reader.readAsDataURL(file);

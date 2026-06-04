@@ -34,6 +34,7 @@ export function BannerManagement() {
   const { data: zones } = useCollection<any>(zonesQuery);
   
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [tag, setTag] = useState('');
@@ -45,8 +46,7 @@ export function BannerManagement() {
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      const compressed = await compressImage(base64, 1200, 600);
+      const compressed = await compressImage(reader.result as string, 800, 400);
       setSelectedImage(compressed);
     };
     reader.readAsDataURL(file);
@@ -54,20 +54,20 @@ export function BannerManagement() {
 
   const handleDelete = (id: string) => {
     if (!firestore) return;
-    const docRef = doc(firestore, 'banners', id);
-    deleteDoc(docRef).catch(async (e) => {
-      const err = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
-      errorEmitter.emit('permission-error', err);
-    });
-    toast({ title: "Banner Removed" });
+    if (confirm("Remove this banner?")) {
+       const docRef = doc(firestore, 'banners', id);
+       deleteDoc(docRef);
+       toast({ title: "Banner Removed" });
+    }
   };
 
-  const handleSave = () => {
-    if (!firestore || !title || !selectedImage || !selectedZoneId) {
+  const handleSave = async () => {
+    if (!firestore || !title || !selectedImage || !selectedZoneId || isProcessing) {
       toast({ variant: "destructive", title: "Incomplete", description: "Title, Image and Zone are required." });
       return;
     }
 
+    setIsProcessing(true);
     const zoneName = zones?.find(z => z.id === selectedZoneId)?.name || 'Local';
 
     const bannerData = {
@@ -80,16 +80,16 @@ export function BannerManagement() {
       createdAt: serverTimestamp(),
     };
 
-    addDoc(collection(firestore, 'banners'), bannerData)
-      .then(() => {
-        setIsAddOpen(false);
-        resetForm();
-        toast({ title: "Banner Added", description: `Published for ${zoneName}` });
-      })
-      .catch(async (e) => {
-        const err = new FirestorePermissionError({ path: 'banners', operation: 'create', requestResourceData: bannerData });
-        errorEmitter.emit('permission-error', err);
-      });
+    try {
+       await addDoc(collection(firestore, 'banners'), bannerData);
+       setIsAddOpen(false);
+       resetForm();
+       toast({ title: "Banner Added", description: `Published for ${zoneName}` });
+    } catch (e) {
+       toast({ variant: "destructive", title: "Upload Failed" });
+    } finally {
+       setIsProcessing(false);
+    }
   };
 
   const resetForm = () => {
@@ -98,24 +98,25 @@ export function BannerManagement() {
     setTag('');
     setSelectedZoneId('');
     setSelectedImage(null);
+    setIsProcessing(false);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black italic uppercase">Banners & Promotions</h2>
+        <h2 className="text-xl font-black italic uppercase text-gray-800">Banners & Promotions</h2>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 rounded-xl">
+            <Button className="bg-primary hover:bg-primary/90 rounded-xl font-black uppercase italic text-[10px] tracking-widest">
               <Plus className="h-4 w-4 mr-2" />
               New Banner
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md rounded-3xl">
-            <DialogHeader>
-              <DialogTitle className="font-black italic uppercase">Configure Promotion</DialogTitle>
+          <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle className="font-black italic uppercase text-center text-xl">Configure Promotion</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4">
+            <div className="p-6 space-y-4">
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
@@ -128,7 +129,7 @@ export function BannerManagement() {
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <ImageIcon className="h-8 w-8 text-primary/20" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Select Image</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Select Image (Wide)</span>
                   </div>
                 )}
               </div>
@@ -164,7 +165,9 @@ export function BannerManagement() {
                 <Input value={tag} onChange={e => setTag(e.target.value)} placeholder="Limited Time" className="h-12 rounded-xl font-bold" />
               </div>
 
-              <Button onClick={handleSave} className="w-full bg-primary font-black uppercase italic rounded-2xl h-16 shadow-xl shadow-primary/20">Publish Banner</Button>
+              <Button onClick={handleSave} disabled={isProcessing} className="w-full bg-primary font-black uppercase italic rounded-2xl h-16 shadow-xl shadow-primary/20 text-lg">
+                {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Publish Banner'}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -178,7 +181,7 @@ export function BannerManagement() {
                 <img src={banner.imageUrl} className="absolute inset-0 w-full h-full object-cover" alt="" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
                   <h3 className="text-white font-black text-2xl italic tracking-tighter leading-none">{banner.title}</h3>
-                  <p className="text-primary font-black text-[10px] uppercase tracking-widest mt-1">{banner.subtitle}</p>
+                  <p className="text-primary font-black text-sm italic tracking-tight mt-1">{banner.subtitle}</p>
                 </div>
                 <button 
                   onClick={() => handleDelete(banner.id)}

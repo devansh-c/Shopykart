@@ -74,7 +74,8 @@ export function MonetizationManagement() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      const compressed = await compressImage(base64, 1080, 1920);
+      // Optimized for mobile screen ads (approx 9:16)
+      const compressed = await compressImage(base64, 600, 1066);
       setFormData(prev => ({ ...prev, adImageUrl: compressed }));
       toast({ title: "Ad Image Loaded", description: "Save changes to make it live." });
     };
@@ -124,7 +125,7 @@ export function MonetizationManagement() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Ad Creative (9:16 Vertical)</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Ad Creative (Vertical Optimized)</label>
             <div 
               onClick={() => adInputRef.current?.click()}
               className="relative aspect-[9/16] w-full max-w-[240px] mx-auto border-2 border-dashed border-border rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-all group"
