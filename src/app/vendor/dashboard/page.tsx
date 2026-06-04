@@ -94,6 +94,7 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: orders } = useCollection<any>(ordersQuery);
 
+  // ALARM ONLY FOR 'Placed' STATUS. Status change stops the alarm instantly.
   const pendingOrders = useMemo(() => orders?.filter(o => o.status === 'Placed') || [], [orders]);
 
   useEffect(() => {
@@ -168,8 +169,18 @@ export default function VendorDashboard() {
   const updateOrderStatus = async (orderId: string, status: string) => {
     if (!firestore) return;
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), { status, updatedAt: serverTimestamp() });
-      toast({ title: "Status Updated" });
+      await updateDoc(doc(firestore, 'orders', orderId), { 
+        status, 
+        updatedAt: serverTimestamp(),
+        // Trigger status-specific logic in NotificationHandler
+        lastStatusUpdate: serverTimestamp() 
+      });
+      toast({ title: `Order ${status}` });
+      
+      // If we accepted the order, stop alarm UI
+      if (status === 'Accepted') {
+        setShowOrderAlarm(false);
+      }
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
@@ -185,7 +196,7 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative">
-      {/* NEW ORDER ALARM OVERLAY */}
+      {/* NEW ORDER ALARM OVERLAY - Persistent until 'Accepted' */}
       <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
         <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/30 p-8 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
           <DialogHeader className="sr-only">
@@ -197,9 +208,13 @@ export default function VendorDashboard() {
               <BellRing className="h-20 w-20 text-primary animate-bounce relative z-10" />
             </div>
             <h2 className="text-4xl font-black italic uppercase text-white leading-none tracking-tighter">NEW ORDER<br />ARRIVED!</h2>
-            <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Immediate action required for #{pendingOrders[0]?.orderDisplayId || 'Order'}</p>
+            <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Action required for #{pendingOrders[0]?.orderDisplayId || 'Order'}</p>
             <Button 
-              onClick={() => { setShowOrderAlarm(false); setActiveMainTab('orders'); setOrderFilter('NEW ORDERS'); }} 
+              onClick={() => { 
+                if (pendingOrders[0]) {
+                  updateOrderStatus(pendingOrders[0].id, 'Accepted');
+                }
+              }} 
               className="w-full h-16 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl active:scale-95 transition-all"
             >
               ACCEPT NOW
@@ -251,10 +266,23 @@ export default function VendorDashboard() {
                    </div>
                    {orderFilter === 'NEW ORDERS' && (
                      <div className="flex gap-2">
-                        {o.status === 'Placed' && <Button onClick={() => updateOrderStatus(o.id, 'Accepted')} className="flex-1 bg-black h-12 rounded-2xl font-black uppercase text-xs shadow-xl">Accept Order</Button>}
-                        {o.status === 'Accepted' && <Button onClick={() => updateOrderStatus(o.id, 'Preparing')} className="flex-1 bg-primary h-12 rounded-2xl font-black uppercase text-xs">Start Cooking</Button>}
-                        {o.status === 'Preparing' && <Button onClick={() => updateOrderStatus(o.id, 'Ready for Pickup')} className="flex-1 bg-green-600 h-12 rounded-2xl font-black uppercase text-xs">Ready</Button>}
-                        {['Placed', 'Accepted'].includes(o.status) && <Button variant="ghost" onClick={() => { if(confirm("Cancel?")) updateOrderStatus(o.id, 'Cancelled'); }} className="h-12 w-12 rounded-2xl bg-red-50 text-red-500"><XCircle className="h-5 w-5" /></Button>}
+                        {/* SEQUENTIAL WORKFLOW BUTTONS */}
+                        {o.status === 'Placed' && (
+                          <Button onClick={() => updateOrderStatus(o.id, 'Accepted')} className="flex-1 bg-black h-12 rounded-2xl font-black uppercase text-xs shadow-xl">Accept Order</Button>
+                        )}
+                        {o.status === 'Accepted' && (
+                          <Button onClick={() => updateOrderStatus(o.id, 'Preparing')} className="flex-1 bg-primary h-12 rounded-2xl font-black uppercase text-xs">Start Cooking</Button>
+                        )}
+                        {o.status === 'Preparing' && (
+                          <Button onClick={() => updateOrderStatus(o.id, 'Ready for Pickup')} className="flex-1 bg-green-600 h-12 rounded-2xl font-black uppercase text-xs">Ready for Pickup</Button>
+                        )}
+                        {o.status === 'Ready for Pickup' && (
+                          <div className="flex-1 flex items-center justify-center bg-muted h-12 rounded-2xl font-black uppercase text-[10px] text-gray-400">Waiting for Delivery Partner</div>
+                        )}
+                        
+                        {['Placed', 'Accepted'].includes(o.status) && (
+                          <Button variant="ghost" onClick={() => { if(confirm("Cancel?")) updateOrderStatus(o.id, 'Cancelled'); }} className="h-12 w-12 rounded-2xl bg-red-50 text-red-500"><XCircle className="h-5 w-5" /></Button>
+                        )}
                      </div>
                    )}
                 </div>
