@@ -32,7 +32,12 @@ function LoginPageContent() {
         const vendorRef = doc(firestore, 'vendors', user.uid);
         const vendorSnap = await getDoc(vendorRef);
         if (vendorSnap.exists()) {
-          router.push('/vendor/dashboard');
+          const data = vendorSnap.data();
+          if (data.category === 'Medical') {
+            router.push('/Medical/store');
+          } else {
+            router.push('/vendor/dashboard');
+          }
         }
       };
       checkProfile();
@@ -87,7 +92,13 @@ function LoginPageContent() {
       }
 
       toast({ title: "Welcome Back!", description: `Store: ${vendorSnap.data().storeName}` });
-      router.push('/vendor/dashboard');
+      
+      const vendorData = vendorSnap.data();
+      if (vendorData.category === 'Medical') {
+        router.push('/Medical/store');
+      } else {
+        router.push('/vendor/dashboard');
+      }
     } catch (err: any) {
       let msg = "Invalid credentials or network error.";
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
