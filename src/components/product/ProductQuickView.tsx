@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/components/cart/CartProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -104,7 +105,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
                         {product.isSilentPackaging && (
-                          <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded flex items-center gap-1 uppercase">
+                          <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded flex items-center gap-1 uppercase border-none">
                              <ShieldCheck className="h-2 w-2" /> Silent
                           </Badge>
                         )}
