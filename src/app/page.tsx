@@ -12,8 +12,9 @@ import { TopTenProducts } from '@/components/home/TopTenProducts';
 import { BeautySalonSection } from '@/components/home/BeautySalonSection';
 import { MedicalCareSection } from '@/components/home/MedicalCareSection';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { ShoppingBag, Rocket, Timer, HeartPulse, Stethoscope, ChevronLeft } from 'lucide-react';
+import { ShoppingBag, Rocket, Timer, HeartPulse, Stethoscope, ChevronLeft, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,14 +28,17 @@ export default function ShopyKartApp() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
-      <LocationHeader 
-        searchValue={searchQuery} 
-        onSearchChange={setSearchQuery} 
-        activeMode={activeMode}
-        onModeChange={setActiveMode}
-      />
+      {/* Hide main header in Medical mode for true Blinkit experience */}
+      {activeMode !== 'Medical' && (
+        <LocationHeader 
+          searchValue={searchQuery} 
+          onSearchChange={setSearchQuery} 
+          activeMode={activeMode}
+          onModeChange={setActiveMode}
+        />
+      )}
 
-      <main className="mt-2 space-y-2">
+      <main className={cn("space-y-2", activeMode === 'Medical' ? "mt-0" : "mt-2")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -65,30 +69,28 @@ export default function ShopyKartApp() {
           </div>
         ) : activeMode === 'Medical' ? (
           <div className="animate-in fade-in duration-700">
-            <div className="px-6 py-4 flex items-center gap-4">
-              <Button onClick={handleBackToFood} variant="ghost" size="icon" className="rounded-xl bg-white shadow-sm border">
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800 flex items-center gap-2">
-                  <HeartPulse className="h-6 w-6 text-primary" />
-                  Medical Hub
-                </h2>
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Premium Healthcare Marketplace</p>
-              </div>
+            {/* Minimal Sticky Header for Medical */}
+            <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleBackToFood}
+                    className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">Medical Hub</span>
+                    <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">20 Mins Delivery</span>
+                  </div>
+               </div>
+               <div className="h-9 w-9 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 border border-teal-100">
+                  <HeartPulse className="h-5 w-5" />
+               </div>
             </div>
 
-            <ScrollReveal delay={100}>
-              <CategoryList 
-                activeCategory={activeCategory} 
-                onCategoryChange={setActiveCategory}
-                serviceMode="Medical"
-              />
-            </ScrollReveal>
-
-            {/* STORES SECTION HIDDEN IN MEDICAL AS REQUESTED */}
+            {/* Redundant titles and category lists removed as requested */}
             
-            <div className="px-1">
+            <div className="px-0">
               <PopularProducts 
                 searchQuery={searchQuery} 
                 category={activeCategory} 
