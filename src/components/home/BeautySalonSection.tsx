@@ -42,7 +42,9 @@ export function BeautySalonSection() {
             Premium Grooming
           </p>
           <div className="mt-3 flex items-center justify-between">
-             <span className="text-[8px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full uppercase">Salon At Home</span>
+             <span className="text-[7px] font-black text-white bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full uppercase tracking-tighter border border-white/20 shadow-lg">
+                Book Makeups & Facials
+             </span>
              <ChevronRight className="h-4 w-4 text-white/60 group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
