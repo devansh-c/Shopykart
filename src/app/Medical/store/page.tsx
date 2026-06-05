@@ -26,7 +26,8 @@ import {
   X,
   Loader2,
   ListPlus,
-  HeartPulse
+  HeartPulse,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -68,6 +69,7 @@ export default function MedicalDashboard() {
 
   const [newProduct, setNewProduct] = useState({ 
     name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true,
+    isSilentPackaging: false,
     options: [] as { name: string; price: number }[]
   });
 
@@ -141,7 +143,7 @@ export default function MedicalDashboard() {
 
   const resetForm = () => {
     setEditingId(null);
-    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
+    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, isSilentPackaging: false, options: [] });
   };
 
   const handleAddOption = () => {
@@ -181,6 +183,7 @@ export default function MedicalDashboard() {
       description: newProduct.description,
       category: newProduct.category.toLowerCase().trim(),
       isVeg: newProduct.isVeg,
+      isSilentPackaging: newProduct.isSilentPackaging,
       isAvailable: true,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid,
@@ -347,6 +350,21 @@ export default function MedicalDashboard() {
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
 
+                          <div className="bg-teal-50 p-4 rounded-2xl border border-teal-100 flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-teal-600" />
+                                <div className="flex flex-col">
+                                   <span className="text-xs font-black uppercase tracking-tighter">Silent Packaging</span>
+                                   <span className="text-[8px] font-bold text-muted-foreground uppercase">Discreet delivery option</span>
+                                </div>
+                             </div>
+                             <Switch 
+                                checked={newProduct.isSilentPackaging} 
+                                onCheckedChange={(val) => setNewProduct({...newProduct, isSilentPackaging: val})} 
+                                className="data-[state=checked]:bg-teal-600"
+                             />
+                          </div>
+
                           <div className="space-y-3 pt-2">
                              <div className="flex items-center justify-between px-1">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><ListPlus className="h-3 w-3" /> Variants (e.g. 10 Tabs, 100ml)</label>
@@ -383,9 +401,19 @@ export default function MedicalDashboard() {
               <div className="grid grid-cols-1 gap-3">
                  {products?.map(p => (
                    <div key={p.id} className="bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm">
-                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4><p className="text-teal-600 font-black text-xs italic mt-0.5">₹{p.price}</p>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
+                      <div className="flex items-center gap-4">
+                        <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" />
+                        <div>
+                          <h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-teal-600 font-black text-xs italic">₹{p.price}</p>
+                            {p.isSilentPackaging && <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded">SILENT</Badge>}
+                          </div>
+                          {p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}
+                        </div>
+                      </div>
                       <div className="flex gap-2">
-                        <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
+                        <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, isSilentPackaging: !!p.isSilentPackaging, options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
                         <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                    </div>

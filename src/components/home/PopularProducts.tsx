@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star } from "lucide-react"
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock, ShieldCheck } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -64,6 +63,12 @@ export function PopularProducts({
     }
     return map;
   }, [vendors]);
+
+  // Stable random rating generator (4.0 to 5.0)
+  const getRating = (id: string) => {
+    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return (4 + (hash % 11) / 10).toFixed(1);
+  };
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
@@ -130,7 +135,7 @@ export function PopularProducts({
       <div className="flex items-center justify-between mb-8 px-2">
         <div className="flex items-center space-x-1.5">
           <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
-            {searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} CATALOG`}
+            {searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}
           </h2>
         </div>
         
@@ -148,7 +153,7 @@ export function PopularProducts({
       </div>
 
       <div className={cn(
-        "grid gap-6",
+        "grid gap-x-4 gap-y-8",
         isMedical ? "grid-cols-2" : "grid-cols-1"
       )}>
         {productsToDisplay.length > 0 ? (
@@ -159,62 +164,79 @@ export function PopularProducts({
             const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
             const liked = isInWishlist(product.id);
+            const rating = getRating(product.id);
 
-            // FLIPKART STYLE MEDICAL CARD
+            // BLINKIT STYLE MEDICAL CARD
             if (isMedical) {
               return (
                 <div key={product.id} className={cn(
-                  "bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 flex flex-col relative transition-all active:scale-[0.98]",
-                  isOffline && "opacity-60 grayscale-[0.5]"
+                  "flex flex-col relative transition-all group",
+                  isOffline && "opacity-60 grayscale-[0.4]"
                 )}>
-                  <div className="relative aspect-square w-full bg-gray-50 overflow-hidden group">
+                  <div className="relative aspect-square w-full rounded-[1.5rem] bg-white border border-gray-100 overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
                     <ProductQuickView product={product}>
-                      <button className="w-full h-full">
-                        <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
+                      <button className="w-full h-full p-2">
+                        <Image src={imageUrl} alt={product.name} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-700" unoptimized />
                       </button>
                     </ProductQuickView>
                     <button 
                       onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} 
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 shadow-md z-20 active:scale-75 transition-all"
+                      className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-white/90 shadow-sm z-20 active:scale-75 transition-all"
                     >
                       <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
                     </button>
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-white/90 px-1.5 py-0.5 rounded-lg shadow-sm border border-gray-50">
+                       <span className="text-[9px] font-black text-gray-800">{rating}</span>
+                       <Star className="h-2 w-2 fill-amber-400 text-amber-400" />
+                    </div>
                   </div>
 
-                  <div className="p-4 flex flex-col flex-1">
+                  <div className="mt-3 flex flex-col flex-1 px-1">
                     <ProductQuickView product={product}>
-                      <button className="text-left mb-2 flex-1">
-                        <h3 className="font-bold text-xs text-gray-800 line-clamp-2 uppercase tracking-tighter h-8 mb-1">{product.name}</h3>
-                        <div className="flex items-center gap-1 mb-2">
-                           <div className="flex items-center gap-0.5 bg-green-600 px-1 py-0.5 rounded text-[7px] text-white font-black">
-                              {product.rating || '4.2'} <Star className="h-1.5 w-1.5 fill-white" />
-                           </div>
-                           <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">({product.reviewsCount || '12'})</span>
-                        </div>
-                        <div className="flex items-baseline gap-1.5">
-                           <span className="text-sm font-black text-gray-900">₹{(product.price || 0).toFixed(0)}</span>
-                           <span className="text-[8px] font-bold text-gray-400 line-through">₹{(product.price * 1.2).toFixed(0)}</span>
-                           <span className="text-[8px] font-black text-green-600 uppercase">20% Off</span>
-                        </div>
+                      <button className="text-left flex flex-col gap-1 mb-3">
+                         <div className="flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5 text-green-600" />
+                            <span className="text-[8px] font-black text-green-600 uppercase tracking-tighter">15-20 MINS</span>
+                         </div>
+                         <h3 className="font-bold text-[11px] text-gray-800 line-clamp-2 leading-tight h-7">{product.name}</h3>
+                         <div className="flex flex-col gap-1 mt-1">
+                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{product.category}</span>
+                            {product.isSilentPackaging && (
+                              <div className="flex items-center gap-1 bg-black text-white w-fit px-1.5 py-0.5 rounded-md">
+                                 <ShieldCheck className="h-2 w-2" />
+                                 <span className="text-[6px] font-black uppercase tracking-widest">Silent Packaging</span>
+                              </div>
+                            )}
+                         </div>
                       </button>
                     </ProductQuickView>
 
-                    <div className="mt-auto pt-3">
-                       {quantity === 0 ? (
-                         <button 
-                          disabled={isOffline}
-                          onClick={() => addToCart({ ...product, imageUrl })}
-                          className="w-full h-9 bg-primary text-white rounded-xl font-black text-[9px] uppercase shadow-lg shadow-primary/10 active:scale-95 transition-all"
-                         >
-                           {isOffline ? 'OFFLINE' : 'ADD TO CART'}
-                         </button>
-                       ) : (
-                         <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg">
-                           <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
-                           <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-                           <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
-                         </div>
-                       )}
+                    <div className="mt-auto flex items-center justify-between gap-2">
+                       <div className="flex flex-col">
+                          <span className="text-[12px] font-black text-gray-900">₹{(product.price || 0)}</span>
+                          <span className="text-[8px] font-bold text-gray-400 line-through leading-none">₹{(product.price * 1.15).toFixed(0)}</span>
+                       </div>
+                       
+                       <div className="relative">
+                          {quantity === 0 ? (
+                            <button 
+                             disabled={isOffline}
+                             onClick={() => addToCart({ ...product, imageUrl })}
+                             className={cn(
+                               "px-5 py-1.5 bg-white border border-green-600 text-green-600 rounded-lg font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all hover:bg-green-50",
+                               isOffline && "border-gray-200 text-gray-300 opacity-50"
+                             )}
+                            >
+                              {isOffline ? 'OFF' : 'ADD'}
+                            </button>
+                          ) : (
+                            <div className="flex items-center bg-green-600 text-white rounded-lg shadow-sm h-8 px-1">
+                              <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center font-bold text-lg">-</button>
+                              <span className="w-5 text-center text-[10px] font-black">{quantity}</span>
+                              <button onClick={() => addToCart({ ...product, imageUrl })} className="w-6 h-full flex items-center justify-center font-bold text-lg">+</button>
+                            </div>
+                          )}
+                       </div>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -10,7 +9,8 @@ import {
   Minus, 
   CheckCircle2, 
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,11 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
     });
   };
 
+  const rating = useMemo(() => {
+    const hash = product.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+    return (4 + (hash % 11) / 10).toFixed(1);
+  }, [product.id]);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -96,12 +101,20 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                    <div>
                       <h3 className="font-black text-xl text-gray-900 leading-tight italic uppercase tracking-tighter line-clamp-2">{product.name}</h3>
-                      <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mt-1 italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
+                        {product.isSilentPackaging && (
+                          <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded flex items-center gap-1 uppercase">
+                             <ShieldCheck className="h-2 w-2" /> Silent
+                          </Badge>
+                        )}
+                      </div>
                       
                       <div className="flex items-center gap-1.5 mt-1.5">
                          <div className="flex items-center gap-0.5">
+                            <span className="text-[10px] font-black text-gray-800 mr-1">{rating}</span>
                             {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} className={cn("h-3 w-3", s <= (product.rating || 4) ? "fill-amber-400 text-amber-400" : "text-gray-200")} />
+                              <Star key={s} className={cn("h-3 w-3", s <= parseFloat(rating) ? "fill-amber-400 text-amber-400" : "text-gray-200")} />
                             ))}
                          </div>
                          <span className="text-[9px] font-bold text-gray-400 ml-0.5">({product.reviewsCount || '35'})</span>
@@ -171,7 +184,6 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
             )}
           </div>
 
-          {/* ACTION BAR: Higher Z-Index and clear padding to ensure visibility over BottomNav */}
           <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className="flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm">
