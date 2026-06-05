@@ -36,6 +36,7 @@ function LoginPageContent() {
         const vendorSnap = await getDoc(vendorRef);
         if (vendorSnap.exists()) {
           const data = vendorSnap.data();
+          localStorage.setItem('shopykart_session_active', 'true');
           if (data.category === 'Medical') {
             router.push('/Medical/store');
           } else if (data.category === 'Beauty') {
@@ -58,7 +59,6 @@ function LoginPageContent() {
     let loginEmail = input;
 
     try {
-      // 1. Logic: If not an email, it's a Store ID. Find its virtual email.
       if (!input.includes('@')) {
         const q = query(collection(firestore, 'vendors'), where('storeId', '==', input));
         const querySnapshot = await getDocs(q);
@@ -74,14 +74,12 @@ function LoginPageContent() {
         }
         
         const vendorData = querySnapshot.docs[0].data();
-        loginEmail = vendorData.email; // Virtual email found
+        loginEmail = vendorData.email; 
       }
 
-      // 2. Standard Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
-      // 3. Verify vendor document exists
       const vendorRef = doc(firestore, 'vendors', user.uid);
       const vendorSnap = await getDoc(vendorRef);
 
@@ -97,6 +95,7 @@ function LoginPageContent() {
       }
 
       const vendorData = vendorSnap.data();
+      localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!", description: `Store: ${vendorData.storeName}` });
       
       if (vendorData.category === 'Medical') {

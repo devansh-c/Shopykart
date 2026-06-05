@@ -20,7 +20,7 @@ import { ReactNode, useState, useEffect } from 'react';
 
 /**
  * @fileOverview AuthGuard with Ultra-Optimistic Session Support.
- * Fixed: Prevents any flicker by assuming user is logged in if local storage flag exists.
+ * Prevents flicker by showing content immediately if persistent flag exists.
  */
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useUser();
@@ -28,7 +28,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
   const [isSessionOptimistic, setIsSessionOptimistic] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Immediate check
+    // Immediate check for session flag
     const active = localStorage.getItem('shopykart_session_active') === 'true';
     setIsSessionOptimistic(active);
   }, []);
@@ -36,20 +36,23 @@ function AuthGuard({ children }: { children: ReactNode }) {
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery') ||
-                         pathname?.startsWith('/Medical');
+                         pathname?.startsWith('/Medical') ||
+                         pathname?.startsWith('/Beauty');
 
   if (isExcludedPath) return <>{children}</>;
 
-  // While initializing session state
+  // While initializing session state (Micro-second)
   if (isSessionOptimistic === null) return null;
 
-  // If Firebase is still loading, but we have a persistent flag, show content immediately
+  // IF Firebase is still loading
   if (loading) {
+    // If we have an optimistic flag, show children to avoid flicker
     if (isSessionOptimistic) return <>{children}</>;
+    // If no flag, return null (Splash will be visible anyway)
     return null; 
   }
 
-  // Final check: If loading is done and really no user, and no optimistic flag
+  // IF Firebase finished and confirmed NO USER
   if (!user && !isSessionOptimistic) {
     return <EmailAuth />;
   }
@@ -59,16 +62,27 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
 function AppContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { loading } = useUser();
+  const { loading, user } = useUser();
   
+  // Logic to determine if splash is done based on auth settled OR optimistic flag
+  const [isSettled, setIsSettled] = useState(false);
+  useEffect(() => {
+    const active = localStorage.getItem('shopykart_session_active') === 'true';
+    if (!loading || active) {
+      const timer = setTimeout(() => setIsSettled(true), 500); // Tiny buffer
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery') ||
-                         pathname?.startsWith('/Medical');
+                         pathname?.startsWith('/Medical') ||
+                         pathname?.startsWith('/Beauty');
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <SplashScreen isAppReady={!loading} />
+      <SplashScreen isAppReady={isSettled} />
       <AuthGuard>
         <div className="relative min-h-screen flex flex-col overflow-x-hidden">
           <main className="flex-1 pb-44">

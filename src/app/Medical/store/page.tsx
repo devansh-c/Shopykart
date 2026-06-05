@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -93,9 +94,16 @@ export default function MedicalDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
+  // RIGOROUS REDIRECT PROTECTION
   useEffect(() => {
-    if (!authLoading && (!user || (user && !profileLoading && !vendorProfile))) {
-      router.push('/vendor/login?type=Medical');
+    if (!authLoading && !profileLoading) {
+      if (!user) {
+        router.push('/vendor/login?type=Medical');
+      } else if (!vendorProfile) {
+        // Only redirect if Firebase confirms user exists but is NOT a vendor
+        console.warn("User authenticated but no vendor profile found.");
+        router.push('/vendor/login?type=Medical');
+      }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
 
@@ -312,7 +320,7 @@ export default function MedicalDashboard() {
          </div>
          <div className="flex items-center gap-2">
             <Switch checked={vendorProfile.isOnline !== false} onCheckedChange={toggleVendorStatus} className="scale-75 data-[state=checked]:bg-green-500" />
-            <Button variant="ghost" onClick={() => signOut(auth!)} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
+            <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
          </div>
       </header>
 
@@ -524,7 +532,7 @@ export default function MedicalDashboard() {
                     ))}
                  </div>
               </div>
-              <Button onClick={() => signOut(auth!)} className="w-full h-14 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl font-black uppercase italic text-xs tracking-widest border-none">EXIT MEDICAL HUB</Button>
+              <Button onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="w-full h-14 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl font-black uppercase italic text-xs tracking-widest border-none">EXIT MEDICAL HUB</Button>
            </div>
          )}
       </main>
