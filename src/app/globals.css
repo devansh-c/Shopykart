@@ -31,6 +31,7 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation;
   }
   
   body {
@@ -41,24 +42,24 @@
     overflow-x: hidden;
   }
   
-  /* PERFORMANCE ENGINE: Content Visibility for long lists */
+  /* PERFORMANCE ENGINE: Content Visibility */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 500px;
   }
 
+  /* INSTANT INTERACTIONS */
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    transition: all 0.15s cubic-bezier(0.23, 1, 0.32, 1);
-    will-change: transform, opacity;
+    transition: transform 0.05s cubic-bezier(0, 0, 0.2, 1), opacity 0.05s linear !important;
+    will-change: transform;
     outline: none !important;
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.95);
-    opacity: 0.9;
-    transition-duration: 0.02s;
+    transform: scale(0.92);
+    opacity: 0.8;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -81,33 +82,10 @@
 
 .premium-card {
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
-  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.premium-card:active {
-  @apply scale-[0.98] border-primary/10 shadow-lg;
-}
-
-.page-enter {
-  animation: page-fade-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-@keyframes page-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  transition: all 0.1s ease-out;
 }
 
 nav.fixed {
   isolation: isolate;
   backface-visibility: hidden;
-}
-
-.transition-all {
-  transition-duration: 150ms !important;
 }
