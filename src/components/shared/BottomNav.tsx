@@ -16,16 +16,17 @@ const navItems = [
 
 /**
  * @fileOverview Bulletproof Bottom Navigation.
- * Hidden on Cart page to prevent overlapping with the Checkout button.
+ * Hidden on Cart page and Business portals to prevent overlapping.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const { totalItems } = useCart();
 
-  // Hide on Admin/Vendor/Delivery panels and Cart page
+  // Hide on Admin/Vendor/Delivery/Medical panels and Cart page
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery') ||
+                         pathname?.startsWith('/Medical') ||
                          pathname === '/cart';
   
   if (isExcludedPath) return null;

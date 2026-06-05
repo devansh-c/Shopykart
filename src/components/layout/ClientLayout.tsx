@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -24,7 +23,8 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
-                         pathname?.startsWith('/delivery');
+                         pathname?.startsWith('/delivery') ||
+                         pathname?.startsWith('/Medical');
 
   if (loading) return null;
 
@@ -41,7 +41,8 @@ function AppContent({ children }: { children: ReactNode }) {
   
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
-                         pathname?.startsWith('/delivery');
+                         pathname?.startsWith('/delivery') ||
+                         pathname?.startsWith('/Medical');
 
   return (
     <div className="relative min-h-screen flex flex-col">

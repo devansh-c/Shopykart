@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 /**
  * @fileOverview Optimized FloatingCart.
- * Positioned exactly above the 64px BottomNav with a small gap.
+ * Hidden on Business and Checkout portals.
  */
 export function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
@@ -25,7 +25,7 @@ export function FloatingCart() {
     if (totalItems === 0) setIsVisible(false);
   }, [totalItems]);
 
-  const isHiddenPage = ['/cart', '/admin', '/login', '/vendor', '/delivery'].some(path => pathname?.startsWith(path));
+  const isHiddenPage = ['/cart', '/admin', '/login', '/vendor', '/delivery', '/Medical'].some(path => pathname?.startsWith(path));
   
   if (isHiddenPage || totalItems === 0 || !isVisible) return null;
 
