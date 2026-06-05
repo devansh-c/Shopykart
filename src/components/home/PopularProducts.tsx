@@ -87,21 +87,9 @@ export function PopularProducts({
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // If vendor data is not yet loaded, we use the product's own category metadata
-      // This ensures products don't "disappear" during initial loading
-      const serviceType = (product.serviceMode || vendor?.category || 'Food').toLowerCase().trim();
-      if (serviceType !== modeLower && modeLower !== 'food') {
-         // Special handling for legacy food items or products without explicit mode
-         if (activeMode === 'Food' && (serviceType === 'food' || !serviceType)) {
-            // Keep it
-         } else if (product.category === 'beauty' && activeMode === 'Beauty') {
-            // Keep it
-         } else if (product.category === 'medical' && activeMode === 'Medical') {
-            // Keep it
-         } else {
-           return false;
-         }
-      }
+      // STRICT HUB SEPARATION: Verify product belongs to current hub
+      const productHub = (product.serviceMode || vendor?.category || 'Food').toLowerCase().trim();
+      if (productHub !== modeLower) return false;
 
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
@@ -110,7 +98,6 @@ export function PopularProducts({
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
         const matchesTown = targetCityNormalized && productTown === targetCityNormalized;
         
-        // Loosened filtering for prototyping: if no specific match, allow if no zone is set
         if (!matchesZoneId && !matchesTown && productZoneId) return false;
       }
 

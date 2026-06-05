@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -174,10 +175,12 @@ export default function VendorDashboard() {
     setIsSubmitting(true);
     const targetId = editingId || doc(collection(firestore, 'products')).id;
     const productData = {
+      id: targetId,
       name: newProduct.name.trim(),
       price: parseFloat(newProduct.price),
       description: newProduct.description,
       category: newProduct.category.toLowerCase().trim(),
+      serviceMode: 'Food', // Strict hub separation tag
       isVeg: newProduct.isVeg,
       isAvailable: true,
       options: newProduct.options.filter(o => o.name.trim() !== ''),

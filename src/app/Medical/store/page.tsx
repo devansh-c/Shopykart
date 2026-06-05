@@ -176,13 +176,13 @@ export default function MedicalDashboard() {
     
     const targetId = editingId || doc(collection(firestore, 'products')).id;
     
-    // ENSURE DATA PERSISTENCE WITH EXPLICIT FIELDS
     const productData = {
       id: targetId,
       name: newProduct.name.trim(),
       price: parseFloat(newProduct.price),
       description: newProduct.description || '',
       category: newProduct.category.toLowerCase().trim(),
+      serviceMode: 'Medical', // Strict hub separation tag
       isAvailable: true,
       isVeg: newProduct.isVeg,
       isSilentPackaging: newProduct.isSilentPackaging,
@@ -197,10 +197,7 @@ export default function MedicalDashboard() {
     };
 
     try {
-      // 1. SAVE PERMANENTLY TO GLOBAL COLLECTION (For Customers)
       await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
-      
-      // 2. SAVE TO VENDOR SUB-COLLECTION (For Dashboard Management)
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
       
       setIsAddOpen(false);

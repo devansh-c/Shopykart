@@ -174,13 +174,13 @@ export default function BeautyDashboard() {
     
     const targetId = editingId || doc(collection(firestore, 'products')).id;
     
-    // ENSURE DATA PERSISTENCE WITH EXPLICIT FIELDS
     const productData = {
       id: targetId,
       name: newProduct.name.trim(),
       price: parseFloat(newProduct.price),
       description: newProduct.description || '',
       category: newProduct.category.toLowerCase().trim(),
+      serviceMode: 'Beauty', // Strict hub separation tag
       isAvailable: true,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid,
@@ -193,10 +193,7 @@ export default function BeautyDashboard() {
     };
 
     try {
-      // 1. SAVE PERMANENTLY TO GLOBAL COLLECTION
       await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
-      
-      // 2. SAVE TO VENDOR SUB-COLLECTION
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
       
       setIsAddOpen(false);
