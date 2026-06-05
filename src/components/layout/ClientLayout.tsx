@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -18,16 +19,16 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect } from 'react';
 
 /**
- * @fileOverview AuthGuard with Optimistic Session Support.
- * Prevents the login screen from flickering if a session flag exists.
+ * @fileOverview AuthGuard with Ultra-Optimistic Session Support.
+ * Fixed: Prevents any flicker by assuming user is logged in if local storage flag exists.
  */
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
-  const [isSessionOptimistic, setIsSessionOptimistic] = useState(false);
+  const [isSessionOptimistic, setIsSessionOptimistic] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check local storage instantly to prevent UI flash
+    // Immediate check
     const active = localStorage.getItem('shopykart_session_active') === 'true';
     setIsSessionOptimistic(active);
   }, []);
@@ -39,14 +40,17 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   if (isExcludedPath) return <>{children}</>;
 
-  // If Firebase is still loading, but we have a persistent flag, show content (No flicker)
+  // While initializing session state
+  if (isSessionOptimistic === null) return null;
+
+  // If Firebase is still loading, but we have a persistent flag, show content immediately
   if (loading) {
     if (isSessionOptimistic) return <>{children}</>;
-    return null; // Let SplashScreen handle the coverage
+    return null; 
   }
 
-  // Final check: If loading is done and really no user
-  if (!user) {
+  // Final check: If loading is done and really no user, and no optimistic flag
+  if (!user && !isSessionOptimistic) {
     return <EmailAuth />;
   }
 

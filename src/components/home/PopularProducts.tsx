@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -18,6 +19,7 @@ import {
 
 /**
  * @fileOverview PopularProducts with optimized fetching and Hub isolation.
+ * Fixed: Removed strict where query to allow existing products to show up.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -46,16 +48,14 @@ export function PopularProducts({
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // Optimized fetch: Only fetch products for the active mode
+  // Optimized fetch: Fetch all relevant products and filter client-side for better resilience
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // We add a basic filter by serviceMode to reduce payload size significantly
     return query(
       collection(firestore, 'products'), 
-      where('serviceMode', '==', activeMode),
-      limit(200) // Safety limit for performance
+      limit(300) 
     );
-  }, [firestore, activeMode]);
+  }, [firestore]);
 
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
@@ -91,6 +91,11 @@ export function PopularProducts({
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
+      // HUB ISOLATION LOGIC
+      // If serviceMode is missing, it's a legacy product, default to 'Food'
+      const productMode = product.serviceMode || 'Food';
+      if (productMode !== activeMode) return false;
+
       const vendor = vendorMap.get(product.vendorId);
       
       const productZoneId = product.zoneId || vendor?.zoneId;
@@ -125,7 +130,7 @@ export function PopularProducts({
     });
 
     return result;
-  }, [searchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, activeZoneId, activeCity]);
+  }, [searchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
 
   if (loading && !dbProducts) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
