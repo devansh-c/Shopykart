@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -7,7 +6,7 @@ import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit, orderBy } from "firebase/firestore"
+import { collection, query, limit, orderBy, where } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import {
   Select,
@@ -17,6 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+/**
+ * @fileOverview PopularProducts with optimized fetching and Hub isolation.
+ */
 export function PopularProducts({ 
   searchQuery = '', 
   category = 'all',
@@ -36,27 +38,32 @@ export function PopularProducts({
 
   useEffect(() => {
     const updateZone = () => {
-      const zid = localStorage.getItem('active_zone_id');
-      const city = localStorage.getItem('user_city');
-      setActiveZoneId(zid);
-      setActiveCity(city);
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveCity(localStorage.getItem('user_city'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
+  // Optimized fetch: Only fetch products for the active mode
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // We add a basic filter by serviceMode to reduce payload size significantly
+    return query(
+      collection(firestore, 'products'), 
+      where('serviceMode', '==', activeMode),
+      limit(200) // Safety limit for performance
+    );
+  }, [firestore, activeMode]);
+
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
-
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'products'), orderBy('createdAt', 'desc'), limit(1000));
-  }, [firestore]);
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -81,16 +88,11 @@ export function PopularProducts({
     
     const searchLower = searchQuery.toLowerCase().trim();
     const categoryLower = (selectedCat === 'all' ? category : selectedCat).toLowerCase().trim();
-    const modeLower = activeMode.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // STRICT HUB SEPARATION: Verify product belongs to current hub
-      const productHub = (product.serviceMode || vendor?.category || 'Food').toLowerCase().trim();
-      if (productHub !== modeLower) return false;
-
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
@@ -106,9 +108,8 @@ export function PopularProducts({
         (product.category || '').toLowerCase().includes(searchLower);
       
       const matchesCategory = categoryLower === 'all' || (product.category || '').toLowerCase().trim() === categoryLower;
-      const isAvailable = product.isAvailable !== false;
       
-      return matchesSearch && matchesCategory && isAvailable;
+      return matchesSearch && matchesCategory;
     });
 
     result.sort((a, b) => {
@@ -117,13 +118,14 @@ export function PopularProducts({
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
+      
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
       return 0;
     });
 
     return result;
-  }, [searchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, vendors, activeMode, activeZoneId, activeCity]);
+  }, [searchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, activeZoneId, activeCity]);
 
   if (loading && !dbProducts) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
