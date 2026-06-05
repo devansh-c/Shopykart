@@ -178,7 +178,10 @@ export default function CartPage() {
     if (!firestore || isPlacing) return;
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 15) return;
 
+    // Trigger success UI and Sound instantly (optimistic)
+    setShowSuccess(true);
     setIsPlacing(true);
+
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const finalUid = user?.uid;
     if (!finalUid) return;
@@ -219,12 +222,15 @@ export default function CartPage() {
         coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
       }, { merge: true });
 
-      setShowSuccess(true);
+      // After 3 seconds (animation duration), clear cart and redirect
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
       }, 3000);
     } catch (err) {
+      console.error("Order creation failed:", err);
+      // If error occurs, hide success and reset placing state
+      setShowSuccess(false);
       setIsPlacing(false);
     }
   };
@@ -434,7 +440,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* STICKY ACTION FOOTER - HIGHER Z-INDEX TO BE ABOVE EVERYTHING */}
+      {/* STICKY ACTION FOOTER */}
       <div className="fixed bottom-0 left-0 right-0 z-[20000] bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-15px_50px_rgba(0,0,0,0.15)]">
         <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
            <div className="flex flex-col">
@@ -451,14 +457,10 @@ export default function CartPage() {
             onClick={handleCheckout} 
             className="flex-1 h-14 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 text-white shadow-xl active:scale-[0.98] transition-all group"
            >
-              {isPlacing ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <span>PLACE ORDER</span>
-                  <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              )}
+              <div className="flex items-center justify-center gap-2">
+                <span>PLACE ORDER</span>
+                <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </div>
            </Button>
         </div>
       </div>
