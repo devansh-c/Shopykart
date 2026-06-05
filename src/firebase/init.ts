@@ -17,7 +17,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Super-Resilient Firebase initialization singleton.
- * Specifically optimized for WebViews (APKs) and unstable networks.
+ * Optimized for 3G/4G/5G and WebViews (APKs).
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -26,27 +26,20 @@ export function initializeFirebase() {
 
   if (!appInstance) {
     try {
-      // 1. Initialize Firebase App
       appInstance = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
       
-      // 2. Setup Auth with persistence
       authInstance = getAuth(appInstance);
       setPersistence(authInstance, browserLocalPersistence).catch((err) => {
         console.warn("Auth persistence error:", err);
       });
 
-      // 3. Prevent Console Noise: Next.js Dev Red Screen usually intercepts console.error.
-      // Firebase logs connection timeouts as errors. We set it to silent for cleaner dev experience.
       setLogLevel('silent');
 
-      // 4. ULTRA-RELIABLE CONNECTION SETTINGS:
-      // - experimentalForceLongPolling: true (Bypasses all WebSocket blocks)
-      // - experimentalAutoDetectLongPolling: false (No timeout waiting for WebSockets)
-      // - useFetchStreams: false (Crucial for Android WebViews/APK stability)
+      // ULTRA-RELIABLE 3G/SLOW NETWORK SETTINGS
       firestoreInstance = initializeFirestore(appInstance, {
-        experimentalForceLongPolling: true,
-        experimentalAutoDetectLongPolling: false,
-        useFetchStreams: false, 
+        experimentalForceLongPolling: true, // Crucial for 3G/4G stability
+        experimentalAutoDetectLongPolling: false, 
+        useFetchStreams: false, // Better compatibility with older Android WebViews
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
           cacheSizeBytes: CACHE_SIZE_UNLIMITED

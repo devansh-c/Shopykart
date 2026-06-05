@@ -41,11 +41,15 @@
     overflow-x: hidden;
   }
   
-  /* Hyper-Responsive Motion Engine */
+  /* PERFORMANCE ENGINE: Content Visibility for long lists */
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 500px;
+  }
+
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    /* Reduced to 150ms for snappy feel */
     transition: all 0.15s cubic-bezier(0.23, 1, 0.32, 1);
     will-change: transform, opacity;
     outline: none !important;
@@ -54,7 +58,6 @@
   button:active, a:active, [role="button"]:active, .interactive:active {
     transform: scale(0.95);
     opacity: 0.9;
-    /* Instant feedback on touch */
     transition-duration: 0.02s;
   }
 
@@ -85,7 +88,6 @@
   @apply scale-[0.98] border-primary/10 shadow-lg;
 }
 
-/* Smooth Page Entrances */
 .page-enter {
   animation: page-fade-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
@@ -101,13 +103,11 @@
   }
 }
 
-/* Ensure fixed elements are always on top */
 nav.fixed {
   isolation: isolate;
   backface-visibility: hidden;
 }
 
-/* Global Transition Speed Overdrive */
 .transition-all {
   transition-duration: 150ms !important;
 }

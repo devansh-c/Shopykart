@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -18,8 +17,8 @@ import {
 } from "@/components/ui/select"
 
 /**
- * @fileOverview PopularProducts with optimized fetching and Hub isolation.
- * Displays MRP-based discounts and 10 MINS delivery for Medical/Beauty.
+ * @fileOverview PopularProducts with Content-Visibility and Performance Tuning.
+ * Optimized for 3G/Slow network response.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -48,6 +47,7 @@ export function PopularProducts({
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
+  // Limit query to 300 to prevent massive memory usage on weak devices
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -152,14 +152,14 @@ export function PopularProducts({
           {(activeMode === 'Medical' ? medicalCategories : dbCategories?.filter(c => c.serviceType === 'Beauty') || []).map((cat) => (
             <button key={cat.id} onClick={() => setSelectedCat(cat.name)} className={cn("flex flex-col items-center gap-1 group", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
               <div className={cn("relative h-14 w-14 rounded-full border-2 overflow-hidden transition-all", selectedCat === cat.name ? "border-green-600 ring-4 ring-green-50 scale-105" : "border-transparent bg-gray-50")}>
-                <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized />
+                <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized loading="lazy" />
               </div>
               <span className="text-[9px] font-black uppercase text-center leading-tight mt-1 px-1 line-clamp-2">{cat.name}</span>
             </button>
           ))}
         </aside>
 
-        <main className="flex-1 p-4 pb-40">
+        <main className="flex-1 p-4 pb-40 content-visibility-auto">
           <div className="flex items-center justify-between mb-6">
              <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode} Products` : selectedCat}</h2>
              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{productsToDisplay.length} Items</span>
@@ -185,7 +185,7 @@ export function PopularProducts({
                     </div>
                   )}
                   <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
-                    <button className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3"><Image src={imageUrl} alt={product.name} fill className="object-contain p-2" unoptimized /></button>
+                    <button className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3"><Image src={imageUrl} alt={product.name} fill className="object-contain p-2" unoptimized loading="lazy" /></button>
                   </ProductQuickView>
                   <div className="flex items-center gap-1 mb-2 bg-gray-50 w-fit px-1.5 py-0.5 rounded-md border border-gray-100"><Clock className="h-2.5 w-2.5 text-gray-800" /><span className="text-[8px] font-black text-gray-800 uppercase">10 MINS</span></div>
                   <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
@@ -240,7 +240,7 @@ export function PopularProducts({
                 </ProductQuickView>
               </div>
               <div className="relative w-28 h-28 shrink-0">
-                <ProductQuickView product={product} isMedical={false}><button className="relative w-full h-full rounded-2xl overflow-hidden bg-muted"><Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized /></button></ProductQuickView>
+                <ProductQuickView product={product} isMedical={false}><button className="relative w-full h-full rounded-2xl overflow-hidden bg-muted"><Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" /></button></ProductQuickView>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (<ProductQuickView product={product} isMedical={false}><button disabled={isOffline} className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl">{isOffline ? 'OFFLINE' : 'ADD TO BAG'}</button></ProductQuickView>) : (<div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg"><button onClick={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button><span className="text-xs font-black min-w-[20px] text-center">{quantity}</span><button onClick={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button></div>)}
                 </div>

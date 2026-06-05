@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, MapPin, Store } from "lucide-react"
@@ -58,7 +57,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   }, [dbVendors, activeMode, activeZoneId, activeCity]);
 
   // STORES HIDDEN IN MEDICAL MODE
-  if (activeMode === 'Medical') return null;
+  if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
   if (loading && !dbVendors) {
     return (
@@ -95,7 +94,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               )}
             >
               <div className="relative h-36 w-full bg-muted">
-                <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized />
+                <Image src={displayImage} alt={store.storeName} fill className="object-cover" unoptimized loading="lazy" />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                     <span className="text-white font-black text-xl uppercase italic tracking-tighter">Closed Now</span>
