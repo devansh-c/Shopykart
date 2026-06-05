@@ -1,12 +1,9 @@
-
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
-import { BottomNav } from '@/components/shared/BottomNav';
 import { Heart, Plus, ChevronLeft, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
@@ -43,7 +40,6 @@ export default function WishlistPage() {
         >
           EXPLORE MENU
         </button>
-        <BottomNav />
       </div>
     );
   }
@@ -96,8 +92,6 @@ export default function WishlistPage() {
           );
         })}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

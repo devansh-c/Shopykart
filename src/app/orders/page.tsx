@@ -1,7 +1,5 @@
-
 "use client"
 
-import { BottomNav } from '@/components/shared/BottomNav';
 import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -124,8 +122,6 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

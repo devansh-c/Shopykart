@@ -1,8 +1,6 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { BottomNav } from '@/components/shared/BottomNav';
 import { Search, MapPin, Store, Star, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -10,7 +8,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -166,8 +163,6 @@ export default function StoresPage() {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

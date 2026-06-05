@@ -1,7 +1,5 @@
-
 "use client"
 
-import { BottomNav } from '@/components/shared/BottomNav';
 import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift, IndianRupee } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
@@ -140,8 +138,6 @@ export default function RewardsPage() {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }

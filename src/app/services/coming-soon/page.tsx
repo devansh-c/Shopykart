@@ -1,11 +1,9 @@
-
 "use client"
 
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Rocket, BellRing, Sparkles, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { BottomNav } from '@/components/shared/BottomNav';
 
 export default function ServicesComingSoon() {
   const router = useRouter();
@@ -92,8 +90,6 @@ export default function ServicesComingSoon() {
            </div>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

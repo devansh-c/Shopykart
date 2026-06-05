@@ -1,6 +1,5 @@
 "use client"
 
-import { BottomNav } from '@/components/shared/BottomNav';
 import { 
   User, 
   MapPin, 
@@ -461,8 +460,6 @@ export default function ProfilePage() {
           <span className="text-sm font-bold">Sign Out</span>
         </button>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

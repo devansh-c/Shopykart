@@ -1,9 +1,7 @@
-
 'use client';
 
 import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BottomNav } from '@/components/shared/BottomNav';
 import { Search, Plus, Minus, SlidersHorizontal, X, Clock, MapPin, Utensils } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
@@ -270,8 +268,6 @@ function MenuContent() {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 }
@@ -283,4 +279,3 @@ export default function MenuPage() {
     </Suspense>
   );
 }
-
