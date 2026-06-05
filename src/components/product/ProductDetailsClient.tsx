@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -43,6 +42,10 @@ export default function ProductDetailsClient() {
   }, [firestore]);
   const { data: allDbProducts } = useCollection<any>(productsQuery);
 
+  const isMedical = useMemo(() => {
+    return product?.category?.toLowerCase().includes('medic') || product?.isSilentPackaging !== undefined;
+  }, [product]);
+
   const relatedProducts = useMemo(() => {
     if (!allDbProducts || !product || !productId) return [];
     return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
@@ -64,7 +67,8 @@ export default function ProductDetailsClient() {
       imageUrl, 
       quantity: localQuantity,
       selectedOption: selectedOption,
-      price: product.price + (selectedOption?.price || 0)
+      price: product.price + (selectedOption?.price || 0),
+      instructions: isMedical ? '' : instructions
     });
     
     toast({ title: "Added to Cart", description: `${product.name} ${selectedOption ? `(${selectedOption.name})` : ''} added successfully.` });
@@ -215,15 +219,29 @@ export default function ProductDetailsClient() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4 mb-8">
-            <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
-            <Textarea 
-              placeholder="E.g. no onions, extra sauce..." 
-              className="rounded-2xl bg-muted/30 border-muted h-24 focus-visible:ring-primary/20"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-            />
-          </div>
+          isMedical ? (
+            product.isSilentPackaging && (
+              <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 mb-8 animate-in fade-in zoom-in-95 duration-500">
+                <ShieldCheck className="h-10 w-10 text-teal-600" />
+                <div className="space-y-1">
+                  <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
+                  <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
+                    Your order will be delivered in discreet, unmarked packaging for your 100% privacy.
+                  </p>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="space-y-4 mb-8">
+              <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
+              <Textarea 
+                placeholder="E.g. no onions, extra sauce..." 
+                className="rounded-2xl bg-muted/30 border-muted h-24 focus-visible:ring-primary/20"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+              />
+            </div>
+          )
         )}
 
         <div className="space-y-6 mb-12 border-t pt-8">

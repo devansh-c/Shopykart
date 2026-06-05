@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -207,7 +206,7 @@ export function PopularProducts({
                   </div>
 
                   {/* PRODUCT IMAGE */}
-                  <ProductQuickView product={product}>
+                  <ProductQuickView product={product} isMedical={true}>
                     <button className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3">
                        <Image src={imageUrl} alt={product.name} fill className="object-contain p-2" unoptimized />
                     </button>
@@ -220,7 +219,7 @@ export function PopularProducts({
                   </div>
 
                   {/* TITLE & DETAILS */}
-                  <ProductQuickView product={product}>
+                  <ProductQuickView product={product} isMedical={true}>
                     <button className="text-left flex flex-col gap-0.5 mb-3 h-14">
                        <h3 className="font-bold text-[11px] text-gray-900 leading-tight line-clamp-2">{product.name}</h3>
                        <p className="text-[9px] font-medium text-gray-400">10 units</p>
@@ -312,7 +311,7 @@ export function PopularProducts({
                 <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2">
                   <div className="h-full w-full bg-green-600 rounded-full" />
                 </div>
-                <ProductQuickView product={product}>
+                <ProductQuickView product={product} isMedical={false}>
                   <button className={cn("block text-left w-full", isOffline && "pointer-events-none")}>
                     <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
                     <div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div>
@@ -322,7 +321,7 @@ export function PopularProducts({
               </div>
               
               <div className="relative w-28 h-28 shrink-0">
-                <ProductQuickView product={product}>
+                <ProductQuickView product={product} isMedical={false}>
                   <button className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                   </button>
@@ -330,7 +329,7 @@ export function PopularProducts({
                 
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (
-                    <ProductQuickView product={product}>
+                    <ProductQuickView product={product} isMedical={false}>
                       <button disabled={isOffline} className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl">
                         {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>

@@ -24,9 +24,10 @@ import Image from 'next/image';
 interface ProductQuickViewProps {
   product: any;
   children: React.ReactNode;
+  isMedical?: boolean;
 }
 
-export function ProductQuickView({ product, children }: ProductQuickViewProps) {
+export function ProductQuickView({ product, children, isMedical }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +51,7 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
       imageUrl, 
       quantity: localQuantity,
       selectedOption: selectedOption,
-      instructions: instructions,
+      instructions: isMedical ? '' : instructions,
       price: currentPrice
     });
     
@@ -170,18 +171,32 @@ export function ProductQuickView({ product, children }: ProductQuickViewProps) {
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                   <h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4>
+              isMedical ? (
+                product.isSilentPackaging && (
+                  <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 animate-in fade-in zoom-in-95 duration-500">
+                    <ShieldCheck className="h-10 w-10 text-teal-600" />
+                    <div className="space-y-1">
+                      <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
+                      <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
+                        Your order will be delivered in discreet, unmarked packaging for your 100% privacy.
+                      </p>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                     <Sparkles className="h-3.5 w-3.5 text-primary" />
+                     <h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4>
+                  </div>
+                  <Textarea 
+                    placeholder="E.g. Don't add onion, make it extra spicy..." 
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    className="rounded-[1.25rem] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 font-medium text-xs min-h-[100px] p-4"
+                  />
                 </div>
-                <Textarea 
-                  placeholder="E.g. Don't add onion, make it extra spicy..." 
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  className="rounded-[1.25rem] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 font-medium text-xs min-h-[100px] p-4"
-                />
-              </div>
+              )
             )}
           </div>
 
