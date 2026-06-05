@@ -40,6 +40,8 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    /* Prevent text selection during fast taps */
+    user-select: none;
   }
   
   /* PERFORMANCE ENGINE: Content Visibility */
@@ -55,6 +57,7 @@
     transition: none !important; /* No easing for navigation */
     will-change: transform;
     outline: none !important;
+    -webkit-appearance: none;
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {

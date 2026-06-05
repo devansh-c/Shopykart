@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useTransition } from 'react';
+import React from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -16,13 +16,12 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Optimized with PointerDown event for 0ms visual response.
+ * Optimized for absolute zero delay using direct routing and pointer events.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
-  const [isPending, startTransition] = useTransition();
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -33,11 +32,10 @@ export function BottomNav() {
   
   if (isExcludedPath) return null;
 
+  // Direct navigation on touch start for 0ms delay
   const handleNav = (href: string) => {
-    // Instant routing call
-    startTransition(() => {
-      router.push(href);
-    });
+    if (pathname === href) return;
+    router.push(href);
   };
 
   return (
@@ -52,9 +50,10 @@ export function BottomNav() {
               key={item.label}
               onPointerDown={() => handleNav(item.href)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-none active:scale-90 relative touch-manipulation outline-none border-none bg-transparent",
+                "flex flex-col items-center justify-center flex-1 h-full transition-none active:scale-90 relative touch-manipulation outline-none border-none bg-transparent cursor-pointer",
                 isActive ? "text-primary" : "text-gray-400"
               )}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <div className="relative pointer-events-none transition-none">
                 <Icon className={cn("h-5 w-5 mb-0.5 transition-none", isActive && "stroke-[3]")} />
