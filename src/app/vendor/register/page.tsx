@@ -23,7 +23,8 @@ import {
   Fingerprint,
   HeartPulse,
   User,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { useFirestore, useAuth, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -43,7 +44,9 @@ type Step = 'form' | 'commission' | 'success';
 function RegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isMedicalFlow = searchParams.get('type') === 'Medical';
+  const typeParam = searchParams.get('type');
+  const isMedicalFlow = typeParam === 'Medical';
+  const isBeautyFlow = typeParam === 'Beauty';
   
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -123,7 +126,7 @@ function RegistrationContent() {
         id: user.uid,
         storeId: cleanStoreId,
         storeName: formData.storeName,
-        category: isMedicalFlow ? 'Medical' : 'Food', // Logic: default to Food if not Medical
+        category: isMedicalFlow ? 'Medical' : isBeautyFlow ? 'Beauty' : 'Food', 
         town: selectedZone?.name || 'Local',
         zoneId: formData.zoneId,
         firstName: formData.ownerName.split(' ')[0] || '',
@@ -135,7 +138,7 @@ function RegistrationContent() {
         status: 'approved',
         isOnline: true,
         walletBalance: 0,
-        imageUrl: isMedicalFlow ? 'https://picsum.photos/seed/medical/400/400' : 'https://picsum.photos/seed/food/400/400',
+        imageUrl: isMedicalFlow ? 'https://picsum.photos/seed/medical/400/400' : isBeautyFlow ? 'https://picsum.photos/seed/beauty/400/400' : 'https://picsum.photos/seed/food/400/400',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -159,23 +162,23 @@ function RegistrationContent() {
               <div className="text-center space-y-2">
                 <div className={cn(
                   "mx-auto h-16 w-16 rounded-[1.5rem] flex items-center justify-center mb-2",
-                  isMedicalFlow ? "bg-teal-50 text-teal-600" : "bg-primary/5 text-primary"
+                  isMedicalFlow ? "bg-teal-50 text-teal-600" : isBeautyFlow ? "bg-rose-50 text-rose-600" : "bg-primary/5 text-primary"
                 )}>
-                  {isMedicalFlow ? <HeartPulse className="h-8 w-8" /> : <Utensils className="h-8 w-8" />}
+                  {isMedicalFlow ? <HeartPulse className="h-8 w-8" /> : isBeautyFlow ? <Sparkles className="h-8 w-8" /> : <Utensils className="h-8 w-8" />}
                 </div>
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">
-                  {isMedicalFlow ? 'Join as Medical Store' : 'Vendor Registration'}
+                  {isMedicalFlow ? 'Join as Medical Store' : isBeautyFlow ? 'Join as Beauty Store' : 'Vendor Registration'}
                 </h2>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enter Business Credentials</p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Name</label>
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
                   <div className="relative">
                     <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input 
-                      placeholder="e.g. City Pharmacy" 
+                      placeholder="e.g. City Cosmetics" 
                       value={formData.storeName} 
                       onChange={e => updateFormData('storeName', e.target.value)} 
                       className="h-12 pl-12 rounded-xl font-bold bg-muted/20 border-none" 
@@ -184,14 +187,22 @@ function RegistrationContent() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">
+                  <label className={cn(
+                    "text-[9px] font-black uppercase ml-1 flex items-center gap-1",
+                    isMedicalFlow ? "text-teal-600" : isBeautyFlow ? "text-rose-600" : "text-primary"
+                  )}>
                     <Fingerprint className="h-2.5 w-2.5" /> Unique Store ID (Name + Number)
                   </label>
                   <Input 
-                    placeholder="e.g. CityPharmacy709" 
+                    placeholder="e.g. BeautyQueen709" 
                     value={formData.storeId} 
                     onChange={e => updateFormData('storeId', e.target.value.replace(/\s/g, ''))} 
-                    className="h-12 rounded-xl bg-primary/5 border-2 border-primary/10 font-black italic uppercase tracking-widest text-primary" 
+                    className={cn(
+                      "h-12 rounded-xl border-2 font-black italic uppercase tracking-widest",
+                      isMedicalFlow ? "bg-teal-50 border-teal-100 text-teal-600" : 
+                      isBeautyFlow ? "bg-rose-50 border-rose-100 text-rose-600" : 
+                      "bg-primary/5 border-primary/10 text-primary"
+                    )} 
                   />
                 </div>
 
@@ -295,7 +306,10 @@ function RegistrationContent() {
                 <Button 
                   onClick={handleSubmit} 
                   disabled={isProcessing}
-                  className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                  className={cn(
+                    "w-full h-16 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all",
+                    isMedicalFlow ? "bg-teal-600 hover:bg-teal-700" : isBeautyFlow ? "bg-rose-600 hover:bg-rose-700" : "bg-primary hover:bg-primary/90"
+                  )}
                 >
                   {isProcessing ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "I AGREE & SUBMIT"}
                 </Button>
@@ -323,7 +337,7 @@ function RegistrationContent() {
                 <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Your Login ID:</p>
                 <span className="text-lg font-black text-black italic uppercase tracking-widest">{formData.storeId}</span>
               </div>
-              <Button onClick={() => router.push('/vendor/login')} className="w-full h-16 rounded-[2rem] bg-black text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all">
+              <Button onClick={() => router.push(isMedicalFlow ? '/vendor/login?type=Medical' : isBeautyFlow ? '/vendor/login?type=Beauty' : '/vendor/login')} className="w-full h-16 rounded-[2rem] bg-black text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all">
                 LOGIN TO DASHBOARD
               </Button>
             </div>
@@ -341,4 +355,3 @@ export default function VendorRegistrationPage() {
     </Suspense>
   );
 }
-

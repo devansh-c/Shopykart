@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, Suspense } from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Store, Mail, Lock, ArrowRight, Loader2, Fingerprint, HeartPulse } from 'lucide-react';
+import { Store, Mail, Lock, ArrowRight, Loader2, Fingerprint, HeartPulse, Sparkles } from 'lucide-react';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -14,7 +15,9 @@ import { cn } from '@/lib/utils';
 
 function LoginPageContent() {
   const searchParams = useSearchParams();
-  const isMedical = searchParams.get('type') === 'Medical';
+  const typeParam = searchParams.get('type');
+  const isMedical = typeParam === 'Medical';
+  const isBeauty = typeParam === 'Beauty';
   
   const [identifier, setIdentifier] = useState(''); // Store ID or Email
   const [password, setPassword] = useState('');
@@ -35,6 +38,8 @@ function LoginPageContent() {
           const data = vendorSnap.data();
           if (data.category === 'Medical') {
             router.push('/Medical/store');
+          } else if (data.category === 'Beauty') {
+            router.push('/Beauty/store');
           } else {
             router.push('/vendor/dashboard');
           }
@@ -72,7 +77,7 @@ function LoginPageContent() {
         loginEmail = vendorData.email; // Virtual email found
       }
 
-      // 2. Standard Firebase Auth (Local Persistence is set in init.ts)
+      // 2. Standard Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
@@ -91,11 +96,13 @@ function LoginPageContent() {
         return;
       }
 
-      toast({ title: "Welcome Back!", description: `Store: ${vendorSnap.data().storeName}` });
-      
       const vendorData = vendorSnap.data();
+      toast({ title: "Welcome Back!", description: `Store: ${vendorData.storeName}` });
+      
       if (vendorData.category === 'Medical') {
         router.push('/Medical/store');
+      } else if (vendorData.category === 'Beauty') {
+        router.push('/Beauty/store');
       } else {
         router.push('/vendor/dashboard');
       }
@@ -117,12 +124,12 @@ function LoginPageContent() {
         <CardHeader className="text-center pt-10">
           <div className={cn(
             "mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4",
-            isMedical ? "bg-teal-50 text-teal-600" : "bg-primary/10 text-primary"
+            isMedical ? "bg-teal-50 text-teal-600" : isBeauty ? "bg-rose-50 text-rose-600" : "bg-primary/10 text-primary"
           )}>
-            {isMedical ? <HeartPulse className="h-8 w-8" /> : <Store className="h-8 w-8" />}
+            {isMedical ? <HeartPulse className="h-8 w-8" /> : isBeauty ? <Sparkles className="h-8 w-8" /> : <Store className="h-8 w-8" />}
           </div>
           <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-black">
-            {isMedical ? 'Medical Access' : 'Vendor Access'}
+            {isMedical ? 'Medical Access' : isBeauty ? 'Beauty Access' : 'Vendor Access'}
           </CardTitle>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">ShopyKart Business Portal</p>
         </CardHeader>
@@ -160,7 +167,9 @@ function LoginPageContent() {
               type="submit" 
               className={cn(
                 "w-full h-14 rounded-2xl font-black uppercase italic text-lg shadow-xl active:scale-[0.98] transition-all",
-                isMedical ? "bg-teal-600 hover:bg-teal-700 shadow-teal-100" : "bg-primary hover:bg-primary/90 shadow-primary/20"
+                isMedical ? "bg-teal-600 hover:bg-teal-700 shadow-teal-100" : 
+                isBeauty ? "bg-rose-600 hover:bg-rose-700 shadow-rose-100" :
+                "bg-primary hover:bg-primary/90 shadow-primary/20"
               )}
               disabled={loading}
             >
@@ -177,14 +186,14 @@ function LoginPageContent() {
               variant="outline"
               className={cn(
                 "w-full h-12 rounded-xl border-2 font-black uppercase italic tracking-tighter",
-                isMedical 
-                  ? "border-teal-100 text-teal-600 hover:bg-teal-50" 
-                  : "border-primary/20 text-primary hover:bg-primary/5"
+                isMedical ? "border-teal-100 text-teal-600 hover:bg-teal-50" : 
+                isBeauty ? "border-rose-100 text-rose-600 hover:bg-rose-50" :
+                "border-primary/20 text-primary hover:bg-primary/5"
               )}
-              onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : '/vendor/register')}
+              onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : isBeauty ? '/vendor/register?type=Beauty' : '/vendor/register')}
               disabled={loading}
             >
-              {isMedical ? 'REGISTER AS MEDICAL STORE' : 'JOIN AS VENDOR'}
+              {isMedical ? 'REGISTER AS MEDICAL STORE' : isBeauty ? 'REGISTER AS BEAUTY STORE' : 'JOIN AS VENDOR'}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
 

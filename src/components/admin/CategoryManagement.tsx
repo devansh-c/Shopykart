@@ -104,7 +104,7 @@ export function CategoryManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-black italic uppercase text-gray-800">Master Categories</h2>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Organize Food, Grocery & Medical separately</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Organize Food, Grocery, Medical & Beauty separately</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
           <DialogTrigger asChild>
@@ -123,7 +123,7 @@ export function CategoryManagement() {
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category Name</label>
-                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Tablets, Skin Care, Burgers" className="h-12 rounded-xl font-bold" />
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Lipsticks, Tablets, Burgers" className="h-12 rounded-xl font-bold" />
                 </div>
 
                 <div className="space-y-1">
@@ -136,6 +136,7 @@ export function CategoryManagement() {
                       <SelectItem value="Food">Food Section</SelectItem>
                       <SelectItem value="Grocery">Grocery Section</SelectItem>
                       <SelectItem value="Medical">Medical & Care Section</SelectItem>
+                      <SelectItem value="Beauty">Beauty & Cosmetics Section</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -163,7 +164,12 @@ export function CategoryManagement() {
               <img src={cat.imageUrl} className="h-full w-full object-cover" alt={cat.name} />
             </div>
             <span className="font-black text-[11px] uppercase tracking-tighter text-gray-800">{cat.name}</span>
-            <span className="text-[7px] font-black text-primary uppercase mt-1 bg-primary/5 px-2 py-0.5 rounded-full">{cat.serviceType || 'Food'}</span>
+            <span className={cn(
+              "text-[7px] font-black uppercase mt-1 px-2 py-0.5 rounded-full",
+              cat.serviceType === 'Beauty' ? "bg-rose-50 text-rose-600" :
+              cat.serviceType === 'Medical' ? "bg-teal-50 text-teal-600" :
+              "bg-primary/5 text-primary"
+            )}>{cat.serviceType || 'Food'}</span>
             
             <div className="absolute inset-0 bg-black/60 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
               <button onClick={() => handleEdit(cat)} className="bg-white p-2.5 rounded-xl text-blue-600 active:scale-90 transition-transform"><Edit className="h-4 w-4" /></button>

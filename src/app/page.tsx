@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -11,14 +12,14 @@ import { TopTenProducts } from '@/components/home/TopTenProducts';
 import { BeautySalonSection } from '@/components/home/BeautySalonSection';
 import { MedicalCareSection } from '@/components/home/MedicalCareSection';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { ShoppingBag, Rocket, Timer, HeartPulse, Stethoscope, ChevronLeft, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const [activeMode, setActiveMode] = useState('Food'); // 'Food', 'Grocery', or 'Medical'
+  const [activeMode, setActiveMode] = useState('Food'); // 'Food', 'Grocery', 'Medical', or 'Beauty'
 
   const handleBackToFood = () => {
     setActiveMode('Food');
@@ -27,8 +28,8 @@ export default function ShopyKartApp() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
-      {/* Hide main header in Medical mode for true Blinkit experience */}
-      {activeMode !== 'Medical' && (
+      {/* Hide main header in specialized modes for true Blinkit experience */}
+      {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
           onSearchChange={setSearchQuery} 
@@ -37,7 +38,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("space-y-2", activeMode === 'Medical' ? "mt-0" : "mt-2")}>
+      <main className={cn("space-y-2", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -66,9 +67,9 @@ export default function ShopyKartApp() {
                 </div>
              </div>
           </div>
-        ) : activeMode === 'Medical' ? (
+        ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
           <div className="animate-in fade-in duration-700">
-            {/* Minimal Sticky Header for Medical */}
+            {/* Minimal Sticky Header for Specialized Hubs */}
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
                   <button 
@@ -78,22 +79,25 @@ export default function ShopyKartApp() {
                     <ArrowLeft className="h-4 w-4" />
                   </button>
                   <div className="flex flex-col">
-                    <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">Medical Hub</span>
+                    <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">
+                      {activeMode === 'Medical' ? 'Medical Hub' : 'Beauty & Cosmetics'}
+                    </span>
                     <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>
                   </div>
                </div>
-               <div className="h-9 w-9 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 border border-teal-100">
-                  <HeartPulse className="h-5 w-5" />
+               <div className={cn(
+                 "h-9 w-9 rounded-xl flex items-center justify-center border",
+                 activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100"
+               )}>
+                  {activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                </div>
             </div>
 
-            {/* Redundant titles and category lists removed as requested */}
-            
             <div className="px-0">
               <PopularProducts 
                 searchQuery={searchQuery} 
                 category={activeCategory} 
-                activeMode="Medical"
+                activeMode={activeMode}
               />
             </div>
           </div>
@@ -107,7 +111,7 @@ export default function ShopyKartApp() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <ScrollReveal delay={50}>
-                    <BeautySalonSection />
+                    <BeautySalonSection onClick={() => { setActiveMode('Beauty'); setActiveCategory('all'); }} />
                   </ScrollReveal>
                   <ScrollReveal delay={100}>
                     <MedicalCareSection onClick={() => { setActiveMode('Medical'); setActiveCategory('all'); }} />
