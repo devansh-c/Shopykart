@@ -167,17 +167,19 @@ export function PopularProducts({
                   "bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 flex flex-col relative transition-all active:scale-[0.98]",
                   isOffline && "opacity-60 grayscale-[0.5]"
                 )}>
-                  <ProductQuickView product={product}>
-                    <button className="relative aspect-square w-full bg-gray-50 overflow-hidden group">
-                      <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} 
-                        className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 shadow-md z-20 active:scale-75 transition-all"
-                      >
-                        <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
+                  <div className="relative aspect-square w-full bg-gray-50 overflow-hidden group">
+                    <ProductQuickView product={product}>
+                      <button className="w-full h-full">
+                        <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
                       </button>
+                    </ProductQuickView>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} 
+                      className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 shadow-md z-20 active:scale-75 transition-all"
+                    >
+                      <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
                     </button>
-                  </ProductQuickView>
+                  </div>
 
                   <div className="p-4 flex flex-col flex-1">
                     <ProductQuickView product={product}>
