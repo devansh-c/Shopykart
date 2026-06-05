@@ -26,7 +26,9 @@ import {
   Loader2,
   ListPlus,
   HeartPulse,
-  ShieldCheck
+  ShieldCheck,
+  Calendar,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -66,8 +68,16 @@ export default function MedicalDashboard() {
   }, []);
 
   const [newProduct, setNewProduct] = useState({ 
-    name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true,
+    name: '', 
+    mrp: '',
+    price: '', 
+    description: '', 
+    category: '', 
+    imageUrl: '', 
+    isVeg: true,
     isSilentPackaging: false,
+    mfgDate: '',
+    expiryDate: '',
     options: [] as { name: string; price: number }[]
   });
 
@@ -140,7 +150,19 @@ export default function MedicalDashboard() {
 
   const resetForm = () => {
     setEditingId(null);
-    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, isSilentPackaging: false, options: [] });
+    setNewProduct({ 
+      name: '', 
+      mrp: '',
+      price: '', 
+      description: '', 
+      category: '', 
+      imageUrl: '', 
+      isVeg: true, 
+      isSilentPackaging: false, 
+      mfgDate: '',
+      expiryDate: '',
+      options: [] 
+    });
   };
 
   const handleAddOption = () => {
@@ -169,7 +191,7 @@ export default function MedicalDashboard() {
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, Category and Image are required." });
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Selling Price, Category and Image are required." });
       return;
     }
     setIsSubmitting(true);
@@ -179,13 +201,16 @@ export default function MedicalDashboard() {
     const productData = {
       id: targetId,
       name: newProduct.name.trim(),
+      mrp: parseFloat(newProduct.mrp) || parseFloat(newProduct.price),
       price: parseFloat(newProduct.price),
       description: newProduct.description || '',
       category: newProduct.category.toLowerCase().trim(),
-      serviceMode: 'Medical', // Strict hub separation tag
+      serviceMode: 'Medical',
       isAvailable: true,
       isVeg: newProduct.isVeg,
       isSilentPackaging: newProduct.isSilentPackaging,
+      mfgDate: newProduct.mfgDate || null,
+      expiryDate: newProduct.expiryDate || null,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid,
       zoneId: vendorProfile.zoneId || null,
@@ -351,11 +376,33 @@ export default function MedicalDashboard() {
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Medicine/Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Input placeholder="Price (₹)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">MRP (Original)</label>
+                                <Input placeholder="MRP ₹" type="number" value={newProduct.mrp} onChange={e => setNewProduct({...newProduct, mrp: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/30" />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-teal-600 ml-1">Selling Price</label>
+                                <Input placeholder="Price ₹" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold border-teal-200" />
+                             </div>
+                          </div>
+
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
                              <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Healthcare Category" /></SelectTrigger>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
+
+                          <div className="grid grid-cols-2 gap-3">
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">MFG Date (Optional)</label>
+                                <Input type="text" placeholder="MM/YY" value={newProduct.mfgDate} onChange={e => setNewProduct({...newProduct, mfgDate: e.target.value})} className="h-10 rounded-xl text-xs" />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-red-400 ml-1">Expiry Date (Optional)</label>
+                                <Input type="text" placeholder="MM/YY" value={newProduct.expiryDate} onChange={e => setNewProduct({...newProduct, expiryDate: e.target.value})} className="h-10 rounded-xl text-xs" />
+                             </div>
+                          </div>
 
                           <div className="bg-teal-50 p-4 rounded-2xl border border-teal-100 flex items-center justify-between">
                              <div className="flex items-center gap-2">
@@ -414,13 +461,17 @@ export default function MedicalDashboard() {
                           <h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4>
                           <div className="flex items-center gap-2 mt-0.5">
                             <p className="text-teal-600 font-black text-xs italic">₹{p.price}</p>
+                            {p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}
                             {p.isSilentPackaging && <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded">SILENT</Badge>}
                           </div>
-                          {p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}
+                          <div className="flex items-center gap-2 mt-1">
+                             {p.expiryDate && <span className="text-[6px] font-bold text-red-500 uppercase">EXP: {p.expiryDate}</span>}
+                             {p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, isSilentPackaging: !!p.isSilentPackaging, options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
+                        <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, mrp: (p.mrp || p.price).toString(), price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, isSilentPackaging: !!p.isSilentPackaging, mfgDate: p.mfgDate || '', expiryDate: p.expiryDate || '', options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
                         <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                    </div>

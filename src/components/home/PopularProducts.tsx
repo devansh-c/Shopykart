@@ -19,7 +19,7 @@ import {
 
 /**
  * @fileOverview PopularProducts with optimized fetching and Hub isolation.
- * Fixed: Removed strict where query to allow existing products to show up.
+ * Displays MRP-based discounts and 10 MINS delivery for Medical/Beauty.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -48,7 +48,6 @@ export function PopularProducts({
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // Optimized fetch: Fetch all relevant products and filter client-side for better resilience
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -91,8 +90,6 @@ export function PopularProducts({
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
-      // HUB ISOLATION LOGIC
-      // If serviceMode is missing, it's a legacy product, default to 'Food'
       const productMode = product.serviceMode || 'Food';
       if (productMode !== activeMode) return false;
 
@@ -136,7 +133,7 @@ export function PopularProducts({
     return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
-  const isMedical = activeMode === 'Medical';
+  const isMedical = activeMode === 'Medical' || activeMode === 'Beauty';
 
   if (isMedical) {
     return (
@@ -152,7 +149,7 @@ export function PopularProducts({
             <span className="text-[9px] font-black uppercase text-center leading-tight mt-1">View All</span>
           </button>
 
-          {medicalCategories.map((cat) => (
+          {(activeMode === 'Medical' ? medicalCategories : dbCategories?.filter(c => c.serviceType === 'Beauty') || []).map((cat) => (
             <button key={cat.id} onClick={() => setSelectedCat(cat.name)} className={cn("flex flex-col items-center gap-1 group", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
               <div className={cn("relative h-14 w-14 rounded-full border-2 overflow-hidden transition-all", selectedCat === cat.name ? "border-green-600 ring-4 ring-green-50 scale-105" : "border-transparent bg-gray-50")}>
                 <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized />
@@ -164,7 +161,7 @@ export function PopularProducts({
 
         <main className="flex-1 p-4 pb-40">
           <div className="flex items-center justify-between mb-6">
-             <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? 'All Medicines' : selectedCat}</h2>
+             <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode} Products` : selectedCat}</h2>
              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{productsToDisplay.length} Items</span>
           </div>
 
@@ -174,25 +171,34 @@ export function PopularProducts({
               const quantity = cartItem?.quantity || 0;
               const isOffline = (vendorMap.get(product.vendorId)?.isOnline === false) || (product.isAvailable === false);
               const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
+              
               const rating = (4 + (product.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 11) / 10).toFixed(1);
-              const discount = Math.floor(Math.random() * 20) + 5;
-              const originalPrice = Math.floor(product.price * (1 + discount/100));
+              const discount = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
 
               return (
                 <div key={product.id} className={cn("flex flex-col relative bg-white rounded-3xl border border-gray-100 p-2.5 shadow-sm active:scale-[0.98] transition-all", isOffline && "opacity-60 grayscale")}>
-                  <div className="absolute top-0 left-2 z-10"><div className="bg-[#2563EB] text-white text-[8px] font-black px-1.5 py-2.5 rounded-b-md shadow-lg flex flex-col items-center leading-none"><span>{discount}%</span><span className="mt-0.5">OFF</span></div></div>
-                  <ProductQuickView product={product} isMedical={true}>
+                  {discount > 0 && (
+                    <div className="absolute top-0 left-2 z-10">
+                      <div className="bg-[#2563EB] text-white text-[8px] font-black px-1.5 py-2.5 rounded-b-md shadow-lg flex flex-col items-center leading-none">
+                        <span>{discount}%</span><span className="mt-0.5">OFF</span>
+                      </div>
+                    </div>
+                  )}
+                  <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
                     <button className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3"><Image src={imageUrl} alt={product.name} fill className="object-contain p-2" unoptimized /></button>
                   </ProductQuickView>
                   <div className="flex items-center gap-1 mb-2 bg-gray-50 w-fit px-1.5 py-0.5 rounded-md border border-gray-100"><Clock className="h-2.5 w-2.5 text-gray-800" /><span className="text-[8px] font-black text-gray-800 uppercase">10 MINS</span></div>
-                  <ProductQuickView product={product} isMedical={true}>
+                  <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
                     <button className="text-left flex flex-col gap-0.5 mb-3 h-14">
-                       <h3 className="font-bold text-[11px] text-gray-900 leading-tight line-clamp-2">{product.name}</h3>
+                       <h3 className="font-bold text-[11px] text-gray-900 leading-tight line-clamp-2 uppercase">{product.name}</h3>
                        <div className="flex items-center gap-1"><span className="text-[10px] font-black text-gray-800">{rating}</span><Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /></div>
                     </button>
                   </ProductQuickView>
                   <div className="mt-auto flex items-center justify-between">
-                     <div className="flex flex-col"><span className="text-[12px] font-black text-gray-900">₹{product.price}</span><span className="text-[9px] font-bold text-gray-300 line-through leading-none">₹{originalPrice}</span></div>
+                     <div className="flex flex-col">
+                       <span className="text-[12px] font-black text-gray-900">₹{product.price}</span>
+                       {product.mrp > product.price && <span className="text-[9px] font-bold text-gray-300 line-through leading-none">₹{product.mrp}</span>}
+                     </div>
                      <div className="relative">
                         {quantity === 0 ? (<button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className="px-6 py-1.5 border border-green-600 text-green-600 rounded-lg font-black text-[10px] uppercase hover:bg-green-50 transition-colors shadow-sm">ADD</button>) : (<div className="flex items-center bg-green-600 text-white rounded-lg h-8 px-1 shadow-md animate-in zoom-in-95 duration-200"><button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center font-bold text-lg">-</button><span className="w-5 text-center text-[11px] font-black">{quantity}</span><button onClick={() => addToCart({ ...product, imageUrl })} className="w-6 h-full flex items-center justify-center font-bold text-lg">+</button></div>)}
                      </div>
@@ -222,7 +228,16 @@ export function PopularProducts({
             <div key={product.id} className={cn("premium-card p-6 flex justify-between items-start bg-white relative", isOffline && "opacity-60 grayscale-[0.5]")}>
               <div className="flex-1 pr-4 min-w-0">
                 <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2"><div className="h-full w-full bg-green-600 rounded-full" /></div>
-                <ProductQuickView product={product} isMedical={false}><button className={cn("block text-left w-full", isOffline && "pointer-events-none")}><h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3><div className="text-xl font-black text-primary mb-2 italic">₹{(product.price || 0).toFixed(2)}</div><p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p></button></ProductQuickView>
+                <ProductQuickView product={product} isMedical={false}>
+                  <button className={cn("block text-left w-full", isOffline && "pointer-events-none")}>
+                    <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
+                    <div className="flex items-baseline gap-2 mb-2">
+                       <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
+                       {product.mrp > product.price && <div className="text-[10px] font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p>
+                  </button>
+                </ProductQuickView>
               </div>
               <div className="relative w-28 h-28 shrink-0">
                 <ProductQuickView product={product} isMedical={false}><button className="relative w-full h-full rounded-2xl overflow-hidden bg-muted"><Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized /></button></ProductQuickView>

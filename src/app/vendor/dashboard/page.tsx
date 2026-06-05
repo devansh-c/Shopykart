@@ -26,7 +26,9 @@ import {
   XCircle,
   X,
   Loader2,
-  ListPlus
+  ListPlus,
+  Calendar,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -67,7 +69,15 @@ export default function VendorDashboard() {
   }, []);
 
   const [newProduct, setNewProduct] = useState({ 
-    name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true,
+    name: '', 
+    mrp: '',
+    price: '', 
+    description: '', 
+    category: '', 
+    imageUrl: '', 
+    isVeg: true,
+    mfgDate: '',
+    expiryDate: '',
     options: [] as { name: string; price: number }[]
   });
 
@@ -140,7 +150,18 @@ export default function VendorDashboard() {
 
   const resetForm = () => {
     setEditingId(null);
-    setNewProduct({ name: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] });
+    setNewProduct({ 
+      name: '', 
+      mrp: '',
+      price: '', 
+      description: '', 
+      category: '', 
+      imageUrl: '', 
+      isVeg: true, 
+      mfgDate: '',
+      expiryDate: '',
+      options: [] 
+    });
   };
 
   const handleAddOption = () => {
@@ -177,12 +198,15 @@ export default function VendorDashboard() {
     const productData = {
       id: targetId,
       name: newProduct.name.trim(),
+      mrp: parseFloat(newProduct.mrp) || parseFloat(newProduct.price),
       price: parseFloat(newProduct.price),
       description: newProduct.description,
-      category: newProduct.category.toLowerCase().trim(),
-      serviceMode: 'Food', // Strict hub separation tag
+      category: newProduct.category.toLowerCase().trim() || 'general',
+      serviceMode: 'Food',
       isVeg: newProduct.isVeg,
       isAvailable: true,
+      mfgDate: newProduct.mfgDate || null,
+      expiryDate: newProduct.expiryDate || null,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid,
       zoneId: vendorProfile.zoneId || null,
@@ -342,13 +366,34 @@ export default function VendorDashboard() {
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Input placeholder="Base Price (₹)" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">MRP (Original)</label>
+                                <Input placeholder="MRP ₹" type="number" value={newProduct.mrp} onChange={e => setNewProduct({...newProduct, mrp: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/30" />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-primary ml-1">Selling Price</label>
+                                <Input placeholder="Price ₹" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl font-bold border-primary/30" />
+                             </div>
+                          </div>
+
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
                              <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
 
-                          {/* VARIETIES / ADDONS SECTION */}
+                          <div className="grid grid-cols-2 gap-3">
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">MFG (Optional)</label>
+                                <Input type="text" placeholder="e.g. Oct 2023" value={newProduct.mfgDate} onChange={e => setNewProduct({...newProduct, mfgDate: e.target.value})} className="h-10 rounded-xl text-xs" />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-red-400 ml-1">Expiry (Optional)</label>
+                                <Input type="text" placeholder="e.g. Oct 2024" value={newProduct.expiryDate} onChange={e => setNewProduct({...newProduct, expiryDate: e.target.value})} className="h-10 rounded-xl text-xs" />
+                             </div>
+                          </div>
+
                           <div className="space-y-3 pt-2">
                              <div className="flex items-center justify-between px-1">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><ListPlus className="h-3 w-3" /> Varieties / Addons</label>
@@ -374,9 +419,6 @@ export default function VendorDashboard() {
                                     <Button onClick={() => handleRemoveOption(idx)} variant="ghost" size="icon" className="h-10 w-10 text-red-400 bg-red-50 rounded-xl shrink-0"><X className="h-4 w-4" /></Button>
                                   </div>
                                 ))}
-                                {newProduct.options.length === 0 && (
-                                  <p className="text-[8px] text-center text-gray-400 uppercase italic py-2">No varieties added yet</p>
-                                )}
                              </div>
                           </div>
 
@@ -388,9 +430,9 @@ export default function VendorDashboard() {
               <div className="grid grid-cols-1 gap-3">
                  {products?.map(p => (
                    <div key={p.id} className="bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm">
-                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4><p className="text-primary font-black text-xs italic mt-0.5">₹{p.price}</p>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
+                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4><div className="flex items-center gap-2"><p className="text-primary font-black text-xs italic">₹{p.price}</p>{p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}</div>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
                       <div className="flex gap-2">
-                        <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
+                        <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, mrp: (p.mrp || p.price).toString(), price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, mfgDate: p.mfgDate || '', expiryDate: p.expiryDate || '', options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
                         <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                    </div>

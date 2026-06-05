@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -43,7 +44,7 @@ export default function ProductDetailsClient() {
   const { data: allDbProducts } = useCollection<any>(productsQuery);
 
   const isMedical = useMemo(() => {
-    return product?.category?.toLowerCase().includes('medic') || product?.isSilentPackaging !== undefined;
+    return product?.serviceMode === 'Medical' || product?.category?.toLowerCase().includes('medic') || product?.isSilentPackaging !== undefined;
   }, [product]);
 
   const relatedProducts = useMemo(() => {
@@ -181,9 +182,57 @@ export default function ProductDetailsClient() {
           )}
         </div>
 
-        <div className="text-2xl font-black text-primary mb-6">₹{(product.price || 0).toFixed(2)}</div>
+        <div className="flex items-baseline gap-3 mb-6">
+           <div className="text-3xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
+           {product.mrp > product.price && (
+             <div className="text-sm font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>
+           )}
+        </div>
 
-        {/* CUSTOM OPTIONS DISPLAY */}
+        {/* METADATA BLOCK (Dates & Silent Packaging) */}
+        <div className="space-y-4 mb-8">
+           {product.isSilentPackaging && (
+              <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 animate-in fade-in zoom-in-95 duration-500">
+                <ShieldCheck className="h-10 w-10 text-teal-600" />
+                <div className="space-y-1">
+                  <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
+                  <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
+                    Your order will be delivered in discreet, unmarked packaging for your 100% privacy.
+                  </p>
+                </div>
+              </div>
+           )}
+
+           {(product.mfgDate || product.expiryDate) && (
+              <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col gap-4">
+                 <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-gray-400" />
+                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Manufacturing & Expiry</span>
+                 </div>
+                 <div className="grid grid-cols-2 gap-6">
+                    {product.mfgDate && (
+                       <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-black text-gray-400 uppercase">MFG Date</span>
+                          <div className="flex items-center gap-2">
+                             <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                             <span className="text-xs font-bold text-gray-700">{product.mfgDate}</span>
+                          </div>
+                       </div>
+                    )}
+                    {product.expiryDate && (
+                       <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-black text-red-400 uppercase">Expiry Date</span>
+                          <div className="flex items-center gap-2">
+                             <Calendar className="h-3.5 w-3.5 text-red-400" />
+                             <span className="text-xs font-bold text-red-500">{product.expiryDate}</span>
+                          </div>
+                       </div>
+                    )}
+                 </div>
+              </div>
+           )}
+        </div>
+
         {hasOptions ? (
           <div className="space-y-4 mb-8">
             <h3 className="text-base font-black text-foreground uppercase tracking-tight flex items-center justify-between">
@@ -219,19 +268,7 @@ export default function ProductDetailsClient() {
             </div>
           </div>
         ) : (
-          isMedical ? (
-            product.isSilentPackaging && (
-              <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 mb-8 animate-in fade-in zoom-in-95 duration-500">
-                <ShieldCheck className="h-10 w-10 text-teal-600" />
-                <div className="space-y-1">
-                  <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
-                  <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
-                    Your order will be delivered in discreet, unmarked packaging for your 100% privacy.
-                  </p>
-                </div>
-              </div>
-            )
-          ) : (
+          !isMedical && (
             <div className="space-y-4 mb-8">
               <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
               <Textarea 

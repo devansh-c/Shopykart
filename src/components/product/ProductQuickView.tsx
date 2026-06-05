@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -10,7 +11,9 @@ import {
   CheckCircle2, 
   ShoppingBag,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -71,6 +74,11 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
     return (4 + (hash % 11) / 10).toFixed(1);
   }, [product.id]);
 
+  const discountPercent = useMemo(() => {
+    if (!product.mrp || product.mrp <= product.price) return 0;
+    return Math.round(((product.mrp - product.price) / product.mrp) * 100);
+  }, [product.mrp, product.price]);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -98,6 +106,11 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                         <div className="h-full w-full bg-green-600 rounded-full" />
                       </div>
                    )}
+                   {discountPercent > 0 && (
+                     <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[8px] font-black text-center py-1">
+                        SAVE {discountPercent}%
+                     </div>
+                   )}
                 </div>
                 
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -106,7 +119,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
                         {product.isSilentPackaging && (
-                          <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded flex items-center gap-1 uppercase border-none">
+                          <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded flex items-center gap-1 uppercase border-none shadow-sm">
                              <ShieldCheck className="h-2 w-2" /> Silent
                           </Badge>
                         )}
@@ -124,7 +137,12 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                    </div>
 
                    <div className="flex justify-between items-center mt-2">
-                      <div className="text-2xl font-black text-gray-900 italic tracking-tighter">₹ {(currentPrice || 0).toFixed(2)}</div>
+                      <div className="flex flex-col">
+                        <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹ {(currentPrice || 0).toFixed(2)}</div>
+                        {product.mrp > product.price && (
+                          <div className="text-[10px] font-bold text-gray-400 line-through mt-0.5">MRP ₹{product.mrp}</div>
+                        )}
+                      </div>
                       <button 
                         onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
                         className={cn("p-2 rounded-xl bg-gray-50 transition-none active:scale-75", liked ? "text-primary shadow-inner" : "text-gray-300")}
@@ -137,6 +155,61 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
           </div>
 
           <div className="px-6 py-4 space-y-5">
+            {/* Silent Packaging & Date Info Block */}
+            {(product.isSilentPackaging || product.mfgDate || product.expiryDate) && (
+              <div className="space-y-3">
+                {product.isSilentPackaging && (
+                  <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 animate-in fade-in zoom-in-95 duration-500">
+                    <ShieldCheck className="h-10 w-10 text-teal-600" />
+                    <div className="space-y-1">
+                      <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
+                      <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
+                        Delivered in discreet, unmarked packaging for your 100% privacy.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* PRODUCT METADATA CARD (Below Silent) */}
+                {(product.mfgDate || product.expiryDate || (product.mrp > product.price)) && (
+                   <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100 space-y-3 shadow-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                         <AlertCircle className="h-3.5 w-3.5 text-gray-400" />
+                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none">Product Information</span>
+                      </div>
+                      
+                      {product.mrp > product.price && (
+                        <div className="flex justify-between items-center border-b border-white pb-2 mb-2">
+                           <span className="text-[10px] font-bold text-gray-400 uppercase">Maximum Retail Price</span>
+                           <span className="text-xs font-black text-gray-400 line-through">₹{product.mrp}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                         {product.mfgDate && (
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">MFG Date</span>
+                              <div className="flex items-center gap-1.5">
+                                 <Calendar className="h-3 w-3 text-gray-400" />
+                                 <span className="text-[10px] font-bold text-gray-700">{product.mfgDate}</span>
+                              </div>
+                           </div>
+                         )}
+                         {product.expiryDate && (
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Expiry Date</span>
+                              <div className="flex items-center gap-1.5">
+                                 <Calendar className="h-3 w-3 text-red-400" />
+                                 <span className="text-[10px] font-bold text-red-500">{product.expiryDate}</span>
+                              </div>
+                           </div>
+                         )}
+                      </div>
+                   </div>
+                )}
+              </div>
+            )}
+
             {hasOptions ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -171,19 +244,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                 </div>
               </div>
             ) : (
-              isMedical ? (
-                product.isSilentPackaging && (
-                  <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 animate-in fade-in zoom-in-95 duration-500">
-                    <ShieldCheck className="h-10 w-10 text-teal-600" />
-                    <div className="space-y-1">
-                      <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
-                      <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
-                        Your order will be delivered in discreet, unmarked packaging for your 100% privacy.
-                      </p>
-                    </div>
-                  </div>
-                )
-              ) : (
+              !isMedical && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                      <Sparkles className="h-3.5 w-3.5 text-primary" />
