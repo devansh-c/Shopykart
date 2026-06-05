@@ -58,8 +58,8 @@
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.92) !important;
-    opacity: 0.8 !important;
+    transform: scale(0.94) !important;
+    opacity: 0.9 !important;
   }
 
   .no-scrollbar::-webkit-scrollbar {

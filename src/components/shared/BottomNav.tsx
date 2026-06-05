@@ -1,10 +1,10 @@
 "use client"
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import Link from 'next/link';
+import React, { useTransition } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -15,12 +15,14 @@ const navItems = [
 ];
 
 /**
- * @fileOverview Zero-Latency Bottom Navigation.
- * Optimized with hardware acceleration and instant CSS feedback.
+ * @fileOverview Atomic-Speed Bottom Navigation.
+ * Optimized with PointerDown event for 0ms visual response.
  */
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { totalItems } = useCart();
+  const [isPending, startTransition] = useTransition();
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -31,20 +33,26 @@ export function BottomNav() {
   
   if (isExcludedPath) return null;
 
+  const handleNav = (href: string) => {
+    // Instant routing call
+    startTransition(() => {
+      router.push(href);
+    });
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none">
+    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none will-change-transform translate-z-0">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)]">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
 
           return (
-            <Link
+            <button
               key={item.label}
-              href={item.href}
-              prefetch={false}
+              onPointerDown={() => handleNav(item.href)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-none active:scale-90 relative touch-manipulation outline-none",
+                "flex flex-col items-center justify-center flex-1 h-full transition-none active:scale-90 relative touch-manipulation outline-none border-none bg-transparent",
                 isActive ? "text-primary" : "text-gray-400"
               )}
             >
@@ -65,7 +73,7 @@ export function BottomNav() {
               {isActive && (
                 <div className="absolute bottom-0 w-8 h-1 bg-primary rounded-t-full transition-none" />
               )}
-            </Link>
+            </button>
           );
         })}
       </div>
