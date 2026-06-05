@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
@@ -191,6 +192,9 @@ export function PopularProducts({
               const isOffline = (vendorMap.get(product.vendorId)?.isOnline === false) || (product.isAvailable === false);
               const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
               
+              // Stable rating based on ID
+              const rating = (4 + (product.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 11) / 10).toFixed(1);
+
               // Dynamic values for Blinkit style
               const discount = Math.floor(Math.random() * 20) + 5; // 5-25%
               const originalPrice = Math.floor(product.price * (1 + discount/100));
@@ -215,14 +219,17 @@ export function PopularProducts({
                   {/* DELIVERY TIME */}
                   <div className="flex items-center gap-1 mb-2 bg-gray-50 w-fit px-1.5 py-0.5 rounded-md border border-gray-100">
                     <Clock className="h-2.5 w-2.5 text-gray-800" />
-                    <span className="text-[8px] font-black text-gray-800 uppercase">20 MINS</span>
+                    <span className="text-[8px] font-black text-gray-800 uppercase">10 MINS</span>
                   </div>
 
                   {/* TITLE & DETAILS */}
                   <ProductQuickView product={product} isMedical={true}>
                     <button className="text-left flex flex-col gap-0.5 mb-3 h-14">
                        <h3 className="font-bold text-[11px] text-gray-900 leading-tight line-clamp-2">{product.name}</h3>
-                       <p className="text-[9px] font-medium text-gray-400">10 units</p>
+                       <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-black text-gray-800">{rating}</span>
+                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                       </div>
                        {product.isSilentPackaging && (
                           <div className="mt-1 bg-black text-white w-fit px-1.5 py-0.5 rounded flex items-center gap-1">
                              <ShieldCheck className="h-2 w-2" />

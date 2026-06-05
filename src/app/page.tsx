@@ -80,7 +80,7 @@ export default function ShopyKartApp() {
                   </button>
                   <div className="flex flex-col">
                     <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">Medical Hub</span>
-                    <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">20 Mins Delivery</span>
+                    <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>
                   </div>
                </div>
                <div className="h-9 w-9 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 border border-teal-100">
