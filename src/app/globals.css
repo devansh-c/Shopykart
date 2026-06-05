@@ -31,7 +31,7 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
-    touch-action: manipulation;
+    touch-action: manipulation !important; /* Critical for zero tap delay */
   }
   
   body {
@@ -48,18 +48,18 @@
     contain-intrinsic-size: 1px 500px;
   }
 
-  /* INSTANT INTERACTIONS */
+  /* INSTANT INTERACTIONS - ZERO DELAY */
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    transition: transform 0.05s cubic-bezier(0, 0, 0.2, 1), opacity 0.05s linear !important;
+    transition: none !important; /* No easing for navigation */
     will-change: transform;
     outline: none !important;
   }
 
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.92);
-    opacity: 0.8;
+    transform: scale(0.92) !important;
+    opacity: 0.8 !important;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -88,4 +88,5 @@
 nav.fixed {
   isolation: isolate;
   backface-visibility: hidden;
+  transform: translateZ(0); /* Hardware acceleration */
 }
