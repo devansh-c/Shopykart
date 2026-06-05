@@ -167,15 +167,19 @@ export default function BeautyDashboard() {
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
-      toast({ variant: "destructive", title: "Missing Info" });
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, Category and Image are required." });
       return;
     }
     setIsSubmitting(true);
+    
     const targetId = editingId || doc(collection(firestore, 'products')).id;
+    
+    // ENSURE DATA PERSISTENCE WITH EXPLICIT FIELDS
     const productData = {
+      id: targetId,
       name: newProduct.name.trim(),
       price: parseFloat(newProduct.price),
-      description: newProduct.description,
+      description: newProduct.description || '',
       category: newProduct.category.toLowerCase().trim(),
       isAvailable: true,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
@@ -187,14 +191,23 @@ export default function BeautyDashboard() {
       updatedAt: serverTimestamp(),
       createdAt: editingId ? (products?.find(p => p.id === editingId)?.createdAt || serverTimestamp()) : serverTimestamp()
     };
+
     try {
+      // 1. SAVE PERMANENTLY TO GLOBAL COLLECTION
       await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
+      
+      // 2. SAVE TO VENDOR SUB-COLLECTION
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
+      
       setIsAddOpen(false);
       resetForm();
-      toast({ title: "Product Synced!" });
-    } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
-    finally { setIsSubmitting(false); }
+      toast({ title: "Product Permanently Saved! ✅" });
+    } catch (e) { 
+      console.error("Save failed:", e);
+      toast({ variant: "destructive", title: "Persistence Error", description: "Could not save to Firestore." }); 
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -214,7 +227,7 @@ export default function BeautyDashboard() {
     if (!firestore || !user) return;
     try {
       await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: online, updatedAt: serverTimestamp() });
-      toast({ title: online ? "Hub Opened" : "Hub Closed" });
+      toast({ title: online ? "Beauty Hub Opened" : "Beauty Hub Closed" });
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 

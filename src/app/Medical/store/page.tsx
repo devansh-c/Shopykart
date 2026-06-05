@@ -1,14 +1,14 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
   Trash2, 
   Plus, 
   LogOut,
-  Utensils,
   LayoutDashboard,
   Layers,
   CircleDollarSign,
@@ -18,7 +18,6 @@ import {
   BellRing,
   Clock,
   Camera,
-  Check,
   History,
   Wallet,
   Store,
@@ -34,10 +33,9 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
@@ -81,7 +79,6 @@ export default function MedicalDashboard() {
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Only fetch Medical categories
     return query(collection(firestore, 'categories'), where('serviceType', '==', 'Medical'));
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
@@ -172,19 +169,23 @@ export default function MedicalDashboard() {
   const handleAddProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     if (!newProduct.name || !newProduct.price || !newProduct.imageUrl || !newProduct.category) {
-      toast({ variant: "destructive", title: "Missing Info" });
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, Category and Image are required." });
       return;
     }
     setIsSubmitting(true);
+    
     const targetId = editingId || doc(collection(firestore, 'products')).id;
+    
+    // ENSURE DATA PERSISTENCE WITH EXPLICIT FIELDS
     const productData = {
+      id: targetId,
       name: newProduct.name.trim(),
       price: parseFloat(newProduct.price),
-      description: newProduct.description,
+      description: newProduct.description || '',
       category: newProduct.category.toLowerCase().trim(),
+      isAvailable: true,
       isVeg: newProduct.isVeg,
       isSilentPackaging: newProduct.isSilentPackaging,
-      isAvailable: true,
       options: newProduct.options.filter(o => o.name.trim() !== ''),
       vendorId: user.uid,
       zoneId: vendorProfile.zoneId || null,
@@ -194,14 +195,23 @@ export default function MedicalDashboard() {
       updatedAt: serverTimestamp(),
       createdAt: editingId ? (products?.find(p => p.id === editingId)?.createdAt || serverTimestamp()) : serverTimestamp()
     };
+
     try {
+      // 1. SAVE PERMANENTLY TO GLOBAL COLLECTION (For Customers)
       await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
+      
+      // 2. SAVE TO VENDOR SUB-COLLECTION (For Dashboard Management)
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
+      
       setIsAddOpen(false);
       resetForm();
-      toast({ title: "Product Synced!" });
-    } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
-    finally { setIsSubmitting(false); }
+      toast({ title: "Product Permanently Saved! ✅" });
+    } catch (e) { 
+      console.error("Save failed:", e);
+      toast({ variant: "destructive", title: "Persistence Error", description: "Could not save to Firestore." }); 
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -221,7 +231,7 @@ export default function MedicalDashboard() {
     if (!firestore || !user) return;
     try {
       await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: online, updatedAt: serverTimestamp() });
-      toast({ title: online ? "Store Opened" : "Store Closed" });
+      toast({ title: online ? "Pharmacy Opened" : "Pharmacy Closed" });
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
@@ -309,7 +319,7 @@ export default function MedicalDashboard() {
                    {orderFilter === 'NEW ORDERS' && (
                      <div className="flex gap-2">
                         {o.status === 'Placed' && (
-                          <Button onClick={() => updateOrderStatus(o.id, 'Accepted')} className="flex-1 bg-black h-12 rounded-2xl font-black uppercase text-xs shadow-xl">Accept Order</Button>
+                          <Button onClick={() => updateOrderStatus(o.id, 'Accepted')} className="flex-1 bg-black h-12 rounded-2xl font-black uppercase text-xs shadow-xl">Accept Prescription</Button>
                         )}
                         {o.status === 'Accepted' && (
                           <Button onClick={() => updateOrderStatus(o.id, 'Preparing')} className="flex-1 bg-teal-600 h-12 rounded-2xl font-black uppercase text-xs text-white">Packing Items</Button>
@@ -318,7 +328,7 @@ export default function MedicalDashboard() {
                           <Button onClick={() => updateOrderStatus(o.id, 'Ready for Pickup')} className="flex-1 bg-green-600 h-12 rounded-2xl font-black uppercase text-xs text-white">Ready for Dispatch</Button>
                         )}
                         {o.status === 'Ready for Pickup' && (
-                          <div className="flex-1 flex items-center justify-center bg-muted h-12 rounded-2xl font-black uppercase text-[10px] text-gray-400">Waiting for Delivery Partner</div>
+                          <div className="flex-1 flex items-center justify-center bg-muted h-12 rounded-2xl font-black uppercase text-[10px] text-gray-400">Waiting for Partner</div>
                         )}
                         
                         {['Placed', 'Accepted'].includes(o.status) && (
