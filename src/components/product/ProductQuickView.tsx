@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -152,6 +151,14 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                    </div>
                 </div>
              </div>
+          </div>
+
+          <div className="px-6 py-2">
+            {product.description && (
+              <p className="text-[11px] font-medium text-muted-foreground leading-relaxed italic line-clamp-3">
+                {product.description}
+              </p>
+            )}
           </div>
 
           <div className="px-6 py-4 space-y-5">

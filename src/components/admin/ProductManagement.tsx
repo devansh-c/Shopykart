@@ -1,10 +1,10 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
 import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -30,6 +30,7 @@ export function ProductManagement() {
 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState('');
@@ -82,6 +83,7 @@ export function ProductManagement() {
     const productData = {
       name: name.trim(),
       price: parseFloat(price),
+      description: description.trim(),
       category: category.toLowerCase().trim() || 'general',
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'Store',
@@ -107,12 +109,12 @@ export function ProductManagement() {
   };
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setPrice(''); setCategory(''); setSelectedVendorId(''); setSelectedZoneId('');
+    setEditingId(null); setName(''); setPrice(''); setDescription(''); setCategory(''); setSelectedVendorId(''); setSelectedZoneId('');
     setIsVeg(true); setSelectedImage(null); setOptions([]);
   };
 
   const handleEdit = (p: any) => {
-    setEditingId(p.id); setName(p.name); setPrice(p.price.toString()); setCategory(p.category);
+    setEditingId(p.id); setName(p.name); setPrice(p.price.toString()); setDescription(p.description || ''); setCategory(p.category);
     setSelectedVendorId(p.vendorId); setSelectedZoneId(p.zoneId || ''); setIsVeg(p.isVeg !== false);
     setSelectedImage(p.imageUrl); setOptions(p.options || []); setIsAddOpen(true);
   };
@@ -133,6 +135,7 @@ export function ProductManagement() {
                 <DialogHeader><DialogTitle className="font-black italic uppercase">Inventory Master</DialogTitle></DialogHeader>
                 <div className="space-y-5 pt-4">
                    <Input placeholder="Dish name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl" />
+                   <Textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24" />
                    <Input placeholder="Price" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl" />
                    <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
                       <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select Store" /></SelectTrigger>

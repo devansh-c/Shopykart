@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -182,12 +181,24 @@ export default function ProductDetailsClient() {
           )}
         </div>
 
-        <div className="flex items-baseline gap-3 mb-6">
+        <div className="flex items-baseline gap-3 mb-4">
            <div className="text-3xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
            {product.mrp > product.price && (
              <div className="text-sm font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>
            )}
         </div>
+
+        {product.description && (
+          <div className="mb-6 p-4 bg-muted/20 rounded-2xl border border-border/40">
+             <div className="flex items-center gap-2 mb-2 text-primary">
+                <FileText className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Description</span>
+             </div>
+             <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+               {product.description}
+             </p>
+          </div>
+        )}
 
         {/* METADATA BLOCK (Dates & Silent Packaging) */}
         <div className="space-y-4 mb-8">
