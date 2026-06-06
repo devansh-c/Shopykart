@@ -29,12 +29,14 @@ export function ProductManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
+  const [mrp, setMrp] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
-  const [selectedZoneId, setSelectedZoneId] = useState('');
   const [isVeg, setIsVeg] = useState(true);
+  const [mfgDate, setMfgDate] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
   const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
 
   const productsQuery = useMemoFirebase(() => {
@@ -48,12 +50,6 @@ export function ProductManagement() {
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
-
-  const zonesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'zones');
-  }, [firestore]);
-  const { data: zones } = useCollection<any>(zonesQuery);
 
   const handleBulkStatus = async (online: boolean) => {
     if (!firestore || !vendors) return;
@@ -71,25 +67,30 @@ export function ProductManagement() {
 
   const handleSave = async () => {
     if (!firestore || !name || !price || !selectedVendorId) {
-      toast({ variant: "destructive", title: "Missing Info" });
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, and Vendor are required." });
       return;
     }
     
     const vendor = vendors?.find(v => v.id === selectedVendorId);
-    // STRICT INHERITANCE: Force product to match Vendor's town and zone
+    // HUB INHERITANCE: Automatically set serviceMode based on vendor's assigned category
+    const finalServiceMode = vendor?.category || 'Food';
     const finalZoneId = vendor?.zoneId || null;
     const finalTown = vendor?.town || 'Local';
     
     const productData = {
       name: name.trim(),
+      mrp: parseFloat(mrp) || parseFloat(price),
       price: parseFloat(price),
       description: description.trim(),
       category: category.toLowerCase().trim() || 'general',
+      serviceMode: finalServiceMode,
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'Store',
       zoneId: finalZoneId,
       town: finalTown,
       isVeg,
+      mfgDate: mfgDate || null,
+      expiryDate: expiryDate || null,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
       isAvailable: true,
       options: options.filter(opt => opt.name.trim() !== ''),
@@ -104,19 +105,29 @@ export function ProductManagement() {
       }
       setIsAddOpen(false);
       resetForm();
-      toast({ title: "Success" });
-    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
+      toast({ title: "Product Published", description: `Assigned to ${finalServiceMode} Hub.` });
+    } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
   };
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setPrice(''); setDescription(''); setCategory(''); setSelectedVendorId(''); setSelectedZoneId('');
-    setIsVeg(true); setSelectedImage(null); setOptions([]);
+    setEditingId(null); setName(''); setMrp(''); setPrice(''); setDescription(''); setCategory(''); setSelectedVendorId('');
+    setIsVeg(true); setSelectedImage(null); setOptions([]); setMfgDate(''); setExpiryDate('');
   };
 
   const handleEdit = (p: any) => {
-    setEditingId(p.id); setName(p.name); setPrice(p.price.toString()); setDescription(p.description || ''); setCategory(p.category);
-    setSelectedVendorId(p.vendorId); setSelectedZoneId(p.zoneId || ''); setIsVeg(p.isVeg !== false);
-    setSelectedImage(p.imageUrl); setOptions(p.options || []); setIsAddOpen(true);
+    setEditingId(p.id); 
+    setName(p.name); 
+    setMrp((p.mrp || p.price).toString());
+    setPrice(p.price.toString()); 
+    setDescription(p.description || ''); 
+    setCategory(p.category);
+    setSelectedVendorId(p.vendorId); 
+    setIsVeg(p.isVeg !== false);
+    setMfgDate(p.mfgDate || '');
+    setExpiryDate(p.expiryDate || '');
+    setSelectedImage(p.imageUrl); 
+    setOptions(p.options || []); 
+    setIsAddOpen(true);
   };
 
   return (
@@ -134,21 +145,36 @@ export function ProductManagement() {
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar">
                 <DialogHeader><DialogTitle className="font-black italic uppercase">Inventory Master</DialogTitle></DialogHeader>
                 <div className="space-y-5 pt-4">
-                   <Input placeholder="Dish name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl" />
-                   <Textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24" />
-                   <Input placeholder="Price" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl" />
-                   <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select Store" /></SelectTrigger>
-                      <SelectContent>{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName}</SelectItem>)}</SelectContent>
-                   </Select>
-                   <Input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl" />
-                   <div onClick={() => fileInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden">
-                      {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" /> : <ImageIcon className="h-8 w-8 opacity-20" />}
+                   <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                      {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Product Photo</span></div>}
                    </div>
                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
                       const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setSelectedImage(await compressImage(r.result as string, 800, 800)); r.readAsDataURL(f); }
                    }} />
-                   <Button onClick={handleSave} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-lg">PUBLISH PRODUCT</Button>
+                   
+                   <div className="space-y-4">
+                      <Input placeholder="Dish/Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold" />
+                      <Textarea placeholder="Full Description (Ingredients, usage, etc.)" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24 font-medium" />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20" />
+                        <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input placeholder="MFG (Oct 2023)" value={mfgDate} onChange={e => setMfgDate(e.target.value)} className="h-11 rounded-xl text-xs" />
+                        <Input placeholder="Expiry (Oct 2024)" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="h-11 rounded-xl text-xs border-red-100" />
+                      </div>
+
+                      <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                        <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-none font-bold"><SelectValue placeholder="Assign to Store" /></SelectTrigger>
+                        <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName} ({v.category})</SelectItem>)}</SelectContent>
+                      </Select>
+
+                      <Input placeholder="Category (e.g. Lipsticks, Burgers)" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/10 border-none font-bold" />
+                   </div>
+
+                   <Button onClick={handleSave} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 text-lg">PUBLISH PRODUCT</Button>
                 </div>
               </DialogContent>
            </Dialog>
@@ -157,18 +183,24 @@ export function ProductManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
         {products?.map(p => (
-          <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between group">
+          <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center gap-4">
-              <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" />
+              <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
               <div>
-                <h4 className="font-black text-sm uppercase italic">{p.name}</h4>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">{p.restaurantName} • {p.town}</p>
-                <p className="text-primary font-black">₹{p.price}</p>
+                <h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4>
+                <div className="flex items-center gap-2">
+                   <span className="text-[8px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-full uppercase">{p.serviceMode || 'Food'}</span>
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase truncate max-w-[80px]">{p.restaurantName}</p>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                   <p className="text-primary font-black text-xs">₹{p.price}</p>
+                   {p.mrp > p.price && <span className="text-[8px] text-gray-400 line-through">₹{p.mrp}</span>}
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600"><Edit className="h-4 w-4" /></Button>
-              <Button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-600"><Trash2 className="h-4 w-4" /></Button>
+              <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
+              <Button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-600 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
         ))}

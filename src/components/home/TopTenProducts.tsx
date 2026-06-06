@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -46,6 +45,11 @@ export function TopTenProducts() {
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       if (!vendor) return false;
+
+      // HUB ISOLATION: Only show Food products in Top Ten
+      const vendorCategory = vendor?.category || 'Food';
+      const productMode = p.serviceMode || vendorCategory;
+      if (productMode !== 'Food') return false;
 
       // STRICT ZONE FILTERING
       const productZoneId = p.zoneId || vendor.zoneId;
