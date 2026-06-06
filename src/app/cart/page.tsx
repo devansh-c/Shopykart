@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
@@ -61,6 +62,7 @@ export default function CartPage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   
   const [showSuccess, setShowSuccess] = useState(false);
   const [instructions, setInstructions] = useState('');
@@ -176,7 +178,25 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
-    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 15) return;
+
+    // MINIMUM ORDER VALUE CHECK (₹35)
+    if (totalPrice < 35) {
+      toast({
+        variant: "destructive",
+        title: "Order Value Low",
+        description: "₹35 se kam ka order nahi hoga. Please kuch aur items add karein!",
+      });
+      return;
+    }
+
+    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 15) {
+      toast({
+        variant: "destructive",
+        title: "Incomplete Details",
+        description: "Please check your name, 10-digit phone and full address (Min 15 chars).",
+      });
+      return;
+    }
 
     // Trigger success UI and Sound instantly (optimistic)
     setShowSuccess(true);
