@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -16,23 +17,22 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Fixed splash duration: exactly 2 seconds as requested
+    // REDUCED: Fixed splash duration to 1.5 seconds for snappier feel
     const timer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 2000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Final Visibility Logic: Hide when timer is done. 
-  // We wait for isAppReady too but prioritize the 2s duration feel.
+  // Final Visibility Logic: Hide when timer is done OR app is ready
   const isVisible = !isTimerDone || !isAppReady;
 
   useEffect(() => {
     if (!isVisible) {
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 300); // Small buffer for exit animation
+      }, 300); // Transition buffer
       return () => clearTimeout(removeTimer);
     } else {
       setShouldRender(true);
@@ -41,17 +41,13 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-
     const nextTaps = taps + 1;
-    
     if (nextTaps >= 5) {
       setTaps(0);
       router.push('/admin/dashboard');
     } else {
       setTaps(nextTaps);
-      timerRef.current = setTimeout(() => {
-        setTaps(0);
-      }, 2000);
+      timerRef.current = setTimeout(() => setTaps(0), 2000);
     }
   };
 
@@ -72,7 +68,6 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
             isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
           )}
         >
-          {/* Pill-shaped Branding */}
           <div className="px-10 py-5 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-md shadow-[0_0_40px_rgba(197,160,33,0.2)] flex flex-col items-center">
             <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
               <span className="text-white">SHOPY</span>
@@ -85,7 +80,6 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         </div>
       </div>
       
-      {/* Handcrafted Detail */}
       <div className={cn(
         "absolute bottom-12 transition-all duration-500 delay-100 flex flex-col items-center gap-2",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"

@@ -1,10 +1,11 @@
+
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React from 'react';
+import React, { useCallback } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -16,7 +17,7 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Optimized for absolute zero delay using direct routing and pointer events.
+ * Uses Direct Routing and low-level PointerEvents to bypass NextJS router overhead.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -30,16 +31,19 @@ export function BottomNav() {
                          pathname?.startsWith('/Beauty') ||
                          pathname === '/cart';
   
+  // Use Callback for zero-overhead function reference
+  const handleNav = useCallback((href: string) => {
+    if (pathname === href) return;
+    // Direct hardware-level routing call
+    window.requestAnimationFrame(() => {
+      router.push(href);
+    });
+  }, [pathname, router]);
+
   if (isExcludedPath) return null;
 
-  // Direct navigation on touch start for 0ms delay
-  const handleNav = (href: string) => {
-    if (pathname === href) return;
-    router.push(href);
-  };
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none will-change-transform translate-z-0">
+    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none transform translate-z-0">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)]">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -48,9 +52,19 @@ export function BottomNav() {
           return (
             <button
               key={item.label}
-              onPointerDown={() => handleNav(item.href)}
+              onPointerDown={(e) => {
+                // INSTANT visual feedback + routing trigger
+                e.currentTarget.style.transform = 'scale(0.9)';
+                handleNav(item.href);
+              }}
+              onPointerUp={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              onPointerLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-none active:scale-90 relative touch-manipulation outline-none border-none bg-transparent cursor-pointer",
+                "flex flex-col items-center justify-center flex-1 h-full transition-none relative touch-manipulation outline-none border-none bg-transparent cursor-pointer select-none",
                 isActive ? "text-primary" : "text-gray-400"
               )}
               style={{ WebkitTapHighlightColor: 'transparent' }}

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -40,28 +41,27 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    /* Prevent text selection during fast taps */
     user-select: none;
   }
   
-  /* PERFORMANCE ENGINE: Content Visibility */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 500px;
   }
 
-  /* INSTANT INTERACTIONS - ZERO DELAY */
+  /* ATOMIC INTERACTIONS - ABSOLUTE ZERO DELAY */
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    transition: none !important; /* No easing for navigation */
+    transition: none !important; /* Forces instant visual change */
     will-change: transform;
     outline: none !important;
     -webkit-appearance: none;
   }
 
+  /* High priority click scaling */
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.94) !important;
+    transform: scale(0.92) !important;
     opacity: 0.9 !important;
   }
 
@@ -85,11 +85,10 @@
 
 .premium-card {
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
-  transition: all 0.1s ease-out;
 }
 
 nav.fixed {
   isolation: isolate;
   backface-visibility: hidden;
-  transform: translateZ(0); /* Hardware acceleration */
+  transform: translateZ(0); /* GPU Acceleration */
 }
