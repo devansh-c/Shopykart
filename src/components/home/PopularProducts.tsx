@@ -1,12 +1,13 @@
+
 "use client"
 
-import { useMemo, useState, useEffect, useCallback } from "react"
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock, ShieldCheck, Check } from "lucide-react"
+import { useMemo, useState, useEffect } from "react"
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit, orderBy, where } from "firebase/firestore"
+import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import {
   Select,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/select"
 
 /**
- * @fileOverview PopularProducts with Strict Hub Isolation and Availability check.
+ * @fileOverview PopularProducts optimized for rendering performance using content-visibility.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -48,10 +49,7 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-      collection(firestore, 'products'), 
-      limit(300) 
-    );
+    return query(collection(firestore, 'products'), limit(300));
   }, [firestore]);
 
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
@@ -84,14 +82,11 @@ export function PopularProducts({
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
-      // 1. STRICT HUB FILTERING
       const vendor = vendorMap.get(product.vendorId);
       const vendorCategory = vendor?.category || 'Food'; 
-      
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
-      // 2. ZONE FILTERING
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
@@ -101,7 +96,6 @@ export function PopularProducts({
         if (!matchesZoneId && !matchesTown && productZoneId) return false;
       }
 
-      // 3. SEARCH & CATEGORY FILTERING
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
@@ -114,7 +108,6 @@ export function PopularProducts({
     result.sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
-      // Both Vendor online AND Product Available required
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
@@ -161,7 +154,7 @@ export function PopularProducts({
 
         <main className="flex-1 p-4 pb-40 content-visibility-auto">
           <div className="flex items-center justify-between mb-6">
-             <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode} Products` : selectedCat}</h2>
+             <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode}` : selectedCat}</h2>
              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{productsToDisplay.length} Items</span>
           </div>
 
@@ -169,14 +162,13 @@ export function PopularProducts({
             {productsToDisplay.map((product) => {
               const cartItem = cart?.find((item: any) => item.id === product.id);
               const quantity = cartItem?.quantity || 0;
-              const isOffline = (vendorMap.get(product.vendorId)?.isOnline === false) || (product.isAvailable === false);
+              const vendor = vendorMap.get(product.vendorId);
+              const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
               const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
-              
-              const rating = (4 + (product.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 11) / 10).toFixed(1);
               const discount = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
 
               return (
-                <div key={product.id} className={cn("flex flex-col relative bg-white rounded-3xl border border-gray-100 p-2.5 shadow-sm active:scale-[0.98] transition-all", isOffline && "opacity-60 grayscale")}>
+                <div key={product.id} className={cn("flex flex-col relative bg-white rounded-3xl border border-gray-100 p-2.5 shadow-sm active:scale-[0.98] transition-none will-change-transform", isOffline && "opacity-60 grayscale")}>
                   {discount > 0 && (
                     <div className="absolute top-0 left-2 z-10">
                       <div className="bg-primary text-white text-[8px] font-black px-1.5 py-2.5 rounded-b-md shadow-lg flex flex-col items-center leading-none">
@@ -187,11 +179,6 @@ export function PopularProducts({
                   <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
                     <button className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3">
                       <Image src={imageUrl} alt={product.name} fill className="object-contain p-2" unoptimized loading="lazy" />
-                      {isOffline && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-2 text-center">
-                          <span className="text-white font-black text-[9px] uppercase italic tracking-tighter border border-white/30 px-2 py-1 rounded-md">Unavailable</span>
-                        </div>
-                      )}
                     </button>
                   </ProductQuickView>
                   <div className="flex items-center gap-1 mb-2 bg-gray-50 w-fit px-1.5 py-0.5 rounded-md border border-gray-100">
@@ -202,8 +189,8 @@ export function PopularProducts({
                     <button className="text-left flex flex-col gap-0.5 mb-3 h-14">
                        <h3 className="font-bold text-[11px] text-gray-900 leading-tight line-clamp-2 uppercase">{product.name}</h3>
                        <div className="flex items-center gap-1">
-                         <span className="text-[10px] font-black text-gray-800">{rating}</span>
                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                         <span className="text-[10px] font-black text-gray-800">4.5</span>
                        </div>
                     </button>
                   </ProductQuickView>
@@ -214,11 +201,11 @@ export function PopularProducts({
                      </div>
                      <div className="relative">
                         {quantity === 0 ? (
-                          <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-colors", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}>
+                          <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}>
                             {isOffline ? 'OFF' : 'ADD'}
                           </button>
                         ) : (
-                          <div className="flex items-center bg-primary text-white rounded-lg h-8 px-1 shadow-md animate-in zoom-in-95 duration-200">
+                          <div className="flex items-center bg-primary text-white rounded-lg h-8 px-1 shadow-md">
                             <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center font-bold text-lg">-</button>
                             <span className="w-5 text-center text-[11px] font-black">{quantity}</span>
                             <button onClick={() => addToCart({ ...product, imageUrl })} className="w-6 h-full flex items-center justify-center font-bold text-lg">+</button>
@@ -258,7 +245,7 @@ export function PopularProducts({
           const isOffline = (vendorMap.get(product.vendorId)?.isOnline === false) || (product.isAvailable === false);
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
           return (
-            <div key={product.id} className={cn("premium-card p-6 flex justify-between items-start bg-white relative transition-all duration-500", isOffline && "opacity-60 grayscale-[0.5]")}>
+            <div key={product.id} className={cn("premium-card p-6 flex justify-between items-start bg-white relative transition-none will-change-transform", isOffline && "opacity-60 grayscale-[0.5]")}>
               <div className="flex-1 pr-4 min-w-0">
                 <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2"><div className="h-full w-full bg-green-600 rounded-full" /></div>
                 <ProductQuickView product={product} isMedical={false}>
@@ -286,7 +273,7 @@ export function PopularProducts({
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (
                     <ProductQuickView product={product} isMedical={false}>
-                      <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-all", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary active:scale-95")}>
+                      <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary active:scale-95")}>
                         {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>
                     </ProductQuickView>

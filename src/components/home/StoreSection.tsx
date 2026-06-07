@@ -1,14 +1,17 @@
+
 "use client"
 
-import { Star, MapPin, Store } from "lucide-react"
+import { Star, MapPin } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, where } from "firebase/firestore"
+import { collection } from "firebase/firestore"
 import { useMemo, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Skeleton } from "@/components/ui/skeleton"
 
+/**
+ * @fileOverview StoreSection with content-visibility and GPU acceleration.
+ */
 export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -39,12 +42,9 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food') === activeMode;
       
-      // STRICT ZONE FILTERING
       if (activeZoneId || targetCityNormalized) {
         const matchesId = activeZoneId && v.zoneId === activeZoneId;
         const matchesTown = targetCityNormalized && (v.town || '').toLowerCase().trim() === targetCityNormalized;
-        
-        // Exact match required
         if (!matchesId && !matchesTown) return false;
       }
       
@@ -56,7 +56,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
     });
   }, [dbVendors, activeMode, activeZoneId, activeCity]);
 
-  // STORES HIDDEN IN MEDICAL MODE
   if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
   if (loading && !dbVendors) {
@@ -89,7 +88,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               href={`/menu?vendor=${store.id}`}
               key={store.id} 
               className={cn(
-                "block min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] shrink-0",
+                "block min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-none active:scale-[0.98] shrink-0 will-change-transform translate-z-0",
                 isOffline && "opacity-80"
               )}
             >
@@ -102,7 +101,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
                 )}
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-xl flex items-center gap-1 shadow-sm">
                    <span className="text-[10px] font-black text-black">{store.rating || '4.4'}</span>
-                   <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                   <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-400" />
                 </div>
               </div>
 

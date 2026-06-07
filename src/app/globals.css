@@ -32,7 +32,7 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
-    touch-action: manipulation !important; /* Critical for zero tap delay */
+    touch-action: manipulation !important;
   }
   
   body {
@@ -42,8 +42,11 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     user-select: none;
+    /* Prevent layout shift */
+    min-height: 100vh;
   }
   
+  /* CRITICAL PERFORMANCE: Content Visibility */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 500px;
@@ -53,15 +56,15 @@
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    transition: none !important; /* Forces instant visual change */
+    transition: none !important;
     will-change: transform;
     outline: none !important;
     -webkit-appearance: none;
   }
 
-  /* High priority click scaling */
+  /* GPU Optimized Active State */
   button:active, a:active, [role="button"]:active, .interactive:active {
-    transform: scale(0.92) !important;
+    transform: scale(0.96) translateZ(0) !important;
     opacity: 0.9 !important;
   }
 
@@ -85,6 +88,8 @@
 
 .premium-card {
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
+  transform: translateZ(0); /* Hardware Acceleration */
+  backface-visibility: hidden;
 }
 
 nav.fixed {

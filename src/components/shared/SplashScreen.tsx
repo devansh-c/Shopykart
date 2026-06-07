@@ -9,6 +9,9 @@ interface SplashScreenProps {
   isAppReady?: boolean;
 }
 
+/**
+ * @fileOverview Optimized SplashScreen with memory cleanup and GPU layer.
+ */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
   const [shouldRender, setShouldRender] = useState(true);
@@ -17,7 +20,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // REDUCED: Fixed splash duration to 1.5 seconds for snappier feel
+    // Ultra-snappy 1.5s splash
     const timer = setTimeout(() => {
       setIsTimerDone(true);
     }, 1500);
@@ -25,17 +28,15 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Final Visibility Logic: Hide when timer is done OR app is ready
   const isVisible = !isTimerDone || !isAppReady;
 
   useEffect(() => {
     if (!isVisible) {
+      // Memory cleanup: Remove from DOM after transition
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 300); // Transition buffer
+      }, 500);
       return () => clearTimeout(removeTimer);
-    } else {
-      setShouldRender(true);
     }
   }, [isVisible]);
 
@@ -56,15 +57,16 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-500 ease-in-out",
-        isVisible ? "opacity-100" : "opacity-0 pointer-events-none translate-y-2"
+        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out will-change-opacity",
+        isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
+      style={{ transform: 'translateZ(0)' }}
     >
       <div className="relative flex flex-col items-center">
         <div 
           onClick={handleTap}
           className={cn(
-            "transition-all duration-300 transform flex flex-col items-center cursor-pointer active:scale-95",
+            "transition-all duration-300 transform flex flex-col items-center cursor-pointer active:scale-95 will-change-transform",
             isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
           )}
         >

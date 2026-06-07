@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp, setLogLevel } from 'firebase/app';
@@ -17,7 +18,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Uses Auto-Detect for Long Polling to ensure speed on fast networks while maintaining 3G reliability.
+ * Optimized for peak efficiency and memory usage.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -35,9 +36,9 @@ export function initializeFirebase() {
 
       setLogLevel('silent');
 
-      // PERFORMANCE OPTIMIZED FIRESTORE SETTINGS
+      // PEAK PERFORMANCE SETTINGS
       firestoreInstance = initializeFirestore(appInstance, {
-        experimentalAutoDetectLongPolling: true, // Use WebSockets on fast nets, Long-Polling on 3G
+        experimentalAutoDetectLongPolling: true,
         useFetchStreams: true, 
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
@@ -45,7 +46,7 @@ export function initializeFirebase() {
         })
       });
 
-      console.log("ShopyKart Engine: High-Speed Connection Active ✅");
+      console.log("ShopyKart Turbo Engine: Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);
