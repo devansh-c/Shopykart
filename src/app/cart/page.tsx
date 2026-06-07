@@ -301,10 +301,11 @@ export default function CartPage() {
         coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
       }, { merge: true });
 
+      // SNAPPY 1.5S REDIRECT AS REQUESTED
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
-      }, 3000);
+      }, 1500);
     } catch (err) {
       console.error("Order creation failed:", err);
       setShowSuccess(false);
