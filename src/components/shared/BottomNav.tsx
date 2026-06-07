@@ -1,11 +1,10 @@
-
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -17,12 +16,19 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Uses Direct Routing and low-level PointerEvents to bypass NextJS router overhead.
+ * Optimized for Zero Latency using hardware-level PointerEvents and Next.js Prefetching.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
+
+  // Prefetch all routes on mount for instant transition
+  useEffect(() => {
+    navItems.forEach(item => {
+      router.prefetch(item.href);
+    });
+  }, [router]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -31,13 +37,10 @@ export function BottomNav() {
                          pathname?.startsWith('/Beauty') ||
                          pathname === '/cart';
   
-  // Use Callback for zero-overhead function reference
   const handleNav = useCallback((href: string) => {
     if (pathname === href) return;
-    // Direct hardware-level routing call
-    window.requestAnimationFrame(() => {
-      router.push(href);
-    });
+    // Bypassing any JS-thread heavy logic for atomic speed
+    router.push(href);
   }, [pathname, router]);
 
   if (isExcludedPath) return null;
@@ -53,15 +56,8 @@ export function BottomNav() {
             <button
               key={item.label}
               onPointerDown={(e) => {
-                // INSTANT visual feedback + routing trigger
-                e.currentTarget.style.transform = 'scale(0.9)';
+                // Instant hardware reaction
                 handleNav(item.href);
-              }}
-              onPointerUp={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              onPointerLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
               }}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full transition-none relative touch-manipulation outline-none border-none bg-transparent cursor-pointer select-none",
