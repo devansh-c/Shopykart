@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -382,7 +383,7 @@ export default function BeautyDashboard() {
                        <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Manage Cosmetic Product</DialogTitle></DialogHeader>
                        <div className="space-y-4 pt-4">
                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed border-border rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
-                             {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                             {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
@@ -400,7 +401,9 @@ export default function BeautyDashboard() {
                           </div>
 
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Beauty Category" /></SelectTrigger>
+                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                <SelectValue placeholder="Beauty Category" />
+                             </SelectTrigger>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
 
@@ -512,7 +515,7 @@ export default function BeautyDashboard() {
               <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm text-center">
                  <div className="relative mx-auto w-24 h-24 mb-4">
                    <div className="h-full w-full rounded-[2rem] border-4 border-white shadow-xl bg-rose-50 overflow-hidden flex items-center justify-center">
-                      {vendorProfile.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" /> : <Sparkles className="h-10 w-10 text-rose-600" />}
+                      {vendorProfile.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Sparkles className="h-10 w-10 text-rose-600" />}
                    </div>
                    <div className="absolute -bottom-1 -right-1 bg-rose-600 p-2 rounded-xl text-white shadow-lg"><Camera className="h-3 w-3" /></div>
                  </div>

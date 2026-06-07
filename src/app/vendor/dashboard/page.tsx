@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -248,7 +249,6 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  // ONLY show loader during ACTIVE state changes. If not found, useEffect will push out.
   if (authLoading || (profileLoading && !vendorProfile)) {
     return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
@@ -386,7 +386,9 @@ export default function VendorDashboard() {
                           </div>
 
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectValue>
+                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                <SelectValue placeholder="Category" />
+                             </SelectTrigger>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
 
@@ -437,7 +439,7 @@ export default function VendorDashboard() {
               <div className="grid grid-cols-1 gap-3">
                  {products?.map(p => (
                    <div key={p.id} className="bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm">
-                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-xs uppercase italic truncate max-w-[150px]">{p.name}</h4><div className="flex items-center gap-2"><p className="text-primary font-black text-xs italic">₹{p.price}</p>{p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}</div>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
+                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-sm uppercase italic truncate max-w-[150px]">{p.name}</h4><div className="flex items-center gap-2"><p className="text-primary font-black text-xs italic">₹{p.price}</p>{p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}</div>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
                       <div className="flex gap-2">
                         <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, mrp: (p.mrp || p.price).toString(), price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, mfgDate: p.mfgDate || '', expiryDate: p.expiryDate || '', options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
                         <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>

@@ -63,16 +63,20 @@ function AuthGuard({ children }: { children: ReactNode }) {
 function AppContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { loading, user } = useUser();
+  const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
   
+  useEffect(() => {
+    setIsSessionActive(localStorage.getItem('shopykart_session_active') === 'true');
+  }, []);
+
   // Logic to determine if splash is done based on auth settled OR optimistic flag
   const [isSettled, setIsSettled] = useState(false);
   useEffect(() => {
-    const active = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!loading || active) {
-      const timer = setTimeout(() => setIsSettled(true), 500); // Tiny buffer
+    if (!loading || isSessionActive) {
+      const timer = setTimeout(() => setIsSettled(true), 300); // Snappier exit
       return () => clearTimeout(timer);
     }
-  }, [loading]);
+  }, [loading, isSessionActive]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 

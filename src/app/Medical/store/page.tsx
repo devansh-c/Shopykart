@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -383,7 +384,7 @@ export default function MedicalDashboard() {
                        <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Manage Healthcare Product</DialogTitle></DialogHeader>
                        <div className="space-y-4 pt-4">
                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed border-border rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
-                             {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                             {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" alt="" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Medicine/Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
@@ -401,7 +402,9 @@ export default function MedicalDashboard() {
                           </div>
 
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Healthcare Category" /></SelectTrigger>
+                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                <SelectValue placeholder="Healthcare Category" />
+                             </SelectTrigger>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
 
