@@ -1,10 +1,9 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +25,6 @@ export default function OrderDetailsClient() {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isCancelling, setIsCancelling] = useState(false);
 
   const orderRef = useMemoFirebase(() => {
     if (!firestore || !orderId) return null;
@@ -34,41 +32,6 @@ export default function OrderDetailsClient() {
   }, [firestore, orderId]);
 
   const { data: order, loading } = useDoc<any>(orderRef);
-
-  const handleCancelOrder = async () => {
-    if (!firestore || !orderId || !order || order.status !== 'Placed') {
-      toast({ variant: "destructive", title: "Cannot Cancel", description: "Order status has already changed." });
-      return;
-    }
-    
-    const confirmCancel = window.confirm("Are you sure you want to cancel this order?");
-    if (!confirmCancel) return;
-
-    setIsCancelling(true);
-    try {
-      const docRef = doc(firestore, 'orders', String(orderId));
-      await updateDoc(docRef, {
-        status: 'Cancelled',
-        cancelledAt: serverTimestamp(),
-        cancelledBy: 'customer',
-        updatedAt: serverTimestamp()
-      });
-      
-      toast({
-        title: "Order Cancelled",
-        description: "Your order has been successfully cancelled.",
-      });
-    } catch (error) {
-      console.error("Cancellation Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Cancellation Failed",
-        description: "Network error. Please try again or contact support.",
-      });
-    } finally {
-      setIsCancelling(false);
-    }
-  };
 
   if (!orderId) {
     return (
@@ -132,7 +95,7 @@ export default function OrderDetailsClient() {
              </div>
              <h3 className="font-black text-xl italic uppercase text-gray-800">Order Terminated</h3>
              <p className="text-xs text-muted-foreground font-medium leading-relaxed px-4">
-               This order was cancelled. If any amount was deducted, it will be refunded within 3-5 business days.
+               This order was cancelled by the store or administrator. If any amount was deducted, it will be refunded within 3-5 business days.
              </p>
              <Button 
               onClick={() => router.push('/menu')}
@@ -169,25 +132,6 @@ export default function OrderDetailsClient() {
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {order.status === 'Placed' && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-50">
-             <div className="flex flex-col items-center text-center gap-4">
-                <div className="space-y-1">
-                   <h4 className="font-black text-xs uppercase tracking-widest text-gray-400">Changed your mind?</h4>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase leading-tight px-4">You can cancel until the store accepts your order.</p>
-                </div>
-                <Button 
-                  disabled={isCancelling}
-                  onClick={handleCancelOrder}
-                  variant="outline" 
-                  className="w-full h-12 rounded-xl border-2 border-red-100 text-red-500 font-black uppercase italic text-[10px] tracking-[0.2em] hover:bg-red-50 active:scale-95 transition-all"
-                >
-                  {isCancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : "CANCEL ORDER"}
-                </Button>
-             </div>
           </div>
         )}
 
