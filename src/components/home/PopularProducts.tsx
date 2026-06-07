@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
@@ -133,7 +132,7 @@ export function PopularProducts({
       <div className="flex bg-[#F9FAFB] min-h-screen">
         <aside className="w-[85px] border-r border-gray-100 bg-white sticky top-0 h-screen overflow-y-auto no-scrollbar flex flex-col items-center py-6 gap-6 shrink-0">
           <button 
-            onClick={() => setSelectedCat('all')}
+            onPointerDown={() => setSelectedCat('all')}
             className={cn("flex flex-col items-center gap-1 group", selectedCat === 'all' ? "opacity-100" : "opacity-60")}
           >
             <div className={cn("h-14 w-14 rounded-full border-2 flex items-center justify-center bg-gray-50 transition-all", selectedCat === 'all' ? "border-primary ring-4 ring-primary/5" : "border-transparent")}>
@@ -143,7 +142,7 @@ export function PopularProducts({
           </button>
 
           {hubCategories.map((cat: any) => (
-            <button key={cat.id} onClick={() => setSelectedCat(cat.name)} className={cn("flex flex-col items-center gap-1 group", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
+            <button key={cat.id} onPointerDown={() => setSelectedCat(cat.name)} className={cn("flex flex-col items-center gap-1 group", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
               <div className={cn("relative h-14 w-14 rounded-full border-2 overflow-hidden transition-all", selectedCat === cat.name ? "border-primary ring-4 ring-primary/5 scale-105" : "border-transparent bg-gray-50")}>
                 <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized loading="lazy" />
               </div>
@@ -177,22 +176,22 @@ export function PopularProducts({
                     </div>
                   )}
                   <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
-                    <button className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3">
+                    <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3">
                       <Image src={imageUrl} alt={product.name} fill className="object-contain p-2" unoptimized loading="lazy" />
-                    </button>
+                    </div>
                   </ProductQuickView>
                   <div className="flex items-center gap-1 mb-2 bg-gray-50 w-fit px-1.5 py-0.5 rounded-md border border-gray-100">
                     <Clock className="h-2.5 w-2.5 text-gray-800" />
                     <span className="text-[8px] font-black text-gray-800 uppercase">10 MINS</span>
                   </div>
                   <ProductQuickView product={product} isMedical={activeMode === 'Medical'}>
-                    <button className="text-left flex flex-col gap-0.5 mb-3 h-14">
+                    <div className="text-left flex flex-col gap-0.5 mb-3 h-14">
                        <h3 className="font-bold text-[11px] text-gray-900 leading-tight line-clamp-2 uppercase">{product.name}</h3>
                        <div className="flex items-center gap-1">
                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                          <span className="text-[10px] font-black text-gray-800">4.5</span>
                        </div>
-                    </button>
+                    </div>
                   </ProductQuickView>
                   <div className="mt-auto flex items-center justify-between">
                      <div className="flex flex-col">
@@ -201,14 +200,18 @@ export function PopularProducts({
                      </div>
                      <div className="relative">
                         {quantity === 0 ? (
-                          <button disabled={isOffline} onClick={() => addToCart({ ...product, imageUrl })} className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}>
+                          <button 
+                            disabled={isOffline} 
+                            onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} 
+                            className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}
+                          >
                             {isOffline ? 'OFF' : 'ADD'}
                           </button>
                         ) : (
                           <div className="flex items-center bg-primary text-white rounded-lg h-8 px-1 shadow-md">
-                            <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center font-bold text-lg">-</button>
+                            <button onPointerDown={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="w-6 h-full flex items-center justify-center font-bold text-lg">-</button>
                             <span className="w-5 text-center text-[11px] font-black">{quantity}</span>
-                            <button onClick={() => addToCart({ ...product, imageUrl })} className="w-6 h-full flex items-center justify-center font-bold text-lg">+</button>
+                            <button onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="w-6 h-full flex items-center justify-center font-bold text-lg">+</button>
                           </div>
                         )}
                      </div>
@@ -249,43 +252,47 @@ export function PopularProducts({
               <div className="flex-1 pr-4 min-w-0">
                 <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2"><div className="h-full w-full bg-green-600 rounded-full" /></div>
                 <ProductQuickView product={product} isMedical={false}>
-                  <button className={cn("block text-left w-full", isOffline && "pointer-events-none")}>
+                  <div className={cn("block text-left w-full", isOffline && "pointer-events-none")}>
                     <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
                     <div className="flex items-baseline gap-2 mb-2">
                        <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
                        {product.mrp > product.price && <div className="text-[10px] font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>}
                     </div>
                     <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p>
-                  </button>
+                  </div>
                 </ProductQuickView>
               </div>
               <div className="relative w-28 h-28 shrink-0">
                 <ProductQuickView product={product} isMedical={false}>
-                  <button className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
                     <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
                     {isOffline && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center">
                         <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Offline</span>
                       </div>
                     )}
-                  </button>
+                  </div>
                 </ProductQuickView>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (
                     <ProductQuickView product={product} isMedical={false}>
-                      <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary active:scale-95")}>
+                      <button 
+                        disabled={isOffline} 
+                        onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }}
+                        className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}
+                      >
                         {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>
                     </ProductQuickView>
                   ) : (
                     <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg">
-                      <button onClick={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
+                      <button onPointerDown={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
                       <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-                      <button onClick={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
+                      <button onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
                     </div>
                   )}
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20">
+                <button onPointerDown={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20">
                   <Heart className={cn("h-3.5 w-3.5", isInWishlist(product.id) ? "fill-primary text-primary" : "text-gray-300")} />
                 </button>
               </div>

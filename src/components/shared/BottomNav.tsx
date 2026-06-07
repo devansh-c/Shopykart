@@ -23,7 +23,7 @@ export function BottomNav() {
   const router = useRouter();
   const { totalItems } = useCart();
 
-  // Prefetch all routes on mount for instant transition
+  // Aggressive Prefetching for Light-Speed Transitions
   useEffect(() => {
     navItems.forEach(item => {
       router.prefetch(item.href);
@@ -39,7 +39,7 @@ export function BottomNav() {
   
   const handleNav = useCallback((href: string) => {
     if (pathname === href) return;
-    // Bypassing any JS-thread heavy logic for atomic speed
+    // Bypassing main thread logic for hardware-speed routing
     router.push(href);
   }, [pathname, router]);
 
@@ -56,7 +56,7 @@ export function BottomNav() {
             <button
               key={item.label}
               onPointerDown={(e) => {
-                // Instant hardware reaction
+                // Immediate hardware reaction - fires on touch down, not up
                 handleNav(item.href);
               }}
               className={cn(
