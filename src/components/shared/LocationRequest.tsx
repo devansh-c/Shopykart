@@ -16,7 +16,7 @@ const MapPicker = dynamic(() => import('./MapPicker'), {
 
 /**
  * @fileOverview LocationRequest handles area selection and pinpoint mapping.
- * Updated to show on every app launch as requested.
+ * Optimized: Only auto-opens if location is NOT set. Otherwise waits for manual trigger.
  */
 export function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,18 +38,25 @@ export function LocationRequest() {
     };
     window.addEventListener('open-location-picker', handleOpen);
     
-    // User requested to show this EVERY time the app is opened (on mount)
-    // Auto-open after splash screen (2s) + small delay
-    const timer = setTimeout(() => setIsOpen(true), 2500);
+    // LOGIC: Only auto-open if location is NOT already set in this browser
+    const isLocationSet = localStorage.getItem('user_location_set') === 'true';
+    
+    if (!isLocationSet) {
+      // Auto-open after splash screen (1.5s) + small delay for smooth feel
+      const timer = setTimeout(() => setIsOpen(true), 2000);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('open-location-picker', handleOpen);
+      };
+    }
 
     return () => {
-      clearTimeout(timer);
       window.removeEventListener('open-location-picker', handleOpen);
     };
   }, []);
 
   const handleZoneSelect = async (zone: any) => {
-    // Save Selection
+    // Save Selection permanently
     localStorage.setItem('active_zone_id', zone.id);
     localStorage.setItem('user_city', zone.city || 'Local');
     localStorage.setItem('user_address', zone.name);
@@ -76,7 +83,6 @@ export function LocationRequest() {
   };
 
   const handleMapConfirm = async (lat: number, lng: number) => {
-    // Point-in-polygon logic is handled in Cart, here we just set the spot
     localStorage.setItem('user_plus_code', `${lat},${lng}`);
     localStorage.setItem('user_location_set', 'true');
     
