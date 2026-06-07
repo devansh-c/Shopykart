@@ -65,9 +65,11 @@ export default function VendorDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showOrderAlarm, setShowOrderAlarm] = useState(false);
+  const [isSessionActive, setIsSessionActive] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    setIsSessionActive(localStorage.getItem('shopykart_session_active') === 'true');
   }, []);
 
   const [newProduct, setNewProduct] = useState({ 
@@ -77,7 +79,7 @@ export default function VendorDashboard() {
     description: '', 
     category: '', 
     imageUrl: '', 
-    isVeg: true,
+    isVeg: true, 
     mfgDate: '',
     expiryDate: '',
     options: [] as { name: string; price: number }[]
@@ -96,15 +98,13 @@ export default function VendorDashboard() {
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
   useEffect(() => {
-    if (!authLoading && !profileLoading) {
-       const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-       if (!user || (!vendorProfile && isMounted)) {
-         if (!isSessionActive) {
-            router.push('/vendor/login');
-         }
+    if (!authLoading && !profileLoading && isMounted) {
+       const active = localStorage.getItem('shopykart_session_active') === 'true';
+       if (!user && !active) {
+          router.push('/vendor/login');
        }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
+  }, [user, authLoading, profileLoading, router, isMounted]);
 
   // LIVE ORDER ALARM LOGIC
   const ordersQuery = useMemoFirebase(() => {
@@ -263,8 +263,7 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  // OPTIMISTIC LOADING
-  const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+  if (!isMounted) return null;
 
   if ((authLoading || profileLoading) && !isSessionActive) {
     return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;

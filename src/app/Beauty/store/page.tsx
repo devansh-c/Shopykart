@@ -63,9 +63,11 @@ export default function BeautyDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showOrderAlarm, setShowOrderAlarm] = useState(false);
+  const [isSessionActive, setIsSessionActive] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    setIsSessionActive(localStorage.getItem('shopykart_session_active') === 'true');
   }, []);
 
   const [newProduct, setNewProduct] = useState({ 
@@ -96,12 +98,10 @@ export default function BeautyDashboard() {
 
   // REDIRECT PROTECTION
   useEffect(() => {
-    if (!authLoading && !profileLoading) {
-      const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-      if (!user || (!vendorProfile && isMounted)) {
-        if (!isSessionActive) {
+    if (!authLoading && !profileLoading && isMounted) {
+      const active = localStorage.getItem('shopykart_session_active') === 'true';
+      if (!user && !active) {
           router.push('/vendor/login?type=Beauty');
-        }
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
@@ -272,8 +272,7 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  // OPTIMISTIC LOADING
-  const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+  if (!isMounted) return null;
 
   if ((authLoading || profileLoading) && !isSessionActive) {
     return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
