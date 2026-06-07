@@ -93,9 +93,15 @@ export default function BeautyDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
+  // REDIRECT PROTECTION - FIXED LOADING LOOP
   useEffect(() => {
-    if (!authLoading && (!user || (user && !profileLoading && !vendorProfile))) {
-      router.push('/vendor/login?type=Beauty');
+    if (!authLoading && !profileLoading) {
+      if (!user) {
+        router.push('/vendor/login?type=Beauty');
+      } else if (!vendorProfile) {
+        console.warn("No vendor profile found for current user.");
+        router.push('/vendor/login?type=Beauty');
+      }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
 
@@ -256,7 +262,12 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  if (authLoading || profileLoading || !vendorProfile) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
+  // ONLY show loader during ACTIVE state changes. If not found, useEffect will push out.
+  if (authLoading || (profileLoading && !vendorProfile)) {
+    return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
+  }
+
+  if (!vendorProfile) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">

@@ -93,8 +93,10 @@ export default function VendorDashboard() {
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
   useEffect(() => {
-    if (!authLoading && (!user || (user && !profileLoading && !vendorProfile))) {
-      router.push('/vendor/login');
+    if (!authLoading && !profileLoading) {
+       if (!user || (user && !vendorProfile)) {
+         router.push('/vendor/login');
+       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
 
@@ -246,7 +248,12 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  if (authLoading || profileLoading || !vendorProfile) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  // ONLY show loader during ACTIVE state changes. If not found, useEffect will push out.
+  if (authLoading || (profileLoading && !vendorProfile)) {
+    return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
+
+  if (!vendorProfile) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
@@ -379,7 +386,7 @@ export default function VendorDashboard() {
                           </div>
 
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
+                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectValue>
                              <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -94,14 +93,13 @@ export default function MedicalDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
-  // RIGOROUS REDIRECT PROTECTION
+  // REDIRECT PROTECTION - FIXED LOADING LOOP
   useEffect(() => {
     if (!authLoading && !profileLoading) {
       if (!user) {
         router.push('/vendor/login?type=Medical');
       } else if (!vendorProfile) {
-        // Only redirect if Firebase confirms user exists but is NOT a vendor
-        console.warn("User authenticated but no vendor profile found.");
+        console.warn("No vendor profile found for current user.");
         router.push('/vendor/login?type=Medical');
       }
     }
@@ -265,7 +263,12 @@ export default function MedicalDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  if (authLoading || profileLoading || !vendorProfile) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
+  // ONLY show loader during ACTIVE state changes. If not found, useEffect will push out.
+  if (authLoading || (profileLoading && !vendorProfile)) {
+    return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
+  }
+
+  if (!vendorProfile) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
