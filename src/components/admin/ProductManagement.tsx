@@ -16,6 +16,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 export function ProductManagement() {
   const firestore = useFirestore();
@@ -65,6 +66,15 @@ export function ProductManagement() {
     finally { setIsBulkUpdating(false); }
   };
 
+  const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      toast({ title: available ? "Stock Online" : "Stock Offline" });
+    } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
   const handleSave = async () => {
     if (!firestore || !name || !price || !selectedVendorId) {
       toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, and Vendor are required." });
@@ -72,7 +82,6 @@ export function ProductManagement() {
     }
     
     const vendor = vendors?.find(v => v.id === selectedVendorId);
-    // HUB INHERITANCE: Automatically set serviceMode based on vendor's assigned category
     const finalServiceMode = vendor?.category || 'Food';
     const finalZoneId = vendor?.zoneId || null;
     const finalTown = vendor?.town || 'Local';
@@ -100,8 +109,11 @@ export function ProductManagement() {
     try {
       if (editingId) {
         await updateDoc(doc(firestore, 'products', editingId), productData);
+        await updateDoc(doc(firestore, 'vendors', selectedVendorId, 'products', editingId), productData);
       } else {
-        await addDoc(collection(firestore, 'products'), { ...productData, createdAt: serverTimestamp() });
+        const newRef = doc(collection(firestore, 'products'));
+        await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });
+        await setDoc(doc(firestore, 'vendors', selectedVendorId, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
       }
       setIsAddOpen(false);
       resetForm();
@@ -183,7 +195,7 @@ export function ProductManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
         {products?.map(p => (
-          <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all">
+          <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all", p.isAvailable === false && "opacity-60")}>
             <div className="flex items-center gap-4">
               <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
               <div>
@@ -192,15 +204,27 @@ export function ProductManagement() {
                    <span className="text-[8px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-full uppercase">{p.serviceMode || 'Food'}</span>
                    <p className="text-[10px] font-bold text-muted-foreground uppercase truncate max-w-[80px]">{p.restaurantName}</p>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                   <p className="text-primary font-black text-xs">₹{p.price}</p>
-                   {p.mrp > p.price && <span className="text-[8px] text-gray-400 line-through">₹{p.mrp}</span>}
+                <div className="flex items-center gap-4 mt-1">
+                   <div className="flex items-center gap-1.5 bg-muted/30 px-1.5 py-0.5 rounded-lg">
+                      <span className={cn("text-[7px] font-black uppercase", p.isAvailable !== false ? "text-green-600" : "text-red-500")}>
+                        {p.isAvailable !== false ? 'Live' : 'OFF'}
+                      </span>
+                      <Switch 
+                        checked={p.isAvailable !== false} 
+                        onCheckedChange={(val) => toggleProductAvailability(p.id, p.vendorId, val)}
+                        className="scale-50 data-[state=checked]:bg-green-500"
+                      />
+                   </div>
+                   <div className="flex items-center gap-2">
+                      <p className="text-primary font-black text-xs">₹{p.price}</p>
+                      {p.mrp > p.price && <span className="text-[8px] text-gray-400 line-through">₹{p.mrp}</span>}
+                   </div>
                 </div>
               </div>
             </div>
             <div className="flex gap-2">
               <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
-              <Button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-600 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
+              <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-600 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
         ))}

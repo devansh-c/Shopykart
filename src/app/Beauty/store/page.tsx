@@ -242,6 +242,15 @@ export default function BeautyDashboard() {
     }
   };
 
+  const toggleProductAvailability = async (productId: string, available: boolean) => {
+    if (!firestore || !user) return;
+    try {
+      await updateDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'vendors', user.uid, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      toast({ title: available ? "Product Live" : "Product Hidden" });
+    } catch (e) { toast({ variant: "destructive", title: "Failed to Update" }); }
+  };
+
   const updateOrderStatus = async (orderId: string, status: string) => {
     if (!firestore) return;
     try {
@@ -263,7 +272,7 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  // OPTIMISTIC LOADING: Show skeleton or partial UI if session is active
+  // OPTIMISTIC LOADING
   const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
 
   if ((authLoading || profileLoading) && !isSessionActive) {
@@ -474,7 +483,7 @@ export default function BeautyDashboard() {
               </div>
               <div className="grid grid-cols-1 gap-3">
                  {products?.map(p => (
-                   <div key={p.id} className="bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm">
+                   <div key={p.id} className={cn("bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm transition-all", p.isAvailable === false && "opacity-60")}>
                       <div className="flex items-center gap-4">
                         <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" />
                         <div>
@@ -482,10 +491,18 @@ export default function BeautyDashboard() {
                           <div className="flex items-center gap-2 mt-0.5">
                             <p className="text-rose-600 font-black text-xs italic">₹{p.price}</p>
                             {p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}
-                            {p.isSilentPackaging && <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded">SILENT</Badge>}
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
-                             {p.expiryDate && <span className="text-[6px] font-bold text-red-500 uppercase">EXP: {p.expiryDate}</span>}
+                          <div className="flex items-center gap-3 mt-1.5">
+                             <div className="flex items-center gap-1.5 bg-muted/50 px-1.5 py-0.5 rounded-lg border border-border/30">
+                                <span className={cn("text-[7px] font-black uppercase tracking-widest", p.isAvailable !== false ? "text-rose-600" : "text-red-500")}>
+                                  {p.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                                <Switch 
+                                  checked={p.isAvailable !== false} 
+                                  onCheckedChange={(val) => toggleProductAvailability(p.id, val)}
+                                  className="scale-50 data-[state=checked]:bg-rose-500"
+                                />
+                             </div>
                              {p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}
                           </div>
                         </div>

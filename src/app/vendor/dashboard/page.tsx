@@ -28,7 +28,9 @@ import {
   ListPlus,
   Calendar,
   Tag,
-  FileText
+  FileText,
+  Power,
+  PowerOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -231,6 +233,15 @@ export default function VendorDashboard() {
     finally { setIsSubmitting(false); }
   };
 
+  const toggleProductAvailability = async (productId: string, available: boolean) => {
+    if (!firestore || !user) return;
+    try {
+      await updateDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'vendors', user.uid, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      toast({ title: available ? "Dish Available" : "Dish Unavailable" });
+    } catch (e) { toast({ variant: "destructive", title: "Failed to Update" }); }
+  };
+
   const updateOrderStatus = async (orderId: string, status: string) => {
     if (!firestore) return;
     try {
@@ -411,7 +422,7 @@ export default function VendorDashboard() {
                              </div>
                              <div className="space-y-1">
                                 <label className="text-[8px] font-black uppercase text-red-400 ml-1">Expiry (Optional)</label>
-                                <Input type="text" placeholder="e.g. Oct 2024" value={newProduct.expiryDate} onChange={e => setNewProduct({...newProduct, expiryDate: e.target.value})} className="h-10 rounded-xl text-xs" />
+                                <Input type="text" placeholder="e.g. Oct 2024" value={newProduct.expiryDate} onChange={e => setNewProduct({...newProduct, expiryDate: e.target.value})} className="h-10 rounded-xl text-xs border-red-100" />
                              </div>
                           </div>
 
@@ -450,8 +461,30 @@ export default function VendorDashboard() {
               </div>
               <div className="grid grid-cols-1 gap-3">
                  {products?.map(p => (
-                   <div key={p.id} className="bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm">
-                      <div className="flex items-center gap-4"><img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" /><div><h4 className="font-black text-sm uppercase italic truncate max-w-[150px]">{p.name}</h4><div className="flex items-center gap-2"><p className="text-primary font-black text-xs italic">₹{p.price}</p>{p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}</div>{p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}</div></div>
+                   <div key={p.id} className={cn("bg-white p-4 rounded-[1.5rem] border border-border/50 flex items-center justify-between group shadow-sm transition-all", p.isAvailable === false && "opacity-60")}>
+                      <div className="flex items-center gap-4">
+                        <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover bg-muted" alt="" />
+                        <div>
+                          <h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-primary font-black text-xs italic">₹{p.price}</p>
+                            {p.mrp > p.price && <span className="text-[7px] text-gray-400 line-through">₹{p.mrp}</span>}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5">
+                             <div className="flex items-center gap-1.5 bg-muted/50 px-1.5 py-0.5 rounded-lg border border-border/30">
+                                <span className={cn("text-[7px] font-black uppercase tracking-widest", p.isAvailable !== false ? "text-green-600" : "text-red-500")}>
+                                  {p.isAvailable !== false ? 'Live' : 'OFF'}
+                                </span>
+                                <Switch 
+                                  checked={p.isAvailable !== false} 
+                                  onCheckedChange={(val) => toggleProductAvailability(p.id, val)}
+                                  className="scale-50 data-[state=checked]:bg-green-500"
+                                />
+                             </div>
+                             {p.options?.length > 0 && <span className="text-[7px] font-bold text-gray-400 uppercase">+{p.options.length} Variations</span>}
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex gap-2">
                         <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, mrp: (p.mrp || p.price).toString(), price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, mfgDate: p.mfgDate || '', expiryDate: p.expiryDate || '', options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
                         <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>

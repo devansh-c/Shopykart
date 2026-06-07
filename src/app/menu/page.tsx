@@ -178,7 +178,7 @@ function MenuContent() {
           filteredAndSortedProducts.map((product: any) => {
             const cartItem = cart.find(item => item.id === product.id);
             const quantity = cartItem?.quantity || 0;
-            const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
+            const imageUrl = product.imageUrl || `https://picsum.photos/seed/food/400/300`;
             const vendor = allVendors?.find(v => v.id === product.vendorId);
             const productIsOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
 
@@ -194,16 +194,12 @@ function MenuContent() {
                   <ProductQuickView product={product}>
                     <button className={cn("block text-left w-full", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5">
-                          <div className="h-full w-full bg-green-600 rounded-full" />
-                        </div>
+                        <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
                         {product.badges?.map((badge: string) => (
-                          <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                            {badge}
-                          </span>
+                          <span key={badge} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">{badge}</span>
                         ))}
                       </div>
-                      <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground line-clamp-2">{product.name}</h3>
+                      <h3 className="font-black text-xl italic tracking-tight leading-tight mb-1 text-foreground line-clamp-2 uppercase">{product.name}</h3>
                       <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic truncate">from {product.restaurantName}</p>
                       <div className="text-2xl font-black text-foreground italic tracking-tighter">₹{(product.price || 0).toFixed(2)}</div>
                     </button>
@@ -221,7 +217,7 @@ function MenuContent() {
                       />
                       {(productIsOffline || isOffline) && (
                         <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
-                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight">Closed Now</span>
+                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight border border-white/30 px-2 py-1 rounded-md">Unavailable</span>
                         </div>
                       )}
                     </button>
@@ -236,24 +232,14 @@ function MenuContent() {
                             (productIsOffline || isOffline) && "opacity-50 border-gray-300 text-gray-400 shadow-none"
                           )}
                         >
-                          {productIsOffline || isOffline ? 'CLOSED' : 'ADD TO BAG'}
+                          {productIsOffline || isOffline ? 'OFF' : 'ADD'}
                         </button>
                       </ProductQuickView>
                     ) : (
                       <div className="flex items-center justify-between w-full h-9 bg-primary text-primary-foreground rounded-xl shadow-lg overflow-hidden">
-                        <button 
-                          onClick={() => removeFromCart(product.id)}
-                          className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
+                        <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"><Minus className="h-3 w-3" /></button>
                         <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-                        <button 
-                          onClick={() => addToCart({ ...product, imageUrl })}
-                          className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
+                        <button onClick={() => addToCart({ ...product, imageUrl })} className="flex-1 flex items-center justify-center hover:bg-white/10 h-full"><Plus className="h-3 w-3" /></button>
                       </div>
                     )}
                   </div>
