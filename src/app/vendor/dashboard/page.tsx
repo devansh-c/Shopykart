@@ -28,7 +28,8 @@ import {
   Loader2,
   ListPlus,
   Calendar,
-  Tag
+  Tag,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -95,8 +96,11 @@ export default function VendorDashboard() {
 
   useEffect(() => {
     if (!authLoading && !profileLoading) {
+       const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
        if (!user || (user && !vendorProfile)) {
-         router.push('/vendor/login');
+         if (!isSessionActive) {
+            router.push('/vendor/login');
+         }
        }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
@@ -308,7 +312,7 @@ export default function VendorDashboard() {
          </div>
          <div className="flex items-center gap-2">
             <Switch checked={vendorProfile.isOnline !== false} onCheckedChange={toggleVendorStatus} className="scale-75 data-[state=checked]:bg-green-500" />
-            <Button variant="ghost" onClick={() => signOut(auth!)} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
+            <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
          </div>
       </header>
 
@@ -370,9 +374,15 @@ export default function VendorDashboard() {
                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed border-border rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                              {newProduct.imageUrl ? <img src={newProduct.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo</span></div>}
                           </div>
-                          <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
+                          <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
+                             const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); }
+                          }} />
                           <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Textarea placeholder="Dish description" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl bg-muted/10 h-24 font-medium text-sm" />
+                          
+                          <div className="space-y-1">
+                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1"><FileText className="h-2.5 w-2.5" /> Product Description</label>
+                             <Textarea placeholder="Details (Ingredients, usage, etc.)" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl bg-muted/10 h-24 font-medium text-sm" />
+                          </div>
                           
                           <div className="grid grid-cols-2 gap-3">
                              <div className="space-y-1">
@@ -488,7 +498,7 @@ export default function VendorDashboard() {
                     ))}
                  </div>
               </div>
-              <Button onClick={() => signOut(auth!)} className="w-full h-14 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl font-black uppercase italic text-xs tracking-widest border-none">EXIT DASHBOARD</Button>
+              <Button onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="w-full h-14 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl font-black uppercase italic text-xs tracking-widest border-none">EXIT DASHBOARD</Button>
            </div>
          )}
       </main>

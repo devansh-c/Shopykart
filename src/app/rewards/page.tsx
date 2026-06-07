@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift, IndianRupee } from 'lucide-react';
@@ -33,12 +34,33 @@ export default function RewardsPage() {
   const currentCoins = profile?.coins || 0;
 
   const handleCopy = (code: string) => {
-    if (typeof window !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(code);
-      toast({
-        title: "Code Copied!",
-        description: `${code} is ready to use at checkout.`,
-      });
+    if (typeof window !== 'undefined') {
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          toast({
+            title: "Code Copied!",
+            description: `${code} is ready to use at checkout.`,
+          });
+        }
+      } catch (err) {
+        console.warn("Fallback copy failed", err);
+      }
+      
+      document.body.removeChild(textArea);
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).catch(() => {});
+      }
     }
   };
 
@@ -123,7 +145,7 @@ export default function RewardsPage() {
                 <div className={cn("absolute top-0 right-0 h-2 w-full", coupon.color)} />
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-black italic italic uppercase tracking-tighter">{coupon.code}</h3>
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter">{coupon.code}</h3>
                     <p className="text-xs text-muted-foreground font-medium">{coupon.desc}</p>
                   </div>
                   <button 

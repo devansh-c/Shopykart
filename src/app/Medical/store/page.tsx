@@ -28,7 +28,8 @@ import {
   HeartPulse,
   ShieldCheck,
   Calendar,
-  Tag
+  Tag,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -97,11 +98,11 @@ export default function MedicalDashboard() {
   // REDIRECT PROTECTION - FIXED LOADING LOOP
   useEffect(() => {
     if (!authLoading && !profileLoading) {
-      if (!user) {
-        router.push('/vendor/login?type=Medical');
-      } else if (!vendorProfile) {
-        console.warn("No vendor profile found for current user.");
-        router.push('/vendor/login?type=Medical');
+      const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+      if (!user || !vendorProfile) {
+        if (!isSessionActive) {
+          router.push('/vendor/login?type=Medical');
+        }
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router]);
@@ -388,7 +389,11 @@ export default function MedicalDashboard() {
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Medicine/Product Name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
-                          <Textarea placeholder="Product Description" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl bg-muted/10 h-24 font-medium text-sm" />
+                          
+                          <div className="space-y-1">
+                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1"><FileText className="h-2.5 w-2.5" /> Product Description</label>
+                             <Textarea placeholder="Usage details, usage instructions, etc." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl bg-muted/10 h-24 font-medium text-sm" />
+                          </div>
                           
                           <div className="grid grid-cols-2 gap-3">
                              <div className="space-y-1">

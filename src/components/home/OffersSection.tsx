@@ -17,15 +17,34 @@ export function OffersSection() {
   const { data: dbCoupons, loading } = useCollection<any>(couponsQuery);
 
   const handleCopy = (code: string) => {
-    if (typeof window !== 'undefined' && navigator.clipboard) {
+    if (typeof window !== 'undefined') {
+      // Robust fallback for clipboard focus issues
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
       try {
-        navigator.clipboard.writeText(code);
-        toast({
-          title: "Coupon Copied!",
-          description: `${code} has been copied to your clipboard.`,
-        });
+        const successful = document.execCommand('copy');
+        if (successful) {
+          toast({
+            title: "Coupon Copied!",
+            description: `${code} has been copied to your clipboard.`,
+          });
+        }
       } catch (err) {
-        console.warn("Clipboard access failed:", err);
+        console.warn("Fallback copy failed", err);
+      }
+      
+      document.body.removeChild(textArea);
+
+      // Attempt modern API as well (swallow errors)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).catch(() => {});
       }
     }
   };
