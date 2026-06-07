@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -56,7 +57,7 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
     const xj = Number(vs[j].lng ?? vs[j].longitude ?? (Array.isArray(vs[j]) ? vs[j][1] : 0));
     const yj = Number(vs[j].lat ?? vs[j].latitude ?? (Array.isArray(vs[j]) ? vs[j][0] : 0));
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
+    if (intersect) inside = !intersect;
   }
   return inside;
 }
@@ -142,7 +143,6 @@ export default function CartPage() {
     if (!appliedCoupon) return 0;
     const discountStr = appliedCoupon.discount || '0';
     
-    // Parse percentage or fixed from string (e.g. "20% OFF" or "₹50 OFF")
     if (discountStr.includes('%')) {
       const percentage = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
       return (totalPrice * percentage) / 100;
@@ -154,7 +154,6 @@ export default function CartPage() {
 
   const coinDiscount = useMemo(() => {
     if (!useCoins || availableCoins <= 0 || coinValue <= 0) return 0;
-    // Discount cannot exceed (total - couponDiscount)
     const remainingTotal = Math.max(0, totalPrice - couponDiscount);
     return Math.min(remainingTotal, availableCoins * coinValue);
   }, [useCoins, availableCoins, coinValue, totalPrice, couponDiscount]);
@@ -191,7 +190,6 @@ export default function CartPage() {
         setAppliedCoupon(null);
       } else {
         const couponData = snap.docs[0].data();
-        // Check Min Order if exists
         const minOrderMatch = couponData.minOrder?.match(/\d+/);
         const minVal = minOrderMatch ? parseInt(minOrderMatch[0]) : 0;
         

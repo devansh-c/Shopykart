@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Copy, Tag } from 'lucide-react';
@@ -17,11 +18,15 @@ export function OffersSection() {
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(code);
-      toast({
-        title: "Coupon Copied!",
-        description: `${code} has been copied to your clipboard.`,
-      });
+      try {
+        navigator.clipboard.writeText(code);
+        toast({
+          title: "Coupon Copied!",
+          description: `${code} has been copied to your clipboard.`,
+        });
+      } catch (err) {
+        console.warn("Clipboard access failed:", err);
+      }
     }
   };
 
@@ -33,7 +38,7 @@ export function OffersSection() {
         <span className="text-xl mr-2">🏷️</span>
         <h2 className="text-2xl font-black tracking-tight">Offers & Coupons</h2>
       </div>
-      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar">
+      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-4">
         {dbCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
