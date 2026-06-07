@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -95,17 +94,17 @@ export default function BeautyDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
-  // REDIRECT PROTECTION - FIXED LOADING LOOP
+  // REDIRECT PROTECTION
   useEffect(() => {
     if (!authLoading && !profileLoading) {
       const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-      if (!user || !vendorProfile) {
+      if (!user || (!vendorProfile && isMounted)) {
         if (!isSessionActive) {
           router.push('/vendor/login?type=Beauty');
         }
       }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router]);
+  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
   // LIVE ORDER ALARM LOGIC
   const ordersQuery = useMemoFirebase(() => {
@@ -264,12 +263,14 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
   };
 
-  // ONLY show loader during ACTIVE state changes. If not found, useEffect will push out.
-  if (authLoading || (profileLoading && !vendorProfile)) {
+  // OPTIMISTIC LOADING: Show skeleton or partial UI if session is active
+  const isSessionActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+
+  if ((authLoading || profileLoading) && !isSessionActive) {
     return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
   }
 
-  if (!vendorProfile) return null;
+  if (!vendorProfile && !isSessionActive) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
@@ -312,18 +313,18 @@ export default function BeautyDashboard() {
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-              {vendorProfile.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Sparkles className="h-5 w-5" />}
+              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Sparkles className="h-5 w-5" />}
             </div>
             <div>
-              <h1 className="text-sm font-black italic uppercase">{vendorProfile.storeName}</h1>
+              <h1 className="text-sm font-black italic uppercase">{vendorProfile?.storeName || 'Loading...'}</h1>
               <div className="flex items-center gap-1.5">
-                 <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                 <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile.isOnline !== false ? 'Accepting' : 'Closed'}</p>
+                 <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                 <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p>
               </div>
             </div>
          </div>
          <div className="flex items-center gap-2">
-            <Switch checked={vendorProfile.isOnline !== false} onCheckedChange={toggleVendorStatus} className="scale-75 data-[state=checked]:bg-green-500" />
+            <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={toggleVendorStatus} className="scale-75 data-[state=checked]:bg-green-500" />
             <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
          </div>
       </header>
@@ -502,7 +503,7 @@ export default function BeautyDashboard() {
               <div className="bg-[#0B0B0B] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl border border-white/5">
                  <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-2 opacity-60"><Wallet className="h-4 w-4 text-rose-400" /><span className="text-[10px] font-black uppercase tracking-widest">Cosmetics Earnings</span></div>
-                    <h3 className="text-5xl font-black italic tracking-tighter text-white">₹{vendorProfile.walletBalance?.toFixed(2) || '0.00'}</h3>
+                    <h3 className="text-5xl font-black italic tracking-tighter text-white">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</h3>
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-6 bg-white/5 py-2 px-4 rounded-xl w-fit">Monthly Settlement Cycle</p>
                  </div>
                  <div className="absolute top-0 right-0 h-full w-32 bg-rose-500/5 -skew-x-12 translate-x-12" />
@@ -520,20 +521,20 @@ export default function BeautyDashboard() {
               <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm text-center">
                  <div className="relative mx-auto w-24 h-24 mb-4">
                    <div className="h-full w-full rounded-[2rem] border-4 border-white shadow-xl bg-rose-50 overflow-hidden flex items-center justify-center">
-                      {vendorProfile.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Sparkles className="h-10 w-10 text-rose-600" />}
+                      {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Sparkles className="h-10 w-10 text-rose-600" />}
                    </div>
                    <div className="absolute -bottom-1 -right-1 bg-rose-600 p-2 rounded-xl text-white shadow-lg"><Camera className="h-3 w-3" /></div>
                  </div>
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile.storeName}</h2>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{vendorProfile.category} • {vendorProfile.town}</p>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile?.storeName || 'Loading...'}</h2>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} • {vendorProfile?.town}</p>
               </div>
               <div className="space-y-3">
                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Beauty Account</h3>
                  <div className="bg-white rounded-3xl border border-border/50 shadow-sm divide-y divide-border/30 overflow-hidden">
                     {[
-                      { icon: Store, label: 'Store Name', value: vendorProfile.storeName },
-                      { icon: Sparkles, label: 'Section', value: vendorProfile.category },
-                      { icon: Wallet, label: 'Withdrawal Balance', value: `₹${vendorProfile.walletBalance || 0}` },
+                      { icon: Store, label: 'Store Name', value: vendorProfile?.storeName || '...' },
+                      { icon: Sparkles, label: 'Section', value: vendorProfile?.category || '...' },
+                      { icon: Wallet, label: 'Withdrawal Balance', value: `₹${vendorProfile?.walletBalance || 0}` },
                     ].map((item, idx) => (
                       <div key={idx} className="p-5 flex items-center justify-between">
                          <div className="flex items-center gap-4"><div className="bg-rose-50 p-2.5 rounded-xl text-rose-600"><item.icon className="h-4 w-4" /></div><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.label}</span></div>

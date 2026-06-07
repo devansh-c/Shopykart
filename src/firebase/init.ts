@@ -16,8 +16,8 @@ let firestoreInstance: Firestore | null = null;
 let authInstance: Auth | null = null;
 
 /**
- * Super-Resilient Firebase initialization singleton.
- * Optimized for 3G/4G/5G and WebViews (APKs).
+ * Optimized Firebase initialization singleton.
+ * Uses Auto-Detect for Long Polling to ensure speed on fast networks while maintaining 3G reliability.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -35,18 +35,17 @@ export function initializeFirebase() {
 
       setLogLevel('silent');
 
-      // ULTRA-RELIABLE 3G/SLOW NETWORK SETTINGS
+      // PERFORMANCE OPTIMIZED FIRESTORE SETTINGS
       firestoreInstance = initializeFirestore(appInstance, {
-        experimentalForceLongPolling: true, // Crucial for 3G/4G stability
-        experimentalAutoDetectLongPolling: false, 
-        useFetchStreams: false, // Better compatibility with older Android WebViews
+        experimentalAutoDetectLongPolling: true, // Use WebSockets on fast nets, Long-Polling on 3G
+        useFetchStreams: true, 
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
           cacheSizeBytes: CACHE_SIZE_UNLIMITED
         })
       });
 
-      console.log("ShopyKart Engine: Ultra-Reliable Connection Active ✅");
+      console.log("ShopyKart Engine: High-Speed Connection Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);
