@@ -19,12 +19,16 @@ import {
   Coins,
   Map as MapIcon,
   Navigation,
-  Heart
+  Heart,
+  Tag,
+  Ticket,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, increment, query, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -69,6 +73,11 @@ export default function CartPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [useCoins, setUseCoins] = useState(false);
+  
+  // Coupon States
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -128,12 +137,29 @@ export default function CartPage() {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamic_charges]);
 
+  // Coupon Discount Calculation
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    const discountStr = appliedCoupon.discount || '0';
+    
+    // Parse percentage or fixed from string (e.g. "20% OFF" or "₹50 OFF")
+    if (discountStr.includes('%')) {
+      const percentage = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
+      return (totalPrice * percentage) / 100;
+    } else {
+      const fixed = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
+      return fixed;
+    }
+  }, [appliedCoupon, totalPrice]);
+
   const coinDiscount = useMemo(() => {
     if (!useCoins || availableCoins <= 0 || coinValue <= 0) return 0;
-    return Math.min(totalPrice, availableCoins * coinValue);
-  }, [useCoins, availableCoins, coinValue, totalPrice]);
+    // Discount cannot exceed (total - couponDiscount)
+    const remainingTotal = Math.max(0, totalPrice - couponDiscount);
+    return Math.min(remainingTotal, availableCoins * coinValue);
+  }, [useCoins, availableCoins, coinValue, totalPrice, couponDiscount]);
 
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount);
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount - couponDiscount);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -151,6 +177,41 @@ export default function CartPage() {
       setLongitude(Number(profile.longitude));
     }
   }, [profile]);
+
+  const handleApplyCoupon = async () => {
+    if (!firestore || !couponInput.trim()) return;
+    
+    setIsVerifyingCoupon(true);
+    try {
+      const q = query(collection(firestore, 'coupons'), where('code', '==', couponInput.trim().toUpperCase()));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        toast({ variant: "destructive", title: "Invalid Coupon", description: "This code does not exist." });
+        setAppliedCoupon(null);
+      } else {
+        const couponData = snap.docs[0].data();
+        // Check Min Order if exists
+        const minOrderMatch = couponData.minOrder?.match(/\d+/);
+        const minVal = minOrderMatch ? parseInt(minOrderMatch[0]) : 0;
+        
+        if (totalPrice < minVal) {
+          toast({ 
+            variant: "destructive", 
+            title: "Min Order Not Met", 
+            description: `This coupon requires minimum order of ₹${minVal}` 
+          });
+        } else {
+          setAppliedCoupon(couponData);
+          toast({ title: "Coupon Applied!", description: `Yay! ${couponData.discount} saved.` });
+        }
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Verification Failed" });
+    } finally {
+      setIsVerifyingCoupon(false);
+    }
+  };
 
   const validateAndSetCoords = async (lat: number, lng: number) => {
     const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
@@ -179,7 +240,6 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
 
-    // MINIMUM ORDER VALUE CHECK (₹35)
     if (totalPrice < 35) {
       toast({
         variant: "destructive",
@@ -198,7 +258,6 @@ export default function CartPage() {
       return;
     }
 
-    // Trigger success UI and Sound instantly (optimistic)
     setShowSuccess(true);
     setIsPlacing(true);
 
@@ -233,6 +292,8 @@ export default function CartPage() {
         coinsEarned: 10,
         coinsUsed,
         coinDiscount,
+        couponDiscount,
+        couponCode: appliedCoupon?.code || null,
         instructions
       });
       
@@ -242,14 +303,12 @@ export default function CartPage() {
         coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // After 3 seconds (animation duration), clear cart and redirect
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
       }, 3000);
     } catch (err) {
       console.error("Order creation failed:", err);
-      // If error occurs, hide success and reset placing state
       setShowSuccess(false);
       setIsPlacing(false);
     }
@@ -282,6 +341,7 @@ export default function CartPage() {
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
         <h1 className="text-lg font-bold text-gray-800">Your Cart</h1>
       </div>
+
       <div className="p-4 space-y-5">
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
@@ -311,15 +371,62 @@ export default function CartPage() {
             ))}
           </div>
         </div>
+
+        {/* APPLY COUPON SECTION */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
+           <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                 <Ticket className="h-5 w-5" />
+              </div>
+              <div>
+                 <h3 className="text-sm font-black uppercase tracking-tight">Apply Coupon</h3>
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-none">Use promo code for savings</p>
+              </div>
+           </div>
+
+           <div className="flex gap-2">
+              <div className="relative flex-1">
+                 <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                 <Input 
+                   placeholder="Enter Code" 
+                   value={couponInput}
+                   onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                   className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest"
+                 />
+              </div>
+              <Button 
+                onClick={handleApplyCoupon}
+                disabled={isVerifyingCoupon || !couponInput.trim()}
+                className="h-12 px-6 rounded-xl bg-[#0B0B0B] font-black uppercase italic text-[10px] tracking-widest"
+              >
+                 {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
+              </Button>
+           </div>
+
+           {appliedCoupon && (
+             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between animate-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-2">
+                   <CheckCircle2 className="h-4 w-4 text-green-600" />
+                   <span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' Applied!</span>
+                </div>
+                <button onClick={() => setAppliedCoupon(null)} className="text-green-700 p-1 hover:bg-green-100 rounded-md">
+                   <X className="h-3.5 w-3.5" />
+                </button>
+             </div>
+           )}
+        </div>
+
+        {/* REDEEM COINS SECTION */}
         {availableCoins > 0 && (
           <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 items-center justify-between flex">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-amber-50/20 rounded-2xl flex items-center justify-center border border-amber-500/20"><Coins className="h-6 w-6 text-amber-500 fill-amber-500" /></div>
-              <div><h3 className="text-sm font-black text-white italic uppercase">Redeem Coins</h3><p className="text-[9px] font-bold text-gray-400 uppercase">Balance: {availableCoins}</p></div>
+              <div><h3 className="text-sm font-black text-white italic uppercase">Redeem Coins</h3><p className="text-[9px] font-bold text-gray-400 uppercase">Balance: {availableCoins} (₹{(availableCoins * coinValue).toFixed(2)})</p></div>
             </div>
-            <Switch checked={useCoins} onCheckedChange={setUseCoins} />
+            <Switch checked={useCoins} onCheckedChange={setUseCoins} className="data-[state=checked]:bg-amber-500" />
           </div>
         )}
+
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-bold text-gray-800">Delivery Details</h2></div>
@@ -385,7 +492,7 @@ export default function CartPage() {
                  </DialogTrigger>
                  <DialogContent className="rounded-[2.5rem] max-w-sm">
                     <DialogHeader>
-                       <DialogTitle className="font-black italic uppercase text-center">Add Delivery Tip</DialogTitle>
+                       <DialogTitle className="font-black italic uppercase text-center text-xl">Add Delivery Tip</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
                        <Input 
@@ -399,30 +506,47 @@ export default function CartPage() {
                     </div>
                  </DialogContent>
               </Dialog>
-              {deliveryTip > 0 && (
-                <button 
-                  onClick={() => setDeliveryTip(0)}
-                  className="h-10 px-3 rounded-xl bg-red-50 text-red-500 font-black text-[9px] uppercase"
-                >
-                  CLEAR
-                </button>
-              )}
            </div>
-
-           <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed italic">
-             100% of this tip goes to your delivery partner. Thank you for being kind! <Heart className="inline h-2.5 w-2.5 text-red-400 fill-red-400" />
-           </p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 mb-2"><FileText className="h-5 w-5 text-blue-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Bill Details</h3></div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between font-bold text-gray-400"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
-            {dynamic_charges.map((charge: any) => (<div key={charge.id} className="flex justify-between font-bold text-gray-400"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>))}
-            {deliveryTip > 0 && (<div className="flex justify-between font-bold text-amber-600"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>)}
-            {useCoins && coinDiscount > 0 && (<div className="flex justify-between font-black text-amber-600"><span>Coins Applied</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>)}
+            
+            {/* Dynamic Surcharges from DB */}
+            {dynamic_charges.map((charge: any) => (
+              <div key={charge.id} className="flex justify-between font-bold text-gray-400">
+                <span>{charge.name}</span>
+                <span>₹{charge.calculatedAmount.toFixed(2)}</span>
+              </div>
+            ))}
+
+            {/* Reductions */}
+            {appliedCoupon && (
+              <div className="flex justify-between font-black text-green-600">
+                <span>Coupon ({appliedCoupon.code})</span>
+                <span>- ₹{couponDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            {useCoins && coinDiscount > 0 && (
+              <div className="flex justify-between font-black text-amber-600">
+                <span>Coins Applied</span>
+                <span>- ₹{coinDiscount.toFixed(2)}</span>
+              </div>
+            )}
+
+            {deliveryTip > 0 && (
+              <div className="flex justify-between font-bold text-amber-600">
+                <span>Delivery Tip</span>
+                <span>₹{deliveryTip.toFixed(2)}</span>
+              </div>
+            )}
           </div>
-          <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center"><span className="text-lg font-black text-gray-700">Total Payable</span><span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span></div>
+          <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
+            <span className="text-lg font-black text-gray-700">Total Payable</span>
+            <span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
