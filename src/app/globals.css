@@ -31,6 +31,7 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation;
   }
   
   body {
@@ -41,7 +42,6 @@
     overflow-x: hidden;
     user-select: none;
     min-height: 100vh;
-    touch-action: manipulation;
   }
   
   /* GPU ACCELERATED LISTS */
@@ -60,12 +60,12 @@
     will-change: transform, opacity;
     outline: none !important;
     -webkit-appearance: none;
-    touch-action: manipulation;
   }
 
-  /* Bottom Nav Specific touch-killer */
+  /* Bottom Nav Specific touch-killer - TOTAL BYPASS */
   nav button {
     touch-action: none !important;
+    -webkit-user-select: none !important;
   }
 
   /* Instant GPU Optimized Feedback */
@@ -96,10 +96,17 @@
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
   transform: translateZ(0);
   backface-visibility: hidden;
+  will-change: transform;
 }
 
 nav.fixed {
   isolation: isolate;
   backface-visibility: hidden;
   transform: translateZ(0);
+}
+
+/* Force hardware acceleration on all icons */
+svg {
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
