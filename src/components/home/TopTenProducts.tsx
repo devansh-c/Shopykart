@@ -9,6 +9,9 @@ import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 
+/**
+ * @fileOverview TopTenProducts with optimized location filtering.
+ */
 export function TopTenProducts() {
   const firestore = useFirestore();
   const { addToCart } = useCart();
@@ -51,14 +54,15 @@ export function TopTenProducts() {
       const productMode = p.serviceMode || vendorCategory;
       if (productMode !== 'Food') return false;
 
-      // STRICT ZONE FILTERING
+      // LOCATION FILTERING (Optimized)
       const productZoneId = p.zoneId || vendor.zoneId;
       const productTown = (p.town || vendor.town || '').toLowerCase().trim();
 
       if (activeZoneId || targetCityNormalized) {
         const matchesId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && productTown === targetCityNormalized;
+        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized || productTown === 'local');
         
+        // Show if either matches
         if (!matchesId && !matchesTown) return false;
       }
       return true;

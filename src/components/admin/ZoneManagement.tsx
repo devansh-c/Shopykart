@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -26,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, query, where, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, query, where, writeBatch, getDocs } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -162,29 +161,36 @@ export function ZoneManagement() {
     try {
       const vendorRef = doc(firestore, 'vendors', vendorId);
       // If store is already in THIS zone, remove it (set to null), otherwise assign to THIS zone
-      const newZoneId = currentZoneId === selectedZoneForStores.id ? null : selectedZoneForStores.id;
+      const isCurrentlyAssigned = currentZoneId === selectedZoneForStores.id;
+      const newZoneId = isCurrentlyAssigned ? null : selectedZoneForStores.id;
+      const newTown = isCurrentlyAssigned ? 'Local' : (selectedZoneForStores.city || selectedZoneForStores.name);
       
       await updateDoc(vendorRef, { 
         zoneId: newZoneId,
+        town: newTown,
         updatedAt: serverTimestamp()
       });
 
-      // Update all products of this vendor to match the new zone
+      // Update all products of this vendor to match the new zone and town
       const productsQuery = query(collection(firestore, 'products'), where('vendorId', '==', vendorId));
       const productsSnap = await getDocs(productsQuery);
       const batch = writeBatch(firestore);
       
       productsSnap.docs.forEach(pDoc => {
-        batch.update(pDoc.ref, { zoneId: newZoneId });
+        batch.update(pDoc.ref, { 
+          zoneId: newZoneId,
+          town: newTown 
+        });
       });
       
       await batch.commit();
 
       toast({ 
         title: newZoneId ? "Store Assigned" : "Store Removed", 
-        description: `${vendors?.find(v => v.id === vendorId)?.storeName} updated.` 
+        description: `${vendors?.find(v => v.id === vendorId)?.storeName} updated to ${newTown}.` 
       });
     } catch (err) {
+      console.error("Assignment Error:", err);
       toast({ variant: "destructive", title: "Assignment Failed" });
     } finally {
       setIsProcessing(false);

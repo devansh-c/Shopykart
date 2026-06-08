@@ -18,6 +18,7 @@ import {
 
 /**
  * @fileOverview PopularProducts optimized for rendering performance using content-visibility.
+ * Optimized Location Filter: Robust matching for Zone and Town.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -82,19 +83,26 @@ export function PopularProducts({
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
+      
+      // 1. ISOLATION CHECK: Ensure correct service mode (Food/Medical/Beauty)
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
+      // 2. LOCATION FILTERING (ROBUST)
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
+      // If user has set a location, we must match it
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && productTown === targetCityNormalized;
-        if (!matchesZoneId && !matchesTown && productZoneId) return false;
+        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized || productTown === 'local');
+        
+        // Match if EITHER Zone ID or Town Name matches
+        if (!matchesZoneId && !matchesTown) return false;
       }
 
+      // 3. SEARCH & CATEGORY FILTERING
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
@@ -109,6 +117,7 @@ export function PopularProducts({
       const vB = vendorMap.get(b.vendorId);
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
+      
       if (onlineA !== onlineB) return onlineB - onlineA;
       
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
