@@ -25,20 +25,20 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   const { user, loading } = useUser();
   const pathname = usePathname();
   
-  // 1. SYNCHRONOUS CHECK: Immediate detection before first render
-  const [hasValidSession] = useState(() => {
+  // Synchronous check for local session to prevent flicker
+  const [hasInitialSession] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('shopykart_session_active') === 'true';
     }
     return false;
   });
 
-  const [sessionSettled, setSessionSettled] = useState(false);
+  const [isResolved, setIsResolved] = useState(false);
 
   useEffect(() => {
-    // If Firebase loading finishes, session is fully settled
+    // Only resolve when Firebase confirms status
     if (!loading) {
-      setSessionSettled(true);
+      setIsResolved(true);
       onReady(true);
     }
   }, [loading, onReady]);
@@ -51,24 +51,23 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  // CRITICAL: If we have a local session flag AND Firebase is still loading, 
-  // we render NOTHING (Splash screen covers this) to prevent flicker.
-  if (loading && hasValidSession) {
+  // 1. Still booting up: Hide everything (covered by Splash)
+  if (!isResolved) {
     return null;
   }
 
-  // IF confirmed NO session (Local flag missing AND Firebase finished loading with no user)
-  if (!loading && !user && !hasValidSession) {
+  // 2. Resolved: If no user and no local session flag, show Login
+  if (!user && !hasInitialSession) {
     return <EmailAuth />;
   }
 
-  // IF session was stale (Flag existed but Firebase says no user)
-  if (!loading && !user && hasValidSession) {
+  // 3. Resolved: If user is null but flag exists, session is stale
+  if (!user && hasInitialSession) {
     localStorage.removeItem('shopykart_session_active');
     return <EmailAuth />;
   }
 
-  // IF user is confirmed OR we are still booting up with a session (Render behind splash)
+  // 4. Resolved: Authorized
   return <>{children}</>;
 }
 

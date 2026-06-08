@@ -90,7 +90,7 @@ export default function VendorDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
-  // REDIRECT PROTECTION - Snappier Handoff
+  // REDIRECT PROTECTION
   useEffect(() => {
     if (!authLoading && isMounted && !user) {
         const hasSessionFlag = localStorage.getItem('shopykart_session_active');
@@ -298,8 +298,8 @@ export default function VendorDashboard() {
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
                           <div className="grid grid-cols-2 gap-3">
-                             <Input placeholder="MRP" type="number" value={newProduct.mrp} onChange={e => setNewProduct({...newProduct, mrp: e.target.value})} className="h-12 rounded-xl" />
-                             <Input placeholder="Selling Price" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl border-primary/30 font-bold" />
+                             <Input placeholder="MRP" type="number" value={newProduct.mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl" />
+                             <Input placeholder="Selling Price" type="number" value={newProduct.price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/30 font-bold" />
                           </div>
                           <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
                                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
@@ -325,7 +325,7 @@ export default function VendorDashboard() {
                       </div>
                       <div className="flex gap-2">
                         <Button onClick={() => { setEditingId(p.id); setNewProduct({ name: p.name, mrp: (p.mrp || p.price).toString(), price: p.price.toString(), description: p.description || '', category: p.category, imageUrl: p.imageUrl, isVeg: p.isVeg !== false, mfgDate: p.mfgDate || '', expiryDate: p.expiryDate || '', options: p.options || [] }); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
-                        <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); }}} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
+                        <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', user!.uid, 'products', p.id)); } }} size="icon" variant="ghost" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                    </div>
                  ))}
