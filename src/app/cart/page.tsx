@@ -24,7 +24,8 @@ import {
   Tag,
   Ticket,
   CheckCircle2,
-  X
+  X,
+  History
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -167,6 +168,7 @@ export default function CartPage() {
     setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
     setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
     
+    // Auto-fill coordinates if available
     const savedPlusCode = localStorage.getItem('user_plus_code');
     if (savedPlusCode) {
       const [lat, lng] = savedPlusCode.split(',').map(Number);
@@ -176,6 +178,19 @@ export default function CartPage() {
       setLongitude(Number(profile.longitude));
     }
   }, [profile]);
+
+  const handleUseSavedAddress = () => {
+    if (!profile?.address) return;
+    setCustomerAddress(profile.address);
+    if (profile.fullName) setCustomerName(profile.fullName);
+    if (profile.phoneNumber) setCustomerPhone(profile.phoneNumber);
+    if (profile.city) setCustomerCity(profile.city);
+    if (profile.pincode) setCustomerPincode(profile.pincode);
+    if (profile.latitude) setLatitude(profile.latitude);
+    if (profile.longitude) setLongitude(profile.longitude);
+    
+    toast({ title: "Suggested Address Applied!" });
+  };
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponInput.trim()) return;
@@ -247,11 +262,11 @@ export default function CartPage() {
       return;
     }
 
-    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 15) {
+    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 10) {
       toast({
         variant: "destructive",
         title: "Incomplete Details",
-        description: "Please check your name, 10-digit phone and full address (Min 15 chars).",
+        description: "Please check your name, 10-digit phone and full address.",
       });
       return;
     }
@@ -295,13 +310,20 @@ export default function CartPage() {
         instructions
       });
       
+      // Save this address permanently to user profile for future suggestions
       await setDoc(doc(firestore, 'users', finalUid), {
-        fullName: customerName, phoneNumber: customerPhone, address: customerAddress,
-        city: customerCity, pincode: customerPincode, latitude, longitude,
-        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
+        fullName: customerName, 
+        phoneNumber: customerPhone, 
+        address: customerAddress, // Save the detailed house address
+        city: customerCity, 
+        pincode: customerPincode, 
+        latitude, 
+        longitude,
+        coins: increment(10 - coinsUsed), 
+        updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // SNAPPY 1.5S REDIRECT AS REQUESTED
+      // SNAPPY 1.5S REDIRECT
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
@@ -434,13 +456,33 @@ export default function CartPage() {
               <button onClick={() => setIsMapOpen(true)} className="w-full h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px]">
                 <MapIcon className="h-4 w-4" /> PIN LOCATION ON MAP
               </button>
+
+              {/* SAVED ADDRESS SUGGESTION CHIP */}
+              {profile?.address && customerAddress !== profile.address && (
+                <button 
+                  onClick={handleUseSavedAddress}
+                  className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left animate-in slide-in-from-top-2 duration-500"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <History className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-[8px] font-black uppercase text-primary tracking-widest block">Use Last Address</span>
+                      <p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-primary" />
+                </button>
+              )}
+
               <div className="space-y-3">
                 <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <div className="grid grid-cols-2 gap-3">
                   <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                   <Input placeholder="City *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-70" />
                 </div>
-                <Textarea placeholder="Flat / House / Building Details (Min 15 chars) *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
+                <Textarea placeholder="Flat / House / Building Details *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
                 <Input placeholder="10 Digit Phone *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
               </div>
           </div>
