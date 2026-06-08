@@ -15,33 +15,33 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
-import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 /**
- * @fileOverview AuthGuard with Ultra-Aggressive Zero-Flicker Logic.
- * This component acts as a high-security gatekeeper.
+ * @fileOverview AuthGuard with Synchronous Session Detection.
+ * Optimized to prevent the "Login Screen Flicker" after Splash Screen.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
   
-  // 1. Immediate hardware check (Directly from window object if available)
-  const [sessionResolved, setSessionResolved] = useState(false);
-  const [hasValidSession, setHasValidSession] = useState(false);
+  // 1. SYNCHRONOUS CHECK: Immediate detection before first render
+  const [hasValidSession] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('shopykart_session_active') === 'true';
+    }
+    return false;
+  });
+
+  const [sessionSettled, setSessionSettled] = useState(false);
 
   useEffect(() => {
-    const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    setHasValidSession(isSessionActive);
-    setSessionResolved(true);
-  }, []);
-
-  // Sync with main app readiness
-  useEffect(() => {
-    if (!loading && sessionResolved) {
-      // If loading finished and we know the user state, we are ready
+    // If Firebase loading finishes, session is fully settled
+    if (!loading) {
+      setSessionSettled(true);
       onReady(true);
     }
-  }, [loading, sessionResolved, onReady]);
+  }, [loading, onReady]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -51,32 +51,25 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  // While we don't know the session status, we show nothing (Splash covers this)
-  if (!sessionResolved) return null;
+  // CRITICAL: If we have a local session flag AND Firebase is still loading, 
+  // we render NOTHING (Splash screen covers this) to prevent flicker.
+  if (loading && hasValidSession) {
+    return null;
+  }
 
-  // IF confirmed NO session and Firebase is done loading
+  // IF confirmed NO session (Local flag missing AND Firebase finished loading with no user)
   if (!loading && !user && !hasValidSession) {
     return <EmailAuth />;
   }
 
-  // IF session flag exists but Firebase is still verifying, show content behind splash
-  // This prevents the "Login Flicker"
-  if (loading && hasValidSession) {
-    return <div className="opacity-0">{children}</div>;
-  }
-
-  // IF confirmed USER and loading finished
-  if (!loading && user) {
-    return <>{children}</>;
-  }
-
-  // IF session was stale (Flag true but user null)
+  // IF session was stale (Flag existed but Firebase says no user)
   if (!loading && !user && hasValidSession) {
     localStorage.removeItem('shopykart_session_active');
     return <EmailAuth />;
   }
 
-  return null;
+  // IF user is confirmed OR we are still booting up with a session (Render behind splash)
+  return <>{children}</>;
 }
 
 function AppContent({ children }: { children: ReactNode }) {
@@ -91,7 +84,7 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      {/* SplashScreen stays until AuthGuard gives the Green Signal */}
+      {/* SplashScreen stays until AuthGuard gives the explicit ready signal */}
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
