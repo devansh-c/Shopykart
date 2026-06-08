@@ -223,7 +223,7 @@ export default function AdminDashboard() {
       case 'discounts':
         return <DiscountManagement />;
       case 'charges':
-        return <Receipt />;
+        return <ChargeManagement />;
       case 'ads':
         return <MonetizationManagement />;
       case 'notifications':
