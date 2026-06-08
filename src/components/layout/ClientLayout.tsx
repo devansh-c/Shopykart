@@ -15,22 +15,33 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
- * @fileOverview AuthGuard with Ultra-Optimistic Session Support.
- * Prevents flicker by showing content immediately if persistent flag exists.
+ * @fileOverview AuthGuard with Ultra-Aggressive Zero-Flicker Logic.
+ * This component acts as a high-security gatekeeper.
  */
-function AuthGuard({ children }: { children: ReactNode }) {
+function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
-  const [isSessionOptimistic, setIsSessionOptimistic] = useState<boolean | null>(null);
+  
+  // 1. Immediate hardware check (Directly from window object if available)
+  const [sessionResolved, setSessionResolved] = useState(false);
+  const [hasValidSession, setHasValidSession] = useState(false);
 
   useEffect(() => {
-    // Immediate check for session flag
-    const active = localStorage.getItem('shopykart_session_active') === 'true';
-    setIsSessionOptimistic(active);
+    const isSessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+    setHasValidSession(isSessionActive);
+    setSessionResolved(true);
   }, []);
+
+  // Sync with main app readiness
+  useEffect(() => {
+    if (!loading && sessionResolved) {
+      // If loading finished and we know the user state, we are ready
+      onReady(true);
+    }
+  }, [loading, sessionResolved, onReady]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -40,52 +51,37 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   if (isExcludedPath) return <>{children}</>;
 
-  // While initializing session state from localStorage (Micro-second)
-  if (isSessionOptimistic === null) return null;
+  // While we don't know the session status, we show nothing (Splash covers this)
+  if (!sessionResolved) return null;
 
-  // IF Firebase is still loading...
-  if (loading) {
-    // If we have an optimistic flag, show children to avoid flicker/login screen jump
-    if (isSessionOptimistic) return <>{children}</>;
-    // If no flag, return null (Splash screen is currently covering the viewport)
-    return null; 
-  }
-
-  // IF Firebase finished loading and confirmed NO USER
-  if (!user && !isSessionOptimistic) {
+  // IF confirmed NO session and Firebase is done loading
+  if (!loading && !user && !hasValidSession) {
     return <EmailAuth />;
   }
 
-  // FINAL SAFETY: If Firebase says no user but flag was true (stale session)
-  // We only show login after Firebase is 100% sure and loading is false.
-  if (!user && isSessionOptimistic) {
-    // Remove flag as it's stale and show login
+  // IF session flag exists but Firebase is still verifying, show content behind splash
+  // This prevents the "Login Flicker"
+  if (loading && hasValidSession) {
+    return <div className="opacity-0">{children}</div>;
+  }
+
+  // IF confirmed USER and loading finished
+  if (!loading && user) {
+    return <>{children}</>;
+  }
+
+  // IF session was stale (Flag true but user null)
+  if (!loading && !user && hasValidSession) {
     localStorage.removeItem('shopykart_session_active');
     return <EmailAuth />;
   }
 
-  return <>{children}</>;
+  return null;
 }
 
 function AppContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { loading, user } = useUser();
-  const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
-  
-  useEffect(() => {
-    setIsSessionActive(localStorage.getItem('shopykart_session_active') === 'true');
-  }, []);
-
-  // Logic to determine if splash is done based on auth settled OR optimistic flag
-  const [isSettled, setIsSettled] = useState(false);
-  useEffect(() => {
-    // We stay on splash until Firebase is done loading OR we are confident in the session flag
-    if (!loading || isSessionActive) {
-      // Small buffer to ensure AuthGuard has rendered children behind the splash
-      const timer = setTimeout(() => setIsSettled(true), 400); 
-      return () => clearTimeout(timer);
-    }
-  }, [loading, isSessionActive]);
+  const [isAppFullyReady, setIsAppFullyReady] = useState(false);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -95,8 +91,10 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <SplashScreen isAppReady={isSettled} />
-      <AuthGuard>
+      {/* SplashScreen stays until AuthGuard gives the Green Signal */}
+      <SplashScreen isAppReady={isAppFullyReady} />
+      
+      <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col overflow-x-hidden">
           <main className="flex-1 pb-44">
             {!isExcludedPath && <LocationRequest />}
