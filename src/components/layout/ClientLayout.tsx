@@ -40,19 +40,27 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   if (isExcludedPath) return <>{children}</>;
 
-  // While initializing session state (Micro-second)
+  // While initializing session state from localStorage (Micro-second)
   if (isSessionOptimistic === null) return null;
 
-  // IF Firebase is still loading
+  // IF Firebase is still loading...
   if (loading) {
-    // If we have an optimistic flag, show children to avoid flicker
+    // If we have an optimistic flag, show children to avoid flicker/login screen jump
     if (isSessionOptimistic) return <>{children}</>;
-    // If no flag, return null (Splash will be visible anyway)
+    // If no flag, return null (Splash screen is currently covering the viewport)
     return null; 
   }
 
-  // IF Firebase finished and confirmed NO USER
+  // IF Firebase finished loading and confirmed NO USER
   if (!user && !isSessionOptimistic) {
+    return <EmailAuth />;
+  }
+
+  // FINAL SAFETY: If Firebase says no user but flag was true (stale session)
+  // We only show login after Firebase is 100% sure and loading is false.
+  if (!user && isSessionOptimistic) {
+    // Remove flag as it's stale and show login
+    localStorage.removeItem('shopykart_session_active');
     return <EmailAuth />;
   }
 
@@ -71,8 +79,10 @@ function AppContent({ children }: { children: ReactNode }) {
   // Logic to determine if splash is done based on auth settled OR optimistic flag
   const [isSettled, setIsSettled] = useState(false);
   useEffect(() => {
+    // We stay on splash until Firebase is done loading OR we are confident in the session flag
     if (!loading || isSessionActive) {
-      const timer = setTimeout(() => setIsSettled(true), 300); // Snappier exit
+      // Small buffer to ensure AuthGuard has rendered children behind the splash
+      const timer = setTimeout(() => setIsSettled(true), 400); 
       return () => clearTimeout(timer);
     }
   }, [loading, isSessionActive]);
