@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useTransition } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -16,12 +16,13 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Optimized for Zero Latency using hardware-level PointerEvents and Next.js Prefetching.
+ * Optimized for Zero Latency using hardware-level PointerEvents and React Transitions.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
+  const [isPending, startTransition] = useTransition();
 
   // Aggressive Prefetching for Light-Speed Transitions
   useEffect(() => {
@@ -39,15 +40,18 @@ export function BottomNav() {
   
   const handleNav = useCallback((href: string) => {
     if (pathname === href) return;
-    // Bypassing main thread logic for hardware-speed routing
-    router.push(href);
+    
+    // Immediate hardware reaction inside a transition to keep UI responsive
+    startTransition(() => {
+      router.push(href);
+    });
   }, [pathname, router]);
 
   if (isExcludedPath) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none transform translate-z-0">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none transform translate-z-0 isolate">
+      <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)] touch-none">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -56,14 +60,15 @@ export function BottomNav() {
             <button
               key={item.label}
               onPointerDown={(e) => {
-                // Immediate hardware reaction - fires on touch down, not up
+                // Nuclear tap detection - bypasses all browser delay
+                e.preventDefault();
                 handleNav(item.href);
               }}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-none relative touch-manipulation outline-none border-none bg-transparent cursor-pointer select-none",
+                "flex flex-col items-center justify-center flex-1 h-full transition-none relative outline-none border-none bg-transparent cursor-pointer select-none touch-none",
                 isActive ? "text-primary" : "text-gray-400"
               )}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
+              style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'none' }}
             >
               <div className="relative pointer-events-none transition-none">
                 <Icon className={cn("h-5 w-5 mb-0.5 transition-none", isActive && "stroke-[3]")} />
@@ -80,7 +85,7 @@ export function BottomNav() {
                 {item.label}
               </span>
               {isActive && (
-                <div className="absolute bottom-0 w-8 h-1 bg-primary rounded-t-full transition-none" />
+                <div className="absolute bottom-0 w-8 h-1 bg-primary rounded-t-full transition-none animate-in fade-in duration-75" />
               )}
             </button>
           );

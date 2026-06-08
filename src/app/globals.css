@@ -31,7 +31,6 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
-    touch-action: manipulation !important;
   }
   
   body {
@@ -42,6 +41,7 @@
     overflow-x: hidden;
     user-select: none;
     min-height: 100vh;
+    touch-action: manipulation;
   }
   
   /* GPU ACCELERATED LISTS */
@@ -52,14 +52,20 @@
     backface-visibility: hidden;
   }
 
-  /* ATOMIC INTERACTIONS - ZERO DELAY ENGINE */
+  /* NUCLEAR INTERACTION ENGINE - ZERO LATENCY */
   button, a, [role="button"], .interactive {
     cursor: pointer !important;
     user-select: none !important;
-    transition: none !important; /* Remove any CSS interpolation delay */
+    transition: none !important; 
     will-change: transform, opacity;
     outline: none !important;
     -webkit-appearance: none;
+    touch-action: manipulation;
+  }
+
+  /* Bottom Nav Specific touch-killer */
+  nav button {
+    touch-action: none !important;
   }
 
   /* Instant GPU Optimized Feedback */
