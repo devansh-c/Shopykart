@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -65,11 +66,9 @@ export default function VendorDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showOrderAlarm, setShowOrderAlarm] = useState(false);
-  const [isSessionActive, setIsSessionActive] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    setIsSessionActive(localStorage.getItem('shopykart_session_active') === 'true');
   }, []);
 
   const [newProduct, setNewProduct] = useState({ 
@@ -89,7 +88,7 @@ export default function VendorDashboard() {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
-  const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+  const { data: vendorProfile } = useDoc<any>(vendorRef);
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -97,13 +96,11 @@ export default function VendorDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
-  // REDIRECT PROTECTION - FIXED FOR INFINITE LOADING
+  // REDIRECT PROTECTION
   useEffect(() => {
-    if (!authLoading && isMounted) {
-      if (!user) {
-          localStorage.removeItem('shopykart_session_active');
-          router.push('/vendor/login');
-      }
+    if (!authLoading && isMounted && !user) {
+        localStorage.removeItem('shopykart_session_active');
+        router.push('/vendor/login');
     }
   }, [user, authLoading, router, isMounted]);
 
@@ -266,10 +263,6 @@ export default function VendorDashboard() {
 
   if (!isMounted) return null;
 
-  if (authLoading && !isSessionActive) {
-    return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-  }
-
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
       {/* NEW ORDER ALARM OVERLAY */}
@@ -314,7 +307,7 @@ export default function VendorDashboard() {
               {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Utensils className="h-5 w-5" />}
             </div>
             <div>
-              <h1 className="text-sm font-black italic uppercase">{vendorProfile?.storeName || 'LOADING...'}</h1>
+              <h1 className="text-sm font-black italic uppercase">{vendorProfile?.storeName || 'Business Hub'}</h1>
               <div className="flex items-center gap-1.5">
                  <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
                  <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p>
@@ -516,7 +509,7 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-6 animate-in fade-in duration-500">
               <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm text-center">
                  <div className="relative mx-auto w-24 h-24 mb-4"><img src={vendorProfile?.imageUrl} className="h-full w-full object-cover rounded-[2rem] border-4 border-white shadow-xl bg-muted" alt="Store" /><div className="absolute -bottom-1 -right-1 bg-primary p-2 rounded-xl text-white shadow-lg"><Camera className="h-3 w-3" /></div></div>
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile?.storeName || 'LOADING...'}</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile?.storeName || 'Business Portal'}</h2>
                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} • {vendorProfile?.town}</p>
               </div>
               <div className="space-y-3">
