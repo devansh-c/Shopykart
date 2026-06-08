@@ -243,11 +243,11 @@ export default function MedicalDashboard() {
     }
   };
 
-  const toggleProductAvailability = async (productId: string, available: boolean) => {
-    if (!firestore || !user) return;
+  const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
+    if (!firestore) return;
     try {
       await updateDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
-      await updateDoc(doc(firestore, 'vendors', user.uid, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
       toast({ title: available ? "Item Available" : "Item Out of Stock" });
     } catch (e) { toast({ variant: "destructive", title: "Failed to Update" }); }
   };
@@ -499,7 +499,7 @@ export default function MedicalDashboard() {
                                 </span>
                                 <Switch 
                                   checked={p.isAvailable !== false} 
-                                  onCheckedChange={(val) => toggleProductAvailability(p.id, val)}
+                                  onCheckedChange={(val) => toggleProductAvailability(p.id, p.vendorId, val)}
                                   className="scale-50 data-[state=checked]:bg-teal-500"
                                 />
                              </div>

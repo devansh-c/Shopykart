@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';

@@ -242,11 +242,11 @@ export default function BeautyDashboard() {
     }
   };
 
-  const toggleProductAvailability = async (productId: string, available: boolean) => {
-    if (!firestore || !user) return;
+  const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
+    if (!firestore) return;
     try {
       await updateDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
-      await updateDoc(doc(firestore, 'vendors', user.uid, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
       toast({ title: available ? "Product Live" : "Product Hidden" });
     } catch (e) { toast({ variant: "destructive", title: "Failed to Update" }); }
   };
@@ -498,7 +498,7 @@ export default function BeautyDashboard() {
                                 </span>
                                 <Switch 
                                   checked={p.isAvailable !== false} 
-                                  onCheckedChange={(val) => toggleProductAvailability(p.id, val)}
+                                  onCheckedChange={(val) => toggleProductAvailability(p.id, p.vendorId, val)}
                                   className="scale-50 data-[state=checked]:bg-rose-500"
                                 />
                              </div>
