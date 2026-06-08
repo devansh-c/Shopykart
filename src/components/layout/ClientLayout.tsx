@@ -18,30 +18,34 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect } from 'react';
 
 /**
- * @fileOverview AuthGuard with Synchronous Session Detection.
- * Optimized to prevent the "Login Screen Flicker" after Splash Screen.
+ * @fileOverview AuthGuard with Delayed Login Enforcement.
+ * Ensures the app content is shown first, and login only appears after a 3-second delay if unauthorized.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
-  
-  // Synchronous check for local session to prevent flicker
-  const [hasInitialSession] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('shopykart_session_active') === 'true';
-    }
-    return false;
-  });
-
+  const [showAuthDelayed, setShowAuthDelayed] = useState(false);
   const [isResolved, setIsResolved] = useState(false);
 
   useEffect(() => {
-    // Only resolve when Firebase confirms status
+    // 1. Tell Splash screen we are ready as soon as Auth status is determined
     if (!loading) {
       setIsResolved(true);
       onReady(true);
+      
+      // 2. If NO user is found, wait 3 seconds before showing the login screen
+      if (!user) {
+        const timer = setTimeout(() => {
+          // Double check after 3 seconds if user is still not there
+          setShowAuthDelayed(true);
+        }, 3000);
+        return () => clearTimeout(timer);
+      } else {
+        // If user is found, ensure login screen is hidden
+        setShowAuthDelayed(false);
+      }
     }
-  }, [loading, onReady]);
+  }, [loading, user, onReady]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -51,23 +55,17 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  // 1. Still booting up: Hide everything (covered by Splash)
+  // While app is booting, hide content (handled by SplashScreen)
   if (!isResolved) {
     return null;
   }
 
-  // 2. Resolved: If no user and no local session flag, show Login
-  if (!user && !hasInitialSession) {
+  // After 3 seconds, if still no user, show login/registration
+  if (showAuthDelayed && !user) {
     return <EmailAuth />;
   }
 
-  // 3. Resolved: If user is null but flag exists, session is stale
-  if (!user && hasInitialSession) {
-    localStorage.removeItem('shopykart_session_active');
-    return <EmailAuth />;
-  }
-
-  // 4. Resolved: Authorized
+  // Default: Show the app content immediately for a "ShopyKart hamesha chalta rahe" feel
   return <>{children}</>;
 }
 
