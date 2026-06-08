@@ -96,15 +96,15 @@ export default function MedicalDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
-  // REDIRECT PROTECTION
+  // REDIRECT PROTECTION - FIXED FOR INFINITE LOADING
   useEffect(() => {
-    if (!authLoading && !profileLoading && isMounted) {
-      const active = localStorage.getItem('shopykart_session_active') === 'true';
-      if (!user && !active) {
+    if (!authLoading && isMounted) {
+      if (!user) {
+          localStorage.removeItem('shopykart_session_active');
           router.push('/vendor/login?type=Medical');
       }
     }
-  }, [user, authLoading, profileLoading, router, isMounted]);
+  }, [user, authLoading, router, isMounted]);
 
   // LIVE ORDER ALARM LOGIC
   const ordersQuery = useMemoFirebase(() => {
@@ -275,11 +275,9 @@ export default function MedicalDashboard() {
 
   if (!isMounted) return null;
 
-  if ((authLoading || profileLoading) && !isSessionActive) {
+  if (authLoading && !isSessionActive) {
     return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
   }
-
-  if (!vendorProfile && !isSessionActive) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
@@ -322,10 +320,10 @@ export default function MedicalDashboard() {
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
-              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" /> : <HeartPulse className="h-5 w-5" />}
+              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <HeartPulse className="h-5 w-5" />}
             </div>
             <div>
-              <h1 className="text-sm font-black italic uppercase">{vendorProfile?.storeName || 'Loading...'}</h1>
+              <h1 className="text-sm font-black italic uppercase">{vendorProfile?.storeName || 'LOADING...'}</h1>
               <div className="flex items-center gap-1.5">
                  <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
                  <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p>
@@ -415,12 +413,15 @@ export default function MedicalDashboard() {
                              </div>
                           </div>
 
-                          <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
-                             <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                                <SelectValue placeholder="Healthcare Category" />
-                             </SelectTrigger>
-                             <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
-                          </Select>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                            <Select value={newProduct.category} onValueChange={(val) => setNewProduct({...newProduct, category: val})}>
+                               <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                  <SelectValue placeholder="Healthcare Category" />
+                               </SelectTrigger>
+                               <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
+                            </Select>
+                          </div>
 
                           <div className="grid grid-cols-2 gap-3">
                              <div className="space-y-1">
@@ -538,11 +539,11 @@ export default function MedicalDashboard() {
               <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm text-center">
                  <div className="relative mx-auto w-24 h-24 mb-4">
                    <div className="h-full w-full rounded-[2rem] border-4 border-white shadow-xl bg-teal-50 overflow-hidden flex items-center justify-center">
-                      {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" /> : <HeartPulse className="h-10 w-10 text-teal-600" />}
+                      {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <HeartPulse className="h-10 w-10 text-teal-600" />}
                    </div>
                    <div className="absolute -bottom-1 -right-1 bg-teal-600 p-2 rounded-xl text-white shadow-lg"><Camera className="h-3 w-3" /></div>
                  </div>
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile?.storeName || 'Loading...'}</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{vendorProfile?.storeName || 'LOADING...'}</h2>
                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} • {vendorProfile?.town}</p>
               </div>
               <div className="space-y-3">
