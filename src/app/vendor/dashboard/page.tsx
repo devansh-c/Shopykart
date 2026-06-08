@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -144,7 +145,41 @@ export default function VendorDashboard() {
 
   const resetForm = () => {
     setEditingId(null);
-    setNewProduct({ name: '', mrp: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, mfgDate: '', expiryDate: '', options: [] });
+    setNewProduct({ 
+      name: '', 
+      mrp: '', 
+      price: '', 
+      description: '', 
+      category: '', 
+      imageUrl: '', 
+      isVeg: true, 
+      mfgDate: '', 
+      expiryDate: '', 
+      options: [] 
+    });
+  };
+
+  const handleAddOption = () => {
+    setNewProduct({
+      ...newProduct,
+      options: [...newProduct.options, { name: '', price: 0 }]
+    });
+  };
+
+  const handleRemoveOption = (index: number) => {
+    const updated = [...newProduct.options];
+    updated.splice(index, 1);
+    setNewProduct({ ...newProduct, options: updated });
+  };
+
+  const handleUpdateOption = (index: number, field: 'name' | 'price', value: string) => {
+    const updated = [...newProduct.options];
+    if (field === 'price') {
+      updated[index].price = parseFloat(value) || 0;
+    } else {
+      updated[index].name = value;
+    }
+    setNewProduct({ ...newProduct, options: updated });
   };
 
   const handleAddProduct = async () => {
@@ -160,7 +195,7 @@ export default function VendorDashboard() {
       name: newProduct.name.trim(),
       mrp: parseFloat(newProduct.mrp) || parseFloat(newProduct.price),
       price: parseFloat(newProduct.price),
-      description: newProduct.description,
+      description: newProduct.description || '',
       category: newProduct.category.toLowerCase().trim() || 'general',
       serviceMode: 'Food',
       isVeg: newProduct.isVeg,
@@ -297,6 +332,12 @@ export default function VendorDashboard() {
                           </div>
                           <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setNewProduct({...newProduct, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
                           <Input placeholder="Dish name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="h-12 rounded-xl font-bold" />
+                          
+                          <div className="space-y-1">
+                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1"><FileText className="h-2.5 w-2.5" /> Description</label>
+                             <Textarea placeholder="Dish details..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="rounded-xl bg-muted/10 h-20 font-medium text-sm" />
+                          </div>
+
                           <div className="grid grid-cols-2 gap-3">
                              <Input placeholder="MRP" type="number" value={newProduct.mrp} onChange={e => setNewProduct({...newProduct, mrp: e.target.value})} className="h-12 rounded-xl" />
                              <Input placeholder="Selling Price" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />
@@ -305,6 +346,35 @@ export default function VendorDashboard() {
                                <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
                                <SelectContent className="rounded-2xl">{globalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</SelectItem>))}</SelectContent>
                           </Select>
+
+                          <div className="space-y-3 pt-2">
+                             <div className="flex items-center justify-between px-1">
+                                <label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2"><ListPlus className="h-3 w-3" /> Variants (Addons)</label>
+                                <Button type="button" onClick={handleAddOption} variant="ghost" className="h-7 text-[8px] font-black uppercase border border-primary/20 text-primary rounded-lg">+ ADD VARIANT</Button>
+                             </div>
+                             
+                             <div className="space-y-2">
+                                {newProduct.options.map((opt, idx) => (
+                                  <div key={idx} className="flex gap-2 items-center animate-in slide-in-from-right-2 duration-300">
+                                    <Input 
+                                      placeholder="Variant Name" 
+                                      value={opt.name} 
+                                      onChange={e => handleUpdateOption(idx, 'name', e.target.value)}
+                                      className="h-10 rounded-xl text-[10px] font-bold"
+                                    />
+                                    <Input 
+                                      type="number" 
+                                      placeholder="Extra ₹" 
+                                      value={opt.price} 
+                                      onChange={e => handleUpdateOption(idx, 'price', e.target.value)}
+                                      className="h-10 w-20 rounded-xl text-[10px] font-bold text-center"
+                                    />
+                                    <Button onClick={() => handleRemoveOption(idx)} variant="ghost" size="icon" className="h-10 w-10 text-red-400 bg-red-50 rounded-xl shrink-0"><X className="h-4 w-4" /></Button>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+
                           <Button onClick={handleAddProduct} disabled={isSubmitting} className="w-full h-16 bg-primary rounded-[1.5rem] font-black uppercase italic shadow-xl">{isSubmitting ? 'Saving...' : 'Sync Item'}</Button>
                        </div>
                     </DialogContent>
