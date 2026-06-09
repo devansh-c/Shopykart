@@ -8,9 +8,11 @@ import { useAuth, useFirestore } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  OAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +21,7 @@ type AuthView = 'login' | 'signup';
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const auth = useAuth();
@@ -30,13 +33,51 @@ export function EmailAuth() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  // Critical: Only render if we are 100% sure we are on the client
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const validateEmail = (email: string) => {
     return String(email).toLowerCase().trim().match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+  };
+
+  const handleAppleLogin = async () => {
+    if (!auth || !firestore) return;
+    setAppleLoading(true);
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      // Check if user exists in Firestore
+      const userRef = doc(firestore, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          fullName: user.displayName || 'APPLE USER',
+          email: user.email,
+          uid: user.uid,
+          coins: 10,
+          role: 'customer',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        localStorage.setItem('show_welcome_bonus', 'true');
+      }
+
+      localStorage.setItem('shopykart_session_active', 'true');
+      toast({ title: "Apple Login Successful" });
+      window.location.reload();
+    } catch (err: any) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Apple Login Failed", description: "Could not connect to Apple ID." });
+    } finally {
+      setAppleLoading(false);
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -196,6 +237,26 @@ export function EmailAuth() {
               {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN SHOPYKART' : 'ENTER DASHBOARD')}
             </Button>
           </form>
+
+          <div className="relative py-4 flex items-center justify-center">
+             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+             <span className="relative bg-[#0B0B0B] px-4 text-[9px] font-black text-gray-600 uppercase tracking-widest">OR CONTINUE WITH</span>
+          </div>
+
+          <Button 
+            onClick={handleAppleLogin}
+            disabled={appleLoading}
+            className="w-full h-14 bg-white text-black hover:bg-gray-100 rounded-2xl font-black uppercase italic tracking-tighter shadow-xl transition-all active:scale-95"
+          >
+            {appleLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <span className="flex items-center gap-2">
+                <svg className="h-5 w-5 fill-current" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+                Continue with Apple
+              </span>
+            )}
+          </Button>
 
           <div className="flex flex-col items-center gap-4 pt-4">
             <button 
