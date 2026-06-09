@@ -16,10 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-/**
- * @fileOverview PopularProducts optimized for rendering performance using content-visibility.
- * Optimized Location Filter: Robust matching for Zone and Town.
- */
 export function PopularProducts({ 
   searchQuery = '', 
   category = 'all',
@@ -83,26 +79,19 @@ export function PopularProducts({
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
-      
-      // 1. ISOLATION CHECK: Ensure correct service mode (Food/Medical/Beauty)
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
-      // 2. LOCATION FILTERING (ROBUST)
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
-      // If user has set a location, we must match it
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
         const matchesTown = targetCityNormalized && (productTown === targetCityNormalized || productTown === 'local');
-        
-        // Match if EITHER Zone ID or Town Name matches
         if (!matchesZoneId && !matchesTown) return false;
       }
 
-      // 3. SEARCH & CATEGORY FILTERING
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
@@ -117,9 +106,7 @@ export function PopularProducts({
       const vB = vendorMap.get(b.vendorId);
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
-      
       if (onlineA !== onlineB) return onlineB - onlineA;
-      
       if (sortBy === 'price-low') return (a.price || 0) - (b.price || 0);
       if (sortBy === 'price-high') return (b.price || 0) - (a.price || 0);
       return 0;
@@ -140,16 +127,12 @@ export function PopularProducts({
     return (
       <div className="flex bg-[#F9FAFB] min-h-screen">
         <aside className="w-[85px] border-r border-gray-100 bg-white sticky top-0 h-screen overflow-y-auto no-scrollbar flex flex-col items-center py-6 gap-6 shrink-0">
-          <button 
-            onPointerDown={() => setSelectedCat('all')}
-            className={cn("flex flex-col items-center gap-1 group", selectedCat === 'all' ? "opacity-100" : "opacity-60")}
-          >
+          <button onPointerDown={() => setSelectedCat('all')} className={cn("flex flex-col items-center gap-1 group", selectedCat === 'all' ? "opacity-100" : "opacity-60")}>
             <div className={cn("h-14 w-14 rounded-full border-2 flex items-center justify-center bg-gray-50 transition-all", selectedCat === 'all' ? "border-primary ring-4 ring-primary/5" : "border-transparent")}>
               <span className="text-[10px] font-black uppercase">ALL</span>
             </div>
             <span className="text-[9px] font-black uppercase text-center leading-tight mt-1">View All</span>
           </button>
-
           {hubCategories.map((cat: any) => (
             <button key={cat.id} onPointerDown={() => setSelectedCat(cat.name)} className={cn("flex flex-col items-center gap-1 group", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
               <div className={cn("relative h-14 w-14 rounded-full border-2 overflow-hidden transition-all", selectedCat === cat.name ? "border-primary ring-4 ring-primary/5 scale-105" : "border-transparent bg-gray-50")}>
@@ -159,13 +142,11 @@ export function PopularProducts({
             </button>
           ))}
         </aside>
-
         <main className="flex-1 p-4 pb-40 content-visibility-auto">
           <div className="flex items-center justify-between mb-6">
              <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode}` : selectedCat}</h2>
              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{productsToDisplay.length} Items</span>
           </div>
-
           <div className="grid grid-cols-2 gap-x-3 gap-y-6">
             {productsToDisplay.map((product) => {
               const cartItem = cart?.find((item: any) => item.id === product.id);
@@ -174,7 +155,6 @@ export function PopularProducts({
               const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
               const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
               const discount = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
-
               return (
                 <div key={product.id} className={cn("flex flex-col relative bg-white rounded-3xl border border-gray-100 p-2.5 shadow-sm active:scale-[0.98] transition-none will-change-transform", isOffline && "opacity-60 grayscale")}>
                   {discount > 0 && (
@@ -209,11 +189,7 @@ export function PopularProducts({
                      </div>
                      <div className="relative">
                         {quantity === 0 ? (
-                          <button 
-                            disabled={isOffline} 
-                            onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} 
-                            className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}
-                          >
+                          <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}>
                             {isOffline ? 'OFF' : 'ADD'}
                           </button>
                         ) : (
@@ -285,11 +261,7 @@ export function PopularProducts({
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (
                     <ProductQuickView product={product} isMedical={false}>
-                      <button 
-                        disabled={isOffline} 
-                        onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }}
-                        className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}
-                      >
+                      <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
                         {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>
                     </ProductQuickView>

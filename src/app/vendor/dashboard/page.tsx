@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -92,7 +91,6 @@ export default function VendorDashboard() {
   }, [firestore]);
   const { data: globalCategories } = useCollection<any>(categoriesQuery);
 
-  // REDIRECT PROTECTION
   useEffect(() => {
     if (!authLoading && isMounted && !user) {
         const hasSessionFlag = localStorage.getItem('shopykart_session_active');

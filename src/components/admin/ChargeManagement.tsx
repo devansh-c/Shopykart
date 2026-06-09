@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -129,7 +128,6 @@ export function ChargeManagement() {
         ) : charges && charges.length > 0 ? (
           charges.map((charge) => (
             <div key={charge.id} className="bg-white p-8 rounded-[2.5rem] border border-border/60 shadow-sm flex flex-col group hover:shadow-2xl hover:-translate-y-1 transition-all relative overflow-hidden">
-               {/* Background Watermark */}
                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Receipt className="h-24 w-24 -rotate-12" />
                </div>
