@@ -1,7 +1,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where, getDocs } from 'firebase/firestore';
 import { 
   Store, 
   User, 
@@ -63,14 +63,26 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
   const handleToggleStatus = async (id: string, online: boolean) => {
     if (!firestore) return;
     try {
-      const ref = doc(firestore, 'vendors', id);
-      await updateDoc(ref, { 
-        isOnline: online,
-        updatedAt: serverTimestamp()
+      const batch = writeBatch(firestore);
+      
+      // 1. Update Vendor Status
+      const vendorRef = doc(firestore, 'vendors', id);
+      batch.update(vendorRef, { isOnline: online, updatedAt: serverTimestamp() });
+
+      // 2. AUTO-SYNC: Update all products of this vendor to match availability
+      const productsQuery = query(collection(firestore, 'products'), where('vendorId', '==', id));
+      const productsSnap = await getDocs(productsQuery);
+      
+      productsSnap.docs.forEach(pDoc => {
+        batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
+        batch.update(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() });
       });
+
+      await batch.commit();
+      
       toast({ 
-        title: online ? "Store Opened" : "Store Closed",
-        description: online ? "Customers can now order from this store." : "Store is now marked as closed."
+        title: online ? "Store & Products Online" : "Store & Products Offline",
+        description: online ? "Store is now accepting orders for all items." : "Store and its menu are now hidden from customers."
       });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -109,8 +121,8 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
     if (!firestore || !vendors || vendors.length === 0) return;
     
     const confirmMsg = online 
-      ? "Do you want to OPEN ALL stores in the current list?" 
-      : "CRITICAL: Do you want to CLOSE ALL stores in the current list immediately?";
+      ? "Do you want to OPEN ALL stores and their products in the current list?" 
+      : "CRITICAL: Do you want to CLOSE ALL stores and their products immediately?";
     
     if (!confirm(confirmMsg)) return;
 
@@ -118,20 +130,28 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
     try {
       const batch = writeBatch(firestore);
       
-      vendors.forEach((store) => {
-        const ref = doc(firestore, 'vendors', store.id);
-        batch.update(ref, { isOnline: online, updatedAt: serverTimestamp() });
-      });
+      for (const store of vendors) {
+        // Update Store
+        batch.update(doc(firestore, 'vendors', store.id), { isOnline: online, updatedAt: serverTimestamp() });
+        
+        // Update Store's Products (Sync)
+        const pQuery = query(collection(firestore, 'products'), where('vendorId', '==', store.id));
+        const pSnap = await getDocs(pQuery);
+        pSnap.docs.forEach(pDoc => {
+          batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
+          batch.update(doc(firestore, 'vendors', store.id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() });
+        });
+      }
 
       await batch.commit();
       toast({ 
-        title: online ? "Stores Opened" : "Stores Closed", 
-        description: `Successfully updated ${vendors.length} stores.`,
+        title: online ? "Network Live" : "Network Closed", 
+        description: `Successfully synced ${vendors.length} stores and their full menus.`,
         variant: online ? "default" : "destructive"
       });
     } catch (err) {
-      console.error("Bulk update error:", err);
-      toast({ variant: "destructive", title: "Bulk Update Failed" });
+      console.error("Bulk sync error:", err);
+      toast({ variant: "destructive", title: "Bulk Sync Failed" });
     } finally {
       setIsBulkUpdating(false);
     }
@@ -148,7 +168,7 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
              </div>
              <div>
                 <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">{categoryFilter ? `${categoryFilter} Network Control` : 'Master Network Control'}</h3>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Control all {vendors?.length || 0} stores in this section</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Control all {vendors?.length || 0} stores & menus in this section</p>
              </div>
           </div>
           
@@ -159,7 +179,7 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
               className="flex-1 md:flex-none h-12 rounded-xl bg-green-600 hover:bg-green-500 font-black uppercase italic text-[10px] tracking-widest"
              >
                {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-2" />}
-               OPEN ALL
+               OPEN NETWORK
              </Button>
              <Button 
               disabled={isBulkUpdating}
@@ -167,7 +187,7 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
               className="flex-1 md:flex-none h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase italic text-[10px] tracking-widest"
              >
                {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-2" />}
-               CLOSE ALL
+               CLOSE NETWORK
              </Button>
           </div>
         </div>
@@ -229,11 +249,10 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
                 </div>
               </div>
 
-              {/* STORE CREDENTIALS FOR ADMIN */}
               <div className="bg-[#0B0B0B] rounded-2xl p-4 mb-4 border border-white/5 space-y-2">
                 <div className="flex items-center justify-between text-[8px] font-black text-primary uppercase tracking-widest">
                    <span>Store Credentials</span>
-                   <Badge className="bg-primary/20 text-primary border-none text-[6px] h-3">ACTIVE LOGIN</Badge>
+                   <Badge className="bg-primary/20 text-primary border-none text-[6px] h-3">AUTO-SYNC ON</Badge>
                 </div>
                 <div className="flex items-center gap-3">
                    <div className="p-1.5 rounded-lg bg-white/5 text-gray-400"><Fingerprint className="h-3 w-3" /></div>
@@ -300,7 +319,6 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
                              />
                           </div>
 
-                          {/* CREDENTIALS EDITING SECTION */}
                           <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
                              <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">

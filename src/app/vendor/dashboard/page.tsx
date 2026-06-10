@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs, writeBatch } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -245,9 +244,26 @@ export default function VendorDashboard() {
   const toggleVendorStatus = async (online: boolean) => {
     if (!firestore || !user) return;
     try {
+      // 1. Update Vendor Status
       await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: online, updatedAt: serverTimestamp() });
-      toast({ title: online ? "Store Opened" : "Store Closed" });
-    } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
+      
+      // 2. AUTO-SYNC: Update all products to be available/unavailable
+      const q = query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
+      const snap = await getDocs(q);
+      const batch = writeBatch(firestore);
+      
+      snap.docs.forEach(pDoc => {
+        batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
+        batch.update(doc(firestore, 'vendors', user.uid, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() });
+      });
+      
+      await batch.commit();
+
+      toast({ 
+        title: online ? "Store & Products Live" : "Store & Products Closed",
+        description: online ? "Aapke saare products customers ko dikhne lagenge." : "Aapki inventory temporarily hide kar di gayi hai."
+      });
+    } catch (e) { toast({ variant: "destructive", title: "Sync Failed" }); }
   };
 
   if (!isMounted) return null;
@@ -328,7 +344,7 @@ export default function VendorDashboard() {
                  <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory Master</h2>
                  <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
                     <DialogTrigger asChild><Button className="bg-black text-white rounded-xl h-10 font-black uppercase text-[9px] tracking-widest transition-all active:scale-95"><Plus className="mr-1 h-3.5 w-3.5" /> ADD NEW ITEM</Button></DialogTrigger>
-                    <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[90vh] overflow-y-auto no-scrollbar border-none shadow-2xl">
+                    <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar border-none shadow-2xl">
                        <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Dish Configuration</DialogTitle></DialogHeader>
                        <div className="space-y-5 pt-4">
                           <div onClick={() => fileInputRef.current?.click()} className="h-44 border-2 border-dashed border-border rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary/40 transition-all">
