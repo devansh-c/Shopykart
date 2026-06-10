@@ -16,46 +16,54 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
  * @fileOverview AuthGuard with Zero-Flicker Logic.
- * Ensures SplashScreen stays until Auth is confirmed.
- * Implements a 3-second delay for Login screen for non-logged in users.
+ * Optimized to ensure Home is visible first and login overlay only appears after determination.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
+  
+  // 1. Initial State: Splash screen is the only thing rendered
   const [authResolved, setAuthResolved] = useState(false);
   const [showLoginOverlay, setShowLoginOverlay] = useState(false);
 
+  // 2. Optimistic Session Check: Prevents overlay from ever appearing for repeat users
+  const hasSessionHint = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('shopykart_session_active') === 'true';
+  }, []);
+
   useEffect(() => {
-    // 1. If Firebase is still checking, stay in loading state
+    // A. Wait for Firebase initial state
     if (loading) return;
 
-    // 2. Auth is resolved (either user found or not)
+    // B. Loading finished: Mark as resolved to allow rendering Home content behind splash
     setAuthResolved(true);
     
-    // Give a tiny buffer for hydration before hiding splash
-    const readyTimer = setTimeout(() => {
-      onReady(true);
-    }, 100);
+    // C. Signal Splash to start fading out
+    onReady(true);
 
-    // 3. If NO user is found, wait 3 seconds before showing the login overlay
+    // D. Final Determination: User exists or is a guest
     if (!user) {
+      // If user is null, we check our grace period logic
+      // If we have a session hint, we wait longer to let Firebase retry or handle slow network
+      const delay = hasSessionHint ? 6000 : 3000;
+      
       const loginTimer = setTimeout(() => {
-        setShowLoginOverlay(true);
-      }, 3000);
-      return () => {
-        clearTimeout(readyTimer);
-        clearTimeout(loginTimer);
-      };
+        // Only show if user is still null after the delay
+        if (!user) setShowLoginOverlay(true);
+      }, delay);
+
+      return () => clearTimeout(loginTimer);
     } else {
+      // User found: Store hint and ensure overlay is hidden
+      localStorage.setItem('shopykart_session_active', 'true');
       setShowLoginOverlay(false);
     }
-
-    return () => clearTimeout(readyTimer);
-  }, [loading, user, onReady]);
+  }, [loading, user, onReady, hasSessionHint]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -65,13 +73,12 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  // WHILE BOOTING: Return nothing so SplashScreen is the only thing visible
+  // WHILE BOOTING: Stay on blank/splash state
   if (!authResolved) {
     return null;
   }
 
-  // AFTER BOOTING:
-  // Render children (Home) always. If guest, show Login as an overlay after delay.
+  // AFTER BOOTING: Render Home immediately. Overlay only appears if required after delay.
   return (
     <>
       {children}
@@ -92,7 +99,7 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      {/* SplashScreen stays until AuthGuard gives the explicit ready signal */}
+      {/* Highest priority screen stays active until AuthGuard gives ready signal */}
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
