@@ -11,27 +11,49 @@ import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
-import { EmailAuth } from '@/components/auth/EmailAuth';
+import { OTPVerification } from '@/components/auth/OTPVerification';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
- * @fileOverview AuthGuard - TEMPORARILY DISABLED BYPASS.
- * Allows users to browse without login/register overlay.
+ * @fileOverview AuthGuard with 3-second grace period and "Content-First" logic.
+ * Ensures zero-flicker for returning users and smooth onboarding for new ones.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
   
-  const [authResolved, setAuthResolved] = useState(false);
+  const [showAuthOverlay, setShowAuthOverlay] = useState(false);
+  const [isGracePeriodActive, setIsGracePeriodActive] = useState(true);
 
   useEffect(() => {
     if (loading) return;
-    setAuthResolved(true);
+
+    // Signal that auth check is done (used by SplashScreen)
     onReady(true);
-  }, [loading, onReady]);
+
+    const hasSessionHint = localStorage.getItem('shopykart_session_active') === 'true';
+    
+    // If not logged in
+    if (!user) {
+      // Logic: If they have a session hint, wait longer (maybe slow connection)
+      // Otherwise, show login after 3 seconds of browsing
+      const delay = hasSessionHint ? 6000 : 3000;
+      
+      const timer = setTimeout(() => {
+        setIsGracePeriodActive(false);
+        setShowAuthOverlay(true);
+      }, delay);
+
+      return () => clearTimeout(timer);
+    } else {
+      // User is logged in, no overlay needed
+      setIsGracePeriodActive(false);
+      setShowAuthOverlay(false);
+    }
+  }, [user, loading, onReady]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -41,14 +63,10 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  if (!authResolved) {
-    return null;
-  }
-
   return (
     <>
       {children}
-      {/* Auth System is currently bypassed as per request */}
+      {showAuthOverlay && <OTPVerification />}
     </>
   );
 }
@@ -65,6 +83,7 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen flex flex-col">
+      {/* SplashScreen stays on top until AuthGuard signals readiness */}
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
