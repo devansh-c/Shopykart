@@ -19,33 +19,42 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect } from 'react';
 
 /**
- * @fileOverview AuthGuard with Delayed Login Enforcement.
- * Ensures the app content is shown first, and login only appears after a 3-second delay if unauthorized.
+ * @fileOverview AuthGuard with Zero-Flicker Logic.
+ * Ensures SplashScreen stays until Auth is confirmed.
+ * Implements a 3-second delay for Login screen for non-logged in users.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
-  const [showAuthDelayed, setShowAuthDelayed] = useState(false);
-  const [isResolved, setIsResolved] = useState(false);
+  const [authResolved, setAuthResolved] = useState(false);
+  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
 
   useEffect(() => {
-    // 1. Tell Splash screen we are ready as soon as Auth status is determined
-    if (!loading) {
-      setIsResolved(true);
+    // 1. If Firebase is still checking, stay in loading state
+    if (loading) return;
+
+    // 2. Auth is resolved (either user found or not)
+    setAuthResolved(true);
+    
+    // Give a tiny buffer for hydration before hiding splash
+    const readyTimer = setTimeout(() => {
       onReady(true);
-      
-      // 2. If NO user is found, wait 3 seconds before showing the login screen
-      if (!user) {
-        const timer = setTimeout(() => {
-          // Double check after 3 seconds if user is still not there
-          setShowAuthDelayed(true);
-        }, 3000);
-        return () => clearTimeout(timer);
-      } else {
-        // If user is found, ensure login screen is hidden
-        setShowAuthDelayed(false);
-      }
+    }, 100);
+
+    // 3. If NO user is found, wait 3 seconds before showing the login overlay
+    if (!user) {
+      const loginTimer = setTimeout(() => {
+        setShowLoginOverlay(true);
+      }, 3000);
+      return () => {
+        clearTimeout(readyTimer);
+        clearTimeout(loginTimer);
+      };
+    } else {
+      setShowLoginOverlay(false);
     }
+
+    return () => clearTimeout(readyTimer);
   }, [loading, user, onReady]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
@@ -56,18 +65,19 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  // While app is booting, hide content (handled by SplashScreen)
-  if (!isResolved) {
+  // WHILE BOOTING: Return nothing so SplashScreen is the only thing visible
+  if (!authResolved) {
     return null;
   }
 
-  // After 3 seconds, if still no user, show login/registration
-  if (showAuthDelayed && !user) {
-    return <EmailAuth />;
-  }
-
-  // Default: Show the app content immediately for a "ShopyKart hamesha chalta rahe" feel
-  return <>{children}</>;
+  // AFTER BOOTING:
+  // Render children (Home) always. If guest, show Login as an overlay after delay.
+  return (
+    <>
+      {children}
+      {showLoginOverlay && !user && <EmailAuth />}
+    </>
+  );
 }
 
 function AppContent({ children }: { children: ReactNode }) {

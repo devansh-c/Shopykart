@@ -11,6 +11,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with memory cleanup and GPU layer.
+ * Stays visible until explicit 'isAppReady' signal is received.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -20,7 +21,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Ultra-snappy 1.5s splash
+    // Minimum visibility time for branding
     const timer = setTimeout(() => {
       setIsTimerDone(true);
     }, 1500);
@@ -28,6 +29,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     return () => clearTimeout(timer);
   }, []);
 
+  // ONLY hide when BOTH the minimum timer is done AND the app (Auth) is ready
   const isVisible = !isTimerDone || !isAppReady;
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out will-change-opacity",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out will-change-opacity",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
       style={{ transform: 'translateZ(0)' }}
@@ -66,7 +68,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         <div 
           onClick={handleTap}
           className={cn(
-            "transition-all duration-300 transform flex flex-col items-center cursor-pointer active:scale-95 will-change-transform",
+            "transition-all duration-500 transform flex flex-col items-center cursor-pointer active:scale-95 will-change-transform",
             isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
           )}
         >
@@ -83,7 +85,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       </div>
       
       <div className={cn(
-        "absolute bottom-12 transition-all duration-500 delay-100 flex flex-col items-center gap-2",
+        "absolute bottom-12 transition-all duration-700 delay-200 flex flex-col items-center gap-2",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted By Devansh</p>
