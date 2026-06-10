@@ -11,6 +11,10 @@ import { cn } from '@/lib/utils';
 
 type AuthStep = 'details' | 'otp';
 
+/**
+ * @fileOverview OTP Verification with permanent session logic.
+ * Code: 788911
+ */
 export function OTPVerification() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<AuthStep>('details');
@@ -36,12 +40,16 @@ export function OTPVerification() {
     }
 
     setLoading(true);
-    // Simulate network delay
+    // Simulate sending and show notification
     setTimeout(() => {
       setStep('otp');
       setLoading(false);
-      toast({ title: "OTP Sent!", description: "Verification code sent to your number." });
-    }, 1200);
+      toast({ 
+        title: "OTP SENT! 📩", 
+        description: "Your ShopyKart verification code is 788911",
+        duration: 5000 
+      });
+    }, 1000);
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -49,7 +57,7 @@ export function OTPVerification() {
     if (!firestore) return;
 
     if (otpValue !== '788911') {
-      toast({ variant: "destructive", title: "Invalid OTP", description: "The code you entered is incorrect." });
+      toast({ variant: "destructive", title: "Invalid OTP", description: "Please use the code 788911." });
       return;
     }
 
@@ -57,59 +65,56 @@ export function OTPVerification() {
     try {
       let uid = '';
       
-      // Step 1: Authentication
-      try {
-        if (auth) {
-          const userCredential = await signInAnonymously(auth);
-          uid = userCredential.user.uid;
-        }
-      } catch (authErr) {
-        uid = 'user_' + formData.phoneNumber;
+      // Step 1: Anonymous Auth for identity
+      if (auth) {
+        const userCredential = await signInAnonymously(auth);
+        uid = userCredential.user.uid;
+      } else {
+        uid = 'user_' + Date.now();
       }
 
       // Step 2: Save Permanent Data to Firestore
-      await setDoc(doc(firestore, 'users', uid), {
+      const userRef = doc(firestore, 'users', uid);
+      await setDoc(userRef, {
         fullName: formData.fullName.toUpperCase(),
         phoneNumber: formData.phoneNumber,
         address: formData.address.toUpperCase(),
         city: (formData.city || 'Ranipur').toUpperCase(),
         pincode: formData.pincode,
         uid: uid,
-        coins: 10, // Welcome Bonus
+        coins: 10,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         role: 'customer',
         isVerified: true
       }, { merge: true });
 
-      // Step 3: Local Persistence
+      // Step 3: Set Persistent Local Flag
       localStorage.setItem('user_name', formData.fullName.toUpperCase());
       localStorage.setItem('user_phone', formData.phoneNumber);
-      localStorage.setItem('user_address', `${formData.address.toUpperCase()}, ${formData.city.toUpperCase()} - ${formData.pincode}`);
-      localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('shopykart_session_active', 'true');
+      localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('show_welcome_bonus', 'true');
 
-      toast({ title: "Verification Successful!", description: "Welcome to the ShopyKart Elite Network." });
+      toast({ title: "Verification Successful!", description: "Welcome to ShopyKart." });
       
-      // Phase 4: Full Reload to sync Auth state
+      // Phase 4: Reload to clear overlay and sync app state
       setTimeout(() => {
         window.location.reload();
       }, 500);
 
     } catch (err: any) {
       console.error("Auth Error:", err);
-      toast({ variant: "destructive", title: "System Error", description: "Could not save profile. Try again." });
+      toast({ variant: "destructive", title: "Backend Error", description: "Could not save profile." });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col p-8 animate-in fade-in duration-500 overflow-y-auto no-scrollbar pointer-events-auto">
+    <div className="fixed inset-0 z-[500] bg-[#0B0B0B] flex flex-col p-8 animate-in fade-in duration-500 overflow-y-auto no-scrollbar">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-10 py-10">
         
-        {/* Branding Header */}
         <div className="text-left">
           <div className="bg-primary/20 h-16 w-16 rounded-[2rem] flex items-center justify-center text-primary mb-8 border border-primary/20">
             {step === 'details' ? <Sparkles className="h-8 w-8" /> : <KeyRound className="h-8 w-8 animate-pulse" />}
@@ -188,7 +193,7 @@ export function OTPVerification() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg tracking-tighter"
+              className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic shadow-xl shadow-primary/20 active:scale-[0.98] transition-all text-lg"
             >
               {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
                 <span className="flex items-center gap-2">
@@ -202,8 +207,8 @@ export function OTPVerification() {
           <form onSubmit={handleVerifyOTP} className="space-y-8 animate-in slide-in-from-right-4 duration-500">
              <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">OTP Code</span>
-                   <button onClick={() => setStep('details')} className="text-[10px] font-black text-primary uppercase tracking-widest">Change Phone</button>
+                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Verification Code</span>
+                   <button type="button" onClick={() => setStep('details')} className="text-[10px] font-black text-primary uppercase tracking-widest">Edit Details</button>
                 </div>
                 <input
                   type="tel"
@@ -214,8 +219,8 @@ export function OTPVerification() {
                   required
                   autoFocus
                 />
-                <p className="text-[9px] text-gray-600 font-bold text-center uppercase tracking-widest mt-4 italic">
-                  Tip: Standard test OTP is 788911
+                <p className="text-[9px] text-gray-600 font-bold text-center uppercase tracking-widest mt-4">
+                  Check your notifications for the code.
                 </p>
              </div>
 
@@ -224,12 +229,7 @@ export function OTPVerification() {
                 disabled={loading || otpValue.length !== 6}
                 className="w-full h-16 bg-white text-black hover:bg-gray-100 rounded-[2rem] font-black uppercase italic shadow-2xl active:scale-[0.98] transition-all text-lg"
               >
-                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                  <span className="flex items-center gap-2">
-                    VERIFY & JOIN
-                    <CheckCircle2 className="h-5 w-5" />
-                  </span>
-                )}
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'VERIFY & JOIN'}
               </Button>
           </form>
         )}
@@ -241,7 +241,6 @@ export function OTPVerification() {
             <ShieldCheck className="h-4 w-4" />
             <p className="text-[8px] font-black uppercase tracking-[0.5em]">Identity Secured System</p>
           </div>
-          <p className="text-[7px] font-black text-white/5 uppercase tracking-widest">ShopyKart Private Limited • Shopykart.co.in</p>
         </div>
       </div>
     </div>
