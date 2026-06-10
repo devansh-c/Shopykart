@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -19,51 +18,20 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
- * @fileOverview AuthGuard with Zero-Flicker Logic.
- * Optimized to ensure Home is visible first and login overlay only appears after determination.
+ * @fileOverview AuthGuard - TEMPORARILY DISABLED BYPASS.
+ * Allows users to browse without login/register overlay.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
   
-  // 1. Initial State: Splash screen is the only thing rendered
   const [authResolved, setAuthResolved] = useState(false);
-  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
-
-  // 2. Optimistic Session Check: Prevents overlay from ever appearing for repeat users
-  const hasSessionHint = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('shopykart_session_active') === 'true';
-  }, []);
 
   useEffect(() => {
-    // A. Wait for Firebase initial state
     if (loading) return;
-
-    // B. Loading finished: Mark as resolved to allow rendering Home content behind splash
     setAuthResolved(true);
-    
-    // C. Signal Splash to start fading out
     onReady(true);
-
-    // D. Final Determination: User exists or is a guest
-    if (!user) {
-      // If user is null, we check our grace period logic
-      // If we have a session hint, we wait longer to let Firebase retry or handle slow network
-      const delay = hasSessionHint ? 6000 : 3000;
-      
-      const loginTimer = setTimeout(() => {
-        // Only show if user is still null after the delay
-        if (!user) setShowLoginOverlay(true);
-      }, delay);
-
-      return () => clearTimeout(loginTimer);
-    } else {
-      // User found: Store hint and ensure overlay is hidden
-      localStorage.setItem('shopykart_session_active', 'true');
-      setShowLoginOverlay(false);
-    }
-  }, [loading, user, onReady, hasSessionHint]);
+  }, [loading, onReady]);
 
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
@@ -73,16 +41,14 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
 
   if (isExcludedPath) return <>{children}</>;
 
-  // WHILE BOOTING: Stay on blank/splash state
   if (!authResolved) {
     return null;
   }
 
-  // AFTER BOOTING: Render Home immediately. Overlay only appears if required after delay.
   return (
     <>
       {children}
-      {showLoginOverlay && !user && <EmailAuth />}
+      {/* Auth System is currently bypassed as per request */}
     </>
   );
 }
@@ -99,7 +65,6 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      {/* Highest priority screen stays active until AuthGuard gives ready signal */}
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
