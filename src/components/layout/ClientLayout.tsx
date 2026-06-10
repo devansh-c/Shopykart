@@ -18,8 +18,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect } from 'react';
 
 /**
- * @fileOverview AuthGuard with permanent session support.
- * Checks for session flag immediately to prevent re-login prompts.
+ * @fileOverview AuthGuard - TEMPORARILY DISABLED BYPASS.
+ * Allows unrestricted access to the app.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
@@ -33,19 +33,8 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
     // Signal app is ready
     onReady(true);
 
-    const isVerified = localStorage.getItem('shopykart_session_active') === 'true';
-    
-    // If not verified (no local flag and no firebase user)
-    if (!user && !isVerified) {
-      // Show login after 3 seconds of browsing
-      const timer = setTimeout(() => {
-        setShowAuthOverlay(true);
-      }, 3000);
-      return () => clearTimeout(timer);
-    } else {
-      // User is already verified, ensure overlay is hidden
-      setShowAuthOverlay(false);
-    }
+    // AUTH SYSTEM BYPASS: Overlay logic disabled as requested.
+    setShowAuthOverlay(false);
   }, [user, loading, onReady]);
 
   // Public/Admin paths bypass
@@ -60,6 +49,7 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   return (
     <>
       {children}
+      {/* Auth Overlay will remain false due to bypass logic above */}
       {showAuthOverlay && <OTPVerification />}
     </>
   );
