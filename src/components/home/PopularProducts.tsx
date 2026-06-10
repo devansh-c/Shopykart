@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
@@ -189,14 +190,20 @@ export function PopularProducts({
                      </div>
                      <div className="relative">
                         {quantity === 0 ? (
-                          <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}>
+                          <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); if(!isOffline) addToCart({ ...product, imageUrl }); }} className={cn("px-6 py-1.5 border rounded-lg font-black text-[10px] uppercase shadow-sm transition-none", isOffline ? "border-gray-200 text-gray-300" : "border-primary text-primary hover:bg-primary/5")}>
                             {isOffline ? 'OFF' : 'ADD'}
                           </button>
                         ) : (
-                          <div className="flex items-center bg-primary text-white rounded-lg h-8 px-1 shadow-md">
+                          <div className={cn("flex items-center bg-primary text-white rounded-lg h-8 px-1 shadow-md", isOffline && "opacity-50")}>
                             <button onPointerDown={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="w-6 h-full flex items-center justify-center font-bold text-lg">-</button>
                             <span className="w-5 text-center text-[11px] font-black">{quantity}</span>
-                            <button onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="w-6 h-full flex items-center justify-center font-bold text-lg">+</button>
+                            <button 
+                              disabled={isOffline} 
+                              onPointerDown={(e) => { e.stopPropagation(); if(!isOffline) addToCart({ ...product, imageUrl }); }} 
+                              className={cn("w-6 h-full flex items-center justify-center font-bold text-lg", isOffline && "cursor-not-allowed")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
                           </div>
                         )}
                      </div>
@@ -261,15 +268,21 @@ export function PopularProducts({
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
                   {quantity === 0 ? (
                     <ProductQuickView product={product} isMedical={false}>
-                      <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
+                      <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); if(!isOffline) addToCart({ ...product, imageUrl }); }} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
                         {isOffline ? 'OFFLINE' : 'ADD TO BAG'}
                       </button>
                     </ProductQuickView>
                   ) : (
-                    <div className="flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg">
+                    <div className={cn("flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg", isOffline && "opacity-50")}>
                       <button onPointerDown={(e) => { e.stopPropagation(); removeFromCart(product.id); }} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
                       <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-                      <button onPointerDown={(e) => { e.stopPropagation(); addToCart({ ...product, imageUrl }); }} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
+                      <button 
+                        disabled={isOffline} 
+                        onPointerDown={(e) => { e.stopPropagation(); if(!isOffline) addToCart({ ...product, imageUrl }); }} 
+                        className={cn("flex-1 flex items-center justify-center h-full", isOffline && "cursor-not-allowed")}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   )}
                 </div>

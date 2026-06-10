@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, Suspense } from 'react';
@@ -223,16 +224,16 @@ function MenuContent() {
                     </button>
                   </ProductQuickView>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
-                    {quantity === 0 ? (
+                    {productIsOffline || isOffline ? (
+                      <div className="w-full h-9 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl flex items-center justify-center font-black text-[9px] uppercase shadow-sm">
+                        OFFLINE
+                      </div>
+                    ) : quantity === 0 ? (
                       <ProductQuickView product={product}>
                         <button 
-                          disabled={productIsOffline || isOffline}
-                          className={cn(
-                            "w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all",
-                            (productIsOffline || isOffline) && "opacity-50 border-gray-300 text-gray-400 shadow-none"
-                          )}
+                          className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all"
                         >
-                          {productIsOffline || isOffline ? 'OFF' : 'ADD'}
+                          ADD
                         </button>
                       </ProductQuickView>
                     ) : (

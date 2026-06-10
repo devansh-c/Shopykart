@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -22,6 +23,8 @@ import { useCart } from '@/components/cart/CartProvider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 interface ProductQuickViewProps {
   product: any;
@@ -32,10 +35,20 @@ interface ProductQuickViewProps {
 export function ProductQuickView({ product, children, isMedical }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
   const [instructions, setInstructions] = useState('');
+
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
+
+  const vendor = vendors?.find(v => v.id === product.vendorId);
+  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
 
   const liked = isInWishlist(product.id);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
@@ -48,6 +61,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
   }, [product, selectedOption]);
 
   const handleAddToCart = () => {
+    if (isOffline) return;
     addToCart({ 
       ...product, 
       imageUrl, 
@@ -270,8 +284,9 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
 
           <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
-                <div className="flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm">
+                <div className={cn("flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm", isOffline && "opacity-50")}>
                    <button 
+                    disabled={isOffline}
                     onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
                     className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"
                    >
@@ -279,6 +294,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                    </button>
                    <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
                    <button 
+                    disabled={isOffline}
                     onClick={() => setLocalQuantity(localQuantity + 1)}
                     className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"
                    >
@@ -288,10 +304,11 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
 
                 <Button 
                   onClick={handleAddToCart}
-                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none"
+                  disabled={isOffline}
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none"
                 >
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  ADD • ₹{(currentPrice * localQuantity).toFixed(2)}
+                  {isOffline ? 'OFFLINE' : `ADD • ₹${(currentPrice * localQuantity).toFixed(2)}`}
                 </Button>
              </div>
           </div>

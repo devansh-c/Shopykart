@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -36,11 +37,20 @@ export default function ProductDetailsClient() {
 
   const { data: product, loading } = useDoc<any>(productRef);
   
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
+
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'products');
   }, [firestore]);
   const { data: allDbProducts } = useCollection<any>(productsQuery);
+
+  const vendor = vendors?.find(v => v.id === product?.vendorId);
+  const isOffline = (vendor?.isOnline === false) || (product?.isAvailable === false);
 
   const isMedical = useMemo(() => {
     return product?.serviceMode === 'Medical' || product?.category?.toLowerCase().includes('medic') || product?.isSilentPackaging !== undefined;
@@ -59,7 +69,7 @@ export default function ProductDetailsClient() {
   }, [product, selectedOption, localQuantity]);
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || isOffline) return;
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
     
     addToCart({ 
@@ -157,7 +167,7 @@ export default function ProductDetailsClient() {
         </button>
       </div>
 
-      <div className="relative w-full aspect-[4/3] bg-muted">
+      <div className={cn("relative w-full aspect-[4/3] bg-muted", isOffline && "grayscale")}>
         <Image 
           src={imageUrl} 
           alt={product.name} 
@@ -165,6 +175,11 @@ export default function ProductDetailsClient() {
           className="object-cover"
           priority
         />
+        {isOffline && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+             <span className="bg-white text-black px-6 py-2 rounded-2xl font-black uppercase italic text-lg shadow-2xl">Currently Offline</span>
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 -mt-8 bg-white rounded-t-[2.5rem] px-6 pt-8 pb-4">
@@ -254,12 +269,14 @@ export default function ProductDetailsClient() {
               {product.options.map((opt: any, i: number) => (
                 <button 
                   key={i}
+                  disabled={isOffline}
                   onClick={() => setSelectedOption(selectedOption?.name === opt.name ? null : opt)}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl border-2 transition-all active:scale-[0.98]",
                     selectedOption?.name === opt.name 
                       ? "border-primary bg-primary/5 shadow-inner" 
-                      : "border-gray-100 bg-gray-50"
+                      : "border-gray-100 bg-gray-50",
+                    isOffline && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -283,6 +300,7 @@ export default function ProductDetailsClient() {
             <div className="space-y-4 mb-8">
               <h3 className="text-base font-black text-foreground uppercase tracking-tight">Special instructions</h3>
               <Textarea 
+                disabled={isOffline}
                 placeholder="E.g. no onions, extra sauce..." 
                 className="rounded-2xl bg-muted/30 border-muted h-24 focus-visible:ring-primary/20"
                 value={instructions}
@@ -357,42 +375,13 @@ export default function ProductDetailsClient() {
             </div>
           )}
         </div>
-
-        {relatedProducts.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-base font-black text-foreground uppercase tracking-tight mb-4">People also ordered</h3>
-            <div className="overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
-              <div className="flex space-x-4">
-                {relatedProducts.map((prod: any) => (
-                  <Link key={prod.id} href={`/product/view?id=${prod.id}`}>
-                    <div className="min-w-[200px] bg-white rounded-3xl border border-border/40 p-3 shadow-sm flex flex-col group active:scale-95 transition-all">
-                      <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
-                        <img 
-                          src={prod.imageUrl || `https://picsum.photos/seed/${prod.id}/300/300`} 
-                          alt={prod.name}
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <h4 className="font-bold text-sm truncate">{prod.name}</h4>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="font-black text-primary">₹{(prod.price || 0).toFixed(2)}</span>
-                        <div className="bg-primary/10 text-primary p-2 rounded-xl">
-                          <Plus className="h-4 w-4" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-4 max-w-lg mx-auto">
-          <div className="flex items-center bg-muted/50 rounded-2xl h-14 px-2">
+          <div className={cn("flex items-center bg-muted/50 rounded-2xl h-14 px-2", isOffline && "opacity-50")}>
             <button 
+              disabled={isOffline}
               onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
               className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors"
             >
@@ -400,6 +389,7 @@ export default function ProductDetailsClient() {
             </button>
             <span className="w-10 text-center text-lg font-black">{localQuantity}</span>
             <button 
+              disabled={isOffline}
               onClick={() => setLocalQuantity(localQuantity + 1)}
               className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors"
             >
@@ -408,10 +398,14 @@ export default function ProductDetailsClient() {
           </div>
 
           <button 
+            disabled={isOffline}
             onClick={handleAddToCart}
-            className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-all"
+            className={cn(
+              "flex-1 h-14 rounded-2xl font-black uppercase italic tracking-tighter shadow-lg transition-all",
+              isOffline ? "bg-gray-300 text-gray-500 shadow-none cursor-not-allowed" : "bg-primary text-white shadow-primary/20 active:scale-95"
+            )}
           >
-            Add to Cart • ₹{totalPrice.toFixed(2)}
+            {isOffline ? 'ITEM UNAVAILABLE' : `Add to Cart • ₹${totalPrice.toFixed(2)}`}
           </button>
         </div>
       </div>
