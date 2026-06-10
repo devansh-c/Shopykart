@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Lock, User, Phone, CheckCircle2, ArrowRight, Sparkles, MessageCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, CheckCircle2, ArrowRight, Sparkles, MessageCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -52,7 +52,6 @@ export function EmailAuth() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // Check if user exists in Firestore
       const userRef = doc(firestore, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -74,7 +73,15 @@ export function EmailAuth() {
       window.location.reload();
     } catch (err: any) {
       console.error(err);
-      toast({ variant: "destructive", title: "Apple Login Failed", description: "Could not connect to Apple ID." });
+      if (err.code === 'auth/unauthorized-domain') {
+        toast({ 
+          variant: "destructive", 
+          title: "Domain Restricted", 
+          description: "Please add this domain to Firebase Console > Auth > Settings > Authorized Domains." 
+        });
+      } else {
+        toast({ variant: "destructive", title: "Apple Login Failed", description: "Could not connect to Apple ID." });
+      }
     } finally {
       setAppleLoading(false);
     }
@@ -137,7 +144,15 @@ export function EmailAuth() {
         window.location.reload();
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Auth Failed", description: err.message });
+      if (err.code === 'auth/unauthorized-domain') {
+        toast({ 
+          variant: "destructive", 
+          title: "Domain Unauthorized", 
+          description: "Firebase Console mein is domain ko whitelist karein." 
+        });
+      } else {
+        toast({ variant: "destructive", title: "Auth Failed", description: err.message });
+      }
     } finally {
       setLoading(false);
     }

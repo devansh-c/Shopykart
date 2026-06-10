@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -34,13 +33,11 @@ export function QuickAccess() {
       return;
     }
 
-    // Validation
     if (!formData.fullName.trim() || formData.phoneNumber.length !== 10 || !formData.address.trim() || formData.pincode.length !== 6) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "Please fill all fields correctly." });
       return;
     }
 
-    // MANDATORY ZERO CHECK
     if (formData.phoneNumber.startsWith('0')) {
       toast({ 
         variant: "destructive", 
@@ -54,20 +51,22 @@ export function QuickAccess() {
     try {
       let uid = '';
       
-      // Attempt Firebase Anonymous Auth
       try {
         if (auth) {
           const userCredential = await signInAnonymously(auth);
           uid = userCredential.user.uid;
         }
       } catch (authErr: any) {
-        console.warn("Auth restricted, using Guest ID fallback:", authErr.message);
-        uid = 'guest_' + Math.random().toString(36).substr(2, 9);
+        if (authErr.code === 'auth/unauthorized-domain') {
+          console.warn("Domain not authorized for Auth, using Guest fallback.");
+          uid = 'guest_' + Math.random().toString(36).substr(2, 9);
+        } else {
+          uid = 'guest_' + Math.random().toString(36).substr(2, 9);
+        }
       }
 
       if (!uid) throw new Error("Could not generate identity.");
 
-      // Save complete profile to ROOT 'users' collection for Admin visibility
       await setDoc(doc(firestore, 'users', uid), {
         fullName: formData.fullName.toUpperCase(),
         phoneNumber: formData.phoneNumber,
@@ -75,12 +74,11 @@ export function QuickAccess() {
         city: formData.city.toUpperCase(),
         pincode: formData.pincode,
         uid: uid,
-        coins: 10, // Initial welcome bonus
+        coins: 10,
         createdAt: serverTimestamp(),
         role: 'customer'
       }, { merge: true });
 
-      // Save locally for persistence
       localStorage.setItem('user_name', formData.fullName.toUpperCase());
       localStorage.setItem('user_phone', formData.phoneNumber);
       localStorage.setItem('user_address_line', formData.address.toUpperCase());
@@ -90,8 +88,6 @@ export function QuickAccess() {
       localStorage.setItem('shopykart_session_active', 'true');
 
       toast({ title: "Welcome to ShopyKart!", description: "Access granted successfully." });
-      
-      // Force reload to update app state
       window.location.reload();
 
     } catch (err: any) {

@@ -21,6 +21,12 @@ To finish connecting your domain, please follow these steps:
    - Add these A records to your DNS settings.
    - Wait for SSL propagation (usually takes 1-2 hours).
 
+4. **⚠️ IMPORTANT: Authorize Auth Domain**:
+   - Go to [Firebase Authentication Settings](https://console.firebase.google.com/project/_/authentication/settings).
+   - Under **"Authorized domains"**, click **"Add domain"**.
+   - Add `shopykart.co.in`.
+   - Without this, Apple Login and Email Auth will throw `unauthorized-domain` errors.
+
 ## 🛠 Project Structure
 - `src/app`: App Router pages.
 - `src/components`: UI and Business logic components.
