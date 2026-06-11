@@ -99,6 +99,7 @@ export default function CartPage() {
   const [isSliding, setIsSliding] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const initialTouchX = useRef(0);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -317,18 +318,25 @@ export default function CartPage() {
     }
   };
 
-  const handleStart = () => { if (!isPlacing) setIsSliding(true); };
+  const handleStart = (e: React.TouchEvent | React.MouseEvent) => { 
+    if (isPlacing) return;
+    setIsSliding(true); 
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    initialTouchX.current = clientX - slideX;
+  };
   
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (!isSliding || isPlacing || !sliderRef.current) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 48; // Smaller handle Swiggy style
+    const handleWidth = 48;
     const maxX = rect.width - handleWidth - 8;
-    let x = clientX - rect.left - (handleWidth / 2);
+    
+    let x = clientX - initialTouchX.current;
     x = Math.max(0, Math.min(x, maxX));
     setSlideX(x);
-    if (x >= maxX * 0.95) {
+
+    if (x >= maxX * 0.98) {
       setIsSliding(false);
       setSlideX(maxX);
       handleCheckout();
@@ -338,7 +346,8 @@ export default function CartPage() {
   const handleEnd = () => {
     if (!isSliding || isPlacing) return;
     setIsSliding(false);
-    if (slideX < (sliderRef.current?.getBoundingClientRect().width || 0) * 0.8) {
+    const rect = sliderRef.current?.getBoundingClientRect();
+    if (rect && slideX < (rect.width - 56) * 0.9) {
       setSlideX(0);
     }
   };
@@ -347,7 +356,7 @@ export default function CartPage() {
     if (isSliding) {
       window.addEventListener('mousemove', handleMove as any);
       window.addEventListener('mouseup', handleEnd);
-      window.addEventListener('touchmove', handleMove as any);
+      window.addEventListener('touchmove', handleMove as any, { passive: false });
       window.addEventListener('touchend', handleEnd);
     }
     return () => {
@@ -356,7 +365,7 @@ export default function CartPage() {
       window.removeEventListener('touchmove', handleMove as any);
       window.removeEventListener('touchend', handleEnd);
     };
-  }, [isSliding]);
+  }, [isSliding, slideX]);
 
   if (totalItems === 0 && !showSuccess) {
     return (
@@ -370,32 +379,33 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-80">
+    <div className="min-h-screen bg-[#F8F9FA] pb-96">
       <OrderSuccessOverlay isVisible={showSuccess} />
-      <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
+      <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
-        <h1 className="text-lg font-bold text-gray-800">Checkout</h1>
+        <h1 className="text-lg font-bold text-gray-800 italic uppercase">Secure Checkout</h1>
       </div>
 
-      <div className="p-4 space-y-5">
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
+      <div className="p-4 space-y-4">
+        {/* 1. ORDER DETAILS */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4">
-             <ShoppingBasket className="h-5 w-5 text-gray-400" />
-             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-widest">Order Details</h2>
+             <ShoppingBasket className="h-5 w-5 text-primary" />
+             <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2>
           </div>
           <div className="space-y-4">
             {cart.map((item) => (
-              <div key={item.id} className="flex gap-4">
-                <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
+              <div key={item.id} className="flex gap-4 items-center">
+                <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-sm text-gray-800 truncate uppercase">{item.name}</h3>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center bg-primary text-white rounded-lg h-8 px-1">
-                      <button onClick={() => removeFromCart(item.id)} className="h-6 w-6 flex items-center justify-center font-bold text-lg">-</button>
-                      <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
-                      <button onClick={() => addToCart(item)} className="h-6 w-6 flex items-center justify-center font-bold text-lg">+</button>
+                  <h3 className="font-bold text-xs text-gray-800 truncate uppercase">{item.name}</h3>
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
+                      <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">-</button>
+                      <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
+                      <button onClick={() => addToCart(item)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">+</button>
                     </div>
-                    <div className="text-sm font-black text-gray-800 italic">₹{item.price.toFixed(2)}</div>
+                    <div className="text-sm font-black text-gray-900 italic">₹{item.price.toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -403,14 +413,78 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Wallet Coins Section */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between animate-in fade-in duration-500">
+        {/* 2. DELIVERY TO (ADDRESS) */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
+          </div>
+          <div className="space-y-4">
+              <button onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg shadow-black/10 active:scale-95 transition-all">
+                <MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP
+              </button>
+              
+              {profile?.address && customerAddress !== profile.address && (
+                <button onClick={() => {
+                  setCustomerAddress(profile.address);
+                  if (profile.fullName) setCustomerName(profile.fullName);
+                  if (profile.phoneNumber) setCustomerPhone(profile.phoneNumber);
+                  if (profile.city) setCustomerCity(profile.city);
+                  if (profile.pincode) setCustomerPincode(profile.pincode);
+                  if (profile.latitude) setLatitude(profile.latitude);
+                  if (profile.longitude) setLongitude(profile.longitude);
+                  toast({ title: "Saved Address Loaded!" });
+                }} className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left group">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm"><History className="h-4 w-4" /></div>
+                    <div className="max-w-[180px]"><span className="text-[8px] font-black uppercase text-primary">Use Saved Address</span><p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p></div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-primary group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
+              
+              <div className="space-y-3">
+                <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold placeholder:text-gray-300" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input placeholder="PINCODE *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center placeholder:text-gray-300" />
+                  <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60 text-center" />
+                </div>
+                <Textarea placeholder="COMPLETE HOUSE/STREET DETAILS *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[90px] p-4 text-xs placeholder:text-gray-300" />
+                <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold placeholder:text-gray-300" />
+              </div>
+          </div>
+        </div>
+
+        {/* 3. APPLY COUPON */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
+           <div className="flex items-center gap-3">
+              <div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div>
+              <h3 className="text-sm font-black uppercase italic tracking-tight">Active Offers</h3>
+           </div>
+           <div className="flex gap-2">
+              <div className="relative flex-1">
+                 <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                 <Input placeholder="PROMO CODE" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest text-[10px] placeholder:text-gray-300" />
+              </div>
+              <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all">
+                 {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
+              </button>
+           </div>
+           {appliedCoupon && (
+             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between animate-in zoom-in-95">
+                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span></div>
+                <button onClick={() => setAppliedCoupon(null)} className="text-green-700 p-1 hover:bg-green-100 rounded-lg"><X className="h-3.5 w-3.5" /></button>
+             </div>
+           )}
+        </div>
+
+        {/* 4. WALLET COINS */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+            <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner">
               <Coins className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-sm font-black uppercase tracking-tight">Wallet Coins</h3>
+              <h3 className="text-sm font-black uppercase tracking-tight italic">ShopyKart Coins</h3>
               <p className="text-[9px] font-bold text-muted-foreground uppercase leading-none mt-1">
                 Balance: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(2)})
               </p>
@@ -424,36 +498,14 @@ export default function CartPage() {
           />
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
-           <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div>
-              <div><h3 className="text-sm font-black uppercase tracking-tight">Apply Coupon</h3><p className="text-[10px] font-bold text-muted-foreground uppercase leading-none">Save extra on this order</p></div>
-           </div>
-           <div className="flex gap-2">
-              <div className="relative flex-1">
-                 <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                 <Input placeholder="Enter Code" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest" />
-              </div>
-              <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95">
-                 {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
-              </button>
-           </div>
-           {appliedCoupon && (
-             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between">
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span></div>
-                <button onClick={() => setAppliedCoupon(null)} className="text-green-700 p-1"><X className="h-3.5 w-3.5" /></button>
-             </div>
-           )}
-        </div>
-
-        {/* Delivery Tip Section */}
+        {/* 5. DELIVERY TIP */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-red-500" />
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Tip your delivery partner</h3>
+            <Heart className="h-5 w-5 text-red-500 animate-pulse" />
+            <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
           </div>
-          <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
-            Your small token of appreciation goes a long way. 100% of the tip goes to the partner.
+          <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-wider">
+            Your token of appreciation helps our delivery fleet grow. 100% goes to the partner.
           </p>
           <div className="flex gap-3">
             {[10, 20, 30].map(tip => (
@@ -461,7 +513,7 @@ export default function CartPage() {
                 key={tip}
                 onClick={() => setDeliveryTip(tip)}
                 className={cn(
-                  "flex-1 h-10 rounded-xl border-2 font-black text-xs transition-all",
+                  "flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all",
                   deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
                 )}
               >
@@ -472,135 +524,97 @@ export default function CartPage() {
               <DialogTrigger asChild>
                 <button 
                   className={cn(
-                    "flex-1 h-10 rounded-xl border-2 font-black text-xs transition-all",
+                    "flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all",
                     deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
                   )}
                 >
-                  {deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? `₹${deliveryTip}` : 'Custom'}
+                  {deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? `₹${deliveryTip}` : 'CUSTOM'}
                 </button>
               </DialogTrigger>
-              <DialogContent className="rounded-[2rem] max-w-xs">
-                <DialogHeader><DialogTitle className="text-center font-black uppercase text-sm">Enter Custom Tip</DialogTitle></DialogHeader>
+              <DialogContent className="rounded-[2.5rem] max-w-xs border-none shadow-2xl">
+                <DialogHeader><DialogTitle className="text-center font-black uppercase text-sm italic tracking-widest">Enter Appreciation Amount</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
-                   <Input type="number" placeholder="Enter Amount" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-12 rounded-xl text-center text-xl font-black" />
-                   <Button onClick={handleCustomTip} className="w-full h-12 bg-primary rounded-xl font-black">APPLY TIP</Button>
+                   <Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 rounded-2xl bg-gray-50 border-none text-center text-3xl font-black italic text-primary" />
+                   <Button onClick={handleCustomTip} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">APPLY TIP</Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-bold text-gray-800 uppercase">Delivery To</h2></div>
+        {/* 6. BILL SUMMARY */}
+        <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-4">
+          <div className="flex items-center justify-between mb-2">
+             <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
+             <FileText className="h-4 w-4 text-gray-300" />
           </div>
-          <div className="space-y-4">
-              <button onClick={() => setIsMapOpen(true)} className="w-full h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px]">
-                <MapIcon className="h-4 w-4" /> PIN LOCATION ON MAP
-              </button>
-              {profile?.address && customerAddress !== profile.address && (
-                <button onClick={() => {
-                  setCustomerAddress(profile.address);
-                  if (profile.fullName) setCustomerName(profile.fullName);
-                  if (profile.phoneNumber) setCustomerPhone(profile.phoneNumber);
-                  if (profile.city) setCustomerCity(profile.city);
-                  if (profile.pincode) setCustomerPincode(profile.pincode);
-                  if (profile.latitude) setLatitude(profile.latitude);
-                  if (profile.longitude) setLongitude(profile.longitude);
-                  toast({ title: "Address Applied!" });
-                }} className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><History className="h-4 w-4" /></div>
-                    <div><span className="text-[8px] font-black uppercase text-primary">Use Saved</span><p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p></div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-primary" />
-                </button>
-              )}
-              <div className="space-y-3">
-                <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center" />
-                  <Input placeholder="City *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-70" />
-                </div>
-                <Textarea placeholder="Full Address Details *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
-                <Input placeholder="10 Digit Phone *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-              </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
-          <div className="flex items-center gap-2 mb-2"><FileText className="h-5 w-5 text-blue-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Bill Summary</h3></div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between font-bold text-gray-400"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
+          <div className="space-y-3">
+            <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
             {dynamic_charges.map((charge: any) => (
-              <div key={charge.id} className="flex justify-between font-bold text-gray-400"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>
+              <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>
             ))}
             {appliedCoupon && (
-              <div className="flex justify-between font-black text-green-600"><span>Coupon ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>
+              <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Promo ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>
             )}
             {useCoins && coinDiscount > 0 && (
-              <div className="flex justify-between font-black text-amber-600"><span>Coins Used</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>
+              <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>
             )}
             {deliveryTip > 0 && (
-              <div className="flex justify-between font-bold text-amber-600"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>
+              <div className="flex justify-between font-black text-[11px] text-amber-500 uppercase tracking-widest"><span>Partner Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>
             )}
           </div>
-          <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
-            <span className="text-lg font-black text-gray-700 uppercase italic">Payable</span>
-            <span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span>
+          <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center">
+            <span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span>
+            <span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span>
           </div>
         </div>
 
-        <div ref={paymentSectionRef} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4 scroll-mt-20">
-          <div className="flex items-center gap-2 mb-2"><CreditCard className="h-5 w-5 text-purple-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Payment Mode</h3></div>
+        {/* 7. PAYMENT MODE */}
+        <div ref={paymentSectionRef} className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
+          <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /><h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3></div>
           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
-            <div onClick={() => setPaymentMethod('online')} className={cn("p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
-              <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-400")} />
-              <span className="text-[10px] font-black uppercase">Online Pay</span>
+            <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50")}>
+              <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-300")} />
+              <span className="text-[9px] font-black uppercase tracking-widest">Online Pay</span>
             </div>
-            <div onClick={() => setPaymentMethod('cash')} className={cn("p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
-              <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-400")} />
-              <span className="text-[10px] font-black uppercase">Cash on Delivery</span>
+            <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50")}>
+              <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} />
+              <span className="text-[9px] font-black uppercase tracking-widest">Cash on Delivery</span>
             </div>
           </RadioGroup>
         </div>
       </div>
 
-      {/* FIXED FOOTER - SWIGGY STYLE */}
-      <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-none">
-        <div className="max-w-lg mx-auto bg-white rounded-t-[2.5rem] p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] border-t border-gray-100 pointer-events-auto flex flex-col gap-4">
-           {/* Payment Summary Header */}
+      {/* FLOATING GREEN FOOTER - SLIDE TO ORDER */}
+      <div className="fixed bottom-4 left-4 right-4 z-[10000] max-w-lg mx-auto pointer-events-none pb-safe">
+        <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-white/50 pointer-events-auto flex flex-col gap-4">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
-                 <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                 <div className="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
                     {paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}
                  </div>
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Pay using</span>
-                    <span className="text-sm font-black italic uppercase leading-none">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Settling via</span>
+                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none">
                       {paymentMethod === 'online' ? 'Google Pay' : 'Cash on Delivery'}
                     </span>
                  </div>
               </div>
-              <button 
-                onClick={scrollToPayment}
-                className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 group"
-              >
-                Change <ChevronUp className="h-3 w-3 group-hover:-translate-y-0.5 transition-transform" />
+              <button onClick={scrollToPayment} className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-full active:scale-90 transition-all">
+                CHANGE <ChevronUp className="h-3 w-3" />
               </button>
            </div>
 
-           {/* SWIGGY GREEN SLIDER */}
            <div 
              ref={sliderRef} 
-             className="relative h-14 w-full bg-[#10B981] rounded-full p-1.5 flex items-center overflow-hidden shadow-xl select-none"
+             className="relative h-15 w-full bg-[#10B981] rounded-full p-1.5 flex items-center overflow-hidden shadow-xl select-none touch-none"
            >
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn(
-                   "text-sm font-black text-white uppercase italic tracking-tight transition-all",
-                   slideX > 50 ? "opacity-0" : "opacity-100"
+                   "text-sm font-black text-white uppercase italic tracking-tighter transition-all duration-300",
+                   slideX > 40 ? "opacity-0" : "opacity-100"
                  )}>
-                   {isPlacing ? 'PROCESSING...' : `Slide to Pay | ₹${grandTotal.toFixed(2)}`}
+                   {isPlacing ? 'PROCESSING...' : `Slide to Order • ₹${grandTotal.toFixed(2)}`}
                  </span>
               </div>
               
@@ -608,7 +622,7 @@ export default function CartPage() {
                 onMouseDown={handleStart} 
                 onTouchStart={handleStart} 
                 className={cn(
-                  "relative z-10 h-11 w-11 rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-lg cursor-grab transition-transform",
+                  "relative z-10 h-12 w-12 rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform",
                   isPlacing && "pointer-events-none"
                 )} 
                 style={{ transform: `translateX(${slideX}px)` }}
@@ -618,19 +632,18 @@ export default function CartPage() {
                  ) : (
                    <div className="flex items-center">
                      <span className="text-[10px] font-black">❯</span>
-                     <span className="text-[10px] font-black -ml-0.5 opacity-50">❯</span>
-                     <span className="text-[10px] font-black -ml-0.5 opacity-25">❯</span>
+                     <span className="text-[10px] font-black -ml-1 opacity-50">❯</span>
+                     <span className="text-[10px] font-black -ml-1 opacity-25">❯</span>
                    </div>
                  )}
               </div>
               
-              {/* Green Progress bar behind handle */}
-              <div className="absolute left-0 top-0 bottom-0 bg-white/10" style={{ width: `${slideX + 56}px` }} />
+              <div className="absolute left-0 top-0 bottom-0 bg-white/20" style={{ width: `${slideX + 58}px` }} />
            </div>
         </div>
       </div>
       
-      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl"><DialogHeader className="sr-only"><DialogTitle>Pin Location</DialogTitle></DialogHeader><MapPicker onConfirm={validateAndSetCoords} /></DialogContent></Dialog>
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl focus:outline-none"><DialogHeader className="sr-only"><DialogTitle>Pin Location</DialogTitle></DialogHeader><MapPicker onConfirm={validateAndSetCoords} /></DialogContent></Dialog>
     </div>
   );
 }
