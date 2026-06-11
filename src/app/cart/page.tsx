@@ -321,16 +321,16 @@ export default function CartPage() {
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => { 
     if (isPlacing) return;
     setIsSliding(true); 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     initialTouchX.current = clientX - slideX;
   };
   
-  const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleMove = (e: MouseEvent | TouchEvent) => {
     if (!isSliding || isPlacing || !sliderRef.current) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
     const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 48;
-    const maxX = rect.width - handleWidth - 8;
+    const handleWidth = 56;
+    const maxX = rect.width - handleWidth - 12; // Adjusted for padding
     
     let x = clientX - initialTouchX.current;
     x = Math.max(0, Math.min(x, maxX));
@@ -347,22 +347,22 @@ export default function CartPage() {
     if (!isSliding || isPlacing) return;
     setIsSliding(false);
     const rect = sliderRef.current?.getBoundingClientRect();
-    if (rect && slideX < (rect.width - 56) * 0.9) {
+    if (rect && slideX < (rect.width - 68) * 0.9) {
       setSlideX(0);
     }
   };
 
   useEffect(() => {
     if (isSliding) {
-      window.addEventListener('mousemove', handleMove as any);
+      window.addEventListener('mousemove', handleMove);
       window.addEventListener('mouseup', handleEnd);
-      window.addEventListener('touchmove', handleMove as any, { passive: false });
+      window.addEventListener('touchmove', handleMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
     }
     return () => {
-      window.removeEventListener('mousemove', handleMove as any);
+      window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove as any);
+      window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
     };
   }, [isSliding, slideX]);
@@ -379,7 +379,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-96">
+    <div className="min-h-screen bg-[#F8F9FA] pb-60">
       <OrderSuccessOverlay isVisible={showSuccess} />
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
@@ -585,12 +585,12 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* FLOATING GREEN FOOTER - SLIDE TO ORDER */}
-      <div className="fixed bottom-4 left-4 right-4 z-[10000] max-w-lg mx-auto pointer-events-none pb-safe">
-        <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-white/50 pointer-events-auto flex flex-col gap-4">
+      {/* FIXED FOOTER - SLIDE TO ORDER (BOTTOM NAV STYLE) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe">
+        <div className="bg-white border-t border-gray-100 p-4 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-500">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
-                 <div className="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
+                 <div className="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
                     {paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}
                  </div>
                  <div className="flex flex-col">
@@ -607,7 +607,7 @@ export default function CartPage() {
 
            <div 
              ref={sliderRef} 
-             className="relative h-15 w-full bg-[#10B981] rounded-full p-1.5 flex items-center overflow-hidden shadow-xl select-none touch-none"
+             className="relative h-14 w-full bg-[#10B981] rounded-full p-1.5 flex items-center overflow-hidden shadow-xl select-none touch-none"
            >
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn(
@@ -622,7 +622,7 @@ export default function CartPage() {
                 onMouseDown={handleStart} 
                 onTouchStart={handleStart} 
                 className={cn(
-                  "relative z-10 h-12 w-12 rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform",
+                  "relative z-10 h-11 w-11 rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform",
                   isPlacing && "pointer-events-none"
                 )} 
                 style={{ transform: `translateX(${slideX}px)` }}
@@ -638,7 +638,7 @@ export default function CartPage() {
                  )}
               </div>
               
-              <div className="absolute left-0 top-0 bottom-0 bg-white/20" style={{ width: `${slideX + 58}px` }} />
+              <div className="absolute left-0 top-0 bottom-0 bg-white/20" style={{ width: `${slideX + 54}px` }} />
            </div>
         </div>
       </div>
