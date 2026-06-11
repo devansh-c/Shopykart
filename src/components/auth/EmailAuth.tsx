@@ -18,6 +18,10 @@ import { cn } from '@/lib/utils';
 
 type AuthView = 'login' | 'signup';
 
+/**
+ * @fileOverview Premium Authentication with Strictest Persistence.
+ * If a session flag exists, this component will self-destruct to ensure no flicker.
+ */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
@@ -38,8 +42,10 @@ export function EmailAuth() {
     setMounted(true);
   }, []);
 
-  // SELF-DESTRUCT: If a user is detected, immediately hide this component.
-  if (user || (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true')) {
+  // MASTERPersistence: If flag is present, hide component immediately
+  const hasActiveSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+
+  if (user || hasActiveSession) {
     return null;
   }
 

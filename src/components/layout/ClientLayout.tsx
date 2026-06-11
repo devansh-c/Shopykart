@@ -18,8 +18,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
- * @fileOverview AuthGuard - Optimized for Peak Persistence.
- * Ensures that if a session flag exists in localStorage, the login overlay is NEVER shown.
+ * @fileOverview AuthGuard - Atomic Persistence Upgrade.
+ * Aggressively checks for session flag to block the login screen from ever appearing for returning users.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
@@ -27,24 +27,32 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
 
-  // Memoize session check for instant access
+  // CRITICAL: Check session flag synchronously to prevent even a single frame of Login UI
   const hasActiveSession = useMemo(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('shopykart_session_active') === 'true';
   }, []);
 
   useEffect(() => {
+    // If we have a session flag, the app is "ready" to show content immediately
+    if (hasActiveSession) {
+      onReady(true);
+      setShowAuthOverlay(false);
+    }
+
     if (loading) return;
 
-    // App is ready once Firebase finishes its first auth check
     onReady(true);
 
-    // PERSISTENCE LOGIC:
-    // If Firebase confirms a user OR localStorage says session is active, HIDE overlay.
+    // MASTER LOCK: If Firebase confirms user OR flag is present, FORCE HIDE overlay
     if (user || hasActiveSession) {
       setShowAuthOverlay(false);
+      // Ensure flag is set if Firebase found a user
+      if (user && !hasActiveSession) {
+        localStorage.setItem('shopykart_session_active', 'true');
+      }
     } else {
-      // ONLY for fresh guests with NO history: Show login after 3 seconds
+      // ONLY for pure first-time guests: Show login after 3 seconds
       const timer = setTimeout(() => {
         setShowAuthOverlay(true);
       }, 3000);
@@ -52,7 +60,6 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
     }
   }, [user, loading, hasActiveSession, onReady]);
 
-  // Public/Admin/Business paths bypass login guard
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery') ||
