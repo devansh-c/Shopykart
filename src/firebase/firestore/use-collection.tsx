@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -11,6 +12,9 @@ import {
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
+/**
+ * @fileOverview Resilient hook to fetch collections with enhanced offline error suppression.
+ */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +30,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
     // Using a more resilient snapshot listener with silent failure for connection warnings
     const unsubscribe = onSnapshot(
       query,
-      { includeMetadataChanges: true }, // Helps with offline/online transition
+      { includeMetadataChanges: true }, // Essential for smooth offline/online transitions
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => ({
           ...doc.data(),
@@ -34,21 +38,25 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         }));
         setData(items);
         setLoading(false);
+        setError(null); // Clear error on success
       },
       async (err: FirestoreError) => {
-        // If it's just a permission error, emit to global listener
+        // Handle permission errors globally
         if (err.code === 'permission-denied') {
+          const segments = (query as any)._query?.path?.segments;
           const permissionError = new FirestorePermissionError({
-            path: (query as any)._query?.path?.segments?.join('/') || 'unknown',
+            path: segments ? segments.join('/') : 'unknown',
             operation: 'list',
           });
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        // Don't set error state for temporary backend connection issues
-        // to prevent "Red Screens" in development/production
-        if (err.code !== 'unavailable') {
+        // SUPPRESS RED SCREENS: 'unavailable' and 'failed-precondition' are common
+        // in prototype/web environments when local persistence or network is jittery.
+        if (err.code !== 'unavailable' && err.code !== 'failed-precondition') {
           setError(err);
+        } else {
+          console.warn('Firestore Collection Fetch: Offline or cache sync in progress.');
         }
         
         setLoading(false);

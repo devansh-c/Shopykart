@@ -12,6 +12,9 @@ import {
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
+/**
+ * @fileOverview Resilient hook to fetch a single document with offline-graceful handling.
+ */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,9 +29,12 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
     setLoading(true);
     const unsubscribe = onSnapshot(
       ref,
+      { includeMetadataChanges: true },
       (snapshot: DocumentSnapshot<T>) => {
         setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
         setLoading(false);
+        // Clear error if data starts flowing again
+        setError(null);
       },
       async (err: FirestoreError) => {
         if (err.code === 'permission-denied') {
@@ -38,7 +44,15 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
           });
           errorEmitter.emit('permission-error', permissionError);
         }
-        setError(err);
+        
+        // SILENT OFFLINE ERROR: Do not trigger a Red Screen for temporary backend connection issues
+        // Firestore is designed to handle this background sync automatically.
+        if (err.code !== 'unavailable' && err.code !== 'failed-precondition') {
+          setError(err);
+        } else {
+          console.warn('Firestore is temporarily offline, attempting to use cache...');
+        }
+        
         setLoading(false);
       }
     );
