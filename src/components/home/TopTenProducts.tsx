@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -47,23 +48,22 @@ export function TopTenProducts() {
 
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
-      if (!vendor) return false;
-
+      
       // HUB ISOLATION: Only show Food products in Top Ten
       const vendorCategory = vendor?.category || 'Food';
       const productMode = p.serviceMode || vendorCategory;
       if (productMode !== 'Food') return false;
 
-      // LOCATION FILTERING (Optimized)
-      const productZoneId = p.zoneId || vendor.zoneId;
-      const productTown = (p.town || vendor.town || '').toLowerCase().trim();
+      // LOCATION FILTERING (Optimized & Inclusive)
+      const productZoneId = p.zoneId || vendor?.zoneId;
+      const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
 
       if (activeZoneId || targetCityNormalized) {
         const matchesId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized || productTown === 'local');
+        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized);
+        const isGlobal = !productZoneId && (productTown === 'local' || !productTown);
         
-        // Show if either matches
-        if (!matchesId && !matchesTown) return false;
+        if (!matchesId && !matchesTown && !isGlobal) return false;
       }
       return true;
     }).slice(0, 10);

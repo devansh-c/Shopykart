@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo } from "react"
@@ -91,7 +92,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
                <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
                {product.mrp > product.price && <div className="text-[10px] font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>}
             </div>
-            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName}</p>
+            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Nearby'}</p>
           </div>
         </ProductQuickView>
       </div>
@@ -165,16 +166,16 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(300));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
 
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery);
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -198,20 +199,27 @@ export function PopularProducts({
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
+      // 1. SERVICE MODE FILTERING
       const vendor = vendorMap.get(product.vendorId);
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
+      // 2. LOCATION FILTERING (Inclusive Logic)
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
+      // If user has set a location, we filter. If not, we show all products.
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized || productTown === 'local');
-        if (!matchesZoneId && !matchesTown) return false;
+        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized);
+        const isGlobal = !productZoneId && (productTown === 'local' || !productTown);
+
+        // Allow if it matches zone, town, OR if it's a global product
+        if (!matchesZoneId && !matchesTown && !isGlobal) return false;
       }
 
+      // 3. SEARCH & CATEGORY
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
@@ -235,7 +243,7 @@ export function PopularProducts({
     return result;
   }, [searchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
 
-  if (loading && !dbProducts) {
+  if (productsLoading && !dbProducts) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
