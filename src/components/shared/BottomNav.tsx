@@ -1,12 +1,10 @@
-
 "use client"
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { memo, useMemo } from 'react';
-import Link from 'next/link';
+import React, { memo, useMemo, useTransition } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -17,12 +15,14 @@ const navItems = [
 ];
 
 /**
- * PERFORMANCE: Optimized Bottom Navigation with prefetching and memoization.
- * Atomic speed for high-frequency interactions.
+ * PERFORMANCE REFACTOR: Bottom Navigation with useTransition.
+ * Ensures state updates (active colors) are prioritized, while heavy page transitions are non-blocking.
  */
 export const BottomNav = memo(() => {
   const pathname = usePathname();
+  const router = useRouter();
   const { totalItems } = useCart();
+  const [isPending, startTransition] = useTransition();
   
   const isExcludedPath = useMemo(() => {
     return pathname?.startsWith('/admin') || 
@@ -32,6 +32,13 @@ export const BottomNav = memo(() => {
            pathname?.startsWith('/Beauty') ||
            pathname === '/cart';
   }, [pathname]);
+
+  const handleNavigate = (href: string) => {
+    // Marking the navigation as a transition allows the UI to stay responsive
+    startTransition(() => {
+      router.push(href, { scroll: false });
+    });
+  };
 
   if (isExcludedPath) return null;
 
@@ -43,13 +50,16 @@ export const BottomNav = memo(() => {
           const Icon = item.icon;
 
           return (
-            <Link
+            <button
               key={item.label}
-              href={item.href}
-              prefetch={true}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleNavigate(item.href);
+              }}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full transition-all duration-200 relative active:scale-90",
-                isActive ? "text-primary" : "text-gray-400"
+                isActive ? "text-primary" : "text-gray-400",
+                isPending && !isActive && "opacity-80"
               )}
             >
               <div className="relative">
@@ -69,7 +79,7 @@ export const BottomNav = memo(() => {
               {isActive && (
                 <div className="absolute bottom-0 w-8 h-1 bg-primary rounded-t-full" />
               )}
-            </Link>
+            </button>
           );
         })}
       </div>

@@ -1,31 +1,35 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
-import { FloatingCart } from '@/components/shared/FloatingCart';
-import { BottomNav } from '@/components/shared/BottomNav';
 import { FirebaseClientProvider, useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
-import { LocationRequest } from '@/components/shared/LocationRequest';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
-import { AdOverlay } from '@/components/shared/AdOverlay';
-import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
+import React, { ReactNode, useState, useEffect, useMemo, memo, useTransition } from 'react';
+import dynamic from 'next/dynamic';
+
+// LAZY LOAD HEAVY OVERLAYS: Reduces initial bundle size and speeds up first paint
+const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler').then(m => m.NotificationHandler), { ssr: false });
+const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay').then(m => m.AdOverlay), { ssr: false });
+const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay').then(m => m.WelcomeBonusOverlay), { ssr: false });
+const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => m.LocationRequest), { ssr: false });
+const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => m.FloatingCart), { ssr: false });
+const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => m.BottomNav), { ssr: false });
+const DynamicHeatWave = dynamic(() => import('@/components/shared/HeatWaveOverlay').then(m => m.HeatWaveOverlay), { ssr: false });
 
 /**
- * PERFORMANCE: AuthGuard - Memoized and optimized for zero-flicker entry.
+ * @fileOverview Refactored AuthGuard with useTransition for fluid identity checking.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
   const pathname = usePathname();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const hasActiveSession = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -38,16 +42,20 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
-    onReady(true);
+    // Mark app as ready in a transition to keep UI responsive
+    startTransition(() => {
+      onReady(true);
+    });
 
     if (user) {
       localStorage.setItem('shopykart_session_active', 'true');
       setShowAuthOverlay(false);
     } else if (!hasActiveSession) {
-      // Graceful delay before showing login to allow app assets to pre-warm
       const timer = setTimeout(() => {
         if (localStorage.getItem('shopykart_session_active') !== 'true') {
-          setShowAuthOverlay(true);
+          startTransition(() => {
+            setShowAuthOverlay(true);
+          });
         }
       }, 3000);
       return () => clearTimeout(timer);
@@ -92,16 +100,17 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
       <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col">
           <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
-            {!isExcludedPath && <LocationRequest />}
-            <NotificationHandler />
+            {!isExcludedPath && <DynamicLocationRequest />}
+            <DynamicNotificationHandler />
             <TelegramNotifier />
-            <AdOverlay />
-            <WelcomeBonusOverlay />
+            <DynamicAdOverlay />
+            <DynamicWelcomeBonus />
+            <DynamicHeatWave />
             {children}
           </main>
           
-          {!isExcludedPath && <FloatingCart />}
-          {!isExcludedPath && <BottomNav />}
+          {!isExcludedPath && <DynamicFloatingCart />}
+          {!isExcludedPath && <DynamicBottomNav />}
         </div>
       </AuthGuard>
       <Toaster />

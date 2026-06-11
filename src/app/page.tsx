@@ -1,29 +1,45 @@
-
 "use client"
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { OfferSlider } from '@/components/home/OfferSlider';
-import { CategoryList } from '@/components/home/CategoryList';
-import { StoreSection } from '@/components/home/StoreSection';
-import { PopularProducts } from '@/components/home/PopularProducts';
-import { OffersSection } from '@/components/home/OffersSection';
-import { TopTenProducts } from '@/components/home/TopTenProducts';
-import { BeautySalonSection } from '@/components/home/BeautySalonSection';
-import { MedicalCareSection } from '@/components/home/MedicalCareSection';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+// LAZY LOAD HOME SECTIONS: Prevents main thread blocking by loading components only when needed
+const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => m.OfferSlider));
+const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => m.CategoryList));
+const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => m.StoreSection));
+const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => m.PopularProducts));
+const OffersSection = dynamic(() => import('@/components/home/OffersSection').then(m => m.OffersSection));
+const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => m.TopTenProducts));
+const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => m.BeautySalonSection));
+const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => m.MedicalCareSection));
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food'); // 'Food', 'Grocery', 'Medical', or 'Beauty'
+  const [isPending, startTransition] = useTransition();
 
   const handleBackToFood = () => {
-    setActiveMode('Food');
-    setActiveCategory('all');
+    startTransition(() => {
+      setActiveMode('Food');
+      setActiveCategory('all');
+    });
+  };
+
+  const handleModeChange = (mode: string) => {
+    startTransition(() => {
+      setActiveMode(mode);
+    });
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    startTransition(() => {
+      setActiveCategory(cat);
+    });
   };
 
   return (
@@ -34,11 +50,11 @@ export default function ShopyKartApp() {
           searchValue={searchQuery} 
           onSearchChange={setSearchQuery} 
           activeMode={activeMode}
-          onModeChange={setActiveMode}
+          onModeChange={handleModeChange}
         />
       )}
 
-      <main className={cn("space-y-2", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
+      <main className={cn("space-y-2 transition-opacity duration-300", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -111,10 +127,10 @@ export default function ShopyKartApp() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <ScrollReveal delay={50}>
-                    <BeautySalonSection onClick={() => { setActiveMode('Beauty'); setActiveCategory('all'); }} />
+                    <BeautySalonSection onClick={() => handleModeChange('Beauty')} />
                   </ScrollReveal>
                   <ScrollReveal delay={100}>
-                    <MedicalCareSection onClick={() => { setActiveMode('Medical'); setActiveCategory('all'); }} />
+                    <MedicalCareSection onClick={() => handleModeChange('Medical')} />
                   </ScrollReveal>
                 </div>
               </div>
@@ -147,7 +163,7 @@ export default function ShopyKartApp() {
             <ScrollReveal delay={350}>
               <CategoryList 
                 activeCategory={activeCategory} 
-                onCategoryChange={setActiveCategory}
+                onCategoryChange={handleCategoryChange}
                 serviceMode="Food"
               />
             </ScrollReveal>
