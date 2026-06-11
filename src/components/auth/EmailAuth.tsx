@@ -19,8 +19,7 @@ import { cn } from '@/lib/utils';
 type AuthView = 'login' | 'signup';
 
 /**
- * @fileOverview Premium Authentication with Strictest Persistence.
- * If a session flag exists, this component will self-destruct to ensure no flicker.
+ * @fileOverview Premium Authentication with Synchronous Session Shielding.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -32,24 +31,25 @@ export function EmailAuth() {
   const firestore = useFirestore();
   const { user } = useUser();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // SYNCHRONOUS SHIELD: If browser has session flag, self-destruct immediately to prevent UI flash.
+  if (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true') {
+    return null;
+  }
+
+  // If Firebase confirms user is already here, self-destruct.
+  if (user) {
+    return null;
+  }
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // MASTERPersistence: If flag is present, hide component immediately
-  if (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true') {
-    return null;
-  }
-
-  if (user) {
-    return null;
-  }
 
   const validateEmail = (email: string) => {
     return String(email).toLowerCase().trim().match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
@@ -144,10 +144,10 @@ export function EmailAuth() {
           await setDoc(doc(firestore, 'users', user.uid), userData, { merge: true });
         }
 
-        localStorage.setItem('show_welcome_bonus', 'true');
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('user_phone', phoneNumber);
         localStorage.setItem('shopykart_session_active', 'true');
+        localStorage.setItem('show_welcome_bonus', 'true');
         
         toast({ title: "Profile Created!" });
         window.location.reload();

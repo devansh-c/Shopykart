@@ -18,46 +18,48 @@ import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
- * @fileOverview AuthGuard - Atomic Persistence Upgrade.
- * Aggressively checks for session flag to block the login screen from ever appearing for returning users.
+ * @fileOverview AuthGuard - Verification-First Logic.
+ * Stays in 'CHECKING' mode until Firebase confirms the user state.
+ * Never shows the login screen to returning users.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
   const pathname = usePathname();
-  
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
 
-  // CRITICAL: Check session flag synchronously to prevent even a single frame of Login UI
   const hasActiveSession = useMemo(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('shopykart_session_active') === 'true';
   }, []);
 
   useEffect(() => {
-    // If we have a session flag, the app is "ready" to show content immediately
-    if (hasActiveSession) {
-      onReady(true);
-      setShowAuthOverlay(false);
+    // 1. STEP ONE: WAIT FOR SYSTEM VERIFICATION
+    // If Firebase is still checking, do NOT hide the splash screen and do NOT show the login page.
+    if (loading) {
+      onReady(false); // Keep splash locked
       return;
     }
 
-    if (loading) return;
+    // 2. STEP TWO: VERIFICATION COMPLETE
+    // Now we know if the user is logged in or not.
+    onReady(true); // App is ready to be seen
 
-    onReady(true);
-
-    // MASTER LOCK: If Firebase confirms user OR flag is present, FORCE HIDE overlay
     if (user) {
-      setShowAuthOverlay(false);
+      // User is confirmed. Ensure flag is set and hide any login UI.
       localStorage.setItem('shopykart_session_active', 'true');
+      setShowAuthOverlay(false);
     } else {
-      // ONLY for pure first-time guests: Show login after 3 seconds
-      const timer = setTimeout(() => {
-        // Double check session flag before showing
-        if (localStorage.getItem('shopykart_session_active') !== 'true') {
-          setShowAuthOverlay(true);
-        }
-      }, 3000);
-      return () => clearTimeout(timer);
+      // No user found. If they have a session flag, they might be in a temporary logout state, 
+      // but we still wait 3 seconds before prompting them to re-verify.
+      if (!hasActiveSession) {
+        const timer = setTimeout(() => {
+          // Final check before showing login: if they logged in during these 3 seconds, abort.
+          if (localStorage.getItem('shopykart_session_active') !== 'true') {
+            setShowAuthOverlay(true);
+          }
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [user, loading, hasActiveSession, onReady]);
 
