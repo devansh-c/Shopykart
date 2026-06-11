@@ -26,7 +26,8 @@ import {
   CheckCircle2,
   X,
   History,
-  ArrowRight
+  ArrowRight,
+  ChevronUp
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -97,6 +98,7 @@ export default function CartPage() {
   const [slideX, setSlideX] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -180,16 +182,8 @@ export default function CartPage() {
     }
   }, [profile]);
 
-  const handleUseSavedAddress = () => {
-    if (!profile?.address) return;
-    setCustomerAddress(profile.address);
-    if (profile.fullName) setCustomerName(profile.fullName);
-    if (profile.phoneNumber) setCustomerPhone(profile.phoneNumber);
-    if (profile.city) setCustomerCity(profile.city);
-    if (profile.pincode) setCustomerPincode(profile.pincode);
-    if (profile.latitude) setLatitude(profile.latitude);
-    if (profile.longitude) setLongitude(profile.longitude);
-    toast({ title: "Suggested Address Applied!" });
+  const scrollToPayment = () => {
+    paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleApplyCoupon = async () => {
@@ -301,7 +295,6 @@ export default function CartPage() {
         coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // INSTANT REDIRECT TO TRACKING PAGE
       setTimeout(() => {
         clearCart();
         router.replace(`/orders/track?id=${orderId}`);
@@ -330,7 +323,7 @@ export default function CartPage() {
     if (!isSliding || isPlacing || !sliderRef.current) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 56;
+    const handleWidth = 48; // Smaller handle Swiggy style
     const maxX = rect.width - handleWidth - 8;
     let x = clientX - rect.left - (handleWidth / 2);
     x = Math.max(0, Math.min(x, maxX));
@@ -410,6 +403,27 @@ export default function CartPage() {
           </div>
         </div>
 
+        {/* Wallet Coins Section */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between animate-in fade-in duration-500">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+              <Coins className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-tight">Wallet Coins</h3>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-none mt-1">
+                Balance: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(2)})
+              </p>
+            </div>
+          </div>
+          <Switch 
+            checked={useCoins} 
+            onCheckedChange={setUseCoins} 
+            disabled={availableCoins <= 0}
+            className="data-[state=checked]:bg-amber-500"
+          />
+        </div>
+
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
            <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div>
@@ -432,6 +446,50 @@ export default function CartPage() {
            )}
         </div>
 
+        {/* Delivery Tip Section */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
+          <div className="flex items-center gap-2">
+            <Heart className="h-5 w-5 text-red-500" />
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Tip your delivery partner</h3>
+          </div>
+          <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
+            Your small token of appreciation goes a long way. 100% of the tip goes to the partner.
+          </p>
+          <div className="flex gap-3">
+            {[10, 20, 30].map(tip => (
+              <button 
+                key={tip}
+                onClick={() => setDeliveryTip(tip)}
+                className={cn(
+                  "flex-1 h-10 rounded-xl border-2 font-black text-xs transition-all",
+                  deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
+                )}
+              >
+                ₹{tip}
+              </button>
+            ))}
+            <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
+              <DialogTrigger asChild>
+                <button 
+                  className={cn(
+                    "flex-1 h-10 rounded-xl border-2 font-black text-xs transition-all",
+                    deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
+                  )}
+                >
+                  {deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? `₹${deliveryTip}` : 'Custom'}
+                </button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[2rem] max-w-xs">
+                <DialogHeader><DialogTitle className="text-center font-black uppercase text-sm">Enter Custom Tip</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-4">
+                   <Input type="number" placeholder="Enter Amount" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-12 rounded-xl text-center text-xl font-black" />
+                   <Button onClick={handleCustomTip} className="w-full h-12 bg-primary rounded-xl font-black">APPLY TIP</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-bold text-gray-800 uppercase">Delivery To</h2></div>
@@ -441,7 +499,16 @@ export default function CartPage() {
                 <MapIcon className="h-4 w-4" /> PIN LOCATION ON MAP
               </button>
               {profile?.address && customerAddress !== profile.address && (
-                <button onClick={handleUseSavedAddress} className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left">
+                <button onClick={() => {
+                  setCustomerAddress(profile.address);
+                  if (profile.fullName) setCustomerName(profile.fullName);
+                  if (profile.phoneNumber) setCustomerPhone(profile.phoneNumber);
+                  if (profile.city) setCustomerCity(profile.city);
+                  if (profile.pincode) setCustomerPincode(profile.pincode);
+                  if (profile.latitude) setLatitude(profile.latitude);
+                  if (profile.longitude) setLongitude(profile.longitude);
+                  toast({ title: "Address Applied!" });
+                }} className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><History className="h-4 w-4" /></div>
                     <div><span className="text-[8px] font-black uppercase text-primary">Use Saved</span><p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p></div>
@@ -484,12 +551,12 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+        <div ref={paymentSectionRef} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4 scroll-mt-20">
           <div className="flex items-center gap-2 mb-2"><CreditCard className="h-5 w-5 text-purple-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Payment Mode</h3></div>
           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
             <div onClick={() => setPaymentMethod('online')} className={cn("p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
               <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-400")} />
-              <span className="text-[10px] font-black uppercase">Pay Online</span>
+              <span className="text-[10px] font-black uppercase">Online Pay</span>
             </div>
             <div onClick={() => setPaymentMethod('cash')} className={cn("p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
               <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-400")} />
@@ -499,27 +566,66 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-4 left-0 right-0 z-[20000] p-4 pointer-events-none">
-        <div className="max-w-lg mx-auto bg-white/95 backdrop-blur-md rounded-[2.5rem] p-5 shadow-[0_-15px_50px_rgba(0,0,0,0.15)] border border-gray-100 pointer-events-auto flex flex-col gap-4">
+      {/* FIXED FOOTER - SWIGGY STYLE */}
+      <div className="fixed bottom-0 left-0 right-0 z-[10000] pointer-events-none">
+        <div className="max-w-lg mx-auto bg-white rounded-t-[2.5rem] p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] border-t border-gray-100 pointer-events-auto flex flex-col gap-4">
+           {/* Payment Summary Header */}
            <div className="flex items-center justify-between px-2">
-              <div className="flex flex-col">
-                 <div className="flex items-center gap-1.5"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{totalItems} ITEMS</span><div className="h-1 w-1 bg-gray-300 rounded-full" /><span className="text-[10px] font-black text-primary uppercase tracking-widest italic">{paymentMethod === 'online' ? '⚡ ONLINE' : '💵 CASH'}</span></div>
-                 <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹{grandTotal.toFixed(2)}</div>
+              <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                    {paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Pay using</span>
+                    <span className="text-sm font-black italic uppercase leading-none">
+                      {paymentMethod === 'online' ? 'Google Pay' : 'Cash on Delivery'}
+                    </span>
+                 </div>
               </div>
-              <div className="text-right"><p className="text-[8px] font-black text-green-600 uppercase tracking-widest">Secure Checkout</p><p className="text-[10px] font-bold text-gray-400 uppercase">Final Step</p></div>
+              <button 
+                onClick={scrollToPayment}
+                className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 group"
+              >
+                Change <ChevronUp className="h-3 w-3 group-hover:-translate-y-0.5 transition-transform" />
+              </button>
            </div>
 
-           <div ref={sliderRef} className="relative h-16 w-full bg-black rounded-[2rem] p-1 flex items-center overflow-hidden shadow-2xl group select-none">
+           {/* SWIGGY GREEN SLIDER */}
+           <div 
+             ref={sliderRef} 
+             className="relative h-14 w-full bg-[#10B981] rounded-full p-1.5 flex items-center overflow-hidden shadow-xl select-none"
+           >
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn("text-[11px] font-black uppercase italic tracking-[0.2em] transition-opacity", slideX > 50 ? "opacity-0" : "opacity-30 text-white")}>
-                   {isPlacing ? 'VERIFYING...' : 'Slide to Place Order'}
+                 <span className={cn(
+                   "text-sm font-black text-white uppercase italic tracking-tight transition-all",
+                   slideX > 50 ? "opacity-0" : "opacity-100"
+                 )}>
+                   {isPlacing ? 'PROCESSING...' : `Slide to Pay | ₹${grandTotal.toFixed(2)}`}
                  </span>
               </div>
-              <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${slideX + 60}px` }} />
-              <div onMouseDown={handleStart} onTouchStart={handleStart} className={cn("relative z-10 h-14 w-14 rounded-full bg-primary flex items-center justify-center text-white shadow-xl cursor-grab transition-transform", isPlacing && "pointer-events-none")} style={{ transform: `translateX(${slideX}px)` }}>
-                 {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="relative"><ShoppingBag className="h-6 w-6" /><div className="absolute -right-6 top-1/2 -translate-y-1/2 text-white/50 animate-pulse"><ChevronRight className="h-4 w-4" /></div></div>}
+              
+              <div 
+                onMouseDown={handleStart} 
+                onTouchStart={handleStart} 
+                className={cn(
+                  "relative z-10 h-11 w-11 rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-lg cursor-grab transition-transform",
+                  isPlacing && "pointer-events-none"
+                )} 
+                style={{ transform: `translateX(${slideX}px)` }}
+              >
+                 {isPlacing ? (
+                   <Loader2 className="h-5 w-5 animate-spin" />
+                 ) : (
+                   <div className="flex items-center">
+                     <span className="text-[10px] font-black">❯</span>
+                     <span className="text-[10px] font-black -ml-0.5 opacity-50">❯</span>
+                     <span className="text-[10px] font-black -ml-0.5 opacity-25">❯</span>
+                   </div>
+                 )}
               </div>
-              {slideX > 200 && !isPlacing && <div className="absolute right-8 top-1/2 -translate-y-1/2"><ArrowRight className="h-5 w-5 text-primary animate-ping" /></div>}
+              
+              {/* Green Progress bar behind handle */}
+              <div className="absolute left-0 top-0 bottom-0 bg-white/10" style={{ width: `${slideX + 56}px` }} />
            </div>
         </div>
       </div>
@@ -528,4 +634,3 @@ export default function CartPage() {
     </div>
   );
 }
-
