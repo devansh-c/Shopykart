@@ -11,15 +11,15 @@ import { NotificationHandler } from '@/components/shared/NotificationHandler';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 import { BrandingLoader } from '@/components/shared/BrandingLoader';
 import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
-import { OTPVerification } from '@/components/auth/OTPVerification';
+import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
 import { ReactNode, useState, useEffect } from 'react';
 
 /**
- * @fileOverview AuthGuard - TEMPORARILY DISABLED BYPASS.
- * Allows unrestricted access to the app.
+ * @fileOverview AuthGuard - Optimized for Persistent Sessions.
+ * Restored Email Authentication and ensured already logged-in users aren't interrupted.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
@@ -30,14 +30,27 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   useEffect(() => {
     if (loading) return;
 
-    // Signal app is ready
+    // Signal app is ready (hides splash)
     onReady(true);
 
-    // AUTH SYSTEM BYPASS: Forced false for temporary testing access
-    setShowAuthOverlay(false);
+    // PERSISTENCE LOGIC: 
+    // 1. Check if user is logged in via Firebase
+    // 2. Check if there's a session flag in localStorage
+    const hasSession = localStorage.getItem('shopykart_session_active') === 'true';
+    
+    if (!user && !hasSession) {
+      // Show login overlay only for new/logged-out users after a tiny delay
+      const timer = setTimeout(() => {
+        setShowAuthOverlay(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else {
+      // Already logged in or has active session, keep it hidden
+      setShowAuthOverlay(false);
+    }
   }, [user, loading, onReady]);
 
-  // Public/Admin paths bypass
+  // Public/Admin/Vendor/Delivery paths bypass
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery') ||
@@ -49,7 +62,7 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   return (
     <>
       {children}
-      {showAuthOverlay && <OTPVerification />}
+      {showAuthOverlay && <EmailAuth />}
     </>
   );
 }
