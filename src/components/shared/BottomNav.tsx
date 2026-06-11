@@ -17,7 +17,7 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Optimized for zero latency using Next.js native Link prefetching.
+ * Locked at the bottom of the viewport (Fixed).
  */
 export const BottomNav = memo(() => {
   const pathname = usePathname();
@@ -33,7 +33,7 @@ export const BottomNav = memo(() => {
   if (isExcludedPath) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] h-16 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] h-16 safe-area-bottom pointer-events-auto">
       <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
