@@ -62,6 +62,12 @@ export default function OrderDetailsClient() {
     const docRef = iframe.contentWindow?.document;
     if (!docRef) return;
 
+    const upiId = "9450355709@axl";
+    const upiName = "ShopyKart";
+    const amount = order.total.toFixed(2);
+    const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${amount}&cu=INR`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+
     docRef.open();
     docRef.write('<html><head><title>Receipt</title>');
     docRef.write('<style>');
@@ -73,24 +79,35 @@ export default function OrderDetailsClient() {
     docRef.write('.table { width: 100%; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin: 15px 0; }');
     docRef.write('.row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; }');
     docRef.write('.total-row { display: flex; justify-content: space-between; font-weight: 900; font-size: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid black; }');
+    docRef.write('.qr-section { margin: 25px 0; border: 1px dashed #eee; padding: 15px; border-radius: 10px; }');
     docRef.write('.footer { font-size: 8px; text-align: center; margin-top: 30px; opacity: 0.6; line-height: 1.2; }');
     docRef.write('.thankyou { font-weight: 900; margin-top: 15px; color: #ef4444; }');
     docRef.write('</style></head><body>');
-    docRef.write(printContent.innerHTML);
+    
+    // Inject custom QR html into the middle of the content
+    const htmlContent = printContent.innerHTML.replace('<!--QR_PLACEHOLDER-->', `
+      <div class="center qr-section">
+        <p style="font-size: 8px; margin-bottom: 8px; font-weight: bold; color: #666;">SCAN TO PAY VIA UPI</p>
+        <img src="${qrUrl}" style="width: 140px; height: 140px; border: 4px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
+        <p style="font-size: 10px; font-weight: 900; margin-top: 8px; color: #000;">PAYABLE: ₹${amount}</p>
+        <p style="font-size: 7px; opacity: 0.5; margin-top: 2px;">${upiId}</p>
+      </div>
+    `);
+    
+    docRef.write(htmlContent);
     docRef.write('</body></html>');
     docRef.close();
     
-    // Wait for content to render then print
+    // Wait for content and QR image to render then print
     setTimeout(() => {
       if (iframe.contentWindow) {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
-        // Delay removal to ensure print dialog opened
         setTimeout(() => {
           document.body.removeChild(iframe);
         }, 1000);
       }
-    }, 500);
+    }, 800);
   };
 
   if (!orderId) {
@@ -289,6 +306,9 @@ export default function OrderDetailsClient() {
                     </div>
                  )}
               </div>
+
+              {/* QR CODE PLACEHOLDER - INJECTED DYNAMICALLY BY handlePrintReceipt */}
+              <!--QR_PLACEHOLDER-->
 
               <div className="total-row">
                  <span>GRAND TOTAL</span>
