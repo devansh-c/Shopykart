@@ -27,7 +27,8 @@ import {
   X,
   History,
   ArrowRight,
-  ChevronUp
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -329,14 +330,14 @@ export default function CartPage() {
     if (!isSliding || isPlacing || !sliderRef.current) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
     const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 56;
-    const maxX = rect.width - handleWidth - 12; // Adjusted for padding
+    const handleWidth = 44;
+    const maxX = rect.width - handleWidth - 10;
     
     let x = clientX - initialTouchX.current;
     x = Math.max(0, Math.min(x, maxX));
     setSlideX(x);
 
-    if (x >= maxX * 0.98) {
+    if (x >= maxX * 0.95) {
       setIsSliding(false);
       setSlideX(maxX);
       handleCheckout();
@@ -347,7 +348,7 @@ export default function CartPage() {
     if (!isSliding || isPlacing) return;
     setIsSliding(false);
     const rect = sliderRef.current?.getBoundingClientRect();
-    if (rect && slideX < (rect.width - 68) * 0.9) {
+    if (rect && slideX < (rect.width - 54) * 0.9) {
       setSlideX(0);
     }
   };
@@ -585,60 +586,64 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* FIXED FOOTER - SLIDE TO ORDER (BOTTOM NAV STYLE) */}
-      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe">
-        <div className="bg-white border-t border-gray-100 p-4 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-500">
+      {/* FIXED FOOTER - SLIDE TO ORDER (SCREENSHOT ACCURATE) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
+        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-5 animate-in slide-in-from-bottom-full duration-500 pointer-events-auto rounded-t-[2.5rem]">
+           {/* Top Info Bar */}
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
-                 <div className="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                 <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
                     {paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}
                  </div>
                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Settling via</span>
-                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span>
+                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none tracking-tight">
                       {paymentMethod === 'online' ? 'Google Pay' : 'Cash on Delivery'}
                     </span>
                  </div>
               </div>
-              <button onClick={scrollToPayment} className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 bg-primary/5 px-3 py-1.5 rounded-full active:scale-90 transition-all">
-                CHANGE <ChevronUp className="h-3 w-3" />
+              <button onClick={scrollToPayment} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest active:scale-90 transition-all border border-rose-100">
+                CHANGE <ChevronUp className="h-3.5 w-3.5" />
               </button>
            </div>
 
+           {/* The Green Slider Track */}
            <div 
              ref={sliderRef} 
-             className="relative h-14 w-full bg-[#10B981] rounded-full p-1.5 flex items-center overflow-hidden shadow-xl select-none touch-none"
+             className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none border-2 border-white/10"
            >
+              {/* Center Text */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn(
-                   "text-sm font-black text-white uppercase italic tracking-tighter transition-all duration-300",
+                   "text-base font-black text-white uppercase italic tracking-tighter transition-all duration-300",
                    slideX > 40 ? "opacity-0" : "opacity-100"
                  )}>
-                   {isPlacing ? 'PROCESSING...' : `Slide to Order • ₹${grandTotal.toFixed(2)}`}
+                   {isPlacing ? 'PROCESSING...' : `SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
                  </span>
               </div>
               
+              {/* White Circle Handle */}
               <div 
                 onMouseDown={handleStart} 
                 onTouchStart={handleStart} 
                 className={cn(
-                  "relative z-10 h-11 w-11 rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform",
+                  "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform border-4 border-white/50",
                   isPlacing && "pointer-events-none"
                 )} 
                 style={{ transform: `translateX(${slideX}px)` }}
               >
                  {isPlacing ? (
-                   <Loader2 className="h-5 w-5 animate-spin" />
+                   <Loader2 className="h-6 w-6 animate-spin" />
                  ) : (
-                   <div className="flex items-center">
-                     <span className="text-[10px] font-black">❯</span>
-                     <span className="text-[10px] font-black -ml-1 opacity-50">❯</span>
-                     <span className="text-[10px] font-black -ml-1 opacity-25">❯</span>
-                   </div>
+                   <ChevronRight className="h-7 w-7 stroke-[3]" />
                  )}
               </div>
               
-              <div className="absolute left-0 top-0 bottom-0 bg-white/20" style={{ width: `${slideX + 54}px` }} />
+              {/* Progress Overlay (lighter green behind handle) */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" 
+                style={{ width: `${slideX + 54}px` }} 
+              />
            </div>
         </div>
       </div>
