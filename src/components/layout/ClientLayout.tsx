@@ -83,12 +83,12 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
                          pathname?.startsWith('/Beauty');
 
   return (
-    <div className="relative min-h-screen flex flex-col transform-gpu translate-z-0">
+    <div className="relative min-h-screen flex flex-col">
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col overflow-x-hidden">
-          <main className={cn("flex-1 pb-44 transform-gpu transition-none", !isExcludedPath && "content-visibility-auto")}>
+          <main className={cn("flex-1 pb-44 transition-none", !isExcludedPath && "content-visibility-auto")}>
             {!isExcludedPath && <LocationRequest />}
             <NotificationHandler />
             <TelegramNotifier />

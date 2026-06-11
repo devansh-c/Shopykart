@@ -32,9 +32,6 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation;
-    /* Hardware acceleration for everything that moves */
-    backface-visibility: hidden;
-    perspective: 1000;
   }
   
   body {
@@ -46,7 +43,6 @@
     user-select: none;
     min-height: 100vh;
     overscroll-behavior-y: none;
-    transform: translateZ(0); /* Global GPU lock */
   }
   
   /* NUCLEAR SPEED ENGINE */
@@ -54,7 +50,6 @@
     content-visibility: auto;
     contain-intrinsic-size: 1px 1000px;
     contain: layout style paint;
-    transform: translateZ(0);
   }
 
   /* ZERO LATENCY INTERACTION */
@@ -65,12 +60,11 @@
     will-change: transform, opacity;
     outline: none !important;
     -webkit-appearance: none;
-    transform: translateZ(0);
   }
 
   /* Instant Feedback with GPU */
   button:active, a:active, [role="button"]:active {
-    transform: scale(0.96) translateZ(0) !important;
+    transform: scale(0.96) !important;
     opacity: 0.8 !important;
   }
 
@@ -94,18 +88,15 @@
 
 .premium-card {
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
-  transform: translateZ(0);
   will-change: transform, opacity;
   contain: content;
 }
 
 nav.fixed {
   isolation: isolate;
-  backface-visibility: hidden;
-  transform: translateZ(0);
+  z-index: 9999;
 }
 
 svg {
-  transform: translateZ(0);
   pointer-events: none;
 }
