@@ -73,13 +73,16 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
             QUALITY FIRST
           </span>
         </div>
-        
-        {/* Handcrafted By info inside the flex column for relative stability */}
-        <div className="mt-12 flex flex-col items-center gap-2">
-          <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted By Devansh</p>
-          <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
-          </div>
+      </div>
+      
+      {/* Handcrafted By info positioned at the bottom of the screen */}
+      <div className={cn(
+        "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      )}>
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted By Devansh</p>
+        <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
         </div>
       </div>
     </div>
