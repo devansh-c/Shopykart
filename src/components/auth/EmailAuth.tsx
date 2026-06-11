@@ -43,9 +43,11 @@ export function EmailAuth() {
   }, []);
 
   // MASTERPersistence: If flag is present, hide component immediately
-  const hasActiveSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+  if (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true') {
+    return null;
+  }
 
-  if (user || hasActiveSession) {
+  if (user) {
     return null;
   }
 

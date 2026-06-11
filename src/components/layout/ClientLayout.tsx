@@ -38,6 +38,7 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
     if (hasActiveSession) {
       onReady(true);
       setShowAuthOverlay(false);
+      return;
     }
 
     if (loading) return;
@@ -45,16 +46,16 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
     onReady(true);
 
     // MASTER LOCK: If Firebase confirms user OR flag is present, FORCE HIDE overlay
-    if (user || hasActiveSession) {
+    if (user) {
       setShowAuthOverlay(false);
-      // Ensure flag is set if Firebase found a user
-      if (user && !hasActiveSession) {
-        localStorage.setItem('shopykart_session_active', 'true');
-      }
+      localStorage.setItem('shopykart_session_active', 'true');
     } else {
       // ONLY for pure first-time guests: Show login after 3 seconds
       const timer = setTimeout(() => {
-        setShowAuthOverlay(true);
+        // Double check session flag before showing
+        if (localStorage.getItem('shopykart_session_active') !== 'true') {
+          setShowAuthOverlay(true);
+        }
       }, 3000);
       return () => clearTimeout(timer);
     }
