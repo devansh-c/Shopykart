@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -76,7 +77,6 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [useCoins, setUseCoins] = useState(false);
   
-  // Coupon States
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
@@ -94,7 +94,6 @@ export default function CartPage() {
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
 
-  // Slider State
   const [slideX, setSlideX] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -144,11 +143,9 @@ export default function CartPage() {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamic_charges]);
 
-  // Coupon Discount Calculation
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
     const discountStr = appliedCoupon.discount || '0';
-    
     if (discountStr.includes('%')) {
       const percentage = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
       return (totalPrice * percentage) / 100;
@@ -192,35 +189,26 @@ export default function CartPage() {
     if (profile.pincode) setCustomerPincode(profile.pincode);
     if (profile.latitude) setLatitude(profile.latitude);
     if (profile.longitude) setLongitude(profile.longitude);
-    
     toast({ title: "Suggested Address Applied!" });
   };
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponInput.trim()) return;
-    
     setIsVerifyingCoupon(true);
     try {
       const q = query(collection(firestore, 'coupons'), where('code', '==', couponInput.trim().toUpperCase()));
       const snap = await getDocs(q);
-      
       if (snap.empty) {
-        toast({ variant: "destructive", title: "Invalid Coupon", description: "This code does not exist." });
+        toast({ variant: "destructive", title: "Invalid Coupon" });
         setAppliedCoupon(null);
       } else {
         const couponData = snap.docs[0].data();
-        const minOrderMatch = couponData.minOrder?.match(/\d+/);
-        const minVal = minOrderMatch ? parseInt(minOrderMatch[0]) : 0;
-        
+        const minVal = parseInt(couponData.minOrder?.match(/\d+/)?.[0] || '0');
         if (totalPrice < minVal) {
-          toast({ 
-            variant: "destructive", 
-            title: "Min Order Not Met", 
-            description: `This coupon requires minimum order of ₹${minVal}` 
-          });
+          toast({ variant: "destructive", title: "Min Order Not Met", description: `Minimum order ₹${minVal} required.` });
         } else {
           setAppliedCoupon(couponData);
-          toast({ title: "Coupon Applied!", description: `Yay! ${couponData.discount} saved.` });
+          toast({ title: "Coupon Applied!" });
         }
       }
     } catch (err) {
@@ -240,7 +228,6 @@ export default function CartPage() {
       setCustomerCity(matchedZone.city || 'Local');
       localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
       localStorage.setItem('user_city', matchedZone.city || 'Local');
-      localStorage.setItem('active_zone_id', matchedZone.id);
       if (user && firestore) {
         setDoc(doc(firestore, 'users', user.uid), {
           latitude: finalLat,
@@ -258,22 +245,14 @@ export default function CartPage() {
     if (!firestore || isPlacing) return;
 
     if (totalPrice < 35) {
-      toast({
-        variant: "destructive",
-        title: "Order Value Low",
-        description: "₹35 se kam ka order nahi hoga. Please kuch aur items add karein!",
-      });
-      setSlideX(0); // Reset slider
+      toast({ variant: "destructive", title: "Order Value Low", description: "₹35 se kam ka order nahi hoga." });
+      setSlideX(0);
       return;
     }
 
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 10) {
-      toast({
-        variant: "destructive",
-        title: "Incomplete Details",
-        description: "Please check your name, 10-digit phone and full address.",
-      });
-      setSlideX(0); // Reset slider
+      toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your details." });
+      setSlideX(0);
       return;
     }
 
@@ -317,26 +296,22 @@ export default function CartPage() {
       });
       
       await setDoc(doc(firestore, 'users', finalUid), {
-        fullName: customerName, 
-        phoneNumber: customerPhone, 
-        address: customerAddress, 
-        city: customerCity, 
-        pincode: customerPincode, 
-        latitude, 
-        longitude,
-        coins: increment(10 - coinsUsed), 
-        updatedAt: serverTimestamp()
+        fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
+        city: customerCity, pincode: customerPincode, latitude, longitude,
+        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
       }, { merge: true });
 
+      // INSTANT REDIRECT TO TRACKING PAGE
       setTimeout(() => {
         clearCart();
-        router.push(`/orders/track?id=${orderId}`);
-      }, 1500);
+        router.replace(`/orders/track?id=${orderId}`);
+      }, 1200);
+
     } catch (err) {
-      console.error("Order creation failed:", err);
+      console.error("Checkout failed:", err);
       setShowSuccess(false);
       setIsPlacing(false);
-      setSlideX(0); // Reset slider
+      setSlideX(0);
     }
   };
 
@@ -349,22 +324,17 @@ export default function CartPage() {
     }
   };
 
-  // Slider Handlers
   const handleStart = () => { if (!isPlacing) setIsSliding(true); };
   
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (!isSliding || isPlacing || !sliderRef.current) return;
-    
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const rect = sliderRef.current.getBoundingClientRect();
     const handleWidth = 56;
-    const maxX = rect.width - handleWidth - 8; // 8px for padding
-    
+    const maxX = rect.width - handleWidth - 8;
     let x = clientX - rect.left - (handleWidth / 2);
     x = Math.max(0, Math.min(x, maxX));
     setSlideX(x);
-
-    // If reached 95% of maxX, confirm order
     if (x >= maxX * 0.95) {
       setIsSliding(false);
       setSlideX(maxX);
@@ -375,7 +345,6 @@ export default function CartPage() {
   const handleEnd = () => {
     if (!isSliding || isPlacing) return;
     setIsSliding(false);
-    // Snap back if not reached end
     if (slideX < (sliderRef.current?.getBoundingClientRect().width || 0) * 0.8) {
       setSlideX(0);
     }
@@ -387,11 +356,6 @@ export default function CartPage() {
       window.addEventListener('mouseup', handleEnd);
       window.addEventListener('touchmove', handleMove as any);
       window.addEventListener('touchend', handleEnd);
-    } else {
-      window.removeEventListener('mousemove', handleMove as any);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove as any);
-      window.removeEventListener('touchend', handleEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMove as any);
@@ -417,32 +381,28 @@ export default function CartPage() {
       <OrderSuccessOverlay isVisible={showSuccess} />
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
-        <h1 className="text-lg font-bold text-gray-800">Your Cart</h1>
+        <h1 className="text-lg font-bold text-gray-800">Checkout</h1>
       </div>
 
       <div className="p-4 space-y-5">
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
              <ShoppingBasket className="h-5 w-5 text-gray-400" />
-             <h2 className="text-sm font-bold text-gray-800">Your Order</h2>
-             <span className="ml-auto text-[10px] font-bold text-gray-400 uppercase">{totalItems} items</span>
+             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-widest">Order Details</h2>
           </div>
           <div className="space-y-4">
             {cart.map((item) => (
               <div key={item.id} className="flex gap-4">
                 <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <div className="h-3.5 w-3.5 border border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
-                    <h3 className="font-bold text-sm text-gray-800 truncate">{item.name}</h3>
-                  </div>
+                  <h3 className="font-bold text-sm text-gray-800 truncate uppercase">{item.name}</h3>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center bg-primary text-white rounded-lg h-8 px-1">
                       <button onClick={() => removeFromCart(item.id)} className="h-6 w-6 flex items-center justify-center font-bold text-lg">-</button>
                       <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
                       <button onClick={() => addToCart(item)} className="h-6 w-6 flex items-center justify-center font-bold text-lg">+</button>
                     </div>
-                    <div className="text-sm font-black text-gray-800">₹{item.price.toFixed(2)}</div>
+                    <div className="text-sm font-black text-gray-800 italic">₹{item.price.toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -450,309 +410,122 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* APPLY COUPON SECTION */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                 <Ticket className="h-5 w-5" />
-              </div>
-              <div>
-                 <h3 className="text-sm font-black uppercase tracking-tight">Apply Coupon</h3>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-none">Use promo code for savings</p>
-              </div>
+              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div>
+              <div><h3 className="text-sm font-black uppercase tracking-tight">Apply Coupon</h3><p className="text-[10px] font-bold text-muted-foreground uppercase leading-none">Save extra on this order</p></div>
            </div>
-
            <div className="flex gap-2">
               <div className="relative flex-1">
                  <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                 <Input 
-                   placeholder="Enter Code" 
-                   value={couponInput}
-                   onChange={e => setCouponInput(e.target.value.toUpperCase())}
-                   className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest"
-                 />
+                 <Input placeholder="Enter Code" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest" />
               </div>
-              <button 
-                onClick={handleApplyCoupon}
-                disabled={isVerifyingCoupon || !couponInput.trim()}
-                className="h-12 px-6 rounded-xl bg-[#0B0B0B] text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all"
-              >
+              <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95">
                  {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
               </button>
            </div>
-
            {appliedCoupon && (
-             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between animate-in zoom-in-95 duration-300">
-                <div className="flex items-center gap-2">
-                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                   <span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' Applied!</span>
-                </div>
-                <button onClick={() => setAppliedCoupon(null)} className="text-green-700 p-1 hover:bg-green-100 rounded-md">
-                   <X className="h-3.5 w-3.5" />
-                </button>
+             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between">
+                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span></div>
+                <button onClick={() => setAppliedCoupon(null)} className="text-green-700 p-1"><X className="h-3.5 w-3.5" /></button>
              </div>
            )}
         </div>
 
-        {/* REDEEM COINS SECTION */}
-        {availableCoins > 0 && (
-          <div className="bg-[#0B0B0B] rounded-[2rem] p-6 shadow-xl border border-white/5 items-center justify-between flex">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 bg-amber-50/20 rounded-2xl flex items-center justify-center border border-amber-500/20"><Coins className="h-6 w-6 text-amber-500 fill-amber-500" /></div>
-              <div><h3 className="text-sm font-black text-white italic uppercase">Redeem Coins</h3><p className="text-[9px] font-bold text-gray-400 uppercase">Balance: {availableCoins} (₹{(availableCoins * coinValue).toFixed(2)})</p></div>
-            </div>
-            <Switch checked={useCoins} onCheckedChange={setUseCoins} className="data-[state=checked]:bg-amber-500" />
-          </div>
-        )}
-
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-bold text-gray-800">Delivery Details</h2></div>
+            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-bold text-gray-800 uppercase">Delivery To</h2></div>
           </div>
           <div className="space-y-4">
               <button onClick={() => setIsMapOpen(true)} className="w-full h-12 bg-black/5 border-2 border-black/5 rounded-xl flex items-center justify-center gap-2 text-gray-700 font-black uppercase text-[10px]">
                 <MapIcon className="h-4 w-4" /> PIN LOCATION ON MAP
               </button>
-
               {profile?.address && customerAddress !== profile.address && (
-                <button 
-                  onClick={handleUseSavedAddress}
-                  className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left animate-in slide-in-from-top-2 duration-500"
-                >
+                <button onClick={handleUseSavedAddress} className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <History className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <span className="text-[8px] font-black uppercase text-primary tracking-widest block">Use Last Address</span>
-                      <p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p>
-                    </div>
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><History className="h-4 w-4" /></div>
+                    <div><span className="text-[8px] font-black uppercase text-primary">Use Saved</span><p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p></div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-primary" />
                 </button>
               )}
-
               <div className="space-y-3">
                 <Input placeholder="Full Name *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                  <Input placeholder="Pincode *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center" />
                   <Input placeholder="City *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-70" />
                 </div>
-                <Textarea placeholder="Flat / House / Building Details *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
+                <Textarea placeholder="Full Address Details *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[80px]" />
                 <Input placeholder="10 Digit Phone *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
               </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
-           <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
-                 <Bike className="h-5 w-5" />
-              </div>
-              <div>
-                 <h3 className="text-sm font-black uppercase tracking-tight">Delivery Tip</h3>
-                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-none">Thank your delivery partner</p>
-              </div>
-           </div>
-
-           <div className="flex flex-wrap gap-x-2 gap-y-4 pt-2">
-              {[10, 20, 30, 50].map((amount) => (
-                <div key={amount} className="relative">
-                  {amount === 20 && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-100 text-amber-700 text-[6px] font-black px-1.5 py-0.5 rounded-full border border-amber-200 uppercase tracking-tighter whitespace-nowrap z-10">
-                      Most Tipped
-                    </div>
-                  )}
-                  <button
-                    onPointerDown={(e) => { e.preventDefault(); setDeliveryTip(amount === deliveryTip ? 0 : amount); }}
-                    className={cn(
-                      "h-10 px-5 rounded-xl border-2 font-black text-xs transition-none active:scale-90",
-                      deliveryTip === amount 
-                        ? "bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-200" 
-                        : "bg-white border-gray-100 text-gray-500"
-                    )}
-                  >
-                    ₹{amount}
-                  </button>
-                </div>
-              ))}
-              <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
-                 <DialogTrigger asChild>
-                    <button className={cn(
-                      "h-10 px-5 rounded-xl border-2 border-dashed font-black text-xs transition-none active:scale-90",
-                      deliveryTip > 50 || (deliveryTip > 0 && ![10, 20, 30, 50].includes(deliveryTip))
-                        ? "bg-amber-600 border-amber-600 text-white"
-                        : "bg-white border-gray-200 text-gray-400"
-                    )}>
-                      {deliveryTip > 0 && ![10, 20, 30, 50].includes(deliveryTip) ? `₹${deliveryTip}` : 'ADD CUSTOM'}
-                    </button>
-                 </DialogTrigger>
-                 <DialogContent className="rounded-[2.5rem] max-w-sm">
-                    <DialogHeader>
-                       <DialogTitle className="font-black italic uppercase text-center text-xl">Add Delivery Tip</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                       <Input 
-                        type="number" 
-                        placeholder="Enter amount (₹)" 
-                        value={customTipValue}
-                        onChange={e => setCustomTipValue(e.target.value)}
-                        className="h-14 rounded-2xl bg-gray-50 border-none text-xl font-black text-center"
-                       />
-                       <Button onClick={handleCustomTip} className="w-full h-14 rounded-2xl bg-primary font-black uppercase italic">CONFIRM TIP</Button>
-                    </div>
-                 </DialogContent>
-              </Dialog>
-           </div>
-        </div>
-
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
-          <div className="flex items-center gap-2 mb-2"><FileText className="h-5 w-5 text-blue-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Bill Details</h3></div>
+          <div className="flex items-center gap-2 mb-2"><FileText className="h-5 w-5 text-blue-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Bill Summary</h3></div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between font-bold text-gray-400"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
-            
             {dynamic_charges.map((charge: any) => (
-              <div key={charge.id} className="flex justify-between font-bold text-gray-400">
-                <span>{charge.name}</span>
-                <span>₹{charge.calculatedAmount.toFixed(2)}</span>
-              </div>
+              <div key={charge.id} className="flex justify-between font-bold text-gray-400"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>
             ))}
-
             {appliedCoupon && (
-              <div className="flex justify-between font-black text-green-600">
-                <span>Coupon ({appliedCoupon.code})</span>
-                <span>- ₹{couponDiscount.toFixed(2)}</span>
-              </div>
+              <div className="flex justify-between font-black text-green-600"><span>Coupon ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>
             )}
             {useCoins && coinDiscount > 0 && (
-              <div className="flex justify-between font-black text-amber-600">
-                <span>Coins Applied</span>
-                <span>- ₹{coinDiscount.toFixed(2)}</span>
-              </div>
+              <div className="flex justify-between font-black text-amber-600"><span>Coins Used</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>
             )}
-
             {deliveryTip > 0 && (
-              <div className="flex justify-between font-bold text-amber-600">
-                <span>Delivery Tip</span>
-                <span>₹{deliveryTip.toFixed(2)}</span>
-              </div>
+              <div className="flex justify-between font-bold text-amber-600"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>
             )}
           </div>
           <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
-            <span className="text-lg font-black text-gray-700">Total Payable</span>
+            <span className="text-lg font-black text-gray-700 uppercase italic">Payable</span>
             <span className="text-2xl font-black text-primary italic">₹{grandTotal.toFixed(2)}</span>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="h-5 w-5 text-purple-500" />
-            <h3 className="text-sm font-bold text-gray-800 uppercase">Select Payment Method</h3>
-          </div>
-          <RadioGroup 
-            value={paymentMethod} 
-            onValueChange={setPaymentMethod}
-            className="grid grid-cols-2 gap-4"
-          >
-            <div 
-              onClick={() => setPaymentMethod('online')}
-              className={cn(
-                "relative p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 text-center",
-                paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50"
-              )}
-            >
+          <div className="flex items-center gap-2 mb-2"><CreditCard className="h-5 w-5 text-purple-500" /><h3 className="text-sm font-bold text-gray-800 uppercase">Payment Mode</h3></div>
+          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
+            <div onClick={() => setPaymentMethod('online')} className={cn("p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
               <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-400")} />
-              <span className={cn("text-[10px] font-black uppercase tracking-tight", paymentMethod === 'online' ? "text-primary" : "text-gray-500")}>Pay Online</span>
+              <span className="text-[10px] font-black uppercase">Pay Online</span>
             </div>
-            
-            <div 
-              onClick={() => setPaymentMethod('cash')}
-              className={cn(
-                "relative p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 text-center",
-                paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50"
-              )}
-            >
+            <div onClick={() => setPaymentMethod('cash')} className={cn("p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
               <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-400")} />
-              <span className={cn("text-[10px] font-black uppercase tracking-tight", paymentMethod === 'cash' ? "text-primary" : "text-gray-500")}>Cash On Delivery</span>
+              <span className="text-[10px] font-black uppercase">Cash on Delivery</span>
             </div>
           </RadioGroup>
         </div>
       </div>
 
-      {/* STICKY ACTION FOOTER WITH SLIDE TO ORDER */}
-      <div className="fixed bottom-4 left-0 right-0 z-[20000] p-4 pb-safe pointer-events-none">
-        <div className="max-w-lg mx-auto flex flex-col gap-4 bg-white/95 backdrop-blur-md rounded-[2.5rem] p-5 shadow-[0_-15px_50px_rgba(0,0,0,0.15)] border border-gray-100 pointer-events-auto">
-           {/* Price Info Header */}
+      <div className="fixed bottom-4 left-0 right-0 z-[20000] p-4 pointer-events-none">
+        <div className="max-w-lg mx-auto bg-white/95 backdrop-blur-md rounded-[2.5rem] p-5 shadow-[0_-15px_50px_rgba(0,0,0,0.15)] border border-gray-100 pointer-events-auto flex flex-col gap-4">
            <div className="flex items-center justify-between px-2">
               <div className="flex flex-col">
-                 <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalItems} {totalItems === 1 ? 'Item' : 'Items'}</span>
-                    <div className="h-1 w-1 bg-gray-300 rounded-full" />
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none italic">{paymentMethod === 'online' ? '⚡ ONLINE' : '💵 CASH'}</span>
-                 </div>
+                 <div className="flex items-center gap-1.5"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{totalItems} ITEMS</span><div className="h-1 w-1 bg-gray-300 rounded-full" /><span className="text-[10px] font-black text-primary uppercase tracking-widest italic">{paymentMethod === 'online' ? '⚡ ONLINE' : '💵 CASH'}</span></div>
                  <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹{grandTotal.toFixed(2)}</div>
               </div>
-              <div className="text-right">
-                 <p className="text-[8px] font-black text-green-600 uppercase tracking-widest">Safe & Secure Checkout</p>
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Final Step</p>
-              </div>
+              <div className="text-right"><p className="text-[8px] font-black text-green-600 uppercase tracking-widest">Secure Checkout</p><p className="text-[10px] font-bold text-gray-400 uppercase">Final Step</p></div>
            </div>
 
-           {/* PREMIUM SLIDE TO ORDER COMPONENT */}
-           <div 
-             ref={sliderRef}
-             className="relative h-16 w-full bg-[#0B0B0B] rounded-[2rem] p-1 flex items-center overflow-hidden shadow-2xl group select-none"
-           >
-              {/* Background Text */}
+           <div ref={sliderRef} className="relative h-16 w-full bg-black rounded-[2rem] p-1 flex items-center overflow-hidden shadow-2xl group select-none">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn(
-                   "text-[11px] font-black uppercase italic tracking-[0.2em] transition-opacity duration-300",
-                   slideX > 50 ? "opacity-0" : "opacity-30 text-white"
-                 )}>
-                   {isPlacing ? 'PLACING ORDER...' : 'Slide to Place Order'}
+                 <span className={cn("text-[11px] font-black uppercase italic tracking-[0.2em] transition-opacity", slideX > 50 ? "opacity-0" : "opacity-30 text-white")}>
+                   {isPlacing ? 'VERIFYING...' : 'Slide to Place Order'}
                  </span>
               </div>
-
-              {/* Dynamic Filling Background */}
-              <div 
-                className="absolute left-0 top-0 bottom-0 bg-primary/20 transition-none"
-                style={{ width: `${slideX + 60}px` }}
-              />
-
-              {/* The Slider Handle */}
-              <div 
-                onMouseDown={handleStart}
-                onTouchStart={handleStart}
-                className={cn(
-                  "relative z-10 h-14 w-14 rounded-full bg-primary flex items-center justify-center text-white shadow-xl cursor-grab active:cursor-grabbing transition-transform duration-75",
-                  isPlacing && "pointer-events-none"
-                )}
-                style={{ transform: `translateX(${slideX}px)` }}
-              >
-                 {isPlacing ? (
-                   <Loader2 className="h-6 w-6 animate-spin" />
-                 ) : (
-                   <div className="relative">
-                      <ShoppingBag className="h-6 w-6" />
-                      <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-white/50 animate-pulse">
-                         <ChevronRight className="h-4 w-4" />
-                      </div>
-                   </div>
-                 )}
+              <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${slideX + 60}px` }} />
+              <div onMouseDown={handleStart} onTouchStart={handleStart} className={cn("relative z-10 h-14 w-14 rounded-full bg-primary flex items-center justify-center text-white shadow-xl cursor-grab transition-transform", isPlacing && "pointer-events-none")} style={{ transform: `translateX(${slideX}px)` }}>
+                 {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="relative"><ShoppingBag className="h-6 w-6" /><div className="absolute -right-6 top-1/2 -translate-y-1/2 text-white/50 animate-pulse"><ChevronRight className="h-4 w-4" /></div></div>}
               </div>
-
-              {/* Success Particle Effect (Subtle) */}
-              {slideX > 200 && !isPlacing && (
-                <div className="absolute right-8 top-1/2 -translate-y-1/2">
-                   <ArrowRight className="h-5 w-5 text-primary animate-ping" />
-                </div>
-              )}
+              {slideX > 200 && !isPlacing && <div className="absolute right-8 top-1/2 -translate-y-1/2"><ArrowRight className="h-5 w-5 text-primary animate-ping" /></div>}
            </div>
         </div>
       </div>
       
-      <div className="h-20" /> {/* Extra spacer at bottom */}
-      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl"><DialogHeader className="sr-only"><DialogTitle>Select Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => validateAndSetCoords(lat, lng)} /></DialogContent></Dialog>
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl"><DialogHeader className="sr-only"><DialogTitle>Pin Location</DialogTitle></DialogHeader><MapPicker onConfirm={validateAndSetCoords} /></DialogContent></Dialog>
     </div>
   );
 }
+

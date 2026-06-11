@@ -1,13 +1,15 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, Download, ReceiptText, Printer } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { format } from 'date-fns';
 
 const steps = [
   { id: 'Placed', label: 'Order Placed' },
@@ -25,6 +27,7 @@ export default function OrderDetailsClient() {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   const orderRef = useMemoFirebase(() => {
     if (!firestore || !orderId) return null;
@@ -32,6 +35,45 @@ export default function OrderDetailsClient() {
   }, [firestore, orderId]);
 
   const { data: order, loading } = useDoc<any>(orderRef);
+
+  // Fetch Receipt Settings
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: settings } = useDoc<any>(brandingRef);
+
+  const handlePrintReceipt = () => {
+    if (typeof window === 'undefined') return;
+    
+    const printContent = receiptRef.current;
+    if (!printContent) return;
+
+    const win = window.open('', '', 'height=700,width=700');
+    if (!win) return;
+
+    win.document.write('<html><head><title>ShopyKart Receipt</title>');
+    win.document.write('<style>');
+    win.document.write('body { font-family: "Courier New", Courier, monospace; padding: 20px; color: black; background: white; text-transform: uppercase; }');
+    win.document.write('.receipt { max-width: 400px; margin: 0 auto; border-top: 5px solid black; padding-top: 20px; }');
+    win.document.write('.center { text-align: center; }');
+    win.document.write('.header { font-weight: 900; margin-bottom: 20px; }');
+    win.document.write('.details { font-size: 10px; margin-bottom: 20px; line-height: 1.4; opacity: 0.8; }');
+    win.document.write('.table { width: 100%; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin: 15px 0; }');
+    win.document.write('.row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; }');
+    win.document.write('.total-row { display: flex; justify-content: space-between; font-weight: 900; font-size: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid black; }');
+    win.document.write('.footer { font-size: 8px; text-align: center; margin-top: 30px; opacity: 0.6; line-height: 1.2; }');
+    win.document.write('.thankyou { font-weight: 900; margin-top: 15px; color: #ef4444; }');
+    win.document.write('</style></head><body>');
+    win.document.write(printContent.innerHTML);
+    win.document.write('</body></html>');
+    win.document.close();
+    
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 500);
+  };
 
   if (!orderId) {
     return (
@@ -66,67 +108,77 @@ export default function OrderDetailsClient() {
   const currentStatusIdx = steps.findIndex(s => s.id === order.status);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-20">
+    <div className="min-h-screen bg-[#F8F9FA] pb-32">
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/orders')} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors">
             <ChevronLeft className="h-6 w-6" />
           </button>
-          <h1 className="text-lg font-bold italic uppercase">Track Order</h1>
+          <h1 className="text-lg font-bold italic uppercase tracking-tighter">Track Order</h1>
         </div>
+        {!isCancelled && (
+           <button 
+            onClick={handlePrintReceipt}
+            className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+           >
+              <Download className="h-3 w-3" />
+              Receipt
+           </button>
+        )}
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
         <div className={cn(
-          "rounded-xl p-4 flex items-center gap-3 border",
+          "rounded-2xl p-5 flex items-center gap-4 border shadow-sm",
           isCancelled ? "bg-red-50 border-red-100 text-red-600" : "bg-[#FFF8E6] border-[#FFE8B3] text-[#B38B00]"
         )}>
-          {isCancelled ? <XCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-          <div className="font-bold text-sm">
-            Order #{order.orderDisplayId || orderId.slice(-5).toUpperCase()}
-            {isCancelled && " - CANCELLED"}
+          {isCancelled ? (
+            <div className="h-10 w-10 bg-red-100 rounded-xl flex items-center justify-center"><XCircle className="h-6 w-6" /></div>
+          ) : (
+            <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center"><Clock className="h-6 w-6 animate-pulse" /></div>
+          )}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Status ID: #{order.orderDisplayId || orderId.slice(-5).toUpperCase()}</span>
+            <div className="font-black text-lg italic uppercase tracking-tighter">
+              {isCancelled ? "Order Terminated" : order.status}
+            </div>
           </div>
         </div>
 
         {isCancelled ? (
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center space-y-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 text-center space-y-4 animate-in fade-in zoom-in duration-300">
              <div className="bg-red-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto text-red-500">
                 <AlertTriangle className="h-8 w-8" />
              </div>
-             <h3 className="font-black text-xl italic uppercase text-gray-800">Order Terminated</h3>
+             <h3 className="font-black text-xl italic uppercase text-gray-800">Payment Void</h3>
              <p className="text-xs text-muted-foreground font-medium leading-relaxed px-4">
-               This order was cancelled by the store or administrator. If any amount was deducted, it will be refunded within 3-5 business days.
+               This order was cancelled. If any amount was deducted, it will be refunded within 3-5 business days.
              </p>
-             <Button 
-              onClick={() => router.push('/menu')}
-              className="w-full h-12 rounded-xl bg-black font-black uppercase italic text-xs tracking-widest"
-             >
-               REORDER SOMETHING ELSE
-             </Button>
+             <Button onClick={() => router.push('/menu')} className="w-full h-12 rounded-xl bg-black font-black uppercase italic text-xs tracking-widest shadow-xl">REORDER SOMETHING ELSE</Button>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-black text-sm uppercase mb-6 tracking-widest text-gray-400">Order Progress</h3>
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+            <h3 className="font-black text-[10px] uppercase mb-8 tracking-[0.2em] text-gray-400">Order Journey</h3>
             <div className="space-y-0 ml-1">
               {steps.map((step, idx) => {
                 const isCompleted = idx <= currentStatusIdx;
                 const isCurrent = idx === currentStatusIdx;
                 return (
-                  <div key={step.id} className="flex gap-4 relative">
+                  <div key={step.id} className="flex gap-5 relative">
                     {idx !== steps.length - 1 && (
-                      <div className={cn("absolute left-[11px] top-6 w-[2px] h-full -z-0", isCompleted ? "bg-primary" : "bg-gray-100")} />
+                      <div className={cn("absolute left-[11px] top-6 w-[2px] h-[calc(100%-12px)] -z-0", isCompleted ? "bg-primary" : "bg-gray-100")} />
                     )}
                     <div className="relative z-10 flex flex-col items-center">
                       <div className={cn(
-                        "h-6 w-6 rounded-full flex items-center justify-center border-2",
-                        isCompleted ? "bg-primary border-primary shadow-lg shadow-primary/20" : "bg-white border-gray-200"
+                        "h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                        isCompleted ? "bg-primary border-primary shadow-lg shadow-primary/20 scale-110" : "bg-white border-gray-200"
                       )}>
-                        {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <Circle className="h-2 w-2 text-gray-300" />}
+                        {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <Circle className="h-1.5 w-1.5 text-gray-200" />}
                       </div>
                     </div>
-                    <div className={cn("pb-6 text-sm font-black uppercase italic tracking-tighter transition-colors", isCompleted ? "text-black" : "text-gray-400")}>
+                    <div className={cn("pb-8 text-[11px] font-black uppercase italic tracking-widest transition-all", isCompleted ? "text-black" : "text-gray-300")}>
                       {step.label}
-                      {isCurrent && <span className="ml-2 inline-block h-1.5 w-1.5 bg-primary rounded-full animate-ping" />}
+                      {isCurrent && <span className="ml-3 inline-block h-1.5 w-1.5 bg-primary rounded-full animate-ping" />}
                     </div>
                   </div>
                 );
@@ -135,22 +187,108 @@ export default function OrderDetailsClient() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h3 className="font-black text-sm uppercase tracking-tight mb-4 text-gray-400">Summary</h3>
+        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 space-y-6">
+          <div className="flex items-center justify-between">
+             <h3 className="font-black text-[10px] uppercase tracking-widest text-gray-400">Bill Summary</h3>
+             <ReceiptText className="h-4 w-4 text-gray-300" />
+          </div>
           <div className="space-y-3">
             {order.items?.map((item: any, i: number) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span className="font-bold text-gray-700">{item.quantity}x {item.name}</span>
-                <span className="font-black">₹{(item.price * item.quantity).toFixed(2)}</span>
+              <div key={i} className="flex justify-between items-start text-xs font-bold">
+                <span className="text-gray-600 max-w-[70%]">{item.quantity}x {item.name}</span>
+                <span className="font-black italic">₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
-            <div className="pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
-              <span className="text-base font-black uppercase italic text-gray-500">Total Paid</span>
-              <span className="text-xl font-black text-primary italic">₹{order.total?.toFixed(2)}</span>
+            
+            <div className="pt-4 border-t border-dashed border-gray-200 flex flex-col gap-2">
+               {order.deliveryTip > 0 && (
+                 <div className="flex justify-between text-[10px] font-black uppercase text-amber-600">
+                    <span>Partner Tip</span>
+                    <span>₹{order.deliveryTip.toFixed(2)}</span>
+                 </div>
+               )}
+               <div className="flex justify-between items-center">
+                  <span className="text-sm font-black uppercase italic text-gray-500">Net Amount Paid</span>
+                  <span className="text-2xl font-black text-primary italic tracking-tighter">₹{order.total?.toFixed(2)}</span>
+               </div>
             </div>
           </div>
+        </div>
+
+        {!isCancelled && (
+           <div className="bg-primary/5 p-6 rounded-[2rem] border-2 border-dashed border-primary/10 flex flex-col items-center text-center gap-3">
+              <Printer className="h-8 w-8 text-primary opacity-40" />
+              <div>
+                 <h4 className="font-black text-sm uppercase italic tracking-tight">Need a digital copy?</h4>
+                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed mt-1">
+                   Download your order receipt for records and reimbursement.
+                 </p>
+              </div>
+              <Button onClick={handlePrintReceipt} variant="outline" className="h-10 rounded-xl border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest px-8 mt-2">
+                 GENERATE RECEIPT
+              </Button>
+           </div>
+        )}
+      </div>
+
+      {/* HIDDEN RECEIPT TEMPLATE FOR PRINTING */}
+      <div className="hidden">
+        <div ref={receiptRef}>
+           <div className="receipt">
+              <div className="center header">
+                 <div style={{ fontSize: '24px', letterSpacing: '-1px' }}>SHOPYKART</div>
+                 <div style={{ fontSize: '8px', opacity: 0.6, marginTop: '2px' }}>PREMIUM DELIVERY NETWORK</div>
+              </div>
+              
+              <div className="center details">
+                 <div style={{ whiteSpace: 'pre-line' }}>{settings?.receiptHeader || 'ShopyKart Main Branch\nGSTIN: 09ABCDE1234F1Z5'}</div>
+                 <div style={{ marginTop: '15px', border: '1px solid black', padding: '5px' }}>
+                    ORDER ID: #{order.orderDisplayId || orderId.slice(-5).toUpperCase()}
+                 </div>
+                 <div style={{ marginTop: '5px' }}>DATE: {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, yyyy HH:mm') : 'N/A'}</div>
+                 <div>CUSTOMER: {order.customerName}</div>
+              </div>
+
+              <div className="table">
+                 <div className="row" style={{ fontWeight: 'bold', borderBottom: '1px solid black', paddingBottom: '5px' }}>
+                    <span>ITEM</span>
+                    <span>QTY</span>
+                    <span>PRICE</span>
+                 </div>
+                 {order.items?.map((item: any, i: number) => (
+                    <div key={i} className="row">
+                       <span style={{ maxWidth: '180px' }}>{item.name}</span>
+                       <span>x{item.quantity}</span>
+                       <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                 ))}
+                 
+                 {order.deliveryTip > 0 && (
+                    <div className="row" style={{ marginTop: '10px', fontStyle: 'italic' }}>
+                       <span>DELIVERY TIP</span>
+                       <span></span>
+                       <span>₹{order.deliveryTip.toFixed(2)}</span>
+                    </div>
+                 )}
+              </div>
+
+              <div className="total-row">
+                 <span>GRAND TOTAL</span>
+                 <span>₹{order.total?.toFixed(2)}</span>
+              </div>
+
+              <div className="center thankyou">
+                 {settings?.receiptThankYou || 'Thank you for your order!'}
+              </div>
+
+              <div className="footer">
+                 <div style={{ whiteSpace: 'pre-line' }}>{settings?.receiptFooter || 'This is a computer generated invoice.'}</div>
+                 <div style={{ marginTop: '10px' }}>E-RECEIPT GENERATED BY SHOPYKART ENGINE v2.0</div>
+              </div>
+           </div>
         </div>
       </div>
     </div>
   );
 }
+

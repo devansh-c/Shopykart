@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck, UserX } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck, UserX, ReceiptText, FileText, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +12,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { compressImage } from '@/lib/image-utils';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function BrandingManagement() {
   const firestore = useFirestore();
@@ -40,7 +42,12 @@ export function BrandingManagement() {
     heatWaveAutoMode: false,
     heatWaveStartTime: '6:00 PM',
     heatWaveEndTime: '7:00 PM',
-    emergencyType: 'busy', // 'heat', 'busy', or 'no_delivery'
+    emergencyType: 'busy',
+    // Receipt Customization
+    receiptHeader: 'SHOPYKART PREMIUM DELIVERY\nMain Road, Mauranipur\nGSTIN: 09ABCDE1234F1Z5',
+    receiptFooter: 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
+    receiptThankYou: 'Enjoy your delicious meal!',
+    showGstOnReceipt: true,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -63,6 +70,10 @@ export function BrandingManagement() {
         heatWaveStartTime: settings.heatWaveStartTime || '6:00 PM',
         heatWaveEndTime: settings.heatWaveEndTime || '7:00 PM',
         emergencyType: settings.emergencyType || 'heat',
+        receiptHeader: settings.receiptHeader || 'SHOPYKART PREMIUM DELIVERY\nMain Road, Mauranipur\nGSTIN: 09ABCDE1234F1Z5',
+        receiptFooter: settings.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
+        receiptThankYou: settings.receiptThankYou || 'Enjoy your delicious meal!',
+        showGstOnReceipt: settings.showGstOnReceipt !== false,
       });
     }
   }, [settings]);
@@ -111,7 +122,7 @@ export function BrandingManagement() {
         coinValue: parseFloat(formData.coinValue) || 0.5,
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      toast({ title: "Settings Saved!", description: "All branding and emergency changes are now live." });
+      toast({ title: "Settings Saved!", description: "All changes including receipt designs are now live." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -123,196 +134,197 @@ export function BrandingManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm lg:col-span-2">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-primary/10 p-2 rounded-xl text-primary"><ImageIcon className="h-5 w-5" /></div>
-            <h3 className="text-lg font-black italic uppercase">Master Brand Control</h3>
-          </div>
+      <Tabs defaultValue="brand" className="w-full">
+        <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-2 md:flex">
+           <TabsTrigger value="brand" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Identity & Apps</TabsTrigger>
+           <TabsTrigger value="receipt" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Receipt Designer</TabsTrigger>
+           <TabsTrigger value="emergency" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Emergency</TabsTrigger>
+           <TabsTrigger value="automation" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Automation</TabsTrigger>
+        </TabsList>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Main App Logo</label>
-              <div 
-                onClick={() => logoInputRef.current?.click()}
-                className="h-32 w-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 relative"
-              >
-                {formData.logoUrl ? (
-                  <img src={formData.logoUrl} className="h-full w-full object-contain p-4" alt="Logo Preview" />
-                ) : (
-                  <ImageIcon className="h-8 w-8 mb-2 opacity-20" />
-                )}
-              </div>
-              <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logoUrl')} />
+        <TabsContent value="brand" className="space-y-8 mt-0">
+          <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="bg-primary/10 p-2 rounded-xl text-primary"><ImageIcon className="h-5 w-5" /></div>
+              <h3 className="text-lg font-black italic uppercase">Visual Identity</h3>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Global Notification Logo</label>
-              <div 
-                onClick={() => notifyInputRef.current?.click()}
-                className="h-32 w-full border-2 border-dashed border-primary/20 rounded-3xl flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-primary/5 relative"
-              >
-                {formData.notificationLogoUrl ? (
-                  <img src={formData.notificationLogoUrl} className="h-full w-full object-contain p-4" alt="Notify Preview" />
-                ) : (
-                  <BellRing className="h-8 w-8 text-primary opacity-20" />
-                )}
-              </div>
-              <input type="file" ref={notifyInputRef} className="hidden" accept="image/png" onChange={(e) => handleImageUpload(e, 'notificationLogoUrl')} />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Favicon (Tab Icon)</label>
-              <div onClick={() => faviconInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-3xl flex items-center justify-center cursor-pointer bg-muted/20">
-                {formData.faviconUrl ? <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="" /> : <LinkIcon className="h-6 w-6 opacity-20" />}
-              </div>
-              <input type="file" ref={faviconInputRef} className="hidden" accept="image/png, image/x-icon" onChange={(e) => handleImageUpload(e, 'faviconUrl')} />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><AlertTriangle className="h-5 w-5" /></div>
-              <h3 className="text-lg font-black italic uppercase">Service Restriction</h3>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-               <span className="text-[8px] font-black uppercase text-gray-500">Manual Toggle</span>
-               <Switch 
-                checked={formData.isHeatWaveEnabled}
-                onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})}
-                className="data-[state=checked]:bg-orange-500"
-              />
-            </div>
-          </div>
-
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
-             <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Restriction Reason</label>
-                <Select value={formData.emergencyType} onValueChange={(val) => setFormData({...formData, emergencyType: val})}>
-                  <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold">
-                    <SelectValue placeholder="Select Reason" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
-                    <SelectItem value="heat">Extreme Heat Wave (48°C)</SelectItem>
-                    <SelectItem value="busy">High Delivery Demand (Rush Hour)</SelectItem>
-                    <SelectItem value="no_delivery">Delivery Partners Unavailable (Staff Absence)</SelectItem>
-                  </SelectContent>
-                </Select>
-             </div>
-
-             <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                   <CalendarClock className="h-4 w-4 text-blue-400" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Automatic Scheduler</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Main App Logo</label>
+                <div onClick={() => logoInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-3xl flex items-center justify-center cursor-pointer bg-muted/20 overflow-hidden">
+                  {formData.logoUrl ? <img src={formData.logoUrl} className="h-full w-full object-contain p-4" /> : <ImageIcon className="h-8 w-8 opacity-20" />}
                 </div>
-                <Switch 
-                  checked={formData.heatWaveAutoMode}
-                  onCheckedChange={(checked) => setFormData({...formData, heatWaveAutoMode: checked})}
-                  className="data-[state=checked]:bg-blue-400"
-                />
-             </div>
-             
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-black uppercase text-gray-500 ml-1 flex items-center gap-1">
-                      <Clock className="h-2.5 w-2.5" /> Start Time
-                   </label>
-                   <Input 
-                      value={formData.heatWaveStartTime}
-                      onChange={(e) => setFormData({...formData, heatWaveStartTime: e.target.value})}
-                      placeholder="e.g. 6:00 PM"
-                      className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold"
-                   />
+                <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'logoUrl')} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Global Notification Logo</label>
+                <div onClick={() => notifyInputRef.current?.click()} className="h-32 border-2 border-dashed border-primary/20 rounded-3xl flex items-center justify-center cursor-pointer bg-primary/5 overflow-hidden">
+                  {formData.notificationLogoUrl ? <img src={formData.notificationLogoUrl} className="h-full w-full object-contain p-4" /> : <BellRing className="h-8 w-8 text-primary opacity-20" />}
                 </div>
-                <div className="space-y-1.5">
-                   <label className="text-[9px] font-black uppercase text-gray-500 ml-1 flex items-center gap-1">
-                      <Clock className="h-2.5 w-2.5" /> End Time
-                   </label>
-                   <Input 
-                      value={formData.heatWaveEndTime}
-                      onChange={(e) => setFormData({...formData, heatWaveEndTime: e.target.value})}
-                      placeholder="e.g. 7:00 PM"
-                      className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold"
-                   />
+                <input type="file" ref={notifyInputRef} className="hidden" accept="image/png" onChange={(e) => handleImageUpload(e, 'notificationLogoUrl')} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Favicon (Tab Icon)</label>
+                <div onClick={() => faviconInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-3xl flex items-center justify-center cursor-pointer bg-muted/20">
+                  {formData.faviconUrl ? <img src={formData.faviconUrl} className="h-10 w-10 object-contain" /> : <LinkIcon className="h-6 w-6 opacity-20" />}
                 </div>
-             </div>
-          </div>
-
-          <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex gap-3">
-             {formData.emergencyType === 'heat' ? <ThermometerSun className="h-5 w-5 text-orange-500 shrink-0" /> : formData.emergencyType === 'no_delivery' ? <UserX className="h-5 w-5 text-orange-500 shrink-0" /> : <Truck className="h-5 w-5 text-orange-500 shrink-0" />}
-             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 leading-relaxed">
-               {formData.heatWaveAutoMode 
-                ? `System ${formData.heatWaveStartTime} par apne aap restriction chalu kar dega.` 
-                : "Manual mode ON hai. Neeche button dabate hi app block ho jayegi."}
-             </p>
-          </div>
-        </div>
-
-        <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-500/10 p-2 rounded-xl text-blue-600"><Send className="h-5 w-5" /></div>
-              <h3 className="text-lg font-black italic uppercase">Telegram Alerts</h3>
+                <input type="file" ref={faviconInputRef} className="hidden" accept="image/png, image/x-icon" onChange={(e) => handleImageUpload(e, 'faviconUrl')} />
+              </div>
             </div>
-            <Switch 
-              checked={formData.enableTelegram}
-              onCheckedChange={(checked) => setFormData({...formData, enableTelegram: checked})}
-            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Site Title (SEO)</label>
+                  <Input value={formData.siteTitle} onChange={e => setFormData({...formData, siteTitle: e.target.value})} className="h-12 rounded-xl font-bold" />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Economy: 1 Coin = ? INR</label>
+                  <Input type="number" step="0.1" value={formData.coinValue} onChange={e => setFormData({...formData, coinValue: e.target.value})} className="h-12 rounded-xl font-black italic text-primary" />
+               </div>
+            </div>
           </div>
-          
-          <div className="space-y-4">
-            <Input 
-              value={formData.telegramBotToken}
-              onChange={(e) => setFormData({...formData, telegramBotToken: e.target.value})}
-              placeholder="Bot Token" 
-              className="h-12 rounded-xl bg-muted/5 font-bold"
-            />
-            <Input 
-              value={formData.telegramChatId}
-              onChange={(e) => setFormData({...formData, telegramChatId: e.target.value})}
-              placeholder="Admin Chat ID" 
-              className="h-12 rounded-xl bg-muted/5 font-bold"
-            />
-            <Button onClick={handleTestTelegram} disabled={isTesting} variant="outline" className="w-full h-12 rounded-xl border-blue-100 text-blue-600 font-black uppercase text-[10px]">
-              {isTesting ? "SENDING..." : "TEST TELEGRAM CONNECTION"}
-            </Button>
-          </div>
-        </div>
+        </TabsContent>
 
-        <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
-           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600"><Coins className="h-5 w-5" /></div>
-            <h3 className="text-lg font-black italic uppercase">Reward Economy</h3>
-          </div>
-          <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100">
-             <div className="flex items-center gap-2 mb-4">
-                <IndianRupee className="h-4 w-4 text-amber-600" />
-                <span className="text-[10px] font-black uppercase text-amber-800">Value of 1 Coin (INR)</span>
-             </div>
-             <Input 
-                type="number" 
-                step="0.01"
-                value={formData.coinValue}
-                onChange={(e) => setFormData({...formData, coinValue: e.target.value})}
-                className="h-14 rounded-2xl border-amber-200 bg-white font-black italic text-xl text-amber-700 text-center"
-             />
-          </div>
-        </div>
-      </div>
+        <TabsContent value="receipt" className="space-y-8 mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-6">
+               <div className="flex items-center gap-3">
+                  <div className="bg-blue-50 p-2 rounded-xl text-blue-600"><ReceiptText className="h-5 w-5" /></div>
+                  <h3 className="text-lg font-black italic uppercase">Receipt Configuration</h3>
+               </div>
 
-      <div className="flex justify-center pt-4">
-        <Button 
-          onClick={handleSave} 
-          disabled={isSaving}
-          className="w-full md:w-auto px-16 h-16 rounded-3xl bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all hover:bg-primary"
-        >
+               <div className="space-y-5">
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Store Address / Header</label>
+                     <Textarea 
+                       value={formData.receiptHeader} 
+                       onChange={e => setFormData({...formData, receiptHeader: e.target.value})}
+                       className="min-h-[120px] rounded-2xl font-bold text-xs" 
+                     />
+                  </div>
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Catchy Thank You Note</label>
+                     <Input 
+                       value={formData.receiptThankYou} 
+                       onChange={e => setFormData({...formData, receiptThankYou: e.target.value})}
+                       className="h-12 rounded-xl font-bold text-primary italic" 
+                     />
+                  </div>
+                  <div className="space-y-1">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Footer Legal/Terms</label>
+                     <Textarea 
+                       value={formData.receiptFooter} 
+                       onChange={e => setFormData({...formData, receiptFooter: e.target.value})}
+                       className="min-h-[80px] rounded-2xl text-[10px] font-bold" 
+                     />
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
+                     <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-green-600" />
+                        <span className="text-[10px] font-black uppercase">Auto-Calculate Taxes</span>
+                     </div>
+                     <Switch checked={formData.showGstOnReceipt} onCheckedChange={v => setFormData({...formData, showGstOnReceipt: v})} />
+                  </div>
+               </div>
+            </div>
+
+            <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-dashed border-gray-300 flex flex-col items-center justify-center relative overflow-hidden">
+               <div className="absolute top-4 left-4"><Badge className="bg-blue-600 text-white font-black text-[8px] uppercase">Live Preview</Badge></div>
+               <div className="w-full max-w-[300px] bg-white shadow-2xl p-6 border-t-[6px] border-black space-y-4 font-mono text-[10px]">
+                  <div className="text-center space-y-1">
+                     <h4 className="font-black text-xs uppercase">SHOPYKART</h4>
+                     <p className="whitespace-pre-line leading-tight opacity-60 uppercase">{formData.receiptHeader}</p>
+                  </div>
+                  <div className="border-y border-dashed py-2 space-y-1">
+                     <div className="flex justify-between font-black uppercase"><span>Item x1</span><span>₹199.00</span></div>
+                     <div className="flex justify-between font-black uppercase"><span>Item x2</span><span>₹450.00</span></div>
+                  </div>
+                  <div className="space-y-1">
+                     <div className="flex justify-between font-black"><span>TOTAL</span><span>₹649.00</span></div>
+                     <p className="text-center italic font-bold pt-2 text-primary">{formData.receiptThankYou}</p>
+                  </div>
+                  <div className="text-center opacity-40 text-[7px] pt-4 uppercase">
+                     {formData.receiptFooter}
+                  </div>
+               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="emergency" className="mt-0">
+          <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><AlertTriangle className="h-5 w-5" /></div>
+                <h3 className="text-lg font-black italic uppercase">Emergency Restriction</h3>
+              </div>
+              <Switch checked={formData.isHeatWaveEnabled} onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})} className="data-[state=checked]:bg-orange-500" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
+                  <Select value={formData.emergencyType} onValueChange={(val) => setFormData({...formData, emergencyType: val})}>
+                    <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold">
+                      <SelectValue placeholder="Select Reason" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
+                      <SelectItem value="heat">Extreme Heat Wave (48°C)</SelectItem>
+                      <SelectItem value="busy">High Delivery Demand</SelectItem>
+                      <SelectItem value="no_delivery">Delivery Partners Offline</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-[10px] font-black uppercase text-blue-400">Auto Scheduler</span>
+                    <Switch checked={formData.heatWaveAutoMode} onCheckedChange={(checked) => setFormData({...formData, heatWaveAutoMode: checked})} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input value={formData.heatWaveStartTime} onChange={e => setFormData({...formData, heatWaveStartTime: e.target.value})} placeholder="6:00 PM" className="h-10 rounded-xl bg-white/5 border-none text-white text-xs" />
+                    <Input value={formData.heatWaveEndTime} onChange={e => setFormData({...formData, heatWaveEndTime: e.target.value})} placeholder="7:00 PM" className="h-10 rounded-xl bg-white/5 border-none text-white text-xs" />
+                  </div>
+               </div>
+               <div className="flex items-center justify-center p-6 bg-orange-500/5 rounded-3xl border border-orange-500/10 text-center">
+                  <p className="text-[11px] font-bold text-gray-400 leading-relaxed uppercase italic">
+                    Emergency mode on hote hi customer ordering block ho jayegi aur custom reason screen par dikhega.
+                  </p>
+               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="automation" className="mt-0">
+          <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-500/10 p-2 rounded-xl text-blue-600"><Send className="h-5 w-5" /></div>
+                <h3 className="text-lg font-black italic uppercase">Telegram Integration</h3>
+              </div>
+              <Switch checked={formData.enableTelegram} onCheckedChange={(checked) => setFormData({...formData, enableTelegram: checked})} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-4">
+                  <Input value={formData.telegramBotToken} onChange={e => setFormData({...formData, telegramBotToken: e.target.value})} placeholder="Bot Token" className="h-12 rounded-xl bg-muted/5 border-none font-bold" />
+                  <Input value={formData.telegramChatId} onChange={e => setFormData({...formData, telegramChatId: e.target.value})} placeholder="Chat ID" className="h-12 rounded-xl bg-muted/5 border-none font-bold" />
+                  <Button onClick={handleTestTelegram} disabled={isTesting} variant="outline" className="w-full h-12 rounded-xl border-blue-100 text-blue-600 font-black uppercase text-[10px]">
+                    {isTesting ? "SENDING..." : "TEST CONNECTION"}
+                  </Button>
+               </div>
+               <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 flex flex-col justify-center">
+                  <p className="text-[10px] font-bold text-blue-700 uppercase leading-relaxed italic">
+                    Is bot ke zariye aapko har order aur status update ka real-time notification aapke phone par Telegram ke zariye milega.
+                  </p>
+               </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex justify-center pt-10">
+        <Button onClick={handleSave} disabled={isSaving} className="w-full md:w-auto px-16 h-18 rounded-[2rem] bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-2xl transition-all hover:bg-primary">
           {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Save className="h-6 w-6 mr-3" />}
-          SAVE ALL SETTINGS
+          PUBLISH ALL SETTINGS
         </Button>
       </div>
     </div>
   );
 }
+
