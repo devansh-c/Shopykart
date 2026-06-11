@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -243,6 +242,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                     return (
                       <button 
                         key={idx}
+                        disabled={isOffline}
                         onClick={() => setSelectedOption(isSelected ? null : opt)}
                         className={cn(
                           "w-full flex items-center justify-between p-4 rounded-[1.25rem] border-2 transition-none active:scale-[0.98]",
@@ -272,6 +272,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                      <h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4>
                   </div>
                   <Textarea 
+                    disabled={isOffline}
                     placeholder="E.g. Don't add onion, make it extra spicy..." 
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}

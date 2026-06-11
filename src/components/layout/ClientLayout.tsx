@@ -33,7 +33,7 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
     // Signal app is ready
     onReady(true);
 
-    // AUTH SYSTEM BYPASS: Overlay logic disabled as requested.
+    // AUTH SYSTEM BYPASS: Forced false for temporary testing access
     setShowAuthOverlay(false);
   }, [user, loading, onReady]);
 
@@ -49,7 +49,6 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   return (
     <>
       {children}
-      {/* Auth Overlay will remain false due to bypass logic above */}
       {showAuthOverlay && <OTPVerification />}
     </>
   );

@@ -44,7 +44,7 @@
     overflow-x: hidden;
     user-select: none;
     min-height: 100vh;
-    overscroll-behavior-y: none; /* Prevent rubber banding for better feel */
+    overscroll-behavior-y: none;
   }
   
   /* NUCLEAR SPEED ENGINE */
@@ -103,7 +103,6 @@ nav.fixed {
   transform: translateZ(0);
 }
 
-/* Force hardware acceleration on all icons */
 svg {
   transform: translateZ(0);
   pointer-events: none;
