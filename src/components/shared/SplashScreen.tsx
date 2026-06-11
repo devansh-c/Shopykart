@@ -73,14 +73,14 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex items-center justify-center transition-opacity duration-700 ease-in-out touch-none select-none",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out touch-none select-none h-screen w-screen",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div 
         onClick={handleTap}
         className={cn(
-          "relative flex flex-col items-center transition-all duration-700 transform will-change-transform",
+          "relative flex flex-col items-center transition-all duration-700 transform",
           isVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}
       >

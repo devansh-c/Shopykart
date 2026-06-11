@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -94,7 +95,7 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   return (
-    <div className="relative min-h-screen flex flex-col transform-gpu overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden">
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
