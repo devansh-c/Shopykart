@@ -10,6 +10,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with perfect centering and GPU layers.
+ * Duration set to exactly 2 seconds.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -19,9 +20,10 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Exact 2-second timer for the splash screen
     const timer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 1500);
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
