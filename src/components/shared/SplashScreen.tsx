@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -9,8 +10,7 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with perfect centering and GPU layers.
- * Duration set to exactly 2 seconds.
+ * @fileOverview Optimized SplashScreen with fast-track for returning users.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -19,13 +19,19 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const isReturningUser = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('shopykart_session_active') === 'true';
+  }, []);
+
   useEffect(() => {
-    // Exact 2-second timer for the splash screen
+    // Exact 2-second timer for new users, faster 0.8s for returning
+    const duration = isReturningUser ? 800 : 2000;
     const timer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 2000);
+    }, duration);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isReturningUser]);
 
   const isVisible = !isTimerDone || !isAppReady;
 
@@ -77,7 +83,6 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         </div>
       </div>
       
-      {/* Handcrafted By info positioned at the bottom of the screen */}
       <div className={cn(
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"

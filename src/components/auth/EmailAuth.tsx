@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Mail, Lock, User, Phone, CheckCircle2, ArrowRight, Sparkles, MessageCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -32,17 +34,16 @@ export function EmailAuth() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { user } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // SYNCHRONOUS SHIELD: If browser has session flag, self-destruct immediately to prevent UI flash.
   if (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true') {
     return null;
   }
 
-  // If Firebase confirms user is already here, self-destruct.
   if (user) {
     return null;
   }
@@ -53,8 +54,18 @@ export function EmailAuth() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  const validateEmail = (email: string) => {
-    return String(email).toLowerCase().trim().match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+  const handleFirebaseError = (err: any) => {
+    if (err.code === 'auth/unauthorized-domain') {
+      toast({ 
+        variant: "destructive", 
+        title: "Domain Restricted", 
+        description: "Please add this domain to Firebase Console > Auth > Settings > Authorized Domains. Check console for URL.",
+        duration: 8000
+      });
+      console.error("ADD THIS DOMAIN TO FIREBASE:", window.location.hostname);
+    } else {
+      toast({ variant: "destructive", title: "Auth Failed", description: err.message });
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -84,10 +95,8 @@ export function EmailAuth() {
 
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Google Login Successful" });
-      window.location.reload();
     } catch (err: any) {
-      console.error(err);
-      toast({ variant: "destructive", title: "Login Failed", description: "Could not connect to Google Account." });
+      handleFirebaseError(err);
     } finally {
       setGoogleLoading(false);
     }
@@ -122,18 +131,8 @@ export function EmailAuth() {
 
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Apple Login Successful" });
-      window.location.reload();
     } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/unauthorized-domain') {
-        toast({ 
-          variant: "destructive", 
-          title: "Domain Restricted", 
-          description: "Please add this domain to Firebase Console > Auth > Settings > Authorized Domains." 
-        });
-      } else {
-        toast({ variant: "destructive", title: "Apple Login Failed", description: "Could not connect to Apple ID." });
-      }
+      handleFirebaseError(err);
     } finally {
       setAppleLoading(false);
     }
@@ -144,11 +143,7 @@ export function EmailAuth() {
     if (!auth) return;
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!validateEmail(trimmedEmail)) {
-      toast({ variant: "destructive", title: "Invalid Email" });
-      return;
-    }
-
+    
     if (view === 'signup') {
       if (password !== confirmPassword) {
         toast({ variant: "destructive", title: "Passwords Mismatch" });
@@ -188,23 +183,13 @@ export function EmailAuth() {
         localStorage.setItem('show_welcome_bonus', 'true');
         
         toast({ title: "Profile Created!" });
-        window.location.reload();
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Welcome Back!" });
-        window.location.reload();
       }
     } catch (err: any) {
-      if (err.code === 'auth/unauthorized-domain') {
-        toast({ 
-          variant: "destructive", 
-          title: "Domain Unauthorized", 
-          description: "Firebase Console mein is domain ko whitelist karein." 
-        });
-      } else {
-        toast({ variant: "destructive", title: "Auth Failed", description: err.message });
-      }
+      handleFirebaseError(err);
     } finally {
       setLoading(false);
     }
