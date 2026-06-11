@@ -9,13 +9,22 @@ import { requestPushToken } from '@/firebase/messaging';
 
 /**
  * @fileOverview System for handling push notifications and real-time order tracking.
- * All Modal Alerts and Popups have been removed to keep the UI clean.
+ * Restored: Ring Alarm sound for new orders (Admin/Vendor only).
  */
 export function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const processedOrders = useRef<Set<string>>(new Set());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize Audio object only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audioRef.current.loop = false;
+    }
+  }, []);
 
   // FCM Token Registration
   useEffect(() => {
@@ -38,13 +47,19 @@ export function NotificationHandler() {
     }
   }, [user, firestore]);
 
-  const triggerToast = (title: string, body: string, isOrder = false) => {
-    // 1. SILENT TOAST
+  const triggerAlert = (title: string, body: string, isOrder = false) => {
+    // 1. SHOW TOAST
     toast({ 
       title: title.toUpperCase(), 
       description: body,
-      variant: "default" 
+      variant: isOrder ? "default" : "default" 
     });
+
+    // 2. PLAY RING ALARM (Only for new orders)
+    if (isOrder && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(e => console.log("Audio play blocked: Interacting with page might be needed."));
+    }
   };
 
   // REAL-TIME ORDER MONITORING
@@ -68,7 +83,7 @@ export function NotificationHandler() {
           const isMyOrder = data.vendorId === user.uid || isAdmin;
           if (isMyOrder && !processedOrders.current.has(id)) {
             processedOrders.current.add(id);
-            triggerToast(`NEW ORDER!`, `₹${data.total} order from ${data.customerName}`, true);
+            triggerAlert(`NEW ORDER! 🔔`, `₹${data.total} order from ${data.customerName}`, true);
           }
         }
       });
@@ -86,7 +101,7 @@ export function NotificationHandler() {
           const data = change.doc.data();
           const status = data.status;
           if (status !== 'Placed') {
-            triggerToast(`Order Update`, `Your order #${data.orderDisplayId} is now ${status}.`);
+            triggerAlert(`Order Update`, `Your order #${data.orderDisplayId} is now ${status}.`);
           }
         }
       });
