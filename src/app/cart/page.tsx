@@ -25,13 +25,14 @@ import {
   Ticket,
   CheckCircle2,
   X,
-  History
+  History,
+  ArrowRight
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs } from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
@@ -93,6 +94,11 @@ export default function CartPage() {
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
+
+  // Slider State
+  const [slideX, setSlideX] = useState(0);
+  const [isSliding, setIsSliding] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -168,7 +174,6 @@ export default function CartPage() {
     setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
     setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
     
-    // Auto-fill coordinates if available
     const savedPlusCode = localStorage.getItem('user_plus_code');
     if (savedPlusCode) {
       const [lat, lng] = savedPlusCode.split(',').map(Number);
@@ -259,6 +264,7 @@ export default function CartPage() {
         title: "Order Value Low",
         description: "₹35 se kam ka order nahi hoga. Please kuch aur items add karein!",
       });
+      setSlideX(0); // Reset slider
       return;
     }
 
@@ -268,6 +274,7 @@ export default function CartPage() {
         title: "Incomplete Details",
         description: "Please check your name, 10-digit phone and full address.",
       });
+      setSlideX(0); // Reset slider
       return;
     }
 
@@ -310,11 +317,10 @@ export default function CartPage() {
         instructions
       });
       
-      // Save this address permanently to user profile for future suggestions
       await setDoc(doc(firestore, 'users', finalUid), {
         fullName: customerName, 
         phoneNumber: customerPhone, 
-        address: customerAddress, // Save the detailed house address
+        address: customerAddress, 
         city: customerCity, 
         pincode: customerPincode, 
         latitude, 
@@ -323,7 +329,6 @@ export default function CartPage() {
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // SNAPPY 1.5S REDIRECT
       setTimeout(() => {
         clearCart();
         router.push(`/orders/track?id=${orderId}`);
@@ -332,6 +337,7 @@ export default function CartPage() {
       console.error("Order creation failed:", err);
       setShowSuccess(false);
       setIsPlacing(false);
+      setSlideX(0); // Reset slider
     }
   };
 
@@ -343,6 +349,58 @@ export default function CartPage() {
       setCustomTipValue('');
     }
   };
+
+  // Slider Handlers
+  const handleStart = () => { if (!isPlacing) setIsSliding(true); };
+  
+  const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isSliding || isPlacing || !sliderRef.current) return;
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const handleWidth = 56;
+    const maxX = rect.width - handleWidth - 8; // 8px for padding
+    
+    let x = clientX - rect.left - (handleWidth / 2);
+    x = Math.max(0, Math.min(x, maxX));
+    setSlideX(x);
+
+    // If reached 95% of maxX, confirm order
+    if (x >= maxX * 0.95) {
+      setIsSliding(false);
+      setSlideX(maxX);
+      handleCheckout();
+    }
+  };
+
+  const handleEnd = () => {
+    if (!isSliding || isPlacing) return;
+    setIsSliding(false);
+    // Snap back if not reached end
+    if (slideX < (sliderRef.current?.getBoundingClientRect().width || 0) * 0.8) {
+      setSlideX(0);
+    }
+  };
+
+  useEffect(() => {
+    if (isSliding) {
+      window.addEventListener('mousemove', handleMove as any);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove as any);
+      window.addEventListener('touchend', handleEnd);
+    } else {
+      window.removeEventListener('mousemove', handleMove as any);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove as any);
+      window.removeEventListener('touchend', handleEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMove as any);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove as any);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isSliding]);
 
   if (totalItems === 0 && !showSuccess) {
     return (
@@ -415,13 +473,13 @@ export default function CartPage() {
                    className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest"
                  />
               </div>
-              <Button 
+              <button 
                 onClick={handleApplyCoupon}
                 disabled={isVerifyingCoupon || !couponInput.trim()}
-                className="h-12 px-6 rounded-xl bg-[#0B0B0B] font-black uppercase italic text-[10px] tracking-widest"
+                className="h-12 px-6 rounded-xl bg-[#0B0B0B] text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all"
               >
                  {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
-              </Button>
+              </button>
            </div>
 
            {appliedCoupon && (
@@ -457,7 +515,6 @@ export default function CartPage() {
                 <MapIcon className="h-4 w-4" /> PIN LOCATION ON MAP
               </button>
 
-              {/* SAVED ADDRESS SUGGESTION CHIP */}
               {profile?.address && customerAddress !== profile.address && (
                 <button 
                   onClick={handleUseSavedAddress}
@@ -555,7 +612,6 @@ export default function CartPage() {
           <div className="space-y-3 text-sm">
             <div className="flex justify-between font-bold text-gray-400"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
             
-            {/* Dynamic Surcharges from DB */}
             {dynamic_charges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-gray-400">
                 <span>{charge.name}</span>
@@ -563,7 +619,6 @@ export default function CartPage() {
               </div>
             ))}
 
-            {/* Reductions */}
             {appliedCoupon && (
               <div className="flex justify-between font-black text-green-600">
                 <span>Coupon ({appliedCoupon.code})</span>
@@ -625,28 +680,75 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* STICKY ACTION FOOTER */}
+      {/* STICKY ACTION FOOTER WITH SLIDE TO ORDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[20000] bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-15px_50px_rgba(0,0,0,0.15)]">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
-           <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalItems} {totalItems === 1 ? 'Item' : 'Items'}</span>
-                 <div className="h-1 w-1 bg-gray-300 rounded-full" />
-                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none italic">{paymentMethod === 'online' ? '⚡ ONLINE' : '💵 CASH'}</span>
+        <div className="max-w-lg mx-auto flex flex-col gap-4">
+           {/* Price Info Header */}
+           <div className="flex items-center justify-between px-2">
+              <div className="flex flex-col">
+                 <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalItems} {totalItems === 1 ? 'Item' : 'Items'}</span>
+                    <div className="h-1 w-1 bg-gray-300 rounded-full" />
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none italic">{paymentMethod === 'online' ? '⚡ ONLINE' : '💵 CASH'}</span>
+                 </div>
+                 <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹{grandTotal.toFixed(2)}</div>
               </div>
-              <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹{grandTotal.toFixed(2)}</div>
+              <div className="text-right">
+                 <p className="text-[8px] font-black text-green-600 uppercase tracking-widest">Safe & Secure Checkout</p>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Step 3 of 3</p>
+              </div>
            </div>
-           
-           <Button 
-            disabled={isPlacing} 
-            onClick={handleCheckout} 
-            className="flex-1 h-14 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 text-white shadow-xl active:scale-[0.98] transition-all group"
+
+           {/* PREMIUM SLIDE TO ORDER COMPONENT */}
+           <div 
+             ref={sliderRef}
+             className="relative h-16 w-full bg-[#0B0B0B] rounded-[2rem] p-1 flex items-center overflow-hidden shadow-2xl group select-none"
            >
-              <div className="flex items-center justify-center gap-2">
-                <span>PLACE ORDER</span>
-                <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              {/* Background Text */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                 <span className={cn(
+                   "text-xs font-black uppercase italic tracking-[0.2em] transition-opacity duration-300",
+                   slideX > 50 ? "opacity-0" : "opacity-30 text-white"
+                 )}>
+                   {isPlacing ? 'PLACING ORDER...' : 'Slide to Place Order'}
+                 </span>
               </div>
-           </Button>
+
+              {/* Dynamic Filling Background */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 bg-primary/20 transition-none"
+                style={{ width: `${slideX + 60}px` }}
+              />
+
+              {/* The Slider Handle */}
+              <div 
+                onMouseDown={handleStart}
+                onTouchStart={handleStart}
+                className={cn(
+                  "relative z-10 h-14 w-14 rounded-full bg-primary flex items-center justify-center text-white shadow-xl cursor-grab active:cursor-grabbing transition-transform duration-75",
+                  isPlacing && "pointer-events-none"
+                )}
+                style={{ transform: `translateX(${slideX}px)` }}
+              >
+                 {isPlacing ? (
+                   <Loader2 className="h-6 w-6 animate-spin" />
+                 ) : (
+                   <div className="relative">
+                      <ShoppingBag className="h-6 w-6" />
+                      <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-white/50 animate-pulse">
+                         <ChevronRight className="h-4 w-4" />
+                      </div>
+                   </div>
+                 )}
+              </div>
+
+              {/* Success Particle Effect (Subtle) */}
+              {slideX > 200 && !isPlacing && (
+                <div className="absolute right-8 top-1/2 -translate-y-1/2">
+                   <ArrowRight className="h-5 w-5 text-primary animate-ping" />
+                </div>
+              )}
+           </div>
         </div>
       </div>
       
