@@ -1,4 +1,3 @@
-
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -17,7 +16,7 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Optimized for zero latency and instant visual feedback.
+ * Optimized for zero latency and instant visual feedback with aggressive routing.
  */
 export const BottomNav = memo(() => {
   const pathname = usePathname();
@@ -32,7 +31,7 @@ export const BottomNav = memo(() => {
     setActivePath(pathname);
   }, [pathname]);
 
-  // Aggressive Prefetching
+  // Aggressive Prefetching for ALL routes
   useEffect(() => {
     navItems.forEach(item => {
       router.prefetch(item.href);
@@ -52,7 +51,7 @@ export const BottomNav = memo(() => {
     // 1. INSTANT VISUAL FEEDBACK (0ms)
     setActivePath(href);
 
-    // 2. IMMEDIATE NAVIGATION
+    // 2. IMMEDIATE NAVIGATION (Skip unnecessary NextJS features for speed)
     router.push(href, { scroll: false });
   }, [activePath, router]);
 

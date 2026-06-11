@@ -15,14 +15,14 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
-import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 
 /**
  * @fileOverview AuthGuard - Verification-First Logic.
  * Stays in 'CHECKING' mode until Firebase confirms the user state.
- * Never shows the login screen to returning users.
  */
-function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
+const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
   const pathname = usePathname();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
@@ -33,27 +33,19 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   }, []);
 
   useEffect(() => {
-    // 1. STEP ONE: WAIT FOR SYSTEM VERIFICATION
-    // If Firebase is still checking, do NOT hide the splash screen and do NOT show the login page.
     if (loading) {
-      onReady(false); // Keep splash locked
+      onReady(false);
       return;
     }
 
-    // 2. STEP TWO: VERIFICATION COMPLETE
-    // Now we know if the user is logged in or not.
-    onReady(true); // App is ready to be seen
+    onReady(true);
 
     if (user) {
-      // User is confirmed. Ensure flag is set and hide any login UI.
       localStorage.setItem('shopykart_session_active', 'true');
       setShowAuthOverlay(false);
     } else {
-      // No user found. If they have a session flag, they might be in a temporary logout state, 
-      // but we still wait 3 seconds before prompting them to re-verify.
       if (!hasActiveSession) {
         const timer = setTimeout(() => {
-          // Final check before showing login: if they logged in during these 3 seconds, abort.
           if (localStorage.getItem('shopykart_session_active') !== 'true') {
             setShowAuthOverlay(true);
           }
@@ -77,9 +69,10 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
       {showAuthOverlay && !user && !hasActiveSession && <EmailAuth />}
     </>
   );
-}
+});
+AuthGuard.displayName = "AuthGuard";
 
-function AppContent({ children }: { children: ReactNode }) {
+const AppContent = memo(({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const [isAppFullyReady, setIsAppFullyReady] = useState(false);
 
@@ -90,12 +83,12 @@ function AppContent({ children }: { children: ReactNode }) {
                          pathname?.startsWith('/Beauty');
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div className="relative min-h-screen flex flex-col transform-gpu translate-z-0">
       <SplashScreen isAppReady={isAppFullyReady} />
       
       <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col overflow-x-hidden">
-          <main className="flex-1 pb-44">
+          <main className={cn("flex-1 pb-44 transform-gpu transition-none", !isExcludedPath && "content-visibility-auto")}>
             {!isExcludedPath && <LocationRequest />}
             <NotificationHandler />
             <TelegramNotifier />
@@ -111,7 +104,8 @@ function AppContent({ children }: { children: ReactNode }) {
       <Toaster />
     </div>
   );
-}
+});
+AppContent.displayName = "AppContent";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (

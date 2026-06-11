@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Memoized Product Item to prevent unnecessary re-paints
+// Memoized Product Item with GPU acceleration
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;

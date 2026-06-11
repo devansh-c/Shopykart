@@ -34,6 +34,7 @@
     touch-action: manipulation;
     /* Hardware acceleration for everything that moves */
     backface-visibility: hidden;
+    perspective: 1000;
   }
   
   body {
@@ -45,12 +46,13 @@
     user-select: none;
     min-height: 100vh;
     overscroll-behavior-y: none;
+    transform: translateZ(0); /* Global GPU lock */
   }
   
   /* NUCLEAR SPEED ENGINE */
   .content-visibility-auto {
     content-visibility: auto;
-    contain-intrinsic-size: 1px 500px;
+    contain-intrinsic-size: 1px 1000px;
     contain: layout style paint;
     transform: translateZ(0);
   }
