@@ -5,6 +5,7 @@ import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
 import React, { memo, useMemo, useTransition } from 'react';
+import Link from 'next/link';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -25,16 +26,19 @@ export const BottomNav = memo(() => {
   const [isPending, startTransition] = useTransition();
   
   const isExcludedPath = useMemo(() => {
-    return pathname?.startsWith('/admin') || 
-           pathname?.startsWith('/vendor') || 
-           pathname?.startsWith('/delivery') ||
-           pathname?.startsWith('/Medical') ||
-           pathname?.startsWith('/Beauty') ||
-           pathname === '/cart';
+    // Robust check including trailing slashes and sub-paths
+    if (!pathname) return false;
+    const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`;
+    
+    return normalizedPath.startsWith('/admin/') || 
+           normalizedPath.startsWith('/vendor/') || 
+           normalizedPath.startsWith('/delivery/') ||
+           normalizedPath.startsWith('/Medical/') ||
+           normalizedPath.startsWith('/Beauty/') ||
+           normalizedPath.startsWith('/cart/');
   }, [pathname]);
 
   const handleNavigate = (href: string) => {
-    // Marking the navigation as a transition allows the UI to stay responsive
     startTransition(() => {
       router.push(href, { scroll: false });
     });
@@ -46,7 +50,7 @@ export const BottomNav = memo(() => {
     <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] h-16 safe-area-bottom pointer-events-auto transform-gpu">
       <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
           const Icon = item.icon;
 
           return (

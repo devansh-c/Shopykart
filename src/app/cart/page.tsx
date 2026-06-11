@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -414,7 +413,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-60">
+    <div className="min-h-screen bg-[#F8F9FA] pb-80">
       <OrderSuccessOverlay isVisible={showSuccess} />
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
@@ -681,8 +680,8 @@ export default function CartPage() {
       </div>
 
       {/* STICKY ACTION FOOTER WITH SLIDE TO ORDER */}
-      <div className="fixed bottom-0 left-0 right-0 z-[20000] bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-15px_50px_rgba(0,0,0,0.15)]">
-        <div className="max-w-lg mx-auto flex flex-col gap-4">
+      <div className="fixed bottom-4 left-0 right-0 z-[20000] p-4 pb-safe pointer-events-none">
+        <div className="max-w-lg mx-auto flex flex-col gap-4 bg-white/95 backdrop-blur-md rounded-[2.5rem] p-5 shadow-[0_-15px_50px_rgba(0,0,0,0.15)] border border-gray-100 pointer-events-auto">
            {/* Price Info Header */}
            <div className="flex items-center justify-between px-2">
               <div className="flex flex-col">
@@ -695,7 +694,7 @@ export default function CartPage() {
               </div>
               <div className="text-right">
                  <p className="text-[8px] font-black text-green-600 uppercase tracking-widest">Safe & Secure Checkout</p>
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Step 3 of 3</p>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Final Step</p>
               </div>
            </div>
 
@@ -707,7 +706,7 @@ export default function CartPage() {
               {/* Background Text */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn(
-                   "text-xs font-black uppercase italic tracking-[0.2em] transition-opacity duration-300",
+                   "text-[11px] font-black uppercase italic tracking-[0.2em] transition-opacity duration-300",
                    slideX > 50 ? "opacity-0" : "opacity-30 text-white"
                  )}>
                    {isPlacing ? 'PLACING ORDER...' : 'Slide to Place Order'}
@@ -752,6 +751,7 @@ export default function CartPage() {
         </div>
       </div>
       
+      <div className="h-20" /> {/* Extra spacer at bottom */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl"><DialogHeader className="sr-only"><DialogTitle>Select Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => validateAndSetCoords(lat, lng)} /></DialogContent></Dialog>
     </div>
   );
