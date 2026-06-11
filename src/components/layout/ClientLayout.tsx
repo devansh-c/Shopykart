@@ -21,7 +21,6 @@ const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonus
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => m.LocationRequest), { ssr: false });
 const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => m.FloatingCart), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => m.BottomNav), { ssr: false });
-const DynamicHeatWave = dynamic(() => import('@/components/shared/HeatWaveOverlay').then(m => m.HeatWaveOverlay), { ssr: false });
 
 /**
  * @fileOverview Refactored AuthGuard with useTransition for fluid identity checking.
@@ -106,7 +105,6 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
             <TelegramNotifier />
             <DynamicAdOverlay />
             <DynamicWelcomeBonus />
-            <DynamicHeatWave />
             {children}
           </main>
           

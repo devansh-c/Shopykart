@@ -39,11 +39,6 @@ export function BrandingManagement() {
     telegramBotToken: '',
     telegramChatId: '',
     enableTelegram: false,
-    isHeatWaveEnabled: false,
-    heatWaveAutoMode: false,
-    heatWaveStartTime: '6:00 PM',
-    heatWaveEndTime: '7:00 PM',
-    emergencyType: 'busy',
     // Receipt Customization
     receiptHeader: 'SHOPYKART PREMIUM DELIVERY\nMain Road, Mauranipur\nGSTIN: 09ABCDE1234F1Z5',
     receiptFooter: 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
@@ -66,11 +61,6 @@ export function BrandingManagement() {
         telegramBotToken: settings.telegramBotToken || '',
         telegramChatId: settings.telegramChatId || '',
         enableTelegram: settings.enableTelegram || false,
-        isHeatWaveEnabled: settings.isHeatWaveEnabled || false,
-        heatWaveAutoMode: settings.heatWaveAutoMode || false,
-        heatWaveStartTime: settings.heatWaveStartTime || '6:00 PM',
-        heatWaveEndTime: settings.heatWaveEndTime || '7:00 PM',
-        emergencyType: settings.emergencyType || 'heat',
         receiptHeader: settings.receiptHeader || 'SHOPYKART PREMIUM DELIVERY\nMain Road, Mauranipur\nGSTIN: 09ABCDE1234F1Z5',
         receiptFooter: settings.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
         receiptThankYou: settings.receiptThankYou || 'Enjoy your delicious meal!',
@@ -139,7 +129,6 @@ export function BrandingManagement() {
         <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-2 md:flex">
            <TabsTrigger value="brand" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Identity & Apps</TabsTrigger>
            <TabsTrigger value="receipt" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Receipt Designer</TabsTrigger>
-           <TabsTrigger value="emergency" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Emergency</TabsTrigger>
            <TabsTrigger value="automation" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Automation</TabsTrigger>
         </TabsList>
 
@@ -248,45 +237,6 @@ export function BrandingManagement() {
                   <div className="text-center opacity-40 text-[7px] pt-4 uppercase">
                      {formData.receiptFooter}
                   </div>
-               </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="emergency" className="mt-0">
-          <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-orange-500/20 p-2 rounded-xl text-orange-500 border border-orange-500/20"><AlertTriangle className="h-5 w-5" /></div>
-                <h3 className="text-lg font-black italic uppercase">Emergency Restriction</h3>
-              </div>
-              <Switch checked={formData.isHeatWaveEnabled} onCheckedChange={(checked) => setFormData({...formData, isHeatWaveEnabled: checked})} className="data-[state=checked]:bg-orange-500" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
-                  <Select value={formData.emergencyType} onValueChange={(val) => setFormData({...formData, emergencyType: val})}>
-                    <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold">
-                      <SelectValue placeholder="Select Reason" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
-                      <SelectItem value="heat">Extreme Heat Wave (48°C)</SelectItem>
-                      <SelectItem value="busy">High Delivery Demand</SelectItem>
-                      <SelectItem value="no_delivery">Delivery Partners Offline</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-[10px] font-black uppercase text-blue-400">Auto Scheduler</span>
-                    <Switch checked={formData.heatWaveAutoMode} onCheckedChange={(checked) => setFormData({...formData, heatWaveAutoMode: checked})} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input value={formData.heatWaveStartTime} onChange={e => setFormData({...formData, heatWaveStartTime: e.target.value})} placeholder="6:00 PM" className="h-10 rounded-xl bg-white/5 border-none text-white text-xs" />
-                    <Input value={formData.heatWaveEndTime} onChange={e => setFormData({...formData, heatWaveEndTime: e.target.value})} placeholder="7:00 PM" className="h-10 rounded-xl bg-white/5 border-none text-white text-xs" />
-                  </div>
-               </div>
-               <div className="flex items-center justify-center p-6 bg-orange-500/5 rounded-3xl border border-orange-500/10 text-center">
-                  <p className="text-[11px] font-bold text-gray-400 leading-relaxed uppercase italic">
-                    Emergency mode on hote hi customer ordering block ho jayegi aur custom reason screen par dikhega.
-                  </p>
                </div>
             </div>
           </div>
