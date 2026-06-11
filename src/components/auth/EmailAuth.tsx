@@ -10,6 +10,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   OAuthProvider,
+  GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -19,12 +20,13 @@ import { cn } from '@/lib/utils';
 type AuthView = 'login' | 'signup';
 
 /**
- * @fileOverview Premium Authentication with Synchronous Session Shielding.
+ * @fileOverview Premium Authentication with Google, Apple and Email support.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const auth = useAuth();
@@ -55,6 +57,42 @@ export function EmailAuth() {
     return String(email).toLowerCase().trim().match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
   };
 
+  const handleGoogleLogin = async () => {
+    if (!auth || !firestore) return;
+    setGoogleLoading(true);
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      const userRef = doc(firestore, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          fullName: user.displayName?.toUpperCase() || 'GOOGLE USER',
+          email: user.email,
+          uid: user.uid,
+          coins: 10,
+          role: 'customer',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        localStorage.setItem('show_welcome_bonus', 'true');
+      }
+
+      localStorage.setItem('shopykart_session_active', 'true');
+      toast({ title: "Google Login Successful" });
+      window.location.reload();
+    } catch (err: any) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Login Failed", description: "Could not connect to Google Account." });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleAppleLogin = async () => {
     if (!auth || !firestore) return;
     setAppleLoading(true);
@@ -71,7 +109,7 @@ export function EmailAuth() {
 
       if (!userSnap.exists()) {
         await setDoc(userRef, {
-          fullName: user.displayName || 'APPLE USER',
+          fullName: user.displayName?.toUpperCase() || 'APPLE USER',
           email: user.email,
           uid: user.uid,
           coins: 10,
@@ -267,25 +305,42 @@ export function EmailAuth() {
             </Button>
           </form>
 
-          <div className="relative py-4 flex items-center justify-center">
+          <div className="relative py-2 flex items-center justify-center">
              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
              <span className="relative bg-[#0B0B0B] px-4 text-[9px] font-black text-gray-600 uppercase tracking-widest">OR CONTINUE WITH</span>
           </div>
 
-          <Button 
-            onClick={handleAppleLogin}
-            disabled={appleLoading}
-            className="w-full h-14 bg-white text-black hover:bg-gray-100 rounded-2xl font-black uppercase italic tracking-tighter shadow-xl transition-all active:scale-95"
-          >
-            {appleLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <span className="flex items-center gap-2">
-                <svg className="h-5 w-5 fill-current" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-                Continue with Apple
-              </span>
-            )}
-          </Button>
+          <div className="grid grid-cols-1 gap-4">
+            <Button 
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="w-full h-14 bg-white text-black hover:bg-gray-100 rounded-2xl font-black uppercase italic tracking-tighter shadow-xl transition-all active:scale-95"
+            >
+              {googleLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z" fill="#4285F4"/><path d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z" fill="#4285F4"/><path d="M6.3 14.6C3.6 17.3 2 20.5 2 24s1.6 6.7 4.3 9.4l7.1-7.1C12.4 25.4 12 24.7 12 24s.4-1.4 1.4-2.3l-7.1-7.1z" fill="#FBBC05"/><path d="M24 11c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 15.1 2 7.7 7.3 4.3 14.6l7.1 7.1C13.2 15.6 18.1 11 24 11z" fill="#EA4335"/><path d="M24 37c-5.9 0-10.8-4.6-12.6-10.7l-7.1 7.1C7.7 40.7 15.1 46 24 46c5.6 0 10.6-2.1 14.5-5.5l-7.1-7.1C29.6 35.5 27 37 24 37z" fill="#34A853"/></svg>
+                  Google Account
+                </span>
+              )}
+            </Button>
+
+            <Button 
+              onClick={handleAppleLogin}
+              disabled={appleLoading}
+              className="w-full h-14 bg-white text-black hover:bg-gray-100 rounded-2xl font-black uppercase italic tracking-tighter shadow-xl transition-all active:scale-95"
+            >
+              {appleLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5 fill-current" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+                  Apple ID
+                </span>
+              )}
+            </Button>
+          </div>
 
           <div className="flex flex-col items-center gap-4 pt-4">
             <button 
