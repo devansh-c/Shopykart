@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -42,19 +43,20 @@
     overflow-x: hidden;
     user-select: none;
     min-height: 100vh;
+    /* PERFORMANCE: Isolate body as a GPU layer */
+    transform: translateZ(0);
   }
   
-  /* CORE PERFORMANCE ENGINE */
+  /* NUCLEAR PERFORMANCE ENGINE */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 1000px;
   }
 
   .transform-gpu {
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     perspective: 1000;
-    will-change: transform;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -78,6 +80,8 @@
 .premium-card {
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
   contain: content;
+  /* PERFORMANCE: Use will-change sparingly for heavy elements */
+  will-change: transform;
 }
 
 nav.fixed {
