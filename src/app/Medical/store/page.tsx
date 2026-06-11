@@ -55,7 +55,6 @@ export default function MedicalDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
@@ -63,7 +62,6 @@ export default function MedicalDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [showOrderAlarm, setShowOrderAlarm] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -103,7 +101,6 @@ export default function MedicalDashboard() {
     }
   }, [user, authLoading, router, isMounted]);
 
-  // LIVE ORDER ALARM LOGIC
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
@@ -119,26 +116,6 @@ export default function MedicalDashboard() {
       return dateB - dateA;
     });
   }, [rawOrders]);
-
-  const pendingOrders = useMemo(() => orders?.filter(o => o.status === 'Placed') || [], [orders]);
-
-  useEffect(() => {
-    if (pendingOrders.length > 0 && isMounted) {
-      setShowOrderAlarm(true);
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audioRef.current.loop = true;
-      }
-      audioRef.current.play().catch(() => console.log("Sound play interaction needed"));
-    } else {
-      setShowOrderAlarm(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    }
-    return () => { if (audioRef.current) audioRef.current.pause(); };
-  }, [pendingOrders, isMounted]);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -258,7 +235,6 @@ export default function MedicalDashboard() {
         lastStatusUpdate: serverTimestamp() 
       });
       toast({ title: `Order ${status}` });
-      if (status === 'Accepted') setShowOrderAlarm(false);
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
@@ -274,42 +250,6 @@ export default function MedicalDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
-      {/* NEW ORDER ALARM OVERLAY */}
-      <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
-        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-teal-400/40 p-10 shadow-[0_0_80px_rgba(20,184,166,0.4)]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>URGENT: NEW MEDICAL ORDER</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-teal-500/30 rounded-full animate-ping" />
-              <div className="relative bg-teal-600 h-24 w-24 rounded-full flex items-center justify-center shadow-2xl">
-                 <BellRing className="h-12 w-12 text-white animate-bounce" />
-              </div>
-            </div>
-            <div className="space-y-2">
-               <h2 className="text-4xl font-black italic uppercase text-white leading-none tracking-tighter">NEW<br />PRESCRIPTION!</h2>
-               <p className="text-gray-500 font-bold text-[10px] uppercase tracking-[0.3em]">Action required immediately</p>
-            </div>
-            
-            <div className="w-full bg-white/5 p-4 rounded-2xl border border-white/10 text-left">
-               <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-black text-teal-400 uppercase">Order Details</span>
-                  <span className="text-white font-black italic">#{pendingOrders[0]?.orderDisplayId}</span>
-               </div>
-               <p className="text-white font-black text-lg">₹{pendingOrders[0]?.total?.toFixed(2)}</p>
-            </div>
-
-            <Button 
-              onClick={() => { if (pendingOrders[0]) updateOrderStatus(pendingOrders[0].id, 'Accepted'); }} 
-              className="w-full h-18 py-8 bg-white text-black hover:bg-gray-100 rounded-3xl font-black italic text-xl shadow-2xl active:scale-95 transition-all"
-            >
-              ACCEPT NOW
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">

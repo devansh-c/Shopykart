@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -52,7 +53,6 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
@@ -60,7 +60,6 @@ export default function VendorDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [showOrderAlarm, setShowOrderAlarm] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -109,26 +108,6 @@ export default function VendorDashboard() {
     if (!rawOrders) return [];
     return [...rawOrders].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   }, [rawOrders]);
-
-  const pendingOrders = useMemo(() => orders?.filter(o => o.status === 'Placed') || [], [orders]);
-
-  useEffect(() => {
-    if (pendingOrders.length > 0 && isMounted) {
-      setShowOrderAlarm(true);
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audioRef.current.loop = true;
-      }
-      audioRef.current.play().catch(() => {});
-    } else {
-      setShowOrderAlarm(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    }
-    return () => { if (audioRef.current) audioRef.current.pause(); };
-  }, [pendingOrders, isMounted]);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -237,7 +216,6 @@ export default function VendorDashboard() {
     try {
       await updateDoc(doc(firestore, 'orders', orderId), { status, updatedAt: serverTimestamp() });
       toast({ title: `Order ${status}` });
-      if (status === 'Accepted') setShowOrderAlarm(false);
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
@@ -247,7 +225,7 @@ export default function VendorDashboard() {
       // 1. Update Vendor Status
       await updateDoc(doc(firestore, 'vendors', user.uid), { isOnline: online, updatedAt: serverTimestamp() });
       
-      // 2. AUTO-SYNC: Update all products to be available/unavailable
+      // 2. AUTO-SYNC: Update all products
       const q = query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
       const snap = await getDocs(q);
       const batch = writeBatch(firestore);
@@ -270,22 +248,6 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative">
-      <Dialog open={showOrderAlarm} onOpenChange={setShowOrderAlarm}>
-        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/40 p-10 shadow-[0_0_80px_rgba(239,68,68,0.4)]">
-          <DialogHeader className="sr-only"><DialogTitle>Order Alarm</DialogTitle></DialogHeader>
-          <div className="flex flex-col items-center gap-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/30 rounded-full animate-ping" />
-              <div className="relative bg-primary h-24 w-24 rounded-full flex items-center justify-center shadow-2xl">
-                 <BellRing className="h-12 w-12 text-white animate-bounce" />
-              </div>
-            </div>
-            <h2 className="text-4xl font-black italic uppercase text-white leading-none tracking-tighter">ORDER<br />PLACED!</h2>
-            <Button onClick={() => { if (pendingOrders[0]) updateOrderStatus(pendingOrders[0].id, 'Accepted'); }} className="w-full h-18 py-8 bg-white text-black hover:bg-gray-100 rounded-3xl font-black italic text-xl shadow-2xl active:scale-95 transition-all">ACCEPT NOW</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50">
@@ -366,11 +328,11 @@ export default function VendorDashboard() {
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                    <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MRP (Optional)</label>
-                                   <Input placeholder="₹ 0.00" type="number" value={newProduct.mrp} onChange={e => setNewProduct({...newProduct, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold text-gray-500" />
+                                   <Input placeholder="₹ 0.00" type="number" value={newProduct.mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none font-bold text-gray-500" />
                                 </div>
                                 <div className="space-y-1">
                                    <label className="text-[9px] font-black uppercase text-primary ml-1">Selling Price *</label>
-                                   <Input placeholder="₹ 0.00" type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="h-12 rounded-xl border-primary/20 bg-primary/5 font-black italic text-primary" />
+                                   <Input placeholder="₹ 0.00" type="number" value={newProduct.price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/20 bg-primary/5 font-black italic text-primary" />
                                 </div>
                              </div>
 

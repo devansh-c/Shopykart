@@ -34,11 +34,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 
-// LAZY LOADING: Dynamically import heavy components to reduce initial bundle size by 70%
+// LAZY LOADING: Dynamically import heavy components
 const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> });
 const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement').then(m => ({ default: m.ProductManagement })));
 const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement').then(m => ({ default: m.BannerManagement })));
@@ -48,7 +47,6 @@ const DiscountManagement = dynamic(() => import('@/components/admin/DiscountMana
 const StoreManagement = dynamic(() => import('@/components/admin/StoreManagement').then(m => ({ default: m.StoreManagement })));
 const CategoryManagement = dynamic(() => import('@/components/admin/CategoryManagement').then(m => ({ default: m.CategoryManagement })));
 const BrandingManagement = dynamic(() => import('@/components/admin/BrandingManagement').then(m => ({ default: m.BrandingManagement })));
-const NotificationManagement = dynamic(() => import('@/components/admin/NotificationManagement').then(m => ({ default: m.NotificationManagement })));
 const CustomerManagement = dynamic(() => import('@/components/admin/CustomerManagement').then(m => ({ default: m.CustomerManagement })));
 const ChargeManagement = dynamic(() => import('@/components/admin/ChargeManagement').then(m => ({ default: m.ChargeManagement })));
 const StorePayoutManagement = dynamic(() => import('@/components/admin/StorePayoutManagement').then(m => ({ default: m.StorePayoutManagement })));
@@ -75,7 +73,6 @@ const menuItems = [
   { id: 'discounts', label: 'Discounts', icon: Percent },
   { id: 'charges', label: 'Tax & Charges', icon: Receipt },
   { id: 'ads', label: 'Monetization', icon: Megaphone },
-  { id: 'notifications', label: 'Notifications', icon: BellRing },
   { id: 'tickets', label: 'Support Tickets', icon: LifeBuoy },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'pages', label: 'Policy Pages', icon: FileText },
@@ -150,8 +147,6 @@ export default function AdminDashboard() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showOrderAlert, setShowOrderAlert] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
@@ -161,33 +156,6 @@ export default function AdminDashboard() {
       setIsAuthorized(true);
     }
   }, [router]);
-
-  // OPTIMIZED FETCH: Limit to most recent Place orders to avoid lagging the admin UI
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'orders'), where('status', '==', 'Placed'), limit(20));
-  }, [firestore]);
-  const { data: newOrders } = useCollection<any>(ordersQuery);
-
-  useEffect(() => {
-    if (newOrders && newOrders.length > 0 && isAuthorized) {
-      setShowOrderAlert(true);
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audioRef.current.loop = true;
-      }
-      audioRef.current.play().catch(() => {});
-    } else {
-      setShowOrderAlert(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    }
-    return () => {
-      if (audioRef.current) audioRef.current.pause();
-    };
-  }, [newOrders, isAuthorized]);
 
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
@@ -213,7 +181,6 @@ export default function AdminDashboard() {
       case 'discounts': return <DiscountManagement />;
       case 'charges': return <ChargeManagement />;
       case 'ads': return <MonetizationManagement />;
-      case 'notifications': return <NotificationManagement />;
       case 'tickets': return <TicketManagement />;
       case 'reviews': return <ReviewManagement />;
       case 'pages': return <PageManagement />;
@@ -225,18 +192,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row transform-gpu">
-      <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
-        <DialogContent className="rounded-[3rem] max-w-sm bg-[#0B0B0B] text-center border-primary/20">
-          <DialogHeader><DialogTitle className="sr-only">New Order Alert</DialogTitle></DialogHeader>
-          <div className="flex flex-col items-center gap-6 p-4">
-            <BellRing className="h-12 w-12 text-primary animate-bounce" />
-            <h2 className="text-3xl font-black italic uppercase text-white">NEW ORDER!</h2>
-            <DialogDescription className="text-gray-400 font-bold text-xs uppercase">Action required immediately</DialogDescription>
-            <Button onClick={() => { setShowOrderAlert(false); setActiveTab('orders'); }} className="w-full h-14 bg-white text-black rounded-2xl font-black italic text-lg shadow-xl">VIEW ORDERS</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <div className="bg-primary p-2 rounded-xl text-white"><LayoutDashboard className="h-4 w-4" /></div>
