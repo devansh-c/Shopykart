@@ -127,7 +127,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           )}
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggleWishlist(product.id); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20 active:scale-75 transition-transform">
-          <Heart className={cn("h-3.5 w-3.5", liked ? "fill-primary text-primary" : "text-gray-300")} />
+          <Heart className={cn("h-3.5 w-3.5", isLiked ? "fill-primary text-primary" : "text-gray-300")} />
         </button>
       </div>
     </div>
