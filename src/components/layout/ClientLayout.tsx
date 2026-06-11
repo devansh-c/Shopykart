@@ -15,11 +15,11 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { AdOverlay } from '@/components/shared/AdOverlay';
 import { WelcomeBonusOverlay } from '@/components/auth/WelcomeBonusOverlay';
 import { Toaster } from '@/components/ui/toaster';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 
 /**
- * @fileOverview AuthGuard - Optimized for Persistent Sessions.
- * Restored Email Authentication and ensured already logged-in users aren't interrupted.
+ * @fileOverview AuthGuard - Optimized for Peak Persistence.
+ * Ensures that if a session flag exists in localStorage, the login overlay is NEVER shown.
  */
 function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) {
   const { user, loading } = useUser();
@@ -27,30 +27,32 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
 
+  // Memoize session check for instant access
+  const hasActiveSession = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('shopykart_session_active') === 'true';
+  }, []);
+
   useEffect(() => {
     if (loading) return;
 
-    // Signal app is ready (hides splash)
+    // App is ready once Firebase finishes its first auth check
     onReady(true);
 
-    // PERSISTENCE LOGIC: 
-    // 1. Check if user is logged in via Firebase
-    // 2. Check if there's a session flag in localStorage
-    const hasSession = localStorage.getItem('shopykart_session_active') === 'true';
-    
-    if (!user && !hasSession) {
-      // Show login overlay only for new/logged-out users after a tiny delay
+    // PERSISTENCE LOGIC:
+    // If Firebase confirms a user OR localStorage says session is active, HIDE overlay.
+    if (user || hasActiveSession) {
+      setShowAuthOverlay(false);
+    } else {
+      // ONLY for fresh guests with NO history: Show login after 3 seconds
       const timer = setTimeout(() => {
         setShowAuthOverlay(true);
       }, 3000);
       return () => clearTimeout(timer);
-    } else {
-      // Already logged in or has active session, keep it hidden
-      setShowAuthOverlay(false);
     }
-  }, [user, loading, onReady]);
+  }, [user, loading, hasActiveSession, onReady]);
 
-  // Public/Admin/Vendor/Delivery paths bypass
+  // Public/Admin/Business paths bypass login guard
   const isExcludedPath = pathname?.startsWith('/admin') || 
                          pathname?.startsWith('/vendor') || 
                          pathname?.startsWith('/delivery') ||
@@ -62,7 +64,7 @@ function AuthGuard({ children, onReady }: { children: ReactNode; onReady: (ready
   return (
     <>
       {children}
-      {showAuthOverlay && <EmailAuth />}
+      {showAuthOverlay && !user && !hasActiveSession && <EmailAuth />}
     </>
   );
 }

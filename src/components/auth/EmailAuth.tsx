@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, Lock, User, Phone, CheckCircle2, ArrowRight, Sparkles, MessageCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -27,6 +26,7 @@ export function EmailAuth() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +37,11 @@ export function EmailAuth() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // SELF-DESTRUCT: If a user is detected, immediately hide this component.
+  if (user || (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true')) {
+    return null;
+  }
 
   const validateEmail = (email: string) => {
     return String(email).toLowerCase().trim().match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
