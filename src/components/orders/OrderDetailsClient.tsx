@@ -84,8 +84,8 @@ export default function OrderDetailsClient() {
     docRef.write('.thankyou { font-weight: 900; margin-top: 15px; color: #ef4444; }');
     docRef.write('</style></head><body>');
     
-    // Inject custom QR html into the middle of the content
-    const htmlContent = printContent.innerHTML.replace('<!--QR_PLACEHOLDER-->', `
+    // Inject custom QR html into the middle of the content using the marker div
+    const htmlContent = printContent.innerHTML.replace('<div id="qr-marker"></div>', `
       <div class="center qr-section">
         <p style="font-size: 8px; margin-bottom: 8px; font-weight: bold; color: #666;">SCAN TO PAY VIA UPI</p>
         <img src="${qrUrl}" style="width: 140px; height: 140px; border: 4px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
@@ -104,7 +104,9 @@ export default function OrderDetailsClient() {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
         setTimeout(() => {
-          document.body.removeChild(iframe);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
         }, 1000);
       }
     }, 800);
@@ -308,7 +310,7 @@ export default function OrderDetailsClient() {
               </div>
 
               {/* QR CODE PLACEHOLDER - INJECTED DYNAMICALLY BY handlePrintReceipt */}
-              <!--QR_PLACEHOLDER-->
+              <div id="qr-marker"></div>
 
               <div className="total-row">
                  <span>GRAND TOTAL</span>
