@@ -20,7 +20,6 @@ import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 
 /**
  * @fileOverview AuthGuard - Verification-First Logic.
- * Stays in 'CHECKING' mode until Firebase confirms the user state.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -88,7 +87,7 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
       
       <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col overflow-x-hidden">
-          <main className={cn("flex-1 pb-44 transition-none", !isExcludedPath && "content-visibility-auto")}>
+          <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
             {!isExcludedPath && <LocationRequest />}
             <NotificationHandler />
             <TelegramNotifier />

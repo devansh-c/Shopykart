@@ -37,35 +37,17 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter), sans-serif;
-    text-rendering: optimizeSpeed;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     user-select: none;
     min-height: 100vh;
-    overscroll-behavior-y: none;
   }
   
-  /* NUCLEAR SPEED ENGINE */
+  /* CORE SPEED ENGINE */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 1000px;
-    contain: layout style paint;
-  }
-
-  /* ZERO LATENCY INTERACTION */
-  button, a, [role="button"], .interactive {
-    cursor: pointer !important;
-    user-select: none !important;
-    transition: none !important; 
-    will-change: transform, opacity;
-    outline: none !important;
-    -webkit-appearance: none;
-  }
-
-  /* Instant Feedback with GPU */
-  button:active, a:active, [role="button"]:active {
-    transform: scale(0.96) !important;
-    opacity: 0.8 !important;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -88,7 +70,6 @@
 
 .premium-card {
   @apply bg-white rounded-[2rem] border border-border/60 shadow-sm relative overflow-hidden;
-  will-change: transform, opacity;
   contain: content;
 }
 
@@ -99,4 +80,8 @@ nav.fixed {
 
 svg {
   pointer-events: none;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
