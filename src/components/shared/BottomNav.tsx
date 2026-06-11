@@ -1,10 +1,11 @@
+
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useCallback, useEffect, useState, useTransition, memo } from 'react';
+import React, { useCallback, useEffect, useState, memo } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -16,21 +17,22 @@ const navItems = [
 
 /**
  * @fileOverview Atomic-Speed Bottom Navigation.
- * Optimized with React.memo and GPU acceleration to ensure zero UI delay.
+ * Optimized for zero latency and instant visual feedback.
  */
 export const BottomNav = memo(() => {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
-  const [isPending, startTransition] = useTransition();
   
-  const [optimisticPath, setOptimisticPath] = useState(pathname);
+  // Optimistic path for 0ms visual feedback
+  const [activePath, setActivePath] = useState(pathname);
 
+  // Sync active path with actual pathname when navigation completes
   useEffect(() => {
-    setOptimisticPath(pathname);
+    setActivePath(pathname);
   }, [pathname]);
 
-  // Aggressive Prefetching for Light-Speed Transitions
+  // Aggressive Prefetching
   useEffect(() => {
     navItems.forEach(item => {
       router.prefetch(item.href);
@@ -45,16 +47,14 @@ export const BottomNav = memo(() => {
                          pathname === '/cart';
   
   const handleNav = useCallback((href: string) => {
-    if (pathname === href) return;
+    if (activePath === href) return;
     
-    // VISUAL FEEDBACK: Change state instantly
-    setOptimisticPath(href);
+    // 1. INSTANT VISUAL FEEDBACK (0ms)
+    setActivePath(href);
 
-    // BACKGROUND ROUTING: Handle navigation without blocking main thread
-    startTransition(() => {
-      router.push(href);
-    });
-  }, [pathname, router]);
+    // 2. IMMEDIATE NAVIGATION
+    router.push(href, { scroll: false });
+  }, [activePath, router]);
 
   if (isExcludedPath) return null;
 
@@ -62,7 +62,7 @@ export const BottomNav = memo(() => {
     <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] transition-none transform-gpu translate-z-0 isolate h-16">
       <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2 pb-[env(safe-area-inset-bottom,0px)] touch-none">
         {navItems.map((item) => {
-          const isActive = optimisticPath === item.href;
+          const isActive = activePath === item.href;
           const Icon = item.icon;
 
           return (
