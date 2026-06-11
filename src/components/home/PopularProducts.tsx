@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo } from "react"
@@ -17,16 +16,22 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Memoized Product Item with GPU acceleration
+// Memoized Product Item with hard GPU acceleration
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
   const discount = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
   const isSpecialMode = activeMode === 'Medical' || activeMode === 'Beauty';
 
+  const cardClasses = cn(
+    "relative bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-none transform-gpu translate-z-0",
+    isOffline && "opacity-60 grayscale-[0.5]",
+    isSpecialMode ? "p-2.5 flex flex-col" : "p-6 flex justify-between items-start"
+  );
+
   if (isSpecialMode) {
     return (
-      <div className={cn("flex flex-col relative bg-white rounded-3xl border border-gray-100 p-2.5 shadow-sm active:scale-[0.98] transition-none transform-gpu translate-z-0", isOffline && "opacity-60 grayscale")}>
+      <div className={cardClasses}>
         {discount > 0 && (
           <div className="absolute top-0 left-2 z-10">
             <div className="bg-primary text-white text-[8px] font-black px-1.5 py-2.5 rounded-b-md shadow-lg flex flex-col items-center leading-none">
@@ -82,7 +87,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   }
 
   return (
-    <div className={cn("premium-card p-6 flex justify-between items-start bg-white relative transition-none transform-gpu translate-z-0", isOffline && "opacity-60 grayscale-[0.5]")}>
+    <div className={cardClasses}>
       <div className="flex-1 pr-4 min-w-0">
         <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2"><div className="h-full w-full bg-green-600 rounded-full" /></div>
         <ProductQuickView product={product} isMedical={false}>
@@ -111,7 +116,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           {quantity === 0 ? (
             <ProductQuickView product={product} isMedical={false}>
               <button disabled={isOffline} onPointerDown={(e) => { e.stopPropagation(); if(!isOffline) onAdd({ ...product, imageUrl }); }} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-none", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
-                {isOffline ? 'OFF' : 'ADD TO BAG'}
+                {isOffline ? 'OFF' : 'ADD'}
               </button>
             </ProductQuickView>
           ) : (
@@ -121,7 +126,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
               <button 
                 disabled={isOffline} 
                 onPointerDown={(e) => { e.stopPropagation(); if(!isOffline) onAdd({ ...product, imageUrl }); }} 
-                className={cn("flex-1 flex items-center justify-center h-full", isOffline && "cursor-not-allowed")}
+                className="flex-1 flex items-center justify-center h-full"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -175,7 +180,7 @@ export function PopularProducts({
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -199,27 +204,22 @@ export function PopularProducts({
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
-      // 1. SERVICE MODE FILTERING
       const vendor = vendorMap.get(product.vendorId);
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
-      // 2. LOCATION FILTERING (Inclusive Logic)
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
-      // If user has set a location, we filter. If not, we show all products.
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
         const matchesTown = targetCityNormalized && (productTown === targetCityNormalized);
         const isGlobal = !productZoneId && (productTown === 'local' || !productTown);
 
-        // Allow if it matches zone, town, OR if it's a global product
         if (!matchesZoneId && !matchesTown && !isGlobal) return false;
       }
 
-      // 3. SEARCH & CATEGORY
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
