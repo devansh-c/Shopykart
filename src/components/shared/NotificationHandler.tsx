@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -6,10 +7,13 @@ import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp, Tim
 import { BellRing, X, Megaphone, ShoppingBag, Package, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { requestPushToken } from '@/firebase/messaging';
 
+/**
+ * @fileOverview System for handling push notifications and real-time order tracking.
+ * Modal Alert system has been removed as per user request to keep the UI clean.
+ */
 export function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -18,8 +22,6 @@ export function NotificationHandler() {
   
   const [permission, setPermission] = useState<string>('default');
   const [showPrompt, setShowPrompt] = useState(false);
-  const [activeAlert, setActiveAlert] = useState<{ title: string, message: string, type?: string } | null>(null);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
   
   const processedOrders = useRef<Set<string>>(new Set());
 
@@ -44,7 +46,7 @@ export function NotificationHandler() {
     }
   }, [user, firestore]);
 
-  const triggerPush = (title: string, body: string, isOrder = false, type = 'general') => {
+  const triggerPush = (title: string, body: string, isOrder = false) => {
     // 1. LOUD SOUND
     try {
       const soundUrl = isOrder ? 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3';
@@ -53,15 +55,8 @@ export function NotificationHandler() {
       audio.play().catch(() => {});
     } catch (e) {}
 
-    // 2. MODAL ALERT for high priority
-    if (isOrder || type === 'delivery-task') {
-      setActiveAlert({ title, message: body, type });
-      setIsAlertOpen(true);
-    }
-
-    // 3. SYSTEM NOTIFICATION (FIXED for mobile compatibility)
+    // 2. SYSTEM NOTIFICATION (For mobile compatibility)
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      // Use Service Worker registration to show notification (Required for mobile Chrome/WebView)
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(registration => {
           registration.showNotification(title, {
@@ -71,15 +66,10 @@ export function NotificationHandler() {
             requireInteraction: true,
             vibrate: [200, 100, 200]
           });
-        }).catch(err => {
-          console.warn("Service worker notification failed:", err);
-          // Last resort fallback with try-catch
-          try {
-            new Notification(title, { body });
-          } catch (e) {}
+        }).catch(() => {
+          try { new Notification(title, { body }); } catch (e) {}
         });
       } else {
-        // Fallback for environments without service worker
         try {
           new Notification(title, {
             body: body,
@@ -91,17 +81,21 @@ export function NotificationHandler() {
       }
     }
     
-    toast({ title: title.toUpperCase(), description: body });
+    // 3. UI TOAST (Instant feedback)
+    toast({ 
+      title: title.toUpperCase(), 
+      description: body,
+      variant: isOrder ? "default" : "default" 
+    });
   };
 
   // REAL-TIME ORDER MONITORING
   useEffect(() => {
     if (!user || !firestore) return;
     
-    // Listen for orders relevant to this user (Admin, Vendor, or Customer)
     const isAdmin = user.email === 'ceo@shopykart.co.in';
     
-    // Vendor or Admin New Order query - SIMPLE QUERY TO AVOID INDEX ERROR
+    // Vendor or Admin New Order query
     const ordersQuery = query(
       collection(firestore, 'orders'), 
       where('status', '==', 'Placed')
@@ -113,18 +107,16 @@ export function NotificationHandler() {
         const id = change.doc.id;
 
         if (change.type === 'added') {
-          // If I'm the designated vendor or admin
           const isMyOrder = data.vendorId === user.uid || isAdmin;
-          
           if (isMyOrder && !processedOrders.current.has(id)) {
             processedOrders.current.add(id);
-            triggerPush(`🚨 NEW ORDER ARRIVED!`, `₹${data.total} order from ${data.customerName}`, true, 'vendor-order');
+            triggerPush(`🚨 NEW ORDER ARRIVED!`, `₹${data.total} order from ${data.customerName}`, true);
           }
         }
       });
     });
 
-    // Customer Status Change Listener - REMOVED ORDERBY TO PREVENT INDEX ERROR
+    // Customer Status Change Listener
     const customerQuery = query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid)
@@ -136,7 +128,7 @@ export function NotificationHandler() {
           const data = change.doc.data();
           const status = data.status;
           if (status !== 'Placed') {
-            triggerPush(`Update: ${status}`, `Your order #${data.orderDisplayId} is now ${status}.`);
+            triggerPush(`Order ${status}`, `Your order #${data.orderDisplayId} is now ${status}.`);
           }
         }
       });
@@ -157,20 +149,6 @@ export function NotificationHandler() {
 
   return (
     <>
-      <Dialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm p-8 text-center bg-white shadow-2xl">
-           <DialogHeader className="sr-only">
-             <DialogTitle>Notification Alert</DialogTitle>
-           </DialogHeader>
-           <div className="h-20 w-20 rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6">
-              <Megaphone className="h-10 w-10 animate-bounce" />
-           </div>
-           <h2 className="text-2xl font-black italic uppercase mb-2">{activeAlert?.title}</h2>
-           <p className="text-gray-600 font-bold mb-8 italic">"{activeAlert?.message}"</p>
-           <Button onClick={() => setIsAlertOpen(false)} className="w-full h-14 rounded-2xl bg-black font-black uppercase italic">GOT IT</Button>
-        </DialogContent>
-      </Dialog>
-
       {showPrompt && user && (
         <div className="fixed top-20 left-4 right-4 z-[5000] animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="bg-[#0B0B0B] text-white p-5 rounded-[2rem] shadow-2xl border border-white/5 flex items-center justify-between gap-4">

@@ -10,7 +10,7 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with fast-track for returning users.
+ * @fileOverview Optimized SplashScreen with scroll locking and fast-track entry.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -35,13 +35,25 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   const isVisible = !isTimerDone || !isAppReady;
 
+  // SCROLL LOCK LOGIC: Ensures no scrolling while Splash is active
   useEffect(() => {
-    if (!isVisible) {
+    if (isVisible) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+      
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
       }, 700);
       return () => clearTimeout(removeTimer);
     }
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
   }, [isVisible]);
 
   const handleTap = () => {
@@ -61,7 +73,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex items-center justify-center transition-opacity duration-700 ease-in-out",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex items-center justify-center transition-opacity duration-700 ease-in-out touch-none select-none",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
