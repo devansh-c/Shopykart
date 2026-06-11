@@ -49,29 +49,47 @@ export default function OrderDetailsClient() {
     const printContent = receiptRef.current;
     if (!printContent) return;
 
-    const win = window.open('', '', 'height=700,width=700');
-    if (!win) return;
+    // Create a hidden iframe for better mobile compatibility (avoids popup blockers)
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
 
-    win.document.write('<html><head><title>ShopyKart Receipt</title>');
-    win.document.write('<style>');
-    win.document.write('body { font-family: "Courier New", Courier, monospace; padding: 20px; color: black; background: white; text-transform: uppercase; }');
-    win.document.write('.receipt { max-width: 400px; margin: 0 auto; border-top: 5px solid black; padding-top: 20px; }');
-    win.document.write('.center { text-align: center; }');
-    win.document.write('.header { font-weight: 900; margin-bottom: 20px; }');
-    win.document.write('.details { font-size: 10px; margin-bottom: 20px; line-height: 1.4; opacity: 0.8; }');
-    win.document.write('.table { width: 100%; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin: 15px 0; }');
-    win.document.write('.row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; }');
-    win.document.write('.total-row { display: flex; justify-content: space-between; font-weight: 900; font-size: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid black; }');
-    win.document.write('.footer { font-size: 8px; text-align: center; margin-top: 30px; opacity: 0.6; line-height: 1.2; }');
-    win.document.write('.thankyou { font-weight: 900; margin-top: 15px; color: #ef4444; }');
-    win.document.write('</style></head><body>');
-    win.document.write(printContent.innerHTML);
-    win.document.write('</body></html>');
-    win.document.close();
+    const docRef = iframe.contentWindow?.document;
+    if (!docRef) return;
+
+    docRef.open();
+    docRef.write('<html><head><title>Receipt</title>');
+    docRef.write('<style>');
+    docRef.write('body { font-family: "Courier New", Courier, monospace; padding: 20px; color: black; background: white; text-transform: uppercase; }');
+    docRef.write('.receipt { max-width: 100%; margin: 0 auto; border-top: 5px solid black; padding-top: 20px; }');
+    docRef.write('.center { text-align: center; }');
+    docRef.write('.header { font-weight: 900; margin-bottom: 20px; }');
+    docRef.write('.details { font-size: 10px; margin-bottom: 20px; line-height: 1.4; opacity: 0.8; }');
+    docRef.write('.table { width: 100%; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin: 15px 0; }');
+    docRef.write('.row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; }');
+    docRef.write('.total-row { display: flex; justify-content: space-between; font-weight: 900; font-size: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid black; }');
+    docRef.write('.footer { font-size: 8px; text-align: center; margin-top: 30px; opacity: 0.6; line-height: 1.2; }');
+    docRef.write('.thankyou { font-weight: 900; margin-top: 15px; color: #ef4444; }');
+    docRef.write('</style></head><body>');
+    docRef.write(printContent.innerHTML);
+    docRef.write('</body></html>');
+    docRef.close();
     
+    // Wait for content to render then print
     setTimeout(() => {
-      win.print();
-      win.close();
+      if (iframe.contentWindow) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        // Delay removal to ensure print dialog opened
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }
     }, 500);
   };
 
@@ -291,4 +309,3 @@ export default function OrderDetailsClient() {
     </div>
   );
 }
-
