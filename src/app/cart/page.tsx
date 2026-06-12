@@ -220,8 +220,13 @@ export default function CartPage() {
       customerPhone,
       orderDisplayId: orderId,
       items: cart.map(item => ({ 
-        id: item.id, name: item.name, quantity: item.quantity, price: item.price, 
-        isCustom: !!item.isCustom, vendorId: item.vendorId || 'global' 
+        id: item.id, 
+        name: item.name, 
+        quantity: item.quantity, 
+        price: item.price, 
+        isCustom: !!item.isCustom, 
+        vendorId: item.vendorId || 'global',
+        restaurantName: item.restaurantName || 'ShopyKart Store'
       })),
       subtotal: totalPrice,
       charges: dynamic_charges.map(c => ({ name: c.name, amount: c.calculatedAmount })),

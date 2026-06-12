@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -83,7 +84,9 @@ export function NotificationHandler() {
   useEffect(() => {
     if (!audioRef.current) return;
     if (isRinging && !isAudioContextBlocked) {
-      audioRef.current.play().catch(() => setIsAudioContextBlocked(true));
+      audioRef.current.play().catch(() => {
+        setIsAudioContextBlocked(true);
+      });
     } else {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -95,7 +98,7 @@ export function NotificationHandler() {
     if (!user || !firestore || !userRole) return;
     if (userRole === 'customer') return;
 
-    // Listen to ALL "Placed" orders
+    // Listen to ALL "Placed" orders - Real-time trigger
     const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -140,17 +143,27 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* Sound Wake-up Overlay for Admin/Vendor */}
+      {/* Sound Wake-up Overlay for Admin/Vendor - More prominent */}
       {isAudioContextBlocked && (userRole === 'admin' || userRole === 'vendor') && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60000] animate-in slide-in-from-top-4 duration-500">
            <Button 
-            onClick={() => setIsAudioContextBlocked(false)}
-            className="bg-[#0B0B0B] text-white border border-primary/40 rounded-full px-8 py-6 shadow-2xl flex items-center gap-3 hover:bg-primary transition-all group"
+            onClick={() => {
+              if (audioRef.current) {
+                audioRef.current.play().then(() => {
+                  audioRef.current?.pause();
+                  audioRef.current!.currentTime = 0;
+                  setIsAudioContextBlocked(false);
+                }).catch(() => {});
+              }
+            }}
+            className="bg-[#0B0B0B] text-white border-2 border-primary rounded-full px-8 py-7 shadow-[0_0_50px_rgba(239,68,68,0.3)] flex items-center gap-4 hover:bg-primary transition-all group"
            >
-              <VolumeX className="h-5 w-5 text-primary group-hover:text-white animate-pulse" />
+              <div className="h-10 w-10 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                <VolumeX className="h-6 w-6 text-primary group-hover:text-white" />
+              </div>
               <div className="flex flex-col items-start">
-                 <span className="text-[10px] font-black uppercase tracking-widest leading-none">Alerts Paused</span>
-                 <span className="text-[12px] font-bold text-gray-400 leading-none mt-1">Tap to Activate Order Bell</span>
+                 <span className="text-[11px] font-black uppercase tracking-widest leading-none">Alarm System Paused</span>
+                 <span className="text-[13px] font-bold text-gray-400 leading-none mt-1.5 group-hover:text-white">Tap to Activate Loud Order Bell</span>
               </div>
            </Button>
         </div>
@@ -174,23 +187,32 @@ export function NotificationHandler() {
             </div>
 
             <div className="w-full space-y-4">
-               {ringingOrders.slice(0, 1).map((order) => (
-                 <div key={order.id} className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 text-left relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-3">
-                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: #{order.orderDisplayId || order.id.slice(-4)}</span>
-                       <span className="text-xl font-black italic text-red-600">₹{order.total?.toFixed(2)}</span>
-                    </div>
-                    <div className="space-y-2">
-                       <div className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase italic">
-                          <ShoppingBag className="h-3.5 w-3.5 text-primary" />
-                          <span className="truncate">{order.customerName || 'Premium User'}</span>
-                       </div>
-                       <div className="text-[9px] font-bold text-muted-foreground uppercase leading-tight bg-white p-2 rounded-lg border border-gray-100">
-                          {Array.from(new Set(order.items?.map((i: any) => i.restaurantName))).join(', ')}
-                       </div>
-                    </div>
-                 </div>
-               ))}
+               {ringingOrders.slice(0, 1).map((order) => {
+                 const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName).filter(Boolean)));
+                 if (storeNames.length === 0 && order.restaurantName) storeNames.push(order.restaurantName);
+                 
+                 return (
+                   <div key={order.id} className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 text-left relative overflow-hidden">
+                      <div className="flex justify-between items-center mb-3">
+                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: #{order.orderDisplayId || order.id.slice(-4)}</span>
+                         <span className="text-xl font-black italic text-red-600">₹{order.total?.toFixed(2)}</span>
+                      </div>
+                      <div className="space-y-2">
+                         <div className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase italic">
+                            <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+                            <span className="truncate">{order.customerName || 'Premium User'}</span>
+                         </div>
+                         <div className="flex flex-wrap gap-1.5 mt-2">
+                            {storeNames.map((name: any, idx) => (
+                              <span key={idx} className="bg-white px-2 py-1 rounded-md border border-gray-200 text-[8px] font-black uppercase text-gray-500">
+                                {name}
+                              </span>
+                            ))}
+                         </div>
+                      </div>
+                   </div>
+                 );
+               })}
             </div>
 
             <div className="w-full space-y-3">

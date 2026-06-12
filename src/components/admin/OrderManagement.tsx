@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -175,8 +176,16 @@ export function OrderManagement() {
 
       <div className="grid grid-cols-1 gap-6 pb-20">
         {orders?.map((order: any) => {
-          // Identify unique stores in this order
-          const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName || 'Unknown Store')));
+          // Identify unique stores in this order with robustness
+          const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName).filter(Boolean)));
+          
+          // Fallback to root restaurantName if items don't have it (for legacy orders)
+          if (storeNames.length === 0 && order.restaurantName) {
+            storeNames.push(order.restaurantName);
+          }
+          
+          // Final fallback
+          if (storeNames.length === 0) storeNames.push('ShopyKart Select');
 
           return (
             <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
