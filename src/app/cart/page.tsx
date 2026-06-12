@@ -34,7 +34,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs } from 'firebase/firestore';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
@@ -96,11 +96,12 @@ export default function CartPage() {
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
 
+  // Slider State & Refs
   const [slideX, setSlideX] = useState(0);
-  const [isSliding, setIsSliding] = useState(false);
+  const isSlidingRef = useRef(false);
+  const initialTouchX = useRef(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   const paymentSectionRef = useRef<HTMLDivElement>(null);
-  const initialTouchX = useRef(0);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -319,54 +320,67 @@ export default function CartPage() {
     }
   };
 
-  const handleStart = (e: React.TouchEvent | React.MouseEvent) => { 
+  // Slider Logic Refactored
+  const onStart = useCallback((clientX: number) => {
     if (isPlacing) return;
-    setIsSliding(true); 
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    isSlidingRef.current = true;
     initialTouchX.current = clientX - slideX;
-  };
-  
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!isSliding || isPlacing || !sliderRef.current) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+  }, [isPlacing, slideX]);
+
+  const onMove = useCallback((clientX: number) => {
+    if (!isSlidingRef.current || isPlacing || !sliderRef.current) return;
+    
     const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 44;
-    const maxX = rect.width - handleWidth - 10;
+    const handleWidth = 52; 
+    const padding = 8;
+    const maxX = rect.width - handleWidth - padding * 2;
     
     let x = clientX - initialTouchX.current;
     x = Math.max(0, Math.min(x, maxX));
     setSlideX(x);
 
-    if (x >= maxX * 0.95) {
-      setIsSliding(false);
+    if (x >= maxX * 0.98) {
+      isSlidingRef.current = false;
       setSlideX(maxX);
       handleCheckout();
     }
-  };
+  }, [isPlacing, handleCheckout]);
 
-  const handleEnd = () => {
-    if (!isSliding || isPlacing) return;
-    setIsSliding(false);
+  const onEnd = useCallback(() => {
+    if (!isSlidingRef.current || isPlacing) return;
+    isSlidingRef.current = false;
+    
     const rect = sliderRef.current?.getBoundingClientRect();
-    if (rect && slideX < (rect.width - 54) * 0.9) {
-      setSlideX(0);
+    if (rect) {
+      const handleWidth = 52;
+      const padding = 8;
+      const maxX = rect.width - handleWidth - padding * 2;
+      if (slideX < maxX * 0.9) {
+        setSlideX(0);
+      }
     }
-  };
+  }, [isPlacing, slideX]);
 
   useEffect(() => {
-    if (isSliding) {
-      window.addEventListener('mousemove', handleMove);
-      window.addEventListener('mouseup', handleEnd);
-      window.addEventListener('touchmove', handleMove, { passive: false });
-      window.addEventListener('touchend', handleEnd);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
+    const handleWindowMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      onMove(clientX);
     };
-  }, [isSliding, slideX]);
+
+    if (isSlidingRef.current) {
+      window.addEventListener('mousemove', handleWindowMove);
+      window.addEventListener('mouseup', onEnd);
+      window.addEventListener('touchmove', handleWindowMove, { passive: false });
+      window.addEventListener('touchend', onEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', handleWindowMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, [isSlidingRef.current, onMove, onEnd]);
 
   if (totalItems === 0 && !showSuccess) {
     return (
@@ -570,7 +584,7 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* 7. PAYMENT MODE */}
+        {/* 7. SETTLEMENT MODE */}
         <div ref={paymentSectionRef} className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
           <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /><h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3></div>
           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
@@ -586,9 +600,9 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* FIXED FOOTER - SLIDE TO ORDER (SCREENSHOT ACCURATE) */}
+      {/* FIXED FOOTER - SLIDE TO ORDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-5 animate-in slide-in-from-bottom-full duration-500 pointer-events-auto rounded-t-[2.5rem]">
+        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-500 pointer-events-auto rounded-t-[2.5rem]">
            {/* Top Info Bar */}
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
@@ -624,8 +638,8 @@ export default function CartPage() {
               
               {/* White Circle Handle */}
               <div 
-                onMouseDown={handleStart} 
-                onTouchStart={handleStart} 
+                onMouseDown={(e) => onStart(e.clientX)} 
+                onTouchStart={(e) => onStart(e.touches[0].clientX)} 
                 className={cn(
                   "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform border-4 border-white/50",
                   isPlacing && "pointer-events-none"
@@ -639,7 +653,7 @@ export default function CartPage() {
                  )}
               </div>
               
-              {/* Progress Overlay (lighter green behind handle) */}
+              {/* Progress Overlay */}
               <div 
                 className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" 
                 style={{ width: `${slideX + 54}px` }} 
