@@ -1,6 +1,6 @@
 "use client"
 
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink, Printer, Download, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -129,7 +129,7 @@ export function OrderManagement() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
-                    <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? 'bg-green-100 text-green-700' : 'bg-primary/10 text-primary')}>{order.status}</Badge>
+                    <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary")}>{order.status}</Badge>
                   </div>
                   <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
                   
@@ -137,8 +137,8 @@ export function OrderManagement() {
                      <div className="flex items-center justify-between text-xs font-bold text-gray-700">
                         <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
                         <div className="flex gap-2">
-                           <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2 bg-green-500 text-white rounded-lg"><PhoneCall className="h-3.5 w-3.5" /></button>
-                           <button onClick={() => handleStatusUpdate(order.id, 'Cancelled')} className="p-2 bg-red-50 text-red-500 rounded-lg"><X className="h-3.5 w-3.5" /></button>
+                           <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
+                           <button onClick={() => handleStatusUpdate(order.id, 'Cancelled')} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><X className="h-3.5 w-3.5" /></button>
                         </div>
                      </div>
                      <div className="flex items-start gap-2 text-[10px] text-gray-500"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /><span className="truncate">{order.address}</span></div>
