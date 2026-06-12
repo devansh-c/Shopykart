@@ -12,14 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import dynamic from 'next/dynamic';
 import { toJpeg } from 'html-to-image';
 import { saveAs } from 'file-saver';
-
-const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
-});
 
 const statusOptions = ["Placed", "Accepted", "Preparing", "Ready for Pickup", "Picked Up", "Out for Delivery", "Delivered", "Cancelled"];
 
@@ -48,6 +42,11 @@ export function OrderManagement() {
     if (!firestore) return;
     await updateDoc(doc(firestore, 'orders', id), { status });
     toast({ title: "Status Updated", description: `Order #${id.slice(-4)} is now ${status}.` });
+  };
+
+  const handleOpenGoogleMaps = (lat: number, lng: number) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    window.open(url, '_blank');
   };
 
   const handleDownload = async (order: any) => {
@@ -176,15 +175,10 @@ export function OrderManagement() {
 
       <div className="grid grid-cols-1 gap-6 pb-20">
         {orders?.map((order: any) => {
-          // Identify unique stores in this order with robustness
           const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName).filter(Boolean)));
-          
-          // Fallback to root restaurantName if items don't have it (for legacy orders)
           if (storeNames.length === 0 && order.restaurantName) {
             storeNames.push(order.restaurantName);
           }
-          
-          // Final fallback
           if (storeNames.length === 0) storeNames.push('ShopyKart Select');
 
           return (
@@ -207,19 +201,14 @@ export function OrderManagement() {
                           <div className="flex gap-2">
                              <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
                              {order.latitude && order.longitude && (
-                                <Dialog>
-                                   <DialogTrigger asChild>
-                                      <button className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-200 active:scale-90 transition-all"><Navigation className="h-3.5 w-3.5" /></button>
-                                   </DialogTrigger>
-                                   <DialogContent className="rounded-[2.5rem] max-w-full sm:max-w-xl h-[80vh] p-0 overflow-hidden bg-white border-none shadow-2xl">
-                                      <DialogHeader className="sr-only">
-                                        <DialogTitle>Customer Map Location</DialogTitle>
-                                      </DialogHeader>
-                                      <div className="h-full w-full">
-                                         <OrderMapViewer lat={Number(order.latitude)} lng={Number(order.longitude)} />
-                                      </div>
-                                   </DialogContent>
-                                </Dialog>
+                                <button 
+                                  onClick={() => handleOpenGoogleMaps(Number(order.latitude), Number(order.longitude))} 
+                                  className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-200 active:scale-90 transition-all flex items-center gap-2"
+                                  title="Open in Google Maps"
+                                >
+                                  <Navigation className="h-3.5 w-3.5" />
+                                  <span className="text-[8px] font-black uppercase">Open Maps</span>
+                                </button>
                              )}
                           </div>
                        </div>

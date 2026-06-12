@@ -13,7 +13,7 @@ import {
   Compass, 
   Map, 
   User, 
-  PhoneCall,
+  PhoneCall, 
   History,
   LayoutDashboard,
   Clock,
@@ -40,12 +40,6 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import dynamic from 'next/dynamic';
-
-const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
-});
 
 type MainTab = 'home' | 'history' | 'payout' | 'profile';
 type OrderFilter = 'NEW' | 'DELIVERED' | 'CANCELLED';
@@ -58,7 +52,9 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => (
            <h3 className="text-xl font-black italic tracking-tighter leading-none">#{order.orderDisplayId || order.id.slice(-4)}</h3>
            <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase mt-1"><Clock className="h-2.5 w-2.5" />{format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
         </div>
-        <button onClick={() => onMapOpen(order)} className="h-12 w-12 bg-muted/50 rounded-2xl flex items-center justify-center text-primary active:scale-90 transition-all"><Compass className="h-6 w-6" /></button>
+        <button onClick={() => onMapOpen(order)} className="h-12 w-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-blue-200">
+          <Navigation className="h-6 w-6" />
+        </button>
      </div>
      <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-3">
         <div className="flex items-center gap-3"><div className="bg-white p-1.5 rounded-lg shadow-sm text-primary"><User className="h-3.5 w-3.5" /></div><span className="text-xs font-black uppercase italic tracking-tighter">{order.customerName}</span></div>
@@ -86,8 +82,6 @@ export default function DeliveryDashboard() {
   const [isPending, startTransition] = useTransition();
   const [homeFilter, setHomeFilter] = useState<OrderFilter>('NEW');
   const [isMounted, setIsMounted] = useState(false);
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [selectedTaskCoords, setSelectedTaskCoords] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -124,6 +118,11 @@ export default function DeliveryDashboard() {
     startTransition(() => { setActiveTab(id); });
   };
 
+  const handleOpenGoogleMaps = (lat: number, lng: number) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    window.open(url, '_blank');
+  };
+
   const updateDelivery = async (orderId: string, status: string) => {
     if (!firestore || !user) return;
     try {
@@ -155,7 +154,7 @@ export default function DeliveryDashboard() {
               </div>
               <div className="space-y-4 content-visibility-auto">
                 {filteredHomeOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} filter={homeFilter} onUpdate={updateDelivery} onMapOpen={(o:any) => { setSelectedTaskCoords({lat: Number(o.latitude), lng: Number(o.longitude)}); setIsMapOpen(true); }} />
+                  <OrderCard key={order.id} order={order} filter={homeFilter} onUpdate={updateDelivery} onMapOpen={(o:any) => handleOpenGoogleMaps(Number(o.latitude), Number(o.longitude))} />
                 ))}
               </div>
            </div>
@@ -175,12 +174,6 @@ export default function DeliveryDashboard() {
           </button>
         ))}
       </nav>
-
-      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-full sm:max-w-xl h-[85vh] p-0 overflow-hidden bg-white border-none shadow-2xl">
-           {selectedTaskCoords && <div className="h-full w-full"><OrderMapViewer lat={selectedTaskCoords.lat} lng={selectedTaskCoords.lng} /></div>}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
