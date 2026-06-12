@@ -14,6 +14,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview Resilient hook to fetch collections with enhanced offline error suppression.
+ * Prevent "Red Screen" crashes on intermittent connectivity.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -51,14 +52,17 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        // SUPPRESS RED SCREENS: 'unavailable' and 'failed-precondition' are common
-        // in prototype/web environments when local persistence or network is jittery.
-        if (err.code !== 'unavailable' && err.code !== 'failed-precondition') {
+        // SUPPRESS RED SCREENS: 'unavailable', 'failed-precondition', and network errors
+        // are suppressed to prevent crashing the UI during intermittent connectivity.
+        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled'];
+        
+        if (!suppressedCodes.includes(err.code)) {
           setError(err);
         } else {
-          console.warn('Firestore Collection Fetch: Offline or cache sync in progress.');
+          console.warn(`Firestore Collection Sync: [${err.code}] Client might be offline. Retrying in background...`);
         }
         
+        // Even on error, we stop primary loading to allow UI to show cached data if available
         setLoading(false);
       }
     );

@@ -18,7 +18,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Optimized for peak efficiency and memory usage.
+ * Optimized for peak efficiency and network resilience in prototype environments.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -34,10 +34,12 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      setLogLevel('silent');
+      // Suppress verbose logs to keep console clean for critical warnings
+      setLogLevel('error');
 
-      // PEAK PERFORMANCE SETTINGS
+      // PEAK PERFORMANCE & RESILIENCE SETTINGS
       firestoreInstance = initializeFirestore(appInstance, {
+        // Enable long polling automatically if web-sockets fail (common in some restricted networks)
         experimentalAutoDetectLongPolling: true,
         useFetchStreams: true, 
         localCache: persistentLocalCache({
@@ -46,7 +48,7 @@ export function initializeFirebase() {
         })
       });
 
-      console.log("ShopyKart Turbo Engine: Active ✅");
+      console.log("ShopyKart Turbo Engine: Active & Resilient ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);

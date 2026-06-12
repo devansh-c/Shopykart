@@ -14,6 +14,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview Resilient hook to fetch a single document with offline-graceful handling.
+ * Ensures the app doesn't crash when Firestore reports offline status.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
@@ -45,12 +46,14 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        // SILENT OFFLINE ERROR: Do not trigger a Red Screen for temporary backend connection issues
-        // Firestore is designed to handle this background sync automatically.
-        if (err.code !== 'unavailable' && err.code !== 'failed-precondition') {
+        // SILENT OFFLINE ERROR: Do not trigger a Red Screen for temporary backend connection issues.
+        // Common codes for offline status are 'unavailable' and 'deadline-exceeded'.
+        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled'];
+        
+        if (!suppressedCodes.includes(err.code)) {
           setError(err);
         } else {
-          console.warn('Firestore is temporarily offline, attempting to use cache...');
+          console.warn(`Firestore Doc Sync: [${err.code}] Client might be offline. Using local cache.`);
         }
         
         setLoading(false);
