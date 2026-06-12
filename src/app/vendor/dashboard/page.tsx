@@ -41,7 +41,8 @@ import {
   Save,
   ChevronRight,
   TrendingUp,
-  ArrowUpRight
+  ArrowUpRight,
+  ListTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +81,14 @@ export default function VendorDashboard() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: ''
+    name: '', 
+    price: '', 
+    mrp: '', 
+    description: '', 
+    category: '', 
+    isVeg: true, 
+    imageUrl: '',
+    options: [] as { name: string; price: number }[]
   });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
 
@@ -103,6 +111,20 @@ export default function VendorDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
+
+  // Categories from Admin
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+  const { data: allCategories } = useCollection<any>(categoriesQuery);
+
+  const filteredCategories = useMemo(() => {
+    if (!allCategories || !vendorProfile) return [];
+    return allCategories.filter((cat: any) => 
+      (cat.serviceType || 'Food').toLowerCase() === (vendorProfile.category || 'Food').toLowerCase()
+    );
+  }, [allCategories, vendorProfile]);
 
   // Sync profile data to form once
   useEffect(() => {
@@ -169,8 +191,34 @@ export default function VendorDashboard() {
     }
   };
 
+  const handleAddOption = () => {
+    setProductProductForm(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setProductProductForm(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleOptionChange = (index: number, field: 'name' | 'price', value: string) => {
+    const updated = [...productForm.options];
+    if (field === 'price') updated[index].price = parseFloat(value) || 0;
+    else updated[index].name = value;
+    setProductProductForm(prev => ({ ...prev, options: updated }));
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
+    if (!productForm.name || !productForm.price || !productForm.category) {
+      toast({ variant: "destructive", title: "Missing Fields", description: "Name, Price, and Category are required." });
+      return;
+    }
+    
     setIsSavingProduct(true);
     
     const productData = {
@@ -178,7 +226,7 @@ export default function VendorDashboard() {
       price: parseFloat(productForm.price),
       mrp: parseFloat(productForm.mrp || productForm.price),
       description: productForm.description,
-      category: productForm.category,
+      category: productForm.category.toLowerCase(),
       isVeg: productForm.isVeg,
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/400/300',
       vendorId: user.uid,
@@ -186,6 +234,7 @@ export default function VendorDashboard() {
       zoneId: vendorProfile.zoneId || null,
       town: vendorProfile.town || 'Local',
       serviceMode: vendorProfile.category || 'Food',
+      options: productForm.options.filter(o => o.name.trim() !== ''),
       updatedAt: serverTimestamp(),
       isAvailable: vendorProfile.isOnline !== false
     };
@@ -199,7 +248,7 @@ export default function VendorDashboard() {
       }
       setIsProductModalOpen(false);
       setEditingProduct(null);
-      setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '' });
+      setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '', options: [] });
       toast({ title: "Product Saved!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Error Saving" });
@@ -448,7 +497,7 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-4 animate-in fade-in duration-500">
               <div className="flex items-center justify-between mb-2">
                  <h2 className="text-xl font-black italic uppercase tracking-tighter">My Inventory</h2>
-                 <Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '' }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
+                 <Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
               </div>
               
               <div className="grid grid-cols-1 gap-4">
@@ -468,7 +517,7 @@ export default function VendorDashboard() {
                           </div>
                        </div>
                        <div className="flex gap-2">
-                          <button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: p.isVeg !== false, imageUrl: p.imageUrl }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
+                          <button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: p.isVeg !== false, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
                           <button onClick={() => { if(confirm("Delete item?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
                        </div>
                     </div>
@@ -605,29 +654,90 @@ export default function VendorDashboard() {
 
       {/* Product Modal for Catalog */}
       <Dialog open={isProductModalOpen} onOpenChange={setIsProductModalOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar">
-           <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Product Manager</DialogTitle></DialogHeader>
-           <div className="space-y-4 pt-4">
-              <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-3xl flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer group">
-                 {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="text-center opacity-30"><ImageIcon className="h-8 w-8 mx-auto mb-2" /><span className="text-[10px] font-black uppercase">Click to Upload</span></div>}
+        <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none border-none p-0">
+           <DialogHeader className="p-6 pb-2 border-b"><DialogTitle className="font-black italic uppercase text-center text-xl">Product Manager</DialogTitle></DialogHeader>
+           <div className="p-6 space-y-6">
+              <div onClick={() => fileInputRef.current?.click()} className="h-44 border-2 border-dashed rounded-3xl flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer group hover:border-primary/40 transition-all">
+                 {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="text-center opacity-30"><ImageIcon className="h-8 w-8 mx-auto mb-2" /><span className="text-[10px] font-black uppercase">Upload Photo</span></div>}
               </div>
               <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setProductProductForm({...productForm, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
               
-              <Input placeholder="Item Name" value={productForm.name} onChange={e => setProductProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/30 border-none" />
-              <div className="grid grid-cols-2 gap-3">
-                 <Input placeholder="MRP" type="number" value={productForm.mrp} onChange={e => setProductProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
-                 <Input placeholder="Selling Price" type="number" value={productForm.price} onChange={e => setProductProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />
-              </div>
-              <Input placeholder="Category" value={productForm.category} onChange={e => setProductProductForm({...productForm, category: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
-              <Textarea placeholder="Short Description" value={productForm.description} onChange={e => setProductProductForm({...productForm, description: e.target.value})} className="rounded-xl bg-muted/30 border-none font-medium h-24" />
-              
-              <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
-                 <span className="text-xs font-black uppercase">Vegetarian Only?</span>
-                 <Switch checked={productForm.isVeg} onCheckedChange={v => setProductProductForm({...productForm, isVeg: v})} />
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Basic Details</label>
+                  <Input placeholder="Item Name" value={productForm.name} onChange={e => setProductProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/30 border-none" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MRP (₹)</label>
+                      <Input placeholder="0" type="number" value={productForm.mrp} onChange={e => setProductProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-primary ml-1">Sale Price (₹)</label>
+                      <Input placeholder="0" type="number" value={productForm.price} onChange={e => setProductProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />
+                   </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category (From Admin)</label>
+                  <Select value={productForm.category} onValueChange={(val) => setProductProductForm({...productForm, category: val})}>
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold">
+                       <SelectValue placeholder="Assign Category" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-none shadow-2xl">
+                       {filteredCategories.map((cat: any) => (
+                         <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-[10px]">{cat.name}</SelectItem>
+                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Textarea placeholder="Short Description" value={productForm.description} onChange={e => setProductProductForm({...productForm, description: e.target.value})} className="rounded-xl bg-muted/30 border-none font-medium h-24 p-4 text-xs" />
+                
+                {/* VARIATIONS SECTION */}
+                <div className="space-y-3 pt-2">
+                   <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                         <ListTree className="h-4 w-4 text-primary" />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Product Varieties</span>
+                      </div>
+                      <button onClick={handleAddOption} className="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg">Add Variety</button>
+                   </div>
+                   
+                   <div className="space-y-2">
+                      {productForm.options.map((opt, idx) => (
+                        <div key={idx} className="flex gap-2 animate-in slide-in-from-right-2 duration-300">
+                           <Input 
+                            placeholder="e.g. 500ml / Medium" 
+                            value={opt.name} 
+                            onChange={(e) => handleOptionChange(idx, 'name', e.target.value)}
+                            className="h-10 rounded-lg bg-gray-50 border-none font-bold text-[10px] flex-[2]" 
+                           />
+                           <Input 
+                            type="number" 
+                            placeholder="+₹" 
+                            value={opt.price} 
+                            onChange={(e) => handleOptionChange(idx, 'price', e.target.value)}
+                            className="h-10 rounded-lg bg-gray-50 border-none font-bold text-[10px] flex-1 text-center" 
+                           />
+                           <button onClick={() => handleRemoveOption(idx)} className="h-10 w-10 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shrink-0"><X className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
+                   <div className="flex flex-col">
+                      <span className="text-xs font-black uppercase">Vegetarian?</span>
+                      <span className="text-[8px] font-bold text-muted-foreground">Is this a veg item?</span>
+                   </div>
+                   <Switch checked={productForm.isVeg} onCheckedChange={v => setProductProductForm({...productForm, isVeg: v})} />
+                </div>
               </div>
 
               <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary rounded-3xl font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
-                {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : 'PUBLISH ITEM'}
+                {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProduct ? 'UPDATE ITEM' : 'PUBLISH ITEM'}
               </Button>
            </div>
         </DialogContent>
