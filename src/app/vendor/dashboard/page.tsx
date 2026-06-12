@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -27,7 +26,8 @@ import {
   Loader2,
   ListPlus,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { requestPushToken } from '@/firebase/messaging';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -108,8 +109,14 @@ export default function VendorDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [showNotifyBanner, setShowNotifyBanner] = useState(false);
 
-  useEffect(() => { setIsMounted(true); }, []);
+  useEffect(() => { 
+    setIsMounted(true); 
+    if (typeof window !== 'undefined' && Notification.permission !== 'granted') {
+      setShowNotifyBanner(true);
+    }
+  }, []);
 
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -153,6 +160,14 @@ export default function VendorDashboard() {
     });
   };
 
+  const handleEnableNotifications = async () => {
+    const token = await requestPushToken();
+    if (token) {
+      setShowNotifyBanner(false);
+      toast({ title: "Alerts Enabled! 🔔", description: "Background cloud notifications are active." });
+    }
+  };
+
   const handleAddProduct = async (formData: any) => {
     if (!firestore || !user || !vendorProfile) return;
     if (!formData.name || !formData.price || !formData.imageUrl) {
@@ -191,20 +206,32 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative transform-gpu">
-      <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
-         <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50">
-              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Utensils className="h-5 w-5" />}
+      <header className="bg-white px-4 py-4 flex flex-col gap-3 border-b sticky top-0 z-50">
+         <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+               <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50">
+                 {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Utensils className="h-5 w-5" />}
+               </div>
+               <div>
+                 <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName || 'Business Portal'}</h1>
+                 <div className="flex items-center gap-1.5 mt-1">
+                    <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p>
+                 </div>
+               </div>
             </div>
-            <div>
-              <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName || 'Business Portal'}</h1>
-              <div className="flex items-center gap-1.5 mt-1">
-                 <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                 <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p>
-              </div>
-            </div>
+            <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
          </div>
-         <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
+
+         {showNotifyBanner && (
+           <div className="bg-primary/5 border border-primary/10 p-3 rounded-2xl flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-2">
+                 <div className="bg-primary/10 p-1.5 rounded-lg text-primary"><BellRing className="h-3.5 w-3.5 animate-ring" /></div>
+                 <span className="text-[9px] font-black uppercase text-primary tracking-widest">Enable Background Alerts</span>
+              </div>
+              <Button onClick={handleEnableNotifications} className="h-7 px-4 rounded-lg bg-primary text-white font-black uppercase text-[8px] tracking-widest">ALLOW</Button>
+           </div>
+         )}
       </header>
 
       <main className={cn("flex-1 pb-32 transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>

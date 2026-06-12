@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, memo, useTransition, useMemo } from 'react';
@@ -29,12 +28,14 @@ import {
   LifeBuoy,
   HeartPulse,
   Sparkles,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useFirestore } from '@/firebase';
+import { requestPushToken } from '@/firebase/messaging';
 
 // LAZY LOADING: Optimized with larger chunks for production stability
 const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> });
@@ -127,11 +128,18 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isPending, startTransition] = useTransition();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifyBanner, setShowNotifyBanner] = useState(false);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
     if (auth !== 'true') router.push('/admin/login');
-    else setIsAuthorized(true);
+    else {
+      setIsAuthorized(true);
+      // Check if notification permission is granted
+      if (typeof window !== 'undefined' && Notification.permission !== 'granted') {
+        setShowNotifyBanner(true);
+      }
+    }
   }, [router]);
 
   const handleTabSelect = (id: string) => {
@@ -143,6 +151,13 @@ export default function AdminDashboard() {
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
     router.push('/');
+  };
+
+  const handleEnableNotifications = async () => {
+    const token = await requestPushToken();
+    if (token) {
+      setShowNotifyBanner(false);
+    }
   };
 
   const content = useMemo(() => {
@@ -195,6 +210,19 @@ export default function AdminDashboard() {
       </aside>
 
       <main className={cn("flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
+        {showNotifyBanner && (
+          <div className="mb-6 bg-primary/10 border border-primary/20 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">
+             <div className="flex items-center gap-3">
+                <div className="bg-primary p-2 rounded-xl text-white shadow-lg"><BellRing className="h-5 w-5 animate-ring" /></div>
+                <div>
+                   <h4 className="text-sm font-black italic uppercase">Enable Real-time Cloud Alerts</h4>
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Get background bells when new orders arrive</p>
+                </div>
+             </div>
+             <Button onClick={handleEnableNotifications} className="h-10 px-6 rounded-xl bg-primary text-white font-black uppercase italic text-[10px] tracking-widest shadow-xl shadow-primary/20">ALLOW NOTIFICATIONS</Button>
+          </div>
+        )}
+
         <header className="mb-6 md:mb-8 animate-in fade-in duration-500">
           <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter">
             {menuItems.find(i => i.id === activeTab)?.label}
