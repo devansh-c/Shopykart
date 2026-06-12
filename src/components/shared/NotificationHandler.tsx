@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -7,11 +6,11 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BellRing, ShoppingBag, Loader2, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
+import { BellRing, ShoppingBag, Loader2, VolumeX } from 'lucide-react';
 
 /**
- * @fileOverview Refactored Critical Alert System.
- * Supports Multi-vendor orders where each involved vendor gets an alarm.
+ * @fileOverview Critical Alert System.
+ * EXCLUSIVE FOR ADMIN & VENDORS. Customers are strictly excluded to ensure they never hear background alarms.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -26,63 +25,84 @@ export function NotificationHandler() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize Audio with Maximum Priority
+  // 1. Role Detection (Strict & Early)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.loop = true;
-      audio.volume = 1.0;
-      audio.preload = 'auto';
-      audioRef.current = audio;
-
-      const checkAudio = () => {
-        if (audioRef.current) {
-          audioRef.current.play().then(() => {
-            audioRef.current?.pause();
-            audioRef.current!.currentTime = 0;
-            setIsAudioContextBlocked(false);
-          }).catch(() => {
-            setIsAudioContextBlocked(true);
-          });
-        }
-      };
-
-      window.addEventListener('click', checkAudio, { once: true });
-      window.addEventListener('touchstart', checkAudio, { once: true });
-      
-      return () => {
-        window.removeEventListener('click', checkAudio);
-        window.removeEventListener('touchstart', checkAudio);
-      };
+    if (!user || !firestore) {
+      setUserRole(null);
+      return;
     }
-  }, []);
-
-  // Role Detection
-  useEffect(() => {
-    if (!user || !firestore) return;
+    
     const checkRole = async () => {
+      // Admin check via email
       if (user.email === 'ceo@shopykart.co.in') {
         setUserRole('admin');
         return;
       }
-      const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
-      if (vendorDoc.exists()) {
-        setUserRole('vendor');
-        return;
+      
+      try {
+        const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
+        if (vendorDoc.exists()) {
+          setUserRole('vendor');
+          return;
+        }
+        
+        const partnerDoc = await getDoc(doc(firestore, 'delivery_partners', user.uid));
+        if (partnerDoc.exists()) {
+          setUserRole('delivery');
+          return;
+        }
+        
+        // If none of the above, it's a customer
+        setUserRole('customer');
+      } catch (e) {
+        setUserRole('customer');
       }
-      const partnerDoc = await getDoc(doc(firestore, 'delivery_partners', user.uid));
-      if (partnerDoc.exists()) {
-        setUserRole('delivery');
-        return;
-      }
-      setUserRole('customer');
     };
+    
     checkRole();
   }, [user, firestore]);
 
-  // Persistent Ringing Logic
+  // 2. Initialize Audio ONLY for Admin/Vendor
   useEffect(() => {
-    if (!audioRef.current) return;
+    if (typeof window === 'undefined') return;
+    if (userRole === 'customer') return; // Strictly ignore customers
+
+    const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+    const audio = new Audio(alarmUrl);
+    audio.loop = true;
+    audio.volume = 1.0;
+    audio.preload = 'auto';
+    audioRef.current = audio;
+
+    const wakeUpAudio = () => {
+      if (audioRef.current && (userRole === 'admin' || userRole === 'vendor')) {
+        audioRef.current.play().then(() => {
+          audioRef.current?.pause();
+          audioRef.current!.currentTime = 0;
+          setIsAudioContextBlocked(false);
+        }).catch(() => {
+          setIsAudioContextBlocked(true);
+        });
+      }
+    };
+
+    window.addEventListener('click', wakeUpAudio, { once: true });
+    window.addEventListener('touchstart', wakeUpAudio, { once: true });
+    
+    return () => {
+      window.removeEventListener('click', wakeUpAudio);
+      window.removeEventListener('touchstart', wakeUpAudio);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [userRole]);
+
+  // 3. Persistent Ringing Logic (Admin/Vendor Only)
+  useEffect(() => {
+    if (!audioRef.current || userRole === 'customer') return;
+    
     if (isRinging && !isAudioContextBlocked) {
       audioRef.current.play().catch(() => {
         setIsAudioContextBlocked(true);
@@ -91,30 +111,25 @@ export function NotificationHandler() {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  }, [isRinging, isAudioContextBlocked]);
+  }, [isRinging, isAudioContextBlocked, userRole]);
 
-  // Listener for Multi-Store Orders
+  // 4. Multi-Store Order Listener (Real-time)
   useEffect(() => {
-    if (!user || !firestore || !userRole) return;
-    if (userRole === 'customer') return;
+    if (!user || !firestore || !userRole || userRole === 'customer') return;
 
-    // Listen to ALL "Placed" orders - Real-time trigger
     const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allPlacedOrders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      
       let myAlerts: any[] = [];
 
       if (userRole === 'admin') {
         myAlerts = allPlacedOrders;
       } else if (userRole === 'vendor') {
-        // VENDOR Logic: Only alert if ANY item in the order belongs to this vendor
         myAlerts = allPlacedOrders.filter((order: any) => 
           order.items?.some((item: any) => item.vendorId === user.uid)
         );
       } else if (userRole === 'delivery') {
-        // Delivery logic stays same for now
         myAlerts = allPlacedOrders.filter((o: any) => o.status === 'Ready for Pickup');
       }
 
@@ -141,9 +156,11 @@ export function NotificationHandler() {
     }
   };
 
+  // If customer, render nothing at all to save resources and ensure zero noise
+  if (userRole === 'customer' || !userRole) return null;
+
   return (
     <>
-      {/* Sound Wake-up Overlay for Admin/Vendor - More prominent */}
       {isAudioContextBlocked && (userRole === 'admin' || userRole === 'vendor') && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60000] animate-in slide-in-from-top-4 duration-500">
            <Button 
@@ -169,7 +186,6 @@ export function NotificationHandler() {
         </div>
       )}
 
-      {/* Persistent Order Alert Modal */}
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none">
           <div className="bg-red-600 h-4 w-full animate-pulse" />

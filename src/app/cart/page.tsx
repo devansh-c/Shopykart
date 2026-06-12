@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -306,6 +305,11 @@ export default function CartPage() {
         setSlideX(0);
       } else {
         setSlideX(maxX);
+        // PLAY PING SOUND INSTANTLY FOR CUSTOMER UPON SUCCESSFUL SLIDE
+        try {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.play().catch(() => {});
+        } catch (e) {}
         handleCheckout();
       }
     }
