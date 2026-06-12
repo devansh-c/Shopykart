@@ -1,15 +1,13 @@
 
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { requestPushToken } from '@/firebase/messaging';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BellRing, ShoppingBag, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { BellRing, ShoppingBag, Loader2, AlertTriangle } from 'lucide-react';
 
 /**
  * @fileOverview Critical alert system for Admin and Vendors.
@@ -27,10 +25,9 @@ export function NotificationHandler() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize Audio with high-priority looping and LOUD volume
+  // Initialize Audio with maximum priority looping
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Using a sharp emergency bell sound
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.loop = true;
       audio.volume = 1.0;
@@ -71,7 +68,7 @@ export function NotificationHandler() {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(e => {
-          console.warn("Autoplay blocked: Ringing will start after user interaction.");
+          console.warn("Autoplay blocked: Alarm will sound after interaction.");
         });
       }
     } else {
@@ -104,7 +101,6 @@ export function NotificationHandler() {
 
     let unsubscribe: () => void = () => {};
 
-    // 1. ADMIN & VENDOR LISTENER (Persistent LOUD Alarm)
     if (userRole === 'admin' || userRole === 'vendor') {
       const baseQuery = collection(firestore, 'orders');
       const q = userRole === 'admin' 
@@ -114,12 +110,10 @@ export function NotificationHandler() {
       unsubscribe = onSnapshot(q, (snap) => {
         const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setNewOrders(orders);
-        // RING IF THERE ARE UNACCEPTED ORDERS
         setIsRinging(!snap.empty);
       });
     } 
     
-    // 2. DELIVERY PARTNER LISTENER
     else if (userRole === 'delivery') {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
       unsubscribe = onSnapshot(q, (snap) => {
@@ -127,7 +121,6 @@ export function NotificationHandler() {
       });
     }
 
-    // 3. CUSTOMER LISTENER (Silent updates)
     else {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       unsubscribe = onSnapshot(q, (snapshot) => {
@@ -145,7 +138,6 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* PERSISTENT ACCEPT MODAL FOR ADMIN/VENDORS - MUST CLICK TO STOP ALARM */}
       <Dialog open={newOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000]">
           <div className="bg-red-600 h-3 w-full animate-pulse" />
@@ -175,9 +167,6 @@ export function NotificationHandler() {
                     </div>
                  </div>
                ))}
-               {newOrders.length > 1 && (
-                 <p className="text-[8px] font-black text-primary uppercase text-center">+ {newOrders.length - 1} more waiting orders</p>
-               )}
             </div>
 
             <div className="w-full flex flex-col gap-3">
@@ -194,7 +183,6 @@ export function NotificationHandler() {
         </DialogContent>
       </Dialog>
 
-      {/* FLOATING ALARM INDICATOR (Mini) - If modal is somehow missed */}
       {isRinging && newOrders.length === 0 && (
          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[50001] bg-red-600 text-white px-8 py-3 rounded-full shadow-[0_0_50px_rgba(239,68,68,0.5)] flex items-center gap-4 animate-bounce">
             <AlertTriangle className="h-5 w-5" />
