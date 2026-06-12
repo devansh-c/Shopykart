@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -158,6 +157,9 @@ export function OrderManagement() {
                       <Button variant="outline" className="flex-1 rounded-xl h-10 border-primary/20 text-primary font-black text-[9px] uppercase"><Eye className="h-3.5 w-3.5 mr-1" /> VIEW BILL</Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-[340px] rounded-[2.5rem] p-4 bg-white">
+                       <DialogHeader className="sr-only">
+                         <DialogTitle>Order Bill View</DialogTitle>
+                       </DialogHeader>
                        <div className="scale-[1.05] origin-top">{generateReceiptDOM(order)}</div>
                        <div className="flex gap-2 mt-4">
                           <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white rounded-xl h-12 font-black text-[10px]"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>

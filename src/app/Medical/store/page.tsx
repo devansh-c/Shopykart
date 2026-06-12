@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -185,6 +184,9 @@ export default function MedicalDashboard() {
                           <Button variant="outline" className="flex-1 h-12 rounded-2xl font-black text-[9px] uppercase border-teal-200 text-teal-600"><Eye className="h-3.5 w-3.5 mr-1.5" /> BILL</Button>
                         </DialogTrigger>
                         <DialogContent className="rounded-[2.5rem] max-w-[340px] p-4 bg-white">
+                          <DialogHeader className="sr-only">
+                            <DialogTitle>Order Receipt View</DialogTitle>
+                          </DialogHeader>
                           <div className="scale-[1.05] origin-top">{generateReceiptDOM(o)}</div>
                           <div className="flex gap-2 mt-4">
                              <Button onClick={() => handlePrint(o.id)} className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>

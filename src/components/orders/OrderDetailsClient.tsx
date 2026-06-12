@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -11,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { toJpeg } from 'html-to-image';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const steps = [
   { id: 'Placed', label: 'Order Placed' },
@@ -127,8 +126,6 @@ export default function OrderDetailsClient() {
     container.style.top = '0';
     document.body.appendChild(container);
     
-    // Render the receipt into the container via standard DOM methods or a temporary portal
-    // For simplicity, we use a hidden div in the main component and capture that
     const element = document.getElementById('receipt-download-template');
     if (!element) {
       setIsDownloading(false);
@@ -195,6 +192,9 @@ export default function OrderDetailsClient() {
                 </button>
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden bg-white max-w-[340px]">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Digital Order Bill</DialogTitle>
+                </DialogHeader>
                 <div className="p-4 bg-white flex flex-col items-center gap-4">
                   <div className="w-full scale-[1.05] origin-top">
                     {generateReceiptHTML(order, settings)}
@@ -213,7 +213,6 @@ export default function OrderDetailsClient() {
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
-        {/* Status Card */}
         <div className={cn(
           "rounded-2xl p-5 flex items-center gap-4 border shadow-sm",
           isCancelled ? "bg-red-50 border-red-100 text-red-600" : "bg-[#FFF8E6] border-[#FFE8B3] text-[#B38B00]"
@@ -225,7 +224,6 @@ export default function OrderDetailsClient() {
           </div>
         </div>
 
-        {/* Tracking Journey */}
         {!isCancelled && (
           <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
             <h3 className="font-black text-[10px] uppercase mb-8 tracking-[0.2em] text-gray-400">Order Journey</h3>
@@ -243,7 +241,6 @@ export default function OrderDetailsClient() {
           </div>
         )}
 
-        {/* Hidden template for capturing/printing */}
         <div id="receipt-download-template" className="hidden">
           {generateReceiptHTML(order, settings)}
         </div>
