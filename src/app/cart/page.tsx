@@ -23,12 +23,13 @@ import {
   CheckCircle2,
   X,
   History,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -45,22 +46,6 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   ssr: false,
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
-
-function isPointInPolygon(lat: number, lng: number, vs: any[]) {
-  if (!vs || !Array.isArray(vs) || vs.length < 3) return false;
-  const x = Number(lng);
-  const y = Number(lat);
-  let inside = false;
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(vs[i].lng ?? vs[i].longitude ?? 0);
-    const yi = Number(vs[i].lat ?? vs[i].latitude ?? 0);
-    const xj = Number(vs[j].lng ?? vs[j].longitude ?? 0);
-    const yj = Number(vs[j].lat ?? vs[j].latitude ?? 0);
-    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-    if (intersect) inside = !intersect;
-  }
-  return inside;
-}
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
@@ -91,10 +76,9 @@ export default function CartPage() {
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
 
-  // Slider State & Refs
+  // Slider State
   const [slideX, setSlideX] = useState(0);
-  const isSlidingRef = useRef(false);
-  const initialTouchX = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const paymentSectionRef = useRef<HTMLDivElement>(null);
 
@@ -111,12 +95,6 @@ export default function CartPage() {
   }, [firestore, user]);
   const { data: profile } = useDoc<any>(profileRef);
   const availableCoins = profile?.coins || 0;
-
-  const zonesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'zones'), where('isActive', '==', true));
-  }, [firestore]);
-  const { data: zones } = useCollection<any>(zonesQuery);
 
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -163,12 +141,20 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount - couponDiscount);
 
+  // Address Suggestion Persistence
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setCustomerName(profile?.fullName || localStorage.getItem('user_name') || '');
-    setCustomerPhone(profile?.phoneNumber || localStorage.getItem('user_phone') || '');
-    setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
-    setCustomerPincode(profile?.pincode || localStorage.getItem('user_pincode') || '');
+    const savedName = localStorage.getItem('last_customer_name');
+    const savedPhone = localStorage.getItem('last_customer_phone');
+    const savedAddress = localStorage.getItem('last_customer_address');
+    const savedCity = localStorage.getItem('user_city');
+    const savedPincode = localStorage.getItem('user_pincode');
+
+    setCustomerName(profile?.fullName || savedName || '');
+    setCustomerPhone(profile?.phoneNumber || savedPhone || '');
+    setCustomerAddress(profile?.address || savedAddress || '');
+    setCustomerCity(profile?.city || savedCity || '');
+    setCustomerPincode(profile?.pincode || savedPincode || '');
     
     const savedPlusCode = localStorage.getItem('user_plus_code');
     if (savedPlusCode) {
@@ -180,10 +166,34 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
 
+    // 1. Minimum Order Check
     if (totalPrice < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       setSlideX(0);
       return;
+    }
+
+    // 2. Zone Validation (Strict Constraint)
+    const activeZoneId = localStorage.getItem('active_zone_id');
+    const firstItemVendorId = cart[0]?.vendorId;
+    
+    if (firstItemVendorId && activeZoneId) {
+      try {
+        const vendorRef = doc(firestore, 'vendors', firstItemVendorId);
+        const vendorSnap = await getDoc(vendorRef);
+        if (vendorSnap.exists()) {
+          const vendorZoneId = vendorSnap.data().zoneId;
+          if (vendorZoneId && vendorZoneId !== activeZoneId) {
+            toast({ 
+              variant: "destructive", 
+              title: "Cross-Zone Restricted", 
+              description: "Aap is vendor se order nahi kar sakte kyunki aapne dusri location select ki hai." 
+            });
+            setSlideX(0);
+            return;
+          }
+        }
+      } catch (e) {}
     }
 
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
@@ -198,6 +208,11 @@ export default function CartPage() {
 
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
+
+    // Save for future suggestions
+    localStorage.setItem('last_customer_name', customerName);
+    localStorage.setItem('last_customer_phone', customerPhone);
+    localStorage.setItem('last_customer_address', customerAddress);
 
     const orderData = {
       userId: finalUid,
@@ -226,7 +241,6 @@ export default function CartPage() {
       instructions
     };
 
-    // Instant Redirect & Persistence Logic
     setDoc(doc(firestore, 'orders', orderId), orderData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -268,66 +282,63 @@ export default function CartPage() {
     }
   };
 
-  const onStart = useCallback((clientX: number) => {
+  // REFACTORED SLIDER LOGIC
+  const onStart = useCallback(() => {
     if (isPlacing) return;
-    isSlidingRef.current = true;
-    initialTouchX.current = clientX - slideX;
-  }, [isPlacing, slideX]);
+    setIsDragging(true);
+  }, [isPlacing]);
+
+  const onEnd = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    
+    const slider = sliderRef.current;
+    if (slider) {
+      const maxX = slider.clientWidth - 68; // Handle width (52) + padding (16)
+      if (slideX < maxX * 0.9) {
+        setSlideX(0);
+      } else {
+        setSlideX(maxX);
+        handleCheckout();
+      }
+    }
+  }, [isDragging, slideX, handleCheckout]);
 
   const onMove = useCallback((clientX: number) => {
-    if (!isSlidingRef.current || isPlacing || !sliderRef.current) return;
+    if (!isDragging || isPlacing || !sliderRef.current) return;
     
-    const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 52; 
+    const slider = sliderRef.current;
+    const rect = slider.getBoundingClientRect();
+    const handleWidth = 52;
     const padding = 8;
     const maxX = rect.width - handleWidth - padding * 2;
     
-    let x = clientX - initialTouchX.current;
+    let x = clientX - rect.left - (handleWidth / 2);
     x = Math.max(0, Math.min(x, maxX));
     setSlideX(x);
-
-    if (x >= maxX * 0.98) {
-      isSlidingRef.current = false;
-      setSlideX(maxX);
-      handleCheckout();
-    }
-  }, [isPlacing, handleCheckout]);
-
-  const onEnd = useCallback(() => {
-    if (!isSlidingRef.current || isPlacing) return;
-    isSlidingRef.current = false;
-    
-    const rect = sliderRef.current?.getBoundingClientRect();
-    if (rect) {
-      const handleWidth = 52;
-      const padding = 8;
-      const maxX = rect.width - handleWidth - padding * 2;
-      if (slideX < maxX * 0.9) {
-        setSlideX(0);
-      }
-    }
-  }, [isPlacing, slideX]);
+  }, [isDragging, isPlacing]);
 
   useEffect(() => {
-    const handleWindowMove = (e: MouseEvent | TouchEvent) => {
-      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-      onMove(clientX);
-    };
+    if (isDragging) {
+      const handleGlobalMove = (e: any) => {
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        onMove(clientX);
+      };
+      const handleGlobalEnd = () => onEnd();
 
-    if (isSlidingRef.current) {
-      window.addEventListener('mousemove', handleWindowMove);
-      window.addEventListener('mouseup', onEnd);
-      window.addEventListener('touchmove', handleWindowMove, { passive: false });
-      window.addEventListener('touchend', onEnd);
+      window.addEventListener('mousemove', handleGlobalMove);
+      window.addEventListener('mouseup', handleGlobalEnd);
+      window.addEventListener('touchmove', handleGlobalMove, { passive: false });
+      window.addEventListener('touchend', handleGlobalEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', handleGlobalMove);
+        window.removeEventListener('mouseup', handleGlobalEnd);
+        window.removeEventListener('touchmove', handleGlobalMove);
+        window.removeEventListener('touchend', handleGlobalEnd);
+      };
     }
-
-    return () => {
-      window.removeEventListener('mousemove', handleWindowMove);
-      window.removeEventListener('mouseup', onEnd);
-      window.removeEventListener('touchmove', handleWindowMove);
-      window.removeEventListener('touchend', onEnd);
-    };
-  }, [isSlidingRef.current, onMove, onEnd]);
+  }, [isDragging, onMove, onEnd]);
 
   if (totalItems === 0 && !isPlacing) {
     return (
@@ -341,7 +352,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-60">
+    <div className="min-h-screen bg-[#F8F9FA] pb-64">
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
         <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
@@ -435,7 +446,21 @@ export default function CartPage() {
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
           <div className="flex gap-3">
             {[10, 20, 30].map(tip => (
-              <button key={tip} onClick={() => setDeliveryTip(tip)} className={cn("flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>₹{tip}</button>
+              <button 
+                key={tip} 
+                onClick={() => setDeliveryTip(tip)} 
+                className={cn(
+                  "relative flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", 
+                  deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
+                )}
+              >
+                ₹{tip}
+                {tip === 20 && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[6px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white">
+                    MOST TIPPED
+                  </span>
+                )}
+              </button>
             ))}
             <button onClick={() => setIsCustomTipOpen(true)} className={cn("flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip > 30 ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>{deliveryTip > 30 ? `₹${deliveryTip}` : 'CUSTOM'}</button>
           </div>
@@ -500,8 +525,8 @@ export default function CartPage() {
                  </span>
               </div>
               <div 
-                onMouseDown={(e) => onStart(e.clientX)} 
-                onTouchStart={(e) => onStart(e.touches[0].clientX)} 
+                onMouseDown={onStart} 
+                onTouchStart={onStart} 
                 className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform", isPlacing && "pointer-events-none")} 
                 style={{ transform: `translateX(${slideX}px)` }}
               >
@@ -512,8 +537,22 @@ export default function CartPage() {
         </div>
       </div>
       
-      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent></Dialog>
-      <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}><DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center"><DialogHeader><DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle></DialogHeader><Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" /><Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button></DialogContent></Dialog>
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+        <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden">
+          <MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
+        <DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center">
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle>
+          </DialogHeader>
+          <Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" />
+          <Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
