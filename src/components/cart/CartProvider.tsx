@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback, useEffect } from 'react';
 
 export type CartItem = {
   id: string;
@@ -33,10 +33,41 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // 1. Defensively load cart from localStorage to prevent "Unexpected end of JSON input"
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('shopykart_cart');
+      if (savedCart && savedCart.trim() !== '') {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) setCart(parsed);
+      }
+      
+      const savedWishlist = localStorage.getItem('shopykart_wishlist');
+      if (savedWishlist && savedWishlist.trim() !== '') {
+        const parsed = JSON.parse(savedWishlist);
+        if (Array.isArray(parsed)) setWishlist(parsed);
+      }
+    } catch (e) {
+      console.warn("Cart restoration failed: Malformed data in localStorage.");
+      localStorage.removeItem('shopykart_cart');
+      localStorage.removeItem('shopykart_wishlist');
+    } finally {
+      setIsInitialized(true);
+    }
+  }, []);
+
+  // 2. Persist cart to localStorage
+  useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem('shopykart_cart', JSON.stringify(cart));
+      localStorage.setItem('shopykart_wishlist', JSON.stringify(wishlist));
+    }
+  }, [cart, wishlist, isInitialized]);
 
   const addToCart = useCallback((product: any) => {
     setCart((prev) => {
-      // Logic: If product has different options, treat as different cart items
       const existing = prev.find((item) => 
         item.id === product.id && 
         item.selectedOption?.name === product.selectedOption?.name
@@ -55,7 +86,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeFromCart = useCallback((productId: string) => {
     setCart((prev) => {
-      // Find the first instance of this product ID to remove
       const index = prev.findIndex(item => item.id === productId);
       if (index === -1) return prev;
       
@@ -71,6 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setCart([]);
+    localStorage.removeItem('shopykart_cart');
   }, []);
 
   const toggleWishlist = useCallback((productId: string) => {

@@ -10,7 +10,6 @@ import {
   ChevronLeft, 
   ShoppingBag, 
   Loader2, 
-  Bike, 
   FileText,
   MapPin,
   ChevronRight,
@@ -19,16 +18,12 @@ import {
   ShoppingBasket,
   Coins,
   Map as MapIcon,
-  Navigation,
-  Heart,
   Tag,
   Ticket,
   CheckCircle2,
   X,
   History,
-  ArrowRight,
-  ChevronUp,
-  ChevronDown
+  ChevronUp
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -38,7 +33,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -57,10 +52,10 @@ function isPointInPolygon(lat: number, lng: number, vs: any[]) {
   const y = Number(lat);
   let inside = false;
   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = Number(vs[i].lng ?? vs[i].longitude ?? (Array.isArray(vs[i]) ? vs[i][1] : 0));
-    const yi = Number(vs[i].lat ?? vs[i].latitude ?? (Array.isArray(vs[i]) ? vs[i][0] : 0));
-    const xj = Number(vs[j].lng ?? vs[j].longitude ?? (Array.isArray(vs[j]) ? vs[j][1] : 0));
-    const yj = Number(vs[j].lat ?? vs[j].latitude ?? (Array.isArray(vs[j]) ? vs[j][0] : 0));
+    const xi = Number(vs[i].lng ?? vs[i].longitude ?? 0);
+    const yi = Number(vs[i].lat ?? vs[i].latitude ?? 0);
+    const xj = Number(vs[j].lng ?? vs[j].longitude ?? 0);
+    const yj = Number(vs[j].lat ?? vs[j].latitude ?? 0);
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !intersect;
   }
@@ -179,85 +174,27 @@ export default function CartPage() {
     if (savedPlusCode) {
       const [lat, lng] = savedPlusCode.split(',').map(Number);
       if (!isNaN(lat) && !isNaN(lng)) { setLatitude(lat); setLongitude(lng); }
-    } else if (profile?.latitude) {
-      setLatitude(Number(profile.latitude));
-      setLongitude(Number(profile.longitude));
     }
   }, [profile]);
-
-  const scrollToPayment = () => {
-    paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleApplyCoupon = async () => {
-    if (!firestore || !couponInput.trim()) return;
-    setIsVerifyingCoupon(true);
-    try {
-      const q = query(collection(firestore, 'coupons'), where('code', '==', couponInput.trim().toUpperCase()));
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        toast({ variant: "destructive", title: "Invalid Coupon" });
-        setAppliedCoupon(null);
-      } else {
-        const couponData = snap.docs[0].data();
-        const minVal = parseInt(couponData.minOrder?.match(/\d+/)?.[0] || '0');
-        if (totalPrice < minVal) {
-          toast({ variant: "destructive", title: "Min Order Not Met", description: `Minimum order ₹${minVal} required.` });
-        } else {
-          setAppliedCoupon(couponData);
-          toast({ title: "Coupon Applied!" });
-        }
-      }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Verification Failed" });
-    } finally {
-      setIsVerifyingCoupon(false);
-    }
-  };
-
-  const validateAndSetCoords = async (lat: number, lng: number) => {
-    const matchedZone = zones?.find(zone => isPointInPolygon(lat, lng, zone.boundary || []));
-    if (matchedZone) {
-      const finalLat = Number(lat.toFixed(8));
-      const finalLng = Number(lng.toFixed(8));
-      setLatitude(finalLat);
-      setLongitude(finalLng);
-      setCustomerCity(matchedZone.city || 'Local');
-      localStorage.setItem('user_plus_code', `${finalLat},${finalLng}`);
-      localStorage.setItem('user_city', matchedZone.city || 'Local');
-      if (user && firestore) {
-        setDoc(doc(firestore, 'users', user.uid), {
-          latitude: finalLat,
-          longitude: finalLng,
-          city: matchedZone.city || 'Local',
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      }
-      window.dispatchEvent(new CustomEvent('user-address-updated'));
-    }
-    setIsMapOpen(false);
-  };
 
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
 
     if (totalPrice < 35) {
-      toast({ variant: "destructive", title: "Order Value Low", description: "₹35 se kam ka order nahi hoga." });
+      toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       setSlideX(0);
       return;
     }
 
-    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 10) {
-      toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your details." });
+    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
+      toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your delivery details." });
       setSlideX(0);
       return;
     }
 
     setIsPlacing(true);
-
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
-    const finalUid = user?.uid;
-    if (!finalUid) return;
+    const finalUid = user?.uid || 'guest_' + Date.now();
 
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
@@ -275,7 +212,6 @@ export default function CartPage() {
       deliveryTip,
       status: 'Placed',
       paymentMethod,
-      paymentStatus: 'Pending',
       address: fullFinalAddress,
       latitude: latitude || null,
       longitude: longitude || null,
@@ -290,44 +226,45 @@ export default function CartPage() {
       instructions
     };
 
-    const userData = {
-      fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
-      city: customerCity, pincode: customerPincode, latitude, longitude,
-      coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
-    };
-
-    // INITIATE WRITES (Optimistic logic - NO AWAIT per guidelines)
+    // Instant Redirect & Persistence Logic
     setDoc(doc(firestore, 'orders', orderId), orderData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: `orders/${orderId}`,
-          operation: 'create',
-          requestResourceData: orderData,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      });
-      
-    setDoc(doc(firestore, 'users', finalUid), userData, { merge: true })
-      .catch(async (serverError) => {
-         const permissionError = new FirestorePermissionError({
-          path: `users/${finalUid}`,
-          operation: 'update',
-          requestResourceData: userData,
+          path: `orders/${orderId}`, operation: 'create', requestResourceData: orderData
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
       });
 
-    // INSTANT REDIRECT AS REQUESTED
+    if (user) {
+      setDoc(doc(firestore, 'users', user.uid), {
+        fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
+        city: customerCity, pincode: customerPincode, latitude, longitude,
+        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
     clearCart();
     router.replace(`/orders/track?id=${orderId}`);
   };
 
-  const handleCustomTip = () => {
-    const val = parseFloat(customTipValue);
-    if (!isNaN(val) && val >= 0) {
-      setDeliveryTip(val);
-      setIsCustomTipOpen(false);
-      setCustomTipValue('');
+  const handleApplyCoupon = async () => {
+    if (!firestore || !couponInput.trim()) return;
+    setIsVerifyingCoupon(true);
+    try {
+      const q = query(collection(firestore, 'coupons'), where('code', '==', couponInput.trim().toUpperCase()));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        toast({ variant: "destructive", title: "Invalid Coupon" });
+        setAppliedCoupon(null);
+      } else {
+        const couponData = snap.docs[0].data();
+        setAppliedCoupon(couponData);
+        toast({ title: "Coupon Applied!" });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Verification Failed" });
+    } finally {
+      setIsVerifyingCoupon(false);
     }
   };
 
@@ -394,8 +331,8 @@ export default function CartPage() {
 
   if (totalItems === 0 && !isPlacing) {
     return (
-      <div className="min-h-screen bg-[#F5F6F7] flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-white h-32 w-32 rounded-full flex items-center justify-center mb-6 shadow-sm"><ShoppingBag className="h-12 w-12 text-gray-300" /></div>
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white h-32 w-32 rounded-full flex items-center justify-center mb-6 shadow-sm"><ShoppingBag className="h-12 w-12 text-gray-200" /></div>
         <h2 className="text-xl font-bold text-gray-800">Your cart is empty</h2>
         <Button onClick={() => router.push('/menu')} className="rounded-xl h-12 px-8 font-bold bg-primary mt-6">BROWSE MENU</Button>
         <BottomNav />
@@ -407,7 +344,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F8F9FA] pb-60">
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
-        <h1 className="text-lg font-bold text-gray-800 italic uppercase">Secure Checkout</h1>
+        <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
       </div>
 
       <div className="p-4 space-y-4">
@@ -419,10 +356,11 @@ export default function CartPage() {
           </div>
           <div className="space-y-4">
             {cart.map((item) => (
-              <div key={item.id} className="flex gap-4 items-center">
+              <div key={item.id + (item.selectedOption?.name || '')} className="flex gap-4 items-center">
                 <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-xs text-gray-800 truncate uppercase">{item.name}</h3>
+                  {item.selectedOption && <p className="text-[8px] font-black text-primary uppercase italic">{item.selectedOption.name}</p>}
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
                       <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">-</button>
@@ -439,41 +377,20 @@ export default function CartPage() {
 
         {/* 2. DELIVERY TO (ADDRESS) */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
-          </div>
+          <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
           <div className="space-y-4">
-              <button onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg shadow-black/10 active:scale-95 transition-all">
+              <button onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all">
                 <MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP
               </button>
               
-              {profile?.address && customerAddress !== profile.address && (
-                <button onClick={() => {
-                  setCustomerAddress(profile.address);
-                  if (profile.fullName) setCustomerName(profile.fullName);
-                  if (profile.phoneNumber) setCustomerPhone(profile.phoneNumber);
-                  if (profile.city) setCustomerCity(profile.city);
-                  if (profile.pincode) setCustomerPincode(profile.pincode);
-                  if (profile.latitude) setLatitude(profile.latitude);
-                  if (profile.longitude) setLongitude(profile.longitude);
-                  toast({ title: "Saved Address Loaded!" });
-                }} className="w-full p-4 rounded-2xl bg-primary/5 border border-dashed border-primary/20 flex items-center justify-between text-left group">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm"><History className="h-4 w-4" /></div>
-                    <div className="max-w-[180px]"><span className="text-[8px] font-black uppercase text-primary">Use Saved Address</span><p className="text-[10px] font-bold text-gray-600 line-clamp-1">{profile.address}</p></div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-primary group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              )}
-              
               <div className="space-y-3">
-                <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold placeholder:text-gray-300" />
+                <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="PINCODE *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center placeholder:text-gray-300" />
+                  <Input placeholder="PINCODE *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center" />
                   <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60 text-center" />
                 </div>
-                <Textarea placeholder="COMPLETE HOUSE/STREET DETAILS *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[90px] p-4 text-xs placeholder:text-gray-300" />
-                <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold placeholder:text-gray-300" />
+                <Textarea placeholder="COMPLETE HOUSE/STREET DETAILS *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[90px] p-4 text-xs" />
+                <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
               </div>
           </div>
         </div>
@@ -487,16 +404,16 @@ export default function CartPage() {
            <div className="flex gap-2">
               <div className="relative flex-1">
                  <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                 <Input placeholder="PROMO CODE" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest text-[10px] placeholder:text-gray-300" />
+                 <Input placeholder="PROMO CODE" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest text-[10px]" />
               </div>
               <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all">
                  {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
               </button>
            </div>
            {appliedCoupon && (
-             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between animate-in zoom-in-95">
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span></div>
-                <button onClick={() => setAppliedCoupon(null)} className="text-green-700 p-1 hover:bg-green-100 rounded-lg"><X className="h-3.5 w-3.5" /></button>
+             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between">
+                <span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span>
+                <button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5 text-green-700" /></button>
              </div>
            )}
         </div>
@@ -504,88 +421,37 @@ export default function CartPage() {
         {/* 4. WALLET COINS */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner">
-              <Coins className="h-6 w-6" />
-            </div>
+            <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner"><Coins className="h-6 w-6" /></div>
             <div>
               <h3 className="text-sm font-black uppercase tracking-tight italic">ShopyKart Coins</h3>
-              <p className="text-[9px] font-bold text-muted-foreground uppercase leading-none mt-1">
-                Balance: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(2)})
-              </p>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Balance: {availableCoins} Coins</p>
             </div>
           </div>
-          <Switch 
-            checked={useCoins} 
-            onCheckedChange={setUseCoins} 
-            disabled={availableCoins <= 0}
-            className="data-[state=checked]:bg-amber-500"
-          />
+          <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
         {/* 5. DELIVERY TIP */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
-          <div className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-red-500 animate-pulse" />
-            <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
-          </div>
-          <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed tracking-wider">
-            Your token of appreciation helps our delivery fleet grow. 100% goes to the partner.
-          </p>
+          <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
           <div className="flex gap-3">
             {[10, 20, 30].map(tip => (
-              <button 
-                key={tip}
-                onClick={() => setDeliveryTip(tip)}
-                className={cn(
-                  "flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all",
-                  deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
-                )}
-              >
-                ₹{tip}
-              </button>
+              <button key={tip} onClick={() => setDeliveryTip(tip)} className={cn("flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>₹{tip}</button>
             ))}
-            <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
-              <DialogTrigger asChild>
-                <button 
-                  className={cn(
-                    "flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all",
-                    deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
-                  )}
-                >
-                  {deliveryTip > 30 || (deliveryTip > 0 && ![10,20,30].includes(deliveryTip)) ? `₹${deliveryTip}` : 'CUSTOM'}
-                </button>
-              </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] max-w-xs border-none shadow-2xl">
-                <DialogHeader><DialogTitle className="text-center font-black uppercase text-sm italic tracking-widest">Enter Appreciation Amount</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-4">
-                   <Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 rounded-2xl bg-gray-50 border-none text-center text-3xl font-black italic text-primary" />
-                   <Button onClick={handleCustomTip} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">APPLY TIP</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <button onClick={() => setIsCustomTipOpen(true)} className={cn("flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip > 30 ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>{deliveryTip > 30 ? `₹${deliveryTip}` : 'CUSTOM'}</button>
           </div>
         </div>
 
         {/* 6. BILL SUMMARY */}
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-             <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
-             <FileText className="h-4 w-4 text-gray-300" />
-          </div>
+          <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
             <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
             {dynamic_charges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>
             ))}
-            {appliedCoupon && (
-              <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Promo ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>
-            )}
-            {useCoins && coinDiscount > 0 && (
-              <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>
-            )}
-            {deliveryTip > 0 && (
-              <div className="flex justify-between font-black text-[11px] text-amber-500 uppercase tracking-widest"><span>Partner Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>
-            )}
+            {appliedCoupon && <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Discount</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>}
+            {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
+            {deliveryTip > 0 && <div className="flex justify-between font-black text-[11px] text-amber-500 uppercase tracking-widest"><span>Partner Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
           </div>
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center">
             <span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span>
@@ -595,24 +461,23 @@ export default function CartPage() {
 
         {/* 7. SETTLEMENT MODE */}
         <div ref={paymentSectionRef} className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
-          <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /><h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3></div>
-          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
-            <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50")}>
+          <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
               <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-300")} />
               <span className="text-[9px] font-black uppercase tracking-widest">Online Pay</span>
             </div>
-            <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50")}>
+            <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
               <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} />
               <span className="text-[9px] font-black uppercase tracking-widest">Cash on Delivery</span>
             </div>
-          </RadioGroup>
+          </div>
         </div>
       </div>
 
-      {/* FIXED FOOTER - SLIDE TO ORDER */}
+      {/* FIXED FOOTER SLIDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-500 pointer-events-auto rounded-t-[2.5rem]">
-           {/* Top Info Bar */}
+        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 pointer-events-auto rounded-t-[2.5rem]">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                  <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
@@ -620,58 +485,35 @@ export default function CartPage() {
                  </div>
                  <div className="flex flex-col">
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span>
-                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none tracking-tight">
-                      {paymentMethod === 'online' ? 'Google Pay' : 'Cash on Delivery'}
-                    </span>
+                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'Google Pay' : 'Cash on Delivery'}</span>
                  </div>
               </div>
-              <button onClick={scrollToPayment} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest active:scale-90 transition-all border border-rose-100">
+              <button onClick={() => paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">
                 CHANGE <ChevronUp className="h-3.5 w-3.5" />
               </button>
            </div>
 
-           {/* The Green Slider Track */}
-           <div 
-             ref={sliderRef} 
-             className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none border-2 border-white/10"
-           >
-              {/* Center Text */}
+           <div ref={sliderRef} className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn(
-                   "text-base font-black text-white uppercase italic tracking-tighter transition-all duration-300",
-                   slideX > 40 ? "opacity-0" : "opacity-100"
-                 )}>
+                 <span className={cn("text-base font-black text-white uppercase italic tracking-tighter", slideX > 40 && "opacity-0")}>
                    {isPlacing ? 'PROCESSING...' : `SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
                  </span>
               </div>
-              
-              {/* White Circle Handle */}
               <div 
                 onMouseDown={(e) => onStart(e.clientX)} 
                 onTouchStart={(e) => onStart(e.touches[0].clientX)} 
-                className={cn(
-                  "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform border-4 border-white/50",
-                  isPlacing && "pointer-events-none"
-                )} 
+                className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform", isPlacing && "pointer-events-none")} 
                 style={{ transform: `translateX(${slideX}px)` }}
               >
-                 {isPlacing ? (
-                   <Loader2 className="h-6 w-6 animate-spin" />
-                 ) : (
-                   <ChevronRight className="h-7 w-7 stroke-[3]" />
-                 )}
+                 {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : <ChevronRight className="h-7 w-7 stroke-[3]" />}
               </div>
-              
-              {/* Progress Overlay */}
-              <div 
-                className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" 
-                style={{ width: `${slideX + 54}px` }} 
-              />
+              <div className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" style={{ width: `${slideX + 54}px` }} />
            </div>
         </div>
       </div>
       
-      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden border-none shadow-2xl focus:outline-none"><DialogHeader className="sr-only"><DialogTitle>Pin Location</DialogTitle></DialogHeader><MapPicker onConfirm={validateAndSetCoords} /></DialogContent></Dialog>
+      <Dialog open={isMapOpen} onOpenChange={setIsOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent></Dialog>
+      <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}><DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center"><DialogHeader><DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle></DialogHeader><Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" /><Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button></DialogContent></Dialog>
     </div>
   );
 }
