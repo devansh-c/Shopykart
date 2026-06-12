@@ -10,7 +10,7 @@ import { useMemo, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * @fileOverview StoreSection with content-visibility and GPU acceleration.
+ * @fileOverview StoreSection with strict location isolation and GPU acceleration.
  */
 export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
@@ -44,7 +44,18 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
       
       if (activeZoneId || targetCityNormalized) {
         const matchesId = activeZoneId && v.zoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (v.town || '').toLowerCase().trim() === targetCityNormalized;
+        const vTown = (v.town || '').toLowerCase().trim();
+        
+        const matchesTown = targetCityNormalized && (
+          vTown === targetCityNormalized || 
+          vTown.startsWith(targetCityNormalized) ||
+          targetCityNormalized.startsWith(vTown)
+        );
+
+        // Strict exclusion between major cities
+        if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
+        if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
+
         if (!matchesId && !matchesTown) return false;
       }
       

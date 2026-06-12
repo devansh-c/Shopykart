@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -35,16 +36,25 @@ export default function StoresPage() {
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
-    const searchLower = searchQuery.toLowerCase();
+    const searchLower = searchQuery.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      // STRICT ZONE FILTERING
+      const vTown = (v.town || '').toLowerCase().trim();
+
+      // STRICT ZONE FILTERING: No mixing between Ranipur and Mauranipur
       if (activeZoneId || targetCityNormalized) {
         const matchesZone = activeZoneId && v.zoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (v.town || '').toLowerCase().trim() === targetCityNormalized;
+        const matchesTown = targetCityNormalized && (
+          vTown === targetCityNormalized || 
+          vTown.startsWith(targetCityNormalized) ||
+          targetCityNormalized.startsWith(vTown)
+        );
         
-        // Exact match required
+        // Strict exclusion
+        if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
+        if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
+
         if (!matchesZone && !matchesTown) return false;
       }
 

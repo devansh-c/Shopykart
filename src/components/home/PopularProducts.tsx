@@ -162,10 +162,10 @@ export function PopularProducts({
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // PERFORMANCE: Use limit to avoid loading too many documents at once
+  // PERFORMANCE: Increased limit to 500 to ensure all products across different towns are fetched for client-side filtering
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(150));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
 
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
@@ -200,26 +200,35 @@ export function PopularProducts({
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // HUB ISOLATION FIX: Fallback to vendor category if serviceMode is missing
+      // HUB ISOLATION: Ensure correct section
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
-      // LOCATION FILTERING (Robust & Inclusive)
+      // STRICT LOCATION FILTERING: No mixing between Ranipur and Mauranipur
       const productZoneId = product.zoneId || vendor?.zoneId;
-      // Get town from product, fallback to vendor town
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
-      // If user has a location set, we MUST match it
       if (activeZoneId || targetCityNormalized) {
+        // If a specific zone (map area) is selected, prioritize it
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
-        // Check if town matches city (e.g. "Ranipur" === "Ranipur")
-        const matchesTown = targetCityNormalized && (productTown.includes(targetCityNormalized) || targetCityNormalized.includes(productTown));
         
-        // Products with NO specific location set are considered GLOBAL and should show everywhere
-        const isGlobal = !productZoneId && (productTown === 'local' || !productTown || productTown === '');
+        // If no zoneId match, check town name strictly
+        const matchesTown = targetCityNormalized && (
+          productTown === targetCityNormalized || 
+          productTown.startsWith(targetCityNormalized) ||
+          targetCityNormalized.startsWith(productTown)
+        );
+        
+        // GLOBAL/LOCAL Fallback: Only if no zone or town is specified at all
+        const isUnassigned = !productZoneId && (!productTown || productTown === '' || productTown === 'local');
 
-        if (!matchesZoneId && !matchesTown && !isGlobal) return false;
+        // If we are looking for a specific city, and the product belongs to a DIFFERENT city, hide it.
+        if (!matchesZoneId && !matchesTown && !isUnassigned) return false;
+        
+        // Final sanity check: if product explicitly belongs to a different major city, hide it
+        if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
+        if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
 
       const matchesSearch = !searchLower || 

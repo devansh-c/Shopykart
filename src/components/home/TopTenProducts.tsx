@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 
 /**
- * @fileOverview TopTenProducts with optimized location filtering.
+ * @fileOverview TopTenProducts with optimized strict location filtering.
  */
 export function TopTenProducts() {
   const firestore = useFirestore();
@@ -29,9 +29,10 @@ export function TopTenProducts() {
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
+  // Increased limit for global fetching
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(20));
+    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(100));
   }, [firestore]);
 
   const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
@@ -49,21 +50,30 @@ export function TopTenProducts() {
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       
-      // HUB ISOLATION: Only show Food products in Top Ten
+      // HUB ISOLATION
       const vendorCategory = vendor?.category || 'Food';
       const productMode = p.serviceMode || vendorCategory;
       if (productMode !== 'Food') return false;
 
-      // LOCATION FILTERING (Robust & Inclusive)
+      // STRICT LOCATION FILTERING
       const productZoneId = p.zoneId || vendor?.zoneId;
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
 
       if (activeZoneId || targetCityNormalized) {
         const matchesId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (productTown.includes(targetCityNormalized) || targetCityNormalized.includes(productTown));
-        const isGlobal = !productZoneId && (productTown === 'local' || !productTown || productTown === '');
+        const matchesTown = targetCityNormalized && (
+          productTown === targetCityNormalized || 
+          productTown.startsWith(targetCityNormalized) ||
+          targetCityNormalized.startsWith(productTown)
+        );
         
-        if (!matchesId && !matchesTown && !isGlobal) return false;
+        // Hide if mixing between cities
+        if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
+        if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
+
+        const isUnassigned = !productZoneId && (!productTown || productTown === '' || productTown === 'local');
+        
+        if (!matchesId && !matchesTown && !isUnassigned) return false;
       }
       return true;
     }).slice(0, 10);
