@@ -54,14 +54,14 @@ export function TopTenProducts() {
       const productMode = p.serviceMode || vendorCategory;
       if (productMode !== 'Food') return false;
 
-      // LOCATION FILTERING (Optimized & Inclusive)
+      // LOCATION FILTERING (Robust & Inclusive)
       const productZoneId = p.zoneId || vendor?.zoneId;
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
 
       if (activeZoneId || targetCityNormalized) {
         const matchesId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized);
-        const isGlobal = !productZoneId && (productTown === 'local' || !productTown);
+        const matchesTown = targetCityNormalized && (productTown.includes(targetCityNormalized) || targetCityNormalized.includes(productTown));
+        const isGlobal = !productZoneId && (productTown === 'local' || !productTown || productTown === '');
         
         if (!matchesId && !matchesTown && !isGlobal) return false;
       }

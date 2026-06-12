@@ -205,14 +205,18 @@ export function PopularProducts({
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
-      // LOCATION FILTERING (Optimized & Inclusive)
+      // LOCATION FILTERING (Robust & Inclusive)
       const productZoneId = product.zoneId || vendor?.zoneId;
+      // Get town from product, fallback to vendor town
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
-      // INCLUSIVE FILTERING: If no location is set, show everything for this hub
+      // If user has a location set, we MUST match it
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (productTown === targetCityNormalized);
+        // Check if town matches city (e.g. "Ranipur" === "Ranipur")
+        const matchesTown = targetCityNormalized && (productTown.includes(targetCityNormalized) || targetCityNormalized.includes(productTown));
+        
+        // Products with NO specific location set are considered GLOBAL and should show everywhere
         const isGlobal = !productZoneId && (productTown === 'local' || !productTown || productTown === '');
 
         if (!matchesZoneId && !matchesTown && !isGlobal) return false;
@@ -327,4 +331,3 @@ export function PopularProducts({
     </div>
   );
 }
-
