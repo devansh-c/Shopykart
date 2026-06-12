@@ -209,9 +209,12 @@ export function OrderManagement() {
                              {order.latitude && order.longitude && (
                                 <Dialog>
                                    <DialogTrigger asChild>
-                                      <button className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 active:scale-90 transition-all"><Navigation className="h-3.5 w-3.5" /></button>
+                                      <button className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-200 active:scale-90 transition-all"><Navigation className="h-3.5 w-3.5" /></button>
                                    </DialogTrigger>
                                    <DialogContent className="rounded-[2.5rem] max-w-full sm:max-w-xl h-[80vh] p-0 overflow-hidden bg-white border-none shadow-2xl">
+                                      <DialogHeader className="sr-only">
+                                        <DialogTitle>Customer Map Location</DialogTitle>
+                                      </DialogHeader>
                                       <div className="h-full w-full">
                                          <OrderMapViewer lat={Number(order.latitude)} lng={Number(order.longitude)} />
                                       </div>
