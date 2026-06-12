@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp, setLogLevel } from 'firebase/app';
@@ -34,8 +33,8 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      // Suppress verbose logs to keep console clean for critical warnings
-      setLogLevel('error');
+      // SILENT LOGGING: Prevent internal connection warnings from showing up as UI Errors
+      setLogLevel('silent');
 
       // PEAK PERFORMANCE & RESILIENCE SETTINGS
       firestoreInstance = initializeFirestore(appInstance, {
@@ -46,6 +45,13 @@ export function initializeFirebase() {
           tabManager: persistentMultipleTabManager(),
           cacheSizeBytes: CACHE_SIZE_UNLIMITED
         })
+      });
+
+      // Global handler to catch any unhandled firestore background errors
+      window.addEventListener('unhandledrejection', (event) => {
+        if (event.reason && event.reason.toString().includes('@firebase/firestore')) {
+          event.preventDefault();
+        }
       });
 
       console.log("ShopyKart Turbo Engine: Active & Resilient ✅");

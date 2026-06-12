@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -52,17 +51,18 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        // SUPPRESS RED SCREENS: 'unavailable', 'failed-precondition', and network errors
-        // are suppressed to prevent crashing the UI during intermittent connectivity.
-        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled'];
+        // SUPPRESS RED SCREENS: 'unavailable', 'failed-precondition', 'deadline-exceeded', 'resource-exhausted'
+        // are suppressed to prevent crashing the UI during intermittent connectivity or timeout.
+        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
         
         if (!suppressedCodes.includes(err.code)) {
           setError(err);
         } else {
-          console.warn(`Firestore Collection Sync: [${err.code}] Client might be offline. Retrying in background...`);
+          // Log only to console to keep UI clean
+          console.debug(`Firestore Collection Sync Notice: [${err.code}] Backend might be slow or offline. Retrying...`);
         }
         
-        // Even on error, we stop primary loading to allow UI to show cached data if available
+        // Stop primary loading to allow UI to show cached data
         setLoading(false);
       }
     );

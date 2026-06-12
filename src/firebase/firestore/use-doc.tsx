@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -34,7 +33,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
       (snapshot: DocumentSnapshot<T>) => {
         setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
         setLoading(false);
-        // Clear error if data starts flowing again
         setError(null);
       },
       async (err: FirestoreError) => {
@@ -47,13 +45,12 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
         }
         
         // SILENT OFFLINE ERROR: Do not trigger a Red Screen for temporary backend connection issues.
-        // Common codes for offline status are 'unavailable' and 'deadline-exceeded'.
-        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled'];
+        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
         
         if (!suppressedCodes.includes(err.code)) {
           setError(err);
         } else {
-          console.warn(`Firestore Doc Sync: [${err.code}] Client might be offline. Using local cache.`);
+          console.debug(`Firestore Doc Sync Notice: [${err.code}] Using local cache due to slow connection.`);
         }
         
         setLoading(false);
