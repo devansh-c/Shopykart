@@ -145,9 +145,8 @@ export default function AdminDashboard() {
     router.push('/');
   };
 
-  if (!isAuthorized) return null;
-
   const content = useMemo(() => {
+    if (!isAuthorized) return null;
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
       case 'zones': return <ZoneManagement />;
@@ -171,7 +170,9 @@ export default function AdminDashboard() {
       case 'settings': return <BrandingManagement />;
       default: return <AdminOverview />;
     }
-  }, [activeTab]);
+  }, [activeTab, isAuthorized]);
+
+  if (!isAuthorized) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row transform-gpu">
