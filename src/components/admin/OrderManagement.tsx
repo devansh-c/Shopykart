@@ -206,7 +206,18 @@ export function OrderManagement() {
                           <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
                           <div className="flex gap-2">
                              <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
-                             <button onClick={() => handleStatusUpdate(order.id, 'Cancelled')} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><X className="h-3.5 w-3.5" /></button>
+                             {order.latitude && order.longitude && (
+                                <Dialog>
+                                   <DialogTrigger asChild>
+                                      <button className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 active:scale-90 transition-all"><Navigation className="h-3.5 w-3.5" /></button>
+                                   </DialogTrigger>
+                                   <DialogContent className="rounded-[2.5rem] max-w-full sm:max-w-xl h-[80vh] p-0 overflow-hidden bg-white border-none shadow-2xl">
+                                      <div className="h-full w-full">
+                                         <OrderMapViewer lat={Number(order.latitude)} lng={Number(order.longitude)} />
+                                      </div>
+                                   </DialogContent>
+                                </Dialog>
+                             )}
                           </div>
                        </div>
                        
