@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -31,7 +30,9 @@ import {
   ShieldCheck,
   Printer,
   Download,
-  Eye
+  Eye,
+  Package,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -82,11 +83,12 @@ export default function VendorDashboard() {
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
 
+  // UPDATED QUERY: Look for user.uid in the vendorIds array for multi-store support
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'orders'), where('vendorId', '==', user.uid));
+    return query(collection(firestore, 'orders'), where('vendorIds', 'array-contains', user.uid));
   }, [firestore, user]);
-  const { data: rawOrders } = useCollection<any>(ordersQuery);
+  const { data: rawOrders, loading: ordersLoading } = useCollection<any>(ordersQuery);
 
   const orders = useMemo(() => {
     if (!rawOrders) return [];
@@ -203,6 +205,14 @@ export default function VendorDashboard() {
     );
   };
 
+  const filteredOrders = useMemo(() => {
+    return orders?.filter(o => {
+      if(orderFilter === 'NEW ORDERS') return !['Delivered', 'Cancelled'].includes(o.status);
+      if(orderFilter === 'CANCELLED') return o.status === 'Cancelled';
+      return o.status === 'Delivered';
+    });
+  }, [orders, orderFilter]);
+
   if (!isMounted) return null;
 
   return (
@@ -233,43 +243,68 @@ export default function VendorDashboard() {
                   <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-black text-white" : "text-gray-400")}>{f}</button>
                 ))}
               </div>
-              {orders?.filter(o => {
-                if(orderFilter === 'NEW ORDERS') return !['Delivered', 'Cancelled'].includes(o.status);
-                if(orderFilter === 'CANCELLED') return o.status === 'Cancelled';
-                return o.status === 'Delivered';
-              }).map(o => (
-                <div key={o.id} className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm relative overflow-hidden group">
-                   <div className="flex justify-between items-center mb-4">
-                      <div><span className="text-lg font-black italic">#{o.orderDisplayId || o.id.slice(-4)}</span><div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div></div>
-                      <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : o.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-primary/10 text-primary")}>{o.status}</Badge>
-                   </div>
-                   <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
-                      {o.items?.map((item:any, i:number) => (<div key={i} className="flex justify-between items-center text-xs font-bold"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(2)}</span></div>))}
-                   </div>
-                   
-                   <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button className="flex-1 bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button>
-                        </DialogTrigger>
-                        <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
-                          <DialogHeader className="sr-only">
-                            <DialogTitle>Order Bill Receipt</DialogTitle>
-                          </DialogHeader>
-                          <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
-                            <div className="w-full scale-[1.05] origin-top mb-4">{generateReceiptDOM(o)}</div>
+
+              {ordersLoading ? (
+                <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              ) : filteredOrders && filteredOrders.length > 0 ? (
+                filteredOrders.map(o => {
+                  // Only show items belonging to this vendor in the card preview
+                  const myItems = o.items?.filter((item: any) => item.vendorId === user?.uid) || [];
+                  
+                  return (
+                    <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm relative overflow-hidden group">
+                       <div className="flex justify-between items-center mb-4">
+                          <div><span className="text-lg font-black italic">#{o.orderDisplayId || o.id.slice(-4)}</span><div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div></div>
+                          <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : o.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-primary/10 text-primary")}>{o.status}</Badge>
+                       </div>
+
+                       <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-3">
+                          <div className="flex items-center gap-2 border-b border-white pb-2 mb-1">
+                             <User className="h-3.5 w-3.5 text-primary" />
+                             <span className="text-xs font-black uppercase italic">{o.customerName}</span>
                           </div>
-                          <div className="p-4 bg-gray-50 border-t flex gap-2 shrink-0">
-                             <Button onClick={() => handlePrint(o.id)} className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
-                             <Button onClick={() => handleDownload(o)} disabled={downloadingId === o.id} className="flex-1 bg-primary h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg">
-                               {downloadingId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
-                             </Button>
+                          <div className="space-y-1.5">
+                             <p className="text-[8px] font-black text-primary uppercase tracking-widest">My Order Part:</p>
+                             {myItems.map((item:any, i:number) => (
+                               <div key={i} className="flex justify-between items-center text-[11px] font-bold">
+                                  <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                                  <span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(2)}</span>
+                               </div>
+                             ))}
+                             {myItems.length === 0 && <p className="text-[9px] italic opacity-40">Items from other stores</p>}
                           </div>
-                        </DialogContent>
-                      </Dialog>
-                   </div>
+                       </div>
+                       
+                       <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button className="flex-1 bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Full Bill</button>
+                            </DialogTrigger>
+                            <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
+                              <DialogHeader className="sr-only">
+                                <DialogTitle>Order Bill Receipt</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                                <div className="w-full scale-[1.05] origin-top mb-4">{generateReceiptDOM(o)}</div>
+                              </div>
+                              <div className="p-4 bg-gray-50 border-t flex gap-2 shrink-0">
+                                 <Button onClick={() => handlePrint(o.id)} className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
+                                 <Button onClick={() => handleDownload(o)} disabled={downloadingId === o.id} className="flex-1 bg-primary h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg">
+                                   {downloadingId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
+                                 </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                       </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center opacity-30">
+                   <ShoppingBag className="h-16 w-16 mb-4" />
+                   <p className="font-black italic uppercase tracking-widest text-xs">No orders in this category</p>
                 </div>
-              ))}
+              )}
            </div>
          ) : null}
       </main>

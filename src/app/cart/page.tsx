@@ -172,29 +172,6 @@ export default function CartPage() {
       return;
     }
 
-    // 2. Zone Validation (Strict Constraint)
-    const activeZoneId = localStorage.getItem('active_zone_id');
-    const firstItemVendorId = cart[0]?.vendorId;
-    
-    if (firstItemVendorId && activeZoneId) {
-      try {
-        const vendorRef = doc(firestore, 'vendors', firstItemVendorId);
-        const vendorSnap = await getDoc(vendorRef);
-        if (vendorSnap.exists()) {
-          const vendorZoneId = vendorSnap.data().zoneId;
-          if (vendorZoneId && vendorZoneId !== activeZoneId) {
-            toast({ 
-              variant: "destructive", 
-              title: "Cross-Zone Restricted", 
-              description: "Aap is vendor se order nahi kar sakte kyunki aapne dusri location select ki hai." 
-            });
-            setSlideX(0);
-            return;
-          }
-        }
-      } catch (e) {}
-    }
-
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your delivery details." });
       setSlideX(0);
@@ -208,10 +185,8 @@ export default function CartPage() {
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
-    // Save for future suggestions
-    localStorage.setItem('last_customer_name', customerName);
-    localStorage.setItem('last_customer_phone', customerPhone);
-    localStorage.setItem('last_customer_address', customerAddress);
+    // COLLECT ALL UNIQUE VENDOR IDS
+    const allVendorIds = Array.from(new Set(cart.map(item => item.vendorId).filter(Boolean)));
 
     const orderData = {
       userId: finalUid,
@@ -238,6 +213,7 @@ export default function CartPage() {
       longitude: longitude || null,
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'global',
+      vendorIds: allVendorIds, // CRITICAL: For Multi-Vendor Dashboard support
       restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
       coinsEarned: 10,
       coinsUsed,
@@ -247,24 +223,24 @@ export default function CartPage() {
       instructions
     };
 
-    setDoc(doc(firestore, 'orders', orderId), orderData)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `orders/${orderId}`, operation: 'create', requestResourceData: orderData
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      });
+    try {
+      await setDoc(doc(firestore, 'orders', orderId), orderData);
+      
+      if (user) {
+        await setDoc(doc(firestore, 'users', user.uid), {
+          fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
+          city: customerCity, pincode: customerPincode, latitude, longitude,
+          coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
 
-    if (user) {
-      setDoc(doc(firestore, 'users', user.uid), {
-        fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
-        city: customerCity, pincode: customerPincode, latitude, longitude,
-        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
-      }, { merge: true });
+      clearCart();
+      router.replace(`/orders/track?id=${orderId}`);
+    } catch (serverError) {
+      setIsPlacing(false);
+      setSlideX(0);
+      toast({ variant: "destructive", title: "Checkout Error" });
     }
-
-    clearCart();
-    router.replace(`/orders/track?id=${orderId}`);
   };
 
   const handleApplyCoupon = async () => {
@@ -288,7 +264,6 @@ export default function CartPage() {
     }
   };
 
-  // REFACTORED SLIDER LOGIC
   const onStart = useCallback(() => {
     if (isPlacing) return;
     setIsDragging(true);
@@ -300,12 +275,11 @@ export default function CartPage() {
     
     const slider = sliderRef.current;
     if (slider) {
-      const maxX = slider.clientWidth - 68; // Handle width (52) + padding (16)
+      const maxX = slider.clientWidth - 68;
       if (slideX < maxX * 0.9) {
         setSlideX(0);
       } else {
         setSlideX(maxX);
-        // PLAY PING SOUND INSTANTLY FOR CUSTOMER UPON SUCCESSFUL SLIDE
         try {
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
           audio.play().catch(() => {});
@@ -370,7 +344,6 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* 1. ORDER DETAILS */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4">
              <ShoppingBasket className="h-5 w-5 text-primary" />
@@ -397,7 +370,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* 2. DELIVERY TO (ADDRESS) */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
           <div className="space-y-4">
@@ -417,7 +389,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* 3. APPLY COUPON */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
            <div className="flex items-center gap-3">
               <div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div>
@@ -440,7 +411,6 @@ export default function CartPage() {
            )}
         </div>
 
-        {/* 4. WALLET COINS */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner"><Coins className="h-6 w-6" /></div>
@@ -452,7 +422,6 @@ export default function CartPage() {
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
-        {/* 5. DELIVERY TIP */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
           <div className="flex gap-3">
@@ -477,7 +446,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* 6. BILL SUMMARY */}
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-4">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
@@ -495,7 +463,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* 7. SETTLEMENT MODE */}
         <div ref={paymentSectionRef} className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -511,7 +478,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* FIXED FOOTER SLIDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 pointer-events-auto rounded-t-[2.5rem]">
            <div className="flex items-center justify-between px-2">
