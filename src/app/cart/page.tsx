@@ -512,7 +512,7 @@ export default function CartPage() {
         </div>
       </div>
       
-      <Dialog open={isMapOpen} onOpenChange={setIsOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent></Dialog>
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}><DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent></Dialog>
       <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}><DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center"><DialogHeader><DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle></DialogHeader><Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" /><Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button></DialogContent></Dialog>
     </div>
   );
