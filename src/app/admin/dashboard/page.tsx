@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, memo, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { 
@@ -34,10 +34,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
-// LAZY LOADING: Dynamically import heavy components
+// LAZY LOADING: Optimized with larger chunks for production stability
 const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> });
 const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement').then(m => ({ default: m.ProductManagement })));
 const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement').then(m => ({ default: m.BannerManagement })));
@@ -80,24 +79,16 @@ const menuItems = [
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
 
-function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: { 
-  activeTab: string, 
-  setActiveTab: (id: string) => void, 
-  onSignOut: () => void,
-  onCloseMobile: () => void
-}) {
+const SidebarContent = memo(({ activeTab, onTabSelect, onSignOut, onCloseMobile }: any) => {
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white transform-gpu">
       <div className="p-6 flex items-center space-x-3 border-b border-border/30">
-        <div className="bg-primary p-2 rounded-xl text-white">
-          <LayoutDashboard className="h-5 w-5" />
-        </div>
+        <div className="bg-primary p-2 rounded-xl text-white"><LayoutDashboard className="h-5 w-5" /></div>
         <div>
           <h1 className="text-lg font-black italic leading-none">SHOPYKART</h1>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Admin Panel</p>
         </div>
       </div>
-
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto no-scrollbar">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -105,15 +96,10 @@ function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: {
           return (
             <button
               key={item.id}
-              onClick={() => {
-                setActiveTab(item.id);
-                onCloseMobile();
-              }}
+              onClick={() => { onTabSelect(item.id); onCloseMobile(); }}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 group",
-                isActive 
-                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                isActive ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
               <div className="flex items-center space-x-3">
@@ -125,37 +111,34 @@ function SidebarContent({ activeTab, setActiveTab, onSignOut, onCloseMobile }: {
           );
         })}
       </nav>
-
       <div className="p-4 border-t border-border/30">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onSignOut} 
-          className="w-full justify-start text-red-500 font-bold hover:bg-red-50 hover:text-red-600 rounded-xl"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          EXIT PANEL
+        <Button variant="ghost" size="sm" onClick={onSignOut} className="w-full justify-start text-red-500 font-bold hover:bg-red-50 hover:text-red-600 rounded-xl">
+          <LogOut className="h-4 w-4 mr-2" /> EXIT PANEL
         </Button>
       </div>
     </div>
   );
-}
+});
+SidebarContent.displayName = "SidebarContent";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const firestore = useFirestore();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isPending, startTransition] = useTransition();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
-    if (auth !== 'true') {
-      router.push('/admin/login');
-    } else {
-      setIsAuthorized(true);
-    }
+    if (auth !== 'true') router.push('/admin/login');
+    else setIsAuthorized(true);
   }, [router]);
+
+  const handleTabSelect = (id: string) => {
+    startTransition(() => {
+      setActiveTab(id);
+    });
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
@@ -164,7 +147,7 @@ export default function AdminDashboard() {
 
   if (!isAuthorized) return null;
 
-  const renderContent = () => {
+  const content = useMemo(() => {
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
       case 'zones': return <ZoneManagement />;
@@ -188,7 +171,7 @@ export default function AdminDashboard() {
       case 'settings': return <BrandingManagement />;
       default: return <AdminOverview />;
     }
-  };
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row transform-gpu">
@@ -201,26 +184,23 @@ export default function AdminDashboard() {
           <SheetTrigger asChild><Button variant="ghost" size="icon" className="rounded-xl"><MenuIcon className="h-6 w-6" /></Button></SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 border-none shadow-2xl">
             <SheetHeader className="sr-only"><SheetTitle>Menu</SheetTitle></SheetHeader>
-            <SidebarContent activeTab={activeTab} setActiveTab={setActiveTab} onSignOut={handleSignOut} onCloseMobile={() => setIsMobileMenuOpen(false)} />
+            <SidebarContent activeTab={activeTab} onTabSelect={handleTabSelect} onSignOut={handleSignOut} onCloseMobile={() => setIsMobileMenuOpen(false)} />
           </SheetContent>
         </Sheet>
       </header>
 
       <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen shadow-sm">
-        <SidebarContent activeTab={activeTab} setActiveTab={setActiveTab} onSignOut={handleSignOut} onCloseMobile={() => {}} />
+        <SidebarContent activeTab={activeTab} onTabSelect={handleTabSelect} onSignOut={handleSignOut} onCloseMobile={() => {}} />
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full content-visibility-auto">
+      <main className={cn("flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
         <header className="mb-6 md:mb-8 animate-in fade-in duration-500">
           <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter">
             {menuItems.find(i => i.id === activeTab)?.label}
           </h2>
           <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1">Management Portal</p>
         </header>
-
-        <div className="pb-20">
-          {renderContent()}
-        </div>
+        <div className="pb-20 content-visibility-auto">{content}</div>
       </main>
     </div>
   );
