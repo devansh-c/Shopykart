@@ -84,6 +84,15 @@ export default function VendorDashboard() {
   });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
 
+  // Form state for Profile
+  const [profileForm, setProfileForm] = useState({
+    storeName: '',
+    address: '',
+    phone: '',
+    fullName: ''
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
   useEffect(() => { 
     setIsMounted(true); 
   }, []);
@@ -94,6 +103,18 @@ export default function VendorDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
+
+  // Sync profile data to form once
+  useEffect(() => {
+    if (vendorProfile) {
+      setProfileForm({
+        storeName: vendorProfile.storeName || '',
+        address: vendorProfile.address || '',
+        phone: vendorProfile.phone || '',
+        fullName: vendorProfile.fullName || ''
+      });
+    }
+  }, [vendorProfile]);
 
   // App Settings (for branding/receipts)
   const brandingRef = useMemoFirebase(() => {
@@ -184,6 +205,25 @@ export default function VendorDashboard() {
       toast({ variant: "destructive", title: "Error Saving" });
     } finally {
       setIsSavingProduct(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!firestore || !user) return;
+    setIsSavingProfile(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        storeName: profileForm.storeName,
+        address: profileForm.address,
+        phone: profileForm.phone,
+        fullName: profileForm.fullName,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Profile Updated", description: "Your changes are now live." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -506,17 +546,37 @@ export default function VendorDashboard() {
                     </div>
                     <div className="space-y-1">
                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Store Owner</label>
-                       <Input value={vendorProfile?.fullName || ''} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                       <Input 
+                        value={profileForm.fullName} 
+                        onChange={e => setProfileForm({...profileForm, fullName: e.target.value})}
+                        className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+                       />
                     </div>
                     <div className="space-y-1">
                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Phone Number</label>
-                       <Input value={vendorProfile?.phone || ''} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                       <Input 
+                        value={profileForm.phone} 
+                        onChange={e => setProfileForm({...profileForm, phone: e.target.value})}
+                        className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+                       />
                     </div>
                     <div className="space-y-1">
                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Store Address</label>
-                       <Input value={vendorProfile?.address || ''} placeholder="Update store address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                       <Input 
+                        value={profileForm.address} 
+                        onChange={e => setProfileForm({...profileForm, address: e.target.value})}
+                        placeholder="Update store address" 
+                        className="h-12 rounded-xl bg-gray-50 border-none font-bold" 
+                       />
                     </div>
-                    <Button className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl shadow-gray-200 mt-2"><Save className="h-4 w-4 mr-2" /> SAVE UPDATES</Button>
+                    <Button 
+                      onClick={handleSaveProfile}
+                      disabled={isSavingProfile}
+                      className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl shadow-gray-200 mt-2"
+                    >
+                      {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                      SAVE UPDATES
+                    </Button>
                  </div>
 
                  <div className="bg-red-50 p-6 rounded-[2.5rem] border border-red-100 flex flex-col items-center text-center gap-4">
