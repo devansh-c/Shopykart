@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { toJpeg } from 'html-to-image';
+import { saveAs } from 'file-saver';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const steps = [
@@ -23,10 +24,6 @@ const steps = [
   { id: 'Delivered', label: 'Delivered' },
 ];
 
-/**
- * @fileOverview Refactored Order Details with professional Receipt View and Download.
- * Optimized: Buttons are now always visible (sticky) in the dialog.
- */
 export default function OrderDetailsClient() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
@@ -86,11 +83,21 @@ export default function OrderDetailsClient() {
               <tr key={i}>
                 <td className="py-2 pr-2 font-black leading-tight">{item.name}</td>
                 <td className="text-center py-2">X{item.quantity}</td>
-                <td className="text-right py-2">{ (item.price * item.quantity).toFixed(2) }</td>
+                <td className="text-right py-2">{(item.price * item.quantity).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        <div className="border-t border-dashed border-black my-3 pt-3 space-y-1.5 text-[10px]">
+           <div className="flex justify-between"><span>ITEM TOTAL:</span><span className="font-black">₹{orderData.subtotal?.toFixed(2) || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0).toFixed(2)}</span></div>
+           {orderData.charges?.map((charge: any, idx: number) => (
+             <div key={idx} className="flex justify-between"><span>{charge.name}:</span><span className="font-black">₹{charge.amount.toFixed(2)}</span></div>
+           ))}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between text-black"><span>DISCOUNT (COUPON):</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between text-black"><span>DISCOUNT (COINS):</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between text-black"><span>PARTNER TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+        </div>
 
         <div className="border-t-2 border-black mt-3 pt-3 flex justify-between items-center text-lg font-black italic">
           <span>GRAND TOTAL</span>
@@ -127,13 +134,17 @@ export default function OrderDetailsClient() {
     }
 
     try {
-      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff' });
-      const link = document.createElement('a');
-      link.download = `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`;
-      link.href = dataUrl;
-      link.click();
+      // Use higher scale for mobile clarity and JPEG format for gallery compatibility
+      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
+      
+      // Convert DataURL to Blob for better browser compatibility
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      saveAs(blob, `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
       toast({ title: "Saved to Gallery! ✅" });
     } catch (err) {
+      console.error("Download Error:", err);
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
       setIsDownloading(false);

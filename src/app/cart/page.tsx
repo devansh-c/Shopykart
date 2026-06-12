@@ -223,8 +223,10 @@ export default function CartPage() {
         id: item.id, name: item.name, quantity: item.quantity, price: item.price, 
         isCustom: !!item.isCustom, vendorId: item.vendorId || 'global' 
       })),
+      subtotal: totalPrice,
+      charges: dynamic_charges.map(c => ({ name: c.name, amount: c.calculatedAmount })),
       total: grandTotal,
-      deliveryTip,
+      deliveryTip: Number(deliveryTip),
       status: 'Placed',
       paymentMethod,
       address: fullFinalAddress,
@@ -555,4 +557,3 @@ export default function CartPage() {
     </div>
   );
 }
-

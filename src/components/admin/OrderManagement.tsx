@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 import { toJpeg } from 'html-to-image';
+import { saveAs } from 'file-saver';
 
 const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
   ssr: false,
@@ -54,13 +55,13 @@ export function OrderManagement() {
     if (!element) return;
     setDownloadingId(order.id);
     try {
-      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff' });
-      const link = document.createElement('a');
-      link.download = `Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`;
-      link.href = dataUrl;
-      link.click();
+      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      saveAs(blob, `ShopyKart_Admin_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
       toast({ title: "Saved!" });
     } catch (err) {
+      console.error("Download Error:", err);
       toast({ variant: "destructive", title: "Error" });
     } finally {
       setDownloadingId(null);
@@ -81,6 +82,8 @@ export function OrderManagement() {
   const generateReceiptDOM = (orderData: any) => {
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
+    const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
+    
     return (
       <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border border-gray-100 mx-auto">
         <div className="text-center mb-4">
@@ -99,6 +102,17 @@ export function OrderManagement() {
             ))}
           </tbody>
         </table>
+        
+        <div className="border-t border-dashed border-black my-2 pt-2 space-y-1 text-[9px]">
+           <div className="flex justify-between"><span>SUBTOTAL:</span><span className="font-black">₹{subtotal.toFixed(2)}</span></div>
+           {orderData.charges?.map((c: any, i: number) => (
+             <div key={i} className="flex justify-between"><span>{c.name}:</span><span className="font-black">₹{c.amount.toFixed(2)}</span></div>
+           ))}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>PARTNER TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+        </div>
+
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
         <div className="border-t border-dashed border-black my-3" />
         <div className="border border-dashed border-black p-2 text-center mb-4">

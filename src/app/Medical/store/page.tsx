@@ -48,6 +48,7 @@ import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toJpeg } from 'html-to-image';
+import { saveAs } from 'file-saver';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -95,11 +96,10 @@ export default function MedicalDashboard() {
     if (!element) return;
     setDownloadingId(order.id);
     try {
-      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff' });
-      const link = document.createElement('a');
-      link.download = `Medical_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`;
-      link.href = dataUrl;
-      link.click();
+      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      saveAs(blob, `Medical_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
       toast({ title: "Saved!" });
     } catch (e) { toast({ variant: "destructive", title: "Error" }); }
     finally { setDownloadingId(null); }
@@ -118,6 +118,8 @@ export default function MedicalDashboard() {
 
   const generateReceiptDOM = (orderData: any) => {
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total.toFixed(2)}&cu=INR`;
+    const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
+    
     return (
       <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border shadow-2xl mx-auto">
         <div className="text-center mb-3">
@@ -132,6 +134,17 @@ export default function MedicalDashboard() {
         <table className="w-full text-[9px]">
           <tbody>{orderData.items?.map((item: any, i: number) => (<tr key={i}><td width="70%" className="py-1 font-black">{item.name}</td><td className="text-center">X{item.quantity}</td><td className="text-right">{(item.price * item.quantity).toFixed(2)}</td></tr>))}</tbody>
         </table>
+        
+        <div className="border-t border-dashed border-black my-2 pt-2 space-y-1 text-[8px]">
+           <div className="flex justify-between"><span>SUBTOTAL:</span><span className="font-black">₹{subtotal.toFixed(2)}</span></div>
+           {orderData.charges?.map((c: any, i: number) => (
+             <div key={i} className="flex justify-between"><span>{c.name}:</span><span className="font-black">₹{c.amount.toFixed(2)}</span></div>
+           ))}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+        </div>
+
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>GRAND TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
         <div className="border-t border-dashed border-black my-3" />
         <div className="border border-dashed border-black p-2 text-center mb-4"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUri)}`} className="w-24 h-24 mx-auto grayscale" alt="QR" /></div>
