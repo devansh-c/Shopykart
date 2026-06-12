@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -27,7 +28,10 @@ import {
   ListPlus,
   FileText,
   CheckCircle2,
-  ShieldCheck
+  ShieldCheck,
+  Printer,
+  Download,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -43,57 +47,10 @@ import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { requestPushToken } from '@/firebase/messaging';
+import { toJpeg } from 'html-to-image';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
-
-// Form localized to fix input lag
-const ProductForm = memo(({ initialData, categories, onSave, onCancel, isSubmitting }: any) => {
-  const [formData, setFormData] = useState(initialData || { 
-    name: '', mrp: '', price: '', description: '', category: '', imageUrl: '', isVeg: true, options: [] 
-  });
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const handleUpdateOption = (index: number, field: string, value: string) => {
-    const updated = [...formData.options];
-    if (field === 'price') updated[index].price = parseFloat(value) || 0;
-    else updated[index].name = value;
-    setFormData({ ...formData, options: updated });
-  };
-
-  return (
-    <div className="space-y-5 pt-4 transform-gpu">
-      <div onClick={() => fileRef.current?.click()} className="h-44 border-2 border-dashed border-border rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
-        {formData.imageUrl ? <img src={formData.imageUrl} className="h-full w-full object-cover" alt="" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-10" /><span className="text-[10px] font-black uppercase text-muted-foreground">Dish Photo</span></div>}
-      </div>
-      <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setFormData({...formData, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
-      <div className="space-y-4">
-        <Input placeholder="Dish Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/10 border-none" />
-        <Textarea placeholder="Description..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="rounded-xl bg-muted/10 h-24 font-medium text-xs border-none" />
-        <div className="grid grid-cols-2 gap-4">
-          <Input placeholder="MRP ₹" type="number" value={formData.mrp} onChange={e => setFormData({...formData, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
-          <Input placeholder="Price ₹" type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="h-12 rounded-xl border-primary/20 bg-primary/5 font-black text-primary" />
-        </div>
-        <Select value={formData.category} onValueChange={(val) => setFormData({...formData, category: val})}>
-          <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold text-xs"><SelectValue placeholder="Select Section" /></SelectTrigger>
-          <SelectContent className="rounded-2xl">{categories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 text-xs uppercase">{cat.name}</SelectItem>))}</SelectContent>
-        </Select>
-        <div className="space-y-3 pt-2">
-           <div className="flex items-center justify-between"><label className="text-[10px] font-black uppercase text-muted-foreground">Variants</label><Button type="button" onClick={() => setFormData({...formData, options: [...formData.options, {name:'', price: 0}]})} variant="ghost" className="h-7 text-[8px] font-black uppercase border border-primary/20 text-primary rounded-lg">+ ADD</Button></div>
-           {formData.options.map((opt:any, i:number) => (
-             <div key={i} className="flex gap-2">
-               <Input placeholder="Size" value={opt.name} onChange={e => handleUpdateOption(i, 'name', e.target.value)} className="h-11 rounded-xl text-[10px] font-bold bg-muted/10 border-none" />
-               <Input type="number" placeholder="₹" value={opt.price} onChange={e => handleUpdateOption(i, 'price', e.target.value)} className="h-11 w-20 rounded-xl text-[10px] font-black text-center bg-primary/5 border-none text-primary" />
-               <Button onClick={() => { const u = [...formData.options]; u.splice(i, 1); setFormData({...formData, options: u}) }} variant="ghost" size="icon" className="h-11 w-11 text-red-400 bg-red-50 rounded-xl shrink-0"><X className="h-4 w-4" /></Button>
-             </div>
-           ))}
-        </div>
-      </div>
-      <Button onClick={() => onSave(formData)} disabled={isSubmitting} className="w-full h-16 bg-primary text-white rounded-3xl font-black uppercase italic shadow-xl text-lg">{isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : 'PUBLISH TO MENU'}</Button>
-    </div>
-  );
-});
-ProductForm.displayName = "ProductForm";
 
 export default function VendorDashboard() {
   const firestore = useFirestore();
@@ -109,13 +66,10 @@ export default function VendorDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [showNotifyBanner, setShowNotifyBanner] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => { 
     setIsMounted(true); 
-    if (typeof window !== 'undefined' && Notification.permission !== 'granted') {
-      setShowNotifyBanner(true);
-    }
   }, []);
 
   const vendorRef = useMemoFirebase(() => {
@@ -124,18 +78,11 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
-  const categoriesQuery = useMemoFirebase(() => {
+  const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'categories');
+    return doc(firestore, 'app_settings', 'branding');
   }, [firestore]);
-  const { data: globalCategories } = useCollection<any>(categoriesQuery);
-
-  useEffect(() => {
-    if (!authLoading && isMounted && !user) {
-        const hasSessionFlag = localStorage.getItem('shopykart_session_active');
-        if (!hasSessionFlag) router.push('/vendor/login');
-    }
-  }, [user, authLoading, router, isMounted]);
+  const { data: settings } = useDoc<any>(brandingRef);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -154,52 +101,53 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: products } = useCollection<any>(productsQuery);
 
-  const handleTabSwitch = (id: MainTab) => {
-    startTransition(() => {
-      setActiveMainTab(id);
-    });
-  };
-
-  const handleEnableNotifications = async () => {
-    const token = await requestPushToken();
-    if (token) {
-      setShowNotifyBanner(false);
-      toast({ title: "Alerts Enabled! 🔔", description: "Background cloud notifications are active." });
-    }
-  };
-
-  const handleAddProduct = async (formData: any) => {
-    if (!firestore || !user || !vendorProfile) return;
-    if (!formData.name || !formData.price || !formData.imageUrl) {
-      toast({ variant: "destructive", title: "Missing Info" });
-      return;
-    }
-    setIsSubmitting(true);
-    const targetId = editingId || doc(collection(firestore, 'products')).id;
-    const productData = {
-      id: targetId,
-      name: formData.name.trim(),
-      mrp: parseFloat(formData.mrp) || parseFloat(formData.price),
-      price: parseFloat(formData.price),
-      description: formData.description.trim() || '',
-      category: formData.category.toLowerCase().trim() || 'general',
-      serviceMode: 'Food',
-      isAvailable: true,
-      options: formData.options.filter((o:any) => o.name.trim() !== ''),
-      vendorId: user.uid,
-      restaurantName: vendorProfile.storeName,
-      imageUrl: formData.imageUrl,
-      updatedAt: serverTimestamp(),
-      createdAt: editingId ? (products?.find(p => p.id === editingId)?.createdAt || serverTimestamp()) : serverTimestamp()
-    };
+  const handleDownload = async (order: any) => {
+    const element = document.getElementById(`receipt-temp-${order.id}`);
+    if (!element) return;
+    setDownloadingId(order.id);
     try {
-      await setDoc(doc(firestore, 'products', targetId), productData, { merge: true });
-      await setDoc(doc(firestore, 'vendors', user.uid, 'products', targetId), productData, { merge: true });
-      setIsAddOpen(false);
-      setEditingId(null);
-      toast({ title: "Product Synced!" });
-    } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
-    finally { setIsSubmitting(false); }
+      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff' });
+      const link = document.createElement('a');
+      link.download = `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`;
+      link.href = dataUrl;
+      link.click();
+      toast({ title: "Saved!" });
+    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
+    finally { setDownloadingId(null); }
+  };
+
+  const handlePrint = (orderId: string) => {
+    const element = document.getElementById(`receipt-temp-${orderId}`);
+    if (!element) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write('<html><body>' + element.innerHTML + '</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
+
+  const generateReceiptDOM = (orderData: any) => {
+    const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total.toFixed(2)}&cu=INR`;
+    return (
+      <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border shadow-2xl mx-auto">
+        <div className="text-center mb-3">
+          <h2 className="text-xl font-black italic tracking-tighter">SHOPYKART</h2>
+          <p className="text-[7px] font-bold opacity-60">{settings?.receiptHeader || vendorProfile?.storeName}</p>
+        </div>
+        <div className="border-t border-dashed border-black my-2" />
+        <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
+        <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
+        <div className="border-t border-dashed border-black my-2" />
+        <table className="w-full text-[9px]">
+          <tbody>{orderData.items?.map((item: any, i: number) => (<tr key={i}><td width="70%" className="py-1 font-black">{item.name}</td><td className="text-center">X{item.quantity}</td><td className="text-right">{(item.price * item.quantity).toFixed(2)}</td></tr>))}</tbody>
+        </table>
+        <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>GRAND TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
+        <div className="border-t border-dashed border-black my-3" />
+        <div className="border border-dashed border-black p-2 text-center mb-4"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUri)}`} className="w-24 h-24 mx-auto grayscale" alt="QR" /></div>
+        <div className="text-center text-[7px] font-black opacity-60">POWERED BY SHOPYKART POS</div>
+      </div>
+    );
   };
 
   if (!isMounted) return null;
@@ -222,16 +170,6 @@ export default function VendorDashboard() {
             </div>
             <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); }} className="text-red-500 h-10 w-10 p-0 rounded-xl bg-red-50"><LogOut className="h-4 w-4" /></Button>
          </div>
-
-         {showNotifyBanner && (
-           <div className="bg-primary/5 border border-primary/10 p-3 rounded-2xl flex items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300">
-              <div className="flex items-center gap-2">
-                 <div className="bg-primary/10 p-1.5 rounded-lg text-primary"><BellRing className="h-3.5 w-3.5 animate-ring" /></div>
-                 <span className="text-[9px] font-black uppercase text-primary tracking-widest">Enable Background Alerts</span>
-              </div>
-              <Button onClick={handleEnableNotifications} className="h-7 px-4 rounded-lg bg-primary text-white font-black uppercase text-[8px] tracking-widest">ALLOW</Button>
-           </div>
-         )}
       </header>
 
       <main className={cn("flex-1 pb-32 transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
@@ -252,43 +190,30 @@ export default function VendorDashboard() {
                       <div><span className="text-lg font-black italic">#{o.orderDisplayId || o.id.slice(-4)}</span><div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div></div>
                       <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : o.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-primary/10 text-primary")}>{o.status}</Badge>
                    </div>
-                   <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2 border border-border/20">
+                   <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
                       {o.items?.map((item:any, i:number) => (<div key={i} className="flex justify-between items-center text-xs font-bold"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(2)}</span></div>))}
                    </div>
+                   
+                   <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="flex-1 h-12 rounded-2xl font-black text-[9px] uppercase border-primary/20 text-primary"><Eye className="h-3.5 w-3.5 mr-1.5" /> BILL</Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-[2.5rem] max-w-[340px] p-4 bg-white">
+                          <div className="scale-[1.05] origin-top">{generateReceiptDOM(o)}</div>
+                          <div className="flex gap-2 mt-4">
+                             <Button onClick={() => handlePrint(o.id)} className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
+                             <Button onClick={() => handleDownload(o)} disabled={downloadingId === o.id} className="flex-1 bg-primary h-12 rounded-xl text-white font-black text-[10px] uppercase">
+                               {downloadingId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
+                             </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                   </div>
+                   
+                   <div id={`receipt-temp-${o.id}`} className="hidden">{generateReceiptDOM(o)}</div>
                 </div>
               ))}
-           </div>
-         ) : activeMainTab === 'catalog' ? (
-           <div className="p-4 space-y-4 animate-in fade-in duration-500">
-              <div className="flex justify-between items-center mb-4 px-1">
-                 <h2 className="text-xl font-black italic uppercase">Inventory</h2>
-                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                    <DialogTrigger asChild><Button onClick={() => setEditingId(null)} className="bg-black text-white rounded-xl h-10 font-black uppercase text-[9px]"><Plus className="mr-1 h-3.5 w-3.5" /> ADD NEW</Button></DialogTrigger>
-                    <DialogContent className="rounded-[2.5rem] max-w-lg border-none shadow-2xl">
-                       <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Dish Configuration</DialogTitle></DialogHeader>
-                       <ProductForm 
-                         categories={globalCategories} 
-                         onSave={handleAddProduct} 
-                         isSubmitting={isSubmitting}
-                         initialData={editingId ? products?.find(p => p.id === editingId) : null}
-                       />
-                    </DialogContent>
-                 </Dialog>
-              </div>
-              <div className="grid grid-cols-1 gap-3 content-visibility-auto">
-                 {products?.map(p => (
-                   <div key={p.id} className={cn("bg-white p-4 rounded-[2rem] border border-border/50 flex items-center justify-between group", p.isAvailable === false && "opacity-60")}>
-                      <div className="flex items-center gap-4">
-                        <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover" alt="" />
-                        <div><h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4><p className="text-primary font-black text-xs italic">₹{p.price}</p></div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={() => { setEditingId(p.id); setIsAddOpen(true); }} size="icon" variant="ghost" className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl"><Edit className="h-4 w-4" /></Button>
-                        <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} size="icon" variant="ghost" className="h-10 w-10 bg-red-50 text-red-600 rounded-xl"><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                   </div>
-                 ))}
-              </div>
            </div>
          ) : null}
       </main>
@@ -300,7 +225,7 @@ export default function VendorDashboard() {
           {id:'payouts',label:'Payouts',icon:CircleDollarSign},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => handleTabSwitch(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => startTransition(() => setActiveMainTab(item.id as MainTab))} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
