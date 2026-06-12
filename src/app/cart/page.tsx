@@ -37,13 +37,14 @@ import { doc, setDoc, serverTimestamp, collection, increment, query, where, getD
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
   ssr: false,
@@ -73,7 +74,6 @@ export default function CartPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [showSuccess, setShowSuccess] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
@@ -253,7 +253,6 @@ export default function CartPage() {
       return;
     }
 
-    setShowSuccess(true);
     setIsPlacing(true);
 
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
@@ -263,52 +262,64 @@ export default function CartPage() {
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
-    try {
-      await setDoc(doc(firestore, 'orders', orderId), {
-        userId: finalUid,
-        customerName,
-        customerPhone,
-        orderDisplayId: orderId,
-        items: cart.map(item => ({ 
-          id: item.id, name: item.name, quantity: item.quantity, price: item.price, 
-          isCustom: !!item.isCustom, vendorId: item.vendorId || 'global' 
-        })),
-        total: grandTotal,
-        deliveryTip,
-        status: 'Placed',
-        paymentMethod,
-        paymentStatus: 'Pending',
-        address: fullFinalAddress,
-        latitude: latitude || null,
-        longitude: longitude || null,
-        createdAt: serverTimestamp(),
-        vendorId: cart[0]?.vendorId || 'global',
-        restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
-        coinsEarned: 10,
-        coinsUsed,
-        coinDiscount,
-        couponDiscount,
-        couponCode: appliedCoupon?.code || null,
-        instructions
+    const orderData = {
+      userId: finalUid,
+      customerName,
+      customerPhone,
+      orderDisplayId: orderId,
+      items: cart.map(item => ({ 
+        id: item.id, name: item.name, quantity: item.quantity, price: item.price, 
+        isCustom: !!item.isCustom, vendorId: item.vendorId || 'global' 
+      })),
+      total: grandTotal,
+      deliveryTip,
+      status: 'Placed',
+      paymentMethod,
+      paymentStatus: 'Pending',
+      address: fullFinalAddress,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      createdAt: serverTimestamp(),
+      vendorId: cart[0]?.vendorId || 'global',
+      restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
+      coinsEarned: 10,
+      coinsUsed,
+      coinDiscount,
+      couponDiscount,
+      couponCode: appliedCoupon?.code || null,
+      instructions
+    };
+
+    const userData = {
+      fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
+      city: customerCity, pincode: customerPincode, latitude, longitude,
+      coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
+    };
+
+    // INITIATE WRITES (Optimistic logic - NO AWAIT per guidelines)
+    setDoc(doc(firestore, 'orders', orderId), orderData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: `orders/${orderId}`,
+          operation: 'create',
+          requestResourceData: orderData,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
       });
       
-      await setDoc(doc(firestore, 'users', finalUid), {
-        fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
-        city: customerCity, pincode: customerPincode, latitude, longitude,
-        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
-      }, { merge: true });
+    setDoc(doc(firestore, 'users', finalUid), userData, { merge: true })
+      .catch(async (serverError) => {
+         const permissionError = new FirestorePermissionError({
+          path: `users/${finalUid}`,
+          operation: 'update',
+          requestResourceData: userData,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      });
 
-      setTimeout(() => {
-        clearCart();
-        router.replace(`/orders/track?id=${orderId}`);
-      }, 1200);
-
-    } catch (err) {
-      console.error("Checkout failed:", err);
-      setShowSuccess(false);
-      setIsPlacing(false);
-      setSlideX(0);
-    }
+    // INSTANT REDIRECT AS REQUESTED
+    clearCart();
+    router.replace(`/orders/track?id=${orderId}`);
   };
 
   const handleCustomTip = () => {
@@ -320,7 +331,6 @@ export default function CartPage() {
     }
   };
 
-  // Slider Logic Refactored
   const onStart = useCallback((clientX: number) => {
     if (isPlacing) return;
     isSlidingRef.current = true;
@@ -382,7 +392,7 @@ export default function CartPage() {
     };
   }, [isSlidingRef.current, onMove, onEnd]);
 
-  if (totalItems === 0 && !showSuccess) {
+  if (totalItems === 0 && !isPlacing) {
     return (
       <div className="min-h-screen bg-[#F5F6F7] flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-white h-32 w-32 rounded-full flex items-center justify-center mb-6 shadow-sm"><ShoppingBag className="h-12 w-12 text-gray-300" /></div>
@@ -395,7 +405,6 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-60">
-      <OrderSuccessOverlay isVisible={showSuccess} />
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
         <h1 className="text-lg font-bold text-gray-800 italic uppercase">Secure Checkout</h1>
