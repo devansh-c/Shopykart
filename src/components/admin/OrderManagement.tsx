@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -10,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 import { toJpeg } from 'html-to-image';
@@ -175,82 +174,91 @@ export function OrderManagement() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 pb-20">
-        {orders?.map((order) => (
-          <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
-            <div className="flex flex-col lg:flex-row justify-between gap-6">
-              <div className="flex-1 flex items-start space-x-5">
-                <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0", order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 'bg-primary/5 text-primary')}>
-                  <Package className="h-7 w-7" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
-                    <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary")}>{order.status}</Badge>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
-                  
-                  <div className="bg-muted/20 rounded-2xl p-4 space-y-3 mb-4">
-                     <div className="flex items-center justify-between text-xs font-bold text-gray-700">
-                        <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
-                        <div className="flex gap-2">
-                           <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
-                           <button onClick={() => handleStatusUpdate(order.id, 'Cancelled')} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><X className="h-3.5 w-3.5" /></button>
-                        </div>
-                     </div>
-                     
-                     <div className="border-t border-white pt-3 mt-1 space-y-2">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase">
-                           <Store className="h-3 w-3" /> {order.restaurantName || 'ShopyKart Store'}
-                        </div>
-                        <div className="space-y-1">
-                           {order.items?.map((item: any, i: number) => (
-                             <div key={i} className="flex justify-between text-[10px] font-bold text-gray-500 italic">
-                                <span>{item.quantity}x {item.name}</span>
-                                <span>₹{item.price * item.quantity}</span>
-                             </div>
-                           ))}
-                        </div>
-                     </div>
+        {orders?.map((order: any) => {
+          // Identify unique stores in this order
+          const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName || 'Unknown Store')));
 
-                     <div className="flex items-start gap-2 text-[10px] text-gray-500 pt-1"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /><span className="truncate">{order.address}</span></div>
+          return (
+            <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
+              <div className="flex flex-col lg:flex-row justify-between gap-6">
+                <div className="flex-1 flex items-start space-x-5">
+                  <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0", order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 'bg-primary/5 text-primary')}>
+                    <Package className="h-7 w-7" />
                   </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2 shrink-0">
-                <Select defaultValue={order.status} onValueChange={(val) => handleStatusUpdate(order.id, val)}>
-                  <SelectTrigger className="w-[180px] rounded-xl font-black text-[10px] uppercase h-11 bg-muted/30 border-none shadow-none"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-2xl border-none shadow-2xl">{statusOptions.map(s => <SelectItem key={s} value={s} className="font-bold text-xs">{s}</SelectItem>)}</SelectContent>
-                </Select>
-                <div className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <button className="flex-1 bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
-                       <DialogHeader className="sr-only">
-                         <DialogTitle>Order Bill View</DialogTitle>
-                       </DialogHeader>
-                       <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
-                          <div className="w-full scale-[1.05] origin-top mb-4">
-                            {generateReceiptDOM(order)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
+                      <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary")}>{order.status}</Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
+                    
+                    <div className="bg-muted/20 rounded-2xl p-4 space-y-3 mb-4 border border-border/30">
+                       <div className="flex items-center justify-between text-xs font-bold text-gray-700 border-b border-white pb-2 mb-1">
+                          <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
+                          <div className="flex gap-2">
+                             <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
+                             <button onClick={() => handleStatusUpdate(order.id, 'Cancelled')} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><X className="h-3.5 w-3.5" /></button>
                           </div>
                        </div>
-                       <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
-                          <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                            <Printer className="h-4 w-4 mr-2" /> PRINT
-                          </Button>
-                          <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                            {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
-                          </Button>
+                       
+                       <div className="pt-1 space-y-3">
+                          <div className="flex flex-wrap gap-1.5">
+                             {storeNames.map((name: any, idx) => (
+                               <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary text-[7px] font-black border-primary/10 uppercase tracking-widest">
+                                  <Store className="h-2 w-2 mr-1" /> {name}
+                               </Badge>
+                             ))}
+                          </div>
+                          <div className="space-y-1 bg-white/50 p-2 rounded-xl border border-white">
+                             {order.items?.map((item: any, i: number) => (
+                               <div key={i} className="flex justify-between text-[10px] font-bold text-gray-600 italic leading-tight">
+                                  <span className="flex-1 truncate mr-2">{item.quantity}x {item.name}</span>
+                                  <span className="shrink-0 text-primary">₹{item.price * item.quantity}</span>
+                               </div>
+                             ))}
+                          </div>
                        </div>
-                    </DialogContent>
-                  </Dialog>
+
+                       <div className="flex items-start gap-2 text-[10px] text-gray-500 pt-2 border-t border-white"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /><span className="truncate">{order.address}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Select defaultValue={order.status} onValueChange={(val) => handleStatusUpdate(order.id, val)}>
+                    <SelectTrigger className="w-[180px] rounded-xl font-black text-[10px] uppercase h-11 bg-muted/30 border-none shadow-none"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-2xl border-none shadow-2xl">{statusOptions.map(s => <SelectItem key={s} value={s} className="font-bold text-xs">{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <div className="flex gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button className="flex-1 bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
+                         <DialogHeader className="sr-only">
+                           <DialogTitle>Order Bill View</DialogTitle>
+                         </DialogHeader>
+                         <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                            <div className="w-full scale-[1.05] origin-top mb-4">
+                              {generateReceiptDOM(order)}
+                            </div>
+                         </div>
+                         <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
+                            <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                              <Printer className="h-4 w-4 mr-2" /> PRINT
+                            </Button>
+                            <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                              {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
+                            </Button>
+                         </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
