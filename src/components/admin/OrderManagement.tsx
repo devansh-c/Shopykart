@@ -51,7 +51,7 @@ export function OrderManagement() {
   };
 
   const handleDownload = async (order: any) => {
-    const element = document.getElementById(`receipt-temp-${order.id}`);
+    const element = document.getElementById(`receipt-content-${order.id}`);
     if (!element) return;
     setDownloadingId(order.id);
     try {
@@ -61,7 +61,6 @@ export function OrderManagement() {
       saveAs(blob, `ShopyKart_Admin_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
       toast({ title: "Saved!" });
     } catch (err) {
-      console.error("Download Error:", err);
       toast({ variant: "destructive", title: "Error" });
     } finally {
       setDownloadingId(null);
@@ -69,10 +68,9 @@ export function OrderManagement() {
   };
 
   const handlePrint = (orderId: string) => {
-    const element = document.getElementById(`receipt-temp-${orderId}`);
+    const element = document.getElementById(`receipt-content-${orderId}`);
     if (!element) return;
 
-    // Use hidden iframe for reliable mobile printing
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -85,7 +83,20 @@ export function OrderManagement() {
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
 
-    doc.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;font-family:sans-serif;text-transform:uppercase;}</style></head><body>' + element.innerHTML + '</body></html>');
+    doc.write(`
+      <html>
+        <head>
+          <style>
+            @page { margin: 0; size: 80mm auto; }
+            body { margin: 0; padding: 0; display: flex; justify-content: center; }
+            * { -webkit-print-color-adjust: exact; }
+          </style>
+        </head>
+        <body>
+          ${element.outerHTML}
+        </body>
+      </html>
+    `);
     doc.close();
 
     iframe.contentWindow?.focus();
@@ -99,27 +110,42 @@ export function OrderManagement() {
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
+    const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
     
     return (
-      <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border border-gray-100 mx-auto">
+      <div id={`receipt-content-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100">
         <div className="text-center mb-4">
-          <h2 className="text-xl font-black italic tracking-tighter">SHOPYKART</h2>
+          <h2 className="text-xl font-black italic tracking-tighter leading-none">SHOPYKART</h2>
           <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY NETWORK</p>
           <p className="text-[8px] whitespace-pre-line leading-tight mt-2">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
         </div>
+
         <div className="border-t border-dashed border-black my-2" />
-        <div className="flex justify-between"><span>ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
-        <div className="flex justify-between"><span>CUST:</span><span>{orderData.customerName?.slice(0,15)}</span></div>
+
+        <div className="space-y-1">
+          <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
+          <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
+          <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
+        </div>
+
         <div className="border-t border-dashed border-black my-2" />
+
         <table className="w-full text-[9px]">
+          <thead>
+            <tr className="border-b border-dashed border-black">
+              <th className="text-left py-1" width="60%">ITEM</th>
+              <th className="text-center py-1" width="15%">QTY</th>
+              <th className="text-right py-1" width="25%">PRICE</th>
+            </tr>
+          </thead>
           <tbody>
             {orderData.items?.map((item: any, i: number) => (
-              <tr key={i}><td width="70%" className="py-1 font-black">{item.name}</td><td className="text-center">X{item.quantity}</td><td className="text-right">{(item.price * item.quantity).toFixed(2)}</td></tr>
+              <tr key={i}><td className="py-2 pr-1 font-black leading-tight">{item.name}</td><td className="text-center">X{item.quantity}</td><td className="text-right">{(item.price * item.quantity).toFixed(2)}</td></tr>
             ))}
           </tbody>
         </table>
         
-        <div className="border-t border-dashed border-black my-2 pt-2 space-y-1 text-[9px]">
+        <div className="border-t border-dashed border-black my-2 pt-2 space-y-1">
            <div className="flex justify-between"><span>SUBTOTAL:</span><span className="font-black">₹{subtotal.toFixed(2)}</span></div>
            {orderData.charges?.map((c: any, i: number) => (
              <div key={i} className="flex justify-between"><span>{c.name}:</span><span className="font-black">₹{c.amount.toFixed(2)}</span></div>
@@ -129,11 +155,12 @@ export function OrderManagement() {
            {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
         </div>
 
-        <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
+        <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>GRAND TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
         <div className="border-t border-dashed border-black my-3" />
-        <div className="border border-dashed border-black p-2 text-center mb-4">
+        <div className="border border-dashed border-black p-3 text-center mb-3">
+           <p className="text-[7px] font-black tracking-widest mb-1">PAYMENT QR</p>
            <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" />
-           <p className="text-[7px] font-black mt-1">PAYABLE: ₹{orderData.total?.toFixed(2)}</p>
+           <p className="text-[8px] font-black mt-1">PAYABLE: ₹{orderData.total?.toFixed(2)}</p>
         </div>
         <div className="text-center text-[7px] font-black tracking-widest opacity-60">POWERED BY SHOPYKART POS</div>
       </div>
@@ -198,7 +225,7 @@ export function OrderManagement() {
                 <div className="flex gap-2">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 rounded-xl h-10 border-primary/20 text-primary font-black text-[9px] uppercase"><Eye className="h-3.5 w-3.5 mr-1" /> VIEW BILL</Button>
+                      <button className="flex-1 bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button>
                     </DialogTrigger>
                     <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
                        <DialogHeader className="sr-only">
@@ -221,10 +248,6 @@ export function OrderManagement() {
                   </Dialog>
                 </div>
               </div>
-            </div>
-            
-            <div id={`receipt-temp-${order.id}`} className="hidden">
-              {generateReceiptDOM(order)}
             </div>
           </div>
         ))}

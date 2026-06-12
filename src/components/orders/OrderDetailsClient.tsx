@@ -51,29 +51,30 @@ export default function OrderDetailsClient() {
     const upiUri = `upi://pay?pa=${upiId}&pn=ShopyKart&am=${amount}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
     const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
+    const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
 
     return (
-      <div id="receipt-content" className="bg-white text-black p-6 font-mono text-[11px] uppercase leading-snug w-[300px] mx-auto border border-gray-100">
+      <div id={`receipt-content-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100 shadow-none print:shadow-none">
         <div className="text-center space-y-1 mb-4">
           <h2 className="text-2xl font-black italic tracking-tighter leading-none">SHOPYKART</h2>
-          <p className="text-[8px] font-bold opacity-80">PREMIUM DELIVERY NETWORK</p>
-          <p className="text-[9px] whitespace-pre-line leading-tight mt-2 opacity-90">{settingsData?.receiptHeader || 'MAIN ROAD, MAURANIPUR\nGSTIN: 09ABCDE1234F1Z5'}</p>
+          <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY NETWORK</p>
+          <p className="text-[8px] whitespace-pre-line leading-tight mt-2">{settingsData?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
         </div>
 
-        <div className="border-t border-dashed border-black my-3" />
+        <div className="border-t border-dashed border-black my-2" />
 
-        <div className="space-y-1 text-[10px]">
+        <div className="space-y-1">
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
-          <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0, 20)}</span></div>
+          <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0, 18)}</span></div>
         </div>
 
-        <div className="border-t border-dashed border-black my-3" />
+        <div className="border-t border-dashed border-black my-2" />
 
-        <table className="w-full text-[10px]">
+        <table className="w-full text-[9px]">
           <thead>
             <tr className="border-b border-dashed border-black">
-              <th className="text-left py-1" width="60%">ITEM DESCRIPTION</th>
+              <th className="text-left py-1" width="60%">ITEM</th>
               <th className="text-center py-1" width="15%">QTY</th>
               <th className="text-right py-1" width="25%">PRICE</th>
             </tr>
@@ -81,7 +82,7 @@ export default function OrderDetailsClient() {
           <tbody>
             {orderData.items?.map((item: any, i: number) => (
               <tr key={i}>
-                <td className="py-2 pr-2 font-black leading-tight">{item.name}</td>
+                <td className="py-2 pr-1 font-black leading-tight">{item.name}</td>
                 <td className="text-center py-2">X{item.quantity}</td>
                 <td className="text-right py-2">{(item.price * item.quantity).toFixed(2)}</td>
               </tr>
@@ -89,34 +90,34 @@ export default function OrderDetailsClient() {
           </tbody>
         </table>
 
-        <div className="border-t border-dashed border-black my-3 pt-3 space-y-1.5 text-[10px]">
-           <div className="flex justify-between"><span>ITEM TOTAL:</span><span className="font-black">₹{orderData.subtotal?.toFixed(2) || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0).toFixed(2)}</span></div>
+        <div className="border-t border-dashed border-black my-2 pt-2 space-y-1">
+           <div className="flex justify-between"><span>SUBTOTAL:</span><span className="font-black">₹{subtotal.toFixed(2)}</span></div>
            {orderData.charges?.map((charge: any, idx: number) => (
              <div key={idx} className="flex justify-between"><span>{charge.name}:</span><span className="font-black">₹{charge.amount.toFixed(2)}</span></div>
            ))}
-           {orderData.couponDiscount > 0 && <div className="flex justify-between text-black"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
-           {orderData.coinDiscount > 0 && <div className="flex justify-between text-black"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
-           {orderData.deliveryTip > 0 && <div className="flex justify-between text-black"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
         </div>
 
-        <div className="border-t-2 border-black mt-3 pt-3 flex justify-between items-center text-lg font-black italic">
+        <div className="border-t-2 border-black mt-2 pt-2 flex justify-between items-center text-sm font-black italic">
           <span>GRAND TOTAL</span>
           <span>₹{orderData.total?.toFixed(2)}</span>
         </div>
 
-        <div className="border-t border-dashed border-black my-4" />
+        <div className="border-t border-dashed border-black my-3" />
 
-        <div className="border border-dashed border-black p-4 text-center space-y-2 mb-4">
-          <p className="text-[8px] font-black tracking-widest">PAYMENT QR (SCAN TO PAY)</p>
-          <img src={qrUrl} className="w-32 h-32 mx-auto grayscale" alt="QR" />
-          <p className="text-[10px] font-black">PAYABLE: ₹{amount}</p>
+        <div className="border border-dashed border-black p-3 text-center space-y-2 mb-3">
+          <p className="text-[7px] font-black tracking-widest">PAYMENT QR (SCAN TO PAY)</p>
+          <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" />
+          <p className="text-[8px] font-black">PAYABLE: ₹{amount}</p>
         </div>
 
-        <div className="text-center space-y-3">
-          <p className="font-black text-sm italic">{settingsData?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
-          <p className="text-[8px] opacity-70 whitespace-pre-line">{settingsData?.receiptFooter || 'THIS IS A COMPUTER GENERATED INVOICE'}</p>
-          <div className="pt-2">
-            <span className="text-[7px] font-black tracking-[0.3em] border border-black px-2 py-0.5">POWERED BY SHOPYKART POS</span>
+        <div className="text-center space-y-2">
+          <p className="font-black text-[11px] italic">{settingsData?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
+          <p className="text-[7px] opacity-70 whitespace-pre-line uppercase">{settingsData?.receiptFooter || 'THIS IS A COMPUTER GENERATED INVOICE'}</p>
+          <div className="pt-1">
+            <span className="text-[6px] font-black tracking-[0.3em] border border-black px-2 py-0.5">POWERED BY SHOPYKART POS</span>
           </div>
         </div>
       </div>
@@ -127,7 +128,7 @@ export default function OrderDetailsClient() {
     if (!order || isDownloading) return;
     setIsDownloading(true);
     
-    const element = document.getElementById('receipt-download-template');
+    const element = document.getElementById(`receipt-content-${order.id}`);
     if (!element) {
       setIsDownloading(false);
       return;
@@ -140,7 +141,6 @@ export default function OrderDetailsClient() {
       saveAs(blob, `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
       toast({ title: "Saved to Gallery! ✅" });
     } catch (err) {
-      console.error("Download Error:", err);
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
       setIsDownloading(false);
@@ -148,7 +148,7 @@ export default function OrderDetailsClient() {
   };
 
   const handlePrintReceipt = () => {
-    const element = document.getElementById('receipt-download-template');
+    const element = document.getElementById(`receipt-content-${order.id}`);
     if (!element) return;
     
     const iframe = document.createElement('iframe');
@@ -163,7 +163,20 @@ export default function OrderDetailsClient() {
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
 
-    doc.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;font-family:sans-serif;text-transform:uppercase;}</style></head><body>' + element.innerHTML + '</body></html>');
+    doc.write(`
+      <html>
+        <head>
+          <style>
+            @page { margin: 0; size: 80mm auto; }
+            body { margin: 0; padding: 0; display: flex; justify-content: center; }
+            * { -webkit-print-color-adjust: exact; }
+          </style>
+        </head>
+        <body>
+          ${element.outerHTML}
+        </body>
+      </html>
+    `);
     doc.close();
 
     iframe.contentWindow?.focus();
@@ -211,7 +224,7 @@ export default function OrderDetailsClient() {
                     <Printer className="h-4 w-4 mr-2" /> PRINT
                   </Button>
                   <Button onClick={handleDownloadReceipt} disabled={isDownloading} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} DOWNLOAD
+                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
                   </Button>
                 </div>
               </DialogContent>
@@ -248,10 +261,6 @@ export default function OrderDetailsClient() {
             </div>
           </div>
         )}
-
-        <div id="receipt-download-template" className="hidden">
-          {generateReceiptHTML(order, settings)}
-        </div>
       </div>
     </div>
   );
