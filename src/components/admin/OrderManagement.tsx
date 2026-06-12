@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -25,8 +26,6 @@ export function OrderManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [selectedOrderCoords, setSelectedOrderCoords] = useState<{lat: number, lng: number} | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => { setIsMounted(true); }, []);
@@ -73,7 +72,7 @@ export function OrderManagement() {
     if (!element) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    printWindow.document.write('<html><body>' + element.innerHTML + '</body></html>');
+    printWindow.document.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;}</style></head><body>' + element.innerHTML + '</body></html>');
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
@@ -83,7 +82,7 @@ export function OrderManagement() {
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
     return (
-      <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border border-gray-100 shadow-xl mx-auto">
+      <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border border-gray-100 mx-auto">
         <div className="text-center mb-4">
           <h2 className="text-xl font-black italic tracking-tighter">SHOPYKART</h2>
           <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY</p>
@@ -156,14 +155,22 @@ export function OrderManagement() {
                     <DialogTrigger asChild>
                       <Button variant="outline" className="flex-1 rounded-xl h-10 border-primary/20 text-primary font-black text-[9px] uppercase"><Eye className="h-3.5 w-3.5 mr-1" /> VIEW BILL</Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-[340px] rounded-[2.5rem] p-4 bg-white">
+                    <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[90vh]">
                        <DialogHeader className="sr-only">
                          <DialogTitle>Order Bill View</DialogTitle>
                        </DialogHeader>
-                       <div className="scale-[1.05] origin-top">{generateReceiptDOM(order)}</div>
-                       <div className="flex gap-2 mt-4">
-                          <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white rounded-xl h-12 font-black text-[10px]"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
-                          <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white rounded-xl h-12 font-black text-[10px]">{downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE</Button>
+                       <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                          <div className="w-full scale-[1.05] origin-top mb-4">
+                            {generateReceiptDOM(order)}
+                          </div>
+                       </div>
+                       <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
+                          <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                            <Printer className="h-4 w-4 mr-2" /> PRINT
+                          </Button>
+                          <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                            {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
+                          </Button>
                        </div>
                     </DialogContent>
                   </Dialog>
@@ -172,7 +179,9 @@ export function OrderManagement() {
             </div>
             
             {/* Hidden template for capture */}
-            <div id={`receipt-temp-${order.id}`} className="hidden">{generateReceiptDOM(order)}</div>
+            <div id={`receipt-temp-${order.id}`} className="hidden">
+              {generateReceiptDOM(order)}
+            </div>
           </div>
         ))}
       </div>

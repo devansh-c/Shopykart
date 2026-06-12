@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -109,7 +110,7 @@ export default function MedicalDashboard() {
     if (!element) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    printWindow.document.write('<html><body>' + element.innerHTML + '</body></html>');
+    printWindow.document.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;}</style></head><body>' + element.innerHTML + '</body></html>');
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
@@ -183,14 +184,16 @@ export default function MedicalDashboard() {
                         <DialogTrigger asChild>
                           <Button variant="outline" className="flex-1 h-12 rounded-2xl font-black text-[9px] uppercase border-teal-200 text-teal-600"><Eye className="h-3.5 w-3.5 mr-1.5" /> BILL</Button>
                         </DialogTrigger>
-                        <DialogContent className="rounded-[2.5rem] max-w-[340px] p-4 bg-white">
+                        <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[90vh]">
                           <DialogHeader className="sr-only">
                             <DialogTitle>Order Receipt View</DialogTitle>
                           </DialogHeader>
-                          <div className="scale-[1.05] origin-top">{generateReceiptDOM(o)}</div>
-                          <div className="flex gap-2 mt-4">
-                             <Button onClick={() => handlePrint(o.id)} className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
-                             <Button onClick={() => handleDownload(o)} disabled={downloadingId === o.id} className="flex-1 bg-teal-600 h-12 rounded-xl text-white font-black text-[10px] uppercase">
+                          <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                            <div className="scale-[1.05] origin-top mb-4">{generateReceiptDOM(o)}</div>
+                          </div>
+                          <div className="p-4 bg-teal-50 border-t flex gap-2 shrink-0">
+                             <Button onClick={() => handlePrint(o.id)} className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
+                             <Button onClick={() => handleDownload(o)} disabled={downloadingId === o.id} className="flex-1 bg-teal-600 h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg">
                                {downloadingId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
                              </Button>
                           </div>

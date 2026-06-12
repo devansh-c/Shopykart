@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -24,6 +25,7 @@ const steps = [
 
 /**
  * @fileOverview Refactored Order Details with professional Receipt View and Download.
+ * Optimized: Buttons are now always visible (sticky) in the dialog.
  */
 export default function OrderDetailsClient() {
   const searchParams = useSearchParams();
@@ -31,7 +33,6 @@ export default function OrderDetailsClient() {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const orderRef = useMemoFirebase(() => {
@@ -55,7 +56,7 @@ export default function OrderDetailsClient() {
     const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
 
     return (
-      <div id="receipt-content" className="bg-white text-black p-6 font-mono text-[11px] uppercase leading-snug w-[300px] mx-auto shadow-2xl border border-gray-100">
+      <div id="receipt-content" className="bg-white text-black p-6 font-mono text-[11px] uppercase leading-snug w-[300px] mx-auto border border-gray-100">
         <div className="text-center space-y-1 mb-4">
           <h2 className="text-2xl font-black italic tracking-tighter leading-none">SHOPYKART</h2>
           <p className="text-[8px] font-bold opacity-80">PREMIUM DELIVERY NETWORK</p>
@@ -118,13 +119,6 @@ export default function OrderDetailsClient() {
   const handleDownloadReceipt = async () => {
     if (!order || isDownloading) return;
     setIsDownloading(true);
-    
-    // Create a temporary container for the capture
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    document.body.appendChild(container);
     
     const element = document.getElementById('receipt-download-template');
     if (!element) {
@@ -191,20 +185,22 @@ export default function OrderDetailsClient() {
                   <Eye className="h-3.5 w-3.5" /> View Bill
                 </button>
               </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden bg-white max-w-[340px]">
+              <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden bg-white max-w-[340px] flex flex-col max-h-[90vh]">
                 <DialogHeader className="sr-only">
                   <DialogTitle>Digital Order Bill</DialogTitle>
                 </DialogHeader>
-                <div className="p-4 bg-white flex flex-col items-center gap-4">
-                  <div className="w-full scale-[1.05] origin-top">
+                <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                  <div className="w-full scale-[1.05] origin-top mb-4">
                     {generateReceiptHTML(order, settings)}
                   </div>
-                  <div className="flex gap-3 w-full mt-4">
-                    <Button onClick={handlePrintReceipt} className="flex-1 bg-black text-white rounded-2xl font-black uppercase text-[10px]"><Printer className="h-4 w-4 mr-2" /> PRINT</Button>
-                    <Button onClick={handleDownloadReceipt} disabled={isDownloading} className="flex-1 bg-primary text-white rounded-2xl font-black uppercase text-[10px]">
-                      {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} DOWNLOAD
-                    </Button>
-                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
+                  <Button onClick={handlePrintReceipt} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                    <Printer className="h-4 w-4 mr-2" /> PRINT
+                  </Button>
+                  <Button onClick={handleDownloadReceipt} disabled={isDownloading} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} DOWNLOAD
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
