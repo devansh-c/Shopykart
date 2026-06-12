@@ -49,7 +49,7 @@ export default function OrderDetailsClient() {
     const printContent = receiptRef.current;
     if (!printContent) return;
 
-    // Create a hidden iframe for better mobile compatibility (avoids popup blockers)
+    // Create a hidden iframe for better mobile compatibility
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -66,31 +66,41 @@ export default function OrderDetailsClient() {
     const upiName = "ShopyKart";
     const amount = order.total.toFixed(2);
     const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${amount}&cu=INR`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
 
     docRef.open();
-    docRef.write('<html><head><title>Receipt</title>');
+    docRef.write('<html><head><title>Order Receipt - ShopyKart</title>');
     docRef.write('<style>');
-    docRef.write('body { font-family: "Courier New", Courier, monospace; padding: 20px; color: black; background: white; text-transform: uppercase; }');
-    docRef.write('.receipt { max-width: 100%; margin: 0 auto; border-top: 5px solid black; padding-top: 20px; }');
+    docRef.write('@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap");');
+    docRef.write('body { font-family: "Inter", sans-serif; padding: 20px; color: #000; background: white; text-transform: uppercase; -webkit-print-color-adjust: exact; }');
+    docRef.write('.receipt { max-width: 100%; margin: 0 auto; border-top: 8px solid #000; padding-top: 25px; }');
     docRef.write('.center { text-align: center; }');
-    docRef.write('.header { font-weight: 900; margin-bottom: 20px; }');
-    docRef.write('.details { font-size: 10px; margin-bottom: 20px; line-height: 1.4; opacity: 0.8; }');
-    docRef.write('.table { width: 100%; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin: 15px 0; }');
-    docRef.write('.row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; }');
-    docRef.write('.total-row { display: flex; justify-content: space-between; font-weight: 900; font-size: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid black; }');
-    docRef.write('.qr-section { margin: 25px 0; border: 1px dashed #eee; padding: 15px; border-radius: 10px; }');
-    docRef.write('.footer { font-size: 8px; text-align: center; margin-top: 30px; opacity: 0.6; line-height: 1.2; }');
-    docRef.write('.thankyou { font-weight: 900; margin-top: 15px; color: #ef4444; }');
+    docRef.write('.header-main { font-size: 28px; font-weight: 900; letter-spacing: -1.5px; line-height: 1; margin-bottom: 5px; }');
+    docRef.write('.header-sub { font-size: 10px; font-weight: 700; color: #555; letter-spacing: 2px; margin-bottom: 15px; }');
+    docRef.write('.branding-info { font-size: 10px; line-height: 1.5; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }');
+    docRef.write('.order-id-box { border: 2px solid #000; padding: 10px; margin: 20px 0; font-weight: 900; font-size: 14px; display: inline-block; width: auto; }');
+    docRef.write('.meta-details { font-size: 11px; margin-bottom: 25px; line-height: 1.6; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 12px; }');
+    docRef.write('.table { width: 100%; margin: 20px 0; border-collapse: collapse; }');
+    docRef.write('.table th { text-align: left; font-size: 11px; font-weight: 900; border-bottom: 2px solid #000; padding: 10px 5px; }');
+    docRef.write('.table td { padding: 12px 5px; font-size: 12px; font-weight: 700; border-bottom: 1px dashed #eee; }');
+    docRef.write('.total-section { margin-top: 15px; border-top: 2px solid #000; padding-top: 15px; }');
+    docRef.write('.total-row { display: flex; justify-content: space-between; align-items: center; font-weight: 900; font-size: 20px; letter-spacing: -0.5px; }');
+    docRef.write('.qr-container { margin: 35px 0; padding: 20px; border: 2px dashed #ddd; border-radius: 20px; background: #fff; }');
+    docRef.write('.qr-label { font-size: 10px; font-weight: 900; margin-bottom: 12px; color: #666; letter-spacing: 1px; }');
+    docRef.write('.qr-image { width: 180px; height: 180px; border: 8px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }');
+    docRef.write('.qr-footer { font-size: 11px; font-weight: 900; margin-top: 12px; }');
+    docRef.write('.thankyou { font-size: 18px; font-weight: 900; color: #ef4444; margin: 30px 0 10px 0; }');
+    docRef.write('.footer-note { font-size: 9px; font-weight: 600; color: #888; line-height: 1.4; margin-top: 40px; }');
+    docRef.write('.system-tag { font-size: 8px; font-weight: 900; color: #ccc; margin-top: 20px; letter-spacing: 1px; }');
     docRef.write('</style></head><body>');
     
-    // Inject custom QR html into the middle of the content using the marker div
+    // Process content for QR injection
     const htmlContent = printContent.innerHTML.replace('<div id="qr-marker"></div>', `
-      <div class="center qr-section">
-        <p style="font-size: 8px; margin-bottom: 8px; font-weight: bold; color: #666;">SCAN TO PAY VIA UPI</p>
-        <img src="${qrUrl}" style="width: 140px; height: 140px; border: 4px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
-        <p style="font-size: 10px; font-weight: 900; margin-top: 8px; color: #000;">PAYABLE: ₹${amount}</p>
-        <p style="font-size: 7px; opacity: 0.5; margin-top: 2px;">${upiId}</p>
+      <div class="center qr-container">
+        <div class="qr-label">▼ SCAN TO PAY VIA UPI ▼</div>
+        <img src="${qrUrl}" class="qr-image" />
+        <div class="qr-footer">PAYABLE AMOUNT: ₹${amount}</div>
+        <div style="font-size: 8px; color: #999; margin-top: 4px;">UPI ID: ${upiId}</div>
       </div>
     `);
     
@@ -98,15 +108,12 @@ export default function OrderDetailsClient() {
     docRef.write('</body></html>');
     docRef.close();
     
-    // Wait for content and QR image to render then print
     setTimeout(() => {
       if (iframe.contentWindow) {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
         setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
+          if (document.body.contains(iframe)) document.body.removeChild(iframe);
         }, 1000);
       }
     }, 800);
@@ -272,58 +279,76 @@ export default function OrderDetailsClient() {
       <div className="hidden">
         <div ref={receiptRef}>
            <div className="receipt">
-              <div className="center header">
-                 <div style={{ fontSize: '24px', letterSpacing: '-1px' }}>SHOPYKART</div>
-                 <div style={{ fontSize: '8px', opacity: 0.6, marginTop: '2px' }}>PREMIUM DELIVERY NETWORK</div>
-              </div>
-              
-              <div className="center details">
-                 <div style={{ whiteSpace: 'pre-line' }}>{settings?.receiptHeader || 'ShopyKart Main Branch\nGSTIN: 09ABCDE1234F1Z5'}</div>
-                 <div style={{ marginTop: '15px', border: '1px solid black', padding: '5px' }}>
+              <div className="center">
+                 <div className="header-main">SHOPYKART</div>
+                 <div className="header-sub">PREMIUM DELIVERY NETWORK</div>
+                 
+                 <div className="branding-info">
+                   {settings?.receiptHeader || 'ShopyKart Main Branch\nGSTIN: 09ABCDE1234F1Z5'}
+                 </div>
+
+                 <div className="order-id-box">
                     ORDER ID: #{order.orderDisplayId || orderId.slice(-5).toUpperCase()}
                  </div>
-                 <div style={{ marginTop: '5px' }}>DATE: {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, yyyy HH:mm') : 'N/A'}</div>
-                 <div>CUSTOMER: {order.customerName}</div>
+              </div>
+              
+              <div className="meta-details">
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ color: '#666' }}>DATE:</span>
+                    <span>{order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, yyyy HH:mm') : 'N/A'}</span>
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#666' }}>CUSTOMER:</span>
+                    <span>{order.customerName}</span>
+                 </div>
               </div>
 
-              <div className="table">
-                 <div className="row" style={{ fontWeight: 'bold', borderBottom: '1px solid black', paddingBottom: '5px' }}>
-                    <span>ITEM</span>
-                    <span>QTY</span>
-                    <span>PRICE</span>
-                 </div>
-                 {order.items?.map((item: any, i: number) => (
-                    <div key={i} className="row">
-                       <span style={{ maxWidth: '180px' }}>{item.name}</span>
-                       <span>x{item.quantity}</span>
-                       <span>₹{(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                 ))}
-                 
-                 {order.deliveryTip > 0 && (
-                    <div className="row" style={{ marginTop: '10px', fontStyle: 'italic' }}>
-                       <span>DELIVERY TIP</span>
-                       <span></span>
-                       <span>₹{order.deliveryTip.toFixed(2)}</span>
-                    </div>
-                 )}
-              </div>
+              <table className="table">
+                 <thead>
+                    <tr>
+                       <th>ITEM DESCRIPTION</th>
+                       <th style={{ textAlign: 'center' }}>QTY</th>
+                       <th style={{ textAlign: 'right' }}>PRICE</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {order.items?.map((item: any, i: number) => (
+                       <tr key={i}>
+                          <td>{item.name}</td>
+                          <td style={{ textAlign: 'center' }}>x{item.quantity}</td>
+                          <td style={{ textAlign: 'right' }}>₹{(item.price * item.quantity).toFixed(2)}</td>
+                       </tr>
+                    ))}
+                    {order.deliveryTip > 0 && (
+                       <tr>
+                          <td>PARTNER APPRECIATION (TIP)</td>
+                          <td style={{ textAlign: 'center' }}>-</td>
+                          <td style={{ textAlign: 'right' }}>₹{order.deliveryTip.toFixed(2)}</td>
+                       </tr>
+                    )}
+                 </tbody>
+              </table>
 
               {/* QR CODE PLACEHOLDER - INJECTED DYNAMICALLY BY handlePrintReceipt */}
               <div id="qr-marker"></div>
 
-              <div className="total-row">
-                 <span>GRAND TOTAL</span>
-                 <span>₹{order.total?.toFixed(2)}</span>
+              <div className="total-section">
+                 <div className="total-row">
+                    <span>GRAND TOTAL</span>
+                    <span>₹{order.total?.toFixed(2)}</span>
+                 </div>
               </div>
 
               <div className="center thankyou">
-                 {settings?.receiptThankYou || 'Thank you for your order!'}
+                 {settings?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}
               </div>
 
-              <div className="footer">
-                 <div style={{ whiteSpace: 'pre-line' }}>{settings?.receiptFooter || 'This is a computer generated invoice.'}</div>
-                 <div style={{ marginTop: '10px' }}>E-RECEIPT GENERATED BY SHOPYKART ENGINE v2.0</div>
+              <div className="center footer-note">
+                 {settings?.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice and does not require a physical signature.'}
+              </div>
+
+              <div className="center system-tag">
+                 E-RECEIPT GENERATED BY SHOPYKART ENGINE v2.0
               </div>
            </div>
         </div>
