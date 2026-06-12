@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, memo, useTransition, useMemo } from 'react';
@@ -135,8 +136,8 @@ export default function AdminDashboard() {
     if (auth !== 'true') router.push('/admin/login');
     else {
       setIsAuthorized(true);
-      // Check if notification permission is granted
-      if (typeof window !== 'undefined' && Notification.permission !== 'granted') {
+      // Check if notification permission is granted - Using safe window.Notification access to prevent ReferenceError
+      if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission !== 'granted') {
         setShowNotifyBanner(true);
       }
     }
