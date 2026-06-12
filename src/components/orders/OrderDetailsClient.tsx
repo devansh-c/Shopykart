@@ -44,11 +44,9 @@ export default function OrderDetailsClient() {
   const { data: settings } = useDoc<any>(brandingRef);
 
   const handlePrintReceipt = () => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !order) return;
     
-    const printContent = receiptRef.current;
-    if (!printContent) return;
-
+    // Create a hidden iframe for clean printing
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -68,37 +66,73 @@ export default function OrderDetailsClient() {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
 
     docRef.open();
-    docRef.write('<html><head><title>Thermal Receipt</title>');
-    docRef.write('<style>');
-    docRef.write('body { font-family: "Inter", sans-serif; padding: 0; margin: 0; color: #000; background: white; width: 80mm; font-size: 11px; text-transform: uppercase; }');
-    docRef.write('.receipt { padding: 10px; width: 100%; box-sizing: border-box; }');
-    docRef.write('.center { text-align: center; }');
-    docRef.write('.bold { font-weight: 900; }');
-    docRef.write('.header-logo { font-size: 20px; font-weight: 900; letter-spacing: -1px; margin-bottom: 2px; }');
-    docRef.write('.header-sub { font-size: 8px; font-weight: 700; margin-bottom: 8px; }');
-    docRef.write('.dashed-line { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }');
-    docRef.write('.info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; }');
-    docRef.write('.item-table { width: 100%; margin: 10px 0; border-collapse: collapse; }');
-    docRef.write('.item-table th { text-align: left; font-size: 9px; border-bottom: 1px dashed #000; padding-bottom: 5px; }');
-    docRef.write('.item-table td { padding: 6px 0; vertical-align: top; }');
-    docRef.write('.total-box { margin-top: 10px; border-top: 2px solid #000; padding-top: 8px; }');
-    docRef.write('.total-row { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 900; }');
-    docRef.write('.qr-wrap { margin: 15px 0; text-align: center; border: 1px dashed #000; padding: 15px; border-radius: 10px; }');
-    docRef.write('.qr-img { width: 140px; height: 140px; }');
-    docRef.write('.footer { font-size: 8px; margin-top: 20px; line-height: 1.4; color: #333; }');
-    docRef.write('@media print { @page { margin: 0; size: 80mm auto; } body { width: 80mm; } }');
-    docRef.write('</style></head><body>');
-    
-    const htmlContent = printContent.innerHTML.replace('<div id="qr-marker"></div>', `
-      <div class="qr-wrap">
-        <div style="font-size: 8px; margin-bottom: 8px; font-weight: 900;">▼ SCAN TO PAY UPI ▼</div>
-        <img src="${qrUrl}" class="qr-img" />
-        <div style="font-size: 10px; margin-top: 8px; font-weight: 900;">AMOUNT: ₹${amount}</div>
-      </div>
+    docRef.write(`
+      <html>
+        <head>
+          <title>Thermal Receipt</title>
+          <style>
+            @page { margin: 0; size: 80mm auto; }
+            body { 
+              font-family: "Inter", sans-serif; 
+              padding: 5mm; 
+              margin: 0; 
+              color: #000; 
+              background: white; 
+              width: 70mm; 
+              font-size: 11px; 
+              text-transform: uppercase; 
+            }
+            .center { text-align: center; }
+            .bold { font-weight: 900; }
+            .header-logo { font-size: 20px; font-weight: 900; letter-spacing: -1px; margin-bottom: 2px; }
+            .dashed-line { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; }
+            .item-table { width: 100%; margin: 10px 0; border-collapse: collapse; }
+            .item-table th { text-align: left; font-size: 9px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+            .item-table td { padding: 6px 0; vertical-align: top; font-weight: 700; }
+            .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 900; margin-top: 10px; border-top: 2px solid #000; padding-top: 8px; }
+            .qr-wrap { margin: 15px 0; text-align: center; border: 1px dashed #000; padding: 15px; border-radius: 10px; }
+            .qr-img { width: 140px; height: 140px; }
+            .footer { font-size: 8px; margin-top: 20px; line-height: 1.4; opacity: 0.8; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            <div class="header-logo">SHOPYKART</div>
+            <div style="font-size: 8px; font-weight: 700; margin-bottom: 8px;">PREMIUM DELIVERY NETWORK</div>
+            <div style="font-size: 9px; line-height: 1.4; margin-bottom: 10px; white-space: pre-line;">${settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR\nPH: +91 9450355709'}</div>
+          </div>
+          <div class="dashed-line"></div>
+          <div class="info-row"><span class="bold">ORDER ID:</span><span class="bold">#${order.orderDisplayId || order.id.slice(-5).toUpperCase()}</span></div>
+          <div class="info-row"><span>DATE:</span><span>${order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--'}</span></div>
+          <div class="info-row"><span>CUSTOMER:</span><span class="bold">${order.customerName?.slice(0, 15)}</span></div>
+          <div class="dashed-line"></div>
+          <table class="item-table">
+            <thead><tr><th width="70%">ITEM</th><th width="10%">QTY</th><th width="20%" style="text-align:right">PRICE</th></tr></thead>
+            <tbody>
+              ${order.items?.map((item: any) => `
+                <tr>
+                  <td>${item.name}</td>
+                  <td style="text-align:center">x${item.quantity}</td>
+                  <td style="text-align:right">${(item.price * item.quantity).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="total-row"><span>NET TOTAL</span><span>₹${order.total?.toFixed(2)}</span></div>
+          <div class="qr-wrap">
+            <div style="font-size: 8px; margin-bottom: 8px; font-weight: 900;">▼ SCAN TO PAY UPI ▼</div>
+            <img src="${qrUrl}" class="qr-img" />
+            <div style="font-size: 10px; margin-top: 8px; font-weight: 900;">AMOUNT: ₹${amount}</div>
+          </div>
+          <div class="center">
+            <div style="font-size: 13px; font-weight: 900; margin-bottom: 4px; color: #000;">${settings?.receiptThankYou || 'THANK YOU!'}</div>
+            <div class="footer">${settings?.receiptFooter || 'COMPUTER GENERATED INVOICE\nNO SIGNATURE REQUIRED'}</div>
+            <div style="font-size: 7px; margin-top: 15px; letter-spacing: 1px; opacity: 0.5;">POWERED BY SHOPYKART POS</div>
+          </div>
+        </body>
+      </html>
     `);
-    
-    docRef.write(htmlContent);
-    docRef.write('</body></html>');
     docRef.close();
     
     setTimeout(() => {
@@ -159,7 +193,7 @@ export default function OrderDetailsClient() {
             className="flex items-center gap-1.5 bg-black text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
            >
               <Printer className="h-3.5 w-3.5" />
-              Print
+              Print Bill
            </button>
         )}
       </div>
@@ -175,7 +209,7 @@ export default function OrderDetailsClient() {
             <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center"><Clock className="h-6 w-6 animate-pulse" /></div>
           )}
           <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Status ID: #{order.orderDisplayId || orderId.slice(-5).toUpperCase()}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Status ID: #${order.orderDisplayId || orderId.slice(-5).toUpperCase()}</span>
             <div className="font-black text-lg italic uppercase tracking-tighter">
               {isCancelled ? "Order Terminated" : order.status}
             </div>
@@ -233,96 +267,6 @@ export default function OrderDetailsClient() {
                </div>
             </div>
           </div>
-        </div>
-
-        {!isCancelled && (
-           <div className="bg-primary/5 p-6 rounded-[2rem] border-2 border-dashed border-primary/10 flex flex-col items-center text-center gap-3">
-              <Printer className="h-8 w-8 text-primary opacity-40" />
-              <div>
-                 <h4 className="font-black text-sm uppercase italic tracking-tight">Thermal Print Ready</h4>
-                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed mt-1">
-                   Optimized for POS 80mm printers.
-                 </p>
-              </div>
-              <Button onClick={handlePrintReceipt} variant="outline" className="h-10 rounded-xl border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest px-8 mt-2">
-                 GENERATE RECEIPT
-              </Button>
-           </div>
-        )}
-      </div>
-
-      {/* THERMAL-ONLY RECEIPT TEMPLATE */}
-      <div className="hidden">
-        <div ref={receiptRef}>
-           <div className="receipt">
-              <div className="center">
-                 <div className="header-logo">SHOPYKART</div>
-                 <div className="header-sub">PREMIUM DELIVERY NETWORK</div>
-                 
-                 <div style={{ fontSize: '9px', lineHeight: '1.4', marginBottom: '10px' }}>
-                   {settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR\nPH: +91 9450355709'}
-                 </div>
-              </div>
-
-              <div className="dashed-line"></div>
-
-              <div className="info-row">
-                 <span className="bold">ORDER ID:</span>
-                 <span className="bold">#{order.orderDisplayId || orderId.slice(-5).toUpperCase()}</span>
-              </div>
-              <div className="info-row">
-                 <span>DATE:</span>
-                 <span>{order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--'}</span>
-              </div>
-              <div className="info-row">
-                 <span>CUSTOMER:</span>
-                 <span className="bold">{order.customerName?.slice(0, 15)}</span>
-              </div>
-
-              <div className="dashed-line"></div>
-
-              <table className="item-table">
-                 <thead>
-                    <tr>
-                       <th width="70%">ITEM</th>
-                       <th width="10%" style={{ textAlign: 'center' }}>QTY</th>
-                       <th width="20%" style={{ textAlign: 'right' }}>PRICE</th>
-                    </tr>
-                 </thead>
-                 <tbody>
-                    {order.items?.map((item: any, i: number) => (
-                       <tr key={i}>
-                          <td style={{ fontWeight: '700' }}>{item.name}</td>
-                          <td style={{ textAlign: 'center' }}>x{item.quantity}</td>
-                          <td style={{ textAlign: 'right' }}>{item.price * item.quantity}</td>
-                       </tr>
-                    ))}
-                 </tbody>
-              </table>
-
-              <div className="dashed-line"></div>
-
-              <div className="total-box">
-                 <div className="total-row">
-                    <span>NET TOTAL</span>
-                    <span>₹{order.total?.toFixed(2)}</span>
-                 </div>
-              </div>
-
-              <div id="qr-marker"></div>
-
-              <div className="center" style={{ marginTop: '15px' }}>
-                 <div style={{ fontSize: '13px', fontWeight: '900', color: '#000', marginBottom: '4px' }}>
-                    {settings?.receiptThankYou || 'THANK YOU!'}
-                 </div>
-                 <div className="footer">
-                    {settings?.receiptFooter || 'COMPUTER GENERATED INVOICE\nNO SIGNATURE REQUIRED'}
-                 </div>
-                 <div style={{ fontSize: '7px', marginTop: '15px', letterSpacing: '1px', opacity: '0.5' }}>
-                    POWERED BY SHOPYKART POS v2.1
-                 </div>
-              </div>
-           </div>
         </div>
       </div>
     </div>

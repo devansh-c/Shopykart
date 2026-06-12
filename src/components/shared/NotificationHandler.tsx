@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -12,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Critical alert system for Admin and Vendors.
- * Features persistent looping audio and mandatory Accept modal.
+ * Features persistent looping LOUD audio and mandatory Accept modal.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -26,11 +27,13 @@ export function NotificationHandler() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize Audio with high-priority looping
+  // Initialize Audio with high-priority looping and LOUD volume
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Using a sharp emergency bell sound
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.loop = true;
+      audio.volume = 1.0;
       audioRef.current = audio;
     }
   }, []);
@@ -65,9 +68,12 @@ export function NotificationHandler() {
     if (!audioRef.current) return;
 
     if (isRinging) {
-      audioRef.current.play().catch(e => {
-        console.warn("Autoplay blocked: Please tap anywhere on the screen to enable order alerts.");
-      });
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn("Autoplay blocked: Ringing will start after user interaction.");
+        });
+      }
     } else {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -84,7 +90,7 @@ export function NotificationHandler() {
         updatedAt: serverTimestamp(),
         lastStatusUpdate: serverTimestamp()
       });
-      toast({ title: "Order Accepted! ✅", description: "The alarm has been silenced." });
+      toast({ title: "Order Accepted! ✅", description: "Alarm silenced." });
     } catch (err) {
       toast({ variant: "destructive", title: "Action Failed", description: "Could not accept order." });
     } finally {
@@ -98,7 +104,7 @@ export function NotificationHandler() {
 
     let unsubscribe: () => void = () => {};
 
-    // 1. ADMIN & VENDOR LISTENER (Persistent Alarm)
+    // 1. ADMIN & VENDOR LISTENER (Persistent LOUD Alarm)
     if (userRole === 'admin' || userRole === 'vendor') {
       const baseQuery = collection(firestore, 'orders');
       const q = userRole === 'admin' 
@@ -108,11 +114,8 @@ export function NotificationHandler() {
       unsubscribe = onSnapshot(q, (snap) => {
         const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setNewOrders(orders);
+        // RING IF THERE ARE UNACCEPTED ORDERS
         setIsRinging(!snap.empty);
-        
-        if (!snap.empty) {
-          console.log(`ALARM: ${snap.size} unaccepted orders found.`);
-        }
       });
     } 
     
@@ -124,7 +127,7 @@ export function NotificationHandler() {
       });
     }
 
-    // 3. CUSTOMER LISTENER (Silent)
+    // 3. CUSTOMER LISTENER (Silent updates)
     else {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       unsubscribe = onSnapshot(q, (snapshot) => {
@@ -140,81 +143,62 @@ export function NotificationHandler() {
     return () => unsubscribe();
   }, [user, firestore, userRole, toast]);
 
-  // Automatically request push token on login
-  useEffect(() => {
-    if (user && firestore && (userRole === 'admin' || userRole === 'vendor')) {
-      const registerFCM = async () => {
-        try {
-          const token = await requestPushToken();
-          if (token) {
-            await updateDoc(doc(firestore, userRole === 'admin' ? 'app_settings/branding' : 'vendors', user.uid), {
-              fcmToken: token,
-              lastTokenUpdate: serverTimestamp()
-            });
-          }
-        } catch (e) {}
-      };
-      registerFCM();
-    }
-  }, [user, firestore, userRole]);
-
   return (
     <>
-      {/* PERSISTENT ACCEPT MODAL FOR ADMIN/VENDORS */}
+      {/* PERSISTENT ACCEPT MODAL FOR ADMIN/VENDORS - MUST CLICK TO STOP ALARM */}
       <Dialog open={newOrders.length > 0} onOpenChange={() => {}}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[20000]">
-          <div className="bg-red-600 h-2 w-full animate-pulse" />
+        <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000]">
+          <div className="bg-red-600 h-3 w-full animate-pulse" />
           <div className="p-8 space-y-6 flex flex-col items-center text-center">
-            <div className="h-20 w-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-600 border border-red-100 relative">
-               <div className="absolute inset-0 bg-red-100 rounded-[2rem] animate-ping opacity-20" />
-               <BellRing className="h-10 w-10 animate-bounce" />
+            <div className="h-24 w-24 bg-red-50 rounded-[2.5rem] flex items-center justify-center text-red-600 border border-red-100 relative">
+               <div className="absolute inset-0 bg-red-100 rounded-[2.5rem] animate-ping opacity-30" />
+               <BellRing className="h-12 w-12 animate-bounce" />
             </div>
             
             <div className="space-y-1">
-              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter leading-none">
-                New Order<br /><span className="text-red-600">Detected!</span>
+              <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter leading-none text-red-600">
+                LOUD ALERT!<br />NEW ORDER
               </DialogTitle>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Action Required Immediately</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Ring will not stop until accepted</p>
             </div>
 
             <div className="w-full space-y-3">
                {newOrders.slice(0, 1).map((order) => (
                  <div key={order.id} className="bg-gray-50 p-5 rounded-3xl border border-gray-100 text-left">
                     <div className="flex justify-between items-center mb-2">
-                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ID: #{order.orderDisplayId || order.id.slice(-4)}</span>
-                       <span className="text-lg font-black italic">₹{order.total?.toFixed(2)}</span>
+                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ID: #${order.orderDisplayId || order.id.slice(-4)}</span>
+                       <span className="text-lg font-black italic text-red-600">₹{order.total?.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
-                       <ShoppingBag className="h-3.5 w-3.5 text-red-500" />
+                       <ShoppingBag className="h-3.5 w-3.5 text-primary" />
                        <span className="truncate">{order.customerName || 'Premium User'}</span>
                     </div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase mt-2 italic">
-                       Alarm will stop after you accept this order.
-                    </p>
                  </div>
                ))}
+               {newOrders.length > 1 && (
+                 <p className="text-[8px] font-black text-primary uppercase text-center">+ {newOrders.length - 1} more waiting orders</p>
+               )}
             </div>
 
-            <div className="w-full flex flex-col gap-3 pt-2">
+            <div className="w-full flex flex-col gap-3">
                <Button 
                 onClick={() => handleAcceptOrder(newOrders[0].id)}
                 disabled={isAccepting}
-                className="w-full h-16 bg-green-600 hover:bg-green-700 text-white rounded-3xl font-black uppercase italic text-lg shadow-xl shadow-green-100 active:scale-95 transition-all"
+                className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-3xl font-black uppercase italic text-xl shadow-xl shadow-green-100 active:scale-95 transition-all"
                >
-                 {isAccepting ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACCEPT ORDER NOW"}
+                 {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT & SILENCE"}
                </Button>
-               
-               <p className="text-[8px] font-black text-gray-300 uppercase tracking-[0.4em]">ShopyKart Real-time Guard</p>
+               <p className="text-[7px] font-black text-gray-300 uppercase tracking-[0.5em]">ShopyKart Emergency Guard</p>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* FLOATING ALARM INDICATOR (Mini) */}
+      {/* FLOATING ALARM INDICATOR (Mini) - If modal is somehow missed */}
       {isRinging && newOrders.length === 0 && (
-         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[10001] bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl flex items-center gap-3 animate-bounce">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Incoming Task Alert!</span>
+         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[50001] bg-red-600 text-white px-8 py-3 rounded-full shadow-[0_0_50px_rgba(239,68,68,0.5)] flex items-center gap-4 animate-bounce">
+            <AlertTriangle className="h-5 w-5" />
+            <span className="text-xs font-black uppercase tracking-widest italic">INCOMING TASK • RINGING LOUD</span>
          </div>
       )}
     </>
