@@ -7,7 +7,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BellRing, ShoppingBag, Loader2, AlertTriangle } from 'lucide-react';
+import { BellRing, ShoppingBag, Loader2, AlertTriangle, Volume2 } from 'lucide-react';
 
 /**
  * @fileOverview Critical alert system for Admin and Vendors.
@@ -22,6 +22,7 @@ export function NotificationHandler() {
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'delivery' | 'customer' | null>(null);
   const [newOrders, setNewOrders] = useState<any[]>([]);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [needsInteraction, setNeedsInteraction] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -31,29 +32,61 @@ export function NotificationHandler() {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.loop = true;
       audio.volume = 1.0;
+      audio.preload = 'auto';
       audioRef.current = audio;
+
+      // Handle browser autoplay policy
+      const unlockAudio = () => {
+        if (audioRef.current) {
+          audioRef.current.play().then(() => {
+            audioRef.current?.pause();
+            audioRef.current!.currentTime = 0;
+            setNeedsInteraction(false);
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('touchstart', unlockAudio);
+          }).catch(() => {
+            setNeedsInteraction(true);
+          });
+        }
+      };
+
+      window.addEventListener('click', unlockAudio);
+      window.addEventListener('touchstart', unlockAudio);
+      return () => {
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
+      };
     }
   }, []);
 
   // Identity & Role Detection
   useEffect(() => {
-    if (!user || !firestore) return;
+    if (!user || !firestore) {
+      setUserRole(null);
+      return;
+    }
     
     const checkRole = async () => {
+      // 1. Check Admin by Email
       if (user.email === 'ceo@shopykart.co.in') {
         setUserRole('admin');
         return;
       }
+      
+      // 2. Check Vendor Table
       const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
       if (vendorDoc.exists()) {
         setUserRole('vendor');
         return;
       }
+
+      // 3. Check Delivery Table
       const partnerDoc = await getDoc(doc(firestore, 'delivery_partners', user.uid));
       if (partnerDoc.exists()) {
         setUserRole('delivery');
         return;
       }
+
       setUserRole('customer');
     };
 
@@ -69,6 +102,7 @@ export function NotificationHandler() {
       if (playPromise !== undefined) {
         playPromise.catch(e => {
           console.warn("Autoplay blocked: Alarm will sound after interaction.");
+          setNeedsInteraction(true);
         });
       }
     } else {
@@ -82,10 +116,10 @@ export function NotificationHandler() {
     if (!firestore || isAccepting) return;
     setIsAccepting(true);
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), { 
+      const orderRef = doc(firestore, 'orders', orderId);
+      await updateDoc(orderRef, { 
         status: 'Accepted',
-        updatedAt: serverTimestamp(),
-        lastStatusUpdate: serverTimestamp()
+        updatedAt: serverTimestamp()
       });
       toast({ title: "Order Accepted! ✅", description: "Alarm silenced." });
     } catch (err) {
@@ -101,6 +135,7 @@ export function NotificationHandler() {
 
     let unsubscribe: () => void = () => {};
 
+    // ADMIN or VENDOR: Watch for "Placed" orders
     if (userRole === 'admin' || userRole === 'vendor') {
       const baseQuery = collection(firestore, 'orders');
       const q = userRole === 'admin' 
@@ -111,9 +146,12 @@ export function NotificationHandler() {
         const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setNewOrders(orders);
         setIsRinging(!snap.empty);
+      }, (err) => {
+        console.error("Snapshot error:", err);
       });
     } 
     
+    // DELIVERY: Watch for "Ready for Pickup"
     else if (userRole === 'delivery') {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Ready for Pickup'));
       unsubscribe = onSnapshot(q, (snap) => {
@@ -121,13 +159,17 @@ export function NotificationHandler() {
       });
     }
 
-    else {
+    // CUSTOMER: Watch for their own order updates
+    else if (userRole === 'customer') {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       unsubscribe = onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'modified') {
             const data = change.doc.data();
-            toast({ title: "Order Update", description: `Your order #${data.orderDisplayId || data.id.slice(-4)} is now ${data.status}.` });
+            toast({ 
+              title: "Order Update", 
+              description: `Your order #${data.orderDisplayId || data.id.slice(-4)} is now ${data.status}.` 
+            });
           }
         });
       });
@@ -138,8 +180,9 @@ export function NotificationHandler() {
 
   return (
     <>
+      {/* Persistant Loud Alert Dialog */}
       <Dialog open={newOrders.length > 0} onOpenChange={() => {}}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000]">
+        <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none">
           <div className="bg-red-600 h-3 w-full animate-pulse" />
           <div className="p-8 space-y-6 flex flex-col items-center text-center">
             <div className="h-24 w-24 bg-red-50 rounded-[2.5rem] flex items-center justify-center text-red-600 border border-red-100 relative">
@@ -149,9 +192,9 @@ export function NotificationHandler() {
             
             <div className="space-y-1">
               <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter leading-none text-red-600">
-                LOUD ALERT!<br />NEW ORDER
+                NEW ORDER!<br />RINGING LOUD
               </DialogTitle>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Ring will not stop until accepted</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Accept to silence the alarm</p>
             </div>
 
             <div className="w-full space-y-3">
@@ -175,14 +218,28 @@ export function NotificationHandler() {
                 disabled={isAccepting}
                 className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-3xl font-black uppercase italic text-xl shadow-xl shadow-green-100 active:scale-95 transition-all"
                >
-                 {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT & SILENCE"}
+                 {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT ORDER"}
                </Button>
-               <p className="text-[7px] font-black text-gray-300 uppercase tracking-[0.5em]">ShopyKart Emergency Guard</p>
+               <p className="text-[7px] font-black text-gray-300 uppercase tracking-[0.5em]">ShopyKart Real-time Guard</p>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Global "Audio Unblock" UI if needed */}
+      {needsInteraction && (userRole === 'admin' || userRole === 'vendor') && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[50001] bg-[#0B0B0B] text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-4 border border-primary/20">
+           <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+              <Volume2 className="h-5 w-5 animate-pulse" />
+           </div>
+           <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Alerts Blocked</span>
+              <span className="text-[11px] font-bold text-gray-400">Tap anywhere to enable sound</span>
+           </div>
+        </div>
+      )}
+
+      {/* Persistent floating banner if ringing but modal closed (unlikely but safe) */}
       {isRinging && newOrders.length === 0 && (
          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[50001] bg-red-600 text-white px-8 py-3 rounded-full shadow-[0_0_50px_rgba(239,68,68,0.5)] flex items-center gap-4 animate-bounce">
             <AlertTriangle className="h-5 w-5" />
@@ -192,3 +249,4 @@ export function NotificationHandler() {
     </>
   );
 }
+

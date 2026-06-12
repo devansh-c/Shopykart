@@ -199,17 +199,21 @@ export function PopularProducts({
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
+      
+      // HUB ISOLATION FIX: Fallback to vendor category if serviceMode is missing
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
+      // LOCATION FILTERING (Optimized & Inclusive)
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
+      // INCLUSIVE FILTERING: If no location is set, show everything for this hub
       if (activeZoneId || targetCityNormalized) {
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
         const matchesTown = targetCityNormalized && (productTown === targetCityNormalized);
-        const isGlobal = !productZoneId && (productTown === 'local' || !productTown);
+        const isGlobal = !productZoneId && (productTown === 'local' || !productTown || productTown === '');
 
         if (!matchesZoneId && !matchesTown && !isGlobal) return false;
       }
@@ -323,3 +327,4 @@ export function PopularProducts({
     </div>
   );
 }
+
