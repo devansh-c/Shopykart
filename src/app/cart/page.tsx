@@ -516,6 +516,9 @@ export default function CartPage() {
       
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Pin Delivery Location</DialogTitle>
+          </DialogHeader>
           <MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} />
         </DialogContent>
       </Dialog>
