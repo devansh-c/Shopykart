@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink, Printer, Download, Eye, Loader2 } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink, Printer, Download, Eye, Loader2, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -88,8 +88,8 @@ export function OrderManagement() {
       <div className="bg-white text-black p-5 font-mono text-[10px] uppercase w-[280px] border border-gray-100 mx-auto">
         <div className="text-center mb-4">
           <h2 className="text-xl font-black italic tracking-tighter">SHOPYKART</h2>
-          <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY</p>
-          <p className="text-[8px] whitespace-pre-line leading-tight">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
+          <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY NETWORK</p>
+          <p className="text-[8px] whitespace-pre-line leading-tight mt-2">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
         </div>
         <div className="border-t border-dashed border-black my-2" />
         <div className="flex justify-between"><span>ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
@@ -108,16 +108,16 @@ export function OrderManagement() {
            {orderData.charges?.map((c: any, i: number) => (
              <div key={i} className="flex justify-between"><span>{c.name}:</span><span className="font-black">₹{c.amount.toFixed(2)}</span></div>
            ))}
-           {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
-           {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
-           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>PARTNER TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between text-black"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between text-black"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between text-black"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
         </div>
 
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
         <div className="border-t border-dashed border-black my-3" />
         <div className="border border-dashed border-black p-2 text-center mb-4">
-           <p className="text-[6px] font-black mb-1">PAYMENT QR</p>
            <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" />
+           <p className="text-[7px] font-black mt-1">PAYABLE: ₹{orderData.total?.toFixed(2)}</p>
         </div>
         <div className="text-center text-[7px] font-black tracking-widest opacity-60">POWERED BY SHOPYKART POS</div>
       </div>
@@ -131,7 +131,7 @@ export function OrderManagement() {
         <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-[10px] px-3">{orders?.length || 0} TOTAL</Badge>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 pb-20">
         {orders?.map((order) => (
           <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
             <div className="flex flex-col lg:flex-row justify-between gap-6">
@@ -154,7 +154,22 @@ export function OrderManagement() {
                            <button onClick={() => handleStatusUpdate(order.id, 'Cancelled')} className="p-2.5 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-all"><X className="h-3.5 w-3.5" /></button>
                         </div>
                      </div>
-                     <div className="flex items-start gap-2 text-[10px] text-gray-500"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /><span className="truncate">{order.address}</span></div>
+                     
+                     <div className="border-t border-white pt-3 mt-1 space-y-2">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase">
+                           <Store className="h-3 w-3" /> {order.restaurantName || 'ShopyKart Store'}
+                        </div>
+                        <div className="space-y-1">
+                           {order.items?.map((item: any, i: number) => (
+                             <div key={i} className="flex justify-between text-[10px] font-bold text-gray-500 italic">
+                                <span>{item.quantity}x {item.name}</span>
+                                <span>₹{item.price * item.quantity}</span>
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div className="flex items-start gap-2 text-[10px] text-gray-500 pt-1"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /><span className="truncate">{order.address}</span></div>
                   </div>
                 </div>
               </div>
@@ -169,7 +184,7 @@ export function OrderManagement() {
                     <DialogTrigger asChild>
                       <Button variant="outline" className="flex-1 rounded-xl h-10 border-primary/20 text-primary font-black text-[9px] uppercase"><Eye className="h-3.5 w-3.5 mr-1" /> VIEW BILL</Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[90vh]">
+                    <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
                        <DialogHeader className="sr-only">
                          <DialogTitle>Order Bill View</DialogTitle>
                        </DialogHeader>
@@ -192,7 +207,6 @@ export function OrderManagement() {
               </div>
             </div>
             
-            {/* Hidden template for capture */}
             <div id={`receipt-temp-${order.id}`} className="hidden">
               {generateReceiptDOM(order)}
             </div>

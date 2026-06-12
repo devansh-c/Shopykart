@@ -134,13 +134,9 @@ export default function OrderDetailsClient() {
     }
 
     try {
-      // Use higher scale for mobile clarity and JPEG format for gallery compatibility
       const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
-      
-      // Convert DataURL to Blob for better browser compatibility
       const response = await fetch(dataUrl);
       const blob = await response.blob();
-      
       saveAs(blob, `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
       toast({ title: "Saved to Gallery! ✅" });
     } catch (err) {
@@ -196,7 +192,7 @@ export default function OrderDetailsClient() {
                   <Eye className="h-3.5 w-3.5" /> View Bill
                 </button>
               </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden bg-white max-w-[340px] flex flex-col max-h-[90vh]">
+              <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden bg-white max-w-[340px] flex flex-col max-h-[85vh] z-[11000]">
                 <DialogHeader className="sr-only">
                   <DialogTitle>Digital Order Bill</DialogTitle>
                 </DialogHeader>
