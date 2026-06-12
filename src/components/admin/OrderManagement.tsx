@@ -71,12 +71,28 @@ export function OrderManagement() {
   const handlePrint = (orderId: string) => {
     const element = document.getElementById(`receipt-temp-${orderId}`);
     if (!element) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;}</style></head><body>' + element.innerHTML + '</body></html>');
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+
+    // Use hidden iframe for reliable mobile printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;font-family:sans-serif;text-transform:uppercase;}</style></head><body>' + element.innerHTML + '</body></html>');
+    doc.close();
+
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      document.body.removeChild(iframe);
+    }, 500);
   };
 
   const generateReceiptDOM = (orderData: any) => {
@@ -108,9 +124,9 @@ export function OrderManagement() {
            {orderData.charges?.map((c: any, i: number) => (
              <div key={i} className="flex justify-between"><span>{c.name}:</span><span className="font-black">₹{c.amount.toFixed(2)}</span></div>
            ))}
-           {orderData.couponDiscount > 0 && <div className="flex justify-between text-black"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
-           {orderData.coinDiscount > 0 && <div className="flex justify-between text-black"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
-           {orderData.deliveryTip > 0 && <div className="flex justify-between text-black"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
         </div>
 
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>

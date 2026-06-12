@@ -110,12 +110,27 @@ export default function VendorDashboard() {
   const handlePrint = (orderId: string) => {
     const element = document.getElementById(`receipt-temp-${orderId}`);
     if (!element) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;}</style></head><body>' + element.innerHTML + '</body></html>');
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+    
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;font-family:sans-serif;text-transform:uppercase;}</style></head><body>' + element.innerHTML + '</body></html>');
+    doc.close();
+
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      document.body.removeChild(iframe);
+    }, 500);
   };
 
   const generateReceiptDOM = (orderData: any) => {
@@ -203,7 +218,7 @@ export default function VendorDashboard() {
                         <DialogTrigger asChild>
                           <Button variant="outline" className="flex-1 h-12 rounded-2xl font-black text-[9px] uppercase border-primary/20 text-primary"><Eye className="h-3.5 w-3.5 mr-1.5" /> BILL</Button>
                         </DialogTrigger>
-                        <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[90vh]">
+                        <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
                           <DialogHeader className="sr-only">
                             <DialogTitle>Order Bill Receipt</DialogTitle>
                           </DialogHeader>

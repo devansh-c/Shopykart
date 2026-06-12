@@ -94,9 +94,9 @@ export default function OrderDetailsClient() {
            {orderData.charges?.map((charge: any, idx: number) => (
              <div key={idx} className="flex justify-between"><span>{charge.name}:</span><span className="font-black">₹{charge.amount.toFixed(2)}</span></div>
            ))}
-           {orderData.couponDiscount > 0 && <div className="flex justify-between text-black"><span>DISCOUNT (COUPON):</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
-           {orderData.coinDiscount > 0 && <div className="flex justify-between text-black"><span>DISCOUNT (COINS):</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
-           {orderData.deliveryTip > 0 && <div className="flex justify-between text-black"><span>PARTNER TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between text-black"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between text-black"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between text-black"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
         </div>
 
         <div className="border-t-2 border-black mt-3 pt-3 flex justify-between items-center text-lg font-black italic">
@@ -151,20 +151,25 @@ export default function OrderDetailsClient() {
     const element = document.getElementById('receipt-download-template');
     if (!element) return;
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    printWindow.document.write('<html><head><title>Print Receipt</title>');
-    printWindow.document.write('<style>body{margin:0;display:flex;justify-content:center;} @page{margin:0;size:80mm auto;}</style>');
-    printWindow.document.write('</head><body>');
-    printWindow.document.write(element.innerHTML);
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
-    printWindow.focus();
-    
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.write('<html><head><style>@page{margin:0;size:80mm auto;}body{margin:0;display:flex;justify-content:center;font-family:sans-serif;text-transform:uppercase;}</style></head><body>' + element.innerHTML + '</body></html>');
+    doc.close();
+
+    iframe.contentWindow?.focus();
     setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
+      iframe.contentWindow?.print();
+      document.body.removeChild(iframe);
     }, 500);
   };
 
