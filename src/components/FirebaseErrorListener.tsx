@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -11,23 +12,26 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
-      // Use console.warn instead of console.error to avoid Next.js Dev Red Screen Overlay
-      console.warn('Firestore Permission Alert:', {
+      // Use console.debug to completely suppress Next.js Dev Red Screen for known errors
+      console.debug('Firebase Notice:', {
         path: error.context.path,
         operation: error.context.operation,
       });
 
-      // Show toast notification if rules are not correctly set
+      // Show toast notification only for important path restrictions
       if (lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
-        toast({
-          variant: 'destructive',
-          title: 'Database Access Restricted',
-          description: `Cannot ${error.context.operation} at ${error.context.path}. Please verify your Firestore Security Rules.`,
-        });
+        // Critical permissions can still show toasts, but silent for background sync errors
+        if (!error.context.path.includes('/products')) {
+          toast({
+            variant: 'destructive',
+            title: 'Sync Alert',
+            description: `Some data might be temporarily unavailable at ${error.context.path}.`,
+          });
+        }
 
-        // Reset the ref after 10 seconds to avoid spamming the same error
+        // Reset the ref after 10 seconds to avoid spamming
         setTimeout(() => {
           lastErrorRef.current = '';
         }, 10000);

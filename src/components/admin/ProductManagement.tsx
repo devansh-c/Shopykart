@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
@@ -59,7 +60,13 @@ export function ProductManagement() {
     try {
       const batch = writeBatch(firestore);
       vendors.forEach(v => batch.update(doc(firestore, 'vendors', v.id), { isOnline: online }));
-      if (products) products.forEach(p => batch.update(doc(firestore, 'products', p.id), { isAvailable: online }));
+      if (products) {
+        products.forEach(p => {
+          batch.update(doc(firestore, 'products', p.id), { isAvailable: online });
+          // Resilient update for sub-collections using set with merge
+          batch.set(doc(firestore, 'vendors', p.vendorId, 'products', p.id), { isAvailable: online }, { merge: true });
+        });
+      }
       await batch.commit();
       toast({ title: online ? "All Online" : "All Closed" });
     } catch (e) { toast({ variant: "destructive", title: "Error" }); }
@@ -69,8 +76,9 @@ export function ProductManagement() {
   const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
     if (!firestore) return;
     try {
-      await updateDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
-      await updateDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() });
+      // Use setDoc with merge instead of updateDoc to prevent "No document to update" error
+      await setDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: available ? "Stock Online" : "Stock Offline" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
@@ -108,8 +116,9 @@ export function ProductManagement() {
 
     try {
       if (editingId) {
-        await updateDoc(doc(firestore, 'products', editingId), productData);
-        await updateDoc(doc(firestore, 'vendors', selectedVendorId, 'products', editingId), productData);
+        // Use setDoc with merge to be safe
+        await setDoc(doc(firestore, 'products', editingId), productData, { merge: true });
+        await setDoc(doc(firestore, 'vendors', selectedVendorId, 'products', editingId), productData, { merge: true });
       } else {
         const newRef = doc(collection(firestore, 'products'));
         await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });

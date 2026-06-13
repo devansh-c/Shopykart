@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where, getDocs } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, writeBatch, serverTimestamp, where, getDocs, setDoc } from 'firebase/firestore';
 import { 
   Store, 
   User, 
@@ -75,7 +76,8 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
       
       productsSnap.docs.forEach(pDoc => {
         batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
-        batch.update(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() });
+        // Use batch.set with merge instead of update to prevent missing document error
+        batch.set(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
       });
 
       await batch.commit();
@@ -139,7 +141,8 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
         const pSnap = await getDocs(pQuery);
         pSnap.docs.forEach(pDoc => {
           batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
-          batch.update(doc(firestore, 'vendors', store.id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() });
+          // Resilient sub-collection update
+          batch.set(doc(firestore, 'vendors', store.id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
         });
       }
 
