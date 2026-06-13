@@ -17,6 +17,7 @@ const OffersSection = dynamic(() => import('@/components/home/OffersSection').th
 const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => m.TopTenProducts));
 const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => m.BeautySalonSection));
 const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => m.MedicalCareSection));
+const SmartBasketAI = dynamic(() => import('@/components/home/SmartBasketAI').then(m => m.SmartBasketAI));
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -158,6 +159,12 @@ export default function ShopyKartApp() {
             {!searchQuery && (
               <ScrollReveal delay={300}>
                 <OffersSection />
+              </ScrollReveal>
+            )}
+
+            {activeMode === 'Food' && !searchQuery && (
+              <ScrollReveal delay={320}>
+                <SmartBasketAI />
               </ScrollReveal>
             )}
 
