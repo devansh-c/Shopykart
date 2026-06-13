@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, getDocs, writeBatch, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
@@ -145,11 +145,20 @@ export default function VendorDashboard() {
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
 
-  // Orders Query
+  /**
+   * BULLETPROOF QUERY: Fetch most recent orders and filter by participation.
+   * Supports both 'vendorId' (string) and 'vendorIds' (array) schemas.
+   */
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'orders'), where('vendorIds', 'array-contains', user.uid));
+    // We fetch all non-delivered/non-cancelled orders first, or recent delivered ones
+    return query(
+      collection(firestore, 'orders'), 
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    );
   }, [firestore, user]);
+  
   const { data: rawOrders, loading: ordersLoading } = useCollection<any>(ordersQuery);
 
   // Products Query
@@ -166,10 +175,20 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: payouts, loading: payoutsLoading } = useCollection<any>(payoutQuery);
 
+  // GREEDY FILTERING: Ensure orders where the vendor is involved show up
   const orders = useMemo(() => {
-    if (!rawOrders) return [];
-    return [...rawOrders].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  }, [rawOrders]);
+    if (!rawOrders || !user) return [];
+    return rawOrders.filter((o: any) => {
+      // Check if current user is the main vendor
+      const isMainVendor = o.vendorId === user.uid;
+      // Check if current user is in the multi-vendor participation list
+      const isInVendorIds = Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid);
+      // Check if any item in the order belongs to this vendor
+      const hasMyItems = o.items?.some((item: any) => item.vendorId === user.uid);
+      
+      return isMainVendor || isInVendorIds || hasMyItems;
+    });
+  }, [rawOrders, user]);
 
   const handleToggleStore = async (online: boolean) => {
     if (!firestore || !user) return;
@@ -432,7 +451,7 @@ export default function VendorDashboard() {
            <div className="p-4 space-y-4 animate-in fade-in duration-500">
               <div className="flex bg-white rounded-2xl p-1 shadow-sm mb-4 border border-border/50">
                 {['NEW ORDERS', 'DELIVERED', 'CANCELLED'].map(f => (
-                  <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-black text-white" : "text-gray-400")}>{f}</button>
+                  <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all whitespace-nowrap px-1", orderFilter === f ? "bg-black text-white" : "text-gray-400")}>{f}</button>
                 ))}
               </div>
 

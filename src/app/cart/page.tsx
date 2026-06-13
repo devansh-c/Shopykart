@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -185,8 +186,8 @@ export default function CartPage() {
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
-    // COLLECT ALL UNIQUE VENDOR IDS
-    const allVendorIds = Array.from(new Set(cart.map(item => item.vendorId).filter(Boolean)));
+    // COLLECT ALL UNIQUE VENDOR IDS WITH CLEAN STRINGS
+    const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(id => id !== 'undefined' && id !== 'null')));
 
     const orderData = {
       userId: finalUid,
