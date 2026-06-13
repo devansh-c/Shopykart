@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, ChevronRight, Loader2, Utensils, ShoppingCart, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -10,11 +10,16 @@ import { getSmartBasketDetails, type SmartBasketOutput } from '@/ai/flows/smart-
 import { useToast } from '@/hooks/use-toast';
 
 export function SmartBasketAI() {
+  const [mounted, setMounted] = useState(false);
   const [dish, setDish] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SmartBasketOutput | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleGenerate = async () => {
     if (!dish.trim()) return;
@@ -29,33 +34,45 @@ export function SmartBasketAI() {
     }
   };
 
+  const bannerButton = (
+    <button className="relative w-full overflow-hidden rounded-[2rem] p-6 shadow-xl shadow-rose-200/40 border border-white/10 active:scale-[0.98] transition-all duration-300 text-left group">
+      {/* Gradient matching the screenshot */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#EF4444] via-[#F43F5E] to-[#BE123C] group-hover:scale-105 transition-transform duration-700" />
+      
+      {/* Glass decoration */}
+      <div className="absolute top-0 right-0 h-full w-24 bg-white/10 -skew-x-12 translate-x-12" />
+
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="space-y-1 flex-1">
+          <div className="flex items-center gap-2 text-white">
+            <Sparkles className="h-5 w-5 animate-pulse" />
+            <h3 className="text-xl font-black italic uppercase tracking-tighter">Smart Basket AI</h3>
+          </div>
+          <p className="text-sm font-bold text-white/90 leading-tight pr-10">
+            Get meal bundles & recipes tailored for you.
+          </p>
+        </div>
+
+        <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/20 group-hover:translate-x-1 transition-transform">
+          <ChevronRight className="h-5 w-5" />
+        </div>
+      </div>
+    </button>
+  );
+
+  if (!mounted) {
+    return (
+      <div className="px-4 py-2">
+        {bannerButton}
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 py-2">
       <Dialog open={isOpen} onOpenChange={(val) => { setIsOpen(val); if(!val) { setResult(null); setDish(''); } }}>
         <DialogTrigger asChild>
-          <button className="relative w-full overflow-hidden rounded-[2rem] p-6 shadow-xl shadow-rose-200/40 border border-white/10 active:scale-[0.98] transition-all duration-300 text-left group">
-            {/* Gradient matching the screenshot */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#EF4444] via-[#F43F5E] to-[#BE123C] group-hover:scale-105 transition-transform duration-700" />
-            
-            {/* Glass decoration */}
-            <div className="absolute top-0 right-0 h-full w-24 bg-white/10 -skew-x-12 translate-x-12" />
-
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2 text-white">
-                  <Sparkles className="h-5 w-5 animate-pulse" />
-                  <h3 className="text-xl font-black italic uppercase tracking-tighter">Smart Basket AI</h3>
-                </div>
-                <p className="text-sm font-bold text-white/90 leading-tight pr-10">
-                  Get meal bundles & recipes tailored for you.
-                </p>
-              </div>
-
-              <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/20 group-hover:translate-x-1 transition-transform">
-                <ChevronRight className="h-5 w-5" />
-              </div>
-            </div>
-          </button>
+          {bannerButton}
         </DialogTrigger>
 
         <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[85vh] flex flex-col focus:outline-none">
