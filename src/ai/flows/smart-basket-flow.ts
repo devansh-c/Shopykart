@@ -16,10 +16,10 @@ const SmartBasketInputSchema = z.object({
 export type SmartBasketInput = z.infer<typeof SmartBasketInputSchema>;
 
 const SmartBasketOutputSchema = z.object({
-  recipeTitle: z.string(),
-  steps: z.array(z.string()).describe('Step by step cooking instructions.'),
-  ingredients: z.array(z.string()).describe('List of raw ingredients needed.'),
-  shoppingList: z.array(z.string()).describe('Keywords of products to buy from ShopyKart (e.g., "Butter", "Paneer", "Milk").'),
+  recipeTitle: z.string().describe('A catchy, chef-style title for the recipe.'),
+  steps: z.array(z.string()).describe('Step by step professional cooking instructions.'),
+  ingredients: z.array(z.string()).describe('Comprehensive list of raw ingredients needed.'),
+  shoppingList: z.array(z.string()).describe('Specific keywords of products to buy from ShopyKart (e.g., "Amul Butter", "Everest Garam Masala", "Tata Salt").'),
 });
 export type SmartBasketOutput = z.infer<typeof SmartBasketOutputSchema>;
 
@@ -39,22 +39,35 @@ export async function getSmartBasketDetails(input: SmartBasketInput): Promise<Sm
   try {
     return await smartBasketFlow(input);
   } catch (error) {
-    console.error("AI Service busy, providing fallback basket for:", input.dishName);
+    console.error("AI Service busy, providing dynamic fallback for:", input.dishName);
     return {
       ...fallbackData,
-      recipeTitle: `ShopyKart ${input.dishName} Basket`
+      recipeTitle: `ShopyKart ${input.dishName} Special`,
+      shoppingList: [`Fresh ${input.dishName} Base`, "Amul Butter", "Everest Spices", "Organic Veggies"]
     };
   }
 }
 
-const prompt = ai.definePrompt({
+const smartBasketPrompt = ai.definePrompt({
   name: 'smartBasketPrompt',
   input: {schema: SmartBasketInputSchema},
   output: {schema: SmartBasketOutputSchema},
-  prompt: `You are the ShopyKart Chef AI. A user wants to cook "{{{dishName}}}" at home.
-Provide a professional recipe and a precise shopping list of ingredients they should buy from our store.
+  system: `You are the "ShopyKart Master Chef", an AI specialized in Indian and global cuisines.
+Your expertise lies in breaking down complex dishes into simple, home-cookable steps.
+You also understand the Indian grocery market perfectly and know exactly which brands (like Amul, Everest, MDH, Tata Salt, Daawat Basmati) are best for each dish.`,
+  prompt: `The user wants to prepare: "{{{dishName}}}".
 
-Ensure the shopping list includes common grocery items available in local Indian stores.`,
+As an expert chef, provide a high-quality guide.
+
+1. **Recipe Title**: Give it a professional name (e.g., "Restaurant Style Paneer Butter Masala").
+2. **Ingredients**: List everything needed including spices and small details.
+3. **Cooking Steps**: Write 4-6 clear, numbered steps. Use culinary terms but keep it simple.
+4. **ShopyKart Shopping List**: This is crucial. Suggest 4-6 specific items the user should buy from our app. 
+   - Instead of just "Butter", say "Amul Salted Butter".
+   - Instead of "Spices", say "Everest Tikhalal" or "MDH Kitchen King".
+   - Instead of "Rice", say "Daawat Rozana Basmati".
+
+Make sure the shopping list items are things a user can actually find in a high-end Indian grocery store.`,
 });
 
 const smartBasketFlow = ai.defineFlow(
@@ -64,7 +77,8 @@ const smartBasketFlow = ai.defineFlow(
     outputSchema: SmartBasketOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output || fallbackData;
+    const {output} = await smartBasketPrompt(input);
+    if (!output) throw new Error("No output from AI");
+    return output;
   }
 );
