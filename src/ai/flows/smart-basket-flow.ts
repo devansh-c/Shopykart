@@ -23,8 +23,28 @@ const SmartBasketOutputSchema = z.object({
 });
 export type SmartBasketOutput = z.infer<typeof SmartBasketOutputSchema>;
 
+const fallbackData: SmartBasketOutput = {
+  recipeTitle: "Chef's Special Preparation",
+  steps: [
+    "Prepare the fresh ingredients by washing and chopping them neatly.",
+    "Heat oil or butter in a pan and sauté the base spices.",
+    "Add your main ingredients and cook on medium flame for 15-20 minutes.",
+    "Garnish with fresh herbs and serve hot with bread or rice."
+  ],
+  ingredients: ["Main Ingredient", "Cooking Oil", "Signature Spices", "Fresh Herbs"],
+  shoppingList: ["Cooking Oil", "Spices", "Fresh Vegetables", "Dairy Products"]
+};
+
 export async function getSmartBasketDetails(input: SmartBasketInput): Promise<SmartBasketOutput> {
-  return smartBasketFlow(input);
+  try {
+    return await smartBasketFlow(input);
+  } catch (error) {
+    console.error("AI Service busy, providing fallback basket for:", input.dishName);
+    return {
+      ...fallbackData,
+      recipeTitle: `ShopyKart ${input.dishName} Basket`
+    };
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -45,6 +65,6 @@ const smartBasketFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    return output || fallbackData;
   }
 );
