@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -58,11 +57,12 @@ export function EmailAuth() {
     if (err.code === 'auth/unauthorized-domain') {
       toast({ 
         variant: "destructive", 
-        title: "Domain Restricted", 
-        description: "Please add this domain to Firebase Console > Auth > Settings > Authorized Domains. Check console for URL.",
-        duration: 8000
+        title: "Domain Not Authorized", 
+        description: "Please add this workstation URL to Firebase Console > Authentication > Settings > Authorized Domains.",
+        duration: 10000
       });
-      console.error("ADD THIS DOMAIN TO FIREBASE:", window.location.hostname);
+      // Changed to console.warn to avoid blocking the UI in dev mode
+      console.warn("ACTION REQUIRED: Add this domain to Firebase Authorized Domains list:", window.location.hostname);
     } else {
       toast({ variant: "destructive", title: "Auth Failed", description: err.message });
     }
