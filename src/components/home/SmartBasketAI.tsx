@@ -71,6 +71,9 @@ export function SmartBasketAI() {
         </DialogTrigger>
 
         <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[85vh] flex flex-col focus:outline-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Smart Basket AI Assistant</DialogTitle>
+          </DialogHeader>
           <div className="bg-[#EF4444] h-2 w-full" />
           <div className="p-8 space-y-6 overflow-y-auto no-scrollbar">
             {!result ? (
@@ -79,7 +82,7 @@ export function SmartBasketAI() {
                    <div className="h-16 w-16 bg-rose-50 rounded-2xl flex items-center justify-center text-[#EF4444] mx-auto border border-rose-100">
                       <Utensils className="h-8 w-8" />
                    </div>
-                   <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">What's Cooking?</DialogTitle>
+                   <h2 className="text-2xl font-black italic uppercase tracking-tighter">What's Cooking?</h2>
                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
                      Tell AI what you want to make, we'll build your basket.
                    </p>
