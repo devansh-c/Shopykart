@@ -207,17 +207,34 @@ export default function VendorDashboard() {
       town: vendorProfile.town || 'Local',
       serviceMode: vendorProfile.category || 'Food',
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/400/300',
-      options: productForm.options.filter(o => o.name.trim() !== ''),
+      options: productForm.options.filter(opt => opt.name.trim() !== ''),
       isAvailable: vendorProfile.isOnline !== false,
       updatedAt: serverTimestamp()
     };
     try {
-      if (editingProduct) { await updateDoc(doc(firestore, 'products', editingProduct.id), productData); }
+      if (editingId) { await setDoc(doc(firestore, 'products', editingProduct.id), productData, { merge: true }); }
       else { const newRef = doc(collection(firestore, 'products')); await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() }); }
       setIsProductModalOpen(false);
       toast({ title: "Product Saved!" });
     } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
     finally { setIsSavingProduct(false); }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!firestore || !user) return;
+    setIsSavingProfile(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        fullName: profileForm.fullName,
+        address: profileForm.address,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Profile Updated Successfully!" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleDownload = async (order: any) => {
