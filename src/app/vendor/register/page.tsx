@@ -51,10 +51,12 @@ function RegistrationContent() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const auth = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [step, setStep] = useState<Step>('form');
   const [showPassword, setShowPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [storePhoto, setStorePhoto] = useState<string | null>(null);
 
   // Fetch zones for assignment (Required for visibility in app)
   const zonesQuery = useMemoFirebase(() => {
@@ -73,6 +75,17 @@ function RegistrationContent() {
     confirmPassword: '',
   });
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setStorePhoto(compressed);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
@@ -88,7 +101,8 @@ function RegistrationContent() {
       formData.phone.length === 10 &&
       !!formData.password && 
       formData.password === formData.confirmPassword &&
-      !!formData.zoneId
+      !!formData.zoneId &&
+      !!storePhoto
     );
   };
 
@@ -138,7 +152,7 @@ function RegistrationContent() {
         status: 'approved',
         isOnline: true,
         walletBalance: 0,
-        imageUrl: isMedicalFlow ? 'https://picsum.photos/seed/medical/400/400' : isBeautyFlow ? 'https://picsum.photos/seed/beauty/400/400' : 'https://picsum.photos/seed/food/400/400',
+        imageUrl: storePhoto || (isMedicalFlow ? 'https://picsum.photos/seed/medical/400/400' : isBeautyFlow ? 'https://picsum.photos/seed/beauty/400/400' : 'https://picsum.photos/seed/food/400/400'),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -154,7 +168,7 @@ function RegistrationContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4 py-12">
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
         <CardContent className="p-8">
           {step === 'form' && (
@@ -170,6 +184,25 @@ function RegistrationContent() {
                   {isMedicalFlow ? 'Join as Medical Store' : isBeautyFlow ? 'Join as Beauty Store' : 'Vendor Registration'}
                 </h2>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Enter Business Credentials</p>
+              </div>
+
+              {/* IMAGE UPLOAD SECTION */}
+              <div className="flex flex-col items-center gap-3">
+                 <div 
+                   onClick={() => fileInputRef.current?.click()}
+                   className="h-24 w-24 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center cursor-pointer overflow-hidden group relative"
+                 >
+                   {storePhoto ? (
+                     <img src={storePhoto} className="h-full w-full object-cover" alt="Store" />
+                   ) : (
+                     <>
+                       <Camera className="h-6 w-6 text-gray-400 group-hover:text-primary transition-colors" />
+                       <span className="text-[8px] font-black uppercase text-gray-400 mt-1">Store Logo</span>
+                     </>
+                   )}
+                 </div>
+                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                 <p className="text-[8px] font-bold text-muted-foreground uppercase">Tap to upload store display photo *</p>
               </div>
 
               <div className="space-y-4">
