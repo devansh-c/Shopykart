@@ -71,23 +71,35 @@ export default function BeautyDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+  // Vendor Profile
+  const vendorRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+  const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  // AUTH GUARD
+  useEffect(() => {
+    if (!authLoading && !profileLoading) {
+      if (!user) {
+        router.replace('/vendor/login?type=Beauty');
+      } else if (!vendorProfile) {
+        toast({ variant: "destructive", title: "Access Denied", description: "Not a registered Beauty seller." });
+        router.replace('/vendor/login?type=Beauty');
+      }
+    }
+  }, [user, authLoading, vendorProfile, profileLoading, router, toast]);
+
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '', options: [] as any[]
   });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
-  
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
-
-  const vendorRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
-  const { data: vendorProfile } = useDoc<any>(vendorRef);
 
   useEffect(() => {
     if (vendorProfile) {
@@ -116,13 +128,13 @@ export default function BeautyDashboard() {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
-  const { data: myProducts, loading: productsLoading } = useCollection<any>(productsQuery);
+  const { data: myProducts } = useCollection<any>(productsQuery);
 
   const payoutQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
   }, [firestore, user]);
-  const { data: payouts, loading: payoutsLoading } = useCollection<any>(payoutQuery);
+  const { data: payouts } = useCollection<any>(payoutQuery);
 
   const orders = useMemo(() => {
     if (!rawOrders || !user) return [];
@@ -154,7 +166,7 @@ export default function BeautyDashboard() {
       vendorId: user.uid, restaurantName: vendorProfile.storeName, zoneId: vendorProfile.zoneId || null,
       town: vendorProfile.town || 'Local', serviceMode: 'Beauty',
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/beauty/400/300',
-      options: productForm.options.filter(o => o.name.trim() !== ''),
+      options: productForm.options.filter(o => o.name?.trim() !== ''),
       isAvailable: vendorProfile.isOnline !== false, updatedAt: serverTimestamp()
     };
     try {
@@ -175,7 +187,9 @@ export default function BeautyDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted) return null;
+  if (!isMounted || authLoading || profileLoading || !user || !vendorProfile) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
+  }
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -202,7 +216,7 @@ export default function BeautyDashboard() {
                     ))}
                   </div>
                   {ordersLoading ? <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-rose-600" /></div> :
-                  filteredOrders?.map(o => (
+                  filteredOrders?.length > 0 ? filteredOrders.map(o => (
                     <div key={o.id} className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm mb-4">
                       <div className="flex justify-between items-center mb-4">
                           <div><span className="text-lg font-black italic">#{o.orderDisplayId || o.id.slice(-4)}</span><div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div></div>
@@ -213,16 +227,21 @@ export default function BeautyDashboard() {
                           {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (<div key={i} className="flex justify-between items-center text-xs font-bold"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-rose-600">₹{(item.price * item.quantity).toFixed(2)}</span></div>))}
                       </div>
                       <Dialog><DialogTrigger asChild><button className="w-full bg-white border-2 border-rose-200 text-rose-600 h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button></DialogTrigger>
-                      <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]"><DialogHeader className="sr-only"><DialogTitle>Order Bill</DialogTitle></DialogHeader><div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center"><div className="w-full scale-[1.05] origin-top mb-4">{/* Receipt DOM logic */}</div></div><div className="p-4 bg-rose-50 border-t flex gap-2 shrink-0"><Button className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg"><Printer className="h-4 w-4 mr-2" /> PRINT</Button><Button disabled className="flex-1 bg-rose-600 h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg">SAVE</Button></div></DialogContent></Dialog>
+                      <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]"><DialogHeader className="sr-only"><DialogTitle>Order Bill</DialogTitle></DialogHeader><div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center"><div className="w-full scale-[1.05] origin-top mb-4"></div></div><div className="p-4 bg-rose-50 border-t flex gap-2 shrink-0"><Button className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg"><Printer className="h-4 w-4 mr-2" /> PRINT</Button><Button disabled className="flex-1 bg-rose-600 h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg">SAVE</Button></div></DialogContent></Dialog>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                      <ShoppingBag className="h-16 w-16 mb-4" />
+                      <p className="font-black italic uppercase text-xs">No orders in this category</p>
+                    </div>
+                  )}
               </div>
             )}
 
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
                   <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Beauty Inventory</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD PRODUCT</Button></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><div className="flex items-center gap-2 mb-1"><span className={cn("h-2 w-2 rounded-full", p.isAvailable !== false ? "bg-green-500" : "bg-red-500")} /><span className="text-[8px] font-black text-muted-foreground uppercase">{p.isAvailable !== false ? 'Live' : 'OFF'}</span></div><p className="text-xs font-black text-rose-600 italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: true, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
+                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-rose-600 italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: true, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
               </div>
             )}
 
