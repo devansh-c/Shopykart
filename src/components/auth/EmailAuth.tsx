@@ -22,6 +22,7 @@ type AuthView = 'login' | 'signup';
 
 /**
  * @fileOverview Premium Authentication with Google, Apple and Email support.
+ * Optimized for instant entry into the app upon successful registration/login.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -61,7 +62,6 @@ export function EmailAuth() {
         description: "Please add this workstation URL to Firebase Console > Authentication > Settings > Authorized Domains.",
         duration: 10000
       });
-      // Changed to console.warn to avoid blocking the UI in dev mode
       console.warn("ACTION REQUIRED: Add this domain to Firebase Authorized Domains list:", window.location.hostname);
     } else {
       toast({ variant: "destructive", title: "Auth Failed", description: err.message });
@@ -95,6 +95,7 @@ export function EmailAuth() {
 
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Google Login Successful" });
+      window.location.reload();
     } catch (err: any) {
       handleFirebaseError(err);
     } finally {
@@ -131,6 +132,7 @@ export function EmailAuth() {
 
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Apple Login Successful" });
+      window.location.reload();
     } catch (err: any) {
       handleFirebaseError(err);
     } finally {
@@ -183,10 +185,13 @@ export function EmailAuth() {
         localStorage.setItem('show_welcome_bonus', 'true');
         
         toast({ title: "Profile Created!" });
+        // INSTANT ACCESS: Force a reload to clear the auth overlay immediately
+        window.location.reload();
       } else if (view === 'login') {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Welcome Back!" });
+        window.location.reload();
       }
     } catch (err: any) {
       handleFirebaseError(err);
