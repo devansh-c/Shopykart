@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,7 +63,6 @@ export function ProductManagement() {
       if (products) {
         products.forEach(p => {
           batch.update(doc(firestore, 'products', p.id), { isAvailable: online });
-          // Resilient update for sub-collections using set with merge
           batch.set(doc(firestore, 'vendors', p.vendorId, 'products', p.id), { isAvailable: online }, { merge: true });
         });
       }
@@ -76,11 +75,24 @@ export function ProductManagement() {
   const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
     if (!firestore) return;
     try {
-      // Use setDoc with merge instead of updateDoc to prevent "No document to update" error
       await setDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
       await setDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: available ? "Stock Online" : "Stock Offline" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const addOptionRow = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const removeOptionRow = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: 'name' | 'price', value: any) => {
+    const newOptions = [...options];
+    newOptions[index] = { ...newOptions[index], [field]: field === 'price' ? parseFloat(value) || 0 : value };
+    setOptions(newOptions);
   };
 
   const handleSave = async () => {
@@ -116,7 +128,6 @@ export function ProductManagement() {
 
     try {
       if (editingId) {
-        // Use setDoc with merge to be safe
         await setDoc(doc(firestore, 'products', editingId), productData, { merge: true });
         await setDoc(doc(firestore, 'vendors', selectedVendorId, 'products', editingId), productData, { merge: true });
       } else {
@@ -163,10 +174,10 @@ export function ProductManagement() {
            <Button onClick={() => handleBulkStatus(false)} variant="destructive" className="h-12 rounded-2xl font-black uppercase text-[10px]">CLOSE ALL</Button>
            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild><Button className="bg-black rounded-2xl h-12 font-black uppercase italic"><Plus className="mr-2 h-4 w-4" /> NEW ITEM</Button></DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar">
-                <DialogHeader><DialogTitle className="font-black italic uppercase">Inventory Master</DialogTitle></DialogHeader>
-                <div className="space-y-5 pt-4">
-                   <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-2xl flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+              <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Inventory Master</DialogTitle></DialogHeader>
+                <div className="p-8 space-y-6">
+                   <div onClick={() => fileInputRef.current?.click()} className="h-44 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                       {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Product Photo</span></div>}
                    </div>
                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
@@ -174,28 +185,88 @@ export function ProductManagement() {
                    }} />
                    
                    <div className="space-y-4">
-                      <Input placeholder="Dish/Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold" />
-                      <Textarea placeholder="Full Description (Ingredients, usage, etc.)" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24 font-medium" />
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Basic Info</label>
+                        <Input placeholder="Dish/Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                      </div>
                       
                       <div className="grid grid-cols-2 gap-4">
-                        <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20" />
-                        <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MRP ₹</label>
+                          <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase text-primary ml-1">Selling Price ₹</label>
+                          <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Description</label>
+                        <Textarea placeholder="Full Description (Ingredients, usage, etc.)" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24 font-medium bg-muted/20 border-none p-4" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Assign Section</label>
+                        <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                          <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Assign to Store" /></SelectTrigger>
+                          <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName} ({v.category})</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                         <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                         <Input placeholder="e.g. Lipsticks, Burgers" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        <Input placeholder="MFG (Oct 2023)" value={mfgDate} onChange={e => setMfgDate(e.target.value)} className="h-11 rounded-xl text-xs" />
-                        <Input placeholder="Expiry (Oct 2024)" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="h-11 rounded-xl text-xs border-red-100" />
+                        <div className="space-y-1">
+                           <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MFG (Oct 2023)</label>
+                           <Input placeholder="MFG" value={mfgDate} onChange={e => setMfgDate(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                           <label className="text-[9px] font-black uppercase text-red-400 ml-1">Expiry (Oct 2024)</label>
+                           <Input placeholder="Expiry" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="h-12 rounded-xl bg-red-50/50 border-none text-xs" />
+                        </div>
                       </div>
 
-                      <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                        <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-none font-bold"><SelectValue placeholder="Assign to Store" /></SelectTrigger>
-                        <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName} ({v.category})</SelectItem>)}</SelectContent>
-                      </Select>
-
-                      <Input placeholder="Category (e.g. Lipsticks, Burgers)" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/10 border-none font-bold" />
+                      {/* VARIATIONS / OPTIONS SECTION */}
+                      <div className="space-y-3 pt-4 border-t border-dashed">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                             <ListPlus className="h-4 w-4 text-primary" />
+                             <h4 className="text-xs font-black uppercase tracking-widest">Variations / Variety</h4>
+                          </div>
+                          <button onClick={addOptionRow} className="text-[10px] font-black text-primary bg-primary/5 px-3 py-1.5 rounded-full uppercase tracking-widest border border-primary/10">Add Variety</button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {options.map((opt, idx) => (
+                            <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded-xl border border-gray-100">
+                               <Input 
+                                 placeholder="Size/Shade" 
+                                 value={opt.name} 
+                                 onChange={e => updateOption(idx, 'name', e.target.value)}
+                                 className="h-10 rounded-lg bg-white border-none text-xs font-bold"
+                               />
+                               <div className="relative w-24">
+                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">₹</span>
+                                 <Input 
+                                   type="number"
+                                   placeholder="Extra" 
+                                   value={opt.price || ''} 
+                                   onChange={e => updateOption(idx, 'price', e.target.value)}
+                                   className="h-10 pl-5 rounded-lg bg-white border-none text-xs font-bold"
+                                 />
+                               </div>
+                               <button onClick={() => removeOptionRow(idx)} className="h-10 w-10 flex items-center justify-center text-red-400 hover:text-red-600"><X className="h-4 w-4" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                    </div>
 
-                   <Button onClick={handleSave} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 text-lg">PUBLISH PRODUCT</Button>
+                   <Button onClick={handleSave} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl shadow-primary/20 text-lg">PUBLISH TO HUB</Button>
                 </div>
               </DialogContent>
            </Dialog>

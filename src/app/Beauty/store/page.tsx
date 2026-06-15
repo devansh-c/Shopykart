@@ -69,7 +69,6 @@ export default function BeautyDashboard() {
   const [isPending, startTransition] = useTransition();
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // Vendor Profile
   const vendorRef = useMemoFirebase(() => {
@@ -97,7 +96,6 @@ export default function BeautyDashboard() {
   });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -139,8 +137,8 @@ export default function BeautyDashboard() {
   const orders = useMemo(() => {
     if (!rawOrders || !user) return [];
     return rawOrders.filter((o: any) => {
-      const vendorId = String(user.uid);
-      return o.vendorId === vendorId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vendorId)) || o.items?.some((it:any) => String(it.vendorId) === vendorId);
+      const vId = String(user.uid);
+      return o.vendorId === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
     });
   }, [rawOrders, user]);
 
@@ -157,6 +155,20 @@ export default function BeautyDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
+  const handleAddVariety = () => {
+    setProductProductForm({ ...productForm, options: [...productForm.options, { name: '', price: 0 }] });
+  };
+
+  const handleRemoveVariety = (idx: number) => {
+    setProductProductForm({ ...productForm, options: productForm.options.filter((_, i) => i !== idx) });
+  };
+
+  const handleUpdateVariety = (idx: number, field: string, val: any) => {
+    const newOptions = [...productForm.options];
+    newOptions[idx] = { ...newOptions[idx], [field]: field === 'price' ? parseFloat(val) || 0 : val };
+    setProductProductForm({ ...productForm, options: newOptions });
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !vendorProfile) return;
     setIsSavingProduct(true);
@@ -170,7 +182,7 @@ export default function BeautyDashboard() {
       isAvailable: vendorProfile.isOnline !== false, updatedAt: serverTimestamp()
     };
     try {
-      if (editingProduct) { await updateDoc(doc(firestore, 'products', editingProduct.id), productData); }
+      if (editingProduct) { await setDoc(doc(firestore, 'products', editingProduct.id), productData, { merge: true }); }
       else { const newRef = doc(collection(firestore, 'products')); await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() }); }
       setIsProductModalOpen(false);
       toast({ title: "Product Saved!" });
@@ -182,8 +194,7 @@ export default function BeautyDashboard() {
     return orders?.filter(o => {
       const status = (o.status || '').toUpperCase();
       if(orderFilter === 'NEW ORDERS') return !['DELIVERED', 'CANCELLED'].includes(status);
-      if(orderFilter === 'CANCELLED') return status === 'CANCELLED';
-      return status === 'DELIVERED';
+      return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
     });
   }, [orders, orderFilter]);
 
@@ -310,6 +321,22 @@ export default function BeautyDashboard() {
                   <SelectContent className="rounded-2xl">{beautyCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-[10px]">{cat.name}</SelectItem>))}</SelectContent>
                 </Select>
                 <Textarea placeholder="Details" value={productForm.description} onChange={e => setProductProductForm({...productForm, description: e.target.value})} className="rounded-xl bg-muted/30 border-none h-24 p-4 text-xs" />
+
+                <div className="pt-4 border-t border-dashed">
+                   <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Varieties</h4>
+                      <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-rose-50 text-rose-600 font-black uppercase text-[8px] border border-rose-100">Add Variety</button>
+                   </div>
+                   <div className="space-y-2">
+                      {productForm.options.map((opt, i) => (
+                        <div key={i} className="flex gap-2 bg-muted/20 p-2 rounded-xl border border-border/50">
+                           <Input placeholder="Name" value={opt.name} onChange={e => handleUpdateVariety(i, 'name', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px]" />
+                           <Input placeholder="Extra" type="number" value={opt.price} onChange={e => handleUpdateVariety(i, 'price', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px] w-20" />
+                           <button onClick={() => handleRemoveVariety(i)} className="text-red-400 p-1"><X className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                   </div>
+                </div>
               </div>
               <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-rose-600 rounded-3xl font-black uppercase italic shadow-xl text-white">{isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProduct ? 'UPDATE' : 'PUBLISH'}</Button>
            </div>

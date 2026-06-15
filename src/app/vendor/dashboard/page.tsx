@@ -75,7 +75,6 @@ export default function VendorDashboard() {
   const [isPending, startTransition] = useTransition();
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // Vendor Profile
   const vendorRef = useMemoFirebase(() => {
@@ -84,19 +83,18 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD: Redirect to login if not authenticated or not a vendor
+  // AUTH GUARD
   useEffect(() => {
     if (!authLoading && !profileLoading) {
       if (!user) {
         router.replace('/vendor/login');
       } else if (!vendorProfile) {
-        toast({ variant: "destructive", title: "Access Denied", description: "This account is not a registered seller." });
+        toast({ variant: "destructive", title: "Access Denied", description: "Not a registered seller." });
         router.replace('/vendor/login');
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, toast]);
 
-  // Form states
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductProductForm] = useState({
@@ -106,9 +104,7 @@ export default function VendorDashboard() {
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  useEffect(() => { 
-    setIsMounted(true); 
-  }, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
     if (vendorProfile) {
@@ -129,9 +125,7 @@ export default function VendorDashboard() {
 
   const filteredCategories = useMemo(() => {
     if (!allCategories || !vendorProfile) return [];
-    return allCategories.filter((cat: any) => 
-      (cat.serviceType || 'Food').toLowerCase() === (vendorProfile.category || 'Food').toLowerCase()
-    );
+    return allCategories.filter((cat: any) => (cat.serviceType || 'Food').toLowerCase() === (vendorProfile.category || 'Food').toLowerCase());
   }, [allCategories, vendorProfile]);
 
   const ordersQuery = useMemoFirebase(() => {
@@ -155,8 +149,8 @@ export default function VendorDashboard() {
   const orders = useMemo(() => {
     if (!rawOrders || !user) return [];
     return rawOrders.filter((o: any) => {
-      const vendorId = String(user.uid);
-      return o.vendorId === vendorId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vendorId)) || o.items?.some((it:any) => String(it.vendorId) === vendorId);
+      const vId = String(user.uid);
+      return o.vendorId === vId || (Array.isArray(o.vendorIds) && o.vendorIds.includes(vId)) || o.items?.some((it:any) => String(it.vendorId) === vId);
     });
   }, [rawOrders, user]);
 
@@ -171,6 +165,20 @@ export default function VendorDashboard() {
       await batch.commit();
       toast({ title: online ? "Store Open! 🟢" : "Store Closed 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handleAddVariety = () => {
+    setProductProductForm({ ...productForm, options: [...productForm.options, { name: '', price: 0 }] });
+  };
+
+  const handleRemoveVariety = (idx: number) => {
+    setProductProductForm({ ...productForm, options: productForm.options.filter((_, i) => i !== idx) });
+  };
+
+  const handleUpdateVariety = (idx: number, field: string, val: any) => {
+    const newOptions = [...productForm.options];
+    newOptions[idx] = { ...newOptions[idx], [field]: field === 'price' ? parseFloat(val) || 0 : val };
+    setProductProductForm({ ...productForm, options: newOptions });
   };
 
   const handleSaveProduct = async () => {
@@ -198,9 +206,7 @@ export default function VendorDashboard() {
     if (!firestore || !user) return;
     setIsSavingProfile(true);
     try {
-      await updateDoc(doc(firestore, 'vendors', user.uid), {
-        fullName: profileForm.fullName, address: profileForm.address, updatedAt: serverTimestamp()
-      });
+      await updateDoc(doc(firestore, 'vendors', user.uid), { fullName: profileForm.fullName, address: profileForm.address, updatedAt: serverTimestamp() });
       toast({ title: "Profile Updated!" });
     } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
     finally { setIsSavingProfile(false); }
@@ -210,8 +216,7 @@ export default function VendorDashboard() {
     return orders?.filter(o => {
       const status = (o.status || '').toUpperCase();
       if(orderFilter === 'NEW ORDERS') return !['DELIVERED', 'CANCELLED'].includes(status);
-      if(orderFilter === 'CANCELLED') return status === 'CANCELLED';
-      return status === 'DELIVERED';
+      return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
     });
   }, [orders, orderFilter]);
 
@@ -228,10 +233,7 @@ export default function VendorDashboard() {
             </div>
             <div>
               <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName || 'Business Portal'}</h1>
-              <div className="flex items-center gap-1.5 mt-1">
-                <div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                <p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p>
-              </div>
+              <div className="flex items-center gap-1.5 mt-1"><div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p></div>
             </div>
          </div>
          <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={handleToggleStore} className="scale-75 data-[state=checked]:bg-green-500" />
@@ -340,6 +342,22 @@ export default function VendorDashboard() {
                   <SelectContent className="rounded-2xl">{filteredCategories.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-[10px]">{cat.name}</SelectItem>))}</SelectContent>
                 </Select>
                 <Textarea placeholder="Details" value={productForm.description} onChange={e => setProductProductForm({...productForm, description: e.target.value})} className="rounded-xl bg-muted/30 border-none h-24 p-4 text-xs" />
+
+                <div className="pt-4 border-t border-dashed">
+                   <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Varieties</h4>
+                      <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-primary/5 text-primary font-black uppercase text-[8px] border border-primary/10">Add Variety</button>
+                   </div>
+                   <div className="space-y-2">
+                      {productForm.options.map((opt, i) => (
+                        <div key={i} className="flex gap-2 bg-muted/20 p-2 rounded-xl border border-border/50">
+                           <Input placeholder="Name" value={opt.name} onChange={e => handleUpdateVariety(i, 'name', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px]" />
+                           <Input placeholder="Extra" type="number" value={opt.price} onChange={e => handleUpdateVariety(i, 'price', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px] w-20" />
+                           <button onClick={() => handleRemoveVariety(i)} className="text-red-400 p-1"><X className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                   </div>
+                </div>
               </div>
               <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary rounded-3xl font-black uppercase italic shadow-xl text-white">{isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProduct ? 'UPDATE' : 'PUBLISH'}</Button>
            </div>
