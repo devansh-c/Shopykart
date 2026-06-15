@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
@@ -37,6 +36,7 @@ export function ProductManagement() {
   const [category, setCategory] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [isVeg, setIsVeg] = useState(true);
+  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
   const [mfgDate, setMfgDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
@@ -118,6 +118,7 @@ export function ProductManagement() {
       zoneId: finalZoneId,
       town: finalTown,
       isVeg,
+      isVarietyRequired: options.length > 0 ? isVarietyRequired : false,
       mfgDate: mfgDate || null,
       expiryDate: expiryDate || null,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
@@ -143,7 +144,7 @@ export function ProductManagement() {
 
   const resetForm = () => {
     setEditingId(null); setName(''); setMrp(''); setPrice(''); setDescription(''); setCategory(''); setSelectedVendorId('');
-    setIsVeg(true); setSelectedImage(null); setOptions([]); setMfgDate(''); setExpiryDate('');
+    setIsVeg(true); setIsVarietyRequired(false); setSelectedImage(null); setOptions([]); setMfgDate(''); setExpiryDate('');
   };
 
   const handleEdit = (p: any) => {
@@ -155,6 +156,7 @@ export function ProductManagement() {
     setCategory(p.category);
     setSelectedVendorId(p.vendorId); 
     setIsVeg(p.isVeg !== false);
+    setIsVarietyRequired(p.isVarietyRequired || false);
     setMfgDate(p.mfgDate || '');
     setExpiryDate(p.expiryDate || '');
     setSelectedImage(p.imageUrl); 
@@ -236,6 +238,10 @@ export function ProductManagement() {
                           <div className="flex items-center gap-2">
                              <ListPlus className="h-4 w-4 text-primary" />
                              <h4 className="text-xs font-black uppercase tracking-widest">Variations / Variety</h4>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[8px] font-black uppercase text-muted-foreground">Selection Required?</span>
+                             <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-primary" />
                           </div>
                           <button onClick={addOptionRow} className="text-[10px] font-black text-primary bg-primary/5 px-3 py-1.5 rounded-full uppercase tracking-widest border border-primary/10">Add Variety</button>
                         </div>

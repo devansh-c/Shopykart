@@ -61,6 +61,17 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
 
   const handleAddToCart = () => {
     if (isOffline) return;
+
+    // MANDATORY VARIETY CHECK
+    if (product.isVarietyRequired && !selectedOption && hasOptions) {
+      toast({ 
+        variant: "destructive", 
+        title: "Selection Required", 
+        description: "Please select a variety first." 
+      });
+      return;
+    }
+
     addToCart({ 
       ...product, 
       imageUrl, 
@@ -234,7 +245,11 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                    <h4 className="text-base font-black uppercase tracking-tighter text-gray-800">Addons</h4>
-                   <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-full italic">Optional</span>
+                   {product.isVarietyRequired ? (
+                     <span className="text-[8px] font-black uppercase text-white bg-primary px-2 py-0.5 rounded-full animate-pulse">Required</span>
+                   ) : (
+                     <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-full italic">Optional</span>
+                   )}
                 </div>
                 <div className="space-y-2">
                   {product.options.map((opt: any, idx: number) => {

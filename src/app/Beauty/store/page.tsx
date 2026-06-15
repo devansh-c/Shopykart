@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -92,7 +91,7 @@ export default function BeautyDashboard() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '', options: [] as any[]
+    name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] as any[]
   });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
@@ -178,6 +177,7 @@ export default function BeautyDashboard() {
       vendorId: user.uid, restaurantName: vendorProfile.storeName, zoneId: vendorProfile.zoneId || null,
       town: vendorProfile.town || 'Local', serviceMode: 'Beauty',
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/beauty/400/300',
+      isVarietyRequired: productForm.options.length > 0 ? productForm.isVarietyRequired : false,
       options: productForm.options.filter(o => o.name?.trim() !== ''),
       isAvailable: vendorProfile.isOnline !== false, updatedAt: serverTimestamp()
     };
@@ -251,8 +251,8 @@ export default function BeautyDashboard() {
 
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
-                  <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Beauty Inventory</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD PRODUCT</Button></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-rose-600 italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: true, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
+                  <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Beauty Inventory</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD PRODUCT</Button></div>
+                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-rose-600 italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: true, isVarietyRequired: p.isVarietyRequired || false, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
               </div>
             )}
 
@@ -324,7 +324,13 @@ export default function BeautyDashboard() {
 
                 <div className="pt-4 border-t border-dashed">
                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Varieties</h4>
+                      <div className="flex flex-col">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Varieties</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[8px] font-bold uppercase text-rose-600">Required?</span>
+                          <Switch checked={productForm.isVarietyRequired} onCheckedChange={(v) => setProductProductForm({...productForm, isVarietyRequired: v})} className="scale-50 data-[state=checked]:bg-rose-600" />
+                        </div>
+                      </div>
                       <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-rose-50 text-rose-600 font-black uppercase text-[8px] border border-rose-100">Add Variety</button>
                    </div>
                    <div className="space-y-2">

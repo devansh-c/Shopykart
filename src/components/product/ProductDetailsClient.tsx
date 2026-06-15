@@ -69,6 +69,16 @@ export default function ProductDetailsClient() {
 
   const handleAddToCart = () => {
     if (!product || isOffline) return;
+
+    if (product.isVarietyRequired && !selectedOption && product.options?.length > 0) {
+      toast({ 
+        variant: "destructive", 
+        title: "Selection Required", 
+        description: "Please select a variety first." 
+      });
+      return;
+    }
+
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
     
     addToCart({ 
@@ -262,7 +272,11 @@ export default function ProductDetailsClient() {
           <div className="space-y-4 mb-8">
             <h3 className="text-base font-black text-foreground uppercase tracking-tight flex items-center justify-between">
               Choose Variation
-              <span className="text-[9px] font-bold text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded-full">Optional</span>
+              {product.isVarietyRequired ? (
+                <span className="text-[8px] font-black uppercase text-white bg-primary px-2 py-0.5 rounded-full animate-pulse">Required</span>
+              ) : (
+                <span className="text-[9px] font-bold text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded-full">Optional</span>
+              )}
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {product.options.map((opt: any, i: number) => (
