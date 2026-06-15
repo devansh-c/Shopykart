@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 
-// LAZY LOAD HEAVY OVERLAYS: Corrected wrappers for Named Exports
+// LAZY LOAD HEAVY OVERLAYS
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler').then(m => ({ default: m.NotificationHandler })), { ssr: false });
 const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay').then(m => ({ default: m.AdOverlay })), { ssr: false });
 const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay').then(m => ({ default: m.WelcomeBonusOverlay })), { ssr: false });
@@ -31,18 +31,32 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const isExcludedPath = useMemo(() => {
+    return pathname?.startsWith('/admin') || 
+           pathname?.startsWith('/vendor') || 
+           pathname?.startsWith('/delivery') ||
+           pathname?.startsWith('/Medical') ||
+           pathname?.startsWith('/Beauty');
+  }, [pathname]);
+
   const hasActiveSession = useMemo(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('shopykart_session_active') === 'true';
   }, []);
 
   useEffect(() => {
+    // CRITICAL: On business portals, we don't wait for auth to mark the app as ready.
+    // This prevents the SplashScreen from blocking registration inputs.
+    if (isExcludedPath) {
+      onReady(true);
+      return;
+    }
+
     if (loading) {
       onReady(false);
       return;
     }
 
-    // Mark app as ready in a transition to keep UI responsive
     startTransition(() => {
       onReady(true);
     });
@@ -60,15 +74,7 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [user, loading, hasActiveSession, onReady]);
-
-  const isExcludedPath = useMemo(() => {
-    return pathname?.startsWith('/admin') || 
-           pathname?.startsWith('/vendor') || 
-           pathname?.startsWith('/delivery') ||
-           pathname?.startsWith('/Medical') ||
-           pathname?.startsWith('/Beauty');
-  }, [pathname]);
+  }, [user, loading, hasActiveSession, onReady, isExcludedPath]);
 
   if (isExcludedPath) return <>{children}</>;
 

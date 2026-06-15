@@ -32,7 +32,6 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent !important;
-    touch-action: manipulation;
   }
   
   body {
@@ -41,8 +40,11 @@
     text-rendering: optimizeSpeed;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    user-select: none;
     min-height: 100vh;
+  }
+
+  input, textarea, [contenteditable] {
+    user-select: text !important;
   }
   
   /* NUCLEAR PERFORMANCE ENGINE */
