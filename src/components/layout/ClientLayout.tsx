@@ -14,13 +14,13 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 
-// LAZY LOAD HEAVY OVERLAYS: Reduces initial bundle size and speeds up first paint
-const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler').then(m => m.NotificationHandler), { ssr: false });
-const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay').then(m => m.AdOverlay), { ssr: false });
-const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay').then(m => m.WelcomeBonusOverlay), { ssr: false });
-const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => m.LocationRequest), { ssr: false });
-const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => m.FloatingCart), { ssr: false });
-const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => m.BottomNav), { ssr: false });
+// LAZY LOAD HEAVY OVERLAYS: Corrected wrappers for Named Exports
+const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler').then(m => ({ default: m.NotificationHandler })), { ssr: false });
+const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay').then(m => ({ default: m.AdOverlay })), { ssr: false });
+const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay').then(m => ({ default: m.WelcomeBonusOverlay })), { ssr: false });
+const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => ({ default: m.LocationRequest })), { ssr: false });
+const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => ({ default: m.FloatingCart })), { ssr: false });
+const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
 
 /**
  * @fileOverview Refactored AuthGuard with useTransition for fluid identity checking.

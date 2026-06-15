@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -10,28 +10,28 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with scroll locking and fast-track entry.
+ * @fileOverview Optimized SplashScreen with scroll locking and hydration guard.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
   const [shouldRender, setShouldRender] = useState(true);
+  const [isReturningUser, setIsReturningUser] = useState(false);
   const [taps, setTaps] = useState(0);
   const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isReturningUser = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('shopykart_session_active') === 'true';
-  }, []);
-
   useEffect(() => {
-    // Exact 2-second timer for new users, faster 0.8s for returning
-    const duration = isReturningUser ? 800 : 2000;
+    // Check session active only on client to prevent hydration mismatch
+    const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
+    setIsReturningUser(isReturning);
+
+    // Exact timer for new users, faster for returning
+    const duration = isReturning ? 800 : 2000;
     const timer = setTimeout(() => {
       setIsTimerDone(true);
     }, duration);
     return () => clearTimeout(timer);
-  }, [isReturningUser]);
+  }, []);
 
   const isVisible = !isTimerDone || !isAppReady;
 

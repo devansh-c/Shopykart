@@ -8,16 +8,16 @@ import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft } from 'luc
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
-// LAZY LOAD HOME SECTIONS: Prevents main thread blocking by loading components only when needed
-const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => m.OfferSlider));
-const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => m.CategoryList));
-const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => m.StoreSection));
-const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => m.PopularProducts));
-const OffersSection = dynamic(() => import('@/components/home/OffersSection').then(m => m.OffersSection));
-const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => m.TopTenProducts));
-const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => m.BeautySalonSection));
-const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => m.MedicalCareSection));
-const SmartBasketAI = dynamic(() => import('@/components/home/SmartBasketAI').then(m => m.SmartBasketAI));
+// LAZY LOAD HOME SECTIONS: Corrected wrappers for Named Exports
+const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })));
+const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => ({ default: m.CategoryList })));
+const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => ({ default: m.StoreSection })));
+const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => ({ default: m.PopularProducts })));
+const OffersSection = dynamic(() => import('@/components/home/OffersSection').then(m => ({ default: m.OffersSection })));
+const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })));
+const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })));
+const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })));
+const SmartBasketAI = dynamic(() => import('@/components/home/SmartBasketAI').then(m => ({ default: m.SmartBasketAI })));
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
