@@ -99,7 +99,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted By Devansh</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">Handcrafted In India</p>
         <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
         </div>
