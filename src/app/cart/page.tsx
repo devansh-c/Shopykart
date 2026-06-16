@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -115,7 +114,15 @@ export default function CartPage() {
 
   const dynamic_charges = useMemo(() => {
     if (!dbCharges) return [];
-    return dbCharges.map(charge => {
+    const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+
+    // Filter charges by user's zone or global
+    const relevantCharges = dbCharges.filter(charge => {
+      if (!charge.zoneId || charge.zoneId === 'global') return true;
+      return charge.zoneId === activeZoneId;
+    });
+
+    return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
       if (charge.type === 'fixed') amount = chargeVal;

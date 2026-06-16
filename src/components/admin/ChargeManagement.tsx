@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { Plus, Trash2, Receipt, IndianRupee, Loader2, Info, Percent, ShieldCheck, Zap } from 'lucide-react';
+import { Plus, Trash2, Receipt, IndianRupee, Loader2, Info, Percent, ShieldCheck, Zap, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -23,10 +23,17 @@ export function ChargeManagement() {
 
   const { data: charges, loading } = useCollection<any>(chargesQuery);
 
+  const zonesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'zones');
+  }, [firestore]);
+  const { data: zones } = useCollection<any>(zonesQuery);
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [name, setName] = useState('');
   const [type, setType] = useState('fixed');
   const [value, setValue] = useState('');
+  const [selectedZoneId, setSelectedZoneId] = useState('global');
 
   const handleSave = async () => {
     if (!firestore || !name || !value) {
@@ -34,10 +41,14 @@ export function ChargeManagement() {
       return;
     }
 
+    const zoneName = selectedZoneId === 'global' ? 'Global' : zones?.find(z => z.id === selectedZoneId)?.name || 'Local';
+
     const chargeData = {
       name: name.trim(),
       type: type,
       value: parseFloat(value),
+      zoneId: selectedZoneId,
+      zoneName: zoneName,
       createdAt: serverTimestamp(),
     };
 
@@ -47,7 +58,8 @@ export function ChargeManagement() {
       setName('');
       setValue('');
       setType('fixed');
-      toast({ title: "Charge Added", description: `${name} is now live on checkout.` });
+      setSelectedZoneId('global');
+      toast({ title: "Charge Added", description: `${name} is now active for ${zoneName}.` });
     } catch (err) {
       toast({ variant: "destructive", title: "Error Saving" });
     }
@@ -68,7 +80,7 @@ export function ChargeManagement() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black italic uppercase tracking-tighter">Tax & Bill Charges</h2>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Manage platform fees, packaging, and local taxes</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Manage fees by specific serving zones</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
@@ -87,9 +99,24 @@ export function ChargeManagement() {
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. GST, Packaging Fee" className="h-14 rounded-2xl font-bold bg-muted/20 border-none" />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-primary ml-1">Select Target Zone *</label>
+                <Select value={selectedZoneId} onValueChange={setSelectedZoneId}>
+                  <SelectTrigger className="h-14 rounded-2xl font-bold bg-primary/5 border-none">
+                    <SelectValue placeholder="Select Zone" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="global" className="font-bold py-3 uppercase text-[10px]">GLOBAL (All Zones)</SelectItem>
+                    {zones?.map((zone: any) => (
+                      <SelectItem key={zone.id} value={zone.id} className="font-bold py-3 uppercase text-[10px]">{zone.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Calculation Type</label>
+                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Type</label>
                   <Select value={type} onValueChange={setType}>
                     <SelectTrigger className="h-14 rounded-2xl font-bold bg-muted/20 border-none"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -99,7 +126,7 @@ export function ChargeManagement() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Value Amount</label>
+                  <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Amount</label>
                   <Input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0.00" className="h-14 rounded-2xl font-black bg-muted/20 border-none text-lg italic" />
                 </div>
               </div>
@@ -107,7 +134,7 @@ export function ChargeManagement() {
               <div className="bg-blue-50 p-4 rounded-2xl flex gap-3 border border-blue-100/50">
                  <Zap className="h-4 w-4 text-blue-500 shrink-0" />
                  <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">
-                   This charge will be applied to EVERY checkout bill instantly.
+                   This charge will only apply to orders from the selected zone.
                  </p>
               </div>
 
@@ -138,9 +165,10 @@ export function ChargeManagement() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-black italic uppercase tracking-tighter text-xl leading-none truncate">{charge.name}</h3>
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                       <div className="bg-muted px-2 py-0.5 rounded-full border border-border/50">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{charge.type === 'fixed' ? 'Fixed Fee' : 'Percentage Tax'}</span>
+                    <div className="flex items-center gap-1.5 mt-2">
+                       <div className="bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10 flex items-center gap-1">
+                          <MapPin className="h-2 w-2 text-primary" />
+                          <span className="text-[7px] font-black uppercase tracking-widest text-primary">{charge.zoneName || 'Global'}</span>
                        </div>
                     </div>
                   </div>
