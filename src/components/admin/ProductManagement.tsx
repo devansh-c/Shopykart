@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +36,7 @@ export function ProductManagement() {
   const [category, setCategory] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [isVeg, setIsVeg] = useState(true);
+  const [isTopTen, setIsTopTen] = useState(false);
   const [isVarietyRequired, setIsVarietyRequired] = useState(false);
   const [mfgDate, setMfgDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -118,6 +119,7 @@ export function ProductManagement() {
       zoneId: finalZoneId,
       town: finalTown,
       isVeg,
+      isTopTen,
       isVarietyRequired: options.length > 0 ? isVarietyRequired : false,
       mfgDate: mfgDate || null,
       expiryDate: expiryDate || null,
@@ -144,7 +146,7 @@ export function ProductManagement() {
 
   const resetForm = () => {
     setEditingId(null); setName(''); setMrp(''); setPrice(''); setDescription(''); setCategory(''); setSelectedVendorId('');
-    setIsVeg(true); setIsVarietyRequired(false); setSelectedImage(null); setOptions([]); setMfgDate(''); setExpiryDate('');
+    setIsVeg(true); setIsTopTen(false); setIsVarietyRequired(false); setSelectedImage(null); setOptions([]); setMfgDate(''); setExpiryDate('');
   };
 
   const handleEdit = (p: any) => {
@@ -156,6 +158,7 @@ export function ProductManagement() {
     setCategory(p.category);
     setSelectedVendorId(p.vendorId); 
     setIsVeg(p.isVeg !== false);
+    setIsTopTen(p.isTopTen || false);
     setIsVarietyRequired(p.isVarietyRequired || false);
     setMfgDate(p.mfgDate || '');
     setExpiryDate(p.expiryDate || '');
@@ -174,7 +177,7 @@ export function ProductManagement() {
         <div className="flex gap-2">
            <Button onClick={() => handleBulkStatus(true)} className="h-12 rounded-2xl bg-green-600 font-black uppercase text-[10px]">OPEN ALL</Button>
            <Button onClick={() => handleBulkStatus(false)} variant="destructive" className="h-12 rounded-2xl font-black uppercase text-[10px]">CLOSE ALL</Button>
-           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+           <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
               <DialogTrigger asChild><Button className="bg-black rounded-2xl h-12 font-black uppercase italic"><Plus className="mr-2 h-4 w-4" /> NEW ITEM</Button></DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                 <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Inventory Master</DialogTitle></DialogHeader>
@@ -190,6 +193,20 @@ export function ProductManagement() {
                       <div className="space-y-1">
                         <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Basic Info</label>
                         <Input placeholder="Dish/Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                      </div>
+
+                      {/* TOP TEN TOGGLE */}
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="bg-amber-500 p-2 rounded-xl text-white">
+                               <Trophy className="h-4 w-4" />
+                            </div>
+                            <div className="flex flex-col">
+                               <span className="text-xs font-black uppercase text-amber-900 leading-none">Add to Top Ten Specials?</span>
+                               <span className="text-[8px] font-bold text-amber-700 uppercase mt-1">This will show in the Home Slider</span>
+                            </div>
+                         </div>
+                         <Switch checked={isTopTen} onCheckedChange={setIsTopTen} className="data-[state=checked]:bg-amber-500" />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
@@ -232,7 +249,6 @@ export function ProductManagement() {
                         </div>
                       </div>
 
-                      {/* VARIATIONS / OPTIONS SECTION */}
                       <div className="space-y-3 pt-4 border-t border-dashed">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -281,7 +297,15 @@ export function ProductManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
         {products?.map(p => (
-          <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all", p.isAvailable === false && "opacity-60")}>
+          <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all relative overflow-hidden", p.isAvailable === false && "opacity-60")}>
+            {p.isTopTen && (
+              <div className="absolute top-0 right-0">
+                 <div className="bg-amber-400 text-amber-900 text-[6px] font-black px-2 py-1 rounded-bl-xl uppercase italic flex items-center gap-1 shadow-sm">
+                    <Trophy className="h-2 w-2" /> Top 10
+                 </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-4">
               <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
               <div>
