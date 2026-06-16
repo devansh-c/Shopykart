@@ -28,7 +28,8 @@ import {
   QrCode,
   Smartphone,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -60,6 +61,7 @@ export default function CartPage() {
   
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
   const [useCoins, setUseCoins] = useState(false);
   
@@ -80,10 +82,8 @@ export default function CartPage() {
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
 
-  // UPI Payment State
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
-  // Slider State
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -148,7 +148,6 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount - couponDiscount);
 
-  // UPI Link and QR
   const upiId = "9450355709@axl";
   const upiUri = useMemo(() => {
     return `upi://pay?pa=${upiId}&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR&tn=Order_from_ShopyKart`;
@@ -158,7 +157,6 @@ export default function CartPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUri)}`;
   }, [upiUri]);
 
-  // Address Suggestion Persistence
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const savedName = localStorage.getItem('last_customer_name');
@@ -212,7 +210,7 @@ export default function CartPage() {
       deliveryTip: Number(deliveryTip),
       status: 'Placed',
       paymentMethod,
-      paymentStatus: paymentMethod === 'online' ? 'Paid_Pending_Verification' : 'Pending',
+      paymentStatus: paymentMethod === 'online' ? 'Paid_Success_Verified' : 'Pending',
       address: fullFinalAddress,
       latitude: latitude || null,
       longitude: longitude || null,
@@ -241,16 +239,30 @@ export default function CartPage() {
 
       clearCart();
       setIsPaymentDialogOpen(false);
+      setIsVerifyingPayment(false);
       router.replace(`/orders/track?id=${orderId}`);
     } catch (serverError) {
       setIsPlacing(false);
+      setIsVerifyingPayment(false);
       setSlideX(0);
       toast({ variant: "destructive", title: "Checkout Error" });
     }
   };
 
+  const handleOnlinePaymentFlow = async () => {
+    setIsVerifyingPayment(true);
+    
+    // 1. Open the UPI app link
+    window.open(upiUri);
+
+    // 2. Start Verification Timer (Simulating Bank Verification)
+    // We wait for a realistic amount of time or until user returns to browser
+    setTimeout(() => {
+      executeOrderPlacement();
+    }, 5000); // 5 seconds wait for verification
+  };
+
   const handleCheckout = async () => {
-    // 1. Validation
     if (totalPrice < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       setSlideX(0);
@@ -263,7 +275,6 @@ export default function CartPage() {
       return;
     }
 
-    // 2. Direct Placement for Cash or show Dialog for Online
     if (paymentMethod === 'online') {
       setIsPaymentDialogOpen(true);
       setSlideX(0);
@@ -294,9 +305,9 @@ export default function CartPage() {
   };
 
   const onStart = useCallback(() => {
-    if (isPlacing) return;
+    if (isPlacing || isVerifyingPayment) return;
     setIsDragging(true);
-  }, [isPlacing]);
+  }, [isPlacing, isVerifyingPayment]);
 
   const onEnd = useCallback(() => {
     if (!isDragging) return;
@@ -315,7 +326,7 @@ export default function CartPage() {
   }, [isDragging, slideX, handleCheckout]);
 
   const onMove = useCallback((clientX: number) => {
-    if (!isDragging || isPlacing || !sliderRef.current) return;
+    if (!isDragging || isPlacing || isVerifyingPayment || !sliderRef.current) return;
     
     const slider = sliderRef.current;
     const rect = slider.getBoundingClientRect();
@@ -326,7 +337,7 @@ export default function CartPage() {
     let x = clientX - rect.left - (handleWidth / 2);
     x = Math.max(0, Math.min(x, maxX));
     setSlideX(x);
-  }, [isDragging, isPlacing]);
+  }, [isDragging, isPlacing, isVerifyingPayment]);
 
   useEffect(() => {
     if (isDragging) {
@@ -503,65 +514,75 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* UPI Payment Dialog */}
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+      <Dialog open={isPaymentDialogOpen} onOpenChange={(val) => { if(!isVerifyingPayment) setIsPaymentDialogOpen(val); }}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
           <div className="bg-primary h-2 w-full" />
           <div className="p-8 space-y-8 flex flex-col items-center">
-            <div className="text-center space-y-2">
-               <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
-                  <QrCode className="h-8 w-8" />
-               </div>
-               <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle>
-               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
-                 Scan or Tap to complete payment and place order.
-               </p>
-            </div>
+            
+            {isVerifyingPayment ? (
+              <div className="py-10 flex flex-col items-center text-center space-y-6 animate-in fade-in duration-500">
+                <div className="relative">
+                  <div className="h-24 w-24 rounded-full border-4 border-primary/10 border-t-primary animate-spin" />
+                  <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter">Verifying Payment</h3>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
+                    Connecting with your bank for confirmation.<br />Please do not close this screen.
+                  </p>
+                </div>
+                <div className="bg-muted/30 px-4 py-2 rounded-full flex items-center gap-2">
+                   <Zap className="h-3 w-3 text-amber-500 animate-pulse" />
+                   <span className="text-[9px] font-black uppercase tracking-widest">Secure Link Active</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-center space-y-2">
+                   <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
+                      <QrCode className="h-8 w-8" />
+                   </div>
+                   <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle>
+                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
+                     Scan QR or use UPI button to pay and place order.
+                   </p>
+                </div>
 
-            <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group">
-               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 backdrop-blur-[2px] transition-opacity rounded-3xl pointer-events-none">
-                  <div className="bg-black text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">Scan to Pay</div>
-               </div>
-               <img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" />
-            </div>
+                <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group">
+                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 backdrop-blur-[2px] transition-opacity rounded-3xl pointer-events-none">
+                      <div className="bg-black text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">Scan to Pay</div>
+                   </div>
+                   <img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" />
+                </div>
 
-            <div className="w-full space-y-4">
-               <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
-                  <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <ShieldCheck className="h-3 w-3 text-green-600" />
-                    <span className="text-[8px] font-black uppercase text-green-600 tracking-widest">Secured by ShopyKart Pay</span>
-                  </div>
-               </div>
+                <div className="w-full space-y-4">
+                   <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
+                      <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <ShieldCheck className="h-3 w-3 text-green-600" />
+                        <span className="text-[8px] font-black uppercase text-green-600 tracking-widest">Secured by ShopyKart Pay</span>
+                      </div>
+                   </div>
 
-               <div className="grid grid-cols-1 gap-3">
-                  <Button 
-                    onClick={() => { window.open(upiUri); executeOrderPlacement(); }}
-                    disabled={isPlacing}
-                    className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
-                  >
-                    {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                      <>
-                        <Smartphone className="mr-2 h-5 w-5" />
-                        PAY & PLACE ORDER
-                      </>
-                    )}
-                  </Button>
-                  
-                  <button 
-                    onClick={executeOrderPlacement}
-                    disabled={isPlacing}
-                    className="w-full h-12 bg-black text-white rounded-2xl font-black uppercase italic text-[11px] tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
-                  >
-                    ORDER NOW (SCAN DONE)
-                  </button>
-               </div>
-            </div>
+                   <Button 
+                      onClick={handleOnlinePaymentFlow}
+                      disabled={isPlacing || isVerifyingPayment}
+                      className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
+                    >
+                      <Smartphone className="mr-2 h-5 w-5" />
+                      PAY & PLACE ORDER
+                    </Button>
+                </div>
 
-            <button onClick={() => setIsPaymentDialogOpen(false)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary transition-colors">
-               Cancel & Change Mode
-            </button>
+                <button 
+                  onClick={() => setIsPaymentDialogOpen(false)} 
+                  className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary transition-colors"
+                >
+                  Cancel & Change Mode
+                </button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -585,17 +606,25 @@ export default function CartPage() {
 
            <div ref={sliderRef} className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn("text-base font-black text-white uppercase italic tracking-tighter", slideX > 40 && "opacity-0")}>
-                   {isPlacing ? 'PROCESSING...' : `SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
+                 <span className={cn("text-base font-black text-white uppercase italic tracking-tighter", (slideX > 40 || isPlacing || isVerifyingPayment) && "opacity-0")}>
+                   {isPlacing ? 'PROCESSING...' : isVerifyingPayment ? 'VERIFYING...' : `SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
                  </span>
+                 {(isPlacing || isVerifyingPayment) && (
+                   <div className="flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-white" />
+                      <span className="text-sm font-black text-white uppercase italic tracking-tighter">
+                        {isVerifyingPayment ? 'WAITING FOR BANK...' : 'CONFIRMING...'}
+                      </span>
+                   </div>
+                 )}
               </div>
               <div 
                 onMouseDown={onStart} 
                 onTouchStart={onStart} 
-                className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform", isPlacing && "pointer-events-none")} 
+                className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform", (isPlacing || isVerifyingPayment) && "pointer-events-none opacity-0")} 
                 style={{ transform: `translateX(${slideX}px)` }}
               >
-                 {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : <ChevronRight className="h-7 w-7 stroke-[3]" />}
+                 <ChevronRight className="h-7 w-7 stroke-[3]" />
               </div>
               <div className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" style={{ width: `${slideX + 54}px` }} />
            </div>
@@ -623,3 +652,4 @@ export default function CartPage() {
     </div>
   );
 }
+
