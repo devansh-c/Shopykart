@@ -97,7 +97,7 @@ export default function ProfilePage() {
     { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
-    { label: 'Join as Team Member', icon: Users, path: '/admin/login', description: 'Access assigned staff portals' },
+    { label: 'Join as Team Member', icon: Users, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
   ];
 
   const handleAction = (path: string, label: string) => {

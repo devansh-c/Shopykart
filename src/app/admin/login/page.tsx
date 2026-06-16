@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -11,21 +11,28 @@ import { Lock, ShieldCheck, UserCog, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-export default function AdminLoginPage() {
+function AdminLoginPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  // Auto-redirect if already logged in
+  // If coming from "Team Member" link, clear any existing admin session first
   useEffect(() => {
-    const auth = localStorage.getItem('admin_auth');
-    if (auth === 'true') {
-      router.push('/admin/dashboard');
+    const mode = searchParams.get('mode');
+    if (mode === 'team') {
+      localStorage.removeItem('admin_auth');
+      localStorage.removeItem('team_permissions');
+    } else {
+      const auth = localStorage.getItem('admin_auth');
+      if (auth === 'true') {
+        router.push('/admin/dashboard');
+      }
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,4 +146,12 @@ export default function AdminLoginPage() {
       </Card>
     </div>
   );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" /></div>}>
+      <AdminLoginPageContent />
+    </Suspense>
+  )
 }

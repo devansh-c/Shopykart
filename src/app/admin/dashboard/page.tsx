@@ -149,7 +149,12 @@ export default function AdminDashboard() {
     else {
       setIsAuthorized(true);
       if (teamPermissions && teamPermissions !== 'all') {
-        setAllowedFeatures(JSON.parse(teamPermissions));
+        try {
+          const parsed = JSON.parse(teamPermissions);
+          setAllowedFeatures(parsed);
+        } catch(e) {
+          setAllowedFeatures([]);
+        }
       } else {
         setAllowedFeatures('all');
       }
@@ -161,6 +166,10 @@ export default function AdminDashboard() {
   }, [router]);
 
   const handleTabSelect = (id: string) => {
+    // SECURITY: Ensure team members can't switch to tabs they don't have permission for
+    if (allowedFeatures !== 'all' && !allowedFeatures.includes(id) && id !== 'dashboard') {
+      return;
+    }
     startTransition(() => {
       setActiveTab(id);
     });
@@ -181,6 +190,13 @@ export default function AdminDashboard() {
 
   const content = useMemo(() => {
     if (!isAuthorized) return null;
+    
+    // CONTENT PROTECTION: If user lands on a tab they don't own, reset to dashboard
+    if (allowedFeatures !== 'all' && !allowedFeatures.includes(activeTab) && activeTab !== 'dashboard') {
+      setActiveTab('dashboard');
+      return <AdminOverview />;
+    }
+
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
       case 'zones': return <ZoneManagement />;
@@ -205,7 +221,7 @@ export default function AdminDashboard() {
       case 'settings': return <BrandingManagement />;
       default: return <AdminOverview />;
     }
-  }, [activeTab, isAuthorized]);
+  }, [activeTab, isAuthorized, allowedFeatures]);
 
   if (!isAuthorized) return null;
 
