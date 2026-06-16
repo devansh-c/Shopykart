@@ -2,7 +2,7 @@
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -67,6 +67,17 @@ export default function OrderDetailsClient() {
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0, 18)}</span></div>
+          <div className="flex justify-between border-t border-dashed border-black/10 pt-1 mt-1">
+            <span>PAYMENT MODE:</span>
+            <span className="font-black">{orderData.paymentMethod === 'online' ? 'PREPAID' : 'CASH'}</span>
+          </div>
+        </div>
+
+        <div className="border-t border-dashed border-black my-2" />
+        
+        <div className="space-y-1 mb-2">
+           <span className="font-black block">DELIVERY ADDRESS:</span>
+           <p className="text-[9px] leading-tight opacity-80">{orderData.address}</p>
         </div>
 
         <div className="border-t border-dashed border-black my-2" />

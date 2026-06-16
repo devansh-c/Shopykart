@@ -3,7 +3,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink, Printer, Download, Eye, Loader2, ListPlus } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink, Printer, Download, Eye, Loader2, ListPlus, CreditCard, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -125,6 +125,17 @@ export function OrderManagement() {
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
+          <div className="flex justify-between border-t border-dashed border-black/10 pt-1 mt-1">
+            <span className="shrink-0">PAYMENT:</span>
+            <span className="font-black text-right">{orderData.paymentMethod === 'online' ? 'PREPAID ONLINE' : 'CASH ON DELIVERY'}</span>
+          </div>
+        </div>
+
+        <div className="border-t border-dashed border-black my-2" />
+        
+        <div className="space-y-1 mb-2">
+           <span className="font-black block">DELIVERY ADDRESS:</span>
+           <p className="text-[9px] leading-tight opacity-80">{orderData.address}</p>
         </div>
 
         <div className="border-t border-dashed border-black my-2" />
@@ -181,6 +192,8 @@ export function OrderManagement() {
           }
           if (storeNames.length === 0) storeNames.push('ShopyKart Select');
 
+          const isPrepaid = order.paymentMethod === 'online';
+
           return (
             <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
               <div className="flex flex-col lg:flex-row justify-between gap-6">
@@ -189,9 +202,16 @@ export function OrderManagement() {
                     <Package className="h-7 w-7" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
                       <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
                       <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary")}>{order.status}</Badge>
+                      <Badge className={cn(
+                        "text-[8px] font-black uppercase rounded-full px-2 py-1 flex items-center gap-1",
+                        isPrepaid ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-amber-50 text-amber-700 border border-amber-100"
+                      )}>
+                        {isPrepaid ? <CreditCard className="h-2 w-2" /> : <Banknote className="h-2 w-2" />}
+                        {isPrepaid ? "PREPAID" : "CASH ON DELIVERY"}
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
                     
@@ -259,7 +279,7 @@ export function OrderManagement() {
                             <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
                               <Printer className="h-4 w-4 mr-2" /> PRINT
                             </Button>
-                            <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                            <Button onClick={handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
                               {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
                             </Button>
                          </div>
