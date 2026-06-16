@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -97,7 +97,7 @@ export function ProductManagement() {
       const targetProducts = products?.filter(p => vendorIds.includes(p.vendorId)) || [];
 
       targetProducts.forEach(p => {
-        batch.update(doc(firestore, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() });
+        batch.set(doc(firestore, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() }, { merge: true });
         batch.set(doc(firestore, 'vendors', p.vendorId, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() }, { merge: true });
       });
 
@@ -251,7 +251,6 @@ export function ProductManagement() {
                         <Input placeholder="Dish/Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
                       </div>
 
-                      {/* TOP TEN TOGGLE */}
                       <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center justify-between">
                          <div className="flex items-center gap-3">
                             <div className="bg-amber-500 p-2 rounded-xl text-white">
@@ -351,7 +350,6 @@ export function ProductManagement() {
         </div>
       </div>
 
-      {/* BULK STATUS ZONE SELECTOR DIALOG */}
       <Dialog open={isBulkStatusDialogOpen} onOpenChange={setIsBulkStatusDialogOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm">
           <DialogHeader>
