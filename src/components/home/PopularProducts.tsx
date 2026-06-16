@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useMemo, useState, useEffect, memo } from "react"
+import React, { useMemo, useState, useEffect, memo, useTransition, useDeferredValue } from "react"
 import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
@@ -17,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// PERFORMANCE: Memoized Product Item with transform-gpu and will-change to prevent scroll jank
+// PEAK PERFORMANCE: Memoized Product Item with translateZ(0) for independent layer promotion
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
@@ -25,7 +24,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   const isSpecialMode = activeMode === 'Medical' || activeMode === 'Beauty';
 
   const cardClasses = cn(
-    "relative bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-none transform-gpu will-change-transform",
+    "relative bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-none will-change-transform transform-gpu",
     isOffline && "opacity-60 grayscale-[0.5]",
     isSpecialMode ? "p-2.5 flex flex-col" : "p-6 flex justify-between items-start"
   );
@@ -147,9 +146,11 @@ export function PopularProducts({
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [sortBy, setSortBy] = useState('recommended');
   const [selectedCat, setSelectedCat] = useState('all');
+  const [isPending, startTransition] = useTransition();
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
-  
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -162,7 +163,6 @@ export function PopularProducts({
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // PERFORMANCE: Increased limit to 500 to ensure all products across different towns are fetched for client-side filtering
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(500));
@@ -184,49 +184,35 @@ export function PopularProducts({
 
   const vendorMap = useMemo(() => {
     const map = new Map();
-    if (vendors) {
-      vendors.forEach(v => map.set(v.id, v));
-    }
+    if (vendors) vendors.forEach(v => map.set(v.id, v));
     return map;
   }, [vendors]);
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts) return [];
     
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = deferredSearchQuery.toLowerCase().trim();
     const categoryLower = (selectedCat === 'all' ? category : selectedCat).toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     let result = dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
-      
-      // HUB ISOLATION: Ensure correct section
       const vendorCategory = vendor?.category || 'Food'; 
       const productMode = product.serviceMode || vendorCategory;
       if (productMode !== activeMode) return false;
 
-      // STRICT LOCATION FILTERING: No mixing between Ranipur and Mauranipur
       const productZoneId = product.zoneId || vendor?.zoneId;
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
 
       if (activeZoneId || targetCityNormalized) {
-        // If a specific zone (map area) is selected, prioritize it
         const matchesZoneId = activeZoneId && productZoneId === activeZoneId;
-        
-        // If no zoneId match, check town name strictly
         const matchesTown = targetCityNormalized && (
           productTown === targetCityNormalized || 
           productTown.startsWith(targetCityNormalized) ||
           targetCityNormalized.startsWith(productTown)
         );
-        
-        // GLOBAL/LOCAL Fallback: Only if no zone or town is specified at all
         const isUnassigned = !productZoneId && (!productTown || productTown === '' || productTown === 'local');
-
-        // If we are looking for a specific city, and the product belongs to a DIFFERENT city, hide it.
         if (!matchesZoneId && !matchesTown && !isUnassigned) return false;
-        
-        // Final sanity check: if product explicitly belongs to a different major city, hide it
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
@@ -234,9 +220,7 @@ export function PopularProducts({
       const matchesSearch = !searchLower || 
         (product.name || '').toLowerCase().includes(searchLower) || 
         (product.category || '').toLowerCase().includes(searchLower);
-      
       const matchesCategory = categoryLower === 'all' || (product.category || '').toLowerCase().trim() === categoryLower;
-      
       return matchesSearch && matchesCategory;
     });
 
@@ -252,7 +236,13 @@ export function PopularProducts({
     });
 
     return result;
-  }, [searchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
+  }, [deferredSearchQuery, category, selectedCat, sortBy, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
+
+  const handleCategorySelect = (catName: string) => {
+    startTransition(() => {
+      setSelectedCat(catName);
+    });
+  };
 
   if (productsLoading && !dbProducts) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -266,14 +256,14 @@ export function PopularProducts({
     return (
       <div className="flex bg-[#F9FAFB] min-h-screen">
         <aside className="w-[85px] border-r border-gray-100 bg-white sticky top-0 h-screen overflow-y-auto no-scrollbar flex flex-col items-center py-6 gap-6 shrink-0 transform-gpu">
-          <button onClick={() => setSelectedCat('all')} className={cn("flex flex-col items-center gap-1 group transition-all active:scale-95", selectedCat === 'all' ? "opacity-100" : "opacity-60")}>
+          <button onClick={() => handleCategorySelect('all')} className={cn("flex flex-col items-center gap-1 group transition-all active:scale-95", selectedCat === 'all' ? "opacity-100" : "opacity-60")}>
             <div className={cn("h-14 w-14 rounded-full border-2 flex items-center justify-center bg-gray-50 transition-all", selectedCat === 'all' ? "border-primary ring-4 ring-primary/10" : "border-transparent")}>
               <span className="text-[10px] font-black uppercase">ALL</span>
             </div>
             <span className="text-[9px] font-black uppercase text-center leading-tight mt-1">View All</span>
           </button>
           {hubCategories.map((cat: any) => (
-            <button key={cat.id} onClick={() => setSelectedCat(cat.name)} className={cn("flex flex-col items-center gap-1 group transition-all active:scale-95", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
+            <button key={cat.id} onClick={() => handleCategorySelect(cat.name)} className={cn("flex flex-col items-center gap-1 group transition-all active:scale-95", selectedCat === cat.name ? "opacity-100" : "opacity-60")}>
               <div className={cn("relative h-14 w-14 rounded-full border-2 overflow-hidden transition-all", selectedCat === cat.name ? "border-primary ring-4 ring-primary/10 scale-105" : "border-transparent bg-gray-50")}>
                 <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized loading="lazy" />
               </div>
@@ -281,7 +271,7 @@ export function PopularProducts({
             </button>
           ))}
         </aside>
-        <main className="flex-1 p-4 pb-40 content-visibility-auto">
+        <main className={cn("flex-1 p-4 pb-40 content-visibility-auto transition-opacity", isPending && "opacity-50")}>
           <div className="flex items-center justify-between mb-6 animate-in fade-in duration-500">
              <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode}` : selectedCat}</h2>
              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{productsToDisplay.length} Items</span>
@@ -309,8 +299,8 @@ export function PopularProducts({
   return (
     <div className="px-4 py-8 content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
-        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ FOOD HUB`}</h2>
-        <Select value={sortBy} onValueChange={setSortBy}>
+        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{deferredSearchQuery ? 'Results' : `⚡ FOOD HUB`}</h2>
+        <Select value={sortBy} onValueChange={(val) => startTransition(() => setSortBy(val))}>
           <SelectTrigger className="w-[110px] h-8 rounded-xl bg-white border border-border/50 text-[8px] font-black uppercase">
             <SlidersHorizontal className="h-3 w-3 mr-1.5" />
             <SelectValue placeholder="Sort" />
@@ -322,7 +312,7 @@ export function PopularProducts({
           </SelectContent>
         </Select>
       </div>
-      <div className="grid grid-cols-1 gap-8 transform-gpu">
+      <div className={cn("grid grid-cols-1 gap-8 transform-gpu transition-opacity", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -10,38 +9,31 @@ import {
   ChevronLeft, 
   ShoppingBag, 
   Loader2, 
-  FileText,
-  MapPin,
-  ChevronRight,
-  CreditCard,
-  Banknote,
-  ShoppingBasket,
-  Coins,
-  Map as MapIcon,
-  Tag,
-  Ticket,
-  CheckCircle2,
-  X,
-  History,
-  ChevronUp,
-  AlertTriangle,
-  QrCode,
-  Smartphone,
-  ShieldCheck,
-  ExternalLink,
-  Zap
+  MapPin, 
+  ChevronRight, 
+  CreditCard, 
+  Banknote, 
+  ShoppingBasket, 
+  Coins, 
+  Map as MapIcon, 
+  Tag, 
+  Ticket, 
+  X, 
+  ChevronUp, 
+  QrCode, 
+  Smartphone, 
+  ShieldCheck 
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs, getDoc } from 'firebase/firestore';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs } from 'firebase/firestore';
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { RadioGroup } from "@/components/ui/radio-group";
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
 
@@ -49,6 +41,78 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   ssr: false,
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
+
+// ISOLATED SLIDER COMPONENT FOR PEAK PERFORMANCE
+const SlideToOrder = memo(({ onConfirm, total, isDisabled }: { onConfirm: () => void, total: number, isDisabled: boolean }) => {
+  const [slideX, setSlideX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const slideXRef = useRef(0);
+
+  const onStart = () => {
+    if (isDisabled) return;
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMove = (e: any) => {
+      if (!isDragging || !sliderRef.current) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const rect = sliderRef.current.getBoundingClientRect();
+      const maxX = rect.width - 68;
+      let x = clientX - rect.left - 34;
+      x = Math.max(0, Math.min(x, maxX));
+      setSlideX(x);
+      slideXRef.current = x;
+    };
+
+    const handleEnd = () => {
+      if (!isDragging) return;
+      setIsDragging(false);
+      const maxX = (sliderRef.current?.clientWidth || 0) - 68;
+      if (slideXRef.current > maxX * 0.85) {
+        setSlideX(maxX);
+        onConfirm();
+      } else {
+        setSlideX(0);
+        slideXRef.current = 0;
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, onConfirm]);
+
+  return (
+    <div ref={sliderRef} className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none transform-gpu">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span className={cn("text-base font-black text-white uppercase italic tracking-tighter transition-opacity duration-200", (slideX > 40 || isDisabled) && "opacity-0")}>
+          {`SLIDE TO ORDER • ₹${total.toFixed(2)}`}
+        </span>
+      </div>
+      <div 
+        onMouseDown={onStart} 
+        onTouchStart={onStart} 
+        className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transform-gpu will-change-transform", isDisabled && "pointer-events-none opacity-0")} 
+        style={{ transform: `translateX(${slideX}px)` }}
+      >
+        <ChevronRight className="h-7 w-7 stroke-[3]" />
+      </div>
+      <div className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" style={{ width: `${slideX + 54}px` }} />
+    </div>
+  );
+});
+SlideToOrder.displayName = "SlideToOrder";
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
@@ -82,12 +146,6 @@ export default function CartPage() {
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
-  // High-performance slider state
-  const [slideX, setSlideX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const slideXRef = useRef(0);
-
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
@@ -115,12 +173,10 @@ export default function CartPage() {
   const dynamic_charges = useMemo(() => {
     if (!dbCharges) return [];
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
-
     const relevantCharges = dbCharges.filter(charge => {
       if (!charge.zoneId || charge.zoneId === 'global') return true;
       return charge.zoneId === activeZoneId;
     });
-
     return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
@@ -141,8 +197,7 @@ export default function CartPage() {
       const percentage = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
       return (totalPrice * percentage) / 100;
     } else {
-      const fixed = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
-      return fixed;
+      return parseFloat(discountStr.replace(/[^0-9.]/g, '')) || 0;
     }
   }, [appliedCoupon, totalPrice]);
 
@@ -186,14 +241,11 @@ export default function CartPage() {
 
   const executeOrderPlacement = async () => {
     if (!firestore || isPlacing) return;
-
     setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const finalUid = user?.uid || 'guest_' + Date.now();
-
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
-
     const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(id => id !== 'undefined' && id !== 'null')));
 
     const orderData = {
@@ -234,7 +286,6 @@ export default function CartPage() {
 
     try {
       await setDoc(doc(firestore, 'orders', orderId), orderData);
-      
       if (user) {
         await setDoc(doc(firestore, 'users', user.uid), {
           fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
@@ -242,7 +293,6 @@ export default function CartPage() {
           coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
         }, { merge: true });
       }
-
       clearCart();
       setIsPaymentDialogOpen(false);
       setIsVerifyingPayment(false);
@@ -250,8 +300,6 @@ export default function CartPage() {
     } catch (serverError) {
       setIsPlacing(false);
       setIsVerifyingPayment(false);
-      setSlideX(0);
-      slideXRef.current = 0;
       toast({ variant: "destructive", title: "Checkout Error" });
     }
   };
@@ -259,30 +307,20 @@ export default function CartPage() {
   const handleOnlinePaymentFlow = async () => {
     setIsVerifyingPayment(true);
     window.open(upiUri);
-    setTimeout(() => {
-      executeOrderPlacement();
-    }, 4000);
+    setTimeout(() => { executeOrderPlacement(); }, 4000);
   };
 
   const handleCheckout = useCallback(async () => {
     if (totalPrice < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
-      setSlideX(0);
-      slideXRef.current = 0;
       return;
     }
-
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your delivery details." });
-      setSlideX(0);
-      slideXRef.current = 0;
       return;
     }
-
     if (paymentMethod === 'online') {
       setIsPaymentDialogOpen(true);
-      setSlideX(0);
-      slideXRef.current = 0;
     } else {
       executeOrderPlacement();
     }
@@ -309,58 +347,6 @@ export default function CartPage() {
     }
   };
 
-  // REFACTORED SLIDER LOGIC
-  const onStart = () => {
-    if (isPlacing || isVerifyingPayment) return;
-    setIsDragging(true);
-  };
-
-  useEffect(() => {
-    const handleMove = (e: any) => {
-      if (!isDragging || !sliderRef.current) return;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const rect = sliderRef.current.getBoundingClientRect();
-      const maxX = rect.width - 68; // handle(52) + padding(8*2)
-      
-      let x = clientX - rect.left - 34; // centering handle on cursor/finger
-      x = Math.max(0, Math.min(x, maxX));
-      
-      setSlideX(x);
-      slideXRef.current = x;
-    };
-
-    const handleEnd = () => {
-      if (!isDragging) return;
-      setIsDragging(false);
-      
-      const slider = sliderRef.current;
-      if (slider) {
-        const maxX = slider.clientWidth - 68;
-        if (slideXRef.current > maxX * 0.85) {
-          setSlideX(maxX);
-          handleCheckout();
-        } else {
-          setSlideX(0);
-          slideXRef.current = 0;
-        }
-      }
-    };
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMove);
-      window.addEventListener('mouseup', handleEnd);
-      window.addEventListener('touchmove', handleMove, { passive: false });
-      window.addEventListener('touchend', handleEnd);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-    };
-  }, [isDragging, handleCheckout]);
-
   if (totalItems === 0 && !isPlacing) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6 text-center">
@@ -379,12 +365,9 @@ export default function CartPage() {
         <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-             <ShoppingBasket className="h-5 w-5 text-primary" />
-             <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2>
-          </div>
+          <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
           <div className="space-y-4">
             {cart.map((item) => (
               <div key={item.id + (item.selectedOption?.name || '')} className="flex gap-4 items-center">
@@ -409,10 +392,7 @@ export default function CartPage() {
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
           <div className="space-y-4">
-              <button onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all">
-                <MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP
-              </button>
-              
+              <button onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all"><MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP</button>
               <div className="space-y-3">
                 <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <div className="grid grid-cols-2 gap-3">
@@ -426,35 +406,18 @@ export default function CartPage() {
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
-           <div className="flex items-center gap-3">
-              <div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div>
-              <h3 className="text-sm font-black uppercase italic tracking-tight">Active Offers</h3>
-           </div>
+           <div className="flex items-center gap-3"><div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div><h3 className="text-sm font-black uppercase italic tracking-tight">Active Offers</h3></div>
            <div className="flex gap-2">
-              <div className="relative flex-1">
-                 <Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                 <Input placeholder="PROMO CODE" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest text-[10px]" />
-              </div>
-              <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all">
-                 {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
-              </button>
+              <div className="relative flex-1"><Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input placeholder="PROMO CODE" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest text-[10px]" /></div>
+              <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all">{isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}</button>
            </div>
            {appliedCoupon && (
-             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between">
-                <span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span>
-                <button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5 text-green-700" /></button>
-             </div>
+             <div className="bg-green-50 p-3 rounded-xl border border-green-100 flex items-center justify-between"><span className="text-[10px] font-black text-green-700 uppercase">'{appliedCoupon.code}' APPLIED!</span><button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5 text-green-700" /></button></div>
            )}
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner"><Coins className="h-6 w-6" /></div>
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-tight italic">ShopyKart Coins</h3>
-              <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Balance: {availableCoins} Coins</p>
-            </div>
-          </div>
+          <div className="flex items-center gap-3"><div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner"><Coins className="h-6 w-6" /></div><div><h3 className="text-sm font-black uppercase tracking-tight italic">ShopyKart Coins</h3><p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Balance: {availableCoins} Coins</p></div></div>
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
@@ -462,21 +425,7 @@ export default function CartPage() {
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
           <div className="flex gap-3">
             {[10, 20, 30].map(tip => (
-              <button 
-                key={tip} 
-                onClick={() => setDeliveryTip(tip)} 
-                className={cn(
-                  "relative flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", 
-                  deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400"
-                )}
-              >
-                ₹{tip}
-                {tip === 20 && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[6px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white">
-                    MOST TIPPED
-                  </span>
-                )}
-              </button>
+              <button key={tip} onClick={() => setDeliveryTip(tip)} className={cn("relative flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>₹{tip}{tip === 20 && (<span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[6px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white">MOST TIPPED</span>)}</button>
             ))}
             <button onClick={() => setIsCustomTipOpen(true)} className={cn("flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip > 30 ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>{deliveryTip > 30 ? `₹${deliveryTip}` : 'CUSTOM'}</button>
           </div>
@@ -493,23 +442,14 @@ export default function CartPage() {
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
             {deliveryTip > 0 && <div className="flex justify-between font-black text-[11px] text-amber-500 uppercase tracking-widest"><span>Partner Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
           </div>
-          <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center">
-            <span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span>
-            <span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span>
-          </div>
+          <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
         </div>
 
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
-              <CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-300")} />
-              <span className="text-[9px] font-black uppercase tracking-widest">Online Pay</span>
-            </div>
-            <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
-              < Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} />
-              <span className="text-[9px] font-black uppercase tracking-widest">Cash on Delivery</span>
-            </div>
+            <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}><CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-300")} /><span className="text-[9px] font-black uppercase tracking-widest">Online Pay</span></div>
+            <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}><Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} /><span className="text-[9px] font-black uppercase tracking-widest">Cash on Delivery</span></div>
           </div>
         </div>
       </div>
@@ -518,50 +458,18 @@ export default function CartPage() {
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
           <div className="bg-primary h-2 w-full" />
           <div className="p-8 space-y-8 flex flex-col items-center">
-            
             {isVerifyingPayment ? (
               <div className="py-10 flex flex-col items-center text-center space-y-6 animate-in fade-in duration-500">
-                <div className="relative">
-                  <div className="h-24 w-24 rounded-full border-4 border-primary/10 border-t-primary animate-spin" />
-                  <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter">Verifying Payment</h3>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
-                    Connecting with your bank for confirmation.<br />Please do not close this screen.
-                  </p>
-                </div>
+                <div className="relative"><div className="h-24 w-24 rounded-full border-4 border-primary/10 border-t-primary animate-spin" /><ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-primary" /></div>
+                <div className="space-y-2"><h3 className="text-2xl font-black italic uppercase tracking-tighter">Verifying Payment</h3><p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Connecting with your bank for confirmation.<br />Please do not close this screen.</p></div>
               </div>
             ) : (
               <>
-                <div className="text-center space-y-2">
-                   <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
-                      <QrCode className="h-8 w-8" />
-                   </div>
-                   <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle>
-                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
-                     Scan QR or use UPI button to pay and place order.
-                   </p>
-                </div>
-
-                <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group">
-                   <img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" />
-                </div>
-
+                <div className="text-center space-y-2"><div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><QrCode className="h-8 w-8" /></div><DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle><p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Scan QR or use UPI button to pay and place order.</p></div>
+                <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group"><img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" /></div>
                 <div className="w-full space-y-4">
-                   <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
-                      <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
-                   </div>
-
-                   <Button 
-                      onClick={handleOnlinePaymentFlow}
-                      disabled={isPlacing || isVerifyingPayment}
-                      className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
-                    >
-                      <Smartphone className="mr-2 h-5 w-5" />
-                      PAY & PLACE ORDER
-                    </Button>
+                   <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2"><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span><div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div></div>
+                   <Button onClick={handleOnlinePaymentFlow} disabled={isPlacing || isVerifyingPayment} className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"><Smartphone className="mr-2 h-5 w-5" />PAY & PLACE ORDER</Button>
                 </div>
               </>
             )}
@@ -569,59 +477,26 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe">
-        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem]">
+      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
+        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
-                 <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
-                    {paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}
-                 </div>
-                 <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span>
-                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span>
-                 </div>
+                 <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
+                 <div className="flex flex-col"><span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span><span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span></div>
               </div>
-              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">
-                CHANGE <ChevronUp className="h-3.5 w-3.5" />
-              </button>
+              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
-
-           <div ref={sliderRef} className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none transform-gpu">
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn("text-base font-black text-white uppercase italic tracking-tighter transition-opacity duration-200", (slideX > 40 || isPlacing || isVerifyingPayment) && "opacity-0")}>
-                   {`SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
-                 </span>
-              </div>
-              <div 
-                onMouseDown={onStart} 
-                onTouchStart={onStart} 
-                className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-none transform-gpu will-change-transform", (isPlacing || isVerifyingPayment) && "pointer-events-none opacity-0")} 
-                style={{ transform: `translateX(${slideX}px)` }}
-              >
-                 <ChevronRight className="h-7 w-7 stroke-[3]" />
-              </div>
-              <div className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" style={{ width: `${slideX + 54}px` }} />
-           </div>
+           {/* ISOLATED SLIDER ENGINE v2 */}
+           <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isVerifyingPayment} />
         </div>
       </div>
       
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Pin Delivery Location</DialogTitle>
-          </DialogHeader>
-          <MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} />
-        </DialogContent>
+        <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent>
       </Dialog>
       
       <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center">
-          <DialogHeader>
-            <DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle>
-          </DialogHeader>
-          <Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" />
-          <Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button>
-        </DialogContent>
+        <DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center"><DialogHeader><DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle></DialogHeader><Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" /><Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button></DialogContent>
       </Dialog>
     </div>
   );
