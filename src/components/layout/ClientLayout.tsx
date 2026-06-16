@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -14,7 +13,6 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 
-// LAZY LOAD HEAVY OVERLAYS
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler').then(m => ({ default: m.NotificationHandler })), { ssr: false });
 const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay').then(m => ({ default: m.AdOverlay })), { ssr: false });
 const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay').then(m => ({ default: m.WelcomeBonusOverlay })), { ssr: false });
@@ -23,7 +21,7 @@ const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCa
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
 
 /**
- * @fileOverview Refactored AuthGuard with useTransition for fluid identity checking.
+ * @fileOverview Refactored AuthGuard with improved "Ready" logic to prevent app hanging.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -45,35 +43,27 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   }, []);
 
   useEffect(() => {
-    // CRITICAL: On business portals, we don't wait for auth to mark the app as ready.
-    // This prevents the SplashScreen from blocking registration inputs.
-    if (isExcludedPath) {
+    // If we're on an excluded path or the user session is already validated, we are ready.
+    if (isExcludedPath || hasActiveSession) {
       onReady(true);
-      return;
     }
 
-    if (loading) {
-      onReady(false);
-      return;
-    }
+    // Fail-safe: Always set ready after 5 seconds to prevent splash screen hanging
+    const timeout = setTimeout(() => onReady(true), 5000);
 
-    startTransition(() => {
+    if (!loading) {
       onReady(true);
-    });
-
-    if (user) {
-      localStorage.setItem('shopykart_session_active', 'true');
-      setShowAuthOverlay(false);
-    } else if (!hasActiveSession) {
-      const timer = setTimeout(() => {
-        if (localStorage.getItem('shopykart_session_active') !== 'true') {
-          startTransition(() => {
-            setShowAuthOverlay(true);
-          });
-        }
-      }, 3000);
-      return () => clearTimeout(timer);
+      if (!user && !hasActiveSession && !isExcludedPath) {
+        // Show auth after 3 seconds for guest users
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 3000);
+        return () => {
+          clearTimeout(authTimer);
+          clearTimeout(timeout);
+        };
+      }
     }
+
+    return () => clearTimeout(timeout);
   }, [user, loading, hasActiveSession, onReady, isExcludedPath]);
 
   if (isExcludedPath) return <>{children}</>;

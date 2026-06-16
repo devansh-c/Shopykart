@@ -14,17 +14,8 @@ export const metadata: Metadata = {
   title: 'ShopyKart | Premium Food Delivery',
   description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
   icons: {
-    icon: [
-      {
-        url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: [
-      {
-        url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
-      },
-    ],
+    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
+    apple: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
   },
   alternates: {
     canonical: 'https://shopykart.co.in/',
@@ -35,11 +26,6 @@ export const metadata: Metadata = {
     title: 'ShopyKart | Premium Food Delivery',
     siteName: 'ShopyKart',
     description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
-  },
-  other: {
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
   },
 };
 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,8 +9,7 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with hydration fix.
- * Uses suppressHydrationWarning to handle static text updates across server/client.
+ * @fileOverview Optimized SplashScreen with fixed footer hydration.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -24,11 +22,9 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   useEffect(() => {
     setMounted(true);
-    // Client-side only logic for session check
     const isReturning = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
     setIsReturningUser(isReturning);
 
-    // Exact timer for new users, faster for returning
     const duration = isReturning ? 800 : 2000;
     const timer = setTimeout(() => {
       setIsTimerDone(true);
@@ -38,7 +34,6 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   const isVisible = !isTimerDone || !isAppReady;
 
-  // SCROLL LOCK LOGIC: Ensures no scrolling while Splash is active
   useEffect(() => {
     if (isVisible) {
       document.body.style.overflow = 'hidden';
@@ -102,11 +97,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        {/* Added suppressHydrationWarning to force update to Handicrafted In India */}
-        <p 
-          className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20"
-          suppressHydrationWarning
-        >
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
           Handicrafted In India
         </p>
         <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
