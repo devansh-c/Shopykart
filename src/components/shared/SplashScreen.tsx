@@ -10,7 +10,8 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with hydration guard and updated footer text.
+ * @fileOverview Optimized SplashScreen with hydration fix.
+ * Fixed "Handicrafted In India" structure to match server and client.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -23,8 +24,8 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   useEffect(() => {
     setMounted(true);
-    // Check session active only on client to prevent hydration mismatch
-    const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
+    // Client-side only logic for session check
+    const isReturning = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
     setIsReturningUser(isReturning);
 
     // Exact timer for new users, faster for returning
@@ -101,11 +102,10 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        {mounted && (
-          <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
-            Handicrafted In India
-          </p>
-        )}
+        {/* Rendered consistently to prevent hydration mismatch */}
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
+          Handicrafted In India
+        </p>
         <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
         </div>
