@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -43,8 +44,6 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
   ssr: false,
@@ -83,10 +82,11 @@ export default function CartPage() {
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
+  // High-performance slider state
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
-  const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const slideXRef = useRef(0);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -116,7 +116,6 @@ export default function CartPage() {
     if (!dbCharges) return [];
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
 
-    // Filter charges by user's zone or global
     const relevantCharges = dbCharges.filter(charge => {
       if (!charge.zoneId || charge.zoneId === 'global') return true;
       return charge.zoneId === activeZoneId;
@@ -252,6 +251,7 @@ export default function CartPage() {
       setIsPlacing(false);
       setIsVerifyingPayment(false);
       setSlideX(0);
+      slideXRef.current = 0;
       toast({ variant: "destructive", title: "Checkout Error" });
     }
   };
@@ -264,26 +264,29 @@ export default function CartPage() {
     }, 4000);
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
     if (totalPrice < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       setSlideX(0);
+      slideXRef.current = 0;
       return;
     }
 
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
       toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your delivery details." });
       setSlideX(0);
+      slideXRef.current = 0;
       return;
     }
 
     if (paymentMethod === 'online') {
       setIsPaymentDialogOpen(true);
       setSlideX(0);
+      slideXRef.current = 0;
     } else {
       executeOrderPlacement();
     }
-  };
+  }, [totalPrice, customerName, customerPhone, customerAddress, paymentMethod, toast]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponInput.trim()) return;
@@ -306,62 +309,57 @@ export default function CartPage() {
     }
   };
 
-  const onStart = useCallback(() => {
+  // REFACTORED SLIDER LOGIC
+  const onStart = () => {
     if (isPlacing || isVerifyingPayment) return;
     setIsDragging(true);
-  }, [isPlacing, isVerifyingPayment]);
-
-  const onEnd = useCallback(() => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    
-    const slider = sliderRef.current;
-    if (slider) {
-      const maxX = slider.clientWidth - 68;
-      if (slideX < maxX * 0.9) {
-        setSlideX(0);
-      } else {
-        setSlideX(maxX);
-        handleCheckout();
-      }
-    }
-  }, [isDragging, slideX, handleCheckout]);
-
-  const onMove = useCallback((clientX: number) => {
-    if (!isDragging || isPlacing || isVerifyingPayment || !sliderRef.current) return;
-    
-    const slider = sliderRef.current;
-    const rect = slider.getBoundingClientRect();
-    const handleWidth = 52;
-    const padding = 8;
-    const maxX = rect.width - handleWidth - padding * 2;
-    
-    let x = clientX - rect.left - (handleWidth / 2);
-    x = Math.max(0, Math.min(x, maxX));
-    setSlideX(x);
-  }, [isDragging, isPlacing, isVerifyingPayment]);
+  };
 
   useEffect(() => {
+    const handleMove = (e: any) => {
+      if (!isDragging || !sliderRef.current) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const rect = sliderRef.current.getBoundingClientRect();
+      const maxX = rect.width - 68; // handle(52) + padding(8*2)
+      
+      let x = clientX - rect.left - 34; // centering handle on cursor/finger
+      x = Math.max(0, Math.min(x, maxX));
+      
+      setSlideX(x);
+      slideXRef.current = x;
+    };
+
+    const handleEnd = () => {
+      if (!isDragging) return;
+      setIsDragging(false);
+      
+      const slider = sliderRef.current;
+      if (slider) {
+        const maxX = slider.clientWidth - 68;
+        if (slideXRef.current > maxX * 0.85) {
+          setSlideX(maxX);
+          handleCheckout();
+        } else {
+          setSlideX(0);
+          slideXRef.current = 0;
+        }
+      }
+    };
+
     if (isDragging) {
-      const handleGlobalMove = (e: any) => {
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        onMove(clientX);
-      };
-      const handleGlobalEnd = () => onEnd();
-
-      window.addEventListener('mousemove', handleGlobalMove);
-      window.addEventListener('mouseup', handleGlobalEnd);
-      window.addEventListener('touchmove', handleGlobalMove, { passive: false });
-      window.addEventListener('touchend', handleGlobalEnd);
-
-      return () => {
-        window.removeEventListener('mousemove', handleGlobalMove);
-        window.removeEventListener('mouseup', handleGlobalEnd);
-        window.removeEventListener('touchmove', handleGlobalMove);
-        window.removeEventListener('touchend', handleGlobalEnd);
-      };
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
     }
-  }, [isDragging, onMove, onEnd]);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, handleCheckout]);
 
   if (totalItems === 0 && !isPlacing) {
     return (
@@ -501,7 +499,7 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div ref={paymentSectionRef} className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
+        <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
           <div className="grid grid-cols-2 gap-4">
             <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
@@ -571,8 +569,8 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 pointer-events-auto rounded-t-[2.5rem]">
+      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe">
+        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem]">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                  <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
@@ -583,7 +581,7 @@ export default function CartPage() {
                     <span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span>
                  </div>
               </div>
-              <button onClick={() => paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">
+              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">
                 CHANGE <ChevronUp className="h-3.5 w-3.5" />
               </button>
            </div>
@@ -597,7 +595,7 @@ export default function CartPage() {
               <div 
                 onMouseDown={onStart} 
                 onTouchStart={onStart} 
-                className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-transform will-change-transform", (isPlacing || isVerifyingPayment) && "pointer-events-none opacity-0")} 
+                className={cn("relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center text-[#10B981] shadow-2xl cursor-grab active:cursor-grabbing transition-none transform-gpu will-change-transform", (isPlacing || isVerifyingPayment) && "pointer-events-none opacity-0")} 
                 style={{ transform: `translateX(${slideX}px)` }}
               >
                  <ChevronRight className="h-7 w-7 stroke-[3]" />
