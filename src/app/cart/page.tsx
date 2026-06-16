@@ -24,7 +24,11 @@ import {
   X,
   History,
   ChevronUp,
-  AlertTriangle
+  AlertTriangle,
+  QrCode,
+  Smartphone,
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -75,6 +79,10 @@ export default function CartPage() {
   const [deliveryTip, setDeliveryTip] = useState(0);
   const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   const [customTipValue, setCustomTipValue] = useState('');
+
+  // UPI Payment State
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isPaymentVerified, setIsPaymentVerified] = useState(false);
 
   // Slider State
   const [slideX, setSlideX] = useState(0);
@@ -141,6 +149,16 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + Number(deliveryTip) - coinDiscount - couponDiscount);
 
+  // UPI Link and QR
+  const upiId = "9450355709@axl";
+  const upiUri = useMemo(() => {
+    return `upi://pay?pa=${upiId}&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR&tn=Order_from_ShopyKart`;
+  }, [grandTotal]);
+
+  const qrCodeUrl = useMemo(() => {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUri)}`;
+  }, [upiUri]);
+
   // Address Suggestion Persistence
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -166,7 +184,7 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!firestore || isPlacing) return;
 
-    // 1. Minimum Order Check
+    // 1. Validation
     if (totalPrice < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       setSlideX(0);
@@ -179,6 +197,13 @@ export default function CartPage() {
       return;
     }
 
+    // 2. Online Payment Check
+    if (paymentMethod === 'online' && !isPaymentVerified) {
+      setIsPaymentDialogOpen(true);
+      setSlideX(0);
+      return;
+    }
+
     setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     const finalUid = user?.uid || 'guest_' + Date.now();
@@ -186,7 +211,6 @@ export default function CartPage() {
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
 
-    // COLLECT ALL UNIQUE VENDOR IDS WITH CLEAN STRINGS
     const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(id => id !== 'undefined' && id !== 'null')));
 
     const orderData = {
@@ -209,12 +233,13 @@ export default function CartPage() {
       deliveryTip: Number(deliveryTip),
       status: 'Placed',
       paymentMethod,
+      paymentStatus: paymentMethod === 'online' ? 'Paid_Pending_Verification' : 'Pending',
       address: fullFinalAddress,
       latitude: latitude || null,
       longitude: longitude || null,
       createdAt: serverTimestamp(),
       vendorId: cart[0]?.vendorId || 'global',
-      vendorIds: allVendorIds, // CRITICAL: For Multi-Vendor Dashboard support
+      vendorIds: allVendorIds, 
       restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
       coinsEarned: 10,
       coinsUsed,
@@ -281,10 +306,6 @@ export default function CartPage() {
         setSlideX(0);
       } else {
         setSlideX(maxX);
-        try {
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-          audio.play().catch(() => {});
-        } catch (e) {}
         handleCheckout();
       }
     }
@@ -479,6 +500,64 @@ export default function CartPage() {
         </div>
       </div>
 
+      {/* UPI Payment Dialog */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+          <div className="bg-primary h-2 w-full" />
+          <div className="p-8 space-y-8 flex flex-col items-center">
+            <div className="text-center space-y-2">
+               <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
+                  <QrCode className="h-8 w-8" />
+               </div>
+               <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle>
+               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
+                 Scan or Tap to complete payment securely.
+               </p>
+            </div>
+
+            <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group">
+               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 backdrop-blur-[2px] transition-opacity rounded-3xl pointer-events-none">
+                  <div className="bg-black text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">Scan to Pay</div>
+               </div>
+               <img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" />
+            </div>
+
+            <div className="w-full space-y-4">
+               <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
+                  <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <ShieldCheck className="h-3 w-3 text-green-600" />
+                    <span className="text-[8px] font-black uppercase text-green-600 tracking-widest">Secured by ShopyKart Pay</span>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 gap-3">
+                  <button 
+                    onClick={() => window.open(upiUri)}
+                    className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[11px] tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                  >
+                    <Smartphone className="h-4 w-4 text-primary" />
+                    OPEN UPI APP NOW
+                  </button>
+                  
+                  <Button 
+                    onClick={() => { setIsPaymentVerified(true); setIsPaymentDialogOpen(false); handleCheckout(); }}
+                    className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
+                  >
+                    I HAVE PAID
+                    <CheckCircle2 className="ml-2 h-6 w-6" />
+                  </Button>
+               </div>
+            </div>
+
+            <button onClick={() => setIsPaymentDialogOpen(false)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary transition-colors">
+               Cancel & Change Mode
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 pointer-events-auto rounded-t-[2.5rem]">
            <div className="flex items-center justify-between px-2">
@@ -488,7 +567,7 @@ export default function CartPage() {
                  </div>
                  <div className="flex flex-col">
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span>
-                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'Google Pay' : 'Cash on Delivery'}</span>
+                    <span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span>
                  </div>
               </div>
               <button onClick={() => paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">
