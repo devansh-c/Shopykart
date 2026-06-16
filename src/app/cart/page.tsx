@@ -251,15 +251,10 @@ export default function CartPage() {
 
   const handleOnlinePaymentFlow = async () => {
     setIsVerifyingPayment(true);
-    
-    // 1. Open the UPI app link
     window.open(upiUri);
-
-    // 2. Start Verification Timer (Simulating Bank Verification)
-    // We wait for a realistic amount of time or until user returns to browser
     setTimeout(() => {
       executeOrderPlacement();
-    }, 5000); // 5 seconds wait for verification
+    }, 4000);
   };
 
   const handleCheckout = async () => {
@@ -531,10 +526,6 @@ export default function CartPage() {
                     Connecting with your bank for confirmation.<br />Please do not close this screen.
                   </p>
                 </div>
-                <div className="bg-muted/30 px-4 py-2 rounded-full flex items-center gap-2">
-                   <Zap className="h-3 w-3 text-amber-500 animate-pulse" />
-                   <span className="text-[9px] font-black uppercase tracking-widest">Secure Link Active</span>
-                </div>
               </div>
             ) : (
               <>
@@ -549,9 +540,6 @@ export default function CartPage() {
                 </div>
 
                 <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group">
-                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 backdrop-blur-[2px] transition-opacity rounded-3xl pointer-events-none">
-                      <div className="bg-black text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">Scan to Pay</div>
-                   </div>
                    <img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" />
                 </div>
 
@@ -559,10 +547,6 @@ export default function CartPage() {
                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
                       <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
                       <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
-                      <div className="flex items-center gap-1.5 mt-2">
-                        <ShieldCheck className="h-3 w-3 text-green-600" />
-                        <span className="text-[8px] font-black uppercase text-green-600 tracking-widest">Secured by ShopyKart Pay</span>
-                      </div>
                    </div>
 
                    <Button 
@@ -574,13 +558,6 @@ export default function CartPage() {
                       PAY & PLACE ORDER
                     </Button>
                 </div>
-
-                <button 
-                  onClick={() => setIsPaymentDialogOpen(false)} 
-                  className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-primary transition-colors"
-                >
-                  Cancel & Change Mode
-                </button>
               </>
             )}
           </div>
@@ -604,19 +581,11 @@ export default function CartPage() {
               </button>
            </div>
 
-           <div ref={sliderRef} className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none">
+           <div ref={sliderRef} className="relative h-[68px] w-full bg-[#10B981] rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none transform-gpu">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn("text-base font-black text-white uppercase italic tracking-tighter", (slideX > 40 || isPlacing || isVerifyingPayment) && "opacity-0")}>
-                   {isPlacing ? 'PROCESSING...' : isVerifyingPayment ? 'VERIFYING...' : `SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
+                 <span className={cn("text-base font-black text-white uppercase italic tracking-tighter transition-opacity duration-200", (slideX > 40 || isPlacing || isVerifyingPayment) && "opacity-0")}>
+                   {`SLIDE TO ORDER • ₹${grandTotal.toFixed(2)}`}
                  </span>
-                 {(isPlacing || isVerifyingPayment) && (
-                   <div className="flex items-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin text-white" />
-                      <span className="text-sm font-black text-white uppercase italic tracking-tighter">
-                        {isVerifyingPayment ? 'WAITING FOR BANK...' : 'CONFIRMING...'}
-                      </span>
-                   </div>
-                 )}
               </div>
               <div 
                 onMouseDown={onStart} 
@@ -652,4 +621,3 @@ export default function CartPage() {
     </div>
   );
 }
-

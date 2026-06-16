@@ -286,7 +286,7 @@ export function PopularProducts({
              <h2 className="text-sm font-black uppercase italic tracking-tight text-gray-800">{selectedCat === 'all' ? `All ${activeMode}` : selectedCat}</h2>
              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{productsToDisplay.length} Items</span>
           </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-6">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 transform-gpu">
             {productsToDisplay.map((product) => (
               <ProductItem 
                 key={product.id}
@@ -322,7 +322,7 @@ export function PopularProducts({
           </SelectContent>
         </Select>
       </div>
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-8 transform-gpu">
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}
