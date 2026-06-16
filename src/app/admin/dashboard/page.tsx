@@ -30,7 +30,8 @@ import {
   HeartPulse,
   Sparkles,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useFirestore } from '@/firebase';
 import { requestPushToken } from '@/firebase/messaging';
 
-// LAZY LOADING: Optimized with larger chunks for production stability
+// LAZY LOADING
 const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> });
 const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement').then(m => ({ default: m.ProductManagement })));
 const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement').then(m => ({ default: m.BannerManagement })));
@@ -57,6 +58,7 @@ const ExportManagement = dynamic(() => import('@/components/admin/ExportManageme
 const ZoneManagement = dynamic(() => import('@/components/admin/ZoneManagement').then(m => ({ default: m.ZoneManagement })));
 const PageManagement = dynamic(() => import('@/components/admin/PageManagement').then(m => ({ default: m.PageManagement })));
 const TicketManagement = dynamic(() => import('@/components/admin/TicketManagement').then(m => ({ default: m.TicketManagement })));
+const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement').then(m => ({ default: m.TeamManagement })));
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -77,22 +79,29 @@ const menuItems = [
   { id: 'tickets', label: 'Support Tickets', icon: LifeBuoy },
   { id: 'reviews', label: 'Reviews', icon: MessageSquare },
   { id: 'pages', label: 'Policy Pages', icon: FileText },
+  { id: 'team', label: 'Team Members', icon: UserPlus },
   { id: 'export', label: 'Export & Backup', icon: Download },
   { id: 'settings', label: 'Branding & SEO', icon: Settings },
 ];
 
-const SidebarContent = memo(({ activeTab, onTabSelect, onSignOut, onCloseMobile }: any) => {
+const SidebarContent = memo(({ activeTab, onTabSelect, onSignOut, onCloseMobile, allowedFeatures }: any) => {
+  const filteredMenu = allowedFeatures === 'all' 
+    ? menuItems 
+    : menuItems.filter(item => allowedFeatures.includes(item.id) || item.id === 'dashboard');
+
   return (
     <div className="flex flex-col h-full bg-white transform-gpu">
       <div className="p-6 flex items-center space-x-3 border-b border-border/30">
         <div className="bg-primary p-2 rounded-xl text-white"><LayoutDashboard className="h-5 w-5" /></div>
         <div>
           <h1 className="text-lg font-black italic leading-none">SHOPYKART</h1>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Admin Panel</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+            {allowedFeatures === 'all' ? 'Admin Panel' : 'Team Access'}
+          </p>
         </div>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto no-scrollbar">
-        {menuItems.map((item) => {
+        {filteredMenu.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
@@ -130,13 +139,21 @@ export default function AdminDashboard() {
   const [isPending, startTransition] = useTransition();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifyBanner, setShowNotifyBanner] = useState(false);
+  const [allowedFeatures, setAllowedFeatures] = useState<any>('all');
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
+    const teamPermissions = localStorage.getItem('team_permissions');
+
     if (auth !== 'true') router.push('/admin/login');
     else {
       setIsAuthorized(true);
-      // Check if notification permission is granted - Using safe window.Notification access to prevent ReferenceError
+      if (teamPermissions && teamPermissions !== 'all') {
+        setAllowedFeatures(JSON.parse(teamPermissions));
+      } else {
+        setAllowedFeatures('all');
+      }
+
       if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission !== 'granted') {
         setShowNotifyBanner(true);
       }
@@ -151,6 +168,7 @@ export default function AdminDashboard() {
 
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
+    localStorage.removeItem('team_permissions');
     router.push('/');
   };
 
@@ -182,6 +200,7 @@ export default function AdminDashboard() {
       case 'tickets': return <TicketManagement />;
       case 'reviews': return <ReviewManagement />;
       case 'pages': return <PageManagement />;
+      case 'team': return <TeamManagement />;
       case 'export': return <ExportManagement />;
       case 'settings': return <BrandingManagement />;
       default: return <AdminOverview />;
@@ -201,13 +220,25 @@ export default function AdminDashboard() {
           <SheetTrigger asChild><Button variant="ghost" size="icon" className="rounded-xl"><MenuIcon className="h-6 w-6" /></Button></SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 border-none shadow-2xl">
             <SheetHeader className="sr-only"><SheetTitle>Menu</SheetTitle></SheetHeader>
-            <SidebarContent activeTab={activeTab} onTabSelect={handleTabSelect} onSignOut={handleSignOut} onCloseMobile={() => setIsMobileMenuOpen(false)} />
+            <SidebarContent 
+              activeTab={activeTab} 
+              onTabSelect={handleTabSelect} 
+              onSignOut={handleSignOut} 
+              onCloseMobile={() => setIsMobileMenuOpen(false)} 
+              allowedFeatures={allowedFeatures}
+            />
           </SheetContent>
         </Sheet>
       </header>
 
       <aside className="hidden md:flex w-64 bg-white border-r border-border/50 flex-col sticky top-0 h-screen shadow-sm">
-        <SidebarContent activeTab={activeTab} onTabSelect={handleTabSelect} onSignOut={handleSignOut} onCloseMobile={() => {}} />
+        <SidebarContent 
+          activeTab={activeTab} 
+          onTabSelect={handleTabSelect} 
+          onSignOut={handleSignOut} 
+          onCloseMobile={() => {}} 
+          allowedFeatures={allowedFeatures}
+        />
       </aside>
 
       <main className={cn("flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>

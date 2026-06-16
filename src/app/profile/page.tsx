@@ -28,7 +28,8 @@ import {
   ScrollText,
   XCircle,
   Undo2,
-  HeartPulse
+  HeartPulse,
+  Users
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +81,7 @@ export default function ProfilePage() {
 
   // Aggressive Prefetching for Dashboard Routes
   useEffect(() => {
-    const routes = ['/Beauty/store', '/Medical/store', '/vendor/dashboard', '/delivery/dashboard', '/wishlist', '/cart'];
+    const routes = ['/Beauty/store', '/Medical/store', '/vendor/dashboard', '/delivery/dashboard', '/admin/login', '/wishlist', '/cart'];
     routes.forEach(route => router.prefetch(route));
   }, [router]);
   
@@ -96,6 +97,7 @@ export default function ProfilePage() {
     { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
+    { label: 'Join as Team Member', icon: Users, path: '/admin/login', description: 'Access assigned staff portals' },
   ];
 
   const handleAction = (path: string, label: string) => {

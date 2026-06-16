@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Lock } from 'lucide-react';
+import { Lock, ShieldCheck, UserCog, Loader2 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -15,6 +17,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   // Auto-redirect if already logged in
   useEffect(() => {
@@ -24,72 +27,112 @@ export default function AdminLoginPage() {
     }
   }, [router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Mock Admin Credentials for MVP
-    // Updated credentials as requested
-    if (email === 'ceo@shopykart.co.in' && password === 'Ping@123//') {
+    const inputEmail = email.trim().toLowerCase();
+    const inputPass = password.trim();
+
+    // 1. Check Master Admin Credentials
+    if (inputEmail === 'ceo@shopykart.co.in' && inputPass === 'Ping@123//') {
       localStorage.setItem('admin_auth', 'true');
-      toast({ title: "Login Successful", description: "Welcome to the Admin Dashboard." });
+      localStorage.setItem('team_permissions', 'all');
+      toast({ title: "Admin Login Successful" });
       router.push('/admin/dashboard');
-    } else {
-      toast({ 
-        variant: "destructive", 
-        title: "Login Failed", 
-        description: "Invalid credentials. Please try again." 
-      });
+      setLoading(false);
+      return;
     }
+
+    // 2. Check Team Member Credentials in Firestore
+    if (firestore) {
+      try {
+        const teamRef = collection(firestore, 'team_members');
+        const q = query(teamRef, where('employeeId', '==', inputEmail));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const memberData = snapshot.docs[0].data();
+          if (memberData.password === inputPass) {
+            localStorage.setItem('admin_auth', 'true');
+            localStorage.setItem('team_permissions', JSON.stringify(memberData.permissions || []));
+            toast({ title: "Welcome Team Member!", description: memberData.fullName });
+            router.push('/admin/dashboard');
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Team check error:", err);
+      }
+    }
+
+    toast({ 
+      variant: "destructive", 
+      title: "Access Denied", 
+      description: "Invalid credentials or unauthorized account." 
+    });
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-primary/20 shadow-2xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-            <Lock className="h-8 w-8 text-primary" />
+    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+        <CardHeader className="text-center pt-10">
+          <div className="mx-auto bg-primary/10 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-4">
+            <ShieldCheck className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-black italic">ADMIN ACCESS</CardTitle>
-          <p className="text-muted-foreground text-sm">Restricted Area. Authorized Personnel Only.</p>
+          <CardTitle className="text-2xl font-black italic uppercase tracking-tighter">RESTRICTED HUB</CardTitle>
+          <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Admin & Staff Access Portal</p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Email</label>
-              <Input 
-                type="email" 
-                placeholder="admin@shopykart.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <CardContent className="px-8 pb-12">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Staff ID or Email</label>
+                <div className="relative">
+                  <UserCog className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input 
+                    type="text" 
+                    placeholder="e.g. CEO or TeamRahul1" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold text-black"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Access Key</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-12 h-14 rounded-2xl bg-muted/20 border-none font-bold text-black"
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Password</label>
-              <Input 
-                type="password" 
-                placeholder="••••••••" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+
             <Button 
               type="submit" 
-              className="w-full font-black uppercase tracking-widest bg-primary hover:bg-primary/90"
+              className="w-full h-16 rounded-[2rem] bg-black hover:bg-primary text-white font-black uppercase italic text-lg shadow-xl transition-all"
               disabled={loading}
             >
-              {loading ? "Verifying..." : "Enter Dashboard"}
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "AUTHENTICATE"}
             </Button>
+
             <Button 
               type="button" 
               variant="ghost" 
-              className="w-full text-xs font-bold"
+              className="w-full text-[10px] font-black uppercase tracking-widest text-gray-400"
               onClick={() => router.push('/')}
             >
-              Back to Home
+              EXIT TO HOME
             </Button>
           </form>
         </CardContent>
