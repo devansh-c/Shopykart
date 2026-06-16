@@ -82,7 +82,6 @@ export default function CartPage() {
 
   // UPI Payment State
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [isPaymentVerified, setIsPaymentVerified] = useState(false);
 
   // Slider State
   const [slideX, setSlideX] = useState(0);
@@ -181,28 +180,8 @@ export default function CartPage() {
     }
   }, [profile]);
 
-  const handleCheckout = async () => {
+  const executeOrderPlacement = async () => {
     if (!firestore || isPlacing) return;
-
-    // 1. Validation
-    if (totalPrice < 35) {
-      toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
-      setSlideX(0);
-      return;
-    }
-
-    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
-      toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your delivery details." });
-      setSlideX(0);
-      return;
-    }
-
-    // 2. Online Payment Check
-    if (paymentMethod === 'online' && !isPaymentVerified) {
-      setIsPaymentDialogOpen(true);
-      setSlideX(0);
-      return;
-    }
 
     setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
@@ -261,11 +240,35 @@ export default function CartPage() {
       }
 
       clearCart();
+      setIsPaymentDialogOpen(false);
       router.replace(`/orders/track?id=${orderId}`);
     } catch (serverError) {
       setIsPlacing(false);
       setSlideX(0);
       toast({ variant: "destructive", title: "Checkout Error" });
+    }
+  };
+
+  const handleCheckout = async () => {
+    // 1. Validation
+    if (totalPrice < 35) {
+      toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
+      setSlideX(0);
+      return;
+    }
+
+    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5) {
+      toast({ variant: "destructive", title: "Incomplete Details", description: "Please check your delivery details." });
+      setSlideX(0);
+      return;
+    }
+
+    // 2. Direct Placement for Cash or show Dialog for Online
+    if (paymentMethod === 'online') {
+      setIsPaymentDialogOpen(true);
+      setSlideX(0);
+    } else {
+      executeOrderPlacement();
     }
   };
 
@@ -493,7 +496,7 @@ export default function CartPage() {
               <span className="text-[9px] font-black uppercase tracking-widest">Online Pay</span>
             </div>
             <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}>
-              <Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} />
+              < Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} />
               <span className="text-[9px] font-black uppercase tracking-widest">Cash on Delivery</span>
             </div>
           </div>
@@ -511,7 +514,7 @@ export default function CartPage() {
                </div>
                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle>
                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
-                 Scan or Tap to complete payment securely.
+                 Scan or Tap to complete payment and place order.
                </p>
             </div>
 
@@ -533,21 +536,26 @@ export default function CartPage() {
                </div>
 
                <div className="grid grid-cols-1 gap-3">
-                  <button 
-                    onClick={() => window.open(upiUri)}
-                    className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[11px] tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
-                  >
-                    <Smartphone className="h-4 w-4 text-primary" />
-                    OPEN UPI APP NOW
-                  </button>
-                  
                   <Button 
-                    onClick={() => { setIsPaymentVerified(true); setIsPaymentDialogOpen(false); handleCheckout(); }}
+                    onClick={() => { window.open(upiUri); executeOrderPlacement(); }}
+                    disabled={isPlacing}
                     className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
                   >
-                    I HAVE PAID
-                    <CheckCircle2 className="ml-2 h-6 w-6" />
+                    {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                      <>
+                        <Smartphone className="mr-2 h-5 w-5" />
+                        PAY & PLACE ORDER
+                      </>
+                    )}
                   </Button>
+                  
+                  <button 
+                    onClick={executeOrderPlacement}
+                    disabled={isPlacing}
+                    className="w-full h-12 bg-black text-white rounded-2xl font-black uppercase italic text-[11px] tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                  >
+                    ORDER NOW (SCAN DONE)
+                  </button>
                </div>
             </div>
 
