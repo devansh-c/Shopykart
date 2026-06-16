@@ -11,7 +11,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with hydration fix.
- * Fixed "Handicrafted In India" structure to match server and client.
+ * Uses suppressHydrationWarning to handle static text updates across server/client.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -102,8 +102,11 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        {/* Rendered consistently to prevent hydration mismatch */}
-        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
+        {/* Added suppressHydrationWarning to force update to Handicrafted In India */}
+        <p 
+          className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20"
+          suppressHydrationWarning
+        >
           Handicrafted In India
         </p>
         <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
