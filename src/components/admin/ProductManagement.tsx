@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, getDocs, setDoc } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
@@ -28,6 +28,11 @@ export function ProductManagement() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Bulk Status Dialog State
+  const [isBulkStatusDialogOpen, setIsBulkStatusDialogOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<'open' | 'close'>('open');
+  const [selectedBulkZoneId, setSelectedBulkZoneId] = useState<string>('');
 
   const [name, setName] = useState('');
   const [mrp, setMrp] = useState('');
@@ -54,23 +59,62 @@ export function ProductManagement() {
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  const handleBulkStatus = async (online: boolean) => {
-    if (!firestore || !vendors) return;
-    if (!confirm(online ? "OPEN ALL?" : "CLOSE ALL?")) return;
+  const zonesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'zones');
+  }, [firestore]);
+  const { data: zones } = useCollection<any>(zonesQuery);
+
+  const handleBulkStatusAction = async () => {
+    if (!firestore || !vendors || !selectedBulkZoneId) {
+      toast({ variant: "destructive", title: "Error", description: "Please select a zone first." });
+      return;
+    }
+
     setIsBulkUpdating(true);
+    const isOnline = bulkMode === 'open';
+    const zoneName = zones?.find(z => z.id === selectedBulkZoneId)?.name || 'Selected Zone';
+
     try {
       const batch = writeBatch(firestore);
-      vendors.forEach(v => batch.update(doc(firestore, 'vendors', v.id), { isOnline: online }));
-      if (products) {
-        products.forEach(p => {
-          batch.update(doc(firestore, 'products', p.id), { isAvailable: online });
-          batch.set(doc(firestore, 'vendors', p.vendorId, 'products', p.id), { isAvailable: online }, { merge: true });
-        });
+      
+      // 1. Filter vendors by selected zone
+      const targetVendors = vendors.filter(v => v.zoneId === selectedBulkZoneId);
+      
+      if (targetVendors.length === 0) {
+        toast({ variant: "destructive", title: "No Stores", description: `No stores found in ${zoneName}.` });
+        setIsBulkUpdating(false);
+        return;
       }
+
+      // 2. Update Vendors in that zone
+      targetVendors.forEach(v => {
+        batch.update(doc(firestore, 'vendors', v.id), { isOnline, updatedAt: serverTimestamp() });
+      });
+
+      // 3. Update all Products belonging to these vendors
+      const vendorIds = targetVendors.map(v => v.id);
+      const targetProducts = products?.filter(p => vendorIds.includes(p.vendorId)) || [];
+
+      targetProducts.forEach(p => {
+        batch.update(doc(firestore, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() });
+        batch.set(doc(firestore, 'vendors', p.vendorId, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() }, { merge: true });
+      });
+
       await batch.commit();
-      toast({ title: online ? "All Online" : "All Closed" });
-    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
-    finally { setIsBulkUpdating(false); }
+      
+      toast({ 
+        title: isOnline ? "Zone Online! 🟢" : "Zone Closed! 🔴", 
+        description: `Successfully updated ${targetVendors.length} stores in ${zoneName}.` 
+      });
+      setIsBulkStatusDialogOpen(false);
+      setSelectedBulkZoneId('');
+    } catch (e) { 
+      console.error("Bulk sync error:", e);
+      toast({ variant: "destructive", title: "Update Failed" }); 
+    } finally { 
+      setIsBulkUpdating(false); 
+    }
   };
 
   const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
@@ -175,8 +219,20 @@ export function ProductManagement() {
           <Input placeholder="Search catalog..." className="pl-12 h-12 bg-muted/30 border-none rounded-2xl" />
         </div>
         <div className="flex gap-2">
-           <Button onClick={() => handleBulkStatus(true)} className="h-12 rounded-2xl bg-green-600 font-black uppercase text-[10px]">OPEN ALL</Button>
-           <Button onClick={() => handleBulkStatus(false)} variant="destructive" className="h-12 rounded-2xl font-black uppercase text-[10px]">CLOSE ALL</Button>
+           <Button 
+            onClick={() => { setBulkMode('open'); setIsBulkStatusDialogOpen(true); }} 
+            className="h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase text-[10px] text-white"
+           >
+            OPEN BY ZONE
+           </Button>
+           <Button 
+            onClick={() => { setBulkMode('close'); setIsBulkStatusDialogOpen(true); }} 
+            variant="destructive" 
+            className="h-12 rounded-2xl font-black uppercase text-[10px]"
+           >
+            CLOSE BY ZONE
+           </Button>
+           
            <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
               <DialogTrigger asChild><Button className="bg-black rounded-2xl h-12 font-black uppercase italic"><Plus className="mr-2 h-4 w-4" /> NEW ITEM</Button></DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
@@ -294,6 +350,61 @@ export function ProductManagement() {
            </Dialog>
         </div>
       </div>
+
+      {/* BULK STATUS ZONE SELECTOR DIALOG */}
+      <Dialog open={isBulkStatusDialogOpen} onOpenChange={setIsBulkStatusDialogOpen}>
+        <DialogContent className="rounded-[2.5rem] max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-black italic uppercase text-center text-xl">
+              {bulkMode === 'open' ? 'Open All Stores' : 'Close All Stores'}
+            </DialogTitle>
+            <DialogDescription className="text-center font-bold text-[10px] uppercase tracking-widest text-muted-foreground">
+              Select a zone to execute bulk action
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-6 space-y-4">
+             <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Target Zone *</label>
+                <Select value={selectedBulkZoneId} onValueChange={setSelectedBulkZoneId}>
+                  <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-none font-bold">
+                    <SelectValue placeholder="Select Serving Zone" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    {zones?.map((zone: any) => (
+                      <SelectItem key={zone.id} value={zone.id} className="font-bold py-3 uppercase text-xs">
+                        {zone.name} ({zone.city})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+             </div>
+
+             <div className={cn(
+               "p-4 rounded-2xl border-2 border-dashed flex items-start gap-3",
+               bulkMode === 'open' ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700"
+             )}>
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-bold uppercase leading-relaxed">
+                  Is action se selected zone ke saare stores aur unka poora menu {bulkMode === 'open' ? 'live ho jayega' : 'offline/hide ho jayega'}.
+                </p>
+             </div>
+          </div>
+
+          <DialogFooter>
+             <Button 
+               onClick={handleBulkStatusAction} 
+               disabled={isBulkUpdating || !selectedBulkZoneId}
+               className={cn(
+                 "w-full h-16 rounded-2xl font-black uppercase italic text-lg shadow-xl",
+                 bulkMode === 'open' ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"
+               )}
+             >
+               {isBulkUpdating ? <Loader2 className="h-6 w-6 animate-spin" /> : `CONFIRM ${bulkMode.toUpperCase()}`}
+             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
         {products?.map(p => (
