@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -203,7 +204,7 @@ export function ExportManagement() {
                 <Smartphone className="h-12 w-12 text-green-600 animate-bounce" />
                 <h4 className="font-black italic uppercase text-green-800">Ready for Play Store</h4>
                 <p className="text-[10px] font-bold text-green-700/70 uppercase leading-relaxed">
-                   Open karne ke baad Android Studio mein "Build &gt; Build Bundle(s) / APK(s) &gt; Build APK" select karein.
+                   Open karne ke baad Android Studio mein "Build > Build Bundle(s) / APK(s) > Build APK" select karein.
                 </p>
              </div>
           </div>
