@@ -165,10 +165,11 @@ export default function AdminDashboard() {
         const parsed = JSON.parse(teamPermissions);
         setAllowedFeatures(Array.isArray(parsed) ? parsed : []);
       } catch(e) {
-        setAllowedFeatures([]);
+        // If teamPermissions is not an array, but is not 'all', check if it's 'all' again stringwise
+        if (teamPermissions === 'all') setAllowedFeatures('all');
+        else setAllowedFeatures([]);
       }
     } else {
-      // Fallback: If auth is true but permissions are missing, force relogin
       localStorage.removeItem('admin_auth');
       router.push('/admin/login');
     }
@@ -179,7 +180,6 @@ export default function AdminDashboard() {
   }, [router]);
 
   const handleTabSelect = (id: string) => {
-    // SECURITY: Ensure team members can't switch to tabs they don't have permission for
     if (allowedFeatures !== 'all' && Array.isArray(allowedFeatures) && !allowedFeatures.includes(id) && id !== 'dashboard') {
       return;
     }
@@ -206,7 +206,6 @@ export default function AdminDashboard() {
     
     const isMasterAdmin = allowedFeatures === 'all';
     
-    // CONTENT PROTECTION: If user lands on a tab they don't own, reset to dashboard
     if (!isMasterAdmin && Array.isArray(allowedFeatures) && !allowedFeatures.includes(activeTab) && activeTab !== 'dashboard') {
       setActiveTab('dashboard');
       return <AdminOverview />;

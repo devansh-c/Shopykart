@@ -23,14 +23,24 @@ function AdminLoginPageContent() {
 
   const isTeamMode = searchParams.get('mode') === 'team';
 
-  // If coming from "Team Member" link, clear any existing admin session first
+  // SESSIONS PROTECTION: Clear stale data to prevent CEO seeing Staff view or vice versa
   useEffect(() => {
+    const auth = localStorage.getItem('admin_auth');
+    const perms = localStorage.getItem('team_permissions');
+
     if (isTeamMode) {
-      localStorage.removeItem('admin_auth');
-      localStorage.removeItem('team_permissions');
+      // If entering Team Mode, but currently logged in as Master, clear it.
+      if (perms === 'all') {
+        localStorage.removeItem('admin_auth');
+        localStorage.removeItem('team_permissions');
+      }
     } else {
-      const auth = localStorage.getItem('admin_auth');
-      if (auth === 'true') {
+      // If entering Master Mode, but currently logged in as Staff, clear it.
+      if (perms !== 'all' && auth === 'true') {
+        localStorage.removeItem('admin_auth');
+        localStorage.removeItem('team_permissions');
+      } else if (auth === 'true' && perms === 'all') {
+        // Already logged in as CEO, redirect to dashboard
         router.push('/admin/dashboard');
       }
     }
@@ -47,7 +57,7 @@ function AdminLoginPageContent() {
     if (inputEmail === 'ceo@shopykart.co.in' && inputPass === 'Ping@123//') {
       localStorage.setItem('admin_auth', 'true');
       localStorage.setItem('team_permissions', 'all');
-      toast({ title: "Welcome CEO", description: "Admin Access Granted" });
+      toast({ title: "Welcome CEO", description: "Master Access Granted" });
       router.push('/admin/dashboard');
       setLoading(false);
       return;
