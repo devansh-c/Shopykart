@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
@@ -10,10 +10,11 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Ultra-Fast Location Picker.
- * Optimized for zero-lag and zero-loading experience.
+ * Optimized with local caching to eliminate "white screen" delay.
  */
 export function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
+  const [displayZones, setDisplayZones] = useState<any[]>([]);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -23,17 +24,26 @@ export function LocationRequest() {
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
   
-  const { data: activeZones } = useCollection<any>(zonesQuery);
+  const { data: activeZones, loading } = useCollection<any>(zonesQuery);
 
+  // 1. LOAD FROM CACHE INSTANTLY
   useEffect(() => {
     const handleOpen = () => {
       setIsOpen(true);
     };
     window.addEventListener('open-location-picker', handleOpen);
     
+    // Check if we have cached zones to show immediately
+    const cached = localStorage.getItem('shopykart_zones_cache');
+    if (cached) {
+      try {
+        setDisplayZones(JSON.parse(cached));
+      } catch (e) {
+        console.warn("Cache parse failed");
+      }
+    }
+
     const isLocationSet = localStorage.getItem('user_location_set') === 'true';
-    
-    // REDUCED DELAY: Show choice faster for new users
     if (!isLocationSet) {
       const timer = setTimeout(() => setIsOpen(true), 500);
       return () => {
@@ -47,11 +57,16 @@ export function LocationRequest() {
     };
   }, []);
 
-  const handleZoneSelect = (zone: any) => {
-    // 1. INSTANT CLOSE: Don't wait for processing
-    setIsOpen(false);
+  // 2. UPDATE CACHE WHEN FRESH DATA ARRIVES
+  useEffect(() => {
+    if (activeZones && activeZones.length > 0) {
+      setDisplayZones(activeZones);
+      localStorage.setItem('shopykart_zones_cache', JSON.stringify(activeZones));
+    }
+  }, [activeZones]);
 
-    // 2. BACKGROUND UPDATES
+  const handleZoneSelect = (zone: any) => {
+    setIsOpen(false);
     localStorage.setItem('active_zone_id', zone.id);
     localStorage.setItem('user_city', zone.city || 'Local');
     localStorage.setItem('user_address', zone.name);
@@ -75,7 +90,7 @@ export function LocationRequest() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl h-[500px] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+      <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl h-[550px] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
         <DialogHeader className="p-6 bg-white border-b shrink-0">
           <div className="flex flex-col items-center text-center space-y-2">
              <div className="bg-primary/10 p-2.5 rounded-2xl text-primary mb-1">
@@ -91,28 +106,36 @@ export function LocationRequest() {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
-          <div className="p-4 space-y-3">
-            {/* NO LOADING ICON: Directly render what we have */}
-            {activeZones?.map((zone: any) => (
-              <button 
-                key={zone.id}
-                onPointerDown={() => handleZoneSelect(zone)}
-                className="w-full bg-white p-5 rounded-[1.5rem] border-2 border-gray-50 shadow-sm flex items-center justify-between group active:scale-[0.96] transition-all transform-gpu"
-              >
-                <div className="flex items-center gap-4 text-left pointer-events-none">
-                   <div className="bg-gray-50 p-3 rounded-2xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                      <Store className="h-5 w-5" />
-                   </div>
-                   <div>
-                      <h4 className="font-black italic uppercase text-sm leading-none mb-1 text-gray-800">{zone.name}</h4>
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{zone.city} • Fast Delivery</span>
-                   </div>
-                </div>
-                <ChevronRight className="h-5 w-5 text-gray-200 group-hover:text-primary transition-colors" />
-              </button>
-            ))}
+          <div className="p-5 space-y-3">
+            {displayZones.length > 0 ? (
+              displayZones.map((zone: any) => (
+                <button 
+                  key={zone.id}
+                  onPointerDown={() => handleZoneSelect(zone)}
+                  className="w-full bg-white p-5 rounded-[1.75rem] border-2 border-gray-50 shadow-sm flex items-center justify-between group active:scale-[0.96] transition-all transform-gpu"
+                >
+                  <div className="flex items-center gap-4 text-left pointer-events-none">
+                     <div className="bg-gray-50 p-3 rounded-2xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <Store className="h-5 w-5" />
+                     </div>
+                     <div>
+                        <h4 className="font-black italic uppercase text-sm leading-none mb-1 text-gray-800">{zone.name}</h4>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{zone.city} • Fast Delivery</span>
+                     </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-200 group-hover:text-primary transition-colors" />
+                </button>
+              ))
+            ) : (
+              // SKELETON LOADER: Show if even cache is missing
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="w-full h-20 bg-gray-50 rounded-[1.75rem] animate-pulse border border-gray-100/50" />
+                ))}
+              </div>
+            )}
             
-            {activeZones && activeZones.length === 0 && (
+            {activeZones && activeZones.length === 0 && !loading && (
               <div className="text-center py-20 opacity-40">
                 <p className="text-[10px] font-black uppercase tracking-widest">No zones active in your city</p>
               </div>
@@ -120,7 +143,7 @@ export function LocationRequest() {
           </div>
         </div>
 
-        <div className="p-4 bg-white border-t shrink-0 text-center opacity-30">
+        <div className="p-5 bg-white border-t shrink-0 text-center opacity-30">
            <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.5em]">ShopyKart Ecosystem</p>
         </div>
       </DialogContent>
