@@ -10,6 +10,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with strict hydration fix.
+ * Simplified rendering to prevent Next.js hydration loops.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -21,12 +22,15 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   useEffect(() => {
     setMounted(true);
-    const isReturning = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
     
-    const duration = isReturning ? 600 : 2000;
+    // Check session safely after mount
+    const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
+    const duration = isReturning ? 600 : 1800;
+    
     const timer = setTimeout(() => {
       setIsTimerDone(true);
     }, duration);
+    
     return () => clearTimeout(timer);
   }, []);
 
@@ -42,7 +46,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 700);
+      }, 800);
       return () => clearTimeout(removeTimer);
     }
     
@@ -64,6 +68,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     }
   };
 
+  // Prevent any server-side rendering of the dynamic parts
   if (!shouldRender) return null;
 
   return (
@@ -95,8 +100,8 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        <p suppressHydrationWarning className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
-          Handicrafted In India
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
+          {mounted ? "Handicrafted In India" : "..."}
         </p>
         <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />

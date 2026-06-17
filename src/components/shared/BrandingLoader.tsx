@@ -6,8 +6,7 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview BrandingLoader handles dynamic branding from Firestore.
- * Refactored to safely update document properties without causing hydration mismatches
- * or head-fighting with Next.js metadata.
+ * Refactored to safely update document properties with better hydration support.
  */
 export function BrandingLoader() {
   const firestore = useFirestore();
@@ -27,27 +26,14 @@ export function BrandingLoader() {
       document.title = branding.siteTitle;
     }
 
-    // 2. Update Theme Color Meta safely
-    const updateMeta = (name: string, content: string) => {
-      let meta = document.querySelector(`meta[name="${name}"]`);
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('name', name);
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', content);
-    };
-
-    if (branding.siteDescription) {
-      updateMeta('description', branding.siteDescription);
-    }
-
-    // 3. Update Favicon Link safely
+    // 2. Update Favicon Link safely
     if (branding.faviconUrl) {
       const links = document.querySelectorAll("link[rel*='icon']");
-      links.forEach(link => {
-        (link as HTMLLinkElement).href = branding.faviconUrl;
-      });
+      if (links.length > 0) {
+        links.forEach(link => {
+          (link as HTMLLinkElement).href = branding.faviconUrl;
+        });
+      }
     }
   }, [branding]);
 

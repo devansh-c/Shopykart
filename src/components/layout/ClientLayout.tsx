@@ -21,13 +21,13 @@ const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCa
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
 
 /**
- * @fileOverview Refactored AuthGuard with improved "Ready" logic to prevent app hanging.
+ * @fileOverview Refactored AuthGuard with improved "Ready" logic.
+ * Ensures the app never hangs on the Splash screen.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
   const pathname = usePathname();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   const isExcludedPath = useMemo(() => {
     return pathname?.startsWith('/admin') || 
@@ -43,19 +43,16 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   }, []);
 
   useEffect(() => {
-    // If we're on an excluded path or the user session is already validated, we are ready.
-    if (isExcludedPath || hasActiveSession) {
+    // Fail-safe: Always set ready after 3 seconds to prevent splash screen hanging
+    const timeout = setTimeout(() => {
       onReady(true);
-    }
-
-    // Fail-safe: Always set ready after 5 seconds to prevent splash screen hanging
-    const timeout = setTimeout(() => onReady(true), 5000);
+    }, 3000);
 
     if (!loading) {
       onReady(true);
       if (!user && !hasActiveSession && !isExcludedPath) {
         // Show auth after 3 seconds for guest users
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 3000);
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1500);
         return () => {
           clearTimeout(authTimer);
           clearTimeout(timeout);
