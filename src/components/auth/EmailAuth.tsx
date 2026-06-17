@@ -19,7 +19,7 @@ type AuthView = 'login' | 'signup';
 
 /**
  * @fileOverview Ultra-Fast Email Authentication.
- * Optimized for zero-lag and instant entry. Fixed form submission reliability.
+ * Optimized for zero-lag and robust error handling.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -34,9 +34,6 @@ export function EmailAuth() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Use state to track if we should even show the component based on auth state
-  const isAuthActive = !user && (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') !== 'true');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -91,34 +88,44 @@ export function EmailAuth() {
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        toast({ title: "Profile Created! ✨" });
+        toast({ title: "Profile Created! ✨", description: "Welcome to ShopyKart." });
         
-        // Brief delay before reload for toast visibility
         setTimeout(() => {
           window.location.reload();
         }, 1000);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
-        toast({ title: "Welcome Back!" });
+        toast({ title: "Welcome Back!", description: "Access granted." });
         
         setTimeout(() => {
           window.location.reload();
         }, 800);
       }
     } catch (err: any) {
-      console.error("Auth error:", err);
+      // CLEAR LOADING STATE FIRST TO PREVENT UI HANG
+      setLoading(false);
+      
       let errorMessage = "Authentication failed. Please try again.";
-      if (err.code === 'auth/email-already-in-use') errorMessage = "This email is already registered.";
-      if (err.code === 'auth/weak-password') errorMessage = "Password should be at least 6 characters.";
-      if (err.code === 'auth/invalid-credential') errorMessage = "Wrong email or password.";
+      
+      // EXPLICIT FIREBASE ERROR MAPPING
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = "This email is already registered. Please login instead.";
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Use at least 6 characters.";
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        errorMessage = "Invalid email or password. Please check your credentials.";
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      }
       
       toast({ 
         variant: "destructive", 
-        title: "Auth Failed", 
+        title: "Auth Alert", 
         description: errorMessage 
       });
-      setLoading(false);
+      
+      console.warn("Firebase Auth Notice:", err.code);
     }
   };
 
@@ -127,7 +134,11 @@ export function EmailAuth() {
     window.open(`https://wa.me/919450355709?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  if (!mounted || !isAuthActive) return null;
+  // IF NOT MOUNTED OR USER LOGGED IN, RENDER NOTHING
+  if (!mounted || user) return null;
+  
+  const hasActiveSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+  if (hasActiveSession) return null;
 
   return (
     <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar pointer-events-auto">
