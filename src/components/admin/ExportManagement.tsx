@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -130,7 +129,9 @@ export function ExportManagement() {
         {/* 2. Project Source ZIP */}
         <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-             <Github className="h-40 w-40" />
+             <div className="h-40 w-40 flex items-center justify-center opacity-10">
+               <Github className="h-full w-full" />
+             </div>
           </div>
 
           <div className="flex items-center gap-4 relative z-10">
@@ -204,7 +205,7 @@ export function ExportManagement() {
                 <Smartphone className="h-12 w-12 text-green-600 animate-bounce" />
                 <h4 className="font-black italic uppercase text-green-800">Ready for Play Store</h4>
                 <p className="text-[10px] font-bold text-green-700/70 uppercase leading-relaxed">
-                   Open karne ke baad Android Studio mein "Build > Build Bundle(s) / APK(s) > Build APK" select karein.
+                   Open karne ke baad Android Studio mein "Build &gt; Build Bundle(s) / APK(s) &gt; Build APK" select karein.
                 </p>
              </div>
           </div>
