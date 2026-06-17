@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Ultra-Fast Location Picker.
  * Optimized with local caching to eliminate "white screen" delay.
+ * Using onClick for scroll safety.
  */
 export function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -111,7 +112,7 @@ export function LocationRequest() {
               displayZones.map((zone: any) => (
                 <button 
                   key={zone.id}
-                  onPointerDown={() => handleZoneSelect(zone)}
+                  onClick={() => handleZoneSelect(zone)}
                   className="w-full bg-white p-5 rounded-[1.75rem] border-2 border-gray-50 shadow-sm flex items-center justify-between group active:scale-[0.96] transition-all transform-gpu"
                 >
                   <div className="flex items-center gap-4 text-left pointer-events-none">
@@ -127,7 +128,6 @@ export function LocationRequest() {
                 </button>
               ))
             ) : (
-              // SKELETON LOADER: Show if even cache is missing
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="w-full h-20 bg-gray-50 rounded-[1.75rem] animate-pulse border border-gray-100/50" />

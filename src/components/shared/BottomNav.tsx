@@ -1,4 +1,3 @@
-
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -18,7 +17,7 @@ const navItems = [
 
 /**
  * PERFORMANCE REFACTOR: Bottom Navigation with useTransition.
- * Ensures state updates (active colors) are prioritized, while heavy page transitions are non-blocking.
+ * Using onClick for scroll/drag safety.
  */
 export const BottomNav = memo(() => {
   const pathname = usePathname();
@@ -57,7 +56,7 @@ export const BottomNav = memo(() => {
           return (
             <button
               key={item.label}
-              onPointerDown={(e) => {
+              onClick={(e) => {
                 e.preventDefault();
                 handleNavigate(item.href);
               }}
