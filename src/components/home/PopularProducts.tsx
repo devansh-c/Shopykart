@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// PEAK PERFORMANCE: Memoized Product Item with translateZ(0) for independent layer promotion
+// PEAK PERFORMANCE: Memoized Product Item with strict paint isolation
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
@@ -24,7 +24,8 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   const isSpecialMode = activeMode === 'Medical' || activeMode === 'Beauty';
 
   const cardClasses = cn(
-    "relative bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-none will-change-transform transform-gpu",
+    "relative bg-white rounded-[2rem] border border-gray-100 transition-none will-change-transform transform-gpu",
+    "contain-layout contain-paint", // Strict performance hints
     isOffline && "opacity-60 grayscale-[0.5]",
     isSpecialMode ? "p-2.5 flex flex-col" : "p-6 flex justify-between items-start"
   );
