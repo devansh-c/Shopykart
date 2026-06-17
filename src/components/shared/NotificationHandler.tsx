@@ -6,15 +6,14 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BellRing, ShoppingBag, Loader2, VolumeX, Package, MapPin, ChevronRight, Zap } from 'lucide-react';
+import { BellRing, ShoppingBag, Loader2, VolumeX, Package, MapPin, ChevronRight, Zap, Volume2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Critical Alert & Live Tracking System.
- * - Admin/Vendors: Get loud alarms for new orders.
+ * - Admin/Vendors: Get LOUD persistent alarms for new orders until accepted.
  * - Customers: Get real-time status updates with a "TRACK" button.
- * - Zero "Unsubscribe" links, pure utility.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -68,10 +67,11 @@ export function NotificationHandler() {
     checkRole();
   }, [user, firestore]);
 
-  // 2. Initialize Audio (Admin/Vendor Only)
+  // 2. Initialize Audio (Admin/Vendor Only) - Using a very loud and clear alarm sound
   useEffect(() => {
     if (typeof window === 'undefined' || userRole === 'customer') return;
 
+    // Direct loud alarm sound URL
     const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
     const audio = new Audio(alarmUrl);
     audio.loop = true;
@@ -88,6 +88,7 @@ export function NotificationHandler() {
       }
     };
 
+    // User interaction required to enable audio in modern browsers
     window.addEventListener('click', wakeUpAudio, { once: true });
     return () => {
       window.removeEventListener('click', wakeUpAudio);
@@ -98,31 +99,43 @@ export function NotificationHandler() {
     };
   }, [userRole]);
 
-  // 3. Audio Control
+  // 3. Audio Control logic
   useEffect(() => {
     if (!audioRef.current || userRole === 'customer') return;
+    
     if (isRinging && !isAudioContextBlocked) {
-      audioRef.current.play().catch(() => setIsAudioContextBlocked(true));
+      // Force play if ringing
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          setIsAudioContextBlocked(true);
+        });
+      }
     } else {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
   }, [isRinging, isAudioContextBlocked, userRole]);
 
-  // 4. Live Update Listeners (Admin/Vendor AND Customer)
+  // 4. Live Update Listeners
   useEffect(() => {
     if (!user || !firestore || !userRole) return;
 
-    // --- ADMIN / VENDOR LISTENER (New Orders) ---
-    if (userRole !== 'customer') {
+    // --- ADMIN / VENDOR LISTENER (New Orders - ringing until accepted) ---
+    if (userRole === 'admin' || userRole === 'vendor') {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
       const unsubAdmin = onSnapshot(q, (snapshot) => {
         const allPlacedOrders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         let myAlerts: any[] = [];
 
-        if (userRole === 'admin') myAlerts = allPlacedOrders;
-        else if (userRole === 'vendor') myAlerts = allPlacedOrders.filter((o: any) => o.items?.some((it: any) => it.vendorId === user.uid));
-        else if (userRole === 'delivery') myAlerts = allPlacedOrders.filter((o: any) => o.status === 'Ready for Pickup');
+        if (userRole === 'admin') {
+          myAlerts = allPlacedOrders;
+        } else if (userRole === 'vendor') {
+          // Vendor only rings for orders containing their vendorId
+          myAlerts = allPlacedOrders.filter((o: any) => 
+            o.vendorId === user.uid || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid))
+          );
+        }
 
         setRingingOrders(myAlerts);
         setIsRinging(myAlerts.length > 0);
@@ -147,7 +160,6 @@ export function NotificationHandler() {
           snapshot.docs.forEach(d => lastStatuses.current.set(d.id, (d.data() as any).status));
         });
         
-        // Populate initial map
         if (isInitialLoad.current) {
           snapshot.docs.forEach(d => lastStatuses.current.set(d.id, (d.data() as any).status));
           isInitialLoad.current = false;
@@ -161,7 +173,10 @@ export function NotificationHandler() {
     if (!firestore || isAccepting) return;
     setIsAccepting(true);
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), { status: 'Accepted', updatedAt: serverTimestamp() });
+      await updateDoc(doc(firestore, 'orders', orderId), { 
+        status: 'Accepted', 
+        updatedAt: serverTimestamp() 
+      });
       toast({ title: "Order Accepted! ✅" });
     } catch (err) {
       toast({ variant: "destructive", title: "Failed to accept" });
@@ -182,20 +197,27 @@ export function NotificationHandler() {
   return (
     <>
       {/* 1. ADMIN/VENDOR ALARM UI */}
-      {userRole !== 'customer' && (
+      {(userRole === 'admin' || userRole === 'vendor') && (
         <>
-          {isAudioContextBlocked && (userRole === 'admin' || userRole === 'vendor') && (
+          {/* Audio Blocked Overlay (Sticky at top) */}
+          {isAudioContextBlocked && (
             <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60000] animate-in slide-in-from-top-4 duration-500">
                <Button 
                 onClick={() => { if (audioRef.current) { audioRef.current.play().then(() => { audioRef.current?.pause(); audioRef.current!.currentTime = 0; setIsAudioContextBlocked(false); }).catch(() => {}); } }}
                 className="bg-[#0B0B0B] text-white border-2 border-primary rounded-full px-8 py-7 shadow-[0_0_50px_rgba(239,68,68,0.3)] flex items-center gap-4 hover:bg-primary transition-all group"
                >
-                  <div className="h-10 w-10 bg-primary/20 rounded-full flex items-center justify-center animate-pulse"><VolumeX className="h-6 w-6 text-primary group-hover:text-white" /></div>
-                  <div className="flex flex-col items-start"><span className="text-[11px] font-black uppercase tracking-widest leading-none">Alarm System Paused</span><span className="text-[13px] font-bold text-gray-400 leading-none mt-1.5 group-hover:text-white">Tap to Activate Loud Order Bell</span></div>
+                  <div className="h-10 w-10 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                    <VolumeX className="h-6 w-6 text-primary group-hover:text-white" />
+                  </div>
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-[11px] font-black uppercase tracking-widest leading-none">Alarm System Paused</span>
+                    <span className="text-[13px] font-bold text-gray-400 leading-none mt-1.5 group-hover:text-white">Tap to Activate Loud Order Bell</span>
+                  </div>
                </Button>
             </div>
           )}
 
+          {/* New Order Alarm Modal */}
           <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
             <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none">
               <div className="bg-red-600 h-4 w-full animate-pulse" />
@@ -204,16 +226,52 @@ export function NotificationHandler() {
                    <div className="absolute inset-0 bg-red-100 rounded-[2.5rem] animate-ping opacity-30" />
                    <BellRing className="h-14 w-14 animate-bounce" />
                 </div>
-                <div className="space-y-2"><DialogTitle className="text-4xl font-black italic uppercase tracking-tighter leading-none text-red-600">NEW ORDER!<br />RINGING...</DialogTitle><p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Accept to silence the alarm</p></div>
+                <div className="space-y-2">
+                  <DialogTitle className="text-4xl font-black italic uppercase tracking-tighter leading-none text-red-600">
+                    NEW ORDER!<br />RINGING...
+                  </DialogTitle>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+                    Accept now to silence the alarm
+                  </p>
+                </div>
+
                 <div className="w-full space-y-4">
                    {ringingOrders.slice(0, 1).map((order) => (
-                     <div key={order.id} className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 text-left">
-                        <div className="flex justify-between items-center mb-3"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: #{order.orderDisplayId || order.id.slice(-4)}</span><span className="text-xl font-black italic text-red-600">₹{order.total?.toFixed(2)}</span></div>
-                        <div className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase italic"><ShoppingBag className="h-3.5 w-3.5 text-primary" /><span className="truncate">{order.customerName || 'Premium User'}</span></div>
+                     <div key={order.id} className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 text-left relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 opacity-10">
+                          <ShoppingBag className="h-16 w-16" />
+                        </div>
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: #{order.orderDisplayId || order.id.slice(-4)}</span>
+                          <span className="text-xl font-black italic text-red-600">₹{order.total?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase italic">
+                          <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+                          <span className="truncate">{order.customerName || 'Premium User'}</span>
+                        </div>
                      </div>
                    ))}
+                   {ringingOrders.length > 1 && (
+                     <div className="bg-red-50 p-2 rounded-xl text-red-600 font-black text-[9px] uppercase">
+                       +{ringingOrders.length - 1} More Pending Orders
+                     </div>
+                   )}
                 </div>
-                <Button onClick={() => handleAcceptOrder(ringingOrders[0].id)} disabled={isAccepting} className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic text-2xl shadow-xl active:scale-95 transition-all">{isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT ORDER"}</Button>
+
+                <Button 
+                  onClick={() => handleAcceptOrder(ringingOrders[0].id)} 
+                  disabled={isAccepting} 
+                  className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic text-2xl shadow-xl active:scale-95 transition-all"
+                >
+                  {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT ORDER"}
+                </Button>
+                
+                {isAudioContextBlocked && (
+                  <div className="flex items-center gap-2 text-red-500 animate-pulse">
+                    <VolumeX className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Audio is muted by browser</span>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
