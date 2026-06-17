@@ -1,3 +1,4 @@
+
 "use client"
 
 import { 
@@ -28,7 +29,8 @@ import {
   XCircle,
   Undo2,
   HeartPulse,
-  Users
+  Users,
+  ShieldAlert
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -80,7 +82,7 @@ export default function ProfilePage() {
 
   // Aggressive Prefetching for Dashboard Routes
   useEffect(() => {
-    const routes = ['/Beauty/store', '/Medical/store', '/vendor/dashboard', '/delivery/dashboard', '/admin/login', '/wishlist', '/cart'];
+    const routes = ['/Beauty/store', '/Medical/store', '/vendor/dashboard', '/delivery/dashboard', '/admin/login', '/admin/dashboard'];
     routes.forEach(route => router.prefetch(route));
   }, [router]);
   
@@ -96,7 +98,8 @@ export default function ProfilePage() {
     { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
-    { label: 'Join as Team Member', icon: Users, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
+    { label: 'Master Admin Panel', icon: ShieldCheck, path: '/admin/login', description: 'Access for CEO / Root Admin', isMaster: true },
+    { label: 'Join as Team Member', icon: ShieldAlert, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
   ];
 
   const handleAction = (path: string, label: string) => {
@@ -174,6 +177,8 @@ export default function ProfilePage() {
       await signOut(auth).catch(() => {});
     }
     localStorage.removeItem('shopykart_session_active');
+    localStorage.removeItem('admin_auth');
+    localStorage.removeItem('team_permissions');
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_phone');
     localStorage.removeItem('user_location_set');
@@ -302,12 +307,13 @@ export default function ProfilePage() {
 
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Business & Portals</h3>
-          {dashboardItems.map((item) => (
+          {dashboardItems.map((item: any) => (
             <button 
               key={item.label}
               onClick={() => handleAction(item.path, item.label)}
               className={cn(
                 "w-full rounded-2xl p-4 flex items-center justify-between border shadow-sm active:scale-[0.97] transition-all group",
+                item.isMaster ? "bg-black border-black text-white" :
                 item.highlight && item.accent === 'rose' ? "bg-rose-50 border-rose-100" :
                 item.highlight && item.accent === 'teal' ? "bg-teal-50 border-teal-100" : 
                 "bg-white border-primary/10"
@@ -316,6 +322,7 @@ export default function ProfilePage() {
               <div className="flex items-center space-x-4">
                 <div className={cn(
                   "p-2.5 rounded-xl",
+                  item.isMaster ? "bg-white/10 text-white" :
                   item.highlight && item.accent === 'rose' ? "bg-rose-100 text-rose-600" :
                   item.highlight && item.accent === 'teal' ? "bg-teal-100 text-teal-600" :
                   "bg-primary/10 text-primary"
@@ -324,11 +331,12 @@ export default function ProfilePage() {
                 </div>
                 <div className="text-left">
                   <span className="text-sm font-bold block leading-none">{item.label}</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">{item.description}</span>
+                  <span className={cn("text-[10px] font-medium", item.isMaster ? "text-gray-400" : "text-muted-foreground")}>{item.description}</span>
                 </div>
               </div>
               <ChevronRight className={cn(
                 "h-4 w-4", 
+                item.isMaster ? "text-white/40" :
                 item.highlight && item.accent === 'rose' ? "text-rose-400" :
                 item.highlight && item.accent === 'teal' ? "text-teal-400" :
                 "text-primary"

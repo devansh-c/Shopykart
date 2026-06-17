@@ -31,7 +31,8 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
-  UserPlus
+  UserPlus,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -85,18 +86,21 @@ const menuItems = [
 ];
 
 const SidebarContent = memo(({ activeTab, onTabSelect, onSignOut, onCloseMobile, allowedFeatures }: any) => {
-  const filteredMenu = allowedFeatures === 'all' 
+  const isMasterAdmin = allowedFeatures === 'all';
+  const filteredMenu = isMasterAdmin 
     ? menuItems 
-    : menuItems.filter(item => allowedFeatures.includes(item.id) || item.id === 'dashboard');
+    : menuItems.filter(item => Array.isArray(allowedFeatures) && (allowedFeatures.includes(item.id) || item.id === 'dashboard'));
 
   return (
     <div className="flex flex-col h-full bg-white transform-gpu">
       <div className="p-6 flex items-center space-x-3 border-b border-border/30">
-        <div className="bg-primary p-2 rounded-xl text-white"><LayoutDashboard className="h-5 w-5" /></div>
+        <div className={cn("p-2 rounded-xl text-white", isMasterAdmin ? "bg-black" : "bg-primary")}>
+          {isMasterAdmin ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+        </div>
         <div>
           <h1 className="text-lg font-black italic leading-none">SHOPYKART</h1>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-            {allowedFeatures === 'all' ? 'Admin Panel' : 'Team Access'}
+          <p className={cn("text-[10px] font-black uppercase tracking-widest mt-1", isMasterAdmin ? "text-black" : "text-primary")}>
+            {isMasterAdmin ? 'MASTER ADMIN' : 'STAFF ACCESS'}
           </p>
         </div>
       </div>
@@ -110,7 +114,7 @@ const SidebarContent = memo(({ activeTab, onTabSelect, onSignOut, onCloseMobile,
               onClick={() => { onTabSelect(item.id); onCloseMobile(); }}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 group",
-                isActive ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                isActive ? (isMasterAdmin ? "bg-black text-white" : "bg-primary text-white shadow-lg shadow-primary/20") : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
               <div className="flex items-center space-x-3">
@@ -139,35 +143,44 @@ export default function AdminDashboard() {
   const [isPending, startTransition] = useTransition();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifyBanner, setShowNotifyBanner] = useState(false);
-  const [allowedFeatures, setAllowedFeatures] = useState<any>('all');
+  const [allowedFeatures, setAllowedFeatures] = useState<any>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const auth = localStorage.getItem('admin_auth');
     const teamPermissions = localStorage.getItem('team_permissions');
 
-    if (auth !== 'true') router.push('/admin/login');
-    else {
-      setIsAuthorized(true);
-      if (teamPermissions && teamPermissions !== 'all') {
-        try {
-          const parsed = JSON.parse(teamPermissions);
-          setAllowedFeatures(parsed);
-        } catch(e) {
-          setAllowedFeatures([]);
-        }
-      } else {
-        setAllowedFeatures('all');
-      }
+    if (auth !== 'true') {
+      router.push('/admin/login');
+      return;
+    }
 
-      if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission !== 'granted') {
-        setShowNotifyBanner(true);
+    setIsAuthorized(true);
+
+    if (teamPermissions === 'all') {
+      setAllowedFeatures('all');
+    } else if (teamPermissions) {
+      try {
+        const parsed = JSON.parse(teamPermissions);
+        setAllowedFeatures(Array.isArray(parsed) ? parsed : []);
+      } catch(e) {
+        setAllowedFeatures([]);
       }
+    } else {
+      // Fallback: If auth is true but permissions are missing, force relogin
+      localStorage.removeItem('admin_auth');
+      router.push('/admin/login');
+    }
+
+    if ('Notification' in window && window.Notification.permission !== 'granted') {
+      setShowNotifyBanner(true);
     }
   }, [router]);
 
   const handleTabSelect = (id: string) => {
     // SECURITY: Ensure team members can't switch to tabs they don't have permission for
-    if (allowedFeatures !== 'all' && !allowedFeatures.includes(id) && id !== 'dashboard') {
+    if (allowedFeatures !== 'all' && Array.isArray(allowedFeatures) && !allowedFeatures.includes(id) && id !== 'dashboard') {
       return;
     }
     startTransition(() => {
@@ -189,10 +202,12 @@ export default function AdminDashboard() {
   };
 
   const content = useMemo(() => {
-    if (!isAuthorized) return null;
+    if (!isAuthorized || allowedFeatures === null) return null;
+    
+    const isMasterAdmin = allowedFeatures === 'all';
     
     // CONTENT PROTECTION: If user lands on a tab they don't own, reset to dashboard
-    if (allowedFeatures !== 'all' && !allowedFeatures.includes(activeTab) && activeTab !== 'dashboard') {
+    if (!isMasterAdmin && Array.isArray(allowedFeatures) && !allowedFeatures.includes(activeTab) && activeTab !== 'dashboard') {
       setActiveTab('dashboard');
       return <AdminOverview />;
     }
@@ -223,14 +238,18 @@ export default function AdminDashboard() {
     }
   }, [activeTab, isAuthorized, allowedFeatures]);
 
-  if (!isAuthorized) return null;
+  if (!isAuthorized || allowedFeatures === null) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row transform-gpu">
       <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
-          <div className="bg-primary p-2 rounded-xl text-white"><LayoutDashboard className="h-4 w-4" /></div>
-          <h1 className="text-sm font-black italic">ADMIN HUB</h1>
+          <div className={cn("p-2 rounded-xl text-white", allowedFeatures === 'all' ? "bg-black" : "bg-primary")}>
+            {allowedFeatures === 'all' ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+          </div>
+          <h1 className="text-sm font-black italic">SHOPYKART {allowedFeatures === 'all' ? 'CEO' : 'STAFF'}</h1>
         </div>
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild><Button variant="ghost" size="icon" className="rounded-xl"><MenuIcon className="h-6 w-6" /></Button></SheetTrigger>
