@@ -9,12 +9,14 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with strict hydration fix and emergency dismissal.
- * Updated to ensure it disappears even if app-ready signal is delayed in APK WebViews.
+ * @fileOverview Optimized SplashScreen with absolute fail-safe dismissal.
+ * Ensures it disappears within 3 seconds regardless of app-ready state,
+ * preventing hangs in APK/WebView environments.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
   const [shouldRender, setShouldRender] = useState(true);
+  const [isActuallyVisible, setIsActuallyVisible] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [taps, setTaps] = useState(0);
   const router = useRouter();
@@ -23,49 +25,50 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // Hard-coded timer to ensure splash isn't too short or too long
+    // 1. MINIMUM VISIBILITY TIMER
+    // Prevents splash from flickering too fast
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const minDuration = isReturning ? 500 : 1500;
+    const minDuration = isReturning ? 400 : 1200;
     
-    const timer = setTimeout(() => {
+    const minTimer = setTimeout(() => {
       setIsTimerDone(true);
     }, minDuration);
 
-    // EMERGENCY DISMISSAL: If still visible after 6 seconds, force dismiss
-    const emergencyTimer = setTimeout(() => {
-      setIsTimerDone(true);
-      setShouldRender(false);
-    }, 6000);
+    // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe)
+    // If the app hasn't signaled ready by 3.5s, we force hide it anyway
+    const maxTimer = setTimeout(() => {
+      setIsActuallyVisible(false);
+    }, 3500);
     
     return () => {
-      clearTimeout(timer);
-      clearTimeout(emergencyTimer);
+      clearTimeout(minTimer);
+      clearTimeout(maxTimer);
     };
   }, []);
 
-  // The splash is visible until BOTH the minimum timer is done AND the app says it's ready
-  const isVisible = !isTimerDone || !isAppReady;
-
+  // Update visibility based on Prop OR Timer
+  // Prop Logic: Hide only if timer is done AND app is ready
   useEffect(() => {
-    if (isVisible) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-    } else {
+    if (isTimerDone && isAppReady) {
+      setIsActuallyVisible(false);
+    }
+  }, [isTimerDone, isAppReady]);
+
+  // Handle actual unmounting after exit animation
+  useEffect(() => {
+    if (!isActuallyVisible) {
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
       
-      // Delay removal from DOM for exit animation
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
       }, 800);
       return () => clearTimeout(removeTimer);
+    } else {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     }
-    
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    };
-  }, [isVisible]);
+  }, [isActuallyVisible]);
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -79,21 +82,20 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     }
   };
 
-  // Prevent any server-side rendering
-  if (!shouldRender) return null;
+  if (!shouldRender || !mounted) return null;
 
   return (
     <div 
       className={cn(
         "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out touch-none select-none h-screen w-screen",
-        isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        isActuallyVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div 
         onClick={handleTap}
         className={cn(
           "relative flex flex-col items-center transition-all duration-700 transform",
-          isVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
+          isActuallyVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}
       >
         <div className="px-10 py-6 border border-[#C5A021]/40 rounded-[3rem] bg-black/60 backdrop-blur-md shadow-[0_0_60px_rgba(197,160,33,0.2)] flex flex-col items-center">
@@ -109,10 +111,10 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       
       <div className={cn(
         "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        isActuallyVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
-          {mounted ? "Handicrafted In India" : "..."}
+          Handicrafted In India
         </p>
         <div className="w-20 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />

@@ -21,8 +21,8 @@ const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCa
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
 
 /**
- * @fileOverview Refactored AuthGuard with improved "Ready" logic.
- * Ensures the app never hangs on the Splash screen, even on portal paths.
+ * @fileOverview Refactored AuthGuard with aggressive "Ready" signal for portals.
+ * Ensures the app never hangs on the Splash screen, especially for APK deep-links.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -30,11 +30,13 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
 
   const isExcludedPath = useMemo(() => {
-    return pathname?.startsWith('/admin') || 
-           pathname?.startsWith('/vendor') || 
-           pathname?.startsWith('/delivery') ||
-           pathname?.startsWith('/Medical') ||
-           pathname?.startsWith('/Beauty');
+    if (!pathname) return false;
+    const p = pathname.toLowerCase();
+    return p.startsWith('/admin') || 
+           p.startsWith('/vendor') || 
+           p.startsWith('/delivery') ||
+           p.startsWith('/medical') ||
+           p.startsWith('/beauty');
   }, [pathname]);
 
   const hasActiveSession = useMemo(() => {
@@ -43,31 +45,34 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   }, []);
 
   useEffect(() => {
-    // ALWAYS call onReady(true) eventually to prevent Splash Screen hangs
-    const timeout = setTimeout(() => {
+    // 1. IMMEDIATE READY FOR PORTALS
+    // If user is on a business or specialized path, we don't wait for Auth
+    if (isExcludedPath) {
       onReady(true);
-    }, 2500);
+      return;
+    }
 
+    // 2. FALLBACK TIMER (Emergency Dismissal)
+    // If for some reason 'loading' stays true (slow Firebase init), dismiss after 2s
+    const fallbackTimer = setTimeout(() => {
+      onReady(true);
+    }, 2000);
+
+    // 3. STANDARD CUSTOMER PATH LOGIC
     if (!loading) {
-      // If it's a portal or specialized path, mark as ready immediately
-      if (isExcludedPath) {
-        onReady(true);
-        clearTimeout(timeout);
-        return;
-      }
-
-      // Customer path logic
       onReady(true);
+      
+      // If not logged in and no session, show Auth Overlay after a small delay
       if (!user && !hasActiveSession) {
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1500);
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1200);
         return () => {
           clearTimeout(authTimer);
-          clearTimeout(timeout);
+          clearTimeout(fallbackTimer);
         };
       }
     }
 
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(fallbackTimer);
   }, [user, loading, hasActiveSession, onReady, isExcludedPath]);
 
   return (
@@ -84,11 +89,13 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
   const [isAppFullyReady, setIsAppFullyReady] = useState(false);
 
   const isExcludedPath = useMemo(() => {
-    return pathname?.startsWith('/admin') || 
-           pathname?.startsWith('/vendor') || 
-           pathname?.startsWith('/delivery') ||
-           pathname?.startsWith('/Medical') ||
-           pathname?.startsWith('/Beauty');
+    if (!pathname) return false;
+    const p = pathname.toLowerCase();
+    return p.startsWith('/admin') || 
+           p.startsWith('/vendor') || 
+           p.startsWith('/delivery') ||
+           p.startsWith('/medical') || 
+           p.startsWith('/beauty');
   }, [pathname]);
 
   return (
