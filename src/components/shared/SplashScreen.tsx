@@ -9,8 +9,8 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with strict hydration fix.
- * Simplified rendering to prevent Next.js hydration loops.
+ * @fileOverview Optimized SplashScreen with strict hydration fix and emergency dismissal.
+ * Updated to ensure it disappears even if app-ready signal is delayed in APK WebViews.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -23,17 +23,27 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // Check session safely after mount
+    // Hard-coded timer to ensure splash isn't too short or too long
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const duration = isReturning ? 600 : 1800;
+    const minDuration = isReturning ? 500 : 1500;
     
     const timer = setTimeout(() => {
       setIsTimerDone(true);
-    }, duration);
+    }, minDuration);
+
+    // EMERGENCY DISMISSAL: If still visible after 6 seconds, force dismiss
+    const emergencyTimer = setTimeout(() => {
+      setIsTimerDone(true);
+      setShouldRender(false);
+    }, 6000);
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(emergencyTimer);
+    };
   }, []);
 
+  // The splash is visible until BOTH the minimum timer is done AND the app says it's ready
   const isVisible = !isTimerDone || !isAppReady;
 
   useEffect(() => {
@@ -44,6 +54,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
       
+      // Delay removal from DOM for exit animation
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
       }, 800);
@@ -68,7 +79,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     }
   };
 
-  // Prevent any server-side rendering of the dynamic parts
+  // Prevent any server-side rendering
   if (!shouldRender) return null;
 
   return (

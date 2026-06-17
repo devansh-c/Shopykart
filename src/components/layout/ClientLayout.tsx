@@ -22,7 +22,7 @@ const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').t
 
 /**
  * @fileOverview Refactored AuthGuard with improved "Ready" logic.
- * Ensures the app never hangs on the Splash screen.
+ * Ensures the app never hangs on the Splash screen, even on portal paths.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -43,15 +43,22 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   }, []);
 
   useEffect(() => {
-    // Fail-safe: Always set ready after 3 seconds to prevent splash screen hanging
+    // ALWAYS call onReady(true) eventually to prevent Splash Screen hangs
     const timeout = setTimeout(() => {
       onReady(true);
-    }, 3000);
+    }, 2500);
 
     if (!loading) {
+      // If it's a portal or specialized path, mark as ready immediately
+      if (isExcludedPath) {
+        onReady(true);
+        clearTimeout(timeout);
+        return;
+      }
+
+      // Customer path logic
       onReady(true);
-      if (!user && !hasActiveSession && !isExcludedPath) {
-        // Show auth after 3 seconds for guest users
+      if (!user && !hasActiveSession) {
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 1500);
         return () => {
           clearTimeout(authTimer);
@@ -63,12 +70,10 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
     return () => clearTimeout(timeout);
   }, [user, loading, hasActiveSession, onReady, isExcludedPath]);
 
-  if (isExcludedPath) return <>{children}</>;
-
   return (
     <>
       {children}
-      {showAuthOverlay && !user && !hasActiveSession && <EmailAuth />}
+      {!isExcludedPath && showAuthOverlay && !user && !hasActiveSession && <EmailAuth />}
     </>
   );
 });
