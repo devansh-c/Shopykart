@@ -11,7 +11,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +19,7 @@ type AuthView = 'login' | 'signup';
 
 /**
  * @fileOverview Ultra-Fast Email Authentication.
- * Optimized for zero-lag and instant entry. Removed Google/Apple buttons to prevent hanging.
+ * Optimized for zero-lag and instant entry. Fixed form submission reliability.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -35,13 +35,8 @@ export function EmailAuth() {
     setMounted(true);
   }, []);
 
-  if (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true') {
-    return null;
-  }
-
-  if (user) {
-    return null;
-  }
+  // Use state to track if we should even show the component based on auth state
+  const isAuthActive = !user && (typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') !== 'true');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,11 +46,15 @@ export function EmailAuth() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore || loading) return;
 
     const trimmedEmail = email.trim().toLowerCase();
     
     if (view === 'signup') {
+      if (!fullName.trim()) {
+        toast({ variant: "destructive", title: "Missing Name", description: "Please enter your full name." });
+        return;
+      }
       if (password !== confirmPassword) {
         toast({ variant: "destructive", title: "Passwords Mismatch" });
         return;
@@ -70,40 +69,55 @@ export function EmailAuth() {
     try {
       if (view === 'signup') {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-        const user = userCredential.user;
-        await updateProfile(user, { displayName: fullName });
+        const firebaseUser = userCredential.user;
+        
+        await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
 
         const userData = {
           fullName: fullName.toUpperCase(),
           phoneNumber,
           email: trimmedEmail,
-          uid: user.uid,
+          uid: firebaseUser.uid,
           coins: 10,
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
           role: 'customer'
         };
 
-        if (firestore) {
-          await setDoc(doc(firestore, 'users', user.uid), userData, { merge: true });
-        }
+        await setDoc(doc(firestore, 'users', firebaseUser.uid), userData, { merge: true });
 
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('user_phone', phoneNumber);
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        toast({ title: "Profile Created!" });
-        window.location.reload();
-      } else if (view === 'login') {
+        toast({ title: "Profile Created! ✨" });
+        
+        // Brief delay before reload for toast visibility
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Welcome Back!" });
-        window.location.reload();
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Auth Failed", description: err.message });
-    } finally {
+      console.error("Auth error:", err);
+      let errorMessage = "Authentication failed. Please try again.";
+      if (err.code === 'auth/email-already-in-use') errorMessage = "This email is already registered.";
+      if (err.code === 'auth/weak-password') errorMessage = "Password should be at least 6 characters.";
+      if (err.code === 'auth/invalid-credential') errorMessage = "Wrong email or password.";
+      
+      toast({ 
+        variant: "destructive", 
+        title: "Auth Failed", 
+        description: errorMessage 
+      });
       setLoading(false);
     }
   };
@@ -113,7 +127,7 @@ export function EmailAuth() {
     window.open(`https://wa.me/919450355709?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  if (!mounted) return null;
+  if (!mounted || !isAuthActive) return null;
 
   return (
     <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar pointer-events-auto">
