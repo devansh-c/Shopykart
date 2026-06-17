@@ -1,4 +1,3 @@
-
 "use client"
 
 import { 
@@ -401,13 +400,16 @@ export default function ProfilePage() {
                         </button>
                       </DialogTrigger>
                       <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+                        <DialogHeader className="sr-only">
+                          <DialogTitle>Support Request</DialogTitle>
+                        </DialogHeader>
                         {ticketState === 'form' ? (
                           <div className="p-8 space-y-6">
                               <div className="flex flex-col items-center text-center space-y-2">
                                 <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100 animate-in zoom-in duration-500">
                                     <LifeBuoy className="h-8 w-8" />
                                 </div>
-                                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Support Request</DialogTitle>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Support Request</h2>
                                 <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Compulsory Information Required</DialogDescription>
                               </div>
 

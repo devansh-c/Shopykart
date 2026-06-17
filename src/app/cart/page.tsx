@@ -456,6 +456,9 @@ export default function CartPage() {
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={(val) => { if(!isVerifyingPayment) setIsPaymentDialogOpen(val); }}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Order Payment</DialogTitle>
+          </DialogHeader>
           <div className="bg-primary h-2 w-full" />
           <div className="p-8 space-y-8 flex flex-col items-center">
             {isVerifyingPayment ? (
@@ -465,7 +468,7 @@ export default function CartPage() {
               </div>
             ) : (
               <>
-                <div className="text-center space-y-2"><div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><QrCode className="h-8 w-8" /></div><DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</DialogTitle><p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Scan QR or use UPI button to pay and place order.</p></div>
+                <div className="text-center space-y-2"><div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><QrCode className="h-8 w-8" /></div><h2 className="text-2xl font-black italic uppercase tracking-tighter">Settlement Hub</h2><p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Scan QR or use UPI button to pay and place order.</p></div>
                 <div className="relative w-full aspect-square max-w-[240px] bg-white p-4 rounded-3xl border-2 border-dashed border-gray-100 shadow-inner group"><img src={qrCodeUrl} className="w-full h-full object-contain" alt="Payment QR" /></div>
                 <div className="w-full space-y-4">
                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2"><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span><div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div></div>

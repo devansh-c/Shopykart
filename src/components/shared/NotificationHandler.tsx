@@ -220,6 +220,9 @@ export function NotificationHandler() {
           {/* New Order Alarm Modal */}
           <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
             <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none">
+              <DialogHeader className="sr-only">
+                <DialogTitle>Order Alarm</DialogTitle>
+              </DialogHeader>
               <div className="bg-red-600 h-4 w-full animate-pulse" />
               <div className="p-10 space-y-8 flex flex-col items-center text-center">
                 <div className="h-28 w-28 bg-red-50 rounded-[2.5rem] flex items-center justify-center text-red-600 border border-red-100 relative">
@@ -227,9 +230,9 @@ export function NotificationHandler() {
                    <BellRing className="h-14 w-14 animate-bounce" />
                 </div>
                 <div className="space-y-2">
-                  <DialogTitle className="text-4xl font-black italic uppercase tracking-tighter leading-none text-red-600">
+                  <h2 className="text-4xl font-black italic uppercase tracking-tighter leading-none text-red-600">
                     NEW ORDER!<br />RINGING...
-                  </DialogTitle>
+                  </h2>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
                     Accept now to silence the alarm
                   </p>
@@ -282,6 +285,9 @@ export function NotificationHandler() {
       {userRole === 'customer' && (
         <Dialog open={!!customerUpdate} onOpenChange={(val) => !val && setCustomerUpdate(null)}>
            <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none bottom-4 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+              <DialogHeader className="sr-only">
+                <DialogTitle>Order Status Update</DialogTitle>
+              </DialogHeader>
               <div className="p-8 space-y-6 text-center flex flex-col items-center">
                  <div className="relative">
                     <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full animate-pulse" />
