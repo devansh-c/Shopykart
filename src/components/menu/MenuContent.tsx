@@ -90,7 +90,7 @@ export default function MenuContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] pb-40">
+    <div className="min-h-screen bg-white pb-40">
       {vendorIdParam && (
         <div className="relative h-64 w-full">
           <img 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift, IndianRupee } from 'lucide-react';
@@ -71,7 +70,7 @@ export default function RewardsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32">
+    <div className="min-h-screen bg-white pb-32">
       <div className="px-6 pt-12 pb-6 flex items-center justify-between">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">My Rewards</h1>
         <button className="h-10 w-10 bg-white rounded-full shadow-sm border border-border/50 flex items-center justify-center">

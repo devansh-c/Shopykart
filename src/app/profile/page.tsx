@@ -197,9 +197,9 @@ export default function ProfilePage() {
   const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Identity Verified';
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32 page-enter">
+    <div className="min-h-screen bg-white pb-32 page-enter">
       <div className="bg-primary h-56 relative flex flex-col items-center justify-center pt-8">
-        <div className="absolute bottom-0 w-full h-16 bg-[#F9FAFB] rounded-t-[3rem]" />
+        <div className="absolute bottom-0 w-full h-16 bg-white rounded-t-[3rem]" />
         
         <div 
           className="relative group cursor-pointer active:scale-95 transition-all"

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -72,7 +71,7 @@ export default function StoresPage() {
   }, [dbVendors, activeZoneId, activeCity, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-32">
+    <div className="min-h-screen bg-white pb-32">
       <div className="px-6 pt-12 pb-6 flex flex-col space-y-6">
         <div className="flex items-center justify-between">
            <h1 className="text-4xl font-black italic uppercase tracking-tighter">Stores</h1>

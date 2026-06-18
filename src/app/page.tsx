@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useTransition, Suspense, useEffect } from 'react';
@@ -52,7 +51,7 @@ export default function ShopyKartApp() {
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-white">
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 

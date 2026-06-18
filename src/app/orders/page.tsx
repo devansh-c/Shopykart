@@ -40,7 +40,7 @@ export default function OrdersPage() {
   const isLoading = userLoading || (ordersLoading && !orders);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32">
+    <div className="min-h-screen bg-white pb-32">
       <div className="px-6 pt-12 pb-6 flex items-center justify-between">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter">My Orders</h1>
       </div>
