@@ -46,43 +46,40 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
-// ULTIMATE SMOOTH SLIDER - REWRITTEN FOR NEXTJS 15 + MOBILE APK
+// ULTRA-RELIABLE MODERN SLIDER (Using Pointer Events API)
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const slideXRef = useRef(0);
 
-  const onStart = (e: any) => {
+  const onPointerDown = (e: React.PointerEvent) => {
     if (isDisabled) return;
+    // Captures pointer so movements are tracked even outside the handle
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setIsDragging(true);
-    // Visual feedback
-    if (sliderRef.current) sliderRef.current.style.opacity = "0.9";
   };
 
-  const handleMove = useCallback((e: any) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging || !sliderRef.current) return;
     
-    // Prevent page scroll while sliding
-    if (e.cancelable) e.preventDefault();
-
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const rect = sliderRef.current.getBoundingClientRect();
-    const maxX = rect.width - 68; // Handle container width
+    const maxX = rect.width - 68; // Container padding + handle width offset
     
-    let x = clientX - rect.left - 34; // Centering the handle to finger
+    // Calculate new position based on clientX relative to container start
+    let x = e.clientX - rect.left - 34; // Center the 52px handle
     x = Math.max(0, Math.min(x, maxX));
     
     setSlideX(x);
     slideXRef.current = x;
-  }, [isDragging]);
+  };
 
-  const handleEnd = useCallback(() => {
+  const onPointerUp = (e: React.PointerEvent) => {
     if (!isDragging || !sliderRef.current) return;
     setIsDragging(false);
-    sliderRef.current.style.opacity = "1";
-
+    
     const maxX = sliderRef.current.clientWidth - 68;
+    // Trigger confirm if slid more than 85%
     if (slideXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
@@ -90,27 +87,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
       setSlideX(0);
       slideXRef.current = 0;
     }
-  }, [isDragging, onConfirm]);
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMove, { passive: false });
-      window.addEventListener('mouseup', handleEnd);
-      window.addEventListener('touchmove', handleMove, { passive: false });
-      window.addEventListener('touchend', handleEnd);
-    } else {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-    };
-  }, [isDragging, handleMove, handleEnd]);
+  };
 
   return (
     <div 
@@ -120,6 +97,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         isDisabled ? "bg-gray-200" : isDragging ? "bg-emerald-600" : "bg-[#10B981]"
       )}
     >
+      {/* Background Track Text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <span className={cn(
           "text-[13px] font-black text-white uppercase italic tracking-widest transition-all duration-200", 
@@ -130,15 +108,21 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Incomplete Details</span>}
       </div>
 
+      {/* Sliding Handle */}
       <div 
-        onMouseDown={onStart} 
-        onTouchStart={onStart} 
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         className={cn(
           "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-shadow", 
           isDisabled ? "opacity-30 pointer-events-none" : "opacity-100",
-          isDragging && "shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+          isDragging && "shadow-[0_0_30px_rgba(255,255,255,0.5)]"
         )} 
-        style={{ transform: `translateX(${slideX}px)` }}
+        style={{ 
+          transform: `translate3d(${slideX}px, 0, 0)`,
+          willChange: 'transform'
+        }}
       >
         <ChevronRight className={cn(
           "h-7 w-7 stroke-[3] transition-colors", 
@@ -146,10 +130,11 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )} />
       </div>
 
+      {/* Progress Track Filler */}
       {!isDisabled && (
         <div 
           className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none" 
-          style={{ width: `${slideX + 54}px` }} 
+          style={{ width: `${slideX + 54}px`, transition: isDragging ? 'none' : 'width 0.3s ease-out' }} 
         />
       )}
     </div>
@@ -510,6 +495,7 @@ export default function CartPage() {
         </div>
       </div>
 
+      {/* Floating Bottom Slider Container */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
            <div className="flex items-center justify-between px-2">
@@ -519,6 +505,7 @@ export default function CartPage() {
               </div>
               <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
+           {/* SLIDER COMPONENT CALL */}
            <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isCheckoutDisabled} />
         </div>
       </div>
@@ -568,6 +555,7 @@ export default function CartPage() {
                       <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">UTR number verify hone ke baad hi order accept hoga. Wrong UTR se order cancel ho sakta hai.</p>
                    </div>
                    
+                   {/* Verification Slider for UPI Flow */}
                    <SlideToOrder 
                     onConfirm={executeOrderPlacement} 
                     total={grandTotal} 
@@ -581,19 +569,6 @@ export default function CartPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
-           <div className="flex items-center justify-between px-2">
-              <div className="flex items-center gap-3">
-                 <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
-                 <div className="flex flex-col"><span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span><span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span></div>
-              </div>
-              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
-           </div>
-           <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isCheckoutDisabled} />
-        </div>
-      </div>
       
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent>
