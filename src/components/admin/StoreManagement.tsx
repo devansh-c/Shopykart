@@ -123,7 +123,6 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
 
     setIsBulkUpdating(true);
     try {
-      // Split vendors into chunks of 5 to prevent batch size limits and ensure faster sequential processing
       const batch = writeBatch(firestore);
       
       for (const store of vendors) {
@@ -132,7 +131,19 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
 
       await batch.commit();
 
-      // Update products in a separate logic to ensure Store Status updates FIRST (No lag)
+      // Background product sync
+      const productsQuery = query(collection(firestore, 'products'));
+      const productsSnap = await getDocs(productsQuery);
+      const productBatch = writeBatch(firestore);
+      
+      const vendorIds = vendors.map(v => v.id);
+      productsSnap.docs.forEach(pDoc => {
+        if (vendorIds.includes(pDoc.data().vendorId)) {
+          productBatch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
+        }
+      });
+      await productBatch.commit();
+
       toast({ title: online ? "Stores Opened! 🟢" : "Stores Closed! 🔴" });
     } catch (err) {
       console.error("Bulk sync error:", err);

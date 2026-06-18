@@ -10,16 +10,15 @@ import {
   Search, 
   Loader2, 
   Calendar,
-  Building2,
-  Navigation,
   Coins,
   MessageCircle,
   Plus,
   Minus,
-  Mail,
   Send,
   Zap,
-  Users
+  Users,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
@@ -43,6 +42,7 @@ export function CustomerManagement() {
   const [isBulkMsgOpen, setIsBulkMsgOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState('');
   const [sendingIndex, setSendingIndex] = useState(-1);
+  const [isNumbersCopied, setIsNumbersCopied] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -55,6 +55,10 @@ export function CustomerManagement() {
 
   const { data: users, loading } = useCollection<any>(usersQuery);
 
+  const validUsers = useMemo(() => {
+    return users?.filter(u => u.phoneNumber && u.phoneNumber.length === 10) || [];
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     return users.filter(u => {
@@ -64,6 +68,18 @@ export function CustomerManagement() {
       return name.includes(q) || phone.includes(q);
     });
   }, [users, searchQuery]);
+
+  const handleCopyAllNumbers = () => {
+    if (validUsers.length === 0) {
+      toast({ variant: "destructive", title: "No numbers found" });
+      return;
+    }
+    const numbers = validUsers.map(u => u.phoneNumber).join(', ');
+    navigator.clipboard.writeText(numbers);
+    setIsNumbersCopied(true);
+    toast({ title: "Copied!", description: `${validUsers.length} numbers ready for WhatsApp Broadcast list.` });
+    setTimeout(() => setIsNumbersCopied(false), 3000);
+  };
 
   const handleAdjustCoins = async (userId: string, mode: 'add' | 'sub') => {
     if (!firestore || !adjustAmount || isNaN(Number(adjustAmount))) return;
@@ -81,28 +97,15 @@ export function CustomerManagement() {
     }
   };
 
-  const handleSendBulkWhatsApp = () => {
-    if (!bulkMessage.trim() || !users || users.length === 0) {
-      toast({ variant: "destructive", title: "Invalid Request" });
+  const startBroadcasting = () => {
+    if (!bulkMessage.trim()) {
+      toast({ variant: "destructive", title: "Empty Message" });
       return;
     }
-
-    // Since we can't send all at once due to browser popup blocks, 
-    // we provide a flow to send to valid phone numbers.
-    const validUsers = users.filter(u => u.phoneNumber && u.phoneNumber.length === 10);
-    
-    if (validUsers.length === 0) {
-      toast({ variant: "destructive", title: "No valid numbers found" });
-      return;
-    }
-
-    // Launch Broadcaster Logic
     setSendingIndex(0);
-    toast({ title: "Broadcaster Ready", description: `Sending to ${validUsers.length} customers.` });
   };
 
   const sendNext = (index: number) => {
-    const validUsers = users?.filter(u => u.phoneNumber && u.phoneNumber.length === 10) || [];
     if (index >= validUsers.length) {
       setSendingIndex(-1);
       setBulkMessage('');
@@ -119,68 +122,82 @@ export function CustomerManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Customer Insights</h2>
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Managing {users?.length || 0} Registered Users</p>
-        </div>
-        
-        <Dialog open={isBulkMsgOpen} onOpenChange={setIsBulkMsgOpen}>
-          <DialogTrigger asChild>
-             <Button className="relative z-10 h-14 px-8 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black uppercase italic shadow-xl shadow-green-900/20 active:scale-95 transition-all">
-                <MessageCircle className="mr-2 h-5 w-5" />
-                SEND BULK WHATSAPP
-             </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl">
-             <DialogHeader className="mb-6">
-                <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Bulk Broadcaster</DialogTitle>
-                <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Send promotion to {users?.length || 0} customers</DialogDescription>
-             </DialogHeader>
-             <div className="space-y-6">
+      <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div>
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">WhatsApp Power Tools</h2>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Direct access to {validUsers.length} customers</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-4">
+            <Button 
+              onClick={handleCopyAllNumbers}
+              className={cn(
+                "h-14 px-6 rounded-2xl font-black uppercase italic text-[10px] tracking-widest transition-all",
+                isNumbersCopied ? "bg-green-600 text-white" : "bg-white/10 text-white hover:bg-white/20 border border-white/5"
+              )}
+            >
+              {isNumbersCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+              {isNumbersCopied ? 'NUMBERS COPIED' : 'COPY ALL NUMBERS'}
+            </Button>
+
+            <Dialog open={isBulkMsgOpen} onOpenChange={setIsBulkMsgOpen}>
+              <DialogTrigger asChild>
+                <Button className="h-14 px-8 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black uppercase italic shadow-xl shadow-green-900/20 active:scale-95 transition-all">
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    SEND BULK MESSAGE
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl bg-white">
+                <DialogHeader className="mb-6">
+                    <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter text-gray-900">Broadcaster</DialogTitle>
+                </DialogHeader>
+                
                 {sendingIndex === -1 ? (
-                  <>
+                  <div className="space-y-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Your Message</label>
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Your Promotional Message</label>
                        <Textarea 
                         placeholder="E.g. Special 50% Off Today! Order now at ShopyKart." 
                         value={bulkMessage}
                         onChange={e => setBulkMessage(e.target.value)}
-                        className="min-h-[150px] rounded-3xl bg-muted/20 border-none font-bold p-6 text-sm"
+                        className="min-h-[160px] rounded-[2rem] bg-gray-50 border-none font-bold p-6 text-sm"
                        />
                     </div>
-                    <div className="bg-amber-50 p-4 rounded-2xl flex gap-3 border border-amber-100">
-                       <Zap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                       <p className="text-[9px] font-bold text-amber-800 uppercase leading-relaxed">
-                         Note: Browser will open WhatsApp tabs one-by-one. Please allow popups if blocked.
+                    <div className="bg-amber-50 p-5 rounded-2xl flex gap-4 border border-amber-100">
+                       <Zap className="h-6 w-6 text-amber-500 shrink-0" />
+                       <p className="text-[10px] font-bold text-amber-800 uppercase leading-relaxed">
+                         One-by-One mode use karein taaki WhatsApp aapko spam na samjhe aur chats safely open hon.
                        </p>
                     </div>
-                    <Button onClick={handleSendBulkWhatsApp} className="w-full h-16 bg-black hover:bg-green-600 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
-                       LAUNCH BROADCASTER
+                    <Button onClick={startBroadcasting} className="w-full h-16 bg-black hover:bg-green-600 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all">
+                       START BROADCASTING
                     </Button>
-                  </>
+                  </div>
                 ) : (
-                  <div className="text-center py-10 space-y-8 animate-in zoom-in duration-500">
+                  <div className="text-center py-6 space-y-8 animate-in zoom-in duration-500">
                      <div className="relative mx-auto w-24 h-24">
                         <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
                         <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
-                            <Send className="h-12 w-12 text-white animate-bounce" />
+                            <Send className="h-10 w-10 text-white" />
                         </div>
                      </div>
                      <div className="space-y-2">
-                        <h3 className="text-2xl font-black italic uppercase text-gray-800">Sending Mode</h3>
-                        <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Processed: {sendingIndex} / {users?.filter(u => u.phoneNumber?.length === 10).length}</p>
+                        <h3 className="text-3xl font-black italic uppercase text-gray-900 leading-none">Sending...</h3>
+                        <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Customer {sendingIndex + 1} of {validUsers.length}</p>
                      </div>
-                     <Button onClick={() => sendNext(sendingIndex)} className="w-full h-16 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic shadow-lg">
-                        OPEN NEXT CHAT ({sendingIndex + 1})
-                     </Button>
-                     <button onClick={() => setSendingIndex(-1)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Cancel Session</button>
+                     <div className="w-full space-y-4">
+                        <Button onClick={() => sendNext(sendingIndex)} className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic text-xl shadow-lg active:scale-95">
+                           OPEN CHAT #{sendingIndex + 1}
+                        </Button>
+                        <button onClick={() => setSendingIndex(-1)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Cancel Session</button>
+                     </div>
                   </div>
                 )}
-             </div>
-          </DialogContent>
-        </Dialog>
-
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
         <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-10" />
       </div>
 
