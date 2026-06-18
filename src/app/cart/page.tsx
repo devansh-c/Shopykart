@@ -37,6 +37,8 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
@@ -44,7 +46,6 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
-// ISOLATED SLIDER COMPONENT FOR PEAK PERFORMANCE
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -241,7 +242,7 @@ export default function CartPage() {
     }
   }, [profile]);
 
-  const executeOrderPlacement = async () => {
+  const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing) return;
     setIsPlacing(true);
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
@@ -286,28 +287,33 @@ export default function CartPage() {
       instructions
     };
 
-    try {
-      await setDoc(doc(firestore, 'orders', orderId), orderData);
-      if (user) {
-        await setDoc(doc(firestore, 'users', user.uid), {
-          fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
-          city: customerCity, pincode: customerPincode, latitude, longitude,
-          coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
-        }, { merge: true });
-      }
-      clearCart();
-      setIsPaymentDialogOpen(false);
-      router.replace(`/orders/track?id=${orderId}`);
-    } catch (serverError) {
-      setIsPlacing(false);
-      toast({ variant: "destructive", title: "Checkout Error" });
+    // INSTANT EXECUTION (Optimistic Write)
+    setDoc(doc(firestore, 'orders', orderId), orderData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: `orders/${orderId}`,
+          operation: 'create',
+          requestResourceData: orderData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+
+    if (user) {
+      setDoc(doc(firestore, 'users', user.uid), {
+        fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
+        city: customerCity, pincode: customerPincode, latitude, longitude,
+        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => {});
     }
-  };
+
+    // RAPID CLEANUP & REDIRECT
+    clearCart();
+    setIsPaymentDialogOpen(false);
+    router.replace(`/orders/track?id=${orderId}`);
+  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router]);
 
   const handleOnlinePaymentFlow = () => {
-    // Open UPI App
     window.open(upiUri);
-    // Move to UTR input step
     setPaymentStep('utr');
   };
 
@@ -426,7 +432,6 @@ export default function CartPage() {
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
-        {/* PAYMENT METHOD SELECTION */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
            <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
            <div className="grid grid-cols-2 gap-3">
