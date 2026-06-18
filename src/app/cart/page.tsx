@@ -474,6 +474,9 @@ export default function CartPage() {
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Secure Payment</DialogTitle>
+          </DialogHeader>
           <div className="bg-primary h-2 w-full" />
           <div className="p-8 space-y-8 flex flex-col items-center">
             {paymentStep === 'selection' ? (
