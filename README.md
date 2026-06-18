@@ -1,3 +1,4 @@
+npm run static-build
 # ShopyKart - Premium Food Delivery
 
 This is the official NextJS source code for ShopyKart.

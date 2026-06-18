@@ -1,6 +1,6 @@
 /**
  * @fileOverview Smart Basket AI flow to generate recipes and suggested shopping lists.
- * Updated for Static Export compatibility: Returns fallbacks in browser environments.
+ * Updated for Static Export compatibility: Removed 'use server' and returns fallbacks in browser.
  */
 
 import {ai} from '@/ai/genkit';
@@ -32,7 +32,7 @@ const fallbackData: SmartBasketOutput = {
 };
 
 export async function getSmartBasketDetails(input: SmartBasketInput): Promise<SmartBasketOutput> {
-  // Static Build Check: If in browser, use fallbacks to avoid Server Actions error
+  // Browser check: Genkit flows require a server environment.
   if (typeof window !== 'undefined') {
     return {
       ...fallbackData,

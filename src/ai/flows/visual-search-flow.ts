@@ -1,6 +1,6 @@
 /**
  * @fileOverview This file defines a Genkit flow for identifying food items from a photo.
- * Updated for Static Export compatibility: Returns fallbacks in browser environments.
+ * Updated for Static Export compatibility: Removed 'use server' and returns fallbacks in browser.
  */
 
 import {ai} from '@/ai/genkit';
@@ -17,7 +17,7 @@ const VisualSearchOutputSchema = z.object({
 export type VisualSearchOutput = z.infer<typeof VisualSearchOutputSchema>;
 
 export async function identifyFood(input: VisualSearchInput): Promise<VisualSearchOutput> {
-  // Static Build Check: Return generic result in browser to allow build to pass and avoid Server Actions error
+  // Browser check: Genkit flows require a server environment.
   if (typeof window !== 'undefined') {
     return { identifiedFood: "Food Item" };
   }

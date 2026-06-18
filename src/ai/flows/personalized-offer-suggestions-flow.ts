@@ -1,6 +1,6 @@
 /**
  * @fileOverview This file defines a Genkit flow for generating personalized food offers and promotions.
- * Updated for Static Export compatibility: Returns fallbacks in browser environments.
+ * Updated for Static Export compatibility: Removed 'use server' and returns fallbacks in browser.
  */
 
 import {ai} from '@/ai/genkit';
@@ -47,7 +47,8 @@ const fallbackOffers: PersonalizedOfferSuggestionsOutput = {
 };
 
 export async function getPersonalizedOfferSuggestions(input: PersonalizedOfferSuggestionsInput): Promise<PersonalizedOfferSuggestionsOutput> {
-  // Static Build Check: If in browser, use fallbacks to avoid Server Actions error
+  // Browser check: Genkit flows require a server environment.
+  // In static export (APK), we return fallbacks to prevent build/runtime errors.
   if (typeof window !== 'undefined') {
     return fallbackOffers;
   }
@@ -55,7 +56,7 @@ export async function getPersonalizedOfferSuggestions(input: PersonalizedOfferSu
   try {
     return await personalizedOfferSuggestionsFlow(input);
   } catch (error) {
-    console.error("GenAI Service Busy, using fallback offers:", error);
+    console.error("AI Service Busy, using fallback offers:", error);
     return fallbackOffers;
   }
 }
