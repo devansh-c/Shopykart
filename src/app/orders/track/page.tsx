@@ -4,9 +4,6 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-/**
- * @fileOverview Next.js 15 Safe Wrapper for Order Tracking.
- */
 export default function OrderTrackPage() {
   return (
     <Suspense fallback={

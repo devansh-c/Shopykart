@@ -1,14 +1,8 @@
-
 'use client';
 
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-
-/**
- * @fileOverview Generic dynamic page viewer.
- * Uses query params (e.g., /pages/view?id=123) for 100% static hosting compatibility.
- */
 
 export default function GenericPageViewPage() {
   return (

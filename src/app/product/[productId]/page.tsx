@@ -1,9 +1,5 @@
 import { redirect } from 'next/navigation';
 
-/**
- * @fileOverview Next.js 15 Compliant Redirect Page.
- * Handles dynamic segments by redirecting to a static view with query params.
- */
 export default async function ProductIdPage({
   params,
 }: {
@@ -18,6 +14,5 @@ export default async function ProductIdPage({
   redirect('/');
 }
 
-// Ensure build time optimization
 export const dynamic = 'force-static';
 export const revalidate = false;

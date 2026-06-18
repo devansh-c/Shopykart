@@ -4,9 +4,6 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-/**
- * @fileOverview Next.js 15 Safe Wrapper for Product View.
- */
 export default function ProductViewPage() {
   return (
     <Suspense fallback={
