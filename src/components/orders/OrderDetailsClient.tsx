@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -22,16 +21,19 @@ const steps = [
   { id: 'Delivered', label: 'Delivered' },
 ];
 
-export default function OrderDetailsClient() {
+export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('id');
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
+  // Use forcedId (from dynamic route) or search param 'id'
+  const orderId = forcedId || searchParams.get('id');
+  
   const [isDownloading, setIsDownloading] = useState(false);
 
   const orderRef = useMemoFirebase(() => {
-    if (!firestore || !orderId) return null;
+    if (!firestore || !orderId || orderId === 'track' || orderId === 'status' || orderId === 'active') return null;
     return doc(firestore, 'orders', String(orderId));
   }, [firestore, orderId]);
 
@@ -197,7 +199,12 @@ export default function OrderDetailsClient() {
     }, 500);
   };
 
+  if (!orderId || orderId === 'track' || orderId === 'status' || orderId === 'active') {
+    return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase">No Order Found</h2><Button onClick={() => router.push('/orders')} className="mt-8">Go to Orders</Button></div>;
+  }
+
   if (loading && !order) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  
   if (!order) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase">Order Not Found</h2><Button onClick={() => router.push('/')} className="mt-8">Home</Button></div>;
 
   const isCancelled = order.status === 'Cancelled';

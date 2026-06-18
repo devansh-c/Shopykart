@@ -13,12 +13,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 
-export default function ProductDetailsClient() {
+export default function ProductDetailsClient({ forcedId }: { forcedId?: string }) {
   const searchParams = useSearchParams();
-  const productId = searchParams.get('id');
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart } = useCart();
+  
+  // Use forcedId (from dynamic route) or search param 'id'
+  const productId = forcedId || searchParams.get('id');
   
   const [instructions, setInstructions] = useState('');
   const [userRating, setUserRating] = useState(0);
@@ -30,7 +32,7 @@ export default function ProductDetailsClient() {
 
   const firestore = useFirestore();
   const productRef = useMemoFirebase(() => {
-    if (!firestore || !productId) return null;
+    if (!firestore || !productId || productId === 'view' || productId === 'featured' || productId === 'latest' || productId === 'trending') return null;
     return doc(firestore, 'products', productId);
   }, [firestore, productId]);
 
@@ -131,10 +133,11 @@ export default function ProductDetailsClient() {
     toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
   };
 
-  if (!productId) {
+  if (!productId || productId === 'view' || productId === 'featured' || productId === 'latest' || productId === 'trending') {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <h2 className="text-xl font-black italic uppercase">No Product Selected</h2>
+        <h2 className="text-xl font-black italic uppercase">Select a Product</h2>
+        <p className="text-muted-foreground text-xs mt-2">Browse our menu to find your favorites.</p>
         <button onClick={() => router.push('/menu')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Explore Menu</button>
       </div>
     );

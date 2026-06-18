@@ -1,13 +1,14 @@
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
 /**
  * @fileOverview Server Component wrapper for Order tracking.
- * In static export mode, we must define sample params and disable dynamicParams.
+ * Updated for Next.js 15: params must be awaited.
  */
 
 export async function generateStaticParams() {
   // Return sample IDs to satisfy the build requirement for static export.
-  // The actual tracking happens on the client side in OrderDetailsClient.
   return [
     { orderId: 'track' },
     { orderId: 'status' },
@@ -19,6 +20,20 @@ export async function generateStaticParams() {
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-export default function OrderPage() {
-  return <OrderDetailsClient />;
+interface PageProps {
+  params: Promise<{ orderId: string }>;
+}
+
+export default async function OrderPage({ params }: PageProps) {
+  const { orderId } = await params;
+
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <OrderDetailsClient forcedId={orderId} />
+    </Suspense>
+  );
 }

@@ -1,6 +1,7 @@
 /**
  * @fileOverview Genkit initialization. 
  * Updated to be safe for both server and client-side (static export) environments.
+ * Uses dynamic imports to prevent Node.js modules from leaking into the browser bundle.
  */
 
 import { z as zod } from 'zod';
@@ -14,14 +15,15 @@ export const z = zod;
  * This prevents the 'require' calls from executing during client-side bundling
  * or during static analysis which causes "Internal Server Error".
  */
-export const getAI = () => {
+export const getAI = async () => {
   if (typeof window !== 'undefined') {
     return {} as any;
   }
   
   try {
-    const { genkit } = require('genkit');
-    const { googleAI } = require('@genkit-ai/google-genai');
+    // Dynamic import to hide Node.js modules from the browser bundler
+    const { genkit } = await import('genkit');
+    const { googleAI } = await import('@genkit-ai/google-genai');
     
     return genkit({
       plugins: [googleAI()],

@@ -22,12 +22,16 @@ const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').t
 
 /**
  * @fileOverview Refactored AuthGuard with aggressive "Ready" signal for portals.
- * Ensures the app never hangs on the Splash screen, especially for APK deep-links.
  */
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
   const pathname = usePathname();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
@@ -40,29 +44,22 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   }, [pathname]);
 
   const hasActiveSession = useMemo(() => {
-    if (typeof window === 'undefined') return false;
+    if (!isClient) return false;
     return localStorage.getItem('shopykart_session_active') === 'true';
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
-    // 1. IMMEDIATE READY FOR PORTALS
-    // If user is on a business or specialized path, we don't wait for Auth
     if (isExcludedPath) {
       onReady(true);
       return;
     }
 
-    // 2. FALLBACK TIMER (Emergency Dismissal)
-    // If for some reason 'loading' stays true (slow Firebase init), dismiss after 2s
     const fallbackTimer = setTimeout(() => {
       onReady(true);
     }, 2000);
 
-    // 3. STANDARD CUSTOMER PATH LOGIC
     if (!loading) {
       onReady(true);
-      
-      // If not logged in and no session, show Auth Overlay after a small delay
       if (!user && !hasActiveSession) {
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 1200);
         return () => {
@@ -78,7 +75,7 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
   return (
     <>
       {children}
-      {!isExcludedPath && showAuthOverlay && !user && !hasActiveSession && <EmailAuth />}
+      {!isExcludedPath && showAuthOverlay && !user && hasActiveSession === false && isClient && <EmailAuth />}
     </>
   );
 });
