@@ -13,7 +13,7 @@ type AuthStep = 'details' | 'otp';
 
 /**
  * @fileOverview Redesigned OTP Verification in Premium Light Mode.
- * Simplified and ultra-clean aesthetic.
+ * Optimized for ultra-fast execution with minimal simulated delays.
  */
 export function OTPVerification() {
   const [loading, setLoading] = useState(false);
@@ -40,15 +40,16 @@ export function OTPVerification() {
     }
 
     setLoading(true);
+    // Reduced simulated delay from 1000ms to 300ms for snappier feel
     setTimeout(() => {
       setStep('otp');
       setLoading(false);
       toast({ 
         title: "OTP SENT! 📩", 
-        description: "Your ShopyKart verification code is 788911",
-        duration: 8000 
+        description: "Verification code is 788911",
+        duration: 5000 
       });
-    }, 1000);
+    }, 300);
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -70,6 +71,7 @@ export function OTPVerification() {
         uid = 'user_' + Date.now();
       }
 
+      // Perform write immediately
       const userRef = doc(firestore, 'users', uid);
       await setDoc(userRef, {
         fullName: formData.fullName.toUpperCase(),
@@ -85,27 +87,29 @@ export function OTPVerification() {
         isVerified: true
       }, { merge: true });
 
+      // Immediate session marking
       localStorage.setItem('user_name', formData.fullName.toUpperCase());
       localStorage.setItem('user_phone', formData.phoneNumber);
       localStorage.setItem('shopykart_session_active', 'true');
       localStorage.setItem('user_location_set', 'true');
       localStorage.setItem('show_welcome_bonus', 'true');
 
-      toast({ title: "Welcome to ShopyKart!", description: "Your identity has been verified." });
+      toast({ title: "Welcome!", description: "Identity verified successfully." });
       
+      // Faster reload transition
       setTimeout(() => {
         window.location.reload();
-      }, 500);
+      }, 100);
 
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Backend Error", description: "Could not save profile." });
+      toast({ variant: "destructive", title: "System Busy", description: "Retry after a second." });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[500] bg-white flex flex-col p-8 animate-in fade-in duration-500 overflow-y-auto no-scrollbar">
+    <div className="fixed inset-0 z-[500] bg-white flex flex-col p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full space-y-12 py-10">
         
         <div className="text-center space-y-4">
@@ -212,7 +216,7 @@ export function OTPVerification() {
                   required
                 />
                 <p className="text-[9px] text-gray-400 font-bold text-center uppercase tracking-widest leading-relaxed">
-                  A verification code has been generated.<br />Check your notifications.
+                  Verification code is 788911<br />Instant activation enabled.
                 </p>
              </div>
 
