@@ -40,26 +40,29 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useFirestore } from '@/firebase';
 import { requestPushToken } from '@/firebase/messaging';
 
-// LAZY LOADING
-const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> });
-const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement').then(m => ({ default: m.ProductManagement })));
-const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement').then(m => ({ default: m.BannerManagement })));
-const OrderManagement = dynamic(() => import('@/components/admin/OrderManagement').then(m => ({ default: m.OrderManagement })));
-const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement').then(m => ({ default: m.ReviewManagement })));
-const DiscountManagement = dynamic(() => import('@/components/admin/DiscountManagement').then(m => ({ default: m.DiscountManagement })));
-const StoreManagement = dynamic(() => import('@/components/admin/StoreManagement').then(m => ({ default: m.StoreManagement })));
-const CategoryManagement = dynamic(() => import('@/components/admin/CategoryManagement').then(m => ({ default: m.CategoryManagement })));
-const BrandingManagement = dynamic(() => import('@/components/admin/BrandingManagement').then(m => ({ default: m.BrandingManagement })));
-const CustomerManagement = dynamic(() => import('@/components/admin/CustomerManagement').then(m => ({ default: m.CustomerManagement })));
-const ChargeManagement = dynamic(() => import('@/components/admin/ChargeManagement').then(m => ({ default: m.ChargeManagement })));
-const StorePayoutManagement = dynamic(() => import('@/components/admin/StorePayoutManagement').then(m => ({ default: m.StorePayoutManagement })));
-const FleetManagement = dynamic(() => import('@/components/admin/FleetManagement').then(m => ({ default: m.FleetManagement })));
-const MonetizationManagement = dynamic(() => import('@/components/admin/MonetizationManagement').then(m => ({ default: m.MonetizationManagement })));
-const ExportManagement = dynamic(() => import('@/components/admin/ExportManagement').then(m => ({ default: m.ExportManagement })));
-const ZoneManagement = dynamic(() => import('@/components/admin/ZoneManagement').then(m => ({ default: m.ZoneManagement })));
-const PageManagement = dynamic(() => import('@/components/admin/PageManagement').then(m => ({ default: m.PageManagement })));
-const TicketManagement = dynamic(() => import('@/components/admin/TicketManagement').then(m => ({ default: m.TicketManagement })));
-const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement').then(m => ({ default: m.TeamManagement })));
+// LAZY LOADING WITH SSR DISABLED TO PREVENT 500 ERRORS
+const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { 
+  ssr: false,
+  loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> 
+});
+const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement').then(m => ({ default: m.ProductManagement })), { ssr: false });
+const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement').then(m => ({ default: m.BannerManagement })), { ssr: false });
+const OrderManagement = dynamic(() => import('@/components/admin/OrderManagement').then(m => ({ default: m.OrderManagement })), { ssr: false });
+const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement').then(m => ({ default: m.ReviewManagement })), { ssr: false });
+const DiscountManagement = dynamic(() => import('@/components/admin/DiscountManagement').then(m => ({ default: m.DiscountManagement })), { ssr: false });
+const StoreManagement = dynamic(() => import('@/components/admin/StoreManagement').then(m => ({ default: m.StoreManagement })), { ssr: false });
+const CategoryManagement = dynamic(() => import('@/components/admin/CategoryManagement').then(m => ({ default: m.CategoryManagement })), { ssr: false });
+const BrandingManagement = dynamic(() => import('@/components/admin/BrandingManagement').then(m => ({ default: m.BrandingManagement })), { ssr: false });
+const CustomerManagement = dynamic(() => import('@/components/admin/CustomerManagement').then(m => ({ default: m.CustomerManagement })), { ssr: false });
+const ChargeManagement = dynamic(() => import('@/components/admin/ChargeManagement').then(m => ({ default: m.ChargeManagement })), { ssr: false });
+const StorePayoutManagement = dynamic(() => import('@/components/admin/StorePayoutManagement').then(m => ({ default: m.StorePayoutManagement })), { ssr: false });
+const FleetManagement = dynamic(() => import('@/components/admin/FleetManagement').then(m => ({ default: m.FleetManagement })), { ssr: false });
+const MonetizationManagement = dynamic(() => import('@/components/admin/MonetizationManagement').then(m => ({ default: m.MonetizationManagement })), { ssr: false });
+const ExportManagement = dynamic(() => import('@/components/admin/ExportManagement').then(m => ({ default: m.ExportManagement })), { ssr: false });
+const ZoneManagement = dynamic(() => import('@/components/admin/ZoneManagement').then(m => ({ default: m.ZoneManagement })), { ssr: false });
+const PageManagement = dynamic(() => import('@/components/admin/PageManagement').then(m => ({ default: m.PageManagement })), { ssr: false });
+const TicketManagement = dynamic(() => import('@/components/admin/TicketManagement').then(m => ({ default: m.TicketManagement })), { ssr: false });
+const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement').then(m => ({ default: m.TeamManagement })), { ssr: false });
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -165,7 +168,6 @@ export default function AdminDashboard() {
         const parsed = JSON.parse(teamPermissions);
         setAllowedFeatures(Array.isArray(parsed) ? parsed : []);
       } catch(e) {
-        // If teamPermissions is not an array, but is not 'all', check if it's 'all' again stringwise
         if (teamPermissions === 'all') setAllowedFeatures('all');
         else setAllowedFeatures([]);
       }
@@ -207,7 +209,6 @@ export default function AdminDashboard() {
     const isMasterAdmin = allowedFeatures === 'all';
     
     if (!isMasterAdmin && Array.isArray(allowedFeatures) && !allowedFeatures.includes(activeTab) && activeTab !== 'dashboard') {
-      setActiveTab('dashboard');
       return <AdminOverview />;
     }
 

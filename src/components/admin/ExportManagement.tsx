@@ -25,8 +25,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import { saveAs } from 'file-saver';
-import JSZip from 'jszip';
 
 export function ExportManagement() {
   const firestore = useFirestore();
@@ -39,6 +37,10 @@ export function ExportManagement() {
     setIsExporting(true);
     
     try {
+      // DYNAMIC IMPORTS FOR BROWSER-ONLY LIBRARIES
+      const JSZip = (await import('jszip')).default;
+      const { saveAs } = await import('file-saver');
+
       const zip = new JSZip();
       const collections = ['products', 'vendors', 'orders', 'categories', 'coupons', 'users', 'tickets', 'pages'];
       

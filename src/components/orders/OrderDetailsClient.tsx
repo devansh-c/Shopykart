@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { toJpeg } from 'html-to-image';
-import { saveAs } from 'file-saver';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const steps = [
@@ -146,6 +144,8 @@ export default function OrderDetailsClient() {
     }
 
     try {
+      const { toJpeg } = await import('html-to-image');
+      const { saveAs } = await import('file-saver');
       const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
       const response = await fetch(dataUrl);
       const blob = await response.blob();

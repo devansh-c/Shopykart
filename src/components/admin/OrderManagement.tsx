@@ -12,8 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toJpeg } from 'html-to-image';
-import { saveAs } from 'file-saver';
 
 const statusOptions = ["Placed", "Accepted", "Preparing", "Ready for Pickup", "Picked Up", "Out for Delivery", "Delivered", "Cancelled"];
 
@@ -54,6 +52,8 @@ export function OrderManagement() {
     if (!element) return;
     setDownloadingId(order.id);
     try {
+      const { toJpeg } = await import('html-to-image');
+      const { saveAs } = await import('file-saver');
       const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
       const response = await fetch(dataUrl);
       const blob = await response.blob();
@@ -279,7 +279,7 @@ export function OrderManagement() {
                             <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
                               <Printer className="h-4 w-4 mr-2" /> PRINT
                             </Button>
-                            <Button onClick={handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                            <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
                               {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
                             </Button>
                          </div>

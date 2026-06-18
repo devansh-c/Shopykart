@@ -1,62 +1,45 @@
-/**
- * @fileOverview Project Packager for Mobile Users.
- * Bundles the entire project into a ZIP file for easy transport to a PC.
- */
+
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import JSZip from 'jszip';
+import archiver from 'archiver';
 
-async function packProject() {
-  console.log("📦 Starting ShopyKart Packager...");
-  const zip = new JSZip();
-  const rootDir = process.cwd();
+async function zipProject() {
+  const output = fs.createWriteStream('shopykart-project.zip');
+  const archive = archiver('zip', {
+    zlib: { level: 9 } // Sets the compression level.
+  });
 
-  const ignoreList = [
-    'node_modules',
-    '.next',
-    'out',
-    '.git',
-    'shopykart-project.zip',
-    '.DS_Store',
-    'android/app/build',
-    'android/.gradle'
-  ];
+  output.on('close', function() {
+    console.log('✅ Success! Project has been zipped to: shopykart-project.zip');
+    console.log('Total bytes: ' + archive.pointer());
+    console.log('Ab aap sidebar se is file ko download karke apne laptop par le ja sakte hain.');
+  });
 
-  function addFolderToZip(folderPath, zipFolder) {
-    const files = fs.readdirSync(folderPath);
+  archive.on('error', function(err) {
+    throw err;
+  });
 
-    for (const file of files) {
-      if (ignoreList.includes(file)) continue;
+  archive.pipe(output);
 
-      const fullPath = path.join(folderPath, file);
-      const stat = fs.statSync(fullPath);
+  // Add files and directories
+  archive.glob('**/*', {
+    ignore: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      '.git/**',
+      'shopykart-project.zip',
+      'android/.gradle/**',
+      'android/app/build/**',
+      'android/.idea/**'
+    ]
+  });
 
-      if (stat.isDirectory()) {
-        const subFolder = zipFolder.folder(file);
-        addFolderToZip(fullPath, subFolder);
-      } else {
-        const content = fs.readFileSync(fullPath);
-        zipFolder.file(file, content);
-      }
-    }
-  }
-
-  try {
-    addFolderToZip(rootDir, zip);
-    
-    console.log("⚡ Generating ZIP file (this may take a minute)...");
-    const content = await zip.generateAsync({
-      type: "nodebuffer",
-      compression: "DEFLATE",
-      compressionOptions: { level: 9 }
-    });
-
-    fs.writeFileSync('shopykart-project.zip', content);
-    console.log("✅ SUCCESS: shopykart-project.zip created!");
-    console.log("👉 Now download it from the sidebar and use it on your PC.");
-  } catch (err) {
-    console.error("❌ Packaging failed:", err);
-  }
+  await archive.finalize();
 }
 
-packProject();
+console.log('📦 Zipping project for laptop migration...');
+zipProject().catch(err => {
+  console.error('❌ Zipping failed:', err);
+});
