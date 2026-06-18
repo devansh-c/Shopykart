@@ -18,7 +18,9 @@ import {
   Zap,
   Users,
   Copy,
-  Check
+  Check,
+  Building2,
+  Navigation
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
@@ -64,8 +66,10 @@ export function CustomerManagement() {
     return users.filter(u => {
       const name = (u.fullName || '').toLowerCase();
       const phone = (u.phoneNumber || '');
+      const addr = (u.address || '').toLowerCase();
+      const city = (u.city || '').toLowerCase();
       const q = searchQuery.toLowerCase();
-      return name.includes(q) || phone.includes(q);
+      return name.includes(q) || phone.includes(q) || addr.includes(q) || city.includes(q);
     });
   }, [users, searchQuery]);
 
@@ -205,7 +209,7 @@ export function CustomerManagement() {
          <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
-               placeholder="Search by name or phone..." 
+               placeholder="Search by name, phone, or area..." 
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
                className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
@@ -228,9 +232,9 @@ export function CustomerManagement() {
               <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col transform-gpu">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative">
-                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 overflow-hidden">
                       {user.profileImageUrl ? (
-                        <img src={user.profileImageUrl} className="h-full w-full object-cover rounded-2xl" alt="" />
+                        <img src={user.profileImageUrl} className="h-full w-full object-cover" alt="" />
                       ) : (
                         <User className="h-7 w-7" />
                       )}
@@ -279,7 +283,7 @@ export function CustomerManagement() {
                   </Dialog>
                 </div>
 
-                <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4 flex-1">
+                <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4 flex-1 border border-border/30">
                   <div className="flex items-center justify-between border-b border-white pb-3 mb-1">
                     <div className="flex items-center gap-2">
                        <div className="bg-white p-1.5 rounded-lg shadow-sm">
@@ -296,9 +300,41 @@ export function CustomerManagement() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 truncate">
-                    <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                    {user.address || 'Address Not Provided'}
+
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-white p-1 rounded-md shrink-0"><MapPin className="h-3 w-3 text-primary" /></div>
+                      <div className="flex flex-col min-w-0">
+                         <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Full Address</span>
+                         <p className="text-[10px] font-bold text-gray-700 leading-tight">
+                           {user.address || 'No address provided'}
+                         </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border border-white">
+                        <Building2 className="h-3 w-3 text-gray-400" />
+                        <div className="flex flex-col">
+                           <span className="text-[6px] font-black text-gray-400 uppercase">City</span>
+                           <span className="text-[9px] font-black uppercase text-gray-800 truncate">{user.city || 'Ranipur'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border border-white">
+                        <Navigation className="h-3 w-3 text-gray-400" />
+                        <div className="flex flex-col">
+                           <span className="text-[6px] font-black text-gray-400 uppercase">Pincode</span>
+                           <span className="text-[9px] font-black text-gray-800">{user.pincode || '284205'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {user.lastSelectedZone && (
+                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-xl border border-primary/10">
+                        <Badge className="bg-primary text-white text-[7px] px-1.5 py-0 rounded uppercase font-black border-none">ZONE</Badge>
+                        <span className="text-[9px] font-black uppercase italic text-primary">{user.lastSelectedZone}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
