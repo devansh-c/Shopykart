@@ -46,47 +46,63 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
+// ULTIMATE SMOOTH SLIDER - REWRITTEN FOR NEXTJS 15 + MOBILE APK
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const slideXRef = useRef(0);
 
-  const onStart = () => {
+  const onStart = (e: any) => {
     if (isDisabled) return;
     setIsDragging(true);
+    // Visual feedback
+    if (sliderRef.current) sliderRef.current.style.opacity = "0.9";
   };
 
+  const handleMove = useCallback((e: any) => {
+    if (!isDragging || !sliderRef.current) return;
+    
+    // Prevent page scroll while sliding
+    if (e.cancelable) e.preventDefault();
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const maxX = rect.width - 68; // Handle container width
+    
+    let x = clientX - rect.left - 34; // Centering the handle to finger
+    x = Math.max(0, Math.min(x, maxX));
+    
+    setSlideX(x);
+    slideXRef.current = x;
+  }, [isDragging]);
+
+  const handleEnd = useCallback(() => {
+    if (!isDragging || !sliderRef.current) return;
+    setIsDragging(false);
+    sliderRef.current.style.opacity = "1";
+
+    const maxX = sliderRef.current.clientWidth - 68;
+    if (slideXRef.current > maxX * 0.85) {
+      setSlideX(maxX);
+      onConfirm();
+    } else {
+      setSlideX(0);
+      slideXRef.current = 0;
+    }
+  }, [isDragging, onConfirm]);
+
   useEffect(() => {
-    const handleMove = (e: any) => {
-      if (!isDragging || !sliderRef.current) return;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const rect = sliderRef.current.getBoundingClientRect();
-      const maxX = rect.width - 68;
-      let x = clientX - rect.left - 34;
-      x = Math.max(0, Math.min(x, maxX));
-      setSlideX(x);
-      slideXRef.current = x;
-    };
-
-    const handleEnd = () => {
-      if (!isDragging) return;
-      setIsDragging(false);
-      const maxX = (sliderRef.current?.clientWidth || 0) - 68;
-      if (slideXRef.current > maxX * 0.85) {
-        setSlideX(maxX);
-        onConfirm();
-      } else {
-        setSlideX(0);
-        slideXRef.current = 0;
-      }
-    };
-
     if (isDragging) {
-      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mousemove', handleMove, { passive: false });
       window.addEventListener('mouseup', handleEnd);
       window.addEventListener('touchmove', handleMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
+    } else {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMove);
@@ -94,31 +110,48 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
     };
-  }, [isDragging, onConfirm]);
+  }, [isDragging, handleMove, handleEnd]);
 
   return (
-    <div ref={sliderRef} className={cn(
-      "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none transform-gpu transition-colors duration-300",
-      isDisabled ? "bg-gray-200" : "bg-[#10B981]"
-    )}>
+    <div 
+      ref={sliderRef} 
+      className={cn(
+        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transform-gpu transition-all duration-300",
+        isDisabled ? "bg-gray-200" : isDragging ? "bg-emerald-600" : "bg-[#10B981]"
+      )}
+    >
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span className={cn("text-base font-black text-white uppercase italic tracking-tighter transition-opacity duration-200", (slideX > 40 || isDisabled) && "opacity-0")}>
+        <span className={cn(
+          "text-[13px] font-black text-white uppercase italic tracking-widest transition-all duration-200", 
+          (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
+        )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(2)}`}
         </span>
         {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Incomplete Details</span>}
       </div>
+
       <div 
         onMouseDown={onStart} 
         onTouchStart={onStart} 
         className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu will-change-transform transition-opacity", 
-          isDisabled ? "opacity-20 pointer-events-none" : "opacity-100"
+          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-shadow", 
+          isDisabled ? "opacity-30 pointer-events-none" : "opacity-100",
+          isDragging && "shadow-[0_0_20px_rgba(255,255,255,0.4)]"
         )} 
         style={{ transform: `translateX(${slideX}px)` }}
       >
-        <ChevronRight className="h-7 w-7 stroke-[3] text-[#10B981]" />
+        <ChevronRight className={cn(
+          "h-7 w-7 stroke-[3] transition-colors", 
+          isDragging ? "text-emerald-600" : "text-[#10B981]"
+        )} />
       </div>
-      {!isDisabled && <div className="absolute left-0 top-0 bottom-0 bg-white/10 pointer-events-none" style={{ width: `${slideX + 54}px` }} />}
+
+      {!isDisabled && (
+        <div 
+          className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none" 
+          style={{ width: `${slideX + 54}px` }} 
+        />
+      )}
     </div>
   );
 });
@@ -474,6 +507,19 @@ export default function CartPage() {
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
           </div>
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
+        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
+           <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                 <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
+                 <div className="flex flex-col"><span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span><span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span></div>
+              </div>
+              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
+           </div>
+           <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isCheckoutDisabled} />
         </div>
       </div>
 
