@@ -1,4 +1,3 @@
-
 "use client"
 
 import { 
@@ -98,7 +97,6 @@ export default function ProfilePage() {
     { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
     { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
     { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
-    { label: 'Master Admin Panel', icon: ShieldCheck, path: '/admin/login', description: 'Access for CEO / Root Admin', isMaster: true },
     { label: 'Join as Team Member', icon: ShieldAlert, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
   ];
 
@@ -313,7 +311,6 @@ export default function ProfilePage() {
               onClick={() => handleAction(item.path, item.label)}
               className={cn(
                 "w-full rounded-2xl p-4 flex items-center justify-between border shadow-sm active:scale-[0.97] transition-all group",
-                item.isMaster ? "bg-black border-black text-white" :
                 item.highlight && item.accent === 'rose' ? "bg-rose-50 border-rose-100" :
                 item.highlight && item.accent === 'teal' ? "bg-teal-50 border-teal-100" : 
                 "bg-white border-primary/10"
@@ -322,7 +319,6 @@ export default function ProfilePage() {
               <div className="flex items-center space-x-4">
                 <div className={cn(
                   "p-2.5 rounded-xl",
-                  item.isMaster ? "bg-white/10 text-white" :
                   item.highlight && item.accent === 'rose' ? "bg-rose-100 text-rose-600" :
                   item.highlight && item.accent === 'teal' ? "bg-teal-100 text-teal-600" :
                   "bg-primary/10 text-primary"
@@ -331,12 +327,11 @@ export default function ProfilePage() {
                 </div>
                 <div className="text-left">
                   <span className="text-sm font-bold block leading-none">{item.label}</span>
-                  <span className={cn("text-[10px] font-medium", item.isMaster ? "text-gray-400" : "text-muted-foreground")}>{item.description}</span>
+                  <span className={cn("text-[10px] font-medium", "text-muted-foreground")}>{item.description}</span>
                 </div>
               </div>
               <ChevronRight className={cn(
                 "h-4 w-4", 
-                item.isMaster ? "text-white/40" :
                 item.highlight && item.accent === 'rose' ? "text-rose-400" :
                 item.highlight && item.accent === 'teal' ? "text-teal-400" :
                 "text-primary"
