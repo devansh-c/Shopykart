@@ -1,23 +1,23 @@
 
 "use client"
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, Suspense } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
-// LAZY LOAD HOME SECTIONS: Corrected wrappers for Named Exports
-const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })));
-const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => ({ default: m.CategoryList })));
-const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => ({ default: m.StoreSection })));
-const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => ({ default: m.PopularProducts })));
-const OffersSection = dynamic(() => import('@/components/home/OffersSection').then(m => ({ default: m.OffersSection })));
-const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })));
-const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })));
-const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })));
-const SmartBasketAI = dynamic(() => import('@/components/home/SmartBasketAI').then(m => ({ default: m.SmartBasketAI })));
+// SSR DISABLED FOR DATA-HEAVY COMPONENTS TO PREVENT ISE DURING PRE-RENDERING
+const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
+const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => ({ default: m.CategoryList })), { ssr: false });
+const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => ({ default: m.StoreSection })), { ssr: false });
+const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => ({ default: m.PopularProducts })), { ssr: false });
+const OffersSection = dynamic(() => import('@/components/home/OffersSection').then(m => ({ default: m.OffersSection })), { ssr: false });
+const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
+const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })), { ssr: false });
+const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })), { ssr: false });
+const SmartBasketAI = dynamic(() => import('@/components/home/SmartBasketAI').then(m => ({ default: m.SmartBasketAI })), { ssr: false });
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +46,6 @@ export default function ShopyKartApp() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
-      {/* Hide main header in specialized modes for true Blinkit experience */}
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -87,7 +86,6 @@ export default function ShopyKartApp() {
           </div>
         ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
           <div className="animate-in fade-in duration-700">
-            {/* Minimal Sticky Header for Specialized Hubs */}
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
                   <button 
@@ -112,11 +110,13 @@ export default function ShopyKartApp() {
             </div>
 
             <div className="px-0">
-              <PopularProducts 
-                searchQuery={searchQuery} 
-                category={activeCategory} 
-                activeMode={activeMode}
-              />
+              <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+                <PopularProducts 
+                  searchQuery={searchQuery} 
+                  category={activeCategory} 
+                  activeMode={activeMode}
+                />
+              </Suspense>
             </div>
           </div>
         ) : (
@@ -177,11 +177,13 @@ export default function ShopyKartApp() {
             </ScrollReveal>
 
             <div className="px-1">
-              <PopularProducts 
-                searchQuery={searchQuery} 
-                category={activeCategory} 
-                activeMode={activeMode}
-              />
+              <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+                <PopularProducts 
+                  searchQuery={searchQuery} 
+                  category={activeCategory} 
+                  activeMode={activeMode}
+                />
+              </Suspense>
             </div>
           </>
         )}
