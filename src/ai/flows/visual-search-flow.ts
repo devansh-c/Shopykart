@@ -27,7 +27,10 @@ export async function identifyFood(input: VisualSearchInput): Promise<VisualSear
   
   try {
     // Dynamic import to hide Genkit from the client-side bundler
-    const { ai } = await import('@/ai/genkit');
+    const { getAI } = await import('@/ai/genkit');
+    const ai = getAI();
+
+    if (!ai || !ai.definePrompt) return { identifiedFood: "Food Item" };
     
     const visualSearchPrompt = ai.definePrompt({
       name: 'visualSearchPrompt',

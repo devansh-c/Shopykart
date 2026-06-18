@@ -1,58 +1,62 @@
-
+/**
+ * @fileOverview Project Packager for Mobile Users.
+ * Bundles the entire project into a ZIP file for easy transport to a PC.
+ */
 import fs from 'fs';
 import path from 'path';
-import archiver from 'jszip'; // Using jszip as it's already in package.json
-import { fileURLToPath } from 'url';
+import JSZip from 'jszip';
 
-/**
- * @fileOverview Script to bundle the entire project into a ZIP file.
- * Excludes heavy folders like node_modules and .next.
- */
+async function packProject() {
+  console.log("📦 Starting ShopyKart Packager...");
+  const zip = new JSZip();
+  const rootDir = process.cwd();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.join(__dirname, '..');
-const zipName = 'shopykart-project.zip';
+  const ignoreList = [
+    'node_modules',
+    '.next',
+    'out',
+    '.git',
+    'shopykart-project.zip',
+    '.DS_Store',
+    'android/app/build',
+    'android/.gradle'
+  ];
 
-async function zipDirectory(sourceDir, outPath) {
-  const zip = new archiver();
-
-  const excludeDirs = ['node_modules', '.next', 'out', '.git', '.firebase'];
-  const excludeFiles = [zipName, '.DS_Store', 'package-lock.json'];
-
-  function addFilesToZip(dir, zipFolder) {
-    const files = fs.readdirSync(dir);
+  function addFolderToZip(folderPath, zipFolder) {
+    const files = fs.readdirSync(folderPath);
 
     for (const file of files) {
-      const filePath = path.join(dir, file);
-      const stat = fs.statSync(filePath);
+      if (ignoreList.includes(file)) continue;
+
+      const fullPath = path.join(folderPath, file);
+      const stat = fs.statSync(fullPath);
 
       if (stat.isDirectory()) {
-        if (!excludeDirs.includes(file)) {
-          addFilesToZip(filePath, zipFolder.folder(file));
-        }
+        const subFolder = zipFolder.folder(file);
+        addFolderToZip(fullPath, subFolder);
       } else {
-        if (!excludeFiles.includes(file)) {
-          const content = fs.readFileSync(filePath);
-          zipFolder.file(file, content);
-        }
+        const content = fs.readFileSync(fullPath);
+        zipFolder.file(file, content);
       }
     }
   }
 
-  console.log('📦 Starting compression...');
-  addFilesToZip(sourceDir, zip);
+  try {
+    addFolderToZip(rootDir, zip);
+    
+    console.log("⚡ Generating ZIP file (this may take a minute)...");
+    const content = await zip.generateAsync({
+      type: "nodebuffer",
+      compression: "DEFLATE",
+      compressionOptions: { level: 9 }
+    });
 
-  const content = await zip.generateAsync({
-    type: 'nodebuffer',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 9 }
-  });
-
-  fs.writeFileSync(outPath, content);
-  console.log(`✅ Success! Project bundled to: ${outPath}`);
+    fs.writeFileSync('shopykart-project.zip', content);
+    console.log("✅ SUCCESS: shopykart-project.zip created!");
+    console.log("👉 Now download it from the sidebar and use it on your PC.");
+  } catch (err) {
+    console.error("❌ Packaging failed:", err);
+  }
 }
 
-zipDirectory(rootDir, path.join(rootDir, zipName)).catch(err => {
-  console.error('❌ Zip Failed:', err);
-});
+packProject();

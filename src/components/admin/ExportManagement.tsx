@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -75,7 +76,6 @@ export function ExportManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
-      {/* Visual Guide Header */}
       <div className="bg-white p-6 rounded-[2rem] border border-primary/20 shadow-sm flex items-center gap-4">
          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <Zap className="h-6 w-6" />
@@ -90,7 +90,6 @@ export function ExportManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* 1. Database ZIP Export */}
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
              <Database className="h-40 w-40" />
@@ -126,7 +125,6 @@ export function ExportManagement() {
           </Button>
         </div>
 
-        {/* 2. Project Source ZIP */}
         <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
              <div className="h-40 w-40 flex items-center justify-center opacity-10">
@@ -140,13 +138,13 @@ export function ExportManagement() {
             </div>
             <div>
               <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code ZIP</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">GitHub Ready Package</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mobile/GitHub Package</p>
             </div>
           </div>
 
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
              <p className="text-[10px] text-gray-400 leading-relaxed font-bold uppercase italic">
-               Terminal mein niche di gayi command chalaein. Phir Sidebar mein <span className="text-white">shopykart-project.zip</span> par Right-Click karke Download karein.
+               Phone users: Terminal mein niche wali command chalaein, phir sidebar se <span className="text-white">shopykart-project.zip</span> download karein.
              </p>
           </div>
 
@@ -163,7 +161,6 @@ export function ExportManagement() {
           </div>
         </div>
 
-        {/* 3. Android App Build */}
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group md:col-span-2">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
              <Smartphone className="h-40 w-40" />
@@ -175,38 +172,42 @@ export function ExportManagement() {
             </div>
             <div>
               <h3 className="text-xl font-black italic uppercase tracking-tighter">Android App (APK)</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Capacitor Native Build</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Native PC Build Instructions</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
              <div className="space-y-4">
                 <p className="text-[11px] font-bold text-gray-600 uppercase leading-relaxed">
-                   ShopyKart ko native Android app banane ke liye niche di gayi steps follow karein:
+                   Mobile se APK nikalne ke liye aapko code PC par le jana hoga:
                 </p>
                 <ul className="space-y-3">
-                   {[
-                     { step: '1', text: 'Build Assets: npm run static-build', cmd: 'npm run static-build' },
-                     { step: '2', text: 'Add Platform: npx cap add android', cmd: 'npx cap add android' },
-                     { step: '3', text: 'Sync Files: npm run cap-sync', cmd: 'npm run cap-sync' },
-                     { step: '4', text: 'Open Studio: npm run cap-open', cmd: 'npm run cap-open' },
-                   ].map((item) => (
-                     <li key={item.step} className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
-                        <div className="flex items-center gap-3">
-                           <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">{item.step}</span>
-                           <span className="text-[10px] font-black uppercase tracking-tight">{item.text}</span>
-                        </div>
-                        <button onClick={() => handleCopyCommand(item.cmd)} className="text-primary hover:bg-primary/10 p-1.5 rounded-lg"><Copy className="h-3.5 w-3.5" /></button>
-                     </li>
-                   ))}
+                   <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+                      <div className="flex items-center gap-3">
+                         <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">1</span>
+                         <span className="text-[10px] font-black uppercase">Run: npm run zip-project</span>
+                      </div>
+                   </li>
+                   <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+                      <div className="flex items-center gap-3">
+                         <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">2</span>
+                         <span className="text-[10px] font-black uppercase">Download ZIP from Sidebar</span>
+                      </div>
+                   </li>
+                   <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+                      <div className="flex items-center gap-3">
+                         <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">3</span>
+                         <span className="text-[10px] font-black uppercase">PC pe Extract karke Android Studio kholin</span>
+                      </div>
+                   </li>
                 </ul>
              </div>
 
-             <div className="bg-green-50 p-6 rounded-[2rem] border border-green-100 flex flex-col justify-center items-center text-center space-y-4">
-                <Smartphone className="h-12 w-12 text-green-600 animate-bounce" />
-                <h4 className="font-black italic uppercase text-green-800">Ready for Play Store</h4>
-                <p className="text-[10px] font-bold text-green-700/70 uppercase leading-relaxed">
-                   Open karne ke baad Android Studio mein "Build &gt; Build Bundle(s) / APK(s) &gt; Build APK" select karein.
+             <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex flex-col justify-center items-center text-center space-y-4">
+                <AlertCircle className="h-12 w-12 text-amber-600 animate-pulse" />
+                <h4 className="font-black italic uppercase text-amber-800">Phone Limit</h4>
+                <p className="text-[10px] font-bold text-amber-700/70 uppercase leading-relaxed">
+                   APK banane ke liye "Gradle" zaroori hai jo sirf Windows/Mac par chalta hai. ZIP download karke PC se finalize karein.
                 </p>
              </div>
           </div>
