@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -9,9 +8,9 @@ import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode, onNavigate }: any) => {
-  // ATOMIC CHECK: Immediate status detection to eliminate lag
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
@@ -62,6 +61,20 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 });
 ProductItem.displayName = "ProductItem";
 
+function ProductSkeleton() {
+  return (
+    <div className="relative bg-white rounded-[2rem] border border-gray-100 p-6 flex justify-between items-start shadow-sm animate-pulse">
+      <div className="flex-1 pr-4">
+        <div className="h-3 w-3 bg-gray-200 rounded-sm mb-3" />
+        <div className="h-6 w-3/4 bg-gray-100 rounded-md mb-2" />
+        <div className="h-4 w-1/4 bg-gray-100 rounded-md mb-4" />
+        <div className="h-3 w-1/2 bg-gray-50 rounded-md" />
+      </div>
+      <div className="w-28 h-28 bg-gray-100 rounded-2xl" />
+    </div>
+  );
+}
+
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [isPending, startTransition] = useTransition();
@@ -81,7 +94,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // Performance Hack: Direct snapshot with no deferral for status changes
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(500));
@@ -130,7 +142,15 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
 
-  if (productsLoading && !dbProducts) return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (productsLoading && !dbProducts) {
+    return (
+      <div className="px-4 py-8 space-y-6">
+        <ProductSkeleton />
+        <ProductSkeleton />
+        <ProductSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-8">
@@ -155,7 +175,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         {productsToDisplay.length === 0 && !productsLoading && (
           <div className="text-center py-20 opacity-30">
             <ShoppingBag className="h-16 w-16 mx-auto mb-4" />
-            <p className="font-black italic uppercase tracking-widest text-xs">No Items Found</p>
+            <p className="font-black italic uppercase tracking-widest text-sm">No Items Found</p>
           </div>
         )}
       </div>

@@ -5,7 +5,6 @@ import {
   Firestore, 
   initializeFirestore, 
   persistentLocalCache, 
-  persistentMultipleTabManager,
   CACHE_SIZE_UNLIMITED
 } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
@@ -17,7 +16,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Optimized for peak efficiency and network resilience in prototype environments.
+ * Using a more resilient cache strategy for mobile/webview environments.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -36,13 +35,12 @@ export function initializeFirebase() {
       // SILENT LOGGING: Prevent internal connection warnings from showing up as UI Errors
       setLogLevel('silent');
 
-      // PEAK PERFORMANCE & RESILIENCE SETTINGS
+      // RESILIENT FIRESTORE INITIALIZATION
+      // experimentalAutoDetectLongPolling is critical for restrictive networks
       firestoreInstance = initializeFirestore(appInstance, {
-        // Enable long polling automatically if web-sockets fail (common in some restricted networks)
         experimentalAutoDetectLongPolling: true,
         useFetchStreams: true, 
         localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
           cacheSizeBytes: CACHE_SIZE_UNLIMITED
         })
       });

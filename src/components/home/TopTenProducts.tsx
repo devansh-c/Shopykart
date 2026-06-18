@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -9,6 +8,7 @@ import { useCart } from "@/components/cart/CartProvider"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function TopTenProducts() {
   const firestore = useFirestore();
@@ -58,7 +58,17 @@ export function TopTenProducts() {
     }).slice(0, 10);
   }, [allTopProducts, vendors, activeZoneId, activeCity]);
 
-  if (loading || filteredTopProducts.length === 0) return null;
+  if (loading && !allTopProducts) {
+    return (
+      <div className="py-6 px-8 flex space-x-12 overflow-x-auto no-scrollbar">
+         {[1, 2, 3].map(i => (
+           <div key={i} className="min-w-[150px] aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse" />
+         ))}
+      </div>
+    );
+  }
+
+  if (filteredTopProducts.length === 0) return null;
 
   return (
     <div className="py-6 overflow-hidden">

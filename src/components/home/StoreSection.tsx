@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, MapPin } from "lucide-react"
@@ -8,10 +7,8 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { useMemo, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
-/**
- * @fileOverview StoreSection with strict location isolation and GPU acceleration.
- */
 export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -52,7 +49,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
           targetCityNormalized.startsWith(vTown)
         );
 
-        // Strict exclusion between major cities
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
 
@@ -71,9 +67,13 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
   if (loading && !dbVendors) {
     return (
-      <div className="py-2 px-4 flex space-x-4 overflow-hidden">
+      <div className="py-2 px-6 flex space-x-6 overflow-x-auto no-scrollbar">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-white rounded-3xl h-64 min-w-[280px] shadow-sm border animate-pulse" />
+          <div key={i} className="min-w-[280px] h-64 bg-white rounded-3xl border shadow-sm p-4 animate-pulse">
+            <div className="h-36 bg-gray-100 rounded-2xl mb-4" />
+            <div className="h-6 bg-gray-100 rounded-md w-3/4 mb-2" />
+            <div className="h-4 bg-gray-50 rounded-md w-1/2" />
+          </div>
         ))}
       </div>
     );
@@ -118,7 +118,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
 
               <div className="p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-lg font-black text-foreground italic tracking-tight truncate leading-tight mr-2">{store.storeName}</h3>
+                  <h3 className="text-lg font-black text-foreground italic tracking-tight truncate leading-tight mr-2 uppercase">{store.storeName}</h3>
                   <div className="flex items-center gap-1 text-muted-foreground text-[7px] font-black uppercase tracking-widest bg-muted/50 px-1.5 py-0.5 rounded-full shrink-0">
                     <MapPin className="h-1.5 w-1.5 text-primary" />
                     {store.town || 'Local'}
