@@ -16,7 +16,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 
   return (
     <div className={cn(
-      "relative bg-white rounded-[2rem] border border-gray-100 transition-all duration-300 will-change-transform transform-gpu p-6 flex justify-between items-start shadow-sm",
+      "relative bg-white rounded-[2rem] border border-gray-100 transition-all duration-300 will-change-transform transform-gpu p-6 flex justify-between items-start shadow-sm hover:shadow-md",
       isOffline && "opacity-60 grayscale-[0.5]"
     )}>
       <div className="flex-1 pr-4 min-w-0">
@@ -31,7 +31,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
         </div>
       </div>
       <div className="relative w-28 h-28 shrink-0">
-        <div onClick={() => !isOffline && onNavigate(product.id)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner cursor-pointer">
+        <div onClick={() => !isOffline && onNavigate(product.id)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner cursor-pointer transform-gpu">
           <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
           {isOffline && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center transition-opacity animate-in fade-in duration-300">
@@ -153,7 +153,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }
 
   return (
-    <div className="px-4 py-8">
+    <div className="px-4 py-8 content-visibility-auto">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
       </div>

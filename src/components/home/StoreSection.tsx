@@ -5,11 +5,11 @@ import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { useMemo, useState, useEffect } from "react"
+import React, { useMemo, useState, useEffect, memo } from "react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
+export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
   if (filteredVendors.length === 0 && !loading) return null;
 
   return (
-    <div className="py-2 content-visibility-auto">
+    <div className="py-2 content-visibility-auto transform-gpu">
       <div className="flex items-center justify-between mb-4 px-6">
         <h2 className="text-2xl font-black tracking-tighter uppercase italic text-foreground">
           {activeMode} Stores
@@ -99,7 +99,7 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
               href={`/menu?vendor=${store.id}`}
               key={store.id} 
               className={cn(
-                "block min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-none active:scale-[0.98] shrink-0 will-change-transform translate-z-0",
+                "block min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-none active:scale-[0.98] shrink-0 will-change-transform transform-gpu",
                 isOffline && "opacity-80"
               )}
             >
@@ -140,4 +140,6 @@ export function StoreSection({ activeMode = 'Food' }: { activeMode?: string }) {
       </div>
     </div>
   );
-}
+});
+
+StoreSection.displayName = "StoreSection";

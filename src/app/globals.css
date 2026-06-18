@@ -43,13 +43,15 @@
     min-height: 100vh;
     overscroll-behavior-y: none;
     scroll-behavior: smooth;
+    /* Smooth momentum scrolling for mobile */
+    -webkit-overflow-scrolling: touch;
   }
 
   input, textarea, [contenteditable] {
     user-select: text !important;
   }
   
-  /* NUCLEAR PERFORMANCE ENGINE v3 - Scroll Isolation */
+  /* NUCLEAR PERFORMANCE ENGINE v4 - Scroll Isolation */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 500px;
@@ -93,8 +95,8 @@
   contain: content;
   transform: translateZ(0);
   will-change: transform;
-  /* Simplified shadow for performance */
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  /* Optimized subtle shadow for high-fps scrolling */
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.04);
 }
 
 nav.fixed {
