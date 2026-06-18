@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -324,7 +325,7 @@ export default function CartPage() {
     } else {
       executeOrderPlacement();
     }
-  }, [totalPrice, customerName, customerPhone, customerAddress, paymentMethod, toast]);
+  }, [totalPrice, customerName, customerPhone, customerAddress, paymentMethod, toast, executeOrderPlacement]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponInput.trim()) return;
@@ -421,16 +422,6 @@ export default function CartPage() {
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
-          <h3 className="text-sm font-black text-gray-800 uppercase italic">Appreciate Partner</h3>
-          <div className="flex gap-3">
-            {[10, 20, 30].map(tip => (
-              <button key={tip} onClick={() => setDeliveryTip(tip)} className={cn("relative flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip === tip ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>₹{tip}{tip === 20 && (<span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[6px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white">MOST TIPPED</span>)}</button>
-            ))}
-            <button onClick={() => setIsCustomTipOpen(true)} className={cn("flex-1 h-11 rounded-xl border-2 font-black text-[10px] transition-all", deliveryTip > 30 ? "border-primary bg-primary/5 text-primary" : "border-gray-50 bg-gray-50 text-gray-400")}>{deliveryTip > 30 ? `₹${deliveryTip}` : 'CUSTOM'}</button>
-          </div>
-        </div>
-
         <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-4">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
@@ -443,14 +434,6 @@ export default function CartPage() {
             {deliveryTip > 0 && <div className="flex justify-between font-black text-[11px] text-amber-500 uppercase tracking-widest"><span>Partner Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
           </div>
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-5 scroll-mt-20">
-          <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div onClick={() => setPaymentMethod('online')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}><CreditCard className={cn("h-6 w-6", paymentMethod === 'online' ? "text-primary" : "text-gray-300")} /><span className="text-[9px] font-black uppercase tracking-widest">Online Pay</span></div>
-            <div onClick={() => setPaymentMethod('cash')} className={cn("p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2", paymentMethod === 'cash' ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50")}><Banknote className={cn("h-6 w-6", paymentMethod === 'cash' ? "text-primary" : "text-gray-300")} /><span className="text-[9px] font-black uppercase tracking-widest">Cash on Delivery</span></div>
-          </div>
         </div>
       </div>
 
@@ -489,17 +472,12 @@ export default function CartPage() {
               </div>
               <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
-           {/* ISOLATED SLIDER ENGINE v2 */}
            <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isVerifyingPayment} />
         </div>
       </div>
       
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent>
-      </Dialog>
-      
-      <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-xs p-8 text-center"><DialogHeader><DialogTitle className="font-black uppercase italic text-sm">Appreciation Amount</DialogTitle></DialogHeader><Input type="number" placeholder="₹ 0.00" value={customTipValue} onChange={e => setCustomTipValue(e.target.value)} className="h-16 text-center text-3xl font-black italic text-primary bg-gray-50 border-none rounded-2xl mt-4" /><Button onClick={() => { setDeliveryTip(parseFloat(customTipValue) || 0); setIsCustomTipOpen(false); }} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic mt-4 shadow-xl">APPLY TIP</Button></DialogContent>
       </Dialog>
     </div>
   );

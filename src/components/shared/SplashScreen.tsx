@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,7 +11,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with absolute fail-safe dismissal.
- * Ensures it disappears within 3 seconds regardless of app-ready state,
+ * Ensures it disappears within 3.5 seconds regardless of app-ready state,
  * preventing hangs in APK/WebView environments.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
@@ -26,9 +27,8 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     setMounted(true);
     
     // 1. MINIMUM VISIBILITY TIMER
-    // Prevents splash from flickering too fast
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const minDuration = isReturning ? 400 : 1200;
+    const minDuration = isReturning ? 600 : 1500;
     
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
@@ -46,27 +46,21 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     };
   }, []);
 
-  // Update visibility based on Prop OR Timer
-  // Prop Logic: Hide only if timer is done AND app is ready
   useEffect(() => {
     if (isTimerDone && isAppReady) {
       setIsActuallyVisible(false);
     }
   }, [isTimerDone, isAppReady]);
 
-  // Handle actual unmounting after exit animation
   useEffect(() => {
     if (!isActuallyVisible) {
       document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-      
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
       }, 800);
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
     }
   }, [isActuallyVisible]);
 
@@ -87,7 +81,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out touch-none select-none h-screen w-screen",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out h-screen w-screen",
         isActuallyVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >

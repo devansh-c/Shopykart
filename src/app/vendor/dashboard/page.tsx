@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -56,8 +57,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { toJpeg } from 'html-to-image';
-import { saveAs } from 'file-saver';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -75,6 +74,8 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
 
+  useEffect(() => { setIsMounted(true); }, []);
+
   // Vendor Profile
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -84,7 +85,7 @@ export default function VendorDashboard() {
 
   // AUTH GUARD
   useEffect(() => {
-    if (!authLoading && !profileLoading) {
+    if (!authLoading && !profileLoading && isMounted) {
       if (!user) {
         router.replace('/vendor/login');
       } else if (!vendorProfile) {
@@ -92,7 +93,7 @@ export default function VendorDashboard() {
         router.replace('/vendor/login');
       }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router, toast]);
+  }, [user, authLoading, vendorProfile, profileLoading, router, toast, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -102,8 +103,6 @@ export default function VendorDashboard() {
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-
-  useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
     if (vendorProfile) {
@@ -139,12 +138,6 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
 
-  const payoutQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
-  }, [firestore, user]);
-  const { data: payouts } = useCollection<any>(payoutQuery);
-
   const orders = useMemo(() => {
     if (!rawOrders || !user) return [];
     return rawOrders.filter((o: any) => {
@@ -159,25 +152,14 @@ export default function VendorDashboard() {
       const batch = writeBatch(firestore);
       batch.update(doc(firestore, 'vendors', user.uid), { isOnline: online, updatedAt: serverTimestamp() });
       if (myProducts) {
-        myProducts.forEach(p => { batch.set(doc(firestore, 'products', p.id), { isAvailable: online }, { merge: true }); });
+        myProducts.forEach(p => { 
+          batch.set(doc(firestore, 'products', p.id), { isAvailable: online }, { merge: true }); 
+          batch.set(doc(firestore, 'vendors', user.uid, 'products', p.id), { isAvailable: online }, { merge: true });
+        });
       }
       await batch.commit();
       toast({ title: online ? "Store Open! 🟢" : "Store Closed 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
-  };
-
-  const handleAddVariety = () => {
-    setProductProductForm({ ...productForm, options: [...productForm.options, { name: '', price: 0 }] });
-  };
-
-  const handleRemoveVariety = (idx: number) => {
-    setProductProductForm({ ...productForm, options: productForm.options.filter((_, i) => i !== idx) });
-  };
-
-  const handleUpdateVariety = (idx: number, field: string, val: any) => {
-    const newOptions = [...productForm.options];
-    newOptions[idx] = { ...newOptions[idx], [field]: field === 'price' ? parseFloat(val) || 0 : val };
-    setProductProductForm({ ...productForm, options: newOptions });
   };
 
   const handleSaveProduct = async () => {
@@ -194,22 +176,19 @@ export default function VendorDashboard() {
       isAvailable: vendorProfile.isOnline !== false, updatedAt: serverTimestamp()
     };
     try {
-      if (editingProduct) { await setDoc(doc(firestore, 'products', editingProduct.id), productData, { merge: true }); }
-      else { const newRef = doc(collection(firestore, 'products')); await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() }); }
+      if (editingProduct) { 
+        await setDoc(doc(firestore, 'products', editingProduct.id), productData, { merge: true }); 
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingProduct.id), productData, { merge: true });
+      }
+      else { 
+        const newRef = doc(collection(firestore, 'products')); 
+        await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() }); 
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
+      }
       setIsProductModalOpen(false);
       toast({ title: "Product Saved!" });
     } catch (e) { toast({ variant: "destructive", title: "Error" }); }
     finally { setIsSavingProduct(false); }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!firestore || !user) return;
-    setIsSavingProfile(true);
-    try {
-      await updateDoc(doc(firestore, 'vendors', user.uid), { fullName: profileForm.fullName, address: profileForm.address, updatedAt: serverTimestamp() });
-      toast({ title: "Profile Updated!" });
-    } catch (e) { toast({ variant: "destructive", title: "Failed" }); }
-    finally { setIsSavingProfile(false); }
   };
 
   const filteredOrders = useMemo(() => {
@@ -252,7 +231,7 @@ export default function VendorDashboard() {
                   filteredOrders?.length > 0 ? filteredOrders.map(o => (
                     <div key={o.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm mb-4">
                       <div className="flex justify-between items-center mb-4">
-                          <div><span className="text-lg font-black italic">#{o.orderDisplayId || o.id.slice(-4)}</span><div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{format(new Date(o.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div></div>
+                          <div><span className="text-lg font-black italic">#{o.orderDisplayId || o.id.slice(-4)}</span><div className="flex items-center gap-1 text-[8px] font-black text-gray-400 uppercase mt-0.5"><Clock className="h-2.5 w-2.5" />{o.createdAt?.seconds ? format(new Date(o.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Recently'}</div></div>
                           <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : o.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-primary/10 text-primary")}>{o.status}</Badge>
                       </div>
                       <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
@@ -277,22 +256,6 @@ export default function VendorDashboard() {
               </div>
             )}
 
-            {activeMainTab === 'payouts' && (
-              <div className="p-4 space-y-6 animate-in fade-in duration-500">
-                  <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-1"><Wallet className="h-4 w-4 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Balance</span></div>
-                        <h3 className="text-5xl font-black italic tracking-tighter">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</h3>
-                    </div>
-                    <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-10" />
-                  </div>
-                  <div className="space-y-4">
-                    <h2 className="text-sm font-black uppercase tracking-widest text-gray-800 ml-1">History</h2>
-                    {payouts?.map(p => (<div key={p.id} className="bg-white p-5 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><div className="h-11 w-11 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><ArrowUpRight className="h-6 w-6" /></div><div><h4 className="font-black text-sm italic uppercase">{p.note || 'Settlement'}</h4><p className="text-[9px] font-bold text-muted-foreground uppercase">{p.date?.seconds ? format(new Date(p.date.seconds * 1000), 'MMM d, yyyy') : 'Recent'}</p></div></div><div className="text-right"><span className="text-lg font-black text-green-600">+₹{p.amount}</span></div></div>))}
-                  </div>
-              </div>
-            )}
-
             {activeMainTab === 'account' && (
               <div className="p-4 space-y-6 animate-in fade-in duration-500">
                   <div className="flex flex-col items-center py-8">
@@ -303,7 +266,7 @@ export default function VendorDashboard() {
                   <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
                     <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    <Button onClick={handleSaveProfile} disabled={isSavingProfile} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
+                    <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated'}); }} disabled={isSavingProfile} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
                     <Button variant="ghost" onClick={() => { signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
                   </div>
               </div>
@@ -324,51 +287,6 @@ export default function VendorDashboard() {
           </button>
         ))}
       </nav>
-
-      <Dialog open={isProductModalOpen} onOpenChange={setIsProductModalOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none border-none p-0">
-           <DialogHeader className="p-6 pb-2 border-b"><DialogTitle className="font-black italic uppercase text-center text-xl">Manager</DialogTitle></DialogHeader>
-           <div className="p-6 space-y-6">
-              <div onClick={() => fileInputRef.current?.click()} className="h-44 border-2 border-dashed rounded-3xl flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer">{productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="text-center opacity-30"><ImageIcon className="h-8 w-8 mx-auto mb-2" /><span className="text-[10px] font-black uppercase">Upload Photo</span></div>}</div>
-              <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setProductProductForm({...productForm, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
-              <div className="space-y-4">
-                <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/30 border-none" />
-                <div className="grid grid-cols-2 gap-3">
-                   <Input placeholder="MRP" type="number" value={productForm.mrp} onChange={e => setProductProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none" />
-                   <Input placeholder="Price" type="number" value={productForm.price} onChange={e => setProductProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40" />
-                </div>
-                <Select value={productForm.category} onValueChange={(val) => setProductProductForm({...productForm, category: val})}>
-                  <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
-                  <SelectContent className="rounded-2xl">{filteredCategories.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-[10px]">{cat.name}</SelectItem>))}</SelectContent>
-                </Select>
-                <Textarea placeholder="Details" value={productForm.description} onChange={e => setProductProductForm({...productForm, description: e.target.value})} className="rounded-xl bg-muted/30 border-none h-24 p-4 text-xs" />
-
-                <div className="pt-4 border-t border-dashed">
-                   <div className="flex items-center justify-between mb-3">
-                      <div className="flex flex-col">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Varieties</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[8px] font-bold uppercase text-primary">Required?</span>
-                          <Switch checked={productForm.isVarietyRequired} onCheckedChange={(v) => setProductProductForm({...productForm, isVarietyRequired: v})} className="scale-50 data-[state=checked]:bg-primary" />
-                        </div>
-                      </div>
-                      <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-primary/5 text-primary font-black uppercase text-[8px] border border-primary/10">Add Variety</button>
-                   </div>
-                   <div className="space-y-2">
-                      {productForm.options.map((opt, i) => (
-                        <div key={i} className="flex gap-2 bg-muted/20 p-2 rounded-xl border border-border/50">
-                           <Input placeholder="Name" value={opt.name} onChange={e => handleUpdateVariety(i, 'name', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px]" />
-                           <Input placeholder="Extra" type="number" value={opt.price} onChange={e => handleUpdateVariety(i, 'price', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px] w-20" />
-                           <button onClick={() => handleRemoveVariety(i)} className="text-red-400 p-1"><X className="h-4 w-4" /></button>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-              </div>
-              <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary rounded-3xl font-black uppercase italic shadow-xl text-white">{isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProduct ? 'UPDATE' : 'PUBLISH'}</Button>
-           </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
