@@ -1,10 +1,9 @@
 /**
  * @fileOverview This file defines a Genkit flow for generating personalized food offers and promotions.
- * Updated for Static Export compatibility: Removed 'use server' and returns fallbacks in browser.
+ * Optimized for Static Export: Removed top-level Genkit imports to prevent build errors in APK.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from '@/ai/genkit';
 
 const PersonalizedOfferSuggestionsInputSchema = z.object({
   userId: z.string().describe('The ID of the user requesting personalized offers.'),
@@ -46,44 +45,35 @@ const fallbackOffers: PersonalizedOfferSuggestionsOutput = {
   ]
 };
 
+/**
+ * Generates personalized offers.
+ * In a static APK environment, returns fallback offers to prevent Node.js dependency errors.
+ */
 export async function getPersonalizedOfferSuggestions(input: PersonalizedOfferSuggestionsInput): Promise<PersonalizedOfferSuggestionsOutput> {
-  // Browser check: Genkit flows require a server environment.
-  // In static export (APK), we return fallbacks to prevent build/runtime errors.
+  // Browser/APK check: Return fallbacks immediately
   if (typeof window !== 'undefined') {
     return fallbackOffers;
   }
   
   try {
-    return await personalizedOfferSuggestionsFlow(input);
+    // Dynamic import to hide Genkit from the client-side bundler
+    const { ai } = await import('@/ai/genkit');
+
+    const offerSuggestionPrompt = ai.definePrompt({
+      name: 'personalizedOfferSuggestionPrompt',
+      input: { schema: PersonalizedOfferSuggestionsInputSchema },
+      output: { schema: PersonalizedOfferSuggestionsOutputSchema },
+      prompt: `You are an AI assistant for ShopyKart. Generate 3-5 personalized food offers for:
+    User: {{{userId}}}
+    Orders: {{{pastOrdersSummary}}}
+    Browsing: {{{browsingHistorySummary}}}
+    Ensure validUntil is a future date.`,
+    });
+
+    const { output } = await offerSuggestionPrompt(input);
+    return output || fallbackOffers;
   } catch (error) {
-    console.error("AI Service Busy, using fallback offers:", error);
+    console.error("AI Offer generation failed, using fallbacks:", error);
     return fallbackOffers;
   }
 }
-
-const offerSuggestionPrompt = ai.definePrompt({
-  name: 'personalizedOfferSuggestionPrompt',
-  input: { schema: PersonalizedOfferSuggestionsInputSchema },
-  output: { schema: PersonalizedOfferSuggestionsOutputSchema },
-  prompt: `You are an AI assistant for ShopyKart. Generate 3-5 personalized food offers for:
-User: {{{userId}}}
-Orders: {{{pastOrdersSummary}}}
-Browsing: {{{browsingHistorySummary}}}
-Ensure validUntil is a future date.`,
-});
-
-const personalizedOfferSuggestionsFlow = ai.defineFlow(
-  {
-    name: 'personalizedOfferSuggestionsFlow',
-    inputSchema: PersonalizedOfferSuggestionsInputSchema,
-    outputSchema: PersonalizedOfferSuggestionsOutputSchema,
-  },
-  async (input) => {
-    try {
-      const { output } = await offerSuggestionPrompt(input);
-      return output || fallbackOffers;
-    } catch (e) {
-      return fallbackOffers;
-    }
-  }
-);

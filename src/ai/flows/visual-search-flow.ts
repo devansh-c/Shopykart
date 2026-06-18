@@ -1,10 +1,9 @@
 /**
  * @fileOverview This file defines a Genkit flow for identifying food items from a photo.
- * Updated for Static Export compatibility: Removed 'use server' and returns fallbacks in browser.
+ * Optimized for Static Export: Removed top-level Genkit imports to prevent build errors in APK.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from '@/ai/genkit';
 
 const VisualSearchInputSchema = z.object({
   photoDataUri: z.string().describe("A photo of a food item as a data URI."),
@@ -16,36 +15,33 @@ const VisualSearchOutputSchema = z.object({
 });
 export type VisualSearchOutput = z.infer<typeof VisualSearchOutputSchema>;
 
+/**
+ * Identifies food from an image. 
+ * In a static APK environment, returns a fallback to prevent Node.js dependency errors.
+ */
 export async function identifyFood(input: VisualSearchInput): Promise<VisualSearchOutput> {
-  // Browser check: Genkit flows require a server environment.
+  // Browser/APK check: Return fallback immediately
   if (typeof window !== 'undefined') {
     return { identifiedFood: "Food Item" };
   }
   
   try {
-    return await visualSearchFlow(input);
+    // Dynamic import to hide Genkit from the client-side bundler
+    const { ai } = await import('@/ai/genkit');
+    
+    const visualSearchPrompt = ai.definePrompt({
+      name: 'visualSearchPrompt',
+      input: { schema: VisualSearchInputSchema },
+      output: { schema: VisualSearchOutputSchema },
+      prompt: `Identify the main food item in this image. Return only the name of the food item (e.g., "Burger", "Pizza", "Pasta", "Fries"). Be concise.
+    
+    Image: {{media url=photoDataUri}}`,
+    });
+
+    const { output } = await visualSearchPrompt(input);
+    return output || { identifiedFood: "Food Item" };
   } catch (error) {
+    console.error("AI Identification failed:", error);
     return { identifiedFood: "Food Item" };
   }
 }
-
-const visualSearchPrompt = ai.definePrompt({
-  name: 'visualSearchPrompt',
-  input: { schema: VisualSearchInputSchema },
-  output: { schema: VisualSearchOutputSchema },
-  prompt: `Identify the main food item in this image. Return only the name of the food item (e.g., "Burger", "Pizza", "Pasta", "Fries"). Be concise.
-
-Image: {{media url=photoDataUri}}`,
-});
-
-const visualSearchFlow = ai.defineFlow(
-  {
-    name: 'visualSearchFlow',
-    inputSchema: VisualSearchInputSchema,
-    outputSchema: VisualSearchOutputSchema,
-  },
-  async (input) => {
-    const { output } = await visualSearchPrompt(input);
-    return output!;
-  }
-);

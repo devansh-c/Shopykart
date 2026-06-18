@@ -1,10 +1,9 @@
 /**
  * @fileOverview Smart Basket AI flow to generate recipes and suggested shopping lists.
- * Updated for Static Export compatibility: Removed 'use server' and returns fallbacks in browser.
+ * Optimized for Static Export: Removed top-level Genkit imports to prevent build errors in APK.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from '@/ai/genkit';
 
 const SmartBasketInputSchema = z.object({
   dishName: z.string().describe('The name of the dish the user wants to cook.'),
@@ -31,8 +30,12 @@ const fallbackData: SmartBasketOutput = {
   shoppingList: ["Cooking Oil", "Spices", "Fresh Vegetables", "Dairy Products"]
 };
 
+/**
+ * Gets smart basket details.
+ * In a static APK environment, returns fallback data to prevent Node.js dependency errors.
+ */
 export async function getSmartBasketDetails(input: SmartBasketInput): Promise<SmartBasketOutput> {
-  // Browser check: Genkit flows require a server environment.
+  // Browser/APK check: Return fallbacks immediately
   if (typeof window !== 'undefined') {
     return {
       ...fallbackData,
@@ -42,48 +45,35 @@ export async function getSmartBasketDetails(input: SmartBasketInput): Promise<Sm
   }
 
   try {
-    return await smartBasketFlow(input);
+    // Dynamic import to hide Genkit from the client-side bundler
+    const { ai } = await import('@/ai/genkit');
+
+    const smartBasketPrompt = ai.definePrompt({
+      name: 'smartBasketPrompt',
+      input: {schema: SmartBasketInputSchema},
+      output: {schema: SmartBasketOutputSchema},
+      system: `You are the "ShopyKart Master Chef", an AI specialized in Indian and global cuisines.
+    Your expertise lies in breaking down complex dishes into simple, home-cookable steps.
+    You also understand the Indian grocery market perfectly and know exactly which brands (like Amul, Everest, MDH, Tata Salt, Daawat Basmati) are best for each dish.`,
+      prompt: `The user wants to prepare: "{{{dishName}}}".
+    
+    As an expert chef, provide a high-quality guide.
+    
+    1. **Recipe Title**: Give it a professional name (e.g., "Restaurant Style Paneer Butter Masala").
+    2. **Ingredients**: List everything needed including spices and small details.
+    3. **Cooking Steps**: Write 4-6 clear, numbered steps. Use culinary terms but keep it simple.
+    4. **ShopyKart Shopping List**: This is crucial. Suggest 4-6 specific items the user should buy from our app. 
+       - Instead of just "Butter", say "Amul Salted Butter".
+       - Instead of "Spices", say "Everest Tikhalal" or "MDH Kitchen King".
+       - Instead of "Rice", say "Daawat Rozana Basmati".
+    
+    Make sure the shopping list items are things a user can actually find in a high-end Indian grocery store.`,
+    });
+
+    const { output } = await smartBasketPrompt(input);
+    return output || fallbackData;
   } catch (error) {
-    console.error("AI Service busy, providing dynamic fallback for:", input.dishName);
-    return {
-      ...fallbackData,
-      recipeTitle: `ShopyKart ${input.dishName} Special`,
-      shoppingList: [`Fresh ${input.dishName} Base`, "Amul Butter", "Everest Spices", "Organic Veggies"]
-    };
+    console.error("AI Service busy, using fallback for:", input.dishName);
+    return fallbackData;
   }
 }
-
-const smartBasketPrompt = ai.definePrompt({
-  name: 'smartBasketPrompt',
-  input: {schema: SmartBasketInputSchema},
-  output: {schema: SmartBasketOutputSchema},
-  system: `You are the "ShopyKart Master Chef", an AI specialized in Indian and global cuisines.
-Your expertise lies in breaking down complex dishes into simple, home-cookable steps.
-You also understand the Indian grocery market perfectly and know exactly which brands (like Amul, Everest, MDH, Tata Salt, Daawat Basmati) are best for each dish.`,
-  prompt: `The user wants to prepare: "{{{dishName}}}".
-
-As an expert chef, provide a high-quality guide.
-
-1. **Recipe Title**: Give it a professional name (e.g., "Restaurant Style Paneer Butter Masala").
-2. **Ingredients**: List everything needed including spices and small details.
-3. **Cooking Steps**: Write 4-6 clear, numbered steps. Use culinary terms but keep it simple.
-4. **ShopyKart Shopping List**: This is crucial. Suggest 4-6 specific items the user should buy from our app. 
-   - Instead of just "Butter", say "Amul Salted Butter".
-   - Instead of "Spices", say "Everest Tikhalal" or "MDH Kitchen King".
-   - Instead of "Rice", say "Daawat Rozana Basmati".
-
-Make sure the shopping list items are things a user can actually find in a high-end Indian grocery store.`,
-});
-
-const smartBasketFlow = ai.defineFlow(
-  {
-    name: 'smartBasketFlow',
-    inputSchema: SmartBasketInputSchema,
-    outputSchema: SmartBasketOutputSchema,
-  },
-  async input => {
-    const {output} = await smartBasketPrompt(input);
-    if (!output) throw new Error("No output from AI");
-    return output;
-  }
-);
