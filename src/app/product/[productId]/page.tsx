@@ -1,38 +1,23 @@
-
-import ProductDetailsClient from '@/components/product/ProductDetailsClient';
-import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Server Component wrapper for Product details.
- * Corrected naming and async param handling to prevent ISE.
+ * @fileOverview Next.js 15 Compliant Redirect Page.
+ * Handles dynamic segments by redirecting to a static view with query params.
  */
-
-export async function generateStaticParams() {
-  return [
-    { productId: 'featured' },
-    { productId: 'latest' },
-    { productId: 'trending' }
-  ];
-}
-
-export const dynamic = 'force-static';
-export const dynamicParams = false;
-
-interface PageProps {
+export default async function ProductIdPage({
+  params,
+}: {
   params: Promise<{ productId: string }>;
-}
-
-export default async function ProductDynamicPage({ params }: PageProps) {
+}) {
   const { productId } = await params;
-
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    }>
-      <ProductDetailsClient forcedId={productId} />
-    </Suspense>
-  );
+  
+  if (productId) {
+    redirect(`/product/view?id=${productId}`);
+  }
+  
+  redirect('/');
 }
+
+// Ensure build time optimization
+export const dynamic = 'force-static';
+export const revalidate = false;

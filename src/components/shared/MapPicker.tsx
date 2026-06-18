@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -7,33 +8,24 @@ import {
   useMapEvents,
   useMap
 } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
 import { Check, Navigation, Loader2, Crosshair } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Component to handle map centering and resizing
 function MapManager({ targetPos }: { targetPos: [number, number] }) {
   const map = useMap();
-  
   useEffect(() => {
     if (!map) return;
-    
-    // Use panTo for smoother and more precise movement than setView
     map.panTo(targetPos, { animate: true, duration: 0.5 });
-    
     const timer = setTimeout(() => {
       map.invalidateSize();
     }, 400);
-
     return () => clearTimeout(timer);
   }, [targetPos, map]);
-  
   return null;
 }
 
-// Component to track map center and update coordinates
 function CenterTracker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
   const map = useMapEvents({
     moveend() {
@@ -60,14 +52,13 @@ function CenterTracker({ onPositionChange }: { onPositionChange: (pos: [number, 
 }
 
 export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng: number) => void }) {
-  // Default to area center (Ranipur)
   const [currentPos, setCurrentPos] = useState<[number, number]>([25.2443, 79.0838]);
   const [isLocating, setIsLocating] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
-  const mapRef = useRef<L.Map | null>(null);
 
-  // Initial GPS fetch on mount
   useEffect(() => {
+    setIsReady(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCurrentPos([pos.coords.latitude, pos.coords.longitude]),
@@ -79,42 +70,25 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
 
   const handleLocateMe = useCallback(() => {
     if (!navigator.geolocation) {
-      toast({ 
-        variant: "destructive", 
-        title: "Not Supported", 
-        description: "GPS is not available on this device." 
-      });
+      toast({ variant: "destructive", title: "Not Supported" });
       return;
     }
-
     setIsLocating(true);
-    
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const newCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setCurrentPos(newCoords);
+        setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
         setIsLocating(false);
         toast({ title: "GPS Position Fixed! 📍" });
       },
       (err) => {
         setIsLocating(false);
-        let msg = "Please enable location in settings.";
-        if (err.code === 1) msg = "Location access denied.";
-        if (err.code === 3) msg = "GPS signal weak. Try moving near a window.";
-        
-        toast({ 
-          variant: "destructive", 
-          title: "Position Failed", 
-          description: msg 
-        });
+        toast({ variant: "destructive", title: "Position Failed" });
       },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 10000, 
-        maximumAge: 0 
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }, [toast]);
+
+  if (!isReady) return <div className="h-full w-full bg-muted animate-pulse flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="h-full w-full relative bg-gray-100">
@@ -123,33 +97,19 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
         zoom={17} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
-        ref={mapRef}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapManager targetPos={currentPos} />
         <CenterTracker onPositionChange={setCurrentPos} />
       </MapContainer>
       
-      {/* Floating Precision Locate Button */}
       <button 
         onClick={handleLocateMe}
         disabled={isLocating}
-        className="absolute top-4 right-4 z-[1000] bg-white h-12 w-12 rounded-2xl shadow-2xl border border-border flex items-center justify-center text-primary active:scale-90 transition-all hover:bg-gray-50"
+        className="absolute top-4 right-4 z-[1000] bg-white h-12 w-12 rounded-2xl shadow-2xl border border-border flex items-center justify-center text-primary active:scale-90 transition-all"
       >
-        {isLocating ? (
-          <Loader2 className="h-6 w-6 animate-spin" />
-        ) : (
-          <Crosshair className="h-6 w-6" />
-        )}
+        {isLocating ? <Loader2 className="h-6 w-6 animate-spin" /> : <Crosshair className="h-6 w-6" />}
       </button>
-
-      {/* Accuracy Guide */}
-      <div className="absolute top-4 left-4 z-[1000] pointer-events-none">
-        <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[8px] font-black text-white uppercase tracking-widest">Live Precision Map</span>
-        </div>
-      </div>
 
       <div className="absolute bottom-6 left-0 right-0 px-6 z-[1000] space-y-3">
         <Button 
@@ -159,10 +119,6 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
           <Check className="h-5 w-5 mr-3" />
           CONFIRM PIN LOCATION
         </Button>
-        
-        <p className="text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.3em] bg-white/80 backdrop-blur-sm py-1 rounded-full w-fit mx-auto px-4">
-          Move map to adjust exact spot
-        </p>
       </div>
     </div>
   );

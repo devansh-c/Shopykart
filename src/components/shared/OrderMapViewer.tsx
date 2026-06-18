@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -6,34 +7,20 @@ import {
   Marker, 
   useMap 
 } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect } from 'react';
-
-// Custom Marker Icon for pinpoint accuracy
-const markerIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-  iconSize: [45, 45],
-  iconAnchor: [22, 45],
-  popupAnchor: [0, -45],
-});
+import { useEffect, useState } from 'react';
 
 function MapResizer({ lat, lng }: { lat: number, lng: number }) {
   const map = useMap();
   useEffect(() => {
     if (!map) return;
-
     if (lat && lng) {
       map.setView([lat, lng], 17);
-      
-      // Essential for React-Leaflet inside Modals/Dialogs
-      // Added safety check and cleanup to prevent "_leaflet_pos" undefined error
       const timer = setTimeout(() => {
         if (map && (map as any)._container) {
           map.invalidateSize();
         }
       }, 400);
-
       return () => clearTimeout(timer);
     }
   }, [lat, lng, map]);
@@ -46,6 +33,25 @@ type OrderMapViewerProps = {
 };
 
 export default function OrderMapViewer({ lat, lng }: OrderMapViewerProps) {
+  const [icon, setIcon] = useState<any>(null);
+
+  useEffect(() => {
+    // Dynamic import to prevent SSR crash
+    const initLeaflet = async () => {
+      const L = (await import('leaflet')).default;
+      const markerIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+        iconSize: [45, 45],
+        iconAnchor: [22, 45],
+        popupAnchor: [0, -45],
+      });
+      setIcon(markerIcon);
+    };
+    initLeaflet();
+  }, []);
+
+  if (!icon) return <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />;
+
   return (
     <div className="h-full w-full">
       <MapContainer 
@@ -59,7 +65,7 @@ export default function OrderMapViewer({ lat, lng }: OrderMapViewerProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <MapResizer lat={lat} lng={lng} />
-        <Marker position={[lat, lng]} icon={markerIcon} />
+        <Marker position={[lat, lng]} icon={icon} />
       </MapContainer>
     </div>
   );
