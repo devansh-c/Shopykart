@@ -16,16 +16,20 @@ import {
   MessageCircle,
   Plus,
   Minus,
-  Mail
+  Mail,
+  Send,
+  Zap,
+  Users
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 export function CustomerManagement() {
   const firestore = useFirestore();
@@ -35,11 +39,15 @@ export function CustomerManagement() {
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Bulk WhatsApp State
+  const [isBulkMsgOpen, setIsBulkMsgOpen] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [sendingIndex, setSendingIndex] = useState(-1);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Fetch all users ordered by newest first
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
@@ -52,31 +60,19 @@ export function CustomerManagement() {
     return users.filter(u => {
       const name = (u.fullName || '').toLowerCase();
       const phone = (u.phoneNumber || '');
-      const email = (u.email || '').toLowerCase();
-      const city = (u.city || '').toLowerCase();
-      const pincode = (u.pincode || '');
-      
       const q = searchQuery.toLowerCase();
-      return name.includes(q) || phone.includes(q) || email.includes(q) || city.includes(q) || pincode.includes(q);
+      return name.includes(q) || phone.includes(q);
     });
   }, [users, searchQuery]);
 
   const handleAdjustCoins = async (userId: string, mode: 'add' | 'sub') => {
     if (!firestore || !adjustAmount || isNaN(Number(adjustAmount))) return;
-    
     setIsAdjusting(true);
     const amount = Number(adjustAmount);
     const finalChange = mode === 'add' ? amount : -amount;
-
     try {
-      const userRef = doc(firestore, 'users', userId);
-      await updateDoc(userRef, {
-        coins: increment(finalChange)
-      });
-      toast({ 
-        title: "Coins Updated", 
-        description: `Successfully ${mode === 'add' ? 'added' : 'removed'} ${amount} coins.` 
-      });
+      await updateDoc(doc(firestore, 'users', userId), { coins: increment(finalChange) });
+      toast({ title: "Coins Updated" });
       setAdjustAmount('');
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -85,22 +81,119 @@ export function CustomerManagement() {
     }
   };
 
+  const handleSendBulkWhatsApp = () => {
+    if (!bulkMessage.trim() || !users || users.length === 0) {
+      toast({ variant: "destructive", title: "Invalid Request" });
+      return;
+    }
+
+    // Since we can't send all at once due to browser popup blocks, 
+    // we provide a flow to send to valid phone numbers.
+    const validUsers = users.filter(u => u.phoneNumber && u.phoneNumber.length === 10);
+    
+    if (validUsers.length === 0) {
+      toast({ variant: "destructive", title: "No valid numbers found" });
+      return;
+    }
+
+    // Launch Broadcaster Logic
+    setSendingIndex(0);
+    toast({ title: "Broadcaster Ready", description: `Sending to ${validUsers.length} customers.` });
+  };
+
+  const sendNext = (index: number) => {
+    const validUsers = users?.filter(u => u.phoneNumber && u.phoneNumber.length === 10) || [];
+    if (index >= validUsers.length) {
+      setSendingIndex(-1);
+      setBulkMessage('');
+      setIsBulkMsgOpen(false);
+      toast({ title: "Broadcast Finished! ✅" });
+      return;
+    }
+
+    const user = validUsers[index];
+    const url = `https://wa.me/91${user.phoneNumber}?text=${encodeURIComponent(bulkMessage)}`;
+    window.open(url, '_blank');
+    setSendingIndex(index + 1);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Customer Insights</h2>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Tracking {users?.length || 0} Registered Users</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Customer Insights</h2>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Managing {users?.length || 0} Registered Users</p>
         </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            placeholder="Search by name, phone or email..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
-          />
-        </div>
+        
+        <Dialog open={isBulkMsgOpen} onOpenChange={setIsBulkMsgOpen}>
+          <DialogTrigger asChild>
+             <Button className="relative z-10 h-14 px-8 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black uppercase italic shadow-xl shadow-green-900/20 active:scale-95 transition-all">
+                <MessageCircle className="mr-2 h-5 w-5" />
+                SEND BULK WHATSAPP
+             </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-[2.5rem] max-w-md p-8 border-none shadow-2xl">
+             <DialogHeader className="mb-6">
+                <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Bulk Broadcaster</DialogTitle>
+                <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Send promotion to {users?.length || 0} customers</DialogDescription>
+             </DialogHeader>
+             <div className="space-y-6">
+                {sendingIndex === -1 ? (
+                  <>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Your Message</label>
+                       <Textarea 
+                        placeholder="E.g. Special 50% Off Today! Order now at ShopyKart." 
+                        value={bulkMessage}
+                        onChange={e => setBulkMessage(e.target.value)}
+                        className="min-h-[150px] rounded-3xl bg-muted/20 border-none font-bold p-6 text-sm"
+                       />
+                    </div>
+                    <div className="bg-amber-50 p-4 rounded-2xl flex gap-3 border border-amber-100">
+                       <Zap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                       <p className="text-[9px] font-bold text-amber-800 uppercase leading-relaxed">
+                         Note: Browser will open WhatsApp tabs one-by-one. Please allow popups if blocked.
+                       </p>
+                    </div>
+                    <Button onClick={handleSendBulkWhatsApp} className="w-full h-16 bg-black hover:bg-green-600 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
+                       LAUNCH BROADCASTER
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-center py-10 space-y-8 animate-in zoom-in duration-500">
+                     <div className="relative mx-auto w-24 h-24">
+                        <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
+                        <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
+                            <Send className="h-12 w-12 text-white animate-bounce" />
+                        </div>
+                     </div>
+                     <div className="space-y-2">
+                        <h3 className="text-2xl font-black italic uppercase text-gray-800">Sending Mode</h3>
+                        <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Processed: {sendingIndex} / {users?.filter(u => u.phoneNumber?.length === 10).length}</p>
+                     </div>
+                     <Button onClick={() => sendNext(sendingIndex)} className="w-full h-16 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic shadow-lg">
+                        OPEN NEXT CHAT ({sendingIndex + 1})
+                     </Button>
+                     <button onClick={() => setSendingIndex(-1)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Cancel Session</button>
+                  </div>
+                )}
+             </div>
+          </DialogContent>
+        </Dialog>
+
+        <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-10" />
+      </div>
+
+      <div className="flex justify-between items-center px-2">
+         <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input 
+               placeholder="Search by name or phone..." 
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
+            />
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -115,7 +208,7 @@ export function CustomerManagement() {
               : 'Recently';
 
             return (
-              <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col">
+              <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col transform-gpu">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative">
                     <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10">
@@ -131,7 +224,7 @@ export function CustomerManagement() {
                       {user.fullName || 'New User'}
                     </h3>
                     <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
-                      <Calendar className="h-2.5 w-2.5" /> Registered: {dateStr}
+                      <Calendar className="h-2.5 w-2.5" /> {dateStr}
                     </div>
                   </div>
                   
@@ -151,34 +244,18 @@ export function CustomerManagement() {
                           <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Current Balance</p>
                           <div className="text-4xl font-black italic text-amber-600">{user.coins || 0}</div>
                         </div>
-                        
                         <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-center block">Adjustment Amount</label>
                           <Input 
                             type="number" 
-                            placeholder="Enter amount" 
+                            placeholder="Amount" 
                             value={adjustAmount}
                             onChange={(e) => setAdjustAmount(e.target.value)}
                             className="h-14 rounded-2xl text-center text-xl font-black bg-muted/20 border-none"
                           />
                         </div>
-
                         <div className="grid grid-cols-2 gap-4">
-                          <Button 
-                            onClick={() => handleAdjustCoins(user.id, 'add')}
-                            disabled={isAdjusting || !adjustAmount}
-                            className="h-14 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase italic"
-                          >
-                            <Plus className="mr-2 h-5 w-5" /> ADD
-                          </Button>
-                          <Button 
-                            onClick={() => handleAdjustCoins(user.id, 'sub')}
-                            disabled={isAdjusting || !adjustAmount}
-                            variant="destructive"
-                            className="h-14 rounded-2xl font-black uppercase italic"
-                          >
-                            <Minus className="mr-2 h-5 w-5" /> REMOVE
-                          </Button>
+                          <Button onClick={() => handleAdjustCoins(user.id, 'add')} disabled={isAdjusting || !adjustAmount} className="h-14 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase italic"><Plus className="mr-2 h-5 w-5" /> ADD</Button>
+                          <Button onClick={() => handleAdjustCoins(user.id, 'sub')} disabled={isAdjusting || !adjustAmount} variant="destructive" className="h-14 rounded-2xl font-black uppercase italic"><Minus className="mr-2 h-5 w-5" /> REMOVE</Button>
                         </div>
                       </div>
                     </DialogContent>
@@ -196,65 +273,23 @@ export function CustomerManagement() {
                     <div className="flex gap-2">
                       {user.phoneNumber && (
                         <>
-                          <button 
-                            onClick={() => window.open(`tel:${user.phoneNumber}`)}
-                            className="p-2 bg-green-500 text-white rounded-lg active:scale-90 transition-transform shadow-md"
-                            title="Call Now"
-                          >
-                            <PhoneCall className="h-3.5 w-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => window.open(`https://wa.me/91${user.phoneNumber}`)}
-                            className="p-2 bg-green-50 text-green-600 rounded-lg active:scale-90 transition-transform"
-                            title="WhatsApp Now"
-                          >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                          </button>
+                          <button onClick={() => window.open(`tel:${user.phoneNumber}`)} className="p-2 bg-green-500 text-white rounded-lg active:scale-90 transition-transform shadow-md"><PhoneCall className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => window.open(`https://wa.me/91${user.phoneNumber}`)} className="p-2 bg-green-50 text-green-600 rounded-lg active:scale-90 transition-transform"><MessageCircle className="h-3.5 w-3.5" /></button>
                         </>
                       )}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <Mail className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                    <span className="text-[10px] font-bold text-gray-500 truncate">{user.email || 'No Email'}</span>
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 truncate">
+                    <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {user.address || 'Address Not Provided'}
                   </div>
-
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Full Address</p>
-                    <div className="flex items-start gap-2">
-                       <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                       <p className="text-xs font-bold text-gray-800 leading-snug">
-                         {user.address || 'Address Not Provided'}
-                       </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-3 border-t border-dashed border-gray-300">
-                     <div className="flex items-center gap-1.5">
-                        <Building2 className="h-3 w-3 text-gray-400" />
-                        <span className="text-[10px] font-black uppercase text-gray-500">{user.city || 'Ranipur'}</span>
-                     </div>
-                     <div className="h-1 w-1 bg-gray-300 rounded-full" />
-                     <div className="flex items-center gap-1.5">
-                        <Navigation className="h-3 w-3 text-gray-400" />
-                        <span className="text-[10px] font-black uppercase text-gray-500">{user.pincode || 'N/A'}</span>
-                     </div>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                   <div className="flex justify-between items-center px-1">
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UID: {user.id.slice(-8)}</span>
-                      <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[8px] uppercase">ShopyKart Member</Badge>
-                   </div>
                 </div>
               </div>
             );
           })
         ) : (
           <div className="col-span-full text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
-            <User className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+            <Users className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No customers registered yet</p>
           </div>
         )}

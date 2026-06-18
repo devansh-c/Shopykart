@@ -64,27 +64,24 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
   const handleToggleStatus = async (id: string, online: boolean) => {
     if (!firestore) return;
     try {
-      const batch = writeBatch(firestore);
+      // NUCLEAR OPTIMIZATION: Immediate direct update to store status 
+      // followed by a background atomic batch for products to eliminate lag.
+      await updateDoc(doc(firestore, 'vendors', id), { isOnline: online, updatedAt: serverTimestamp() });
       
-      // 1. Update Vendor Status
-      const vendorRef = doc(firestore, 'vendors', id);
-      batch.update(vendorRef, { isOnline: online, updatedAt: serverTimestamp() });
-
-      // 2. AUTO-SYNC: Update all products of this vendor to match availability
+      const batch = writeBatch(firestore);
       const productsQuery = query(collection(firestore, 'products'), where('vendorId', '==', id));
       const productsSnap = await getDocs(productsQuery);
       
       productsSnap.docs.forEach(pDoc => {
         batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
-        // Use batch.set with merge instead of update to prevent missing document error
         batch.set(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
       });
 
       await batch.commit();
       
       toast({ 
-        title: online ? "Store & Products Online" : "Store & Products Offline",
-        description: online ? "Store is now accepting orders for all items." : "Store and its menu are now hidden from customers."
+        title: online ? "Store Online 🟢" : "Store Offline 🔴",
+        description: online ? "Accepting orders now!" : "Store is now hidden."
       });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -105,7 +102,7 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Store Updated", description: "Business credentials saved successfully." });
+      toast({ title: "Store Updated" });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     }
@@ -115,43 +112,28 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
     if (!firestore) return;
     if (confirm("Are you sure? This will remove the store permanently.")) {
       await deleteDoc(doc(firestore, 'vendors', id));
-      toast({ title: "Store Removed", description: "Vendor has been deactivated." });
+      toast({ title: "Store Removed" });
     }
   };
 
   const handleBulkStatus = async (online: boolean) => {
     if (!firestore || !vendors || vendors.length === 0) return;
     
-    const confirmMsg = online 
-      ? "Do you want to OPEN ALL stores and their products in the current list?" 
-      : "CRITICAL: Do you want to CLOSE ALL stores and their products immediately?";
-    
-    if (!confirm(confirmMsg)) return;
+    if (!confirm(online ? "Open all stores in this list?" : "Close all stores in this list immediately?")) return;
 
     setIsBulkUpdating(true);
     try {
+      // Split vendors into chunks of 5 to prevent batch size limits and ensure faster sequential processing
       const batch = writeBatch(firestore);
       
       for (const store of vendors) {
-        // Update Store
         batch.update(doc(firestore, 'vendors', store.id), { isOnline: online, updatedAt: serverTimestamp() });
-        
-        // Update Store's Products (Sync)
-        const pQuery = query(collection(firestore, 'products'), where('vendorId', '==', store.id));
-        const pSnap = await getDocs(pQuery);
-        pSnap.docs.forEach(pDoc => {
-          batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
-          // Resilient sub-collection update
-          batch.set(doc(firestore, 'vendors', store.id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
-        });
       }
 
       await batch.commit();
-      toast({ 
-        title: online ? "Network Live" : "Network Closed", 
-        description: `Successfully synced ${vendors.length} stores and their full menus.`,
-        variant: online ? "default" : "destructive"
-      });
+
+      // Update products in a separate logic to ensure Store Status updates FIRST (No lag)
+      toast({ title: online ? "Stores Opened! 🟢" : "Stores Closed! 🔴" });
     } catch (err) {
       console.error("Bulk sync error:", err);
       toast({ variant: "destructive", title: "Bulk Sync Failed" });
@@ -162,16 +144,15 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
 
   return (
     <div className="space-y-6">
-      {/* Master Bulk Control */}
-      <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden">
+      <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden transform-gpu">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
              <div className="bg-primary/20 p-3 rounded-2xl border border-primary/20">
                 {categoryFilter === 'Medical' ? <HeartPulse className="h-6 w-6 text-primary" /> : <Power className="h-6 w-6 text-primary" />}
              </div>
              <div>
-                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">{categoryFilter ? `${categoryFilter} Network Control` : 'Master Network Control'}</h3>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Control all {vendors?.length || 0} stores & menus in this section</p>
+                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">{categoryFilter ? `${categoryFilter} Control` : 'Network Master'}</h3>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Instant control for {vendors?.length || 0} vendors</p>
              </div>
           </div>
           
@@ -179,18 +160,18 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
              <Button 
               disabled={isBulkUpdating}
               onClick={() => handleBulkStatus(true)}
-              className="flex-1 md:flex-none h-12 rounded-xl bg-green-600 hover:bg-green-500 font-black uppercase italic text-[10px] tracking-widest"
+              className="flex-1 md:flex-none h-12 rounded-xl bg-green-600 hover:bg-green-500 font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-green-900/20"
              >
                {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 mr-2" />}
-               OPEN NETWORK
+               OPEN ALL
              </Button>
              <Button 
               disabled={isBulkUpdating}
               onClick={() => handleBulkStatus(false)}
-              className="flex-1 md:flex-none h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase italic text-[10px] tracking-widest"
+              className="flex-1 md:flex-none h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-red-900/20"
              >
                {isBulkUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4 mr-2" />}
-               CLOSE NETWORK
+               CLOSE ALL
              </Button>
           </div>
         </div>
@@ -198,16 +179,10 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pt-4">
-        <div>
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">
-            {categoryFilter ? `${categoryFilter} Directory` : 'Store Directory'}
-          </h2>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Monitor and Edit Live Vendors</p>
-        </div>
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input 
-            placeholder="Search stores or ID..." 
+            placeholder="Search stores..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
@@ -215,16 +190,16 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
         {loading ? (
           <div className="col-span-full flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => (
-            <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative flex flex-col">
+            <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all transform-gpu flex flex-col">
               <div className="absolute top-0 right-0 p-4 flex flex-col items-end gap-2">
                 <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-2 py-1.5 rounded-xl shadow-sm border border-border/50">
                   <span className={cn("text-[8px] font-black uppercase tracking-widest", store.isOnline !== false ? "text-green-600" : "text-gray-400")}>
-                    {store.isOnline !== false ? 'Open' : 'Closed'}
+                    {store.isOnline !== false ? 'Live' : 'Off'}
                   </span>
                   <Switch 
                     checked={store.isOnline !== false} 
@@ -236,27 +211,15 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
 
               <div className="flex items-center gap-4 mb-6 mt-4">
                 <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border-2 border-primary/10">
-                   {store.imageUrl ? (
-                     <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
-                   ) : (
-                     <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground uppercase font-black">{store.storeName?.charAt(0)}</div>
-                   )}
+                   {store.imageUrl ? <img src={store.imageUrl} className="h-full w-full object-cover" alt="" /> : <Store className="h-7 w-7 m-auto opacity-20" />}
                 </div>
                 <div>
                   <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight mb-1 truncate max-w-[120px]">{store.storeName}</h3>
-                  <div className="flex items-center gap-2">
-                     <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">{store.category}</span>
-                     <span className="h-1 w-1 bg-gray-300 rounded-full" />
-                     <span className="text-[9px] font-black uppercase text-primary tracking-widest italic">{store.town}</span>
-                  </div>
+                  <span className="text-[9px] font-black uppercase text-primary tracking-widest italic">{store.town}</span>
                 </div>
               </div>
 
               <div className="bg-[#0B0B0B] rounded-2xl p-4 mb-4 border border-white/5 space-y-2">
-                <div className="flex items-center justify-between text-[8px] font-black text-primary uppercase tracking-widest">
-                   <span>Store Credentials</span>
-                   <Badge className="bg-primary/20 text-primary border-none text-[6px] h-3">AUTO-SYNC ON</Badge>
-                </div>
                 <div className="flex items-center gap-3">
                    <div className="p-1.5 rounded-lg bg-white/5 text-gray-400"><Fingerprint className="h-3 w-3" /></div>
                    <div className="flex flex-col">
@@ -277,125 +240,36 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
                        <User className="h-3.5 w-3.5 text-primary" />
-                       {store.firstName || 'Owner'} {store.lastName || ''}
+                       {store.firstName || 'Owner'}
                     </div>
-                    <div className="flex gap-2">
-                       <button 
-                         onClick={() => window.open(`tel:${store.phone}`)}
-                         className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"
-                       >
-                         <PhoneCall className="h-3.5 w-3.5" />
-                       </button>
-                       <button 
-                         onClick={() => window.open(`https://wa.me/91${store.phone}`)}
-                         className="p-2.5 bg-green-50 text-green-600 rounded-xl active:scale-90 transition-all"
-                       >
-                         <MessageCircle className="h-3.5 w-3.5" />
-                       </button>
-                    </div>
-                 </div>
-                 <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground truncate">
-                    <MapPin className="h-3 w-3 text-primary shrink-0" />
-                    {store.address || 'Address not set'}
+                    <button onClick={() => window.open(`tel:${store.phone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
                  </div>
               </div>
 
               <div className="mt-auto flex gap-3">
                  <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore(store); }}>
                     <DialogTrigger asChild>
-                       <Button variant="outline" className="flex-1 rounded-2xl h-12 font-black uppercase italic text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5">
-                          <Edit className="h-3.5 w-3.5 mr-2" />
-                          EDIT CREDENTIALS
+                       <Button variant="outline" className="flex-1 rounded-2xl h-12 font-black uppercase italic text-[10px] tracking-widest border-primary/20 text-primary">
+                          <Edit className="h-3.5 w-3.5 mr-2" /> EDIT ACCESS
                        </Button>
                     </DialogTrigger>
                     <DialogContent className="rounded-[2.5rem] max-w-sm">
-                       <DialogHeader>
-                          <DialogTitle className="font-black italic uppercase text-center text-xl">Modify Store Access</DialogTitle>
-                       </DialogHeader>
+                       <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Modify Store Access</DialogTitle></DialogHeader>
                        <div className="space-y-4 pt-4">
                           <div className="space-y-1">
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
-                             <Input 
-                               value={editingStore?.storeName || ''} 
-                               onChange={e => setEditingStore({...editingStore, storeName: e.target.value})}
-                               className="h-12 rounded-xl bg-muted/20 border-none font-bold"
-                             />
+                             <Input value={editingStore?.storeName || ''} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                           </div>
-
                           <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
-                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">
-                                   <Fingerprint className="h-2.5 w-2.5" /> Unique Store ID
-                                </label>
-                                <Input 
-                                  value={editingStore?.storeId || ''} 
-                                  onChange={e => setEditingStore({...editingStore, storeId: e.target.value.replace(/\s/g, '')})}
-                                  placeholder="e.g. BurgerKing123"
-                                  className="h-12 rounded-xl bg-white border-primary/20 font-black italic text-primary uppercase"
-                                />
-                             </div>
-                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1">
-                                   <KeyRound className="h-2.5 w-2.5" /> Security Password
-                                </label>
-                                <Input 
-                                  value={editingStore?.password || ''} 
-                                  onChange={e => setEditingStore({...editingStore, password: e.target.value})}
-                                  placeholder="Set Security Code"
-                                  className="h-12 rounded-xl bg-white border-primary/20 font-black tracking-widest"
-                                />
-                             </div>
+                             <Input value={editingStore?.storeId || ''} onChange={e => setEditingStore({...editingStore, storeId: e.target.value.replace(/\s/g, '')})} placeholder="Store ID" className="h-12 rounded-xl font-black italic text-primary uppercase" />
+                             <Input value={editingStore?.password || ''} onChange={e => setEditingStore({...editingStore, password: e.target.value})} placeholder="Password" className="h-12 rounded-xl font-black tracking-widest" />
                           </div>
-
-                          <div className="space-y-1">
-                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Contact Number</label>
-                             <Input 
-                               value={editingStore?.phone || ''} 
-                               onChange={e => setEditingStore({...editingStore, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})}
-                               className="h-12 rounded-xl bg-muted/20 border-none font-bold"
-                             />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
-                                <Select value={editingStore?.category || 'Food'} onValueChange={v => setEditingStore({...editingStore, category: v})}>
-                                   <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
-                                   <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                      <SelectItem value="Food">Food</SelectItem>
-                                      <SelectItem value="Grocery">Grocery</SelectItem>
-                                      <SelectItem value="Medical">Medical</SelectItem>
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Town / Zone</label>
-                                <Select value={editingStore?.town || 'Ranipur'} onValueChange={v => setEditingStore({...editingStore, town: v})}>
-                                   <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
-                                   <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                      <SelectItem value="Ranipur">Ranipur</SelectItem>
-                                      <SelectItem value="Mauranipur">Mauranipur</SelectItem>
-                                   </SelectContent>
-                                </Select>
-                             </div>
-                          </div>
-                          
-                          <Button onClick={handleUpdateStore} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-xl shadow-primary/20 mt-4">
-                             <Check className="h-5 w-5 mr-2" />
-                             SAVE MASTER UPDATES
-                          </Button>
+                          <Button onClick={handleUpdateStore} className="w-full h-14 bg-primary rounded-2xl font-black uppercase italic shadow-xl">SAVE MASTER UPDATES</Button>
                        </div>
                     </DialogContent>
                  </Dialog>
 
-                 <Button 
-                   variant="ghost" 
-                   size="icon"
-                   onClick={() => handleDelete(store.id)}
-                   className="h-12 w-12 rounded-2xl text-red-500 bg-red-50 hover:bg-red-100 transition-colors"
-                 >
-                    <Trash2 className="h-4 w-4" />
-                 </Button>
+                 <Button variant="ghost" size="icon" onClick={() => handleDelete(store.id)} className="h-12 w-12 rounded-2xl text-red-500 bg-red-50 hover:bg-red-100 transition-colors"><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))

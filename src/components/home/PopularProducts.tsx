@@ -1,32 +1,23 @@
 
 "use client"
 
-import React, { useMemo, useState, useEffect, memo, useTransition, useDeferredValue } from "react"
+import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
-import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode, onNavigate }: any) => {
+  // ATOMIC CHECK: Immediate status detection to eliminate lag
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
-  const discount = product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
-  const isSpecialMode = activeMode === 'Medical' || activeMode === 'Beauty';
 
   return (
     <div className={cn(
-      "relative bg-white rounded-[2rem] border border-gray-100 transition-none will-change-transform transform-gpu p-6 flex justify-between items-start",
+      "relative bg-white rounded-[2rem] border border-gray-100 transition-all duration-300 will-change-transform transform-gpu p-6 flex justify-between items-start shadow-sm",
       isOffline && "opacity-60 grayscale-[0.5]"
     )}>
       <div className="flex-1 pr-4 min-w-0">
@@ -44,8 +35,8 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
         <div onClick={() => !isOffline && onNavigate(product.id)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner cursor-pointer">
           <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
           {isOffline && (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center">
-              <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Offline</span>
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center transition-opacity animate-in fade-in duration-300">
+              <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed</span>
             </div>
           )}
         </div>
@@ -73,10 +64,7 @@ ProductItem.displayName = "ProductItem";
 
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
-  const [sortBy, setSortBy] = useState('recommended');
-  const [selectedCat, setSelectedCat] = useState('all');
   const [isPending, startTransition] = useTransition();
-  const deferredSearchQuery = useDeferredValue(searchQuery);
   const router = useRouter();
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -93,6 +81,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
+  // Performance Hack: Direct snapshot with no deferral for status changes
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(500));
@@ -114,8 +103,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts) return [];
-    const searchLower = deferredSearchQuery.toLowerCase().trim();
-    const categoryLower = (selectedCat === 'all' ? category : selectedCat).toLowerCase().trim();
+    const searchLower = searchQuery.toLowerCase().trim();
+    const categoryLower = category.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbProducts.filter(product => {
@@ -139,14 +128,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
       return onlineB - onlineA;
     });
-  }, [deferredSearchQuery, category, selectedCat, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
+  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
 
   if (productsLoading && !dbProducts) return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-8 px-2">
-        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{deferredSearchQuery ? 'Results' : `⚡ FOOD HUB`}</h2>
+        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
       </div>
       <div className={cn("grid grid-cols-1 gap-8 transition-opacity", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (
@@ -163,6 +152,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             onNavigate={(id: string) => router.push(`/product/view?id=${id}`)}
           />
         ))}
+        {productsToDisplay.length === 0 && !productsLoading && (
+          <div className="text-center py-20 opacity-30">
+            <ShoppingBag className="h-16 w-16 mx-auto mb-4" />
+            <p className="font-black italic uppercase tracking-widest text-xs">No Items Found</p>
+          </div>
+        )}
       </div>
     </div>
   );
