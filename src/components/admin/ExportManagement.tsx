@@ -186,9 +186,10 @@ export function ExportManagement() {
                 </p>
                 <ul className="space-y-3">
                    {[
-                     { step: '1', text: 'Run: npm run static-build (Build Web)', cmd: 'npm run static-build' },
-                     { step: '2', text: 'Run: npx cap sync (Sync to Android)', cmd: 'npx cap sync' },
-                     { step: '3', text: 'Run: npx cap open android', cmd: 'npx cap open android' },
+                     { step: '1', text: 'Build Assets: npm run static-build', cmd: 'npm run static-build' },
+                     { step: '2', text: 'Add Platform: npx cap add android', cmd: 'npx cap add android' },
+                     { step: '3', text: 'Sync Files: npm run cap-sync', cmd: 'npm run cap-sync' },
+                     { step: '4', text: 'Open Studio: npm run cap-open', cmd: 'npm run cap-open' },
                    ].map((item) => (
                      <li key={item.step} className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                         <div className="flex items-center gap-3">
