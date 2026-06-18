@@ -1,10 +1,6 @@
-'use server';
 /**
  * @fileOverview Smart Basket AI flow to generate recipes and suggested shopping lists.
- * 
- * - smartBasketFlow - Handles the recipe and ingredient generation.
- * - SmartBasketInput - The input dish name.
- * - SmartBasketOutput - Structured recipe and shopping list.
+ * Updated for Static Export compatibility: Returns fallbacks in browser environments.
  */
 
 import {ai} from '@/ai/genkit';
@@ -36,6 +32,15 @@ const fallbackData: SmartBasketOutput = {
 };
 
 export async function getSmartBasketDetails(input: SmartBasketInput): Promise<SmartBasketOutput> {
+  // Static Build Check: If in browser, use fallbacks to avoid Server Actions error
+  if (typeof window !== 'undefined') {
+    return {
+      ...fallbackData,
+      recipeTitle: `ShopyKart ${input.dishName} Special`,
+      shoppingList: [`Fresh ${input.dishName} Base`, "Amul Butter", "Everest Spices", "Organic Veggies"]
+    };
+  }
+
   try {
     return await smartBasketFlow(input);
   } catch (error) {
