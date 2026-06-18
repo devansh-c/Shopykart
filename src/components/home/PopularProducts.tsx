@@ -142,6 +142,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
 
+  const navigateToProduct = (id: string) => {
+    startTransition(() => {
+      router.push(`/product/view?id=${id}`);
+    });
+  };
+
   if (productsLoading && !dbProducts) {
     return (
       <div className="px-4 py-8 space-y-6">
@@ -153,11 +159,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }
 
   return (
-    <div className="px-4 py-8 content-visibility-auto">
+    <div className="px-4 py-8 content-visibility-auto transform-gpu">
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
       </div>
-      <div className={cn("grid grid-cols-1 gap-8 transition-opacity", isPending && "opacity-50")}>
+      <div className={cn("grid grid-cols-1 gap-8 transition-opacity", (isPending || productsLoading) && "opacity-50")}>
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}
@@ -169,7 +175,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             onToggleWishlist={toggleWishlist}
             isLiked={isInWishlist(product.id)}
             activeMode={activeMode}
-            onNavigate={(id: string) => router.push(`/product/view?id=${id}`)}
+            onNavigate={navigateToProduct}
           />
         ))}
         {productsToDisplay.length === 0 && !productsLoading && (

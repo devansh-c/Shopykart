@@ -5,12 +5,15 @@ import Link from "next/link"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import React, { useMemo, useState, useEffect, memo } from "react"
+import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useRouter } from "next/navigation"
 
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
 
@@ -63,6 +66,12 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     });
   }, [dbVendors, activeMode, activeZoneId, activeCity]);
 
+  const handleStoreClick = (id: string) => {
+    startTransition(() => {
+      router.push(`/menu?vendor=${id}`);
+    });
+  };
+
   if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
   if (loading && !dbVendors) {
@@ -89,18 +98,18 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
         </h2>
       </div>
 
-      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-4">
+      <div className={cn("flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
           const isOffline = store.isOnline === false;
           
           return (
-            <Link 
-              href={`/menu?vendor=${store.id}`}
+            <button 
+              onClick={() => handleStoreClick(store.id)}
               key={store.id} 
               className={cn(
-                "block min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-none active:scale-[0.98] shrink-0 will-change-transform transform-gpu",
-                isOffline && "opacity-80"
+                "block text-left min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] shrink-0 will-change-transform transform-gpu",
+                isOffline && "opacity-80 grayscale-[0.2]"
               )}
             >
               <div className="relative h-36 w-full bg-muted">
@@ -134,7 +143,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                   <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">View Menu →</span>
                 </div>
               </div>
-            </Link>
+            </button>
           );
         })}
       </div>

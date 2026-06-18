@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, Suspense, useEffect } from 'react';
+import { useState, useTransition, Suspense, useEffect, memo } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
@@ -51,7 +51,7 @@ export default function ShopyKartApp() {
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white transform-gpu">
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -61,7 +61,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("space-y-2 transition-opacity duration-300", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
+      <main className={cn("space-y-2 transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -74,7 +74,7 @@ export default function ShopyKartApp() {
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-4 mb-10 max-w-[240px] leading-relaxed">WE ARE BRINGING FRESH ESSENTIALS TO YOUR DOORSTEP.</p>
           </div>
         ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
-          <div className="animate-in fade-in duration-700">
+          <div className="animate-in fade-in duration-700 content-visibility-auto">
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
                   <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100"><ArrowLeft className="h-4 w-4" /></button>
@@ -88,7 +88,7 @@ export default function ShopyKartApp() {
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
         ) : (
-          <>
+          <div className="content-visibility-auto">
             {!searchQuery && activeCategory === 'all' && (
               <div className="px-4 py-4">
                 <div className="flex items-center justify-between mb-4 px-2">
@@ -108,7 +108,7 @@ export default function ShopyKartApp() {
             {activeMode === 'Food' && !searchQuery && <ScrollReveal delay={320}><SmartBasketAI /></ScrollReveal>}
             <ScrollReveal delay={350}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode="Food" /></ScrollReveal>
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
-          </>
+          </div>
         )}
       </main>
     </div>
