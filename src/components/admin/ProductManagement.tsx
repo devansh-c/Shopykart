@@ -132,10 +132,7 @@ export function ProductManagement() {
           return;
         }
 
-        // Process in batches of 500
         let successCount = 0;
-        const totalBatches = Math.ceil(data.length / 500);
-
         for (let i = 0; i < data.length; i += 500) {
           const batch = writeBatch(firestore);
           const chunk = data.slice(i, i + 500);
@@ -185,15 +182,6 @@ export function ProductManagement() {
     }
   };
 
-  const toggleProductAvailability = async (productId: string, vendorId: string, available: boolean) => {
-    if (!firestore) return;
-    try {
-      await setDoc(doc(firestore, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
-      await setDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
-      toast({ title: available ? "Stock Online" : "Stock Offline" });
-    } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
-  };
-
   const handleSave = async () => {
     if (!firestore || !name || !price || !selectedVendorId) {
       toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, and Vendor are required." });
@@ -201,21 +189,17 @@ export function ProductManagement() {
     }
     
     const vendor = vendors?.find(v => v.id === selectedVendorId);
-    const finalServiceMode = vendor?.category || 'Food';
-    const finalZoneId = vendor?.zoneId || null;
-    const finalTown = vendor?.town || 'Local';
-    
     const productData = {
       name: name.trim(),
       mrp: parseFloat(mrp) || parseFloat(price),
       price: parseFloat(price),
       description: description.trim(),
       category: category.toLowerCase().trim() || 'general',
-      serviceMode: finalServiceMode,
+      serviceMode: vendor?.category || 'Food',
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'Store',
-      zoneId: finalZoneId,
-      town: finalTown,
+      zoneId: vendor?.zoneId || null,
+      town: vendor?.town || 'Local',
       isVeg,
       isTopTen,
       isVarietyRequired: options.length > 0 ? isVarietyRequired : false,
@@ -267,23 +251,23 @@ export function ProductManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
-        <div className="relative flex-1 w-full">
+      <div className="flex flex-col gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
+        <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search catalog..." className="pl-12 h-12 bg-muted/30 border-none rounded-2xl" />
+          <Input placeholder="Search catalog..." className="pl-12 h-11 bg-muted/30 border-none rounded-xl" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 w-full">
            <Button 
             onClick={() => { setBulkMode('open'); setIsBulkStatusDialogOpen(true); }} 
-            className="h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-black uppercase text-[10px] text-white"
+            className="h-9 px-4 rounded-xl bg-green-600 hover:bg-green-700 font-black uppercase text-[9px] text-white"
            >
             OPEN BY ZONE
            </Button>
            
            <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
              <DialogTrigger asChild>
-               <Button className="h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase text-[10px] text-white">
-                 <FileUp className="mr-2 h-4 w-4" /> BULK IMPORT
+               <Button className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 font-black uppercase text-[9px] text-white">
+                 <FileUp className="mr-1.5 h-3.5 w-3.5" /> BULK IMPORT
                </Button>
              </DialogTrigger>
              <DialogContent className="rounded-[2.5rem] max-w-sm">
@@ -301,17 +285,19 @@ export function ProductManagement() {
                    
                    <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-2">
                       <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
-                        Column headers required:
-                        <span className="block text-black font-black mt-1">name, price, mrp, category, vendorId, description</span>
+                        Headers: name, price, mrp, category, vendorId
                       </p>
-                      <button className="text-[8px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1"><Download className="h-2.5 w-2.5" /> Download Template</button>
                    </div>
                 </div>
              </DialogContent>
            </Dialog>
 
            <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
-              <DialogTrigger asChild><Button className="bg-black rounded-2xl h-12 font-black uppercase italic"><Plus className="mr-2 h-4 w-4" /> NEW ITEM</Button></DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="bg-black hover:bg-gray-900 rounded-xl h-9 px-4 font-black uppercase italic text-[9px] text-white">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> NEW ITEM
+                </Button>
+              </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                 <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Inventory Master</DialogTitle></DialogHeader>
                 <div className="p-8 space-y-6">
@@ -335,7 +321,7 @@ export function ProductManagement() {
                       </Select>
                       <Input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                    </div>
-                   <Button onClick={handleSave} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">PUBLISH TO HUB</Button>
+                   <Button onClick={handleSave} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">PUBLISH TO HUB</Button>
                 </div>
               </DialogContent>
            </Dialog>
@@ -375,7 +361,7 @@ export function ProductManagement() {
             </div>
             <div className="flex gap-2">
               <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
-              <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-600 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
+              <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-500 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
             </div>
           </div>
         ))}
