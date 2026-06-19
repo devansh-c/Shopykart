@@ -32,7 +32,8 @@ import {
   Loader2,
   ShieldCheck,
   UserPlus,
-  ShieldAlert
+  ShieldAlert,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -63,9 +64,11 @@ const ZoneManagement = dynamic(() => import('@/components/admin/ZoneManagement')
 const PageManagement = dynamic(() => import('@/components/admin/PageManagement').then(m => ({ default: m.PageManagement })), { ssr: false });
 const TicketManagement = dynamic(() => import('@/components/admin/TicketManagement').then(m => ({ default: m.TicketManagement })), { ssr: false });
 const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement').then(m => ({ default: m.TeamManagement })), { ssr: false });
+const ReceiptGenerator = dynamic(() => import('@/components/admin/ReceiptGenerator').then(m => ({ default: m.ReceiptGenerator })), { ssr: false });
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'receipt_gen', label: 'Receipt Generator', icon: FileSpreadsheet },
   { id: 'zones', label: 'Serving Zones', icon: MapPin },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'stores', label: 'All Stores', icon: Store },
@@ -214,6 +217,7 @@ export default function AdminDashboard() {
 
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
+      case 'receipt_gen': return <ReceiptGenerator />;
       case 'zones': return <ZoneManagement />;
       case 'customers': return <CustomerManagement />;
       case 'stores': return <StoreManagement />;
