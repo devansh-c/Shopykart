@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, memo, useTransition, useMemo } from 'react';
@@ -77,7 +76,7 @@ const menuItems = [
   { id: 'fleet', label: 'Delivery Fleet', icon: Truck },
   { id: 'payouts', label: 'Store Payouts', icon: CircleDollarSign },
   { id: 'categories', label: 'Categories', icon: Tag },
-  { id: 'catalog', label: 'Catalog', icon: Layers },
+  { id: 'catalog', label: 'Products', icon: Layers },
   { id: 'design', label: 'Banners', icon: Feather },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },

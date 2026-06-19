@@ -170,7 +170,7 @@ export function ProductManagement() {
           await batch.commit();
         }
 
-        toast({ title: "Import Complete! ✅", description: `${successCount} products added to catalog.` });
+        toast({ title: "Import Complete! ✅", description: `${successCount} products added to Hub.` });
         setIsBulkImportOpen(false);
         setIsBulkUpdating(false);
       };
@@ -254,7 +254,7 @@ export function ProductManagement() {
       <div className="flex flex-col gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search catalog..." className="pl-12 h-11 bg-muted/30 border-none rounded-xl" />
+          <Input placeholder="Search products..." className="pl-12 h-11 bg-muted/30 border-none rounded-xl" />
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 w-full">
            <Button 
@@ -295,7 +295,7 @@ export function ProductManagement() {
            <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button className="bg-black hover:bg-gray-900 rounded-xl h-9 px-4 font-black uppercase italic text-[9px] text-white">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> NEW ITEM
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> NEW PRODUCT
                 </Button>
               </DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
