@@ -26,7 +26,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     
     // 1. MINIMUM VISIBILITY TIMER (Faster for Returning users)
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const minDuration = isReturning ? 500 : 1200;
+    const minDuration = isReturning ? 300 : 1000;
     
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
@@ -35,7 +35,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe)
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
-    }, 3000);
+    }, 2500);
     
     return () => {
       clearTimeout(minTimer);
@@ -54,7 +54,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 500); // Shorter fade duration
+      }, 400); // Faster fade
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';
@@ -78,7 +78,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out h-screen w-screen",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-400 ease-in-out h-screen w-screen",
         isActuallyVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >

@@ -9,7 +9,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
-const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode, onNavigate }: any) => {
+const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
@@ -112,6 +112,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return map;
   }, [vendors]);
 
+  // CRITICAL OPTIMIZATION: Cart Map for O(1) lookup during list render
+  const cartMap = useMemo(() => {
+    const map = new Map();
+    if (cart) cart.forEach(item => map.set(item.id, item.quantity));
+    return map;
+  }, [cart]);
+
   const productsToDisplay = useMemo(() => {
     if (!dbProducts) return [];
     const searchLower = searchQuery.toLowerCase().trim();
@@ -168,12 +175,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             key={product.id}
             product={product}
             vendor={vendorMap.get(product.vendorId)}
-            quantity={cart?.find((item: any) => item.id === product.id)?.quantity || 0}
+            quantity={cartMap.get(product.id) || 0}
             onAdd={addToCart}
             onRemove={removeFromCart}
             onToggleWishlist={toggleWishlist}
             isLiked={isInWishlist(product.id)}
-            activeMode={activeMode}
             onNavigate={navigateToProduct}
           />
         ))}
