@@ -8,7 +8,6 @@ import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
-import { Skeleton } from "@/components/ui/skeleton"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, activeMode, onNavigate }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
@@ -63,7 +62,7 @@ ProductItem.displayName = "ProductItem";
 
 function ProductSkeleton() {
   return (
-    <div className="relative bg-white rounded-[2rem] border border-gray-100 p-6 flex justify-between items-start shadow-sm animate-pulse">
+    <div className="relative bg-white rounded-[2rem] border border-gray-100 p-6 flex justify-between items-start shadow-sm animate-pulse h-[160px]">
       <div className="flex-1 pr-4">
         <div className="h-3 w-3 bg-gray-200 rounded-sm mb-3" />
         <div className="h-6 w-3/4 bg-gray-100 rounded-md mb-2" />

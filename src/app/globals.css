@@ -50,14 +50,14 @@
     user-select: text !important;
   }
   
-  /* NUCLEAR PERFORMANCE ENGINE v4 - Scroll Isolation */
+  /* NUCLEAR PERFORMANCE ENGINE v5 - Scroll Isolation & Containment */
   .content-visibility-auto {
     content-visibility: auto;
-    contain-intrinsic-size: 1px 500px;
+    contain-intrinsic-size: 1px 180px; /* Estimated height of a product card */
     contain: layout style paint;
   }
 
-  /* GPU HARDWARE ACCELERATION LAYER */
+  /* GPU HARDWARE ACCELERATION LAYER - Optimized for High Refresh Rates */
   .transform-gpu {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
@@ -94,7 +94,6 @@
   contain: content;
   transform: translateZ(0);
   will-change: transform;
-  /* Optimized subtle shadow for high-fps scrolling */
   box-shadow: 0 4px 12px -2px rgba(0,0,0,0.04);
 }
 

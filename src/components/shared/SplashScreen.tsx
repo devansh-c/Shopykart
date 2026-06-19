@@ -10,8 +10,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with absolute fail-safe dismissal.
- * Ensures it disappears within 3.5 seconds regardless of app-ready state,
- * preventing hangs in APK/WebView environments.
+ * Ensures it disappears within 3s regardless of app-ready state.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -25,19 +24,18 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // 1. MINIMUM VISIBILITY TIMER
+    // 1. MINIMUM VISIBILITY TIMER (Faster for Returning users)
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const minDuration = isReturning ? 600 : 1500;
+    const minDuration = isReturning ? 500 : 1200;
     
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
     }, minDuration);
 
     // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe)
-    // If the app hasn't signaled ready by 3.5s, we force hide it anyway
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
-    }, 3500);
+    }, 3000);
     
     return () => {
       clearTimeout(minTimer);
@@ -56,7 +54,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 800);
+      }, 500); // Shorter fade duration
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';
@@ -80,14 +78,14 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out h-screen w-screen",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out h-screen w-screen",
         isActuallyVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div 
         onClick={handleTap}
         className={cn(
-          "relative flex flex-col items-center transition-all duration-700 transform",
+          "relative flex flex-col items-center transition-all duration-500 transform",
           isActuallyVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}
       >
@@ -103,7 +101,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       </div>
       
       <div className={cn(
-        "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-700 delay-300",
+        "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-500 delay-200",
         isActuallyVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">
