@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -19,17 +18,20 @@ import {
   Fingerprint,
   Lock,
   KeyRound,
-  HeartPulse
+  HeartPulse,
+  Camera,
+  ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { compressImage } from '@/lib/image-utils';
 
 export function StoreManagement({ categoryFilter }: { categoryFilter?: string }) {
   const firestore = useFirestore();
@@ -38,6 +40,7 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
   const [editingStore, setEditingStore] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch Live Stores
   const vendorsQuery = useMemoFirebase(() => {
@@ -64,8 +67,6 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
   const handleToggleStatus = async (id: string, online: boolean) => {
     if (!firestore) return;
     try {
-      // NUCLEAR OPTIMIZATION: Immediate direct update to store status 
-      // followed by a background atomic batch for products to eliminate lag.
       await updateDoc(doc(firestore, 'vendors', id), { isOnline: online, updatedAt: serverTimestamp() });
       
       const batch = writeBatch(firestore);
@@ -99,6 +100,7 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
         town: editingStore.town || 'Local',
         storeId: editingStore.storeId?.trim().toLowerCase() || '',
         password: editingStore.password || '',
+        imageUrl: editingStore.imageUrl || '',
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
@@ -106,6 +108,18 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingStore) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setEditingStore({ ...editingStore, imageUrl: compressed });
+      toast({ title: "Image Selected", description: "Save changes to finalize." });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDelete = async (id: string) => {
@@ -131,7 +145,6 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
 
       await batch.commit();
 
-      // Background product sync
       const productsQuery = query(collection(firestore, 'products'));
       const productsSnap = await getDocs(productsQuery);
       const productBatch = writeBatch(firestore);
@@ -264,12 +277,28 @@ export function StoreManagement({ categoryFilter }: { categoryFilter?: string })
                           <Edit className="h-3.5 w-3.5 mr-2" /> EDIT ACCESS
                        </Button>
                     </DialogTrigger>
-                    <DialogContent className="rounded-[2.5rem] max-w-sm">
-                       <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Modify Store Access</DialogTitle></DialogHeader>
-                       <div className="space-y-4 pt-4">
+                    <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar">
+                       <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">Modify Store Profile</DialogTitle></DialogHeader>
+                       <div className="space-y-6 pt-4">
+                          <div onClick={() => fileInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center bg-gray-50 overflow-hidden cursor-pointer relative group">
+                            {editingStore?.imageUrl ? (
+                              <>
+                                <img src={editingStore.imageUrl} className="h-full w-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="h-8 w-8 text-white" /></div>
+                              </>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon className="h-8 w-8" /><span className="text-[10px] font-black uppercase">Change Image</span></div>
+                            )}
+                          </div>
+                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+
                           <div className="space-y-1">
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
                              <Input value={editingStore?.storeName || ''} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                          </div>
+                          <div className="space-y-1">
+                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Phone Number</label>
+                             <Input value={editingStore?.phone || ''} onChange={e => setEditingStore({...editingStore, phone: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                           </div>
                           <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
                              <Input value={editingStore?.storeId || ''} onChange={e => setEditingStore({...editingStore, storeId: e.target.value.replace(/\s/g, '')})} placeholder="Store ID" className="h-12 rounded-xl font-black italic text-primary uppercase" />

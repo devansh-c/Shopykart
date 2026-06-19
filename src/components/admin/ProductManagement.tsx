@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy, AlertCircle, FileUp, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,12 +21,14 @@ import { Switch } from '@/components/ui/switch';
 export function ProductManagement() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bulkInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Bulk Status Dialog State
@@ -77,8 +79,6 @@ export function ProductManagement() {
 
     try {
       const batch = writeBatch(firestore);
-      
-      // 1. Filter vendors by selected zone
       const targetVendors = vendors.filter(v => v.zoneId === selectedBulkZoneId);
       
       if (targetVendors.length === 0) {
@@ -87,12 +87,10 @@ export function ProductManagement() {
         return;
       }
 
-      // 2. Update Vendors in that zone
       targetVendors.forEach(v => {
         batch.update(doc(firestore, 'vendors', v.id), { isOnline, updatedAt: serverTimestamp() });
       });
 
-      // 3. Update all Products belonging to these vendors
       const vendorIds = targetVendors.map(v => v.id);
       const targetProducts = products?.filter(p => vendorIds.includes(p.vendorId)) || [];
 
@@ -103,17 +101,87 @@ export function ProductManagement() {
 
       await batch.commit();
       
-      toast({ 
-        title: isOnline ? "Zone Online! 🟢" : "Zone Closed! 🔴", 
-        description: `Successfully updated ${targetVendors.length} stores in ${zoneName}.` 
-      });
+      toast({ title: isOnline ? "Zone Online! 🟢" : "Zone Closed! 🔴", description: `Updated ${targetVendors.length} stores in ${zoneName}.` });
       setIsBulkStatusDialogOpen(false);
       setSelectedBulkZoneId('');
-    } catch (e) { 
-      console.error("Bulk sync error:", e);
-      toast({ variant: "destructive", title: "Update Failed" }); 
-    } finally { 
-      setIsBulkUpdating(false); 
+    } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+    finally { setIsBulkUpdating(false); }
+  };
+
+  const handleBulkImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firestore) return;
+
+    setIsBulkUpdating(true);
+    toast({ title: "Importing...", description: "Processing your file. Please wait." });
+
+    try {
+      const XLSX = (await import('xlsx'));
+      const reader = new FileReader();
+      
+      reader.onload = async (evt) => {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data: any[] = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          toast({ variant: "destructive", title: "Empty File", description: "No data found in sheet." });
+          setIsBulkUpdating(false);
+          return;
+        }
+
+        // Process in batches of 500
+        let successCount = 0;
+        const totalBatches = Math.ceil(data.length / 500);
+
+        for (let i = 0; i < data.length; i += 500) {
+          const batch = writeBatch(firestore);
+          const chunk = data.slice(i, i + 500);
+
+          chunk.forEach(item => {
+            const newRef = doc(collection(firestore, 'products'));
+            const vendor = vendors?.find(v => v.id === String(item.vendorId || item.VendorID));
+            
+            const pData = {
+              id: newRef.id,
+              name: String(item.name || item.Name || 'Unnamed Product'),
+              price: parseFloat(item.price || item.Price || 0),
+              mrp: parseFloat(item.mrp || item.MRP || item.price || item.Price || 0),
+              category: String(item.category || item.Category || 'General').toLowerCase(),
+              vendorId: String(item.vendorId || item.VendorID || 'global'),
+              restaurantName: vendor?.storeName || item.storeName || item.StoreName || 'ShopyKart Select',
+              description: String(item.description || item.Description || ''),
+              imageUrl: String(item.imageUrl || item.ImageUrl || 'https://picsum.photos/seed/bulk/400/400'),
+              serviceMode: vendor?.category || 'Food',
+              zoneId: vendor?.zoneId || null,
+              town: vendor?.town || 'Local',
+              isAvailable: true,
+              isVeg: item.isVeg !== undefined ? Boolean(item.isVeg) : true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            };
+            
+            batch.set(newRef, pData);
+            if (pData.vendorId !== 'global') {
+              batch.set(doc(firestore, 'vendors', pData.vendorId, 'products', newRef.id), pData);
+            }
+            successCount++;
+          });
+
+          await batch.commit();
+        }
+
+        toast({ title: "Import Complete! ✅", description: `${successCount} products added to catalog.` });
+        setIsBulkImportOpen(false);
+        setIsBulkUpdating(false);
+      };
+      reader.readAsBinaryString(file);
+    } catch (err) {
+      console.error("Bulk error:", err);
+      toast({ variant: "destructive", title: "Import Failed", description: "Format error or network issue." });
+      setIsBulkUpdating(false);
     }
   };
 
@@ -124,20 +192,6 @@ export function ProductManagement() {
       await setDoc(doc(firestore, 'vendors', vendorId, 'products', productId), { isAvailable: available, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: available ? "Stock Online" : "Stock Offline" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
-  };
-
-  const addOptionRow = () => {
-    setOptions([...options, { name: '', price: 0 }]);
-  };
-
-  const removeOptionRow = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
-  };
-
-  const updateOption = (index: number, field: 'name' | 'price', value: any) => {
-    const newOptions = [...options];
-    newOptions[index] = { ...newOptions[index], [field]: field === 'price' ? parseFloat(value) || 0 : value };
-    setOptions(newOptions);
   };
 
   const handleSave = async () => {
@@ -184,7 +238,7 @@ export function ProductManagement() {
       }
       setIsAddOpen(false);
       resetForm();
-      toast({ title: "Product Published", description: `Assigned to ${finalServiceMode} Hub.` });
+      toast({ title: "Product Published" });
     } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
   };
 
@@ -225,14 +279,37 @@ export function ProductManagement() {
            >
             OPEN BY ZONE
            </Button>
-           <Button 
-            onClick={() => { setBulkMode('close'); setIsBulkStatusDialogOpen(true); }} 
-            variant="destructive" 
-            className="h-12 rounded-2xl font-black uppercase text-[10px]"
-           >
-            CLOSE BY ZONE
-           </Button>
            
+           <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+             <DialogTrigger asChild>
+               <Button className="h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 font-black uppercase text-[10px] text-white">
+                 <FileUp className="mr-2 h-4 w-4" /> BULK IMPORT
+               </Button>
+             </DialogTrigger>
+             <DialogContent className="rounded-[2.5rem] max-w-sm">
+                <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Bulk Data Import</DialogTitle></DialogHeader>
+                <div className="p-6 space-y-6">
+                   <div onClick={() => bulkInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center bg-blue-50/50 cursor-pointer hover:border-blue-300 transition-all group">
+                      {isBulkUpdating ? <Loader2 className="h-8 w-8 animate-spin text-blue-600" /> : (
+                        <>
+                          <FileUp className="h-8 w-8 text-blue-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-[10px] font-black uppercase text-blue-600 mt-2">Upload Excel / CSV</span>
+                        </>
+                      )}
+                   </div>
+                   <input type="file" ref={bulkInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleBulkImport} />
+                   
+                   <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-2">
+                      <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
+                        Column headers required:
+                        <span className="block text-black font-black mt-1">name, price, mrp, category, vendorId, description</span>
+                      </p>
+                      <button className="text-[8px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1"><Download className="h-2.5 w-2.5" /> Download Template</button>
+                   </div>
+                </div>
+             </DialogContent>
+           </Dialog>
+
            <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
               <DialogTrigger asChild><Button className="bg-black rounded-2xl h-12 font-black uppercase italic"><Plus className="mr-2 h-4 w-4" /> NEW ITEM</Button></DialogTrigger>
               <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
@@ -246,104 +323,19 @@ export function ProductManagement() {
                    }} />
                    
                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Basic Info</label>
-                        <Input placeholder="Dish/Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
-                      </div>
-
-                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <div className="bg-amber-500 p-2 rounded-xl text-white">
-                               <Trophy className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                               <span className="text-xs font-black uppercase text-amber-900 leading-none">Add to Top Ten Specials?</span>
-                               <span className="text-[8px] font-bold text-amber-700 uppercase mt-1">This will show in the Home Slider</span>
-                            </div>
-                         </div>
-                         <Switch checked={isTopTen} onCheckedChange={setIsTopTen} className="data-[state=checked]:bg-amber-500" />
-                      </div>
-                      
+                      <Input placeholder="Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MRP ₹</label>
-                          <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase text-primary ml-1">Selling Price ₹</label>
-                          <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
-                        </div>
+                        <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none" />
+                        <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
                       </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Description</label>
-                        <Textarea placeholder="Full Description (Ingredients, usage, etc.)" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24 font-medium bg-muted/20 border-none p-4" />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Assign Section</label>
-                        <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                          <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Assign to Store" /></SelectTrigger>
-                          <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName} ({v.category})</SelectItem>)}</SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-1">
-                         <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
-                         <Input placeholder="e.g. Lipsticks, Burgers" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                           <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">MFG (Oct 2023)</label>
-                           <Input placeholder="MFG" value={mfgDate} onChange={e => setMfgDate(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                           <label className="text-[9px] font-black uppercase text-red-400 ml-1">Expiry (Oct 2024)</label>
-                           <Input placeholder="Expiry" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="h-12 rounded-xl bg-red-50/50 border-none text-xs" />
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 pt-4 border-t border-dashed">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                             <ListPlus className="h-4 w-4 text-primary" />
-                             <h4 className="text-xs font-black uppercase tracking-widest">Variations / Variety</h4>
-                          </div>
-                          <div className="flex items-center gap-2">
-                             <span className="text-[8px] font-black uppercase text-muted-foreground">Selection Required?</span>
-                             <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-primary" />
-                          </div>
-                          <button onClick={addOptionRow} className="text-[10px] font-black text-primary bg-primary/5 px-3 py-1.5 rounded-full uppercase tracking-widest border border-primary/10">Add Variety</button>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          {options.map((opt, idx) => (
-                            <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded-xl border border-gray-100">
-                               <Input 
-                                 placeholder="Size/Shade" 
-                                 value={opt.name} 
-                                 onChange={e => updateOption(idx, 'name', e.target.value)}
-                                 className="h-10 rounded-lg bg-white border-none text-xs font-bold"
-                               />
-                               <div className="relative w-24">
-                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">₹</span>
-                                 <Input 
-                                   type="number"
-                                   placeholder="Extra" 
-                                   value={opt.price || ''} 
-                                   onChange={e => updateOption(idx, 'price', e.target.value)}
-                                   className="h-10 pl-5 rounded-lg bg-white border-none text-xs font-bold"
-                                 />
-                               </div>
-                               <button onClick={() => removeOptionRow(idx)} className="h-10 w-10 flex items-center justify-center text-red-400 hover:text-red-600"><X className="h-4 w-4" /></button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <Textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                      <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                        <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Assign to Store" /></SelectTrigger>
+                        <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                    </div>
-
-                   <Button onClick={handleSave} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl shadow-primary/20 text-lg">PUBLISH TO HUB</Button>
+                   <Button onClick={handleSave} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">PUBLISH TO HUB</Button>
                 </div>
               </DialogContent>
            </Dialog>
@@ -352,69 +344,22 @@ export function ProductManagement() {
 
       <Dialog open={isBulkStatusDialogOpen} onOpenChange={setIsBulkStatusDialogOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-black italic uppercase text-center text-xl">
-              {bulkMode === 'open' ? 'Open All Stores' : 'Close All Stores'}
-            </DialogTitle>
-            <DialogDescription className="text-center font-bold text-[10px] uppercase tracking-widest text-muted-foreground">
-              Select a zone to execute bulk action
-            </DialogDescription>
-          </DialogHeader>
-          
+          <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">{bulkMode === 'open' ? 'Open All Stores' : 'Close All Stores'}</DialogTitle></DialogHeader>
           <div className="py-6 space-y-4">
-             <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Target Zone *</label>
-                <Select value={selectedBulkZoneId} onValueChange={setSelectedBulkZoneId}>
-                  <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-none font-bold">
-                    <SelectValue placeholder="Select Serving Zone" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    {zones?.map((zone: any) => (
-                      <SelectItem key={zone.id} value={zone.id} className="font-bold py-3 uppercase text-xs">
-                        {zone.name} ({zone.city})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-             </div>
-
-             <div className={cn(
-               "p-4 rounded-2xl border-2 border-dashed flex items-start gap-3",
-               bulkMode === 'open' ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700"
-             )}>
-                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold uppercase leading-relaxed">
-                  Is action se selected zone ke saare stores aur unka poora menu {bulkMode === 'open' ? 'live ho jayega' : 'offline/hide ho jayega'}.
-                </p>
-             </div>
-          </div>
-
-          <DialogFooter>
-             <Button 
-               onClick={handleBulkStatusAction} 
-               disabled={isBulkUpdating || !selectedBulkZoneId}
-               className={cn(
-                 "w-full h-16 rounded-2xl font-black uppercase italic text-lg shadow-xl",
-                 bulkMode === 'open' ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"
-               )}
-             >
-               {isBulkUpdating ? <Loader2 className="h-6 w-6 animate-spin" /> : `CONFIRM ${bulkMode.toUpperCase()}`}
+             <Select value={selectedBulkZoneId} onValueChange={setSelectedBulkZoneId}>
+                <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select Zone" /></SelectTrigger>
+                <SelectContent className="rounded-2xl">{zones?.map((zone: any) => (<SelectItem key={zone.id} value={zone.id} className="font-bold py-3 uppercase text-xs">{zone.name}</SelectItem>))}</SelectContent>
+             </Select>
+             <Button onClick={handleBulkStatusAction} disabled={isBulkUpdating || !selectedBulkZoneId} className="w-full h-16 rounded-2xl font-black uppercase italic shadow-xl bg-green-600 text-white">
+               {isBulkUpdating ? <Loader2 className="h-6 w-6 animate-spin" /> : "CONFIRM ACTION"}
              </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
         {products?.map(p => (
           <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all relative overflow-hidden", p.isAvailable === false && "opacity-60")}>
-            {p.isTopTen && (
-              <div className="absolute top-0 right-0">
-                 <div className="bg-amber-400 text-amber-900 text-[6px] font-black px-2 py-1 rounded-bl-xl uppercase italic flex items-center gap-1 shadow-sm">
-                    <Trophy className="h-2 w-2" /> Top 10
-                 </div>
-              </div>
-            )}
-
             <div className="flex items-center gap-4">
               <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
               <div>
@@ -423,21 +368,8 @@ export function ProductManagement() {
                    <span className="text-[8px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-full uppercase">{p.serviceMode || 'Food'}</span>
                    <p className="text-[10px] font-bold text-muted-foreground uppercase truncate max-w-[80px]">{p.restaurantName}</p>
                 </div>
-                <div className="flex items-center gap-4 mt-1">
-                   <div className="flex items-center gap-1.5 bg-muted/30 px-1.5 py-0.5 rounded-lg">
-                      <span className={cn("text-[7px] font-black uppercase", p.isAvailable !== false ? "text-green-600" : "text-red-500")}>
-                        {p.isAvailable !== false ? 'Live' : 'OFF'}
-                      </span>
-                      <Switch 
-                        checked={p.isAvailable !== false} 
-                        onCheckedChange={(val) => toggleProductAvailability(p.id, p.vendorId, val)}
-                        className="scale-50 data-[state=checked]:bg-green-500"
-                      />
-                   </div>
-                   <div className="flex items-center gap-2">
-                      <p className="text-primary font-black text-xs">₹{p.price}</p>
-                      {p.mrp > p.price && <span className="text-[8px] text-gray-400 line-through">₹{p.mrp}</span>}
-                   </div>
+                <div className="flex items-center gap-2 mt-1">
+                   <p className="text-primary font-black text-xs">₹{p.price}</p>
                 </div>
               </div>
             </div>
