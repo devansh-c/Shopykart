@@ -17,12 +17,14 @@ import { FirestorePermissionError } from '../errors';
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
     // Keep loading if ref is not available yet
     if (!ref) {
+      setLoading(false);
+      setData(null);
       return;
     }
 

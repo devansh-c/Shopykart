@@ -17,11 +17,13 @@ import { FirestorePermissionError } from '../errors';
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!query);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
     if (!query) {
+      setLoading(false);
+      setData(null);
       return;
     }
 

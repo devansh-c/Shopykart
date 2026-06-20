@@ -37,7 +37,8 @@ export default function OrdersPage() {
     });
   }, [orders]);
 
-  const isLoading = userLoading || (ordersLoading && !orders);
+  // Refined loading state: Only show spinner if we expect data but don't have it yet
+  const isLoading = userLoading || (user && ordersLoading && !orders);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -112,13 +113,17 @@ export default function OrdersPage() {
         ) : (
           <div className="text-center py-20 opacity-30 flex flex-col items-center">
             <ShoppingBag className="h-16 w-16 mb-4" />
-            <p className="font-black italic uppercase tracking-widest text-sm">No orders yet</p>
-            <button 
-              onClick={() => router.push('/menu')}
-              className="mt-6 text-primary font-black uppercase text-[10px] tracking-widest underline underline-offset-4"
-            >
-              Order something delicious now
-            </button>
+            <p className="font-black italic uppercase tracking-widest text-sm">
+              {!user ? "Please login to view orders" : "No orders yet"}
+            </p>
+            {user && (
+              <button 
+                onClick={() => router.push('/menu')}
+                className="mt-6 text-primary font-black uppercase text-[10px] tracking-widest underline underline-offset-4"
+              >
+                Order something delicious now
+              </button>
+            )}
           </div>
         )}
       </div>
