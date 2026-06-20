@@ -42,9 +42,7 @@ export function EmailAuth() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  const handleAuth = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
+  const handleAuth = async () => {
     if (!auth || !firestore) {
       toast({ variant: "destructive", title: "Connecting...", description: "Please wait 1s." });
       return;
@@ -52,9 +50,9 @@ export function EmailAuth() {
 
     if (loading) return;
 
-    // --- MANUAL VALIDATION (Prevents 'no-click' behavior) ---
+    // --- ROBUST MANUAL VALIDATION ---
     if (!email.trim() || !email.includes('@')) {
-      toast({ variant: "destructive", title: "Invalid Email", description: "Enter a valid email." });
+      toast({ variant: "destructive", title: "Invalid Email", description: "Enter a valid email address." });
       return;
     }
 
@@ -64,12 +62,12 @@ export function EmailAuth() {
     }
 
     if (view === 'signup') {
-      if (!fullName.trim()) {
-        toast({ variant: "destructive", title: "Name Required", description: "Please enter your full name." });
+      if (!fullName.trim() || fullName.length < 3) {
+        toast({ variant: "destructive", title: "Name Required", description: "Please enter your full name (min 3 chars)." });
         return;
       }
       if (phoneNumber.length !== 10) {
-        toast({ variant: "destructive", title: "Invalid Phone", description: "Enter 10-digit mobile number." });
+        toast({ variant: "destructive", title: "Invalid Phone", description: "Enter a valid 10-digit mobile number." });
         return;
       }
       if (password !== confirmPassword) {
@@ -86,9 +84,10 @@ export function EmailAuth() {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const firebaseUser = userCredential.user;
         
-        // Critical: Complete profile work before allowing UI to refresh
+        // 1. Update Basic Profile
         await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
 
+        // 2. Prepare Detailed User Data
         const userData = {
           fullName: fullName.toUpperCase(),
           phoneNumber,
@@ -100,34 +99,36 @@ export function EmailAuth() {
           role: 'customer'
         };
 
-        // Write user profile to Firestore
+        // 3. CRITICAL: Save to Firestore BEFORE marking session
         await setDoc(doc(firestore, 'users', firebaseUser.uid), userData, { merge: true });
 
-        // Mark session as active
+        // 4. Mark Session
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        toast({ title: "Welcome to ShopyKart! ✨", description: "Identity verified." });
+        toast({ title: "Welcome to ShopyKart! ✨", description: "Account created successfully." });
         
-        // Final redirection
+        // Final redirection after all data is committed
         setTimeout(() => {
-          window.location.href = '/';
-        }, 300);
+          window.location.reload(); // Hard reload to clear auth state and pick up session
+        }, 500);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Authenticated!", description: "Opening dashboard." });
         
         setTimeout(() => {
-          window.location.href = '/';
-        }, 300);
+          window.location.reload();
+        }, 500);
       }
     } catch (err: any) {
       setLoading(false);
       let msg = "Auth failed. Try again.";
       if (err.code === 'auth/email-already-in-use') msg = "Email already registered.";
       else if (err.code === 'auth/invalid-credential') msg = "Wrong email or password.";
+      else if (err.code === 'auth/network-request-failed') msg = "Check your internet connection.";
+      
       toast({ variant: "destructive", title: "Auth Alert", description: msg });
     }
   };
@@ -137,16 +138,16 @@ export function EmailAuth() {
     window.open(`https://wa.me/919450355709?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // Condition check for rendering
-  const hasActiveSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
-  
   if (!mounted) return null;
+  
+  // Only auto-hide if we are NOT in the middle of a loading process
+  const hasActiveSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
   if (hasActiveSession && !loading) return null;
   if (user && !loading) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
-      <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu">
+    <div className="fixed inset-0 z-[10000] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar pointer-events-auto">
+      <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu pointer-events-auto">
         <div className="flex flex-col items-center text-center space-y-6">
           <Logo className="scale-110 mb-2 border-white/10" />
           <div className="space-y-2">
@@ -163,8 +164,8 @@ export function EmailAuth() {
           <div className="space-y-4">
             {view === 'signup' && (
               <>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                   <input 
                     type="text" 
                     placeholder="FULL NAME" 
@@ -173,8 +174,8 @@ export function EmailAuth() {
                     className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl pl-12 pr-4 text-sm font-black tracking-widest text-white focus:outline-none focus:border-primary/50 transition-all uppercase" 
                   />
                 </div>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+                <div className="relative group">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                   <input 
                     type="tel" 
                     placeholder="10 DIGIT PHONE" 
@@ -186,8 +187,8 @@ export function EmailAuth() {
               </>
             )}
             
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary transition-colors" />
               <input 
                 type="email" 
                 placeholder="EMAIL ADDRESS" 
@@ -197,8 +198,8 @@ export function EmailAuth() {
               />
             </div>
 
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary transition-colors" />
               <input 
                 type="password" 
                 placeholder="PASSWORD" 
@@ -209,8 +210,8 @@ export function EmailAuth() {
             </div>
 
             {view === 'signup' && (
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary transition-colors" />
                 <input 
                   type="password" 
                   placeholder="CONFIRM PASSWORD" 
@@ -222,13 +223,14 @@ export function EmailAuth() {
             )}
           </div>
 
-          <Button 
-            onClick={() => handleAuth()}
+          <button 
+            type="button"
+            onClick={handleAuth}
             disabled={loading} 
-            className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-8"
+            className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-6 flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
           >
             {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN SHOPYKART' : 'ENTER DASHBOARD')}
-          </Button>
+          </button>
 
           <div className="flex flex-col items-center gap-4 pt-6">
             <button 
