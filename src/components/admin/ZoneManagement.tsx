@@ -41,7 +41,7 @@ const ZoneMapDrawing = dynamic(() => import('./ZoneMapDrawing'), {
   )
 });
 
-export function ZoneManagement() {
+export default function ZoneManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
 

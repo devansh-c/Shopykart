@@ -14,7 +14,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { compressImage } from '@/lib/image-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export function BannerManagement() {
+export default function BannerManagement() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();

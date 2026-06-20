@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-export function ChargeManagement() {
+export default function ChargeManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
 

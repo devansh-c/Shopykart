@@ -18,7 +18,7 @@ import { compressImage } from '@/lib/image-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
-export function ProductManagement() {
+export default function ProductManagement() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLInputElement>(null);
@@ -327,21 +327,6 @@ export function ProductManagement() {
            </Dialog>
         </div>
       </div>
-
-      <Dialog open={isBulkStatusDialogOpen} onOpenChange={setIsBulkStatusDialogOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm">
-          <DialogHeader><DialogTitle className="font-black italic uppercase text-center text-xl">{bulkMode === 'open' ? 'Open All Stores' : 'Close All Stores'}</DialogTitle></DialogHeader>
-          <div className="py-6 space-y-4">
-             <Select value={selectedBulkZoneId} onValueChange={setSelectedBulkZoneId}>
-                <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Select Zone" /></SelectTrigger>
-                <SelectContent className="rounded-2xl">{zones?.map((zone: any) => (<SelectItem key={zone.id} value={zone.id} className="font-bold py-3 uppercase text-xs">{zone.name}</SelectItem>))}</SelectContent>
-             </Select>
-             <Button onClick={handleBulkStatusAction} disabled={isBulkUpdating || !selectedBulkZoneId} className="w-full h-16 rounded-2xl font-black uppercase italic shadow-xl bg-green-600 text-white">
-               {isBulkUpdating ? <Loader2 className="h-6 w-6 animate-spin" /> : "CONFIRM ACTION"}
-             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
         {products?.map(p => (

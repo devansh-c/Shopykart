@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -21,7 +20,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 
-export function TicketManagement() {
+export default function TicketManagement() {
   const firestore = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
 

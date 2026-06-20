@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef } from 'react';
@@ -13,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { compressImage } from '@/lib/image-utils';
 
-export function CategoryManagement() {
+export default function CategoryManagement() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();

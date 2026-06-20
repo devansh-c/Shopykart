@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useEffect, useState } from 'react';
@@ -18,7 +17,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
-export function AdminOverview() {
+export default function AdminOverview() {
   const firestore = useFirestore();
 
   // Fetch real data

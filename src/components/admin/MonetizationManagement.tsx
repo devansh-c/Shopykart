@@ -12,7 +12,7 @@ import { compressImage } from '@/lib/image-utils';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 
-export function MonetizationManagement() {
+export default function MonetizationManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const adInputRef = useRef<HTMLInputElement>(null);

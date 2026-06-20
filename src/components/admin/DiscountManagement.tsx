@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -20,7 +19,7 @@ const gradients = [
   'from-[#059669] to-[#047857]',
 ];
 
-export function DiscountManagement() {
+export default function DiscountManagement() {
   const firestore = useFirestore();
   
   const couponsQuery = useMemoFirebase(() => {

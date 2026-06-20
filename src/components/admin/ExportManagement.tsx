@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -26,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
-export function ExportManagement() {
+export default function ExportManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);

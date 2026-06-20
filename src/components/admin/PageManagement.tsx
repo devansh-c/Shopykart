@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -12,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-export function PageManagement() {
+export default function PageManagement() {
   const firestore = useFirestore();
   
   const pagesQuery = useMemoFirebase(() => {

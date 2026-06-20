@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
@@ -15,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
-export function BrandingManagement() {
+export default function BrandingManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const logoInputRef = useRef<HTMLInputElement>(null);

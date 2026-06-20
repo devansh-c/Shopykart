@@ -33,7 +33,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { compressImage } from '@/lib/image-utils';
 
-export function StoreManagement({ categoryFilter }: { categoryFilter?: string }) {
+export default function StoreManagement({ categoryFilter }: { categoryFilter?: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');

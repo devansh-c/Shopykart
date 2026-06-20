@@ -40,30 +40,30 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useFirestore } from '@/firebase';
 import { requestPushToken } from '@/firebase/messaging';
 
-// LAZY LOADING WITH SSR DISABLED TO PREVENT 500 ERRORS
-const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })), { 
+// ROBUST DYNAMIC IMPORTS WITH DEFAULT EXPORTS
+const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview'), { 
   ssr: false,
   loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> 
 });
-const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement').then(m => ({ default: m.ProductManagement })), { ssr: false });
-const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement').then(m => ({ default: m.BannerManagement })), { ssr: false });
-const OrderManagement = dynamic(() => import('@/components/admin/OrderManagement').then(m => ({ default: m.OrderManagement })), { ssr: false });
-const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement').then(m => ({ default: m.ReviewManagement })), { ssr: false });
-const DiscountManagement = dynamic(() => import('@/components/admin/DiscountManagement').then(m => ({ default: m.DiscountManagement })), { ssr: false });
-const StoreManagement = dynamic(() => import('@/components/admin/StoreManagement').then(m => ({ default: m.StoreManagement })), { ssr: false });
-const CategoryManagement = dynamic(() => import('@/components/admin/CategoryManagement').then(m => ({ default: m.CategoryManagement })), { ssr: false });
-const BrandingManagement = dynamic(() => import('@/components/admin/BrandingManagement').then(m => ({ default: m.BrandingManagement })), { ssr: false });
-const CustomerManagement = dynamic(() => import('@/components/admin/CustomerManagement').then(m => ({ default: m.CustomerManagement })), { ssr: false });
-const ChargeManagement = dynamic(() => import('@/components/admin/ChargeManagement').then(m => ({ default: m.ChargeManagement })), { ssr: false });
-const StorePayoutManagement = dynamic(() => import('@/components/admin/StorePayoutManagement').then(m => ({ default: m.StorePayoutManagement })), { ssr: false });
-const FleetManagement = dynamic(() => import('@/components/admin/FleetManagement').then(m => ({ default: m.FleetManagement })), { ssr: false });
-const MonetizationManagement = dynamic(() => import('@/components/admin/MonetizationManagement').then(m => ({ default: m.MonetizationManagement })), { ssr: false });
-const ExportManagement = dynamic(() => import('@/components/admin/ExportManagement').then(m => ({ default: m.ExportManagement })), { ssr: false });
-const ZoneManagement = dynamic(() => import('@/components/admin/ZoneManagement').then(m => ({ default: m.ZoneManagement })), { ssr: false });
-const PageManagement = dynamic(() => import('@/components/admin/PageManagement').then(m => ({ default: m.PageManagement })), { ssr: false });
-const TicketManagement = dynamic(() => import('@/components/admin/TicketManagement').then(m => ({ default: m.TicketManagement })), { ssr: false });
-const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement').then(m => ({ default: m.TeamManagement })), { ssr: false });
-const ReceiptGenerator = dynamic(() => import('@/components/admin/ReceiptGenerator').then(m => ({ default: m.ReceiptGenerator })), { ssr: false });
+const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement'), { ssr: false });
+const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement'), { ssr: false });
+const OrderManagement = dynamic(() => import('@/components/admin/OrderManagement'), { ssr: false });
+const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement'), { ssr: false });
+const DiscountManagement = dynamic(() => import('@/components/admin/DiscountManagement'), { ssr: false });
+const StoreManagement = dynamic(() => import('@/components/admin/StoreManagement'), { ssr: false });
+const CategoryManagement = dynamic(() => import('@/components/admin/CategoryManagement'), { ssr: false });
+const BrandingManagement = dynamic(() => import('@/components/admin/BrandingManagement'), { ssr: false });
+const CustomerManagement = dynamic(() => import('@/components/admin/CustomerManagement'), { ssr: false });
+const ChargeManagement = dynamic(() => import('@/components/admin/ChargeManagement'), { ssr: false });
+const StorePayoutManagement = dynamic(() => import('@/components/admin/StorePayoutManagement'), { ssr: false });
+const FleetManagement = dynamic(() => import('@/components/admin/FleetManagement'), { ssr: false });
+const MonetizationManagement = dynamic(() => import('@/components/admin/MonetizationManagement'), { ssr: false });
+const ExportManagement = dynamic(() => import('@/components/admin/ExportManagement'), { ssr: false });
+const ZoneManagement = dynamic(() => import('@/components/admin/ZoneManagement'), { ssr: false });
+const PageManagement = dynamic(() => import('@/components/admin/PageManagement'), { ssr: false });
+const TicketManagement = dynamic(() => import('@/components/admin/TicketManagement'), { ssr: false });
+const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement'), { ssr: false });
+const ReceiptGenerator = dynamic(() => import('@/components/admin/ReceiptGenerator'), { ssr: false });
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -76,7 +76,7 @@ const menuItems = [
   { id: 'fleet', label: 'Delivery Fleet', icon: Truck },
   { id: 'payouts', label: 'Store Payouts', icon: CircleDollarSign },
   { id: 'categories', label: 'Categories', icon: Tag },
-  { id: 'catalog', label: 'Products', icon: Layers },
+  { id: 'products', label: 'Products', icon: Layers },
   { id: 'design', label: 'Banners', icon: Feather },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
   { id: 'discounts', label: 'Discounts', icon: Percent },
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
       case 'fleet': return <FleetManagement />;
       case 'payouts': return <StorePayoutManagement />;
       case 'categories': return <CategoryManagement />;
-      case 'catalog': return <ProductManagement />;
+      case 'products': return <ProductManagement />;
       case 'design': return <BannerManagement />;
       case 'orders': return <OrderManagement />;
       case 'discounts': return <DiscountManagement />;

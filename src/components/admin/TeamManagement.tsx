@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -18,13 +17,13 @@ const PERMISSIONS = [
   { id: 'stores', label: 'Stores' },
   { id: 'fleet', label: 'Fleet' },
   { id: 'orders', label: 'Orders' },
-  { id: 'catalog', label: 'Catalog' },
+  { id: 'products', label: 'Products' },
   { id: 'payouts', label: 'Payouts' },
   { id: 'tickets', label: 'Tickets' },
   { id: 'design', label: 'Banners' },
 ];
 
-export function TeamManagement() {
+export default function TeamManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   

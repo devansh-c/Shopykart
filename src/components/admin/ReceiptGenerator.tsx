@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef } from 'react';
@@ -36,7 +35,7 @@ type Item = {
   price: number;
 };
 
-export function ReceiptGenerator() {
+export default function ReceiptGenerator() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
