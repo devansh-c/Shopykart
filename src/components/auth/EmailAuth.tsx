@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -115,9 +116,9 @@ export function EmailAuth() {
         
         toast({ title: "Welcome to ShopyKart! ✨", description: "Account created successfully." });
         
-        // Final redirection
+        // Final redirection: HAAL KE HAAL ENTER
         setTimeout(() => {
-          window.location.reload(); 
+          window.location.replace('/'); 
         }, 100);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
@@ -125,7 +126,7 @@ export function EmailAuth() {
         toast({ title: "Welcome Back!", description: "Access granted." });
         
         setTimeout(() => {
-          window.location.reload();
+          window.location.replace('/');
         }, 100);
       }
     } catch (err: any) {
