@@ -55,7 +55,6 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (isDisabled) return;
-    // Captures pointer so movements are tracked even outside the handle
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setIsDragging(true);
   };
@@ -64,10 +63,8 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     if (!isDragging || !sliderRef.current) return;
     
     const rect = sliderRef.current.getBoundingClientRect();
-    const maxX = rect.width - 68; // Container padding + handle width offset
-    
-    // Calculate new position based on clientX relative to container start
-    let x = e.clientX - rect.left - 34; // Center the 52px handle
+    const maxX = rect.width - 68;
+    let x = e.clientX - rect.left - 34;
     x = Math.max(0, Math.min(x, maxX));
     
     setSlideX(x);
@@ -79,7 +76,6 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     setIsDragging(false);
     
     const maxX = sliderRef.current.clientWidth - 68;
-    // Trigger confirm if slid more than 85%
     if (slideXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
@@ -97,7 +93,6 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         isDisabled ? "bg-gray-200" : isDragging ? "bg-emerald-600" : "bg-[#10B981]"
       )}
     >
-      {/* Background Track Text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <span className={cn(
           "text-[13px] font-black text-white uppercase italic tracking-widest transition-all duration-200", 
@@ -108,7 +103,6 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Incomplete Details</span>}
       </div>
 
-      {/* Sliding Handle */}
       <div 
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -130,7 +124,6 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )} />
       </div>
 
-      {/* Progress Track Filler */}
       {!isDisabled && (
         <div 
           className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none" 
@@ -262,8 +255,12 @@ export default function CartPage() {
 
   const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing) return;
-    setIsPlacing(true);
+    
+    // 1. Generate Order Identity First (Zero-Latency)
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
+    setIsPlacing(true);
+
+    // 2. Prepare Data Object
     const finalUid = user?.uid || 'guest_' + Date.now();
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
@@ -305,7 +302,10 @@ export default function CartPage() {
       instructions
     };
 
-    // INSTANT EXECUTION (Optimistic Write)
+    // 3. HAAL KE HAAL REDIRECT (Prioritize Navigation)
+    router.replace(`/orders/track?id=${orderId}`);
+
+    // 4. FIRE AND FORGET DB WRITES (Background Processing)
     setDoc(doc(firestore, 'orders', orderId), orderData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -324,10 +324,12 @@ export default function CartPage() {
       }, { merge: true }).catch(() => {});
     }
 
-    // RAPID CLEANUP & REDIRECT
-    clearCart();
-    setIsPaymentDialogOpen(false);
-    router.replace(`/orders/track?id=${orderId}`);
+    // 5. Cleanup session (Deferred to not block navigation)
+    setTimeout(() => {
+      clearCart();
+      setIsPaymentDialogOpen(false);
+    }, 100);
+    
   }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router]);
 
   const handleOnlinePaymentFlow = () => {
@@ -336,7 +338,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = useCallback(async () => {
-    if (totalPrice < 35) {
+    if (totalPrice < 35 && grandTotal < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       return;
     }
@@ -351,7 +353,7 @@ export default function CartPage() {
     } else {
       executeOrderPlacement();
     }
-  }, [totalPrice, customerName, customerPhone, customerAddress, paymentMethod, toast, executeOrderPlacement]);
+  }, [totalPrice, grandTotal, customerName, customerPhone, customerAddress, paymentMethod, toast, executeOrderPlacement]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponInput.trim()) return;
@@ -495,7 +497,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Floating Bottom Slider Container */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
            <div className="flex items-center justify-between px-2">
@@ -505,7 +506,6 @@ export default function CartPage() {
               </div>
               <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
-           {/* SLIDER COMPONENT CALL */}
            <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isCheckoutDisabled} />
         </div>
       </div>
@@ -555,7 +555,6 @@ export default function CartPage() {
                       <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">UTR number verify hone ke baad hi order accept hoga. Wrong UTR se order cancel ho sakta hai.</p>
                    </div>
                    
-                   {/* Verification Slider for UPI Flow */}
                    <SlideToOrder 
                     onConfirm={executeOrderPlacement} 
                     total={grandTotal} 
