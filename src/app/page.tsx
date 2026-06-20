@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useTransition, Suspense, useEffect, memo } from 'react';
@@ -7,12 +8,20 @@ import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft, Loader2 } 
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
-// SSR DISABLED FOR DATA-HEAVY COMPONENTS TO PREVENT ISE DURING PRE-RENDERING
+/**
+ * @fileOverview ShopyKart Main Entrance.
+ * Optimized with Dynamic Imports to handle chunk loading robustly.
+ */
+
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
 const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => ({ default: m.CategoryList })), { ssr: false });
 const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => ({ default: m.StoreSection })), { ssr: false });
 const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => ({ default: m.PopularProducts })), { ssr: false });
-const OffersSection = dynamic(() => import('@/components/home/OffersSection').then(m => ({ default: m.OffersSection })), { ssr: false });
+// Updated OffersSection import to handle default export for robustness
+const OffersSection = dynamic(() => import('@/components/home/OffersSection'), { 
+  ssr: false,
+  loading: () => <div className="h-32 w-full bg-muted/20 animate-pulse rounded-2xl mx-4" />
+});
 const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
 const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })), { ssr: false });
 const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })), { ssr: false });

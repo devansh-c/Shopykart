@@ -6,7 +6,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
-export function OffersSection() {
+/**
+ * @fileOverview Offers & Coupons Section.
+ * Converted to default export for better Next.js dynamic chunk loading.
+ */
+export default function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const couponsQuery = useMemoFirebase(() => {
