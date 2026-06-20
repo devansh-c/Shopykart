@@ -19,8 +19,8 @@ type AuthView = 'login' | 'signup';
 
 /**
  * @fileOverview Ultra-Fast Email Authentication.
- * Optimized for zero-lag and robust error handling.
- * Removed 'required' attribute to handle validation manually via toasts.
+ * Optimized for zero-lag and robust execution.
+ * Fix: Removed premature unmount on 'user' detection to ensure profile creation completes.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -45,22 +45,21 @@ export function EmailAuth() {
   const handleAuth = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    // Check if services are ready
     if (!auth || !firestore) {
-      toast({ variant: "destructive", title: "System Readying...", description: "Please wait 1-2 seconds for connection." });
+      toast({ variant: "destructive", title: "Connecting...", description: "Please wait 1s." });
       return;
     }
 
     if (loading) return;
 
-    // --- MANUAL VALIDATION ---
+    // --- MANUAL VALIDATION (Prevents 'no-click' behavior) ---
     if (!email.trim() || !email.includes('@')) {
-      toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email address." });
+      toast({ variant: "destructive", title: "Invalid Email", description: "Enter a valid email." });
       return;
     }
 
     if (password.length < 6) {
-      toast({ variant: "destructive", title: "Short Password", description: "Password must be at least 6 characters." });
+      toast({ variant: "destructive", title: "Short Password", description: "Minimum 6 characters required." });
       return;
     }
 
@@ -70,11 +69,11 @@ export function EmailAuth() {
         return;
       }
       if (phoneNumber.length !== 10) {
-        toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a 10-digit mobile number." });
+        toast({ variant: "destructive", title: "Invalid Phone", description: "Enter 10-digit mobile number." });
         return;
       }
       if (password !== confirmPassword) {
-        toast({ variant: "destructive", title: "Passwords Mismatch", description: "Both passwords must be identical." });
+        toast({ variant: "destructive", title: "Mismatch", description: "Passwords do not match." });
         return;
       }
     }
@@ -87,7 +86,7 @@ export function EmailAuth() {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const firebaseUser = userCredential.user;
         
-        // Instant profile update
+        // Critical: Complete profile work before allowing UI to refresh
         await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
 
         const userData = {
@@ -101,45 +100,35 @@ export function EmailAuth() {
           role: 'customer'
         };
 
-        // Priority write
+        // Write user profile to Firestore
         await setDoc(doc(firestore, 'users', firebaseUser.uid), userData, { merge: true });
 
-        // Save session data locally for instant redirection
-        localStorage.setItem('user_name', fullName.toUpperCase());
-        localStorage.setItem('user_phone', phoneNumber);
+        // Mark session as active
         localStorage.setItem('shopykart_session_active', 'true');
+        localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        toast({ title: "Welcome to ShopyKart! ✨", description: "Identity verified and profile created." });
+        toast({ title: "Welcome to ShopyKart! ✨", description: "Identity verified." });
         
-        // Fast refresh to trigger UI update
+        // Final redirection
         setTimeout(() => {
-          window.location.reload();
-        }, 500);
+          window.location.href = '/';
+        }, 300);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
-        toast({ title: "Authenticated!", description: "Opening your dashboard." });
+        toast({ title: "Authenticated!", description: "Opening dashboard." });
         
         setTimeout(() => {
-          window.location.reload();
-        }, 500);
+          window.location.href = '/';
+        }, 300);
       }
     } catch (err: any) {
       setLoading(false);
-      
-      let msg = "Authentication failed. Try again.";
-      if (err.code === 'auth/email-already-in-use') msg = "Email already registered. Try logging in.";
+      let msg = "Auth failed. Try again.";
+      if (err.code === 'auth/email-already-in-use') msg = "Email already registered.";
       else if (err.code === 'auth/invalid-credential') msg = "Wrong email or password.";
-      else if (err.code === 'auth/weak-password') msg = "Password is too weak.";
-      else if (err.code === 'auth/network-request-failed') msg = "Internet connection error.";
-      else if (err.code === 'auth/unauthorized-domain') msg = "Domain not authorized. Please check Firebase console.";
-
-      toast({ 
-        variant: "destructive", 
-        title: "Auth Alert", 
-        description: msg 
-      });
+      toast({ variant: "destructive", title: "Auth Alert", description: msg });
     }
   };
 
@@ -148,13 +137,15 @@ export function EmailAuth() {
     window.open(`https://wa.me/919450355709?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  if (!mounted || user) return null;
-  
+  // Condition check for rendering
   const hasActiveSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
-  if (hasActiveSession) return null;
+  
+  if (!mounted) return null;
+  if (hasActiveSession && !loading) return null;
+  if (user && !loading) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar pointer-events-auto">
+    <div className="fixed inset-0 z-[10000] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 overflow-y-auto no-scrollbar">
       <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu">
         <div className="flex flex-col items-center text-center space-y-6">
           <Logo className="scale-110 mb-2 border-white/10" />
@@ -163,12 +154,12 @@ export function EmailAuth() {
               {view === 'signup' ? 'Join ShopyKart' : 'Welcome Back'}
             </h1>
             <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">
-              {view === 'signup' ? 'Create your permanent identity' : 'Premium Delivery Network'}
+              Premium Delivery Network
             </p>
           </div>
         </div>
 
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-5">
           <div className="space-y-4">
             {view === 'signup' && (
               <>
@@ -232,21 +223,20 @@ export function EmailAuth() {
           </div>
 
           <Button 
-            type="button"
             onClick={() => handleAuth()}
             disabled={loading} 
-            className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl text-lg mt-4 active:scale-95 transition-all"
+            className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-8"
           >
             {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN SHOPYKART' : 'ENTER DASHBOARD')}
           </Button>
 
-          <div className="flex flex-col items-center gap-4 pt-4">
+          <div className="flex flex-col items-center gap-4 pt-6">
             <button 
               type="button" 
-              onClick={() => setView(view === 'login' ? 'signup' : 'login')} 
+              onClick={() => { setView(view === 'login' ? 'signup' : 'login'); window.scrollTo(0,0); }} 
               className="text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-full transition-all border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
             >
-              {view === 'login' ? "NEW ON SHOPYKART? REGISTER" : "ALREADY A MEMBER? SIGN IN"}
+              {view === 'login' ? "NEW CUSTOMER? REGISTER" : "ALREADY A MEMBER? SIGN IN"}
             </button>
             
             {view === 'login' && (
