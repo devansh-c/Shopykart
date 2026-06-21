@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -139,9 +140,6 @@ export function EmailAuth() {
   };
 
   if (!mounted) return null;
-  
-  // Note: We don't check for (user && !loading) here anymore to prevent premature unmounting 
-  // during the async setDoc call. The parent AuthGuard handles final unmounting.
 
   return (
     <div className="fixed inset-0 z-[99999] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar pointer-events-auto">
