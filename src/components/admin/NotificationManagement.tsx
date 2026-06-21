@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -11,9 +10,9 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
- * @fileOverview Individual Messaging component. Broadcast feature removed as requested.
+ * @fileOverview Individual Messaging component. Default export for stability.
  */
-export function NotificationManagement() {
+export default function NotificationManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   

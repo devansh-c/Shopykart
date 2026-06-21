@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -16,7 +15,7 @@ const initialReviews = [
   { id: 'r3', product: 'Classic Veggie Burger', user: 'John D.', rating: 3, comment: 'Good, but could be more spicy.', date: 'Oct 20, 2023' },
 ];
 
-export function ReviewManagement() {
+export default function ReviewManagement() {
   const [reviews, setReviews] = useState(initialReviews);
   const { toast } = useToast();
   const [editingReview, setEditingReview] = useState<any>(null);
