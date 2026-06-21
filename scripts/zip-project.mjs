@@ -1,47 +1,53 @@
 
 import fs from 'fs';
-import path from 'path';
 import archiver from 'archiver';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-/**
- * Custom script to zip the project and place it in the public folder.
- * This allows the user to download it via a direct link in the browser.
- */
-async function zipProject() {
-  const outputDir = path.join(process.cwd(), 'public');
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir);
-  }
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.join(__dirname, '..');
+const publicDir = path.join(rootDir, 'public');
 
-  const outputPath = path.join(outputDir, 'shopykart-source.zip');
-  const output = fs.createWriteStream(outputPath);
-  const archive = archiver('zip', { zlib: { level: 9 } });
-
-  output.on('close', () => {
-    console.log(`✅ Project successfully zipped: ${archive.pointer()} total bytes`);
-    console.log(`📂 Location: public/shopykart-source.zip`);
-    console.log(`🚀 You can now click the Download button in Admin Panel!`);
-  });
-
-  archive.on('error', (err) => {
-    throw err;
-  });
-
-  archive.pipe(output);
-
-  // Add files but ignore bulky/unnecessary ones
-  archive.glob('**/*', {
-    ignore: [
-      'node_modules/**',
-      '.next/**',
-      'out/**',
-      'public/shopykart-source.zip',
-      '.git/**',
-      '*.zip'
-    ]
-  });
-
-  await archive.finalize();
+// Ensure public directory exists
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir);
 }
 
-zipProject().catch(console.error);
+const output = fs.createWriteStream(path.join(publicDir, 'shopykart-source.zip'));
+const archive = archiver('zip', {
+  zlib: { level: 9 } // Sets the compression level.
+});
+
+output.on('close', function() {
+  console.log('--------------------------------------------------');
+  console.log('✅ Project successfully zipped!');
+  console.log('📦 Total size: ' + (archive.pointer() / 1024 / 1024).toFixed(2) + ' MB');
+  console.log('📥 Location: public/shopykart-source.zip');
+  console.log('--------------------------------------------------');
+  console.log('INSTRUCTIONS:');
+  console.log('1. Look at the left Sidebar (File Explorer).');
+  console.log('2. Right-click "shopykart-source.zip" inside the "public" folder.');
+  console.log('3. Select "Download".');
+  console.log('--------------------------------------------------');
+});
+
+archive.on('error', function(err) {
+  throw err;
+});
+
+archive.pipe(output);
+
+// Append files from root, excluding heavy/unnecessary folders
+archive.glob('**/*', {
+  cwd: rootDir,
+  ignore: [
+    'node_modules/**',
+    '.next/**',
+    'out/**',
+    'public/shopykart-source.zip',
+    '.git/**',
+    '.zip'
+  ]
+});
+
+archive.finalize();

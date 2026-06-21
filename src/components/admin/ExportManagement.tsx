@@ -5,30 +5,24 @@ import { useState } from 'react';
 import { 
   Download, 
   Database, 
-  Github, 
   FileJson, 
   Archive, 
-  ShieldCheck, 
   Loader2, 
-  Terminal, 
-  AlertCircle,
   Copy,
   Check,
   Zap,
-  Info,
+  AlertCircle,
   FileCode,
-  ArrowRight,
   Smartphone,
   Cpu,
   Monitor,
   MousePointer2,
-  ListRestart
+  Keyboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-import Link from 'next/link';
 
 export default function ExportManagement() {
   const firestore = useFirestore();
@@ -111,16 +105,6 @@ export default function ExportManagement() {
             </div>
           </div>
 
-          <div className="bg-blue-50/50 p-6 rounded-3xl border-2 border-dashed border-blue-100 space-y-4 relative z-10">
-             <div className="flex items-center gap-3">
-                <FileJson className="h-5 w-5 text-blue-500" />
-                <span className="text-[11px] font-black text-blue-700 uppercase leading-none">JSON Collections Backup</span>
-             </div>
-             <p className="text-[10px] text-blue-600/80 leading-relaxed font-bold uppercase italic">
-               Ye button aapke saare products, orders aur vendors ko ek JSON ZIP mein download kar lega.
-             </p>
-          </div>
-
           <Button 
             onClick={handleExportData} 
             disabled={isExporting}
@@ -143,19 +127,22 @@ export default function ExportManagement() {
             </div>
             <div>
               <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code ZIP</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Download for Android Studio</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">For Android Studio Build</p>
             </div>
           </div>
 
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-6 relative z-10">
              <div className="space-y-4">
-                <h4 className="text-sm font-black text-primary italic uppercase underline underline-offset-4">DOWNLOAD STEPS</h4>
+                <div className="flex items-center gap-2 mb-2">
+                   <Keyboard className="h-4 w-4 text-primary" />
+                   <h4 className="text-sm font-black text-primary italic uppercase">Keyboard Workflow</h4>
+                </div>
                 
                 <div className="space-y-5">
                    <div className="flex items-start gap-4">
                       <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">1</div>
                       <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
-                        Copy & Run this command in **Terminal**:
+                        Copy & Run this in **Terminal**:
                       </p>
                    </div>
 
@@ -174,33 +161,31 @@ export default function ExportManagement() {
                    <div className="flex items-start gap-4">
                       <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">2</div>
                       <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
-                        Wait for "Success" message in terminal, then click:
+                        Look at the **Sidebar (Explorer)** on the left.
                       </p>
                    </div>
 
-                   <a 
-                     href="/shopykart-source.zip" 
-                     download="shopykart-source.zip"
-                     className="w-full h-16 bg-white hover:bg-gray-100 text-black rounded-2xl font-black uppercase italic flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-95"
-                   >
-                     <Download className="h-6 w-6 text-primary" />
-                     CLICK TO DOWNLOAD ZIP
-                   </a>
-                </div>
-             </div>
-          </div>
+                   <div className="flex items-start gap-4">
+                      <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">3</div>
+                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
+                        Right-Click **"shopykart-source.zip"** (In Sidebar) & Select **Download**.
+                      </p>
+                   </div>
 
-          <div className="bg-amber-400/10 p-4 rounded-2xl border border-amber-400/20 mt-4">
-             <div className="flex items-start gap-3">
-                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-[9px] font-bold text-amber-100 uppercase leading-relaxed">
-                   IMPORTANT: Agar command nahi chalayi toh download button kaam nahi karega.
-                </p>
+                   <div className="bg-amber-400/10 p-4 rounded-2xl border border-amber-400/20">
+                      <div className="flex items-start gap-3">
+                         <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                         <p className="text-[9px] font-bold text-amber-100 uppercase leading-relaxed">
+                            Keyboard shortcut for Sidebar menu: **Shift + F10** or **Menu Key**.
+                         </p>
+                      </div>
+                   </div>
+                </div>
              </div>
           </div>
         </div>
 
-        {/* NATIVE PC BUILD GUIDE */}
+        {/* PC BUILD GUIDE */}
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group lg:col-span-2">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
              <Monitor className="h-40 w-40" />
@@ -218,9 +203,6 @@ export default function ExportManagement() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
              <div className="space-y-4">
-                <p className="text-[11px] font-bold text-gray-600 uppercase leading-relaxed">
-                   APK build karne ke liye aapko code PC par le jana hoga:
-                </p>
                 <ul className="space-y-3">
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
@@ -243,7 +225,7 @@ export default function ExportManagement() {
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">4</span>
-                         <span className="text-[10px] font-black uppercase">Click: Build &gt; Build APK</span>
+                         <span className="text-[10px] font-black uppercase italic">Click: Build &gt; Build APK</span>
                       </div>
                    </li>
                 </ul>
@@ -253,7 +235,7 @@ export default function ExportManagement() {
                 <AlertCircle className="h-12 w-12 text-amber-600 animate-pulse" />
                 <h4 className="font-black italic uppercase text-amber-800 text-lg">Hardware Note</h4>
                 <p className="text-[10px] font-bold text-amber-700/70 uppercase leading-relaxed max-w-[220px]">
-                   APK build process (Gradle) bahut heavy hota hai aur sirf Windows/Mac/Linux PC par hi chalta hai. Mobile par sirf code bundle ho sakta hai.
+                   APK build process (Gradle) bahut heavy hota hai aur sirf Windows/Mac/Linux PC par hi chalta hai.
                 </p>
              </div>
           </div>
