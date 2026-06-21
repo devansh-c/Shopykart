@@ -1,56 +1,47 @@
-import archiver from 'archiver';
+
 import fs from 'fs';
 import path from 'path';
+import archiver from 'archiver';
 
 /**
- * @fileOverview Specialized script to bundle the ShopyKart project into a ZIP.
- * Optimized for development environments where manual download is required.
+ * Custom script to zip the project and place it in the public folder.
+ * This allows the user to download it via a direct link in the browser.
  */
-
-const output = fs.createWriteStream('shopykart-source.zip');
-const archive = archiver('zip', {
-  zlib: { level: 9 } // Maximum compression
-});
-
-output.on('close', function() {
-  console.log('\n-------------------------------------------');
-  console.log('✅ Project successfully zipped!');
-  console.log('📦 Total size: ' + (archive.pointer() / 1024 / 1024).toFixed(2) + ' MB');
-  console.log('📍 File: shopykart-source.zip');
-  console.log('-------------------------------------------\n');
-  console.log('👉 NOW: Go to the LEFT SIDEBAR, find shopykart-source.zip,');
-  console.log('👉 RIGHT-CLICK it and select DOWNLOAD.');
-});
-
-archive.on('warning', function(err) {
-  if (err.code === 'ENOENT') {
-    console.warn(err);
-  } else {
-    throw err;
+async function zipProject() {
+  const outputDir = path.join(process.cwd(), 'public');
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
   }
-});
 
-archive.on('error', function(err) {
-  throw err;
-});
+  const outputPath = path.join(outputDir, 'shopykart-source.zip');
+  const output = fs.createWriteStream(outputPath);
+  const archive = archiver('zip', { zlib: { level: 9 } });
 
-// Pipe archive data to the file
-archive.pipe(output);
+  output.on('close', () => {
+    console.log(`✅ Project successfully zipped: ${archive.pointer()} total bytes`);
+    console.log(`📂 Location: public/shopykart-source.zip`);
+    console.log(`🚀 You can now click the Download button in Admin Panel!`);
+  });
 
-// Append files from the project root, ignoring unnecessary directories
-archive.glob('**/*', {
-  ignore: [
-    'node_modules/**',
-    '.next/**',
-    'out/**',
-    '.git/**',
-    'shopykart-source.zip',
-    '.firebase/**',
-    '.npm/**',
-    'capacitor/android/.gradle/**',
-    'capacitor/android/app/build/**'
-  ]
-});
+  archive.on('error', (err) => {
+    throw err;
+  });
 
-// Finalize the archive
-archive.finalize();
+  archive.pipe(output);
+
+  // Add files but ignore bulky/unnecessary ones
+  archive.glob('**/*', {
+    ignore: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'public/shopykart-source.zip',
+      '.git/**',
+      '*.zip'
+    ]
+  });
+
+  await archive.finalize();
+}
+
+zipProject().catch(console.error);

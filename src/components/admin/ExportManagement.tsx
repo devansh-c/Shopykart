@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import Link from 'next/link';
 
 export default function ExportManagement() {
   const firestore = useFirestore();
@@ -84,7 +86,7 @@ export default function ExportManagement() {
             <Zap className="h-6 w-6" />
          </div>
          <div>
-            <h3 className="font-black italic uppercase text-sm">Deployment & Export Hub</h3>
+            <h3 className="font-black italic uppercase text-sm">Deployment Hub</h3>
             <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed">
                Manage your source code, database backups, and mobile app builds.
             </p>
@@ -129,12 +131,10 @@ export default function ExportManagement() {
           </Button>
         </div>
 
-        {/* SOURCE CODE EXPORT (THE PROBLEM AREA) */}
+        {/* SOURCE CODE EXPORT (KEYBOARD FRIENDLY) */}
         <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-             <div className="h-40 w-40 flex items-center justify-center opacity-10">
-               <Github className="h-full w-full" />
-             </div>
+             <FileCode className="h-40 w-40 text-white" />
           </div>
 
           <div className="flex items-center gap-4 relative z-10">
@@ -142,20 +142,20 @@ export default function ExportManagement() {
               <FileCode className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code Bundle</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">For PC & Android Studio</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code ZIP</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Download for Android Studio</p>
             </div>
           </div>
 
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-6 relative z-10">
              <div className="space-y-4">
-                <h4 className="text-sm font-black text-primary italic uppercase underline underline-offset-4">HOW TO DOWNLOAD (READ CAREFULLY)</h4>
+                <h4 className="text-sm font-black text-primary italic uppercase underline underline-offset-4">DOWNLOAD STEPS</h4>
                 
                 <div className="space-y-5">
                    <div className="flex items-start gap-4">
                       <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">1</div>
                       <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
-                        Niche di gayi command ko copy karein aur <span className="text-white font-black">TERMINAL</span> mein chalayein:
+                        Copy & Run this command in **Terminal**:
                       </p>
                    </div>
 
@@ -174,16 +174,18 @@ export default function ExportManagement() {
                    <div className="flex items-start gap-4">
                       <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">2</div>
                       <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
-                        Jab command finish ho jaye, tab apne screen ke <span className="text-white font-black">BILKUL LEFT SIDE (FILES LIST)</span> mein dekhein.
+                        Wait for "Success" message in terminal, then click:
                       </p>
                    </div>
 
-                   <div className="flex items-start gap-4">
-                      <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">3</div>
-                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
-                        Wahan <span className="text-primary font-black underline">shopykart-source.zip</span> file par <span className="text-white font-black">RIGHT-CLICK</span> karein aur <span className="text-green-500 font-black">DOWNLOAD</span> daba dein.
-                      </p>
-                   </div>
+                   <a 
+                     href="/shopykart-source.zip" 
+                     download="shopykart-source.zip"
+                     className="w-full h-16 bg-white hover:bg-gray-100 text-black rounded-2xl font-black uppercase italic flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-95"
+                   >
+                     <Download className="h-6 w-6 text-primary" />
+                     CLICK TO DOWNLOAD ZIP
+                   </a>
                 </div>
              </div>
           </div>
@@ -192,7 +194,7 @@ export default function ExportManagement() {
              <div className="flex items-start gap-3">
                 <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-[9px] font-bold text-amber-100 uppercase leading-relaxed">
-                   IMPORTANT: UI button server files ko access nahi kar sakta. Aapko Sidebar ka hi use karna hoga download ke liye.
+                   IMPORTANT: Agar command nahi chalayi toh download button kaam nahi karega.
                 </p>
              </div>
           </div>
@@ -223,7 +225,7 @@ export default function ExportManagement() {
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">1</span>
-                         <span className="text-[10px] font-black uppercase">Run command &amp; download source zip</span>
+                         <span className="text-[10px] font-black uppercase">Run command & download source zip</span>
                       </div>
                    </li>
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
