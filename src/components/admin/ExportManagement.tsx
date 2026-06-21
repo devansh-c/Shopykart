@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -21,7 +20,8 @@ import {
   Smartphone,
   Cpu,
   Monitor,
-  MousePointer2
+  MousePointer2,
+  ListRestart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -91,8 +91,9 @@ export default function ExportManagement() {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
+        {/* DATABASE EXPORT */}
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
              <Database className="h-40 w-40" />
@@ -114,7 +115,7 @@ export default function ExportManagement() {
                 <span className="text-[11px] font-black text-blue-700 uppercase leading-none">JSON Collections Backup</span>
              </div>
              <p className="text-[10px] text-blue-600/80 leading-relaxed font-bold uppercase italic">
-               This will bundle all your Products, Vendors, Orders, and Users into a single ZIP file.
+               Ye button aapke saare products, orders aur vendors ko ek JSON ZIP mein download kar lega.
              </p>
           </div>
 
@@ -128,6 +129,7 @@ export default function ExportManagement() {
           </Button>
         </div>
 
+        {/* SOURCE CODE EXPORT (THE PROBLEM AREA) */}
         <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
              <div className="h-40 w-40 flex items-center justify-center opacity-10">
@@ -140,41 +142,64 @@ export default function ExportManagement() {
               <FileCode className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code ZIP</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mobile/GitHub Package</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code Bundle</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">For PC & Android Studio</p>
             </div>
           </div>
 
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
-             <p className="text-[10px] text-gray-400 leading-relaxed font-bold uppercase italic">
-               Step 1: Terminal mein niche wali command chalaein.<br/>
-               Step 2: Sidebar se <span className="text-white font-black">Right-Click &gt; Download</span> karein.
-             </p>
+          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-6 relative z-10">
+             <div className="space-y-4">
+                <h4 className="text-sm font-black text-primary italic uppercase underline underline-offset-4">HOW TO DOWNLOAD (READ CAREFULLY)</h4>
+                
+                <div className="space-y-5">
+                   <div className="flex items-start gap-4">
+                      <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">1</div>
+                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
+                        Niche di gayi command ko copy karein aur <span className="text-white font-black">TERMINAL</span> mein chalayein:
+                      </p>
+                   </div>
+
+                   <div className="relative group/cmd ml-10">
+                      <div className="bg-black border border-white/20 p-4 rounded-xl font-mono text-xs text-green-400 overflow-x-auto">
+                        npm run zip-project
+                      </div>
+                      <button 
+                        onClick={() => handleCopyCommand('npm run zip-project')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-all"
+                      >
+                        {isCopied ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3 text-white" />}
+                      </button>
+                   </div>
+
+                   <div className="flex items-start gap-4">
+                      <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">2</div>
+                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
+                        Jab command finish ho jaye, tab apne screen ke <span className="text-white font-black">BILKUL LEFT SIDE (FILES LIST)</span> mein dekhein.
+                      </p>
+                   </div>
+
+                   <div className="flex items-start gap-4">
+                      <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">3</div>
+                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">
+                        Wahan <span className="text-primary font-black underline">shopykart-source.zip</span> file par <span className="text-white font-black">RIGHT-CLICK</span> karein aur <span className="text-green-500 font-black">DOWNLOAD</span> daba dein.
+                      </p>
+                   </div>
+                </div>
+             </div>
           </div>
 
-          <div className="relative group/cmd z-10">
-            <div className="bg-black border border-white/10 p-5 rounded-2xl font-mono text-xs text-green-400 overflow-x-auto whitespace-nowrap no-scrollbar pr-12">
-              npm run zip-project
-            </div>
-            <button 
-              onClick={() => handleCopyCommand('npm run zip-project')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 p-3 rounded-xl transition-all active:scale-90"
-            >
-              {isCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-white" />}
-            </button>
-          </div>
-
-          <div className="bg-amber-400/10 p-4 rounded-2xl border border-amber-400/20 mt-4 animate-in slide-in-from-bottom-2 duration-700">
+          <div className="bg-amber-400/10 p-4 rounded-2xl border border-amber-400/20 mt-4">
              <div className="flex items-start gap-3">
-                <MousePointer2 className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-[9px] font-bold text-amber-100 uppercase leading-relaxed">
-                   HOW TO DOWNLOAD: Left sidebar mein <span className="text-white underline">shopykart-source.zip</span> par right-click karke "Download" select karein.
+                   IMPORTANT: UI button server files ko access nahi kar sakta. Aapko Sidebar ka hi use karna hoga download ke liye.
                 </p>
              </div>
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group md:col-span-2">
+        {/* NATIVE PC BUILD GUIDE */}
+        <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group lg:col-span-2">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
              <Monitor className="h-40 w-40" />
           </div>

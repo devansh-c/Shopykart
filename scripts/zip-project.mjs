@@ -1,35 +1,56 @@
-
-import { execSync } from 'child_process';
+import archiver from 'archiver';
 import fs from 'fs';
 import path from 'path';
 
 /**
- * specialized script to bundle the project source code for mobile deployment.
- * Excludes node_modules, .next, and large temporary folders.
+ * @fileOverview Specialized script to bundle the ShopyKart project into a ZIP.
+ * Optimized for development environments where manual download is required.
  */
-async function zipProject() {
-  console.log('🚀 Bundling ShopyKart Source Code...');
-  
-  const outputName = 'shopykart-source.zip';
-  
-  // Clean up existing zip if any
-  if (fs.existsSync(outputName)) {
-    fs.unlinkSync(outputName);
-  }
 
-  try {
-    // We use standard shell command 'zip' which is available in most linux environments
-    // Excluding irrelevant folders to keep it small
-    const cmd = `zip -r ${outputName} . -x "node_modules/*" ".next/*" "out/*" ".git/*" ".agents/*" "shopykart-source.zip"`;
-    
-    execSync(cmd, { stdio: 'inherit' });
-    
-    console.log(`\n✅ Project successfully zipped: ${outputName}`);
-    console.log(`📍 HOW TO DOWNLOAD: Right-click '${outputName}' in the left sidebar and select 'Download'.`);
-  } catch (err) {
-    console.error('❌ Failed to zip project. Ensure "zip" utility is installed in the terminal environment.');
-    console.error(err.message);
-  }
-}
+const output = fs.createWriteStream('shopykart-source.zip');
+const archive = archiver('zip', {
+  zlib: { level: 9 } // Maximum compression
+});
 
-zipProject();
+output.on('close', function() {
+  console.log('\n-------------------------------------------');
+  console.log('✅ Project successfully zipped!');
+  console.log('📦 Total size: ' + (archive.pointer() / 1024 / 1024).toFixed(2) + ' MB');
+  console.log('📍 File: shopykart-source.zip');
+  console.log('-------------------------------------------\n');
+  console.log('👉 NOW: Go to the LEFT SIDEBAR, find shopykart-source.zip,');
+  console.log('👉 RIGHT-CLICK it and select DOWNLOAD.');
+});
+
+archive.on('warning', function(err) {
+  if (err.code === 'ENOENT') {
+    console.warn(err);
+  } else {
+    throw err;
+  }
+});
+
+archive.on('error', function(err) {
+  throw err;
+});
+
+// Pipe archive data to the file
+archive.pipe(output);
+
+// Append files from the project root, ignoring unnecessary directories
+archive.glob('**/*', {
+  ignore: [
+    'node_modules/**',
+    '.next/**',
+    'out/**',
+    '.git/**',
+    'shopykart-source.zip',
+    '.firebase/**',
+    '.npm/**',
+    'capacitor/android/.gradle/**',
+    'capacitor/android/app/build/**'
+  ]
+});
+
+// Finalize the archive
+archive.finalize();
