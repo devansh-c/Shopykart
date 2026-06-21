@@ -206,7 +206,7 @@ export default function ExportManagement() {
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">4</span>
-                         <span className="text-[10px] font-black uppercase">Click: Build > Build APK</span>
+                         <span className="text-[10px] font-black uppercase">Click: Build &gt; Build APK</span>
                       </div>
                    </li>
                 </ul>
