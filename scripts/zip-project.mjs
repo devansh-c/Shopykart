@@ -1,54 +1,35 @@
 
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import JSZip from 'jszip';
-import { execSync } from 'child_process';
 
-const zip = new JSZip();
-const rootDir = process.cwd();
-const outputName = 'shopykart-source.zip';
+/**
+ * specialized script to bundle the project source code for mobile deployment.
+ * Excludes node_modules, .next, and large temporary folders.
+ */
+async function zipProject() {
+  console.log('🚀 Bundling ShopyKart Source Code...');
+  
+  const outputName = 'shopykart-source.zip';
+  
+  // Clean up existing zip if any
+  if (fs.existsSync(outputName)) {
+    fs.unlinkSync(outputName);
+  }
 
-// Files and folders to exclude from the bundle
-const excludeList = [
-  'node_modules',
-  '.next',
-  'out',
-  '.git',
-  '.DS_Store',
-  'shopykart-source.zip',
-  'package-lock.json'
-];
-
-function addFilesToZip(currentDir, zipFolder) {
-  const files = fs.readdirSync(currentDir);
-
-  for (const file of files) {
-    if (excludeList.includes(file)) continue;
-
-    const fullPath = path.join(currentDir, file);
-    const stat = fs.statSync(fullPath);
-
-    if (stat.isDirectory()) {
-      const newZipFolder = zipFolder.folder(file);
-      addFilesToZip(fullPath, newZipFolder);
-    } else {
-      const content = fs.readFileSync(fullPath);
-      zipFolder.file(file, content);
-    }
+  try {
+    // We use standard shell command 'zip' which is available in most linux environments
+    // Excluding irrelevant folders to keep it small
+    const cmd = `zip -r ${outputName} . -x "node_modules/*" ".next/*" "out/*" ".git/*" ".agents/*" "shopykart-source.zip"`;
+    
+    execSync(cmd, { stdio: 'inherit' });
+    
+    console.log(`\n✅ Project successfully zipped: ${outputName}`);
+    console.log(`📍 HOW TO DOWNLOAD: Right-click '${outputName}' in the left sidebar and select 'Download'.`);
+  } catch (err) {
+    console.error('❌ Failed to zip project. Ensure "zip" utility is installed in the terminal environment.');
+    console.error(err.message);
   }
 }
 
-console.log('🚀 Bundling ShopyKart source code...');
-
-try {
-  addFilesToZip(rootDir, zip);
-
-  zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
-    .pipe(fs.createWriteStream(outputName))
-    .on('finish', function () {
-      console.log(`✅ Project successfully zipped: ${outputName}`);
-      console.log('👉 Right-click the file in the sidebar and select "Download"');
-    });
-} catch (error) {
-  console.error('❌ Error creating zip:', error);
-}
+zipProject();

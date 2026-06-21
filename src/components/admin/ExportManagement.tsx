@@ -20,7 +20,8 @@ import {
   ArrowRight,
   Smartphone,
   Cpu,
-  Monitor
+  Monitor,
+  MousePointer2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -147,7 +148,7 @@ export default function ExportManagement() {
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
              <p className="text-[10px] text-gray-400 leading-relaxed font-bold uppercase italic">
                Step 1: Terminal mein niche wali command chalaein.<br/>
-               Step 2: Sidebar se <span className="text-white">shopykart-source.zip</span> download karein.
+               Step 2: Sidebar se <span className="text-white font-black">Right-Click &gt; Download</span> karein.
              </p>
           </div>
 
@@ -161,6 +162,15 @@ export default function ExportManagement() {
             >
               {isCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4 text-white" />}
             </button>
+          </div>
+
+          <div className="bg-amber-400/10 p-4 rounded-2xl border border-amber-400/20 mt-4 animate-in slide-in-from-bottom-2 duration-700">
+             <div className="flex items-start gap-3">
+                <MousePointer2 className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-amber-100 uppercase leading-relaxed">
+                   HOW TO DOWNLOAD: Left sidebar mein <span className="text-white underline">shopykart-source.zip</span> par right-click karke "Download" select karein.
+                </p>
+             </div>
           </div>
         </div>
 
@@ -188,7 +198,7 @@ export default function ExportManagement() {
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">1</span>
-                         <span className="text-[10px] font-black uppercase">Run command & download source zip</span>
+                         <span className="text-[10px] font-black uppercase">Run command &amp; download source zip</span>
                       </div>
                    </li>
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
