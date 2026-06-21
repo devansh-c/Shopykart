@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -18,7 +19,8 @@ import {
   FileCode,
   ArrowRight,
   Smartphone,
-  Cpu
+  Cpu,
+  Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +38,6 @@ export default function ExportManagement() {
     setIsExporting(true);
     
     try {
-      // DYNAMIC IMPORTS FOR BROWSER-ONLY LIBRARIES
       const JSZip = (await import('jszip')).default;
       const { saveAs } = await import('file-saver');
 
@@ -145,7 +146,8 @@ export default function ExportManagement() {
 
           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
              <p className="text-[10px] text-gray-400 leading-relaxed font-bold uppercase italic">
-               Phone users: Terminal mein niche wali command chalaein, phir sidebar se <span className="text-white">shopykart-project.zip</span> download karein.
+               Step 1: Terminal mein niche wali command chalaein.<br/>
+               Step 2: Sidebar se <span className="text-white">shopykart-source.zip</span> download karein.
              </p>
           </div>
 
@@ -164,7 +166,7 @@ export default function ExportManagement() {
 
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group md:col-span-2">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-             <Smartphone className="h-40 w-40" />
+             <Monitor className="h-40 w-40" />
           </div>
 
           <div className="flex items-center gap-4 relative z-10">
@@ -172,33 +174,39 @@ export default function ExportManagement() {
               <Cpu className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Android App (APK)</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Native PC Build Instructions</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Build Your APK (Native PC)</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Standard Android Build Guide</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
              <div className="space-y-4">
                 <p className="text-[11px] font-bold text-gray-600 uppercase leading-relaxed">
-                   Mobile se APK nikalne ke liye aapko code PC par le jana hoga:
+                   APK build karne ke liye aapko code PC par le jana hoga:
                 </p>
                 <ul className="space-y-3">
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">1</span>
-                         <span className="text-[10px] font-black uppercase">Run: npm run zip-project</span>
+                         <span className="text-[10px] font-black uppercase">Run command & download source zip</span>
                       </div>
                    </li>
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">2</span>
-                         <span className="text-[10px] font-black uppercase">Download ZIP from Sidebar</span>
+                         <span className="text-[10px] font-black uppercase">PC pe Extract karke 'npm install' karein</span>
                       </div>
                    </li>
                    <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-3">
                          <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">3</span>
-                         <span className="text-[10px] font-black uppercase">PC pe Extract karke Android Studio kholin</span>
+                         <span className="text-[10px] font-black uppercase">Open folder in Android Studio</span>
+                      </div>
+                   </li>
+                   <li className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+                      <div className="flex items-center gap-3">
+                         <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">4</span>
+                         <span className="text-[10px] font-black uppercase">Click: Build > Build APK</span>
                       </div>
                    </li>
                 </ul>
@@ -206,9 +214,9 @@ export default function ExportManagement() {
 
              <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex flex-col justify-center items-center text-center space-y-4">
                 <AlertCircle className="h-12 w-12 text-amber-600 animate-pulse" />
-                <h4 className="font-black italic uppercase text-amber-800">Phone Limit</h4>
-                <p className="text-[10px] font-bold text-amber-700/70 uppercase leading-relaxed">
-                   APK banane ke liye "Gradle" zaroori hai jo sirf Windows/Mac par chalta hai. ZIP download karke PC se finalize karein.
+                <h4 className="font-black italic uppercase text-amber-800 text-lg">Hardware Note</h4>
+                <p className="text-[10px] font-bold text-amber-700/70 uppercase leading-relaxed max-w-[220px]">
+                   APK build process (Gradle) bahut heavy hota hai aur sirf Windows/Mac/Linux PC par hi chalta hai. Mobile par sirf code bundle ho sakta hai.
                 </p>
              </div>
           </div>

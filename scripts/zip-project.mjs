@@ -2,44 +2,37 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import archiver from 'archiver';
 
-async function zipProject() {
-  const output = fs.createWriteStream('shopykart-project.zip');
-  const archive = archiver('zip', {
-    zlib: { level: 9 } // Sets the compression level.
-  });
+/**
+ * @fileOverview Script to package the ShopyKart source code for local Android Studio builds.
+ * Run via: npm run zip-project
+ */
 
-  output.on('close', function() {
-    console.log('✅ Success! Project has been zipped to: shopykart-project.zip');
-    console.log('Total bytes: ' + archive.pointer());
-    console.log('Ab aap sidebar se is file ko download karke apne laptop par le ja sakte hain.');
-  });
+const ZIP_NAME = 'shopykart-source.zip';
 
-  archive.on('error', function(err) {
-    throw err;
-  });
+console.log('🚀 Preparing ShopyKart Source for APK Build...');
 
-  archive.pipe(output);
+try {
+  // 1. Remove old zip if exists
+  if (fs.existsSync(ZIP_NAME)) {
+    fs.unlinkSync(ZIP_NAME);
+  }
 
-  // Add files and directories
-  archive.glob('**/*', {
-    ignore: [
-      'node_modules/**',
-      '.next/**',
-      'out/**',
-      '.git/**',
-      'shopykart-project.zip',
-      'android/.gradle/**',
-      'android/app/build/**',
-      'android/.idea/**'
-    ]
-  });
+  // 2. We use the 'zip' command available in the environment
+  // We exclude heavy folders that aren't needed for the build
+  console.log('📦 Compressing files (excluding node_modules and .next)...');
+  
+  execSync(`zip -r ${ZIP_NAME} . -x "node_modules/*" ".next/*" ".git/*" "out/*" "dist/*"`);
 
-  await archive.finalize();
+  console.log('✅ SUCCESS!');
+  console.log('---------------------------------------------------------');
+  console.log(`File generated: ${ZIP_NAME}`);
+  console.log('1. Look at the file list on the left sidebar.');
+  console.log(`2. Right-click '${ZIP_NAME}' and select Download.`);
+  console.log('3. Open this code on your PC in Android Studio to build APK.');
+  console.log('---------------------------------------------------------');
+
+} catch (error) {
+  console.error('❌ Failed to create zip:', error.message);
+  process.exit(1);
 }
-
-console.log('📦 Zipping project for laptop migration...');
-zipProject().catch(err => {
-  console.error('❌ Zipping failed:', err);
-});
