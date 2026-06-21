@@ -275,10 +275,10 @@ export default function OrderManagement() {
                             </div>
                          </div>
                          <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
-                            <Button onClick={handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                            <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
                               <Printer className="h-4 w-4 mr-2" /> PRINT
                             </Button>
-                            <Button onClick={handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                            <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
                               {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
                             </Button>
                          </div>
