@@ -1,38 +1,54 @@
 
-import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import JSZip from 'jszip';
+import { execSync } from 'child_process';
 
-/**
- * @fileOverview Script to package the ShopyKart source code for local Android Studio builds.
- * Run via: npm run zip-project
- */
+const zip = new JSZip();
+const rootDir = process.cwd();
+const outputName = 'shopykart-source.zip';
 
-const ZIP_NAME = 'shopykart-source.zip';
+// Files and folders to exclude from the bundle
+const excludeList = [
+  'node_modules',
+  '.next',
+  'out',
+  '.git',
+  '.DS_Store',
+  'shopykart-source.zip',
+  'package-lock.json'
+];
 
-console.log('🚀 Preparing ShopyKart Source for APK Build...');
+function addFilesToZip(currentDir, zipFolder) {
+  const files = fs.readdirSync(currentDir);
+
+  for (const file of files) {
+    if (excludeList.includes(file)) continue;
+
+    const fullPath = path.join(currentDir, file);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      const newZipFolder = zipFolder.folder(file);
+      addFilesToZip(fullPath, newZipFolder);
+    } else {
+      const content = fs.readFileSync(fullPath);
+      zipFolder.file(file, content);
+    }
+  }
+}
+
+console.log('🚀 Bundling ShopyKart source code...');
 
 try {
-  // 1. Remove old zip if exists
-  if (fs.existsSync(ZIP_NAME)) {
-    fs.unlinkSync(ZIP_NAME);
-  }
+  addFilesToZip(rootDir, zip);
 
-  // 2. We use the 'zip' command available in the environment
-  // We exclude heavy folders that aren't needed for the build
-  console.log('📦 Compressing files (excluding node_modules and .next)...');
-  
-  execSync(`zip -r ${ZIP_NAME} . -x "node_modules/*" ".next/*" ".git/*" "out/*" "dist/*"`);
-
-  console.log('✅ SUCCESS!');
-  console.log('---------------------------------------------------------');
-  console.log(`File generated: ${ZIP_NAME}`);
-  console.log('1. Look at the file list on the left sidebar.');
-  console.log(`2. Right-click '${ZIP_NAME}' and select Download.`);
-  console.log('3. Open this code on your PC in Android Studio to build APK.');
-  console.log('---------------------------------------------------------');
-
+  zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+    .pipe(fs.createWriteStream(outputName))
+    .on('finish', function () {
+      console.log(`✅ Project successfully zipped: ${outputName}`);
+      console.log('👉 Right-click the file in the sidebar and select "Download"');
+    });
 } catch (error) {
-  console.error('❌ Failed to create zip:', error.message);
-  process.exit(1);
+  console.error('❌ Error creating zip:', error);
 }
