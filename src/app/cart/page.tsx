@@ -24,7 +24,8 @@ import {
   Smartphone, 
   ShieldCheck,
   CheckCircle2,
-  Hash
+  Hash,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -35,7 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -151,6 +152,10 @@ export default function CartPage() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
+
+  const [deliveryTip, setDeliveryTip] = useState<number>(0);
+  const [customTipInput, setCustomTipInput] = useState('');
+  const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -225,7 +230,7 @@ export default function CartPage() {
     return Math.min(remainingTotal, availableCoins * coinValue);
   }, [useCoins, availableCoins, coinValue, totalPrice, couponDiscount]);
 
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal - coinDiscount - couponDiscount);
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + deliveryTip - coinDiscount - couponDiscount);
 
   const upiId = "9450355709@axl";
   const upiUri = useMemo(() => {
@@ -235,7 +240,6 @@ export default function CartPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // ATOMIC FIX: Use standardized keys matching authentication components
     const savedName = localStorage.getItem('user_name') || localStorage.getItem('last_customer_name');
     const savedPhone = localStorage.getItem('user_phone') || localStorage.getItem('last_customer_phone');
     const savedAddress = localStorage.getItem('user_address_line') || localStorage.getItem('last_customer_address');
@@ -298,6 +302,7 @@ export default function CartPage() {
       coinsUsed,
       coinDiscount,
       couponDiscount,
+      deliveryTip,
       couponCode: appliedCoupon?.code || null,
       instructions
     };
@@ -327,7 +332,7 @@ export default function CartPage() {
       setIsPaymentDialogOpen(false);
     }, 100);
     
-  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router]);
+  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip]);
 
   const handleOnlinePaymentFlow = () => {
     window.open(upiUri);
@@ -373,7 +378,6 @@ export default function CartPage() {
     }
   };
 
-  // Robust validation: Allow slider if basic data is present
   const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3;
 
   if (totalItems === 0 && !isPlacing) {
@@ -450,6 +454,84 @@ export default function CartPage() {
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
+        {/* Delivery Tip Section */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
+           <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                 <div className="h-9 w-9 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
+                    <Heart className="h-5 w-5 fill-orange-500" />
+                 </div>
+                 <div className="flex flex-col">
+                    <h3 className="text-sm font-black uppercase italic tracking-tight">Delivery Tip</h3>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase">Thank your delivery partner</p>
+                 </div>
+              </div>
+              {deliveryTip > 0 && (
+                <button onClick={() => setDeliveryTip(0)} className="text-[10px] font-black text-primary uppercase underline">Remove</button>
+              )}
+           </div>
+           
+           <div className="grid grid-cols-4 gap-2">
+              {[20, 30, 50].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setDeliveryTip(amount)}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center h-14 rounded-xl border-2 transition-all active:scale-95",
+                    deliveryTip === amount ? "border-orange-500 bg-orange-50" : "border-gray-50 bg-gray-50"
+                  )}
+                >
+                  <span className={cn("text-sm font-black", deliveryTip === amount ? "text-orange-600" : "text-gray-600")}>₹{amount}</span>
+                  {amount === 30 && (
+                    <div className="absolute -bottom-2 left-0 right-0 flex justify-center">
+                       <span className="bg-orange-500 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-sm whitespace-nowrap shadow-sm">Most Tipped</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+              <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
+                 <DialogTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex items-center justify-center h-14 rounded-xl border-2 transition-all active:scale-95",
+                        (deliveryTip !== 0 && ![20, 30, 50].includes(deliveryTip)) ? "border-orange-500 bg-orange-50" : "border-gray-50 bg-gray-50"
+                      )}
+                    >
+                      <span className={cn("text-xs font-black", (deliveryTip !== 0 && ![20, 30, 50].includes(deliveryTip)) ? "text-orange-600" : "text-gray-600")}>
+                        { (deliveryTip !== 0 && ![20, 30, 50].includes(deliveryTip)) ? `₹${deliveryTip}` : 'Other' }
+                      </span>
+                    </button>
+                 </DialogTrigger>
+                 <DialogContent className="rounded-[2rem] max-w-xs">
+                    <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Custom Tip</DialogTitle></DialogHeader>
+                    <div className="p-4 space-y-4">
+                       <Input 
+                        type="number" 
+                        placeholder="Enter Amount" 
+                        value={customTipInput}
+                        onChange={(e) => setCustomTipInput(e.target.value)}
+                        className="h-12 rounded-xl text-center font-black text-lg"
+                       />
+                       <Button 
+                        onClick={() => { 
+                          const val = parseFloat(customTipInput);
+                          if(val > 0) {
+                            setDeliveryTip(val);
+                            setIsCustomTipOpen(false);
+                            setCustomTipInput('');
+                          }
+                        }} 
+                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 rounded-xl"
+                       >
+                        ADD TIP
+                       </Button>
+                    </div>
+                 </DialogContent>
+              </Dialog>
+           </div>
+           <p className="text-[8px] font-medium text-muted-foreground text-center italic">100% of this tip goes to your delivery partner.</p>
+        </div>
+
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
            <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
            <div className="grid grid-cols-2 gap-3">
@@ -490,6 +572,7 @@ export default function CartPage() {
             ))}
             {appliedCoupon && <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Discount</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>}
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
+            {deliveryTip > 0 && <div className="flex justify-between font-black text-[11px] text-orange-600 uppercase tracking-widest"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
           </div>
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
         </div>
@@ -505,6 +588,39 @@ export default function CartPage() {
               <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isCheckoutDisabled} />
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center gap-4 max-w-lg mx-auto">
+          <div className={cn("flex items-center bg-muted/50 rounded-2xl h-14 px-2", isPlacing && "opacity-50")}>
+            <button 
+              disabled={isPlacing}
+              onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
+              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="w-10 text-center text-lg font-black">{localQuantity}</span>
+            <button 
+              disabled={isPlacing}
+              onClick={() => setLocalQuantity(localQuantity + 1)}
+              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <button 
+            disabled={isPlacing}
+            onClick={handleCheckout}
+            className={cn(
+              "flex-1 h-14 rounded-2xl font-black uppercase italic tracking-tighter shadow-lg transition-all",
+              isPlacing ? "bg-gray-300 text-gray-500 shadow-none cursor-not-allowed" : "bg-primary text-white shadow-primary/20 active:scale-95"
+            )}
+          >
+            {isPlacing ? 'PLACING...' : `Slide to Order • ₹${grandTotal.toFixed(2)}`}
+          </button>
         </div>
       </div>
 
