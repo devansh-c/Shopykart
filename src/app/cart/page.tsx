@@ -591,39 +591,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center gap-4 max-w-lg mx-auto">
-          <div className={cn("flex items-center bg-muted/50 rounded-2xl h-14 px-2", isPlacing && "opacity-50")}>
-            <button 
-              disabled={isPlacing}
-              onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
-              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="w-10 text-center text-lg font-black">{localQuantity}</span>
-            <button 
-              disabled={isPlacing}
-              onClick={() => setLocalQuantity(localQuantity + 1)}
-              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-white transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-
-          <button 
-            disabled={isPlacing}
-            onClick={handleCheckout}
-            className={cn(
-              "flex-1 h-14 rounded-2xl font-black uppercase italic tracking-tighter shadow-lg transition-all",
-              isPlacing ? "bg-gray-300 text-gray-500 shadow-none cursor-not-allowed" : "bg-primary text-white shadow-primary/20 active:scale-95"
-            )}
-          >
-            {isPlacing ? 'PLACING...' : `Slide to Order • ₹${grandTotal.toFixed(2)}`}
-          </button>
-        </div>
-      </div>
-
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
           <DialogHeader className="sr-only">
