@@ -165,6 +165,7 @@ export default function ReceiptGenerator() {
         <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderId}</span></div>
         <div className="flex justify-between"><span>DATE:</span><span>{format(new Date(), 'dd/MM/yy HH:mm')}</span></div>
         <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black truncate max-w-[150px]">{customerName || 'Walk-in Guest'}</span></div>
+        <div className="flex justify-between"><span>PHONE:</span><span className="font-black">{customerPhone || '--'}</span></div>
         <div className="flex justify-between"><span>PAYMENT:</span><span className="font-black">{paymentMethod === 'online' ? 'PREPAID UPI' : 'CASH ON DELIVERY'}</span></div>
       </div>
 

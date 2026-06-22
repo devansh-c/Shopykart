@@ -67,6 +67,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0, 18)}</span></div>
+          <div className="flex justify-between"><span>PHONE:</span><span>{orderData.customerPhone || '--'}</span></div>
           <div className="flex justify-between border-t border-dashed border-black/10 pt-1 mt-1">
             <span>PAYMENT MODE:</span>
             <span className="font-black">{orderData.paymentMethod === 'online' ? 'PREPAID' : 'CASH'}</span>

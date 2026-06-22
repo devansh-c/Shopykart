@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -159,6 +158,7 @@ export default function OrderManagement() {
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
+          <div className="flex justify-between"><span>PHONE:</span><span>{orderData.customerPhone || '--'}</span></div>
           <div className="flex justify-between border-t border-dashed border-black/10 pt-1 mt-1">
             <span className="shrink-0">PAYMENT:</span>
             <span className="font-black text-right">{orderData.paymentMethod === 'online' ? 'PREPAID ONLINE' : 'CASH ON DELIVERY'}</span>
