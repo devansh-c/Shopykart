@@ -1,8 +1,36 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { ShoppingBag, ChevronRight, Clock, Package, User, MapPin, ReceiptText, Sparkles, Store, PhoneCall, Navigation, Compass, Map as MapIcon, ShieldCheck, X, ExternalLink, Printer, Download, Eye, Loader2, ListPlus, CreditCard, Banknote } from 'lucide-react';
+import { 
+  ShoppingBag, 
+  ChevronRight, 
+  Clock, 
+  Package, 
+  User, 
+  MapPin, 
+  ReceiptText, 
+  Sparkles, 
+  Store, 
+  PhoneCall, 
+  Navigation, 
+  Compass, 
+  Map as MapIcon, 
+  ShieldCheck, 
+  X, 
+  ExternalLink, 
+  Printer, 
+  Download, 
+  Eye, 
+  Loader2, 
+  ListPlus, 
+  CreditCard, 
+  Banknote,
+  Copy,
+  ShieldAlert,
+  CheckCircle2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +72,13 @@ export default function OrderManagement() {
   const handleOpenGoogleMaps = (lat: number, lng: number) => {
     const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     window.open(url, '_blank');
+  };
+
+  const handleCopyUTR = (utr: string) => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(utr);
+      toast({ title: "UTR Copied! ✅", description: "Ready to verify in bank app." });
+    }
   };
 
   const handleDownload = async (order: any) => {
@@ -192,6 +227,7 @@ export default function OrderManagement() {
           if (storeNames.length === 0) storeNames.push('ShopyKart Select');
 
           const isPrepaid = order.paymentMethod === 'online';
+          const needsVerification = isPrepaid && order.paymentStatus === 'UTR_Pending_Verification';
 
           return (
             <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
@@ -211,9 +247,31 @@ export default function OrderManagement() {
                         {isPrepaid ? <CreditCard className="h-2 w-2" /> : <Banknote className="h-2 w-2" />}
                         {isPrepaid ? "PREPAID" : "CASH ON DELIVERY"}
                       </Badge>
+                      {needsVerification && (
+                        <Badge className="bg-red-50 text-red-600 border border-red-100 text-[8px] font-black uppercase px-2 animate-pulse">
+                          <ShieldAlert className="h-2 w-2 mr-1" /> UTR PENDING
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
                     
+                    {/* PREPAID UTR BOX */}
+                    {isPrepaid && order.utrNumber && (
+                      <div className="mb-4 bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between group/utr hover:bg-blue-50 transition-colors">
+                        <div className="flex flex-col">
+                          <span className="text-[7px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Transaction ID (UTR)</span>
+                          <span className="text-sm font-black text-blue-800 tracking-[0.15em] italic">{order.utrNumber}</span>
+                        </div>
+                        <button 
+                          onClick={() => handleCopyUTR(order.utrNumber)}
+                          className="h-10 w-10 bg-white border border-blue-200 rounded-xl flex items-center justify-center text-blue-600 shadow-sm active:scale-90 transition-all hover:bg-blue-600 hover:text-white"
+                          title="Copy UTR"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+
                     <div className="bg-muted/20 rounded-2xl p-4 space-y-3 mb-4 border border-border/30">
                        <div className="flex items-center justify-between text-xs font-bold text-gray-700 border-b border-white pb-2 mb-1">
                           <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
@@ -237,7 +295,7 @@ export default function OrderManagement() {
                              {storeNames.map((name: any, idx) => (
                                <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary text-[7px] font-black border-primary/10 uppercase tracking-widest">
                                   <Store className="h-2 w-2 mr-1" /> {name}
-                               </Badge>
+                                </Badge>
                              ))}
                           </div>
                           <div className="space-y-1 bg-white/50 p-2 rounded-xl border border-white">
