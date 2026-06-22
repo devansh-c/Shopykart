@@ -25,6 +25,7 @@ export default function ProductManagement() {
   const bulkInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
+  const [searchQuery, setSearchQuery] = useState('');
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -67,6 +68,18 @@ export default function ProductManagement() {
     return collection(firestore, 'zones');
   }, [firestore]);
   const { data: zones } = useCollection<any>(zonesQuery);
+
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return products;
+    
+    return products.filter(p => 
+      p.name?.toLowerCase().includes(q) || 
+      p.category?.toLowerCase().includes(q) || 
+      p.restaurantName?.toLowerCase().includes(q)
+    );
+  }, [products, searchQuery]);
 
   const handleBulkStatusAction = async () => {
     if (!firestore || !vendors || !selectedBulkZoneId) {
@@ -255,7 +268,12 @@ export default function ProductManagement() {
       <div className="flex flex-col gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search products..." className="pl-12 h-11 bg-muted/30 border-none rounded-xl" />
+          <Input 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, category or store..." 
+            className="pl-12 h-11 bg-muted/30 border-none rounded-xl font-bold" 
+          />
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 w-full">
            <Button 
@@ -330,28 +348,63 @@ export default function ProductManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
-        {products?.map(p => (
-          <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all relative overflow-hidden", p.isAvailable === false && "opacity-60")}>
-            <div className="flex items-center gap-4">
-              <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
-              <div>
-                <h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4>
-                <div className="flex items-center gap-2">
-                   <span className="text-[8px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-full uppercase">{p.serviceMode || 'Food'}</span>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase truncate max-w-[80px]">{p.restaurantName}</p>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                   <p className="text-primary font-black text-xs">₹{p.price}</p>
+        {loading && !products ? (
+          <div className="col-span-full flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : filteredProducts.length > 0 ? (
+          filteredProducts.map(p => (
+            <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all relative overflow-hidden", p.isAvailable === false && "opacity-60")}>
+              <div className="flex items-center gap-4">
+                <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
+                <div className="min-w-0">
+                  <h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-full uppercase">{p.serviceMode || 'Food'}</span>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase truncate max-w-[80px]">{p.restaurantName}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-primary font-black text-xs">₹{p.price}</p>
+                  </div>
                 </div>
               </div>
+              <div className="flex gap-2">
+                <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
+                <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-500 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
-              <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-500 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
-            </div>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
+            <Package className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
+              {searchQuery ? `No products match "${searchQuery}"` : "No products in inventory"}
+            </p>
           </div>
-        ))}
+        )}
       </div>
+
+      <Dialog open={isBulkStatusDialogOpen} onOpenChange={setIsBulkStatusDialogOpen}>
+         <DialogContent className="rounded-[2.5rem] max-w-sm">
+            <DialogHeader><DialogTitle className="font-black italic uppercase text-center">{bulkMode === 'open' ? 'Open Zone' : 'Close Zone'}</DialogTitle></DialogHeader>
+            <div className="p-6 space-y-6">
+               <Select value={selectedBulkZoneId} onValueChange={setSelectedBulkZoneId}>
+                  <SelectTrigger className="h-14 rounded-2xl font-bold bg-muted/20 border-none"><SelectValue placeholder="Select Serving Zone" /></SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    {zones?.map((z: any) => <SelectItem key={z.id} value={z.id} className="font-bold py-3 uppercase">{z.name}</SelectItem>)}
+                  </SelectContent>
+               </Select>
+               <Button 
+                onClick={handleBulkStatusAction} 
+                disabled={isBulkUpdating || !selectedBulkZoneId}
+                className={cn(
+                  "w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all",
+                  bulkMode === 'open' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                )}
+               >
+                 {isBulkUpdating ? <Loader2 className="h-6 w-6 animate-spin" /> : `CONFIRM ${bulkMode.toUpperCase()}`}
+               </Button>
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }
