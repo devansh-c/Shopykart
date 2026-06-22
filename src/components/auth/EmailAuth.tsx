@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,8 +18,8 @@ import { cn } from '@/lib/utils';
 type AuthView = 'login' | 'signup';
 
 /**
- * @fileOverview Ultra-Fast Email Authentication.
- * Optimized to prevent unmounting during profile creation to ensure "JOIN" button works every time.
+ * @fileOverview High-Priority Authentication Layer.
+ * Set to z-[99999] and pointer-events-auto to ensure "JOIN" button is never blocked.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -90,7 +89,7 @@ export function EmailAuth() {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const firebaseUser = userCredential.user;
         
-        setIsFinishing(true); // Internal state to keep UI active while saving
+        setIsFinishing(true);
 
         // 2. Save Profile
         await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
@@ -106,19 +105,20 @@ export function EmailAuth() {
           role: 'customer'
         };
 
+        // 3. Database Entry
         await setDoc(doc(firestore, 'users', firebaseUser.uid), userData, { merge: true });
 
-        // 3. Mark Session
+        // 4. Persistence & Hard Redirect
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('show_welcome_bonus', 'true');
         
         toast({ title: "Welcome! ✨", description: "Account created successfully." });
         
-        // 4. Force hard reload to enter app
+        // Use window.location for an immediate, clean state entry
         setTimeout(() => {
           window.location.href = '/'; 
-        }, 300);
+        }, 100);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
         localStorage.setItem('shopykart_session_active', 'true');
@@ -126,7 +126,7 @@ export function EmailAuth() {
         
         setTimeout(() => {
           window.location.href = '/';
-        }, 300);
+        }, 100);
       }
     } catch (err: any) {
       setLoading(false);
@@ -145,7 +145,7 @@ export function EmailAuth() {
     <div className="fixed inset-0 z-[99999] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar pointer-events-auto">
       <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu pointer-events-auto relative z-[100000]">
         <div className="flex flex-col items-center text-center space-y-6">
-          <Logo className="scale-110 mb-2 border-white/10" />
+          <Logo className="scale-110 mb-2" />
           <div className="space-y-2">
             <h1 className="text-3xl font-black italic tracking-tighter uppercase text-white leading-none">
               {view === 'signup' ? 'Join ShopyKart' : 'Welcome Back'}
@@ -223,9 +223,9 @@ export function EmailAuth() {
             type="button"
             onClick={handleAuth}
             disabled={loading || isFinishing} 
-            className="w-full h-20 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-6 flex items-center justify-center gap-3 disabled:opacity-70 relative z-[100001] border-b-4 border-black/20"
+            className="w-full h-20 bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-6 flex items-center justify-center gap-3 disabled:opacity-70 relative z-[100001] border-b-4 border-black/20"
           >
-            {loading || isFinishing ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN SHOPYKART' : 'ENTER DASHBOARD')}
+            {loading || isFinishing ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN SHOPYKART' : 'ENTER HUB')}
           </button>
 
           <div className="flex flex-col items-center gap-4 pt-6">

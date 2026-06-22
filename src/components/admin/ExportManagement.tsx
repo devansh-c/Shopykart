@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from 'react';
@@ -22,6 +21,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
+/**
+ * @fileOverview Deployment Hub with Keyboard Workflow instructions.
+ * Optimized for users on Laptops without a mouse.
+ */
 export default function ExportManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -78,7 +81,7 @@ export default function ExportManagement() {
          <div>
             <h3 className="font-black italic uppercase text-sm">Deployment Hub</h3>
             <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed">
-               Manage your source code, database backups, and mobile app builds.
+               Package your source code for Android Studio to generate the APK.
             </p>
          </div>
       </div>
@@ -116,8 +119,8 @@ export default function ExportManagement() {
               <Keyboard className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Source Code ZIP</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Keyboard Workflow (No Mouse)</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Keyboard-Only Workflow</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No Mouse Required to Package Code</p>
             </div>
           </div>
 
@@ -126,27 +129,27 @@ export default function ExportManagement() {
                 <div className="flex items-start gap-4">
                    <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">1</div>
                    <div className="flex-1">
-                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed mb-2">Run this command in Terminal:</p>
+                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed mb-2">Run this in Terminal below:</p>
                       <div className="relative group">
                         <div className="bg-black border border-white/20 p-3 rounded-xl font-mono text-xs text-green-400 overflow-x-auto">npm run zip-project</div>
-                        <button onClick={() => handleCopyCommand('npm run zip-project')} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/10 p-2 rounded-lg"><Copy className="h-3 w-3" /></button>
+                        <button onClick={() => handleCopyCommand('npm run zip-project')} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/10 p-2 rounded-lg active:scale-90"><Copy className="h-3 w-3" /></button>
                       </div>
                    </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                    <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">2</div>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Press <code className="bg-white/10 px-1 rounded text-primary">Ctrl + Shift + E</code> to open Sidebar.</p>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Press <code className="bg-white/10 px-1 rounded text-primary font-black">Ctrl + Shift + E</code> to focus Sidebar Explorer.</p>
                 </div>
 
                 <div className="flex items-start gap-4">
                    <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">3</div>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Select <code className="text-green-400 font-black">shopykart-source.zip</code> and press <code className="bg-white/10 px-1 rounded text-primary">Shift + F10</code>.</p>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Arrow keys to select <code className="text-green-400 font-black">shopykart-source.zip</code> and press <code className="bg-white/10 px-1 rounded text-primary font-black">Shift + F10</code>.</p>
                 </div>
 
                 <div className="flex items-start gap-4">
                    <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">4</div>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Choose <code className="text-white font-black underline">Download</code> from the menu.</p>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Arrow down to <code className="text-white font-black underline decoration-primary decoration-2">Download</code> and press Enter.</p>
                 </div>
              </div>
           </div>
@@ -162,8 +165,8 @@ export default function ExportManagement() {
               <Monitor className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Native APK Build (Laptop)</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">PC Requirements: Android Studio & Java</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Native APK Build</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Requirements: Android Studio & Java on Laptop</p>
             </div>
           </div>
 
@@ -171,25 +174,25 @@ export default function ExportManagement() {
              <div className="space-y-4">
                 <ul className="space-y-3">
                    {[
-                     "Extract the downloaded ZIP on your laptop.",
+                     "Extract the downloaded ZIP on your Laptop.",
                      "Open the extracted folder in Android Studio.",
-                     "Wait for Gradle Sync to complete (2-5 mins).",
+                     "Wait for Gradle Sync to complete (1-3 mins).",
                      "Go to Menu: Build &gt; Build Bundle(s) / APK(s).",
-                     "Select 'Build APK(s)' to generate the installer."
+                     "Select 'Build APK(s)' to generate the final installer."
                    ].map((step, i) => (
-                     <li key={i} className="flex items-center gap-3 bg-muted/30 p-3 rounded-xl border border-border/50">
-                        <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px]">{i+1}</span>
-                        <span className="text-[10px] font-black uppercase" dangerouslySetInnerHTML={{ __html: step }} />
+                     <li key={i} className="flex items-center gap-3 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                        <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px] shrink-0">{i+1}</span>
+                        <span className="text-[10px] font-black uppercase text-gray-700" dangerouslySetInnerHTML={{ __html: step }} />
                      </li>
                    ))}
                 </ul>
              </div>
 
-             <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex flex-col justify-center items-center text-center space-y-4">
+             <div className="bg-amber-50 p-6 rounded-[2.5rem] border border-amber-100 flex flex-col justify-center items-center text-center space-y-4">
                 <AlertCircle className="h-12 w-12 text-amber-600 animate-pulse" />
-                <h4 className="font-black italic uppercase text-amber-800 text-lg">Hardware Note</h4>
+                <h4 className="font-black italic uppercase text-amber-800 text-lg">Build Notice</h4>
                 <p className="text-[10px] font-bold text-amber-700/70 uppercase leading-relaxed max-w-[220px]">
-                   APK build process (Gradle) Cloud IDE par possible nahi hai. Aapko ye apne PC/Laptop par hi karna hoga.
+                   APK build process (Gradle) Cloud environment par supported nahi hai. Aapko ye apne Laptop par hi karna hoga.
                 </p>
              </div>
           </div>
