@@ -112,7 +112,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return map;
   }, [vendors]);
 
-  // CRITICAL OPTIMIZATION: Cart Map for O(1) lookup during list render
   const cartMap = useMemo(() => {
     const map = new Map();
     if (cart) cart.forEach(item => map.set(item.id, item.quantity));
@@ -154,7 +153,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsLoading && !dbProducts) {
+  // Snappy loading state: show skeleton only if NO data at all
+  if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
     return (
       <div className="px-4 py-8 space-y-6">
         <ProductSkeleton />
@@ -169,7 +169,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       <div className="flex items-center justify-between mb-8 px-2">
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
       </div>
-      <div className={cn("grid grid-cols-1 gap-8 transition-opacity", (isPending || productsLoading) && "opacity-50")}>
+      <div className={cn("grid grid-cols-1 gap-8 transition-opacity duration-200", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}
