@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -20,7 +20,7 @@ type AuthView = 'login' | 'signup';
 
 /**
  * @fileOverview High-Priority Authentication Layer.
- * Fixed: Button responsiveness and z-index priority.
+ * Added: Forgot Password WhatsApp integration.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -40,6 +40,12 @@ export function EmailAuth() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  const handleForgotPassword = () => {
+    const adminPhone = "919450355709";
+    const message = `Hey ShopyKart Team, I forgot my password. My registered email is: ${email || "[Enter Email Here]"}. Please help me reset it.`;
+    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
 
   const handleAuth = async (e?: any) => {
     if (e) {
@@ -221,6 +227,19 @@ export function EmailAuth() {
                 className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black tracking-widest text-white focus:outline-none focus:border-primary/50 transition-all uppercase" 
               />
             </div>
+
+            {view === 'login' && (
+              <div className="flex justify-end px-1">
+                <button 
+                  type="button" 
+                  onClick={handleForgotPassword}
+                  className="text-[10px] font-black text-gray-400 hover:text-primary uppercase tracking-widest flex items-center gap-1.5 transition-colors"
+                >
+                  <MessageCircle className="h-3 w-3" />
+                  Forgot Password?
+                </button>
+              </div>
+            )}
 
             {view === 'signup' && (
               <div className="relative group">
