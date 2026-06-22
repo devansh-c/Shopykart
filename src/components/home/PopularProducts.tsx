@@ -8,6 +8,7 @@ import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
+import { ProductQuickView } from "@/components/product/ProductQuickView"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
@@ -40,9 +41,11 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
         </div>
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
           {quantity === 0 ? (
-            <button disabled={isOffline} onClick={() => !isOffline && onAdd({ ...product, imageUrl })} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
-              {isOffline ? 'OFF' : 'ADD'}
-            </button>
+            <ProductQuickView product={product}>
+              <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
+                {isOffline ? 'OFF' : 'ADD'}
+              </button>
+            </ProductQuickView>
           ) : (
             <div className={cn("flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg", isOffline && "opacity-50")}>
               <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
@@ -153,7 +156,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  // Snappy loading state: show skeleton only if NO data at all
   if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
     return (
       <div className="px-4 py-8 space-y-6">
