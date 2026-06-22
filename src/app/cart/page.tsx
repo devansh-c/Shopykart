@@ -76,7 +76,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     setIsDragging(false);
     
     const maxX = sliderRef.current.clientWidth - 68;
-    if (slideXRef.current > maxX * 0.85) {
+    if (slideXRef.current > maxX * 0.8) {
       setSlideX(maxX);
       onConfirm();
     } else {
@@ -100,7 +100,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(2)}`}
         </span>
-        {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Incomplete Details</span>}
+        {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">INCOMPLETE DETAILS</span>}
       </div>
 
       <div 
@@ -234,9 +234,11 @@ export default function CartPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const savedName = localStorage.getItem('last_customer_name');
-    const savedPhone = localStorage.getItem('last_customer_phone');
-    const savedAddress = localStorage.getItem('last_customer_address');
+    
+    // ATOMIC FIX: Use standardized keys matching authentication components
+    const savedName = localStorage.getItem('user_name') || localStorage.getItem('last_customer_name');
+    const savedPhone = localStorage.getItem('user_phone') || localStorage.getItem('last_customer_phone');
+    const savedAddress = localStorage.getItem('user_address_line') || localStorage.getItem('last_customer_address');
     const savedCity = localStorage.getItem('user_city');
     const savedPincode = localStorage.getItem('user_pincode');
 
@@ -256,11 +258,9 @@ export default function CartPage() {
   const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing) return;
     
-    // 1. Generate Order Identity First (Zero-Latency)
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     setIsPlacing(true);
 
-    // 2. Prepare Data Object
     const finalUid = user?.uid || 'guest_' + Date.now();
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
@@ -302,10 +302,8 @@ export default function CartPage() {
       instructions
     };
 
-    // 3. HAAL KE HAAL REDIRECT (Prioritize Navigation)
     router.replace(`/orders/track?id=${orderId}`);
 
-    // 4. FIRE AND FORGET DB WRITES (Background Processing)
     setDoc(doc(firestore, 'orders', orderId), orderData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -324,7 +322,6 @@ export default function CartPage() {
       }, { merge: true }).catch(() => {});
     }
 
-    // 5. Cleanup session (Deferred to not block navigation)
     setTimeout(() => {
       clearCart();
       setIsPaymentDialogOpen(false);
@@ -376,7 +373,8 @@ export default function CartPage() {
     }
   };
 
-  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 5;
+  // Robust validation: Allow slider if basic data is present
+  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3;
 
   if (totalItems === 0 && !isPlacing) {
     return (
