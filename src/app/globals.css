@@ -34,7 +34,16 @@
     outline: none !important;
   }
   
-  body {
+  /* GLOBAL SCROLLBAR HIDER - SAFED DANDA REMOVAL */
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  html, body {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE/Edge */
     @apply bg-background text-foreground;
     font-family: var(--font-inter), sans-serif;
     text-rendering: optimizeSpeed;
