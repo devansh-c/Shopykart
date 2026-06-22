@@ -41,17 +41,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useFirestore } from '@/firebase';
 import { requestPushToken } from '@/firebase/messaging';
 
-// ROBUST DYNAMIC IMPORTS WITH DEFAULT EXPORTS
-const AdminOverview = dynamic(() => import('@/components/admin/AdminOverview'), { 
-  ssr: false,
-  loading: () => <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> 
-});
-const ProductManagement = dynamic(() => import('@/components/admin/ProductManagement'), { ssr: false });
+// IMPORTING CRITICAL COMPONENTS DIRECTLY TO PREVENT CHUNK ERRORS
+import AdminOverview from '@/components/admin/AdminOverview';
+import OrderManagement from '@/components/admin/OrderManagement';
+import ProductManagement from '@/components/admin/ProductManagement';
+import StoreManagement from '@/components/admin/StoreManagement';
+
+// DYNAMIC IMPORTS FOR SECONDARY PAGES
 const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement'), { ssr: false });
-const OrderManagement = dynamic(() => import('@/components/admin/OrderManagement'), { ssr: false });
 const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement'), { ssr: false });
 const DiscountManagement = dynamic(() => import('@/components/admin/DiscountManagement'), { ssr: false });
-const StoreManagement = dynamic(() => import('@/components/admin/StoreManagement'), { ssr: false });
 const CategoryManagement = dynamic(() => import('@/components/admin/CategoryManagement'), { ssr: false });
 const BrandingManagement = dynamic(() => import('@/components/admin/BrandingManagement'), { ssr: false });
 const CustomerManagement = dynamic(() => import('@/components/admin/CustomerManagement'), { ssr: false });
