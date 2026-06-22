@@ -25,7 +25,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   Hash,
-  Heart
+  Heart,
+  Package
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -147,6 +148,7 @@ export default function CartPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [useCoins, setUseCoins] = useState(false);
+  const [premiumPackaging, setPremiumPackaging] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
   
   const [couponInput, setCouponInput] = useState('');
@@ -230,7 +232,7 @@ export default function CartPage() {
     return Math.min(remainingTotal, availableCoins * coinValue);
   }, [useCoins, availableCoins, coinValue, totalPrice, couponDiscount]);
 
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + deliveryTip - coinDiscount - couponDiscount);
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + deliveryTip + (premiumPackaging ? 10 : 0) - coinDiscount - couponDiscount);
 
   const upiId = "9450355709@axl";
   const upiUri = useMemo(() => {
@@ -270,6 +272,11 @@ export default function CartPage() {
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
     const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(id => id !== 'undefined' && id !== 'null')));
 
+    const finalCharges = [...dynamic_charges.map(c => ({ name: c.name, amount: c.calculatedAmount }))];
+    if (premiumPackaging) {
+      finalCharges.push({ name: 'Premium Packaging', amount: 10 });
+    }
+
     const orderData = {
       userId: finalUid,
       customerName,
@@ -285,10 +292,11 @@ export default function CartPage() {
         restaurantName: item.restaurantName || 'ShopyKart Store'
       })),
       subtotal: totalPrice,
-      charges: dynamic_charges.map(c => ({ name: c.name, amount: c.calculatedAmount })),
+      charges: finalCharges,
       total: grandTotal,
       status: 'Placed',
       paymentMethod,
+      premiumPackaging,
       utrNumber: paymentMethod === 'online' ? utrNumber : null,
       paymentStatus: paymentMethod === 'online' ? 'UTR_Pending_Verification' : 'Pending',
       address: fullFinalAddress,
@@ -332,7 +340,7 @@ export default function CartPage() {
       setIsPaymentDialogOpen(false);
     }, 100);
     
-  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip]);
+  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip]);
 
   const handleOnlinePaymentFlow = () => {
     window.open(upiUri);
@@ -454,6 +462,11 @@ export default function CartPage() {
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3"><div className="h-10 w-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500 shadow-inner"><Package className="h-6 w-6" /></div><div><h3 className="text-sm font-black uppercase tracking-tight italic">Premium Packaging</h3><p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Extra safety & premium feel • ₹10</p></div></div>
+          <Switch checked={premiumPackaging} onCheckedChange={setPremiumPackaging} className="data-[state=checked]:bg-rose-500" />
+        </div>
+
         {/* Delivery Tip Section */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
            <div className="flex items-center justify-between">
@@ -570,6 +583,7 @@ export default function CartPage() {
             {dynamic_charges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>
             ))}
+            {premiumPackaging && <div className="flex justify-between font-bold text-[11px] text-rose-500 uppercase tracking-widest"><span>Premium Packaging</span><span>₹10.00</span></div>}
             {appliedCoupon && <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Discount</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>}
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
             {deliveryTip > 0 && <div className="flex justify-between font-black text-[11px] text-orange-600 uppercase tracking-widest"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
@@ -632,7 +646,7 @@ export default function CartPage() {
                       />
                    </div>
                    <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
-                      <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                      <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
                       <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">UTR number verify hone ke baad hi order accept hoga. Wrong UTR se order cancel ho sakta hai.</p>
                    </div>
                    

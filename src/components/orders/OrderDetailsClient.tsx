@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -263,6 +263,18 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
             <div className="font-black text-xl italic uppercase tracking-tighter">{isCancelled ? "Cancelled" : order.status}</div>
           </div>
         </div>
+
+        {order.premiumPackaging && (
+           <div className="bg-rose-50 p-5 rounded-2xl border-2 border-dashed border-rose-200 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
+              <div className="h-12 w-12 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600 shadow-inner">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-black italic uppercase text-rose-900 text-sm">Premium Packaging</h4>
+                <p className="text-[10px] font-bold text-rose-700 uppercase tracking-widest">Added for your special delivery experience</p>
+              </div>
+           </div>
+        )}
 
         {!isCancelled && (
           <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">

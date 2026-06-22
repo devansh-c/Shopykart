@@ -247,6 +247,11 @@ export default function OrderManagement() {
                         {isPrepaid ? <CreditCard className="h-2 w-2" /> : <Banknote className="h-2 w-2" />}
                         {isPrepaid ? "PREPAID" : "CASH ON DELIVERY"}
                       </Badge>
+                      {order.premiumPackaging && (
+                        <Badge className="bg-rose-50 text-rose-600 border border-rose-100 text-[8px] font-black uppercase px-2">
+                          <Sparkles className="h-2 w-2 mr-1" /> PREMIUM PACKAGING
+                        </Badge>
+                      )}
                       {needsVerification && (
                         <Badge className="bg-red-50 text-red-600 border border-red-100 text-[8px] font-black uppercase px-2 animate-pulse">
                           <ShieldAlert className="h-2 w-2 mr-1" /> UTR PENDING
