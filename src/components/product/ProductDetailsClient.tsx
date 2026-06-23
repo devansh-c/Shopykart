@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle, FileText } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle, FileText, Zap } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -50,6 +50,13 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
   }, [firestore]);
   const { data: allDbProducts } = useCollection<any>(productsQuery);
 
+  // Global Offer Hook
+  const offerRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'global_offer');
+  }, [firestore]);
+  const { data: globalOffer } = useDoc<any>(offerRef);
+
   const vendor = vendors?.find(v => v.id === product?.vendorId);
   const isOffline = (vendor?.isOnline === false) || (product?.isAvailable === false);
 
@@ -64,6 +71,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
 
   const totalPrice = useMemo(() => {
     if (!product) return 0;
+    // ALWAYS USE ORIGINAL PRICE FOR TRANSACTIONS
     const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
     return (base + optPrice) * localQuantity;
@@ -163,6 +171,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
   const hasOptions = product.options && product.options.length > 0;
+  const isSaleCurrentlyActive = globalOffer?.isActive;
 
   return (
     <div className="min-h-screen bg-white pb-40">
@@ -200,7 +209,10 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
         </div>
 
         <div className="flex justify-between items-start mb-2">
-          <h2 className="text-2xl font-black text-foreground leading-tight max-w-[80%]">{product.name}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-foreground leading-tight">{product.name}</h2>
+            {isSaleCurrentlyActive && <Zap className="h-5 w-5 text-primary fill-primary animate-pulse" />}
+          </div>
           {product.isVeg && (
             <div className="h-6 w-6 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mt-1">
               <div className="h-full w-full bg-green-600 rounded-full" />
@@ -209,11 +221,23 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
         </div>
 
         <div className="flex items-baseline gap-3 mb-4">
-           <div className="text-3xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
+           <div className="text-3xl font-black text-gray-900 italic">₹{(product.price || 0).toFixed(2)}</div>
            {product.mrp > product.price && (
              <div className="text-sm font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>
            )}
         </div>
+
+        {isSaleCurrentlyActive && (
+          <div className="mb-6">
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-4">
+               <div className="bg-red-500 p-2 rounded-xl text-white shadow-lg"><AlertCircle className="h-5 w-5" /></div>
+               <div>
+                  <p className="text-[11px] font-black text-red-600 uppercase tracking-tighter">OFFER CLOSED</p>
+                  <p className="text-xs font-bold text-red-400 uppercase leading-relaxed mt-1">Our first 10 orders have been completed, so sale is closed. Standard pricing now applies.</p>
+               </div>
+            </div>
+          </div>
+        )}
 
         {product.description && (
           <div className="mb-6 p-4 bg-muted/20 rounded-2xl border border-border/40">
@@ -227,7 +251,6 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
           </div>
         )}
 
-        {/* METADATA BLOCK (Dates & Silent Packaging) */}
         <div className="space-y-4 mb-8">
            {product.isSilentPackaging && (
               <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 animate-in fade-in zoom-in-95 duration-500">

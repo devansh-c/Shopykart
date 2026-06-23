@@ -15,9 +15,16 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
-  // FORCE DISABLE DISCOUNT: Show only original price as 10 orders are done
+  // SHOWOFF PRICE: Show discount only on the main list
   const basePrice = product.price || 0;
-  const isSaleClosed = globalOffer?.isActive; // If it was active, it's now "Closed"
+  const isSaleActive = globalOffer?.isActive;
+  
+  const showoffPrice = useMemo(() => {
+    if (!isSaleActive) return basePrice;
+    const val = Number(globalOffer.value) || 0;
+    if (globalOffer.type === 'percentage') return basePrice * (1 - val / 100);
+    return Math.max(0, basePrice - val);
+  }, [basePrice, globalOffer]);
 
   return (
     <div className={cn(
@@ -27,26 +34,18 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
       <div className="flex-1 pr-4 min-w-0">
         <div className="flex items-center gap-2 mb-2">
           <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
-          {isSaleClosed && (
-            <Badge className="bg-red-50 text-red-600 text-[7px] font-black uppercase px-2 py-0.5 rounded-full border border-red-100">
-              SALE CLOSED
+          {isSaleActive && (
+            <Badge className="bg-primary text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full animate-pulse border-none">
+              FLASH SALE LIVE
             </Badge>
           )}
         </div>
         <div onClick={() => !isOffline && onNavigate(product.id)} className={cn("block text-left w-full cursor-pointer", isOffline && "pointer-events-none")}>
           <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
           <div className="flex items-baseline gap-2 mb-2">
-             <div className="text-xl font-black text-gray-900 italic">₹{basePrice.toFixed(0)}</div>
+             <div className="text-xl font-black text-primary italic">₹{showoffPrice.toFixed(0)}</div>
+             {isSaleActive && <div className="text-xs font-bold text-gray-400 line-through">₹{basePrice}</div>}
           </div>
-          
-          {isSaleClosed && (
-             <div className="flex items-start gap-1.5 mb-2 bg-red-50/50 p-2 rounded-xl border border-red-100/50">
-                <AlertCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                <span className="text-[7px] font-black text-red-600 uppercase leading-tight">
-                  Our first 10 orders have been completed, so sale is closed
-                </span>
-             </div>
-          )}
           
           <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Nearby'}</p>
         </div>
