@@ -1,18 +1,32 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock } from "lucide-react"
+import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock, Sparkles } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, limit } from "firebase/firestore"
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase"
+import { collection, query, limit, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 
-const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate }: any) => {
+const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
+
+  // Calculate Flash Sale Price
+  const basePrice = product.price || 0;
+  let discountedPrice = basePrice;
+  const isSaleActive = globalOffer?.isActive && globalOffer?.value > 0;
+
+  if (isSaleActive) {
+    if (globalOffer.type === 'percentage') {
+      discountedPrice = basePrice * (1 - (globalOffer.value / 100));
+    } else {
+      discountedPrice = Math.max(0, basePrice - globalOffer.value);
+    }
+  }
 
   return (
     <div className={cn(
@@ -20,13 +34,30 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
       isOffline && "opacity-60 grayscale-[0.5]"
     )}>
       <div className="flex-1 pr-4 min-w-0">
-        <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mb-2"><div className="h-full w-full bg-green-600 rounded-full" /></div>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
+          {isSaleActive && (
+            <Badge className="bg-primary text-white text-[7px] font-black uppercase px-1.5 py-0 rounded-sm animate-pulse border-none">
+              {globalOffer.title || 'SALE'}
+            </Badge>
+          )}
+        </div>
         <div onClick={() => !isOffline && onNavigate(product.id)} className={cn("block text-left w-full cursor-pointer", isOffline && "pointer-events-none")}>
           <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
           <div className="flex items-baseline gap-2 mb-2">
-             <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(2)}</div>
-             {product.mrp > product.price && <div className="text-[10px] font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>}
+             <div className="text-xl font-black text-primary italic">₹{discountedPrice.toFixed(0)}</div>
+             {(product.mrp > discountedPrice || isSaleActive) && (
+               <div className="text-[10px] font-bold text-gray-400 line-through">MRP ₹{isSaleActive ? basePrice : product.mrp}</div>
+             )}
           </div>
+          {isSaleActive && (
+             <div className="flex items-center gap-1 mb-2">
+                <Sparkles className="h-2.5 w-2.5 text-green-600" />
+                <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">
+                  Save {globalOffer.value}{globalOffer.type === 'percentage' ? '%' : ' OFF'} NOW
+                </span>
+             </div>
+          )}
           <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Nearby'}</p>
         </div>
       </div>
@@ -41,7 +72,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
         </div>
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
           {quantity === 0 ? (
-            <ProductQuickView product={product}>
+            <ProductQuickView product={{...product, price: discountedPrice, originalPrice: basePrice}} globalOffer={globalOffer}>
               <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
                 {isOffline ? 'OFF' : 'ADD'}
               </button>
@@ -50,7 +81,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
             <div className={cn("flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg", isOffline && "opacity-50")}>
               <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
               <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-              <button disabled={isOffline} onClick={() => !isOffline && onAdd({ ...product, imageUrl })} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
+              <button disabled={isOffline} onClick={() => !isOffline && onAdd({ ...product, price: discountedPrice, imageUrl })} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
             </div>
           )}
         </div>
@@ -108,6 +139,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return collection(firestore, 'vendors');
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
+
+  // Global Offer Hook
+  const offerRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'global_offer');
+  }, [firestore]);
+  const { data: globalOffer } = useDoc<any>(offerRef);
 
   const vendorMap = useMemo(() => {
     const map = new Map();
@@ -183,6 +221,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             onToggleWishlist={toggleWishlist}
             isLiked={isInWishlist(product.id)}
             onNavigate={navigateToProduct}
+            globalOffer={globalOffer}
           />
         ))}
         {productsToDisplay.length === 0 && !productsLoading && (

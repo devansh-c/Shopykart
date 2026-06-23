@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -22,16 +23,17 @@ import { useCart } from '@/components/cart/CartProvider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 interface ProductQuickViewProps {
   product: any;
   children: React.ReactNode;
   isMedical?: boolean;
+  globalOffer?: any;
 }
 
-export function ProductQuickView({ product, children, isMedical }: ProductQuickViewProps) {
+export function ProductQuickView({ product, children, isMedical, globalOffer }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -53,6 +55,9 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
   const hasOptions = product.options && product.options.length > 0;
 
+  // Flash Sale Check
+  const isSaleActive = globalOffer?.isActive && globalOffer?.value > 0;
+  
   const currentPrice = useMemo(() => {
     const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
@@ -98,9 +103,10 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
   }, [product.id]);
 
   const discountPercent = useMemo(() => {
-    if (!product.mrp || product.mrp <= product.price) return 0;
-    return Math.round(((product.mrp - product.price) / product.mrp) * 100);
-  }, [product.mrp, product.price]);
+    const m = product.mrp || product.originalPrice || product.price;
+    if (!m || m <= currentPrice) return 0;
+    return Math.round(((m - currentPrice) / m) * 100);
+  }, [product.mrp, product.originalPrice, currentPrice]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -130,7 +136,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                       </div>
                    )}
                    {discountPercent > 0 && (
-                     <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[8px] font-black text-center py-1">
+                     <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[8px] font-black text-center py-1 uppercase italic">
                         SAVE {discountPercent}%
                      </div>
                    )}
@@ -138,7 +144,10 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                 
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                    <div>
-                      <h3 className="font-black text-xl text-gray-900 leading-tight italic uppercase tracking-tighter line-clamp-2">{product.name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-black text-xl text-gray-900 leading-tight italic uppercase tracking-tighter line-clamp-2">{product.name}</h3>
+                        {isSaleActive && <Zap className="h-3.5 w-3.5 text-primary fill-primary animate-pulse" />}
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
                         {product.isSilentPackaging && (
@@ -161,9 +170,9 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
 
                    <div className="flex justify-between items-center mt-2">
                       <div className="flex flex-col">
-                        <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹ {(currentPrice || 0).toFixed(2)}</div>
-                        {product.mrp > product.price && (
-                          <div className="text-[10px] font-bold text-gray-400 line-through mt-0.5">MRP ₹{product.mrp}</div>
+                        <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹ {(currentPrice || 0).toFixed(0)}</div>
+                        {(product.mrp > product.price || isSaleActive) && (
+                          <div className="text-[10px] font-bold text-gray-400 line-through mt-0.5">MRP ₹{isSaleActive ? product.originalPrice : product.mrp}</div>
                         )}
                       </div>
                       <button 
@@ -176,6 +185,18 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                 </div>
              </div>
           </div>
+
+          {isSaleActive && (
+             <div className="px-6 pb-2">
+                <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 flex items-center gap-3">
+                   <div className="bg-primary p-1.5 rounded-lg"><Zap className="h-4 w-4 text-white" /></div>
+                   <div>
+                      <p className="text-[10px] font-black text-primary uppercase tracking-tighter">{globalOffer.title}</p>
+                      <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{globalOffer.subtitle}</p>
+                   </div>
+                </div>
+             </div>
+          )}
 
           <div className="px-6 py-2">
             {product.description && (
@@ -324,7 +345,7 @@ export function ProductQuickView({ product, children, isMedical }: ProductQuickV
                   className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none"
                 >
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  {isOffline ? 'OFFLINE' : `ADD • ₹${(currentPrice * localQuantity).toFixed(2)}`}
+                  {isOffline ? 'OFFLINE' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>
              </div>
           </div>

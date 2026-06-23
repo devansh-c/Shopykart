@@ -33,7 +33,8 @@ import {
   ShieldCheck,
   UserPlus,
   ShieldAlert,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -48,6 +49,7 @@ import ProductManagement from '@/components/admin/ProductManagement';
 import StoreManagement from '@/components/admin/StoreManagement';
 
 // DYNAMIC IMPORTS FOR SECONDARY PAGES
+const GlobalOfferManagement = dynamic(() => import('@/components/admin/GlobalOfferManagement'), { ssr: false });
 const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement'), { ssr: false });
 const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement'), { ssr: false });
 const DiscountManagement = dynamic(() => import('@/components/admin/DiscountManagement'), { ssr: false });
@@ -67,6 +69,7 @@ const ReceiptGenerator = dynamic(() => import('@/components/admin/ReceiptGenerat
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'global_offer', label: 'Flash Sale (Store-wide)', icon: Zap },
   { id: 'receipt_gen', label: 'Receipt Generator', icon: FileSpreadsheet },
   { id: 'zones', label: 'Serving Zones', icon: MapPin },
   { id: 'customers', label: 'Customers', icon: Users },
@@ -79,7 +82,7 @@ const menuItems = [
   { id: 'products', label: 'Products', icon: Layers },
   { id: 'design', label: 'Banners', icon: Feather },
   { id: 'orders', label: 'Orders', icon: ShoppingBag },
-  { id: 'discounts', label: 'Discounts', icon: Percent },
+  { id: 'discounts', label: 'Coupons', icon: Percent },
   { id: 'charges', label: 'Tax & Charges', icon: Receipt },
   { id: 'ads', label: 'Monetization', icon: Megaphone },
   { id: 'tickets', label: 'Support Tickets', icon: LifeBuoy },
@@ -216,6 +219,7 @@ export default function AdminDashboard() {
 
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
+      case 'global_offer': return <GlobalOfferManagement />;
       case 'receipt_gen': return <ReceiptGenerator />;
       case 'zones': return <ZoneManagement />;
       case 'customers': return <CustomerManagement />;
