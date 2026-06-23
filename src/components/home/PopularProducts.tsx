@@ -15,7 +15,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
-  // SHOWOFF PRICE: Show discount only on the main list
+  // SHOWOFF PRICE: Show discount on Home page only for attraction
   const basePrice = product.price || 0;
   const isSaleActive = globalOffer?.isActive;
   
