@@ -55,15 +55,25 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
   const hasOptions = product.options && product.options.length > 0;
 
-  // REALITY CHECK: Even if offer is active on home, we show "Closed" message and original price here.
-  const isSaleCurrentlyActive = globalOffer?.isActive;
+  // MILESTONE LOGIC: If 'isClosedAfterMilestone' is ON, show original price and Closed message.
+  // If 'isClosedAfterMilestone' is OFF, show discounted price for transaction.
+  const isSaleActive = globalOffer?.isActive;
+  const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone;
   
   const currentPrice = useMemo(() => {
-    // ALWAYS USE ORIGINAL PRICE FOR TRANSACTIONS
     const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
-    return (base + optPrice);
-  }, [product, selectedOption]);
+    const totalBase = base + optPrice;
+
+    // Only apply discount if sale is active AND it's NOT in "Closed/Showoff" mode
+    if (isSaleActive && !globalOffer?.isClosedAfterMilestone) {
+      const val = Number(globalOffer.value) || 0;
+      if (globalOffer.type === 'percentage') return totalBase * (1 - val / 100);
+      return Math.max(0, totalBase - val);
+    }
+
+    return totalBase;
+  }, [product, selectedOption, isSaleActive, globalOffer]);
 
   const handleAddToCart = () => {
     if (isOffline) return;
@@ -135,7 +145,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                    <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-black text-xl text-gray-900 leading-tight italic uppercase tracking-tighter line-clamp-2">{product.name}</h3>
-                        {isSaleCurrentlyActive && <Zap className="h-3.5 w-3.5 text-primary fill-primary animate-pulse" />}
+                        {isSaleActive && <Zap className="h-3.5 w-3.5 text-primary fill-primary animate-pulse" />}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
@@ -172,7 +182,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
              </div>
           </div>
 
-          {isSaleCurrentlyActive && (
+          {isClosedMode && (
              <div className="px-6 pb-2">
                 <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
                    <div className="bg-red-500 p-2 rounded-lg"><AlertCircle className="h-4 w-4 text-white" /></div>

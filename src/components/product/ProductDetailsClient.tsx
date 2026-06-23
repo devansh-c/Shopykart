@@ -64,18 +64,28 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
     return product?.serviceMode === 'Medical' || product?.category?.toLowerCase().includes('medic') || product?.isSilentPackaging !== undefined;
   }, [product]);
 
-  const relatedProducts = useMemo(() => {
-    if (!allDbProducts || !product || !productId) return [];
-    return allDbProducts.filter((p: any) => p.id !== productId && p.category === product.category).slice(0, 8);
-  }, [allDbProducts, productId, product]);
+  const isSaleActive = globalOffer?.isActive;
+  const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone;
 
-  const totalPrice = useMemo(() => {
+  const currentPrice = useMemo(() => {
     if (!product) return 0;
-    // ALWAYS USE ORIGINAL PRICE FOR TRANSACTIONS
     const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
-    return (base + optPrice) * localQuantity;
-  }, [product, selectedOption, localQuantity]);
+    const totalBase = base + optPrice;
+
+    // Only apply discount if sale is active AND it's NOT in "Closed/Showoff" mode
+    if (isSaleActive && !globalOffer?.isClosedAfterMilestone) {
+      const val = Number(globalOffer.value) || 0;
+      if (globalOffer.type === 'percentage') return totalBase * (1 - val / 100);
+      return Math.max(0, totalBase - val);
+    }
+
+    return totalBase;
+  }, [product, selectedOption, isSaleActive, globalOffer]);
+
+  const totalPrice = useMemo(() => {
+    return currentPrice * localQuantity;
+  }, [currentPrice, localQuantity]);
 
   const handleAddToCart = () => {
     if (!product || isOffline) return;
@@ -96,7 +106,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
       imageUrl, 
       quantity: localQuantity,
       selectedOption: selectedOption,
-      price: product.price + (selectedOption?.price || 0),
+      price: currentPrice,
       instructions: isMedical ? '' : instructions
     });
     
@@ -171,7 +181,6 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
   const hasOptions = product.options && product.options.length > 0;
-  const isSaleCurrentlyActive = globalOffer?.isActive;
 
   return (
     <div className="min-h-screen bg-white pb-40">
@@ -211,7 +220,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-black text-foreground leading-tight">{product.name}</h2>
-            {isSaleCurrentlyActive && <Zap className="h-5 w-5 text-primary fill-primary animate-pulse" />}
+            {isSaleActive && <Zap className="h-5 w-5 text-primary fill-primary animate-pulse" />}
           </div>
           {product.isVeg && (
             <div className="h-6 w-6 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mt-1">
@@ -221,18 +230,18 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
         </div>
 
         <div className="flex items-baseline gap-3 mb-4">
-           <div className="text-3xl font-black text-gray-900 italic">₹{(product.price || 0).toFixed(2)}</div>
-           {product.mrp > product.price && (
+           <div className="text-3xl font-black text-gray-900 italic">₹{(currentPrice || 0).toFixed(2)}</div>
+           {product.mrp > currentPrice && (
              <div className="text-sm font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>
            )}
         </div>
 
-        {isSaleCurrentlyActive && (
+        {isClosedMode && (
           <div className="mb-6">
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-4">
                <div className="bg-red-500 p-2 rounded-xl text-white shadow-lg"><AlertCircle className="h-5 w-5" /></div>
                <div>
-                  <p className="text-[11px] font-black text-red-600 uppercase tracking-tighter">OFFER CLOSED</p>
+                  <p className="text-[11px] font-black text-red-600 uppercase tracking-tighter">SALE IS CLOSED</p>
                   <p className="text-xs font-bold text-red-400 uppercase leading-relaxed mt-1">Our first 10 orders have been completed, so sale is closed. Standard pricing now applies.</p>
                </div>
             </div>

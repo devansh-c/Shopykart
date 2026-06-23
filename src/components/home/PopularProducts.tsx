@@ -15,7 +15,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
-  // SHOWOFF PRICE: Show discount on Home page only for attraction
+  // SHOWOFF PRICE: Always show discount on Home page for attraction if sale is active
   const basePrice = product.price || 0;
   const isSaleActive = globalOffer?.isActive;
   
@@ -25,6 +25,21 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
     if (globalOffer.type === 'percentage') return basePrice * (1 - val / 100);
     return Math.max(0, basePrice - val);
   }, [basePrice, globalOffer]);
+
+  const handleQuickAdd = () => {
+    if (isOffline) return;
+    
+    // REAL PRICE CALCULATION: Depends on if the milestone toggle is ON (Showoff) or OFF (Real)
+    const isRealSale = isSaleActive && !globalOffer?.isClosedAfterMilestone;
+    const finalPrice = isRealSale ? showoffPrice : basePrice;
+
+    onAdd({ 
+      ...product, 
+      imageUrl, 
+      price: finalPrice,
+      originalPrice: basePrice 
+    });
+  };
 
   return (
     <div className={cn(
@@ -70,7 +85,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
             <div className={cn("flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg", isOffline && "opacity-50")}>
               <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
               <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-              <button disabled={isOffline} onClick={() => !isOffline && onAdd({ ...product, imageUrl })} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
+              <button disabled={isOffline} onClick={() => !isOffline && handleQuickAdd()} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
             </div>
           )}
         </div>
