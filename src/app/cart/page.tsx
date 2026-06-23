@@ -407,8 +407,9 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
+        {/* GOLDEN BORDER SECTIONS */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
+          <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
           <div className="space-y-4">
             {cart.map((item) => (
               <div key={item.id + (item.selectedOption?.name || '')} className="flex gap-4 items-center">
@@ -430,8 +431,8 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-primary" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
+          <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
           <div className="space-y-4">
               <button onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all"><MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP</button>
               <div className="space-y-3">
@@ -446,8 +447,8 @@ export default function CartPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
-           <div className="flex items-center gap-3"><div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Ticket className="h-5 w-5" /></div><h3 className="text-sm font-black uppercase italic tracking-tight">Active Offers</h3></div>
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4">
+           <div className="flex items-center gap-3"><div className="h-9 w-9 bg-[#C5A021]/10 rounded-xl flex items-center justify-center text-[#C5A021]"><Ticket className="h-5 w-5" /></div><h3 className="text-sm font-black uppercase italic tracking-tight">Active Offers</h3></div>
            <div className="flex gap-2">
               <div className="relative flex-1"><Tag className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input placeholder="PROMO CODE" value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())} className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-black tracking-widest text-[10px]" /></div>
               <button onClick={handleApplyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="h-12 px-6 rounded-xl bg-black text-white font-black uppercase italic text-[10px] tracking-widest active:scale-95 transition-all">{isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}</button>
@@ -457,18 +458,17 @@ export default function CartPage() {
            )}
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 flex items-center justify-between">
           <div className="flex items-center gap-3"><div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner"><Coins className="h-6 w-6" /></div><div><h3 className="text-sm font-black uppercase tracking-tight italic">ShopyKart Coins</h3><p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Balance: {availableCoins} Coins</p></div></div>
           <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 flex items-center justify-between">
           <div className="flex items-center gap-3"><div className="h-10 w-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500 shadow-inner"><Package className="h-6 w-6" /></div><div><h3 className="text-sm font-black uppercase tracking-tight italic">Premium Packaging</h3><p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Extra safety & premium feel • ₹10</p></div></div>
           <Switch checked={premiumPackaging} onCheckedChange={setPremiumPackaging} className="data-[state=checked]:bg-rose-500" />
         </div>
 
-        {/* Delivery Tip Section */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4">
            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                  <div className="h-9 w-9 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
@@ -545,7 +545,7 @@ export default function CartPage() {
            <p className="text-[8px] font-medium text-muted-foreground text-center italic">100% of this tip goes to your delivery partner.</p>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4">
            <h3 className="text-sm font-black text-gray-800 uppercase italic">Settlement Mode</h3>
            <div className="grid grid-cols-2 gap-3">
               <button 
@@ -576,7 +576,7 @@ export default function CartPage() {
            </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white rounded-[2rem] p-7 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
             <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
@@ -593,7 +593,7 @@ export default function CartPage() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t border-gray-100 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
+        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                  <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
