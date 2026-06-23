@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Super 1000 Order Milestone Celebration.
- * Ultra-minimalist boutique design for a high-end premium feel.
+ * @fileOverview Super 1000 Order Sale Countdown.
+ * Redesigned to match the Cherry Red Retro Digital look from the reference image.
  */
 export function SaleCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -48,47 +47,62 @@ export function SaleCountdown() {
   if (!mounted || isExpired) return null;
 
   return (
-    <div className="px-4 py-3">
-      <div className="bg-white border border-gray-100 rounded-[2.5rem] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex items-center justify-between transform-gpu transition-all hover:shadow-[0_15px_50px_rgba(0,0,0,0.06)] group">
+    <div className="px-4 py-4 animate-in fade-in duration-700">
+      <div className="bg-[#8B0021] rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group border border-white/10 transform-gpu">
+        {/* Subtle Inner Glow Effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 to-transparent pointer-events-none" />
         
-        {/* Left Side: Milestone Branding */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5">
-             <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-red-500 leading-none">Milestone Celebration</span>
-          </div>
-          <div className="space-y-0">
-            <h3 className="text-2xl font-black italic tracking-tighter text-gray-900 uppercase leading-none">
-              Super <span className="text-red-500">1000</span> Sale
-            </h3>
-            <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mt-1">Limited window offer • Tonight 8PM</p>
-          </div>
+        {/* Top Content Label */}
+        <div className="absolute top-4 left-0 right-0 flex justify-center pointer-events-none">
+           <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.5em]">
+             Super 1000 Milestone Sale
+           </span>
         </div>
 
-        {/* Right Side: Elegant Ticker */}
-        <div className="flex items-center gap-5">
-           <div className="flex gap-3">
-              {[
-                { val: timeLeft.hours, label: 'HR' },
-                { val: timeLeft.minutes, label: 'MIN' },
-                { val: timeLeft.seconds, label: 'SEC' }
-              ].map((unit, i) => (
-                <div key={i} className="flex flex-col items-center">
-                   <span className="text-2xl font-black italic tabular-nums tracking-tighter text-gray-900 leading-none">
-                     {String(unit.val).padStart(2, '0')}
-                   </span>
-                   <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{unit.label}</span>
-                </div>
-              ))}
+        <div className="relative z-10 flex items-center justify-between">
+           
+           {/* HOURS SECTION */}
+           <div className="flex-1 flex flex-col items-center">
+              <span className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none">
+                {String(timeLeft.hours).padStart(2, '0')}
+              </span>
+              <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mt-4">HOURS</span>
            </div>
 
-           <button 
-             onClick={() => window.scrollTo({ top: 1100, behavior: 'smooth' })}
-             className="h-11 w-11 bg-[#0B0B0B] text-white rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-all group-hover:bg-red-500"
-           >
-             <ChevronRight className="h-5 w-5 stroke-[3]" />
-           </button>
+           {/* VERTICAL DIVIDER */}
+           <div className="h-16 w-[1.5px] bg-white/20" />
+
+           {/* MINUTES SECTION */}
+           <div className="flex-1 flex flex-col items-center">
+              <span className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none">
+                {String(timeLeft.minutes).padStart(2, '0')}
+              </span>
+              <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mt-4">MINUTES</span>
+           </div>
+
+           {/* VERTICAL DIVIDER */}
+           <div className="h-16 w-[1.5px] bg-white/20" />
+
+           {/* SECONDS SECTION */}
+           <div className="flex-1 flex flex-col items-center">
+              <div className="relative flex flex-col items-center">
+                 {/* Rolling ghost digit (Simulation of the image look) */}
+                 <div className="absolute -top-3 opacity-20 filter blur-[1px]">
+                   <span className="text-4xl font-black italic text-white/40 tabular-nums">
+                     {String((timeLeft.seconds + 1) % 60).padStart(2, '0')}
+                   </span>
+                 </div>
+                 <span className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none relative z-10">
+                   {String(timeLeft.seconds).padStart(2, '0')}
+                 </span>
+              </div>
+              <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mt-4">SECONDS</span>
+           </div>
+
         </div>
+
+        {/* Glossy Overlay Shine */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent h-1/2 pointer-events-none" />
       </div>
     </div>
   );
