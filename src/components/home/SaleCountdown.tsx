@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Super 1000 Order Sale Countdown.
- * Redesigned to match the Cherry Red Retro Digital look from the reference image.
+ * Updated: Added Golden Border and Shining background animation.
  */
 export function SaleCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -48,13 +48,18 @@ export function SaleCountdown() {
 
   return (
     <div className="px-4 py-4 animate-in fade-in duration-700">
-      <div className="bg-[#8B0021] rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group border border-white/10 transform-gpu">
+      <div className="bg-[#8B0021] rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(139,0,33,0.3)] relative overflow-hidden group border-2 border-[#C5A021] transform-gpu">
+        
+        {/* GOLDEN SHINING GLOW (BEHIND CONTENT) */}
+        <div className="absolute inset-0 bg-[#C5A021]/10 animate-pulse blur-3xl pointer-events-none" />
+        <div className="absolute -inset-[100%] bg-gradient-to-r from-transparent via-[#C5A021]/20 to-transparent -rotate-45 animate-[shine_4s_infinite] pointer-events-none" />
+
         {/* Subtle Inner Glow Effect */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 to-transparent pointer-events-none" />
         
         {/* Top Content Label */}
         <div className="absolute top-4 left-0 right-0 flex justify-center pointer-events-none">
-           <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.5em]">
+           <span className="text-[7px] font-black text-[#C5A021] uppercase tracking-[0.6em]">
              Super 1000 Milestone Sale
            </span>
         </div>
@@ -70,7 +75,7 @@ export function SaleCountdown() {
            </div>
 
            {/* VERTICAL DIVIDER */}
-           <div className="h-16 w-[1.5px] bg-white/20" />
+           <div className="h-16 w-[1.5px] bg-[#C5A021]/30" />
 
            {/* MINUTES SECTION */}
            <div className="flex-1 flex flex-col items-center">
@@ -81,12 +86,12 @@ export function SaleCountdown() {
            </div>
 
            {/* VERTICAL DIVIDER */}
-           <div className="h-16 w-[1.5px] bg-white/20" />
+           <div className="h-16 w-[1.5px] bg-[#C5A021]/30" />
 
            {/* SECONDS SECTION */}
            <div className="flex-1 flex flex-col items-center">
               <div className="relative flex flex-col items-center">
-                 {/* Rolling ghost digit (Simulation of the image look) */}
+                 {/* Rolling ghost digit */}
                  <div className="absolute -top-3 opacity-20 filter blur-[1px]">
                    <span className="text-4xl font-black italic text-white/40 tabular-nums">
                      {String((timeLeft.seconds + 1) % 60).padStart(2, '0')}
@@ -96,13 +101,16 @@ export function SaleCountdown() {
                    {String(timeLeft.seconds).padStart(2, '0')}
                  </span>
               </div>
-              <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mt-4">SECONDS</span>
+              <span className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.3em] mt-4">SECONDS</span>
            </div>
 
         </div>
 
         {/* Glossy Overlay Shine */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent h-1/2 pointer-events-none" />
+        
+        {/* GOLDEN BORDER SHINE ANIMATION */}
+        <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
       </div>
     </div>
   );
