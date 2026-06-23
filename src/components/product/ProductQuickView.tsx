@@ -55,8 +55,8 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
   const hasOptions = product.options && product.options.length > 0;
 
-  // Flash Sale Check
-  const isSaleActive = globalOffer?.isActive && globalOffer?.value > 0;
+  // FORCE DISABLE DISCOUNT: Show only original price as 10 orders are done
+  const isSaleClosed = globalOffer?.isActive;
   
   const currentPrice = useMemo(() => {
     const base = product.price || 0;
@@ -67,7 +67,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
   const handleAddToCart = () => {
     if (isOffline) return;
 
-    // MANDATORY VARIETY CHECK
     if (product.isVarietyRequired && !selectedOption && hasOptions) {
       toast({ 
         variant: "destructive", 
@@ -102,12 +101,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
     return (4 + (hash % 11) / 10).toFixed(1);
   }, [product.id]);
 
-  const discountPercent = useMemo(() => {
-    const m = product.mrp || product.originalPrice || product.price;
-    if (!m || m <= currentPrice) return 0;
-    return Math.round(((m - currentPrice) / m) * 100);
-  }, [product.mrp, product.originalPrice, currentPrice]);
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -135,18 +128,12 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                         <div className="h-full w-full bg-green-600 rounded-full" />
                       </div>
                    )}
-                   {discountPercent > 0 && (
-                     <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[8px] font-black text-center py-1 uppercase italic">
-                        SAVE {discountPercent}%
-                     </div>
-                   )}
                 </div>
                 
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                    <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-black text-xl text-gray-900 leading-tight italic uppercase tracking-tighter line-clamp-2">{product.name}</h3>
-                        {isSaleActive && <Zap className="h-3.5 w-3.5 text-primary fill-primary animate-pulse" />}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
@@ -171,9 +158,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                    <div className="flex justify-between items-center mt-2">
                       <div className="flex flex-col">
                         <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹ {(currentPrice || 0).toFixed(0)}</div>
-                        {(product.mrp > product.price || isSaleActive) && (
-                          <div className="text-[10px] font-bold text-gray-400 line-through mt-0.5">MRP ₹{isSaleActive ? product.originalPrice : product.mrp}</div>
-                        )}
                       </div>
                       <button 
                         onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
@@ -186,13 +170,13 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
              </div>
           </div>
 
-          {isSaleActive && (
+          {isSaleClosed && (
              <div className="px-6 pb-2">
-                <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 flex items-center gap-3">
-                   <div className="bg-primary p-1.5 rounded-lg"><Zap className="h-4 w-4 text-white" /></div>
+                <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
+                   <div className="bg-red-500 p-2 rounded-lg"><AlertCircle className="h-4 w-4 text-white" /></div>
                    <div>
-                      <p className="text-[10px] font-black text-primary uppercase tracking-tighter">{globalOffer.title}</p>
-                      <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{globalOffer.subtitle}</p>
+                      <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter">SALE IS CLOSED</p>
+                      <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest leading-relaxed mt-0.5">Our first 10 orders have been completed successfully. Standard pricing now applies.</p>
                    </div>
                 </div>
              </div>
@@ -207,7 +191,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
           </div>
 
           <div className="px-6 py-4 space-y-5">
-            {/* Silent Packaging & Date Info Block */}
             {(product.isSilentPackaging || product.mfgDate || product.expiryDate) && (
               <div className="space-y-3">
                 {product.isSilentPackaging && (
@@ -222,20 +205,12 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                   </div>
                 )}
 
-                {/* PRODUCT METADATA CARD (Below Silent) */}
-                {(product.mfgDate || product.expiryDate || (product.mrp > product.price)) && (
+                {(product.mfgDate || product.expiryDate) && (
                    <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100 space-y-3 shadow-sm">
                       <div className="flex items-center gap-2 mb-1">
                          <AlertCircle className="h-3.5 w-3.5 text-gray-400" />
                          <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none">Product Information</span>
                       </div>
-                      
-                      {product.mrp > product.price && (
-                        <div className="flex justify-between items-center border-b border-white pb-2 mb-2">
-                           <span className="text-[10px] font-bold text-gray-400 uppercase">Maximum Retail Price</span>
-                           <span className="text-xs font-black text-gray-400 line-through">₹{product.mrp}</span>
-                        </div>
-                      )}
 
                       <div className="grid grid-cols-2 gap-4">
                          {product.mfgDate && (
