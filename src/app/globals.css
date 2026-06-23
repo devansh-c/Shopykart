@@ -35,7 +35,6 @@
   }
   
   /* GLOBAL SCROLLBAR HIDER - SAFED DANDA REMOVAL */
-  /* Keeps scrolling working but makes the bar invisible */
   ::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
@@ -55,7 +54,7 @@
     text-rendering: optimizeSpeed;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    overflow-y: auto !important; /* FORCING SCROLL TO WORK */
+    overflow-y: auto !important;
     min-height: 100vh;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
@@ -119,4 +118,9 @@
 
 .animate-running-line {
   animation: running-line 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(-45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(-45deg); }
 }
