@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -11,6 +10,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function GlobalOfferManagement() {
   const firestore = useFirestore();
@@ -152,7 +152,7 @@ export default function GlobalOfferManagement() {
 
             <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 flex gap-4">
                <ShieldCheck className="h-6 w-6 text-blue-600 shrink-0" />
-               <p className="text-[10px] font-bold text-blue-700 uppercase leading-relaxed">
+               <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">
                  Ye settings save karte hi poori app mein prices update ho jayenge. MRP same rahegi, lekin Selling Price discounted dikhega.
                </p>
             </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -10,6 +9,7 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase
 import { collection, query, limit, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
+import { Badge } from "@/components/ui/badge"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
