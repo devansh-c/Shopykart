@@ -30,6 +30,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
     if (isOffline) return;
     
     // REAL PRICE CALCULATION: Depends on if the milestone toggle is ON (Showoff) or OFF (Real)
+    // If isClosedAfterMilestone is true, we must use the basePrice even if sale is active
     const isRealSale = isSaleActive && !globalOffer?.isClosedAfterMilestone;
     const finalPrice = isRealSale ? showoffPrice : basePrice;
 

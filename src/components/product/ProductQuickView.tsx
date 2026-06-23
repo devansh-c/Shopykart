@@ -72,6 +72,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
       return Math.max(0, totalBase - val);
     }
 
+    // Default to full price if sale is closed after milestone
     return totalBase;
   }, [product, selectedOption, isSaleActive, globalOffer]);
 
@@ -306,7 +307,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
             )}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+          <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className={cn("flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm", isOffline && "opacity-50")}>
                    <button 
@@ -329,7 +330,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                 <Button 
                   onClick={handleAddToCart}
                   disabled={isOffline}
-                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none"
+                  className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none"
                 >
                   <ShoppingBag className="h-4 w-4 mr-2" />
                   {isOffline ? 'OFFLINE' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}

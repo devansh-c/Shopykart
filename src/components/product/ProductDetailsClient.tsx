@@ -80,6 +80,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
       return Math.max(0, totalBase - val);
     }
 
+    // Use original price if milestone mode is ON
     return totalBase;
   }, [product, selectedOption, isSaleActive, globalOffer]);
 
@@ -231,8 +232,8 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
 
         <div className="flex items-baseline gap-3 mb-4">
            <div className="text-3xl font-black text-gray-900 italic">₹{(currentPrice || 0).toFixed(2)}</div>
-           {product.mrp > currentPrice && (
-             <div className="text-sm font-bold text-gray-400 line-through">MRP ₹{product.mrp}</div>
+           {(isSaleActive || product.mrp > currentPrice) && (
+             <div className="text-sm font-bold text-gray-400 line-through">MRP ₹{product.mrp || product.price}</div>
            )}
         </div>
 
