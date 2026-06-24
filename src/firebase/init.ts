@@ -17,8 +17,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Configured for MAXIMUM RELIABILITY in cloud environments.
- * Uses Long Polling to bypass WebSocket blocking/timeout issues.
+ * Configured for MAXIMUM SPEED AND STABILITY.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -34,8 +33,9 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      // ULTRA-RELIABLE FIRESTORE INITIALIZATION
-      // experimentalForceLongPolling: true solves the 10s timeout error in restricted networks
+      // REAL-TIME PRIORITY INITIALIZATION
+      // ForceLongPolling is still kept for environment compatibility but 
+      // Multi-Tab manager is enabled for better cross-tab status syncing.
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
           cacheSizeBytes: CACHE_SIZE_UNLIMITED,
@@ -44,29 +44,20 @@ export function initializeFirebase() {
         experimentalForceLongPolling: true,
       });
 
-      // GLOBAL ERROR SUPPRESSOR
-      // Prevents Firestore network warnings from appearing as visual "Red Screen" errors.
+      // Global suppression for specific sync warnings to prevent UI blocking
       const originalConsoleError = console.error;
       console.error = (...args) => {
         const message = args[0]?.toString() || '';
-        if (message.includes('@firebase/firestore') && 
-           (message.includes('Could not reach Cloud Firestore backend') || 
-            message.includes('Backend didn\'t respond within 10 seconds'))) {
-          // Log as a low-priority debug instead of an error to prevent framework crashes
-          console.debug("Firestore Sync Notice (Auto-retrying...):", message);
-          return;
+        if (message.includes('@firebase/firestore')) {
+          if (message.includes('Could not reach Cloud') || message.includes('Backend didn\'t respond')) {
+            console.debug("Background Syncing:", message);
+            return;
+          }
         }
         originalConsoleError.apply(console, args);
       };
 
-      // Suppress unhandled rejections from Firestore network heartbeat
-      window.addEventListener('unhandledrejection', (event) => {
-        if (event.reason?.toString().includes('@firebase/firestore')) {
-          event.preventDefault();
-        }
-      });
-
-      console.log("ShopyKart Engine: Connection Stability Mode Active ✅");
+      console.log("ShopyKart Real-Time Engine: Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);

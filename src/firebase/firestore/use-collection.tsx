@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-RESILIENT hook to fetch collections.
- * Optimized for real-time sync: Handles network timeouts gracefully.
+ * Optimized for INSTANT updates: Prefers server state while showing cache.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -29,7 +29,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
 
     setLoading(true);
     
-    // Snappier snapshot listener with aggressive server sync
+    // Aggressive snapshot listener to bridge the cache-server gap
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: true }, 
@@ -39,28 +39,19 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           id: doc.id,
         }));
         
+        // Immediate data update
         setData(items);
         
-        // CRITICAL: We only stop 'loading' when data is NOT from cache 
-        // OR if it's from cache but we have a baseline to show.
-        if (!snapshot.metadata.fromCache || (snapshot.metadata.fromCache && items.length > 0)) {
+        // If snapshot is from server, we definitely have the latest state.
+        // If from cache, we only stay in loading if we have NO data yet.
+        const isFromCache = snapshot.metadata.fromCache;
+        if (!isFromCache || items.length > 0) {
            setLoading(false);
         }
         
         setError(null);
       },
       async (err: FirestoreError) => {
-        // Suppress expected network-related errors in restricted environments
-        // These will auto-resolve when the SDK successfully connects via Long Polling
-        const quietCodes = [
-          'unavailable', 
-          'failed-precondition', 
-          'deadline-exceeded', 
-          'cancelled', 
-          'resource-exhausted',
-          'internal'
-        ];
-
         if (err.code === 'permission-denied') {
           const segments = (query as any)._query?.path?.segments;
           const permissionError = new FirestorePermissionError({
@@ -72,15 +63,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           return;
         }
         
+        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal'];
         if (!quietCodes.includes(err.code)) {
           setError(err);
           console.error("Firestore Critical Error:", err.code, err.message);
         } else {
-          // Just a debug log, no need to show red screen to user or agent
           console.debug(`Firestore Sync (Auto-retrying...): [${err.code}]`);
         }
-        
-        // Don't set loading false for network issues, let the cache stay visible
       }
     );
 
