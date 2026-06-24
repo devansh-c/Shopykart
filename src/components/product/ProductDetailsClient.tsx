@@ -44,12 +44,6 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  const productsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'products');
-  }, [firestore]);
-  const { data: allDbProducts } = useCollection<any>(productsQuery);
-
   // Global Offer Hook
   const offerRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -65,7 +59,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
   }, [product]);
 
   const isSaleActive = globalOffer?.isActive;
-  const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone;
+  const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone === true;
 
   const currentPrice = useMemo(() => {
     if (!product) return 0;
@@ -73,16 +67,20 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
     const optPrice = selectedOption ? selectedOption.price : 0;
     const totalBase = base + optPrice;
 
-    // Only apply discount if sale is active AND it's NOT in "Closed/Showoff" mode
-    if (isSaleActive && !globalOffer?.isClosedAfterMilestone) {
+    // Milestone Check: Strictly return original price if mode is ON
+    if (isClosedMode) {
+      return totalBase;
+    }
+
+    // Apply discount only if sale is active AND it's NOT in milestone mode
+    if (isSaleActive) {
       const val = Number(globalOffer.value) || 0;
       if (globalOffer.type === 'percentage') return totalBase * (1 - val / 100);
       return Math.max(0, totalBase - val);
     }
 
-    // Use original price if milestone mode is ON
     return totalBase;
-  }, [product, selectedOption, isSaleActive, globalOffer]);
+  }, [product, selectedOption, isSaleActive, isClosedMode, globalOffer]);
 
   const totalPrice = useMemo(() => {
     return currentPrice * localQuantity;
@@ -111,7 +109,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
       instructions: isMedical ? '' : instructions
     });
     
-    toast({ title: "Added to Cart", description: `${product.name} ${selectedOption ? `(${selectedOption.name})` : ''} added successfully.` });
+    toast({ title: "Added to Cart", description: `${product.name} added successfully.` });
   };
 
   const handleShare = async () => {

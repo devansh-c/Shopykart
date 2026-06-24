@@ -55,26 +55,29 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
   const hasOptions = product.options && product.options.length > 0;
 
-  // MILESTONE LOGIC: If 'isClosedAfterMilestone' is ON, show original price and Closed message.
-  // If 'isClosedAfterMilestone' is OFF, show discounted price for transaction.
+  // MILESTONE LOGIC: Strictly enforced Original Price if isClosedAfterMilestone is ON.
   const isSaleActive = globalOffer?.isActive;
-  const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone;
+  const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone === true;
   
   const currentPrice = useMemo(() => {
     const base = product.price || 0;
     const optPrice = selectedOption ? selectedOption.price : 0;
     const totalBase = base + optPrice;
 
-    // Only apply discount if sale is active AND it's NOT in "Closed/Showoff" mode
-    if (isSaleActive && !globalOffer?.isClosedAfterMilestone) {
+    // Milestone Check: If mode is ON, return original price immediately
+    if (isClosedMode) {
+      return totalBase;
+    }
+
+    // Apply discount only if sale is active and NOT in milestone mode
+    if (isSaleActive) {
       const val = Number(globalOffer.value) || 0;
       if (globalOffer.type === 'percentage') return totalBase * (1 - val / 100);
       return Math.max(0, totalBase - val);
     }
 
-    // Default to full price if sale is closed after milestone
     return totalBase;
-  }, [product, selectedOption, isSaleActive, globalOffer]);
+  }, [product, selectedOption, isSaleActive, isClosedMode, globalOffer]);
 
   const handleAddToCart = () => {
     if (isOffline) return;
@@ -94,7 +97,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
       quantity: localQuantity,
       selectedOption: selectedOption,
       instructions: isMedical ? '' : instructions,
-      price: currentPrice
+      price: currentPrice // This is the strictly calculated price based on Milestone Mode
     });
     
     setIsOpen(false);
