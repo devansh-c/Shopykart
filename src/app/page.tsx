@@ -13,7 +13,6 @@ import dynamic from 'next/dynamic';
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
-const SaleCountdown = dynamic(() => import('@/components/home/SaleCountdown').then(m => ({ default: m.SaleCountdown })), { ssr: false });
 const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => ({ default: m.CategoryList })), { ssr: false });
 const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => ({ default: m.StoreSection })), { ssr: false });
 const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => ({ default: m.PopularProducts })), { ssr: false });
@@ -110,7 +109,6 @@ export default function ShopyKartApp() {
               </div>
             )}
             {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={150}><OfferSlider /></ScrollReveal>}
-            {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={170}><SaleCountdown /></ScrollReveal>}
             {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={200}><TopTenProducts /></ScrollReveal>}
             {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={250}><StoreSection activeMode={activeMode} /></ScrollReveal>}
             {!searchQuery && <ScrollReveal delay={300}><OffersSection /></ScrollReveal>}
