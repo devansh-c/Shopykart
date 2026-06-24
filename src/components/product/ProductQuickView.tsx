@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Calendar,
   AlertCircle,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,8 +24,8 @@ import { useCart } from '@/components/cart/CartProvider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 interface ProductQuickViewProps {
   product: any;

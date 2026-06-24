@@ -52,6 +52,9 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setError(null);
       },
       async (err: FirestoreError) => {
+        // Suppress expected transient network errors to prevent UI blocking
+        const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal'];
+        
         if (err.code === 'permission-denied') {
           const segments = (query as any)._query?.path?.segments;
           const permissionError = new FirestorePermissionError({
@@ -63,13 +66,14 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           return;
         }
         
-        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal'];
-        if (!quietCodes.includes(err.code)) {
-          setError(err);
-          console.error("Firestore Critical Error:", err.code, err.message);
-        } else {
-          console.debug(`Firestore Sync (Auto-retrying...): [${err.code}]`);
+        if (silentCodes.includes(err.code)) {
+          console.debug(`Firestore Sync (Wait...): [${err.code}]`);
+          return;
         }
+
+        setError(err);
+        setLoading(false);
+        console.error("Firestore Error:", err.code, err.message);
       }
     );
 
