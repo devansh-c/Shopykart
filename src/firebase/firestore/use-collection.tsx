@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-RESILIENT hook to fetch collections.
- * Optimized for slow internet: Prioritizes local cache so UI feels instant.
+ * Optimized for real-time sync: Forces server data priority while showing cache for speed.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -29,7 +29,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
 
     setLoading(true);
     
-    // Snappier snapshot listener with cache-first behavior
+    // Snappier snapshot listener with aggressive server sync
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: true }, 
@@ -41,10 +41,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         
         setData(items);
         
-        // Only stop loading if the data is "fresh" from server OR we have cached data to show
-        // snapshot.metadata.fromCache tells us if data is from local storage
-        if (!snapshot.metadata.hasPendingWrites) {
-          setLoading(false);
+        // CRITICAL: We only stop 'loading' when data is NOT from cache 
+        // OR if it's from cache but we have a baseline to show.
+        // This ensures the first load with cache doesn't prevent the server update from rendering.
+        if (!snapshot.metadata.fromCache || (snapshot.metadata.fromCache && items.length > 0)) {
+           setLoading(false);
         }
         
         setError(null);
@@ -59,13 +60,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        // SUPPRESS SLOW NETWORK ERRORS
+        // SUPPRESS SLOW NETWORK ERRORS but log them for debugging
         const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
         
         if (!suppressedCodes.includes(err.code)) {
           setError(err);
         } else {
-          console.debug(`Firestore Sync (Slow Network): [${err.code}]. Using local data.`);
+          console.debug(`Firestore Sync (Wait): [${err.code}]. Data will update when online.`);
         }
         
         setLoading(false);

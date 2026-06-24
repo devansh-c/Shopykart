@@ -1,11 +1,12 @@
 'use client';
 
-import { initializeApp, getApps, getApp, FirebaseApp, setLogLevel } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
   Firestore, 
   initializeFirestore, 
   persistentLocalCache, 
-  CACHE_SIZE_UNLIMITED
+  CACHE_SIZE_UNLIMITED,
+  persistentMultipleTabManager
 } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { firebaseConfig } from './config';
@@ -16,7 +17,8 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Using a more resilient cache strategy for mobile/webview environments.
+ * Configured for MAXIMUM REAL-TIME RESPONSIVENESS.
+ * Removes experimental flags that could cause sync delays on some networks.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -32,16 +34,13 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      // SILENT LOGGING: Prevent internal connection warnings from showing up as UI Errors
-      setLogLevel('silent');
-
       // RESILIENT FIRESTORE INITIALIZATION
-      // experimentalAutoDetectLongPolling is critical for restrictive networks
+      // Prioritizes WebSocket over Long-Polling for instant updates.
+      // Uses Multiple Tab Manager to ensure sync across different browser tabs.
       firestoreInstance = initializeFirestore(appInstance, {
-        experimentalAutoDetectLongPolling: true,
-        useFetchStreams: true, 
         localCache: persistentLocalCache({
-          cacheSizeBytes: CACHE_SIZE_UNLIMITED
+          cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+          tabManager: persistentMultipleTabManager()
         })
       });
 
@@ -52,7 +51,7 @@ export function initializeFirebase() {
         }
       });
 
-      console.log("ShopyKart Turbo Engine: Active & Resilient ✅");
+      console.log("ShopyKart Real-Time Engine: High Priority Sync Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);

@@ -12,8 +12,7 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient hook to fetch a single document with offline-graceful handling.
- * Ensures the app doesn't crash when Firestore reports offline status.
+ * @fileOverview Resilient hook to fetch a single document with high-priority server sync.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
@@ -21,7 +20,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
-    // Keep loading if ref is not available yet
     if (!ref) {
       setLoading(false);
       setData(null);
@@ -34,7 +32,13 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
       { includeMetadataChanges: true },
       (snapshot: DocumentSnapshot<T>) => {
         setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
-        setLoading(false);
+        
+        // If data is from server, we are definitely not loading.
+        // If from cache, we only stop loading if it's the first available data.
+        if (!snapshot.metadata.fromCache || snapshot.exists()) {
+          setLoading(false);
+        }
+        
         setError(null);
       },
       async (err: FirestoreError) => {
@@ -46,13 +50,9 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        // SILENT OFFLINE ERROR: Do not trigger a Red Screen for temporary backend connection issues.
         const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
-        
         if (!suppressedCodes.includes(err.code)) {
           setError(err);
-        } else {
-          console.debug(`Firestore Doc Sync Notice: [${err.code}] Using local cache due to slow connection.`);
         }
         
         setLoading(false);
