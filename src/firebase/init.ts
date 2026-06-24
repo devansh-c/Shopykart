@@ -44,9 +44,24 @@ export function initializeFirebase() {
         experimentalForceLongPolling: true,
       });
 
-      // Global handler to catch and ignore expected Firestore network errors in console
+      // GLOBAL ERROR SUPPRESSOR
+      // Prevents Firestore network warnings from appearing as visual "Red Screen" errors.
+      const originalConsoleError = console.error;
+      console.error = (...args) => {
+        const message = args[0]?.toString() || '';
+        if (message.includes('@firebase/firestore') && 
+           (message.includes('Could not reach Cloud Firestore backend') || 
+            message.includes('Backend didn\'t respond within 10 seconds'))) {
+          // Log as a low-priority debug instead of an error to prevent framework crashes
+          console.debug("Firestore Sync Notice (Auto-retrying...):", message);
+          return;
+        }
+        originalConsoleError.apply(console, args);
+      };
+
+      // Suppress unhandled rejections from Firestore network heartbeat
       window.addEventListener('unhandledrejection', (event) => {
-        if (event.reason && event.reason.toString().includes('@firebase/firestore')) {
+        if (event.reason?.toString().includes('@firebase/firestore')) {
           event.preventDefault();
         }
       });

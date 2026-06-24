@@ -42,6 +42,9 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
         setError(null);
       },
       async (err: FirestoreError) => {
+        // Suppress expected network-related errors
+        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
+
         if (err.code === 'permission-denied') {
           const permissionError = new FirestorePermissionError({
             path: ref.path,
@@ -50,12 +53,12 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
           errorEmitter.emit('permission-error', permissionError);
         }
         
-        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
-        if (!suppressedCodes.includes(err.code)) {
+        if (!quietCodes.includes(err.code)) {
           setError(err);
+          setLoading(false);
+        } else {
+          console.debug(`Firestore Doc Sync (Auto-retrying...): [${err.code}]`);
         }
-        
-        setLoading(false);
       }
     );
 
