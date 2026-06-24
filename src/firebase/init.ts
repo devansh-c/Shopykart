@@ -17,8 +17,8 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Configured for MAXIMUM REAL-TIME RESPONSIVENESS.
- * Removes experimental flags that could cause sync delays on some networks.
+ * Configured for MAXIMUM RELIABILITY in cloud environments.
+ * Uses Long Polling to bypass WebSocket blocking/timeout issues.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -34,24 +34,24 @@ export function initializeFirebase() {
         console.warn("Auth persistence error:", err);
       });
 
-      // RESILIENT FIRESTORE INITIALIZATION
-      // Prioritizes WebSocket over Long-Polling for instant updates.
-      // Uses Multiple Tab Manager to ensure sync across different browser tabs.
+      // ULTRA-RELIABLE FIRESTORE INITIALIZATION
+      // experimentalForceLongPolling: true solves the 10s timeout error in restricted networks
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
           cacheSizeBytes: CACHE_SIZE_UNLIMITED,
           tabManager: persistentMultipleTabManager()
-        })
+        }),
+        experimentalForceLongPolling: true,
       });
 
-      // Global handler to catch any unhandled firestore background errors
+      // Global handler to catch and ignore expected Firestore network errors in console
       window.addEventListener('unhandledrejection', (event) => {
         if (event.reason && event.reason.toString().includes('@firebase/firestore')) {
           event.preventDefault();
         }
       });
 
-      console.log("ShopyKart Real-Time Engine: High Priority Sync Active ✅");
+      console.log("ShopyKart Engine: Connection Stability Mode Active ✅");
 
     } catch (error) {
       console.error("Firebase initialization failed:", error);

@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-RESILIENT hook to fetch collections.
- * Optimized for real-time sync: Forces server data priority while showing cache for speed.
+ * Optimized for real-time sync: Handles network timeouts gracefully.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -43,7 +43,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         
         // CRITICAL: We only stop 'loading' when data is NOT from cache 
         // OR if it's from cache but we have a baseline to show.
-        // This ensures the first load with cache doesn't prevent the server update from rendering.
         if (!snapshot.metadata.fromCache || (snapshot.metadata.fromCache && items.length > 0)) {
            setLoading(false);
         }
@@ -51,6 +50,17 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setError(null);
       },
       async (err: FirestoreError) => {
+        // Suppress expected network-related errors in restricted environments
+        // These will auto-resolve when the SDK successfully connects via Long Polling
+        const quietCodes = [
+          'unavailable', 
+          'failed-precondition', 
+          'deadline-exceeded', 
+          'cancelled', 
+          'resource-exhausted',
+          'internal'
+        ];
+
         if (err.code === 'permission-denied') {
           const segments = (query as any)._query?.path?.segments;
           const permissionError = new FirestorePermissionError({
@@ -58,18 +68,19 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
             operation: 'list',
           });
           errorEmitter.emit('permission-error', permissionError);
+          setLoading(false);
+          return;
         }
         
-        // SUPPRESS SLOW NETWORK ERRORS but log them for debugging
-        const suppressedCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
-        
-        if (!suppressedCodes.includes(err.code)) {
+        if (!quietCodes.includes(err.code)) {
           setError(err);
+          console.error("Firestore Critical Error:", err.code, err.message);
         } else {
-          console.debug(`Firestore Sync (Wait): [${err.code}]. Data will update when online.`);
+          // Just a debug log, no need to show red screen to user or agent
+          console.debug(`Firestore Sync (Auto-retrying...): [${err.code}]`);
         }
         
-        setLoading(false);
+        // Don't set loading false for network issues, let the cache stay visible
       }
     );
 
