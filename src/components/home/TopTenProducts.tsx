@@ -12,16 +12,15 @@ import { useState, useEffect, useMemo } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const CARD_COLORS = [
-  "from-blue-600 to-blue-800",
-  "from-green-600 to-green-800",
-  "from-purple-600 to-purple-800",
-  "from-orange-500 to-orange-700",
-  "from-rose-600 to-rose-800",
+  "from-[#0056D2] to-[#003C91]", // Vibrant Blue
+  "from-[#6B8E23] to-[#4B6312]", // Olive Green
+  "from-[#7B1FA2] to-[#4A148C]", // Purple
+  "from-[#D35400] to-[#A04000]", // Burnt Orange
+  "from-[#C0392B] to-[#922B21]", // Red
 ];
 
 export function TopTenProducts() {
   const firestore = useFirestore();
-  const { addToCart } = useCart();
   const router = useRouter();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
@@ -38,7 +37,8 @@ export function TopTenProducts() {
 
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(50));
+    // We fetch products where isTopTen is true
+    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(30));
   }, [firestore]);
 
   const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
@@ -55,10 +55,9 @@ export function TopTenProducts() {
 
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
-      const productMode = p.serviceMode || vendor?.category || 'Food';
-      if (productMode !== 'Food') return false;
-
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
+      
+      // Strict zone filtering if enabled
       if (activeZoneId || targetCityNormalized) {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
@@ -71,7 +70,7 @@ export function TopTenProducts() {
     return (
       <div className="py-6 px-4 flex space-x-4 overflow-x-auto no-scrollbar">
          {[1, 2, 3].map(i => (
-           <div key={i} className="min-w-[160px] aspect-[2/3] bg-gray-100 rounded-[2rem] animate-pulse" />
+           <div key={i} className="min-w-[160px] aspect-[2/3] bg-gray-100 rounded-[2.5rem] animate-pulse" />
          ))}
       </div>
     );
@@ -79,46 +78,44 @@ export function TopTenProducts() {
 
   return (
     <div className="py-6 overflow-hidden">
-      <div className="px-6 mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+      <div className="px-6 mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-black italic uppercase tracking-tighter">
           Flash <span className="text-primary">Loot</span> Deals
         </h2>
-        <div className="h-1 w-12 bg-primary/20 rounded-full" />
+        <div className="h-[2px] w-16 bg-primary/20 rounded-full" />
       </div>
 
-      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-8 pt-2">
-        {/* SPECIAL GAME/PROMO CARD - MATCHING SCREENSHOT */}
+      <div className="flex overflow-x-auto space-x-3 px-4 no-scrollbar pb-6">
+        
+        {/* 1. THE GAME CARD (MATCHING SCREENSHOT) */}
         <div 
           onClick={() => window.dispatchEvent(new CustomEvent('open-promo-popup'))}
-          className="relative min-w-[170px] aspect-[2/3.2] rounded-[2.5rem] p-5 flex flex-col items-center justify-between bg-gradient-to-b from-amber-400 to-amber-600 shadow-2xl shadow-amber-200 border-4 border-white/20 active:scale-95 transition-all cursor-pointer overflow-hidden group"
+          className="relative min-w-[165px] aspect-[2/3.3] rounded-[2rem] p-4 flex flex-col items-center justify-between bg-gradient-to-b from-[#C5A021] to-[#8B7010] shadow-xl active:scale-95 transition-all cursor-pointer overflow-hidden group"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-white/10 opacity-20 group-hover:opacity-30 transition-opacity" />
           
-          <div className="relative z-10 text-center space-y-1">
-             <div className="flex items-center justify-center gap-1">
-                <span className="text-2xl font-black text-white italic tracking-tighter">WIN</span>
+          <div className="relative z-10 text-center">
+             <div className="flex items-center justify-center gap-1.5">
+                <span className="text-2xl font-black text-white italic tracking-tight">WIN</span>
                 <div className="bg-white/20 p-1 rounded-full"><Zap className="h-4 w-4 text-white fill-white" /></div>
-                <span className="text-2xl font-black text-white italic tracking-tighter">150</span>
+                <span className="text-2xl font-black text-white italic tracking-tight">150</span>
              </div>
-             <p className="text-[11px] font-black text-white/80 uppercase tracking-widest leading-none">Play Now</p>
+             <p className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-1">Play Now</p>
           </div>
 
-          <div className="relative z-10 w-full aspect-square bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-4 flex flex-col items-center justify-center group-hover:rotate-3 transition-transform">
-             <div className="relative h-20 w-20">
-                <Image src="https://picsum.photos/seed/gamematch/200/200" alt="Game" fill className="object-contain" unoptimized />
-             </div>
-             <div className="mt-2 bg-white px-3 py-1 rounded-lg">
-                <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">Grocery Match</span>
+          <div className="relative z-10 w-full aspect-square flex items-center justify-center">
+             <div className="relative h-28 w-28 scale-110">
+                <Image src="https://picsum.photos/seed/grocery-match/300/300" alt="Grocery Match" fill className="object-contain" unoptimized />
              </div>
           </div>
 
-          <div className="relative z-10 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2">
-             <Trophy className="h-3 w-3 text-amber-300" />
-             <span className="text-[10px] font-black text-white italic">PLAY NOW</span>
+          <div className="relative z-10 w-full bg-black/30 backdrop-blur-md py-2 rounded-xl border border-white/10 flex items-center justify-center gap-2">
+             <Sparkles className="h-3 w-3 text-amber-300" />
+             <span className="text-[10px] font-black text-white italic">LEVEL UP</span>
           </div>
         </div>
 
-        {/* TOP TEN PRODUCT CARDS */}
+        {/* 2. PRODUCT CARDS (EXACT SCREENSHOT STYLE) */}
         {filteredTopProducts.map((product, index) => {
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/600`;
           const vendor = vendors?.find(v => v.id === product.vendorId);
@@ -129,48 +126,50 @@ export function TopTenProducts() {
             <div 
               key={product.id} 
               className={cn(
-                "relative min-w-[170px] aspect-[2/3.2] rounded-[2.5rem] p-4 flex flex-col items-center bg-gradient-to-b shadow-2xl border-4 border-white/10 active:scale-95 transition-all cursor-pointer overflow-hidden group",
+                "relative min-w-[165px] aspect-[2/3.3] rounded-[2rem] p-3 flex flex-col items-center bg-gradient-to-b shadow-xl active:scale-95 transition-all cursor-pointer overflow-hidden",
                 colorClass,
                 isOffline && "grayscale opacity-80"
               )}
               onClick={() => !isOffline && router.push(`/product/view?id=${product.id}`)}
             >
-              {/* SUPER LOOT DEALS HEADER */}
-              <div className="w-full flex items-center justify-center gap-1.5 mb-2 relative z-10">
-                 <div className="bg-red-600 p-1 rounded-full shadow-lg"><Megaphone className="h-2.5 w-2.5 text-white" /></div>
+              {/* Box 1: LOOT HEADER */}
+              <div className="w-full flex items-center justify-center gap-1 mb-2 relative z-10">
+                 <div className="bg-red-600 p-0.5 rounded-full"><Megaphone className="h-2 w-2 text-white" /></div>
                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-1">
-                       <Flame className="h-3 w-3 text-amber-400 fill-amber-400 animate-pulse" />
-                       <span className="text-[9px] font-black text-white italic uppercase tracking-tighter leading-none">SUPER</span>
+                    <div className="flex items-center gap-0.5">
+                       <Flame className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
+                       <span className="text-[7px] font-black text-white italic uppercase leading-none">SUPER</span>
                     </div>
-                    <span className="text-[11px] font-black text-white italic uppercase tracking-tighter leading-none">LOOT DEALS</span>
+                    <span className="text-[10px] font-black text-white italic uppercase leading-none tracking-tighter">LOOT DEALS</span>
                  </div>
-                 <div className="bg-red-600 p-1 rounded-full shadow-lg"><Megaphone className="h-2.5 w-2.5 text-white -scale-x-100" /></div>
+                 <div className="bg-red-600 p-0.5 rounded-full"><Megaphone className="h-2 w-2 text-white -scale-x-100" /></div>
               </div>
 
-              {/* PRODUCT NAME BADGE */}
-              <div className="bg-white w-full py-1.5 px-3 rounded-2xl shadow-xl flex items-center justify-center mb-3 relative z-10">
+              {/* Box 2: WHITE PRODUCT NAME BADGE (MATCHING SCREENSHOT) */}
+              <div className="bg-white w-full py-1.5 px-3 rounded-2xl shadow-lg flex items-center justify-center mb-2.5 relative z-10 border border-white/20">
                  <span className="text-[10px] font-black text-black uppercase truncate tracking-tight">{product.name}</span>
               </div>
 
-              {/* IMAGE CONTAINER */}
-              <div className="flex-1 w-full relative bg-white/10 backdrop-blur-sm rounded-[2rem] border border-white/20 overflow-hidden mb-3 group-hover:scale-[1.02] transition-transform">
+              {/* Box 3: FRAMED IMAGE */}
+              <div className="flex-1 w-full relative bg-white rounded-[1.5rem] border-2 border-white/30 overflow-hidden mb-2.5 shadow-inner">
                 <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2">
-                    <span className="text-white font-black text-[10px] uppercase border border-white/30 px-2 py-1 rounded-lg">Closed</span>
+                    <span className="text-white font-black text-[9px] uppercase border border-white/30 px-2 py-0.5 rounded-md">OFFLINE</span>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
               </div>
 
-              {/* PRICE TAG (MATCHING SCREENSHOT) */}
-              <div className="w-full bg-black/40 backdrop-blur-md py-2.5 rounded-2xl border border-white/10 flex items-center justify-center relative z-10">
-                 <span className="text-sm font-black text-amber-400 italic tracking-tight">From ₹{product.price}</span>
+              {/* Box 4: DARK PRICE TAG (MATCHING SCREENSHOT) */}
+              <div className="w-full bg-[#1C1C1C] py-2.5 rounded-[1.25rem] border border-white/5 flex items-center justify-center relative z-10 shadow-lg">
+                 <span className="text-[13px] font-black text-[#F1C40F] italic tracking-tight uppercase">
+                    From ₹{product.price.toFixed(0)}
+                 </span>
               </div>
 
-              {/* Shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              {/* Glossy Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             </div>
           );
         })}
