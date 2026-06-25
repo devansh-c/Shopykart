@@ -43,7 +43,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 
   return (
     <div className={cn(
-      "relative bg-white rounded-[2rem] border border-gray-100 transition-all duration-300 will-change-transform transform-gpu p-6 flex justify-between items-start shadow-sm hover:shadow-md",
+      "relative bg-white rounded-[2rem] transition-all duration-300 will-change-transform transform-gpu p-6 flex justify-between items-start shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 hover:shadow-[0_0_25px_rgba(197,160,33,0.15)]",
       isOffline && "opacity-60 grayscale-[0.5]"
     )}>
       <div className="flex-1 pr-4 min-w-0">
