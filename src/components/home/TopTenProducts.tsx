@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -76,6 +75,8 @@ export function TopTenProducts() {
     );
   }
 
+  if (filteredTopProducts.length === 0) return null;
+
   return (
     <div className="py-6 overflow-hidden">
       <div className="px-6 mb-4 flex items-center justify-between">
@@ -86,36 +87,7 @@ export function TopTenProducts() {
       </div>
 
       <div className="flex overflow-x-auto space-x-3 px-4 no-scrollbar pb-6">
-        
-        {/* 1. THE GAME CARD (MATCHING SCREENSHOT) */}
-        <div 
-          onClick={() => window.dispatchEvent(new CustomEvent('open-promo-popup'))}
-          className="relative min-w-[165px] aspect-[2/3.3] rounded-[2rem] p-4 flex flex-col items-center justify-between bg-gradient-to-b from-[#C5A021] to-[#8B7010] shadow-xl active:scale-95 transition-all cursor-pointer overflow-hidden group"
-        >
-          <div className="absolute inset-0 bg-white/10 opacity-20 group-hover:opacity-30 transition-opacity" />
-          
-          <div className="relative z-10 text-center">
-             <div className="flex items-center justify-center gap-1.5">
-                <span className="text-2xl font-black text-white italic tracking-tight">WIN</span>
-                <div className="bg-white/20 p-1 rounded-full"><Zap className="h-4 w-4 text-white fill-white" /></div>
-                <span className="text-2xl font-black text-white italic tracking-tight">150</span>
-             </div>
-             <p className="text-[10px] font-black text-white/90 uppercase tracking-widest leading-none mt-1">Play Now</p>
-          </div>
-
-          <div className="relative z-10 w-full aspect-square flex items-center justify-center">
-             <div className="relative h-28 w-28 scale-110">
-                <Image src="https://picsum.photos/seed/grocery-match/300/300" alt="Grocery Match" fill className="object-contain" unoptimized />
-             </div>
-          </div>
-
-          <div className="relative z-10 w-full bg-black/30 backdrop-blur-md py-2 rounded-xl border border-white/10 flex items-center justify-center gap-2">
-             <Sparkles className="h-3 w-3 text-amber-300" />
-             <span className="text-[10px] font-black text-white italic">LEVEL UP</span>
-          </div>
-        </div>
-
-        {/* 2. PRODUCT CARDS (EXACT SCREENSHOT STYLE) */}
+        {/* PRODUCT CARDS (EXACT SCREENSHOT STYLE) */}
         {filteredTopProducts.map((product, index) => {
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/600`;
           const vendor = vendors?.find(v => v.id === product.vendorId);
