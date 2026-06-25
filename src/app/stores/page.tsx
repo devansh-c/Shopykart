@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,6 +33,11 @@ export default function StoresPage() {
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
+  const getRealisticRating = (id: string) => {
+    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return (4.0 + (hash % 10) / 10).toFixed(1);
+  };
+
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
@@ -41,7 +47,6 @@ export default function StoresPage() {
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
 
-      // STRICT ZONE FILTERING: No mixing between Ranipur and Mauranipur
       if (activeZoneId || targetCityNormalized) {
         const matchesZone = activeZoneId && v.zoneId === activeZoneId;
         const matchesTown = targetCityNormalized && (
@@ -50,7 +55,6 @@ export default function StoresPage() {
           targetCityNormalized.startsWith(vTown)
         );
         
-        // Strict exclusion
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
 
@@ -74,9 +78,9 @@ export default function StoresPage() {
     <div className="min-h-screen bg-white pb-32">
       <div className="px-6 pt-12 pb-6 flex flex-col space-y-6">
         <div className="flex items-center justify-between">
-           <h1 className="text-4xl font-black italic uppercase tracking-tighter">Stores</h1>
-           <div className="h-10 w-10 bg-white rounded-full shadow-sm border border-border/50 flex items-center justify-center">
-              <Store className="h-5 w-5 text-primary" />
+           <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Stores</h1>
+           <div className="h-10 w-10 bg-white rounded-full shadow-sm border border-border/50 flex items-center justify-center text-primary">
+              <Store className="h-5 w-5" />
            </div>
         </div>
 
@@ -85,13 +89,13 @@ export default function StoresPage() {
           <Input 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder='Search store name or category...' 
+            placeholder='Search store name...' 
             className="pl-12 h-14 bg-white border-none rounded-2xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 font-bold"
           />
         </div>
       </div>
 
-      <div className="px-6 space-y-6 content-visibility-auto">
+      <div className="px-6 space-y-8 content-visibility-auto">
         {loading && !dbVendors ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
@@ -102,62 +106,45 @@ export default function StoresPage() {
           filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOffline = store.isOnline === false;
+            const rating = getRealisticRating(store.id);
 
             return (
               <Link 
                 href={`/menu?vendor=${store.id}`}
                 key={store.id} 
                 className={cn(
-                  "block bg-white rounded-[2rem] overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
+                  "block bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
                   isOffline && "opacity-80 grayscale-[0.2]"
                 )}
               >
-                <div className="relative h-44 w-full bg-muted">
+                <div className="relative h-48 w-full bg-muted">
                   <Image src={displayImage} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" unoptimized />
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
-                      <span className="text-white font-black text-2xl uppercase italic tracking-tighter px-6 py-2 border-2 border-white/30 rounded-xl backdrop-blur-sm">Closed Now</span>
+                      <span className="text-white font-black text-2xl uppercase italic tracking-tighter border-2 border-white/30 px-6 py-2 rounded-xl backdrop-blur-md">Closed Now</span>
                     </div>
                   )}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl flex items-center gap-1.5 shadow-xl border border-white/50">
-                    <span className="text-xs font-black text-black">{store.rating || '4.4'}</span>
-                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                  </div>
                 </div>
 
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="text-2xl font-black text-gray-800 italic tracking-tight leading-none mb-2 uppercase">{store.storeName}</h3>
-                      <div className="flex items-center gap-2">
-                         <span className="text-[10px] font-black uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded-full tracking-widest">{store.category || 'Food'}</span>
-                         <span className="h-1 w-1 bg-gray-300 rounded-full" />
-                         <span className="text-[10px] font-black uppercase text-primary tracking-widest italic">{store.town || 'Nearby'}</span>
-                      </div>
-                    </div>
-                    <div className="bg-primary/5 p-3 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-colors shadow-inner">
-                       <ChevronRight className="h-5 w-5" />
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tight leading-none uppercase flex-1 truncate mr-2">{store.storeName}</h3>
+                    <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                       <span className="text-xs font-black">{rating}</span>
+                       <Star className="h-3 w-3 fill-white" />
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center pt-5 mt-5 border-t border-dashed border-border/80">
-                    <div className="flex items-center gap-4">
-                       <div className="flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5 text-gray-400" />
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{store.deliveryTime || '25 min'}</span>
-                       </div>
-                       <div className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Fast Delivery</span>
-                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1.5">
-                       <div className={cn("h-2 w-2 rounded-full", isOffline ? "bg-red-500" : "bg-green-500 animate-pulse")} />
-                       <span className={cn("text-[9px] font-black uppercase tracking-[0.2em]", isOffline ? "text-red-500" : "text-green-600")}>
-                          {isOffline ? 'OFFLINE' : 'ACCEPTING'}
-                       </span>
-                    </div>
+                  <div className="flex items-center gap-3 pt-2">
+                     <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{store.deliveryTime || '20 MIN'}</span>
+                     </div>
+                     <div className="h-3 w-[1px] bg-gray-200" />
+                     <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">{store.town || 'Nearby'}</span>
+                     </div>
                   </div>
                 </div>
               </Link>

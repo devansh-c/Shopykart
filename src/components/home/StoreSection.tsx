@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Star, MapPin, Clock, ChevronRight, TrendingUp, Sparkles, Utensils } from "lucide-react"
+import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview Compact Premium Store Section.
- * Optimized height to prevent excessive scrolling while maintaining sharp, high-end visuals.
+ * @fileOverview Redesigned Compact Premium Store Section (Screenshot Style).
+ * Removed: Free delivery, time ranges, promo lines, and image overlays.
+ * Added: Dynamic realistic ratings (4.0 - 4.9).
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -36,6 +37,12 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+
+  const getRealisticRating = (id: string) => {
+    // Generate a consistent rating between 4.0 and 4.9 based on ID
+    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return (4.0 + (hash % 10) / 10).toFixed(1);
+  };
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
@@ -98,9 +105,9 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       <div className="flex items-center justify-between mb-6 px-6">
         <div className="space-y-0.5">
            <h2 className="text-2xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
-             Gourmet <span className="text-primary">Hub</span>
+             Explore <span className="text-primary">Hub</span>
            </h2>
-           <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em]">Premium Picks</p>
+           <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em]">Premium Stores Nearby</p>
         </div>
         <button 
           onClick={() => router.push('/stores')}
@@ -112,9 +119,9 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
       <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
         {filteredVendors.map((store: any) => {
-          // Optimized resolution for compact cards
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
           const isOffline = store.isOnline === false;
+          const rating = getRealisticRating(store.id);
           
           return (
             <button 
@@ -125,7 +132,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 isOffline && "opacity-90 grayscale-[0.3]"
               )}
             >
-              {/* COMPACT IMAGE CONTAINER */}
+              {/* CLEAN IMAGE CONTAINER - NO OVERLAYS */}
               <div className="relative h-44 w-full bg-muted overflow-hidden">
                 <Image 
                   src={displayImage} 
@@ -134,59 +141,40 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                   className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
                   unoptimized 
                   loading="lazy"
-                  sizes="280px"
                 />
                 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                
                 {isOffline && (
-                  <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[2px]">
+                  <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[1px]">
                     <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/20 px-4 py-1.5 rounded-xl backdrop-blur-md">
                       CLOSED
                     </span>
                   </div>
                 )}
-
-                {/* RATING BADGE */}
-                <div className="absolute top-4 left-4">
-                   <div className="bg-white/95 backdrop-blur-xl px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-lg border border-white/50">
-                      <span className="text-[10px] font-black text-gray-900">{store.rating || '4.4'}</span>
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                   </div>
-                </div>
-
-                {/* BOTTOM OVERLAY INFO */}
-                <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between z-20">
-                   <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1 text-white/90">
-                        <MapPin className="h-2.5 w-2.5 text-primary" />
-                        <span className="text-[8px] font-black uppercase tracking-widest">{store.town || 'Nearby'}</span>
-                      </div>
-                      <h3 className="text-xl font-black text-white italic uppercase tracking-tighter truncate leading-tight">
-                        {store.storeName}
-                      </h3>
-                   </div>
-                </div>
               </div>
 
-              {/* SLIM DETAILS ROW */}
-              <div className="px-5 py-4 flex justify-between items-center bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                   <div className="flex items-center gap-1.5">
+              {/* STORE DETAILS - MATCHING SCREENSHOT STRUCTURE */}
+              <div className="p-5">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter truncate leading-tight flex-1 mr-2">
+                    {store.storeName}
+                  </h3>
+                  <div className="bg-[#15803d] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm shrink-0">
+                    <span className="text-[10px] font-black">{rating}</span>
+                    <Star className="h-2.5 w-2.5 fill-white" />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                   <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3 text-gray-400" />
-                      <span className="text-[10px] font-black text-gray-600 uppercase italic">{store.deliveryTime || '25 MIN'}</span>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{store.deliveryTime || '20 MIN'}</span>
                    </div>
                    <div className="h-3 w-[1px] bg-gray-200" />
-                   <div className="flex items-center gap-1.5">
-                      <Utensils className="h-3 w-3 text-amber-500" />
-                      <span className="text-[10px] font-black text-gray-600 uppercase italic">GOURMET</span>
+                   <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-gray-400" />
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate max-w-[120px]">{store.town || 'Nearby'}</span>
                    </div>
                 </div>
-                
-                <div className={cn(
-                  "h-2 w-2 rounded-full",
-                  isOffline ? "bg-red-400" : "bg-emerald-500 animate-pulse"
-                )} />
               </div>
             </button>
           );
