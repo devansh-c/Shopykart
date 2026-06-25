@@ -11,7 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview Stores listing page with slightly rounded edges for a professional look.
+ * @fileOverview Stores listing page with slightly rounded edges and compact length.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,11 +98,11 @@ export default function StoresPage() {
         </div>
       </div>
 
-      <div className="px-6 space-y-8 content-visibility-auto">
+      <div className="px-6 space-y-6 content-visibility-auto">
         {loading && !dbVendors ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-72 w-full bg-white rounded-2xl border-2 border-border/40 animate-pulse" />
+              <div key={i} className="h-64 w-full bg-white rounded-3xl border-2 border-border/40 animate-pulse" />
             ))}
           </div>
         ) : filteredVendors.length > 0 ? (
@@ -116,11 +116,11 @@ export default function StoresPage() {
                 href={`/menu?vendor=${store.id}`}
                 key={store.id} 
                 className={cn(
-                  "block bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
+                  "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
                   isOffline && "opacity-80 grayscale-[0.2]"
                 )}
               >
-                <div className="relative h-48 w-full bg-muted">
+                <div className="relative h-36 w-full bg-muted">
                   <Image src={displayImage} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" unoptimized />
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
@@ -129,16 +129,16 @@ export default function StoresPage() {
                   )}
                 </div>
 
-                <div className="p-6">
+                <div className="p-4">
                   <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tight leading-none uppercase flex-1 truncate mr-2">{store.storeName}</h3>
+                    <h3 className="text-xl font-black text-gray-900 italic tracking-tight leading-none uppercase flex-1 truncate mr-2">{store.storeName}</h3>
                     <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                       <span className="text-xs font-black">{rating}</span>
+                       <span className="text-[10px] font-black">{rating}</span>
                        <Star className="h-3 w-3 fill-white" />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-2">
+                  <div className="flex items-center gap-3 pt-1">
                      <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
                         <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{store.deliveryTime || '20 MIN'}</span>
@@ -154,7 +154,7 @@ export default function StoresPage() {
             );
           })
         ) : (
-          <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-muted/50">
+          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-muted/50">
             <Store className="h-16 w-16 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm px-6">
               {searchQuery ? `No stores matching "${searchQuery}"` : "No Stores Found in Your Area"}

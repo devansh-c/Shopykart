@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview Redesigned Compact Premium Store Section (Screenshot Style).
- * Updated: Reduced border-radius to "slightly rounded" as requested.
+ * @fileOverview Redesigned Compact Premium Store Section.
+ * Updated: Increased rounding to 3xl and further reduced height for a compact feel.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -86,8 +86,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     return (
       <div className="py-6 px-6 flex space-x-4 overflow-x-auto no-scrollbar">
         {[1, 2].map((i) => (
-          <div key={i} className="min-w-[280px] h-[280px] bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-pulse">
-            <div className="h-36 bg-gray-50 rounded-xl mb-4" />
+          <div key={i} className="min-w-[280px] h-[240px] bg-white rounded-3xl border border-gray-100 shadow-sm p-4 animate-pulse">
+            <div className="h-32 bg-gray-50 rounded-2xl mb-4" />
             <div className="h-5 bg-gray-100 rounded-md w-3/4 mb-2" />
             <div className="h-3 bg-gray-50 rounded-md w-1/2" />
           </div>
@@ -126,11 +126,11 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
               onClick={() => handleStoreClick(store.id)}
               key={store.id} 
               className={cn(
-                "block text-left min-w-[280px] max-w-[280px] bg-white rounded-2xl overflow-hidden shadow-sm border border-border transition-all active:scale-[0.98] shrink-0 will-change-transform transform-gpu group",
+                "block text-left min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border transition-all active:scale-[0.98] shrink-0 will-change-transform transform-gpu group",
                 isOffline && "opacity-90 grayscale-[0.3]"
               )}
             >
-              <div className="relative h-44 w-full bg-muted overflow-hidden">
+              <div className="relative h-36 w-full bg-muted overflow-hidden">
                 <Image 
                   src={displayImage} 
                   alt={store.storeName} 
@@ -149,9 +149,9 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 )}
               </div>
 
-              <div className="p-5">
+              <div className="p-4">
                 <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter truncate leading-tight flex-1 mr-2">
+                  <h3 className="text-lg font-black text-gray-900 italic uppercase tracking-tighter truncate leading-tight flex-1 mr-2">
                     {store.storeName}
                   </h3>
                   <div className="bg-[#15803d] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm shrink-0">
@@ -160,15 +160,15 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 pt-0.5">
                    <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3 text-gray-400" />
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{store.deliveryTime || '20 MIN'}</span>
+                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{store.deliveryTime || '20 MIN'}</span>
                    </div>
-                   <div className="h-3 w-[1px] bg-gray-200" />
+                   <div className="h-2.5 w-[1px] bg-gray-200" />
                    <div className="flex items-center gap-1">
                       <MapPin className="h-3 w-3 text-gray-400" />
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate max-w-[120px]">{store.town || 'Nearby'}</span>
+                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest truncate max-w-[120px]">{store.town || 'Nearby'}</span>
                    </div>
                 </div>
               </div>
