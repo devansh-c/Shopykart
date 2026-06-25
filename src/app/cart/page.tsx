@@ -26,7 +26,8 @@ import {
   CheckCircle2,
   Hash,
   Heart,
-  Package
+  Package,
+  MessageSquareQuote
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -289,7 +290,8 @@ export default function CartPage() {
         price: item.price, 
         isCustom: !!item.isCustom, 
         vendorId: item.vendorId || 'global',
-        restaurantName: item.restaurantName || 'ShopyKart Store'
+        restaurantName: item.restaurantName || 'ShopyKart Store',
+        instructions: item.instructions || '' // Save per-item instructions
       })),
       subtotal: totalPrice,
       charges: finalCharges,
@@ -311,7 +313,7 @@ export default function CartPage() {
       couponDiscount,
       deliveryTip,
       couponCode: appliedCoupon?.code || null,
-      instructions
+      instructions // General order instructions
     };
 
     router.replace(`/orders/track?id=${orderId}`);
@@ -406,17 +408,26 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
-        {/* GOLDEN BORDER SECTIONS */}
+        {/* ITEMS IN BAG */}
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 transition-all hover:shadow-lg">
           <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
           <div className="space-y-4">
             {cart.map((item) => (
-              <div key={item.id + (item.selectedOption?.name || '')} className="flex gap-4 items-center">
-                <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
+              <div key={item.id + (item.selectedOption?.name || '')} className="flex gap-4 items-start">
+                <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm mt-1"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-xs text-gray-800 truncate uppercase">{item.name}</h3>
                   {item.selectedOption && <p className="text-[8px] font-black text-primary uppercase italic">{item.selectedOption.name}</p>}
-                  <div className="flex items-center justify-between mt-1">
+                  
+                  {/* ITEM INSTRUCTIONS DISPLAY */}
+                  {item.instructions && (
+                    <div className="mt-1 flex items-start gap-1 bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
+                      <MessageSquareQuote className="h-2.5 w-2.5 text-primary shrink-0 mt-0.5" />
+                      <p className="text-[8px] font-bold text-primary italic leading-tight">{item.instructions}</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
                       <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">-</button>
                       <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
@@ -428,6 +439,17 @@ export default function CartPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* GENERAL INSTRUCTIONS */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 transition-all hover:shadow-lg">
+          <div className="flex items-center gap-2 mb-4"><MessageSquareQuote className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Cooking Instructions</h2></div>
+          <Textarea 
+            placeholder="Anything else we should know for the entire order? (e.g. Ring the bell, avoid chilly)" 
+            value={instructions}
+            onChange={e => setInstructions(e.target.value)}
+            className="rounded-2xl bg-gray-50 border-none font-medium min-h-[80px] p-4 text-xs"
+          />
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 transition-all hover:shadow-lg">

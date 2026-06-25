@@ -28,7 +28,8 @@ import {
   Banknote,
   Copy,
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  MessageSquareQuote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -260,6 +261,17 @@ export default function OrderManagement() {
                     </div>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
                     
+                    {/* CUSTOMER NOTE DISPLAY */}
+                    {order.instructions && (
+                      <div className="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
+                         <MessageSquareQuote className="h-5 w-5 text-amber-600 shrink-0" />
+                         <div>
+                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Customer Note:</span>
+                            <p className="text-xs font-bold text-amber-900 leading-tight italic mt-1">{order.instructions}</p>
+                         </div>
+                      </div>
+                    )}
+
                     {/* PREPAID UTR BOX */}
                     {isPrepaid && order.utrNumber && (
                       <div className="mb-4 bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between group/utr hover:bg-blue-50 transition-colors">
@@ -305,9 +317,17 @@ export default function OrderManagement() {
                           </div>
                           <div className="space-y-1 bg-white/50 p-2 rounded-xl border border-white">
                              {order.items?.map((item: any, i: number) => (
-                               <div key={i} className="flex justify-between text-[10px] font-bold text-gray-600 italic leading-tight">
-                                  <span className="flex-1 truncate mr-2">{item.quantity}x {item.name}</span>
-                                  <span className="shrink-0 text-primary">₹{item.price * item.quantity}</span>
+                               <div key={i} className="flex flex-col border-b border-white last:border-none pb-2 last:pb-0 mb-2 last:mb-0">
+                                  <div className="flex justify-between text-[10px] font-bold text-gray-600 italic leading-tight">
+                                     <span className="flex-1 truncate mr-2">{item.quantity}x {item.name}</span>
+                                     <span className="shrink-0 text-primary">₹{item.price * item.quantity}</span>
+                                  </div>
+                                  {/* PER ITEM INSTRUCTIONS IN ADMIN */}
+                                  {item.instructions && (
+                                    <span className="text-[8px] font-black text-primary mt-1 flex items-center gap-1">
+                                       <MessageSquareQuote className="h-2 w-2" /> {item.instructions}
+                                    </span>
+                                  )}
                                </div>
                              ))}
                           </div>
