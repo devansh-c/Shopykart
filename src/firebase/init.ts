@@ -31,7 +31,7 @@ export function initializeFirebase() {
     const originalConsoleError = console.error;
     console.error = (...args) => {
       const message = args[0]?.toString() || '';
-      // Intercept Firestore backend connection warnings
+      // Intercept Firestore backend connection warnings to prevent Red Screen
       if (message.includes('@firebase/firestore') && (message.includes('Could not reach Cloud') || message.includes('Backend didn\'t respond'))) {
         console.debug("Firestore Background Syncing...");
         return;
@@ -50,7 +50,7 @@ export function initializeFirebase() {
       });
 
       // REAL-TIME PRIORITY INITIALIZATION
-      // experimentalForceLongPolling is crucial for restricted cloud environments
+      // experimentalForceLongPolling is crucial for restricted cloud environments to avoid 10s timeouts
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
           cacheSizeBytes: CACHE_SIZE_UNLIMITED,

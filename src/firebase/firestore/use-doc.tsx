@@ -13,6 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview Resilient hook to fetch a single document with high-priority server sync.
+ * Fixed: Now correctly uses includeMetadataChanges to detect server-side updates faster.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
