@@ -11,8 +11,7 @@ import { useRouter } from "next/navigation"
 
 /**
  * @fileOverview Redesigned Compact Premium Store Section (Screenshot Style).
- * Removed: Free delivery, time ranges, promo lines, and image overlays.
- * Added: Dynamic realistic ratings (4.0 - 4.9).
+ * Updated: Reduced border-radius to "slightly rounded" as requested.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -39,7 +38,6 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const getRealisticRating = (id: string) => {
-    // Generate a consistent rating between 4.0 and 4.9 based on ID
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return (4.0 + (hash % 10) / 10).toFixed(1);
   };
@@ -88,8 +86,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     return (
       <div className="py-6 px-6 flex space-x-4 overflow-x-auto no-scrollbar">
         {[1, 2].map((i) => (
-          <div key={i} className="min-w-[280px] h-[280px] bg-white rounded-[2rem] border border-gray-100 shadow-sm p-4 animate-pulse">
-            <div className="h-36 bg-gray-50 rounded-[1.5rem] mb-4" />
+          <div key={i} className="min-w-[280px] h-[280px] bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-pulse">
+            <div className="h-36 bg-gray-50 rounded-xl mb-4" />
             <div className="h-5 bg-gray-100 rounded-md w-3/4 mb-2" />
             <div className="h-3 bg-gray-50 rounded-md w-1/2" />
           </div>
@@ -128,11 +126,10 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
               onClick={() => handleStoreClick(store.id)}
               key={store.id} 
               className={cn(
-                "block text-left min-w-[280px] max-w-[280px] bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-border transition-all active:scale-[0.98] shrink-0 will-change-transform transform-gpu group",
+                "block text-left min-w-[280px] max-w-[280px] bg-white rounded-2xl overflow-hidden shadow-sm border border-border transition-all active:scale-[0.98] shrink-0 will-change-transform transform-gpu group",
                 isOffline && "opacity-90 grayscale-[0.3]"
               )}
             >
-              {/* CLEAN IMAGE CONTAINER - NO OVERLAYS */}
               <div className="relative h-44 w-full bg-muted overflow-hidden">
                 <Image 
                   src={displayImage} 
@@ -145,14 +142,13 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[1px]">
-                    <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/20 px-4 py-1.5 rounded-xl backdrop-blur-md">
+                    <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/30 px-4 py-1.5 rounded-xl backdrop-blur-md">
                       CLOSED
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* STORE DETAILS - MATCHING SCREENSHOT STRUCTURE */}
               <div className="p-5">
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter truncate leading-tight flex-1 mr-2">

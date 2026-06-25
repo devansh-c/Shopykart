@@ -10,6 +10,9 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
+/**
+ * @fileOverview Stores listing page with slightly rounded edges for a professional look.
+ */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -90,7 +93,7 @@ export default function StoresPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder='Search store name...' 
-            className="pl-12 h-14 bg-white border-none rounded-2xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 font-bold"
+            className="pl-12 h-14 bg-white border-none rounded-xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 font-bold"
           />
         </div>
       </div>
@@ -99,7 +102,7 @@ export default function StoresPage() {
         {loading && !dbVendors ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-72 w-full bg-white rounded-[2rem] border-2 border-border/40 animate-pulse" />
+              <div key={i} className="h-72 w-full bg-white rounded-2xl border-2 border-border/40 animate-pulse" />
             ))}
           </div>
         ) : filteredVendors.length > 0 ? (
@@ -113,7 +116,7 @@ export default function StoresPage() {
                 href={`/menu?vendor=${store.id}`}
                 key={store.id} 
                 className={cn(
-                  "block bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
+                  "block bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
                   isOffline && "opacity-80 grayscale-[0.2]"
                 )}
               >
@@ -151,7 +154,7 @@ export default function StoresPage() {
             );
           })
         ) : (
-          <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-muted/50">
+          <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-muted/50">
             <Store className="h-16 w-16 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm px-6">
               {searchQuery ? `No stores matching "${searchQuery}"` : "No Stores Found in Your Area"}
