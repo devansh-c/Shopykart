@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -76,17 +77,16 @@ export default function MedicalDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD - Refined to prevent "glitch"
+  // AUTH GUARD - Silent redirection to prevent glitchy toasts
   useEffect(() => {
     if (!authLoading && !profileLoading && isMounted) {
       if (!user) {
         router.replace('/vendor/login?type=Medical');
       } else if (!vendorProfile) {
-        toast({ variant: "destructive", title: "Access Denied", description: "Not a registered Medical seller." });
         router.replace('/vendor/login?type=Medical');
       }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router, toast, isMounted]);
+  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -304,51 +304,6 @@ export default function MedicalDashboard() {
           </button>
         ))}
       </nav>
-
-      <Dialog open={isProductModalOpen} onOpenChange={setIsProductModalOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none border-none p-0">
-           <DialogHeader className="p-6 pb-2 border-b"><DialogTitle className="font-black italic uppercase text-center text-xl">Medicine Manager</DialogTitle></DialogHeader>
-           <div className="p-6 space-y-6">
-              <div onClick={() => fileInputRef.current?.click()} className="h-44 border-2 border-dashed rounded-3xl flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer">{productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="text-center opacity-30"><ImageIcon className="h-8 w-8 mx-auto mb-2" /><span className="text-[10px] font-black uppercase">Upload Photo</span></div>}</div>
-              <input type="file" ref={fileInputRef} className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setProductProductForm({...productForm, imageUrl: await compressImage(r.result as string, 800, 800)}); r.readAsDataURL(f); } }} />
-              <div className="space-y-4">
-                <Input placeholder="Medicine Name" value={productForm.name} onChange={e => setProductProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/30 border-none" />
-                <div className="grid grid-cols-2 gap-3">
-                   <Input placeholder="MRP" type="number" value={productForm.mrp} onChange={e => setProductProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none" />
-                   <Input placeholder="Price" type="number" value={productForm.price} onChange={e => setProductProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-teal-400/40" />
-                </div>
-                <Select value={productForm.category} onValueChange={(val) => setProductProductForm({...productForm, category: val})}>
-                  <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold"><SelectValue placeholder="Category" /></SelectTrigger>
-                  <SelectContent className="rounded-2xl">{medicalCategories?.map((cat: any) => (<SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-[10px]">{cat.name}</SelectItem>))}</SelectContent>
-                </Select>
-                <Textarea placeholder="Instructions" value={productForm.description} onChange={e => setProductProductForm({...productForm, description: e.target.value})} className="rounded-xl bg-muted/30 border-none h-24 p-4 text-xs" />
-
-                <div className="pt-4 border-t border-dashed">
-                   <div className="flex items-center justify-between mb-3">
-                      <div className="flex flex-col">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Add Varieties</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[8px] font-bold uppercase text-teal-600">Required?</span>
-                          <Switch checked={productForm.isVarietyRequired} onCheckedChange={(v) => setProductProductForm({...productForm, isVarietyRequired: v})} className="scale-50 data-[state=checked]:bg-teal-600" />
-                        </div>
-                      </div>
-                      <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-teal-50 text-teal-600 font-black uppercase text-[8px] border border-teal-100">Add Variety</button>
-                   </div>
-                   <div className="space-y-2">
-                      {productForm.options.map((opt, i) => (
-                        <div key={i} className="flex gap-2 bg-muted/20 p-2 rounded-xl border border-border/50">
-                           <Input placeholder="Name" value={opt.name} onChange={e => handleUpdateVariety(i, 'name', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px]" />
-                           <Input placeholder="Extra" type="number" value={opt.price} onChange={e => handleUpdateVariety(i, 'price', e.target.value)} className="h-9 border-none bg-white font-bold text-[10px] w-20" />
-                           <button onClick={() => handleRemoveVariety(i)} className="text-red-400 p-1"><X className="h-4 w-4" /></button>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-              </div>
-              <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-teal-600 rounded-3xl font-black uppercase italic shadow-xl text-white">{isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingProduct ? 'UPDATE' : 'PUBLISH'}</Button>
-           </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

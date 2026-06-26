@@ -28,37 +28,47 @@ function LoginPageContent() {
   const firestore = useFirestore();
   const { user, loading: authLoading } = useUser();
 
-  // AUTO-REDIRECT IF ALREADY LOGGED IN AS VENDOR
+  // AUTO-REDIRECT IF ALREADY LOGGED IN AS VENDOR (Silent check)
   useEffect(() => {
     if (!authLoading && user && firestore) {
       const checkProfile = async () => {
-        const vendorRef = doc(firestore, 'vendors', user.uid);
-        const vendorSnap = await getDoc(vendorRef);
-        if (vendorSnap.exists()) {
-          const data = vendorSnap.data();
-          localStorage.setItem('shopykart_session_active', 'true');
-          if (data.category === 'Medical') {
-            router.push('/Medical/store');
-          } else if (data.category === 'Beauty') {
-            router.push('/Beauty/store');
-          } else {
-            router.push('/vendor/dashboard');
+        try {
+          const vendorRef = doc(firestore, 'vendors', user.uid);
+          const vendorSnap = await getDoc(vendorRef);
+          if (vendorSnap.exists()) {
+            const data = vendorSnap.data();
+            localStorage.setItem('shopykart_session_active', 'true');
+            if (data.category === 'Medical') {
+              router.replace('/Medical/store');
+            } else if (data.category === 'Beauty') {
+              router.replace('/Beauty/store');
+            } else {
+              router.replace('/vendor/dashboard');
+            }
           }
+        } catch (e) {
+          console.debug("Silent auth check failed");
         }
       };
       checkProfile();
     }
   }, [user, authLoading, firestore, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!auth || !firestore) return;
-    setLoading(true);
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!auth || !firestore || loading) return;
 
     const input = identifier.trim().toLowerCase();
+    if (!input || !password) {
+      toast({ variant: "destructive", title: "Missing Credentials", description: "Enter ID and Password." });
+      return;
+    }
+
+    setLoading(true);
     let loginEmail = input;
 
     try {
+      // 1. Resolve Store ID to Email if necessary
       if (!input.includes('@')) {
         const q = query(collection(firestore, 'vendors'), where('storeId', '==', input));
         const querySnapshot = await getDocs(q);
@@ -77,10 +87,12 @@ function LoginPageContent() {
         loginEmail = vendorData.email; 
       }
 
+      // 2. Perform Real Authentication
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
-      const user = userCredential.user;
+      const authenticatedUser = userCredential.user;
 
-      const vendorRef = doc(firestore, 'vendors', user.uid);
+      // 3. Verify Vendor Profile Existence
+      const vendorRef = doc(firestore, 'vendors', authenticatedUser.uid);
       const vendorSnap = await getDoc(vendorRef);
 
       if (!vendorSnap.exists()) {
@@ -98,12 +110,13 @@ function LoginPageContent() {
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome Back!", description: `Store: ${vendorData.storeName}` });
       
+      // 4. Final Redirect
       if (vendorData.category === 'Medical') {
-        router.push('/Medical/store');
+        router.replace('/Medical/store');
       } else if (vendorData.category === 'Beauty') {
-        router.push('/Beauty/store');
+        router.replace('/Beauty/store');
       } else {
-        router.push('/vendor/dashboard');
+        router.replace('/vendor/dashboard');
       }
     } catch (err: any) {
       let msg = "Invalid credentials or network error.";
@@ -111,8 +124,6 @@ function LoginPageContent() {
         msg = "Wrong ID or password.";
       }
       toast({ variant: "destructive", title: "Login Failed", description: msg });
-      setLoading(false);
-    } finally {
       setLoading(false);
     }
   };
@@ -133,7 +144,7 @@ function LoginPageContent() {
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">ShopyKart Business Portal</p>
         </CardHeader>
         <CardContent className="px-8 pb-10">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Store ID or Email</label>
               <div className="relative">
@@ -143,8 +154,7 @@ function LoginPageContent() {
                   placeholder="e.g. MyStore123" 
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black font-bold"
-                  required
+                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black font-bold focus-visible:ring-1 focus-visible:ring-primary/20"
                 />
               </div>
             </div>
@@ -157,15 +167,17 @@ function LoginPageContent() {
                   placeholder="••••••••" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black font-bold"
-                  required
+                  className="pl-12 h-12 rounded-xl bg-muted/30 border-none text-black font-bold focus-visible:ring-1 focus-visible:ring-primary/20"
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
               </div>
             </div>
+            
             <Button 
-              type="submit" 
+              type="button" 
+              onClick={() => handleLogin()}
               className={cn(
-                "w-full h-14 rounded-2xl font-black uppercase italic text-lg shadow-xl active:scale-[0.98] transition-all",
+                "w-full h-14 rounded-2xl font-black uppercase italic text-lg shadow-xl active:scale-[0.98] transition-all mt-2",
                 isMedical ? "bg-teal-600 hover:bg-teal-700 shadow-teal-100" : 
                 isBeauty ? "bg-rose-600 hover:bg-rose-700 shadow-rose-100" :
                 "bg-primary hover:bg-primary/90 shadow-primary/20"
@@ -190,7 +202,6 @@ function LoginPageContent() {
                 "border-primary/20 text-primary hover:bg-primary/5"
               )}
               onClick={() => router.push(isMedical ? '/vendor/register?type=Medical' : isBeauty ? '/vendor/register?type=Beauty' : '/vendor/register')}
-              disabled={loading}
             >
               {isMedical ? 'REGISTER AS MEDICAL STORE' : isBeauty ? 'REGISTER AS BEAUTY STORE' : 'JOIN AS VENDOR'}
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -199,12 +210,12 @@ function LoginPageContent() {
             <Button 
               type="button" 
               variant="ghost"
-              className="w-full h-12 text-gray-500 font-bold uppercase text-[10px] tracking-widest mt-2"
+              className="w-full h-12 text-gray-400 font-bold uppercase text-[10px] tracking-widest mt-2"
               onClick={() => router.push('/')}
             >
               BACK TO HOME
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -82,17 +83,17 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD - Refined to prevent "glitch"
+  // AUTH GUARD - Silent redirection to prevent glitchy toasts
   useEffect(() => {
     if (!authLoading && !profileLoading && isMounted) {
       if (!user) {
         router.replace('/vendor/login');
       } else if (!vendorProfile) {
-        toast({ variant: "destructive", title: "Access Denied", description: "Not a registered seller." });
+        // Redirecting customer-role users trying to access vendor panel silently
         router.replace('/vendor/login');
       }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router, toast, isMounted]);
+  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
