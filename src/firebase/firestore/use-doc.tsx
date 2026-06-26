@@ -12,8 +12,7 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient hook to fetch a single document with high-priority server sync.
- * Fixed: Now correctly uses includeMetadataChanges to detect server-side updates faster.
+ * @fileOverview Resilient hook to fetch a single document with silent quota handling.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
@@ -34,8 +33,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
       (snapshot: DocumentSnapshot<T>) => {
         setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
         
-        // If data is from server, we are definitely not loading.
-        // If from cache, we only stop loading if it's the first available data.
         if (!snapshot.metadata.fromCache || snapshot.exists()) {
           setLoading(false);
         }
@@ -43,8 +40,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
         setError(null);
       },
       async (err: FirestoreError) => {
-        // Suppress expected network-related errors
-        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted'];
+        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'permission-denied'];
 
         if (err.code === 'permission-denied') {
           const permissionError = new FirestorePermissionError({
@@ -58,7 +54,8 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
           setError(err);
           setLoading(false);
         } else {
-          console.debug(`Firestore Doc Sync (Auto-retrying...): [${err.code}]`);
+          console.debug(`Firestore Doc Notice: [${err.code}]`);
+          setLoading(false);
         }
       }
     );

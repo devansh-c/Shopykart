@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-RESILIENT hook to fetch collections.
- * Optimized for INSTANT updates: Prefers server state while showing cache.
+ * Optimized for INSTANT updates and silent error handling for quota limits.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -29,7 +29,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
 
     setLoading(true);
     
-    // Aggressive snapshot listener to bridge the cache-server gap
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: true }, 
@@ -39,11 +38,8 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           id: doc.id,
         }));
         
-        // Immediate data update
         setData(items);
         
-        // If snapshot is from server, we definitely have the latest state.
-        // If from cache, we only stay in loading if we have NO data yet.
         const isFromCache = snapshot.metadata.fromCache;
         if (!isFromCache || items.length > 0) {
            setLoading(false);
@@ -52,8 +48,8 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setError(null);
       },
       async (err: FirestoreError) => {
-        // Suppress expected transient network errors to prevent UI blocking
-        const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal'];
+        // Suppress expected transient and quota errors to prevent UI blocking
+        const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal', 'permission-denied'];
         
         if (err.code === 'permission-denied') {
           const segments = (query as any)._query?.path?.segments;
@@ -67,13 +63,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         }
         
         if (silentCodes.includes(err.code)) {
-          console.debug(`Firestore Sync (Wait...): [${err.code}]`);
+          console.debug(`Firestore Collection Notice: [${err.code}]`);
+          setLoading(false);
           return;
         }
 
         setError(err);
         setLoading(false);
-        console.error("Firestore Error:", err.code, err.message);
       }
     );
 

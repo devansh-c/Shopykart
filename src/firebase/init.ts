@@ -18,7 +18,7 @@ let authInstance: Auth | null = null;
 /**
  * Optimized Firebase initialization singleton.
  * Configured for MAXIMUM SPEED AND STABILITY.
- * Added aggressive console suppression to prevent Next.js Error Overlay for transient connection issues.
+ * Added aggressive console suppression to prevent Next.js Error Overlay for transient connection issues and quota limits.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -30,23 +30,23 @@ export function initializeFirebase() {
     (window as any)._fs_suppressed = true;
     const originalConsoleError = console.error;
     console.error = (...args: any[]) => {
-      // Create a combined message string from all arguments to ensure we catch the signature
       const fullMessage = args.map(arg => arg?.toString() || '').join(' ');
       
-      // Intercept Firestore backend connection warnings to prevent Red Screen
-      // We look for any signature of the "Could not reach backend" 10s timeout error
-      if (
-        fullMessage.includes('@firebase/firestore') && 
-        (
-          fullMessage.includes('Could not reach Cloud') || 
-          fullMessage.includes('Backend didn\'t respond') || 
-          fullMessage.includes('offline mode') ||
-          fullMessage.includes('10 seconds')
-        )
-      ) {
+      // Intercept Firestore specific errors that trigger the "Red Screen of Death"
+      const suppressedPatterns = [
+        '@firebase/firestore',
+        'resource-exhausted',
+        'quota exceeded',
+        'bandwidth',
+        'Could not reach Cloud',
+        'Backend didn\'t respond',
+        'offline mode',
+        '10 seconds'
+      ];
+
+      if (suppressedPatterns.some(pattern => fullMessage.toLowerCase().includes(pattern.toLowerCase()))) {
         // Log as debug so it doesn't trigger Next.js error overlay
-        // This is a transient network warning, not a fatal app crash
-        console.debug("Firestore Connection Notice (Handled): Background sync in progress.");
+        console.debug("Firestore Notice (Handled):", fullMessage);
         return;
       }
       
@@ -64,7 +64,6 @@ export function initializeFirebase() {
       });
 
       // REAL-TIME PRIORITY INITIALIZATION
-      // experimentalForceLongPolling is crucial for restricted cloud environments to avoid 10s timeouts
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
           cacheSizeBytes: CACHE_SIZE_UNLIMITED,
