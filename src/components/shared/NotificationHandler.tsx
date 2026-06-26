@@ -1,19 +1,19 @@
-
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BellRing, ShoppingBag, Loader2, VolumeX, Package, MapPin, ChevronRight, Zap, Volume2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Critical Alert & Live Tracking System.
  * - Admin/Vendors: Get LOUD persistent alarms for new orders until accepted.
+ * - Restricted: Alarms ONLY trigger inside /admin or /vendor dashboards.
  * - Customers: SILENT visual tracking updates only.
  */
 export function NotificationHandler() {
@@ -21,6 +21,7 @@ export function NotificationHandler() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
   
   const [isRinging, setIsRinging] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'delivery' | 'customer' | null>(null);
@@ -33,6 +34,16 @@ export function NotificationHandler() {
   const lastStatuses = useRef<Map<string, string>>(new Map());
   const isInitialLoad = useRef(true);
 
+  // 0. Path Detection: Is the user currently in a management area?
+  const isManagementPath = useMemo(() => {
+    if (!pathname) return false;
+    const p = pathname.toLowerCase();
+    return p.startsWith('/admin') || 
+           p.startsWith('/vendor') || 
+           p.startsWith('/medical/store') || 
+           p.startsWith('/beauty/store');
+  }, [pathname]);
+
   // 1. Role Detection
   useEffect(() => {
     if (!user || !firestore) {
@@ -41,7 +52,8 @@ export function NotificationHandler() {
     }
     
     const checkRole = async () => {
-      if (user.email === 'ceo@shopykart.co.in') {
+      const email = user.email?.toLowerCase();
+      if (email === 'ceo@shopykart.co.in') {
         setUserRole('admin');
         return;
       }
@@ -68,13 +80,16 @@ export function NotificationHandler() {
     checkRole();
   }, [user, firestore]);
 
-  // 2. Initialize Audio (Admin/Vendor Only)
+  // 2. Initialize Audio (Admin/Vendor Only & Only on Management Paths)
   useEffect(() => {
-    if (typeof window === 'undefined' || !userRole || userRole === 'customer' || userRole === 'delivery') {
+    if (typeof window === 'undefined' || !userRole || userRole === 'customer' || userRole === 'delivery' || !isManagementPath) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       return;
     }
 
-    // Alarm sound only for business operators
+    // Alarm sound only for business operators on their dashboards
     const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
     const audio = new Audio(alarmUrl);
     audio.loop = true;
@@ -82,7 +97,7 @@ export function NotificationHandler() {
     audioRef.current = audio;
 
     const wakeUpAudio = () => {
-      if (audioRef.current && (userRole === 'admin' || userRole === 'vendor')) {
+      if (audioRef.current && (userRole === 'admin' || userRole === 'vendor') && isManagementPath) {
         audioRef.current.play().then(() => {
           audioRef.current?.pause();
           audioRef.current!.currentTime = 0;
@@ -99,11 +114,11 @@ export function NotificationHandler() {
         audioRef.current = null;
       }
     };
-  }, [userRole]);
+  }, [userRole, isManagementPath]);
 
-  // 3. Audio Control logic (Strictly Business Roles)
+  // 3. Audio Control logic
   useEffect(() => {
-    if (!audioRef.current || userRole === 'customer' || userRole === 'delivery') {
+    if (!audioRef.current || userRole === 'customer' || userRole === 'delivery' || !isManagementPath) {
       return;
     }
     
@@ -118,14 +133,14 @@ export function NotificationHandler() {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  }, [isRinging, isAudioContextBlocked, userRole]);
+  }, [isRinging, isAudioContextBlocked, userRole, isManagementPath]);
 
   // 4. Live Update Listeners
   useEffect(() => {
     if (!user || !firestore || !userRole) return;
 
-    // --- ADMIN / VENDOR LISTENER (New Orders - ringing until accepted) ---
-    if (userRole === 'admin' || userRole === 'vendor') {
+    // --- ADMIN / VENDOR LISTENER (Only active on dashboards) ---
+    if ((userRole === 'admin' || userRole === 'vendor') && isManagementPath) {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
       const unsubAdmin = onSnapshot(q, (snapshot) => {
         const allPlacedOrders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -143,6 +158,10 @@ export function NotificationHandler() {
         setIsRinging(myAlerts.length > 0);
       });
       return () => unsubAdmin();
+    } else {
+      // Clear ringing state if we move away from management path
+      setRingingOrders([]);
+      setIsRinging(false);
     }
 
     // --- CUSTOMER LISTENER (Live Tracking - Completely Silent) ---
@@ -154,8 +173,8 @@ export function NotificationHandler() {
             const order = { id: change.doc.id, ...change.doc.data() as any };
             const prevStatus = lastStatuses.current.get(order.id);
             
-            // Only show modal if status actually changed
-            if (prevStatus && prevStatus !== order.status) {
+            // Only show modal if status actually changed and user is NOT on tracking page
+            if (prevStatus && prevStatus !== order.status && !pathname?.includes('/orders/track')) {
               setCustomerUpdate(order);
             }
           }
@@ -169,7 +188,7 @@ export function NotificationHandler() {
       });
       return () => unsubCustomer();
     }
-  }, [user, firestore, userRole]);
+  }, [user, firestore, userRole, isManagementPath, pathname]);
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!firestore || isAccepting) return;
@@ -198,8 +217,8 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* 1. ADMIN/VENDOR ALARM UI */}
-      {(userRole === 'admin' || userRole === 'vendor') && (
+      {/* 1. ADMIN/VENDOR ALARM UI (Strictly dashboard only) */}
+      {(userRole === 'admin' || userRole === 'vendor') && isManagementPath && (
         <>
           {isAudioContextBlocked && (
             <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60000] animate-in slide-in-from-top-4 duration-500">
@@ -269,7 +288,7 @@ export function NotificationHandler() {
         </>
       )}
 
-      {/* 2. CUSTOMER LIVE TRACKING UI (Completely Silent) */}
+      {/* 2. CUSTOMER LIVE TRACKING UI (Silent - shown everywhere except track page) */}
       {userRole === 'customer' && (
         <Dialog open={!!customerUpdate} onOpenChange={(val) => !val && setCustomerUpdate(null)}>
            <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none bottom-4 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
