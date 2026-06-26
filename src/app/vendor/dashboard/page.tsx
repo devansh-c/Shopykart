@@ -82,6 +82,19 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  // Fetch Categories for selection
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+  const { data: allCategories } = useCollection<any>(categoriesQuery);
+
+  const filteredCategories = useMemo(() => {
+    if (!allCategories || !vendorProfile) return [];
+    const vType = (vendorProfile.category || 'Food').toLowerCase();
+    return allCategories.filter((cat: any) => (cat.serviceType || 'Food').toLowerCase() === vType);
+  }, [allCategories, vendorProfile]);
+
   // STABLE AUTH GUARD
   useEffect(() => {
     if (isMounted && !authLoading && !profileLoading) {
@@ -161,8 +174,8 @@ export default function VendorDashboard() {
   };
 
   const handleSaveProduct = async () => {
-    if (!firestore || !user || !productForm.name || !productForm.price) {
-      toast({ variant: "destructive", title: "Missing Info" });
+    if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
+      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, and Category are required." });
       return;
     }
 
@@ -172,7 +185,7 @@ export default function VendorDashboard() {
       mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
       price: parseFloat(productForm.price),
       description: productForm.description.trim(),
-      category: productForm.category.toLowerCase().trim() || 'general',
+      category: productForm.category.toLowerCase().trim(),
       vendorId: user.uid,
       restaurantName: vendorProfile?.storeName || 'My Store',
       serviceMode: vendorProfile?.category || 'Food',
@@ -188,9 +201,11 @@ export default function VendorDashboard() {
       if (editingId) {
         const pRef = doc(firestore, 'products', editingId);
         await setDoc(pRef, productData, { merge: true });
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingId), productData, { merge: true });
       } else {
         const newRef = doc(collection(firestore, 'products'));
         await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
       }
       setIsProductModalOpen(false);
       setEditingId(null);
@@ -286,7 +301,23 @@ export default function VendorDashboard() {
                                 <Input placeholder="Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />
                               </div>
                               <Textarea placeholder="Description" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
-                              <Input placeholder="Category (e.g. Snacks, Makeup)" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                              
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Choose Category</label>
+                                <Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}>
+                                  <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                    <SelectValue placeholder="Select Category" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-2xl">
+                                    {filteredCategories.map((cat: any) => (
+                                      <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
+                                        {cat.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
                               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                                  <span className="text-xs font-black uppercase">Pure Veg?</span>
                                  <Switch checked={productForm.isVeg} onCheckedChange={v => setProductForm({...productForm, isVeg: v})} />
