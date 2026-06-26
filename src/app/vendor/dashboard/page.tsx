@@ -82,14 +82,16 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // SECURE AUTH GUARD
+  // STABLE AUTH GUARD: Prevent blips from triggering redirects
   useEffect(() => {
-    if (isMounted && !authLoading) {
-      if (!user) {
+    if (isMounted && !authLoading && !profileLoading) {
+      const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+      
+      if (!user && !sessionActive) {
         router.replace('/vendor/login');
-      } else if (!profileLoading && !vendorProfile) {
-        // Only redirect if load is FINISHED and profile is definitely missing
-        router.replace('/vendor/login');
+      } else if (user && !vendorProfile) {
+        // Double check session to prevent race condition blips
+        if (!sessionActive) router.replace('/vendor/login');
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
@@ -119,11 +121,6 @@ export default function VendorDashboard() {
     return collection(firestore, 'categories');
   }, [firestore]);
   const { data: allCategories } = useCollection<any>(categoriesQuery);
-
-  const filteredCategories = useMemo(() => {
-    if (!allCategories || !vendorProfile) return [];
-    return allCategories.filter((cat: any) => (cat.serviceType || 'Food').toLowerCase() === (vendorProfile.category || 'Food').toLowerCase());
-  }, [allCategories, vendorProfile]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -168,9 +165,13 @@ export default function VendorDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading || !vendorProfile) {
-    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Access...</p></div>;
+  // Loading UI: Only if we don't have a profile yet but we're supposed to
+  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
+    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Portal Security...</p></div>;
   }
+
+  // Final check to prevent render before redirect
+  if (!vendorProfile && !profileLoading) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -221,7 +222,7 @@ export default function VendorDashboard() {
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
                   <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => handleEdit(p)} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
+                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingId(p.id); setProductProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
               </div>
             )}
 
@@ -236,7 +237,7 @@ export default function VendorDashboard() {
                     <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated'}); }} disabled={isSavingProfile} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
-                    <Button variant="ghost" onClick={() => { signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
+                    <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
                   </div>
               </div>
             )}

@@ -76,13 +76,14 @@ export default function MedicalDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // SECURE AUTH GUARD
+  // STABLE AUTH GUARD
   useEffect(() => {
-    if (isMounted && !authLoading) {
-      if (!user) {
+    if (isMounted && !authLoading && !profileLoading) {
+      const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+      if (!user && !sessionActive) {
         router.replace('/vendor/login?type=Medical');
-      } else if (!profileLoading && !vendorProfile) {
-        router.replace('/vendor/login?type=Medical');
+      } else if (user && !vendorProfile) {
+        if (!sessionActive) router.replace('/vendor/login?type=Medical');
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
@@ -128,9 +129,11 @@ export default function MedicalDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading || !vendorProfile) {
-    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Pharmacy Access...</p></div>;
+  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
+    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verifying Identity...</p></div>;
   }
+
+  if (!vendorProfile && !profileLoading) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
