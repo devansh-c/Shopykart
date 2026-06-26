@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -67,6 +66,7 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
@@ -82,23 +82,21 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // STABLE AUTH GUARD: Prevent blips from triggering redirects
+  // STABLE AUTH GUARD
   useEffect(() => {
     if (isMounted && !authLoading && !profileLoading) {
       const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-      
       if (!user && !sessionActive) {
         router.replace('/vendor/login');
       } else if (user && !vendorProfile) {
-        // Double check session to prevent race condition blips
         if (!sessionActive) router.replace('/vendor/login');
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [productForm, setProductProductForm] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [productForm, setProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] as any[]
   });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -115,12 +113,6 @@ export default function VendorDashboard() {
       });
     }
   }, [vendorProfile]);
-
-  const categoriesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'categories');
-  }, [firestore]);
-  const { data: allCategories } = useCollection<any>(categoriesQuery);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -157,6 +149,60 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProduct = async () => {
+    if (!firestore || !user || !productForm.name || !productForm.price) {
+      toast({ variant: "destructive", title: "Missing Info" });
+      return;
+    }
+
+    setIsSavingProduct(true);
+    const productData = {
+      name: productForm.name.trim(),
+      mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
+      price: parseFloat(productForm.price),
+      description: productForm.description.trim(),
+      category: productForm.category.toLowerCase().trim() || 'general',
+      vendorId: user.uid,
+      restaurantName: vendorProfile?.storeName || 'My Store',
+      serviceMode: vendorProfile?.category || 'Food',
+      zoneId: vendorProfile?.zoneId || null,
+      town: vendorProfile?.town || 'Local',
+      isVeg: productForm.isVeg,
+      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/300/300',
+      isAvailable: true,
+      updatedAt: serverTimestamp(),
+    };
+
+    try {
+      if (editingId) {
+        const pRef = doc(firestore, 'products', editingId);
+        await setDoc(pRef, productData, { merge: true });
+      } else {
+        const newRef = doc(collection(firestore, 'products'));
+        await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });
+      }
+      setIsProductModalOpen(false);
+      setEditingId(null);
+      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] });
+      toast({ title: "Product Saved!" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
   const filteredOrders = useMemo(() => {
     return orders?.filter(o => {
       const status = (o.status || '').toUpperCase();
@@ -165,12 +211,10 @@ export default function VendorDashboard() {
     });
   }, [orders, orderFilter]);
 
-  // Loading UI: Only if we don't have a profile yet but we're supposed to
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
     return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Portal Security...</p></div>;
   }
 
-  // Final check to prevent render before redirect
   if (!vendorProfile && !profileLoading) return null;
 
   return (
@@ -221,8 +265,64 @@ export default function VendorDashboard() {
 
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
-                  <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingId(p.id); setProductProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2>
+                    <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) { setEditingId(null); setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); } }}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
+                      </DialogTrigger>
+                      <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                        <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingId ? 'Edit Product' : 'Add New Product'}</DialogTitle></DialogHeader>
+                        <div className="p-8 space-y-6">
+                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                              {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                           </div>
+                           <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
+                           
+                           <div className="space-y-4">
+                              <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                              <div className="grid grid-cols-2 gap-4">
+                                <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
+                                <Input placeholder="Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-primary/40 font-bold" />
+                              </div>
+                              <Textarea placeholder="Description" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                              <Input placeholder="Category (e.g. Snacks, Makeup)" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                 <span className="text-xs font-black uppercase">Pure Veg?</span>
+                                 <Switch checked={productForm.isVeg} onCheckedChange={v => setProductForm({...productForm, isVeg: v})} />
+                              </div>
+                           </div>
+                           <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                             {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
+                           </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {myProducts?.map(p => (
+                      <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
+                          <div>
+                            <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
+                            <p className="text-xs font-black text-primary italic">₹{p.price}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditingId(p.id); setProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
+                          <button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {(!myProducts || myProducts.length === 0) && (
+                       <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                          <Package className="h-16 w-16 mb-4" />
+                          <p className="font-black italic uppercase text-xs">Inventory is empty</p>
+                       </div>
+                    )}
+                  </div>
               </div>
             )}
 
