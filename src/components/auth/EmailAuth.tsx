@@ -15,12 +15,13 @@ import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useRouter } from 'next/navigation';
 
 type AuthView = 'login' | 'signup';
 
 /**
  * @fileOverview High-Priority Authentication Layer.
- * Added: Forgot Password WhatsApp integration.
+ * Fixed: Robust registration handling and error visibility.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
@@ -30,6 +31,7 @@ export function EmailAuth() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -47,14 +49,9 @@ export function EmailAuth() {
     window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  const handleAuth = async (e?: any) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
+  const handleAuth = async () => {
     if (!auth || !firestore) {
-      toast({ variant: "destructive", title: "Wait...", description: "System is initializing." });
+      toast({ variant: "destructive", title: "Wait...", description: "System is initializing. Try again in 2 seconds." });
       return;
     }
 
@@ -62,27 +59,29 @@ export function EmailAuth() {
 
     // --- VALIDATION ---
     const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPass = password.trim();
+
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email address." });
+      toast({ variant: "destructive", title: "Email Required", description: "Please enter a valid email address." });
       return;
     }
 
-    if (password.length < 6) {
-      toast({ variant: "destructive", title: "Short Password", description: "Minimum 6 characters required." });
+    if (trimmedPass.length < 6) {
+      toast({ variant: "destructive", title: "Secure Password", description: "Password must be at least 6 characters." });
       return;
     }
 
     if (view === 'signup') {
       if (!fullName.trim()) {
-        toast({ variant: "destructive", title: "Name Required" });
+        toast({ variant: "destructive", title: "Name Required", description: "Please enter your full name." });
         return;
       }
       if (phoneNumber.trim().length !== 10) {
-        toast({ variant: "destructive", title: "Invalid Phone", description: "Enter 10-digit number." });
+        toast({ variant: "destructive", title: "Mobile Required", description: "Enter your 10-digit mobile number." });
         return;
       }
-      if (password !== confirmPassword) {
-        toast({ variant: "destructive", title: "Password Mismatch", description: "Confirm password does not match." });
+      if (trimmedPass !== confirmPassword.trim()) {
+        toast({ variant: "destructive", title: "Mismatch", description: "Passwords do not match." });
         return;
       }
     }
@@ -92,7 +91,7 @@ export function EmailAuth() {
     try {
       if (view === 'signup') {
         // 1. Create Auth User
-        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         const firebaseUser = userCredential.user;
         
         setIsFinishing(true);
@@ -111,7 +110,7 @@ export function EmailAuth() {
           role: 'customer'
         };
 
-        // 3. Save to Firestore (Optimistic - no await)
+        // 3. Save to Firestore (Optimistic)
         const userRef = doc(firestore, 'users', firebaseUser.uid);
         setDoc(userRef, userData, { merge: true })
           .catch(async (serverError) => {
@@ -123,50 +122,50 @@ export function EmailAuth() {
             errorEmitter.emit('permission-error', permissionError);
           });
 
-        // 4. Persistence & Redirect
+        // 4. Persistence
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        toast({ title: "Welcome to ShopyKart! ✨", description: "Account created successfully." });
+        toast({ title: "Welcome to ShopyKart! ✨", description: "Identity verified. Let's shop!" });
         
-        // Immediate clean entry
+        // Immediate clean entry using router replacement
         setTimeout(() => {
-          window.location.href = '/'; 
-        }, 300);
+          router.replace('/');
+        }, 100);
       } else {
         // Login Flow
-        await signInWithEmailAndPassword(auth, trimmedEmail, password);
+        await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         localStorage.setItem('shopykart_session_active', 'true');
-        toast({ title: "Welcome Back!" });
+        toast({ title: "Authenticated!", description: "Welcome back to the hub." });
         
         setTimeout(() => {
-          window.location.href = '/';
-        }, 300);
+          router.replace('/');
+        }, 100);
       }
     } catch (err: any) {
       setLoading(false);
       setIsFinishing(false);
-      let msg = "Authentication failed.";
-      if (err.code === 'auth/email-already-in-use') msg = "Email is already registered.";
-      else if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
-      else if (err.code === 'auth/network-request-failed') msg = "Network error. Check your internet.";
+      let msg = "Something went wrong. Please check your data.";
+      if (err.code === 'auth/email-already-in-use') msg = "This email is already in our records.";
+      else if (err.code === 'auth/invalid-credential') msg = "Incorrect ID or Password.";
+      else if (err.code === 'auth/network-request-failed') msg = "Network slow. Check your connection.";
       
-      toast({ variant: "destructive", title: "Error", description: msg });
+      toast({ variant: "destructive", title: "Auth Error", description: msg });
     }
   };
 
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-[999999] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar pointer-events-auto select-none">
+    <div className="fixed inset-0 z-[999999] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar pointer-events-auto">
       {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
          <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 blur-[120px] rounded-full" />
          <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-primary/10 blur-[120px] rounded-full" />
       </div>
 
-      <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu pointer-events-auto relative z-10 animate-in fade-in zoom-in-95 duration-500">
+      <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu relative z-10 animate-in fade-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center text-center space-y-6">
           <Logo className="scale-110 mb-2" />
           <div className="space-y-2">
@@ -257,7 +256,7 @@ export function EmailAuth() {
 
           <button 
             type="button"
-            onClick={handleAuth}
+            onClick={() => handleAuth()}
             disabled={loading || isFinishing} 
             className="w-full h-20 bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-6 flex items-center justify-center gap-3 disabled:opacity-70 border-b-4 border-black/20"
           >
