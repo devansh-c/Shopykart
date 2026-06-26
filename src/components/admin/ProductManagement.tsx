@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy, AlertCircle, FileUp, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy, AlertCircle, FileUp, Download, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -80,6 +80,22 @@ export default function ProductManagement() {
       p.restaurantName?.toLowerCase().includes(q)
     );
   }, [products, searchQuery]);
+
+  const handleToggleTopTen = async (id: string, vId: string, currentStatus: boolean) => {
+    if (!firestore) return;
+    const newStatus = !currentStatus;
+    try {
+      const batch = writeBatch(firestore);
+      batch.update(doc(firestore, 'products', id), { isTopTen: newStatus, updatedAt: serverTimestamp() });
+      if (vId && vId !== 'global') {
+        batch.update(doc(firestore, 'vendors', vId, 'products', id), { isTopTen: newStatus, updatedAt: serverTimestamp() });
+      }
+      await batch.commit();
+      toast({ title: newStatus ? "Added to Top 10! 🏆" : "Removed from Top 10" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Failed to update status" });
+    }
+  };
 
   const handleBulkStatusAction = async () => {
     if (!firestore || !vendors || !selectedBulkZoneId) {
@@ -170,6 +186,7 @@ export default function ProductManagement() {
               town: vendor?.town || 'Local',
               isAvailable: true,
               isVeg: item.isVeg !== undefined ? Boolean(item.isVeg) : true,
+              isTopTen: item.isTopTen !== undefined ? Boolean(item.isTopTen) : false,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp()
             };
@@ -329,6 +346,18 @@ export default function ProductManagement() {
                    
                    <div className="space-y-4">
                       <Input placeholder="Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                      
+                      <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                        <div className="flex items-center gap-3">
+                           <Trophy className={cn("h-5 w-5", isTopTen ? "text-amber-500 fill-amber-500" : "text-gray-400")} />
+                           <div className="flex flex-col">
+                              <span className="text-xs font-black uppercase tracking-tight">Add to Top 10?</span>
+                              <span className="text-[8px] font-bold text-muted-foreground uppercase">Show in Flash Loot deals</span>
+                           </div>
+                        </div>
+                        <Switch checked={isTopTen} onCheckedChange={setIsTopTen} className="data-[state=checked]:bg-amber-500" />
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                         <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none" />
                         <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
@@ -353,6 +382,14 @@ export default function ProductManagement() {
         ) : filteredProducts.length > 0 ? (
           filteredProducts.map(p => (
             <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all relative overflow-hidden", p.isAvailable === false && "opacity-60")}>
+              {p.isTopTen && (
+                <div className="absolute top-0 right-0">
+                  <div className="bg-amber-500 text-white text-[6px] font-black uppercase px-2 py-0.5 rounded-bl-lg flex items-center gap-0.5">
+                    <Trophy className="h-2 w-2" /> LOOT
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center gap-4">
                 <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
                 <div className="min-w-0">
@@ -367,6 +404,16 @@ export default function ProductManagement() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <button 
+                  onClick={() => handleToggleTopTen(p.id, p.vendorId, p.isTopTen || false)} 
+                  className={cn(
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-75",
+                    p.isTopTen ? "bg-amber-100 text-amber-600 shadow-inner" : "bg-gray-50 text-gray-300"
+                  )}
+                  title="Toggle Top 10"
+                >
+                  <Trophy className={cn("h-4 w-4", p.isTopTen && "fill-amber-600")} />
+                </button>
                 <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
                 <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-500 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
               </div>
