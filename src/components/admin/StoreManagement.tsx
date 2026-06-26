@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -20,7 +21,8 @@ import {
   KeyRound,
   HeartPulse,
   Camera,
-  ImageIcon
+  ImageIcon,
+  Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -61,7 +63,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       v.phone?.includes(searchQuery) ||
       v.town?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.storeId?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ).sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }, [vendors, searchQuery]);
 
   const handleToggleStatus = async (id: string, online: boolean) => {
@@ -101,6 +103,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         storeId: editingStore.storeId?.trim().toLowerCase() || '',
         password: editingStore.password || '',
         imageUrl: editingStore.imageUrl || '',
+        rating: parseFloat(editingStore.rating) || 0,
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
@@ -239,7 +242,12 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                 </div>
                 <div>
                   <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight mb-1 truncate max-w-[120px]">{store.storeName}</h3>
-                  <span className="text-[9px] font-black uppercase text-primary tracking-widest italic">{store.town}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black uppercase text-primary tracking-widest italic">{store.town}</span>
+                    <Badge className="bg-amber-50 text-amber-600 border-none font-black text-[9px] flex items-center gap-1">
+                      <Star className="h-2 w-2 fill-amber-600" /> {store.rating || '0.0'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -296,9 +304,15 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
                              <Input value={editingStore?.storeName || ''} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                           </div>
-                          <div className="space-y-1">
-                             <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Phone Number</label>
-                             <Input value={editingStore?.phone || ''} onChange={e => setEditingStore({...editingStore, phone: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Phone Number</label>
+                                <Input value={editingStore?.phone || ''} onChange={e => setEditingStore({...editingStore, phone: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-amber-600 ml-1">Rating (1.0 - 5.0)</label>
+                                <Input type="number" step="0.1" min="0" max="5" value={editingStore?.rating || ''} onChange={e => setEditingStore({...editingStore, rating: e.target.value})} className="h-12 rounded-xl border-amber-200 bg-amber-50/50 font-black text-amber-600" />
+                             </div>
                           </div>
                           <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
                              <Input value={editingStore?.storeId || ''} onChange={e => setEditingStore({...editingStore, storeId: e.target.value.replace(/\s/g, '')})} placeholder="Store ID" className="h-12 rounded-xl font-black italic text-primary uppercase" />

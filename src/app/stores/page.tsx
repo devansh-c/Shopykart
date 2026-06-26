@@ -36,11 +36,6 @@ export default function StoresPage() {
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
-  const getRealisticRating = (id: string) => {
-    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return (4.0 + (hash % 10) / 10).toFixed(1);
-  };
-
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
@@ -73,7 +68,8 @@ export default function StoresPage() {
     }).sort((a, b) => {
       const onlineA = a.isOnline !== false ? 1 : 0;
       const onlineB = b.isOnline !== false ? 1 : 0;
-      return onlineB - onlineA;
+      if (onlineA !== onlineB) return onlineB - onlineA;
+      return (b.rating || 0) - (a.rating || 0);
     });
   }, [dbVendors, activeZoneId, activeCity, searchQuery]);
 
@@ -109,7 +105,7 @@ export default function StoresPage() {
           filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOffline = store.isOnline === false;
-            const rating = getRealisticRating(store.id);
+            const rating = store.rating || '0.0';
 
             return (
               <Link 
@@ -131,7 +127,7 @@ export default function StoresPage() {
 
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-xl font-black text-gray-900 italic tracking-tight leading-none uppercase flex-1 truncate mr-2">{store.storeName}</h3>
+                    <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter leading-none uppercase flex-1 truncate mr-2">{store.storeName}</h3>
                     <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                        <span className="text-[10px] font-black">{rating}</span>
                        <Star className="h-3 w-3 fill-white" />

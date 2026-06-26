@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -63,7 +64,14 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
              {isSaleActive && <div className="text-xs font-bold text-gray-400 line-through">₹{basePrice}</div>}
           </div>
           
-          <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Nearby'}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Nearby'}</p>
+            {vendor?.rating && (
+              <Badge className="bg-amber-50 text-amber-600 border-none font-black text-[7px] flex items-center gap-0.5 h-3 px-1">
+                <Star className="h-2 w-2 fill-amber-600" /> {vendor.rating}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
       <div className="relative w-28 h-28 shrink-0">
@@ -189,7 +197,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vB = vendorMap.get(b.vendorId);
       const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
       const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
-      return onlineB - onlineA;
+      
+      if (onlineA !== onlineB) return onlineB - onlineA;
+      
+      const ratingA = vA?.rating || 0;
+      const ratingB = vB?.rating || 0;
+      return ratingB - ratingA;
     });
   }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
 

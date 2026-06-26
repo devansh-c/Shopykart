@@ -37,11 +37,6 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
-  const getRealisticRating = (id: string) => {
-    const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return (4.0 + (hash % 10) / 10).toFixed(1);
-  };
-
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
@@ -70,7 +65,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     }).sort((a, b) => {
       const onlineA = a.isOnline !== false ? 1 : 0;
       const onlineB = b.isOnline !== false ? 1 : 0;
-      return onlineB - onlineA;
+      if (onlineA !== onlineB) return onlineB - onlineA;
+      return (b.rating || 0) - (a.rating || 0);
     });
   }, [dbVendors, activeMode, activeZoneId, activeCity]);
 
@@ -119,7 +115,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
           const isOffline = store.isOnline === false;
-          const rating = getRealisticRating(store.id);
+          const rating = store.rating || '0.0';
           
           return (
             <button 
