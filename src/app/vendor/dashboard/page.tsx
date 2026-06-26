@@ -67,7 +67,6 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
@@ -83,13 +82,13 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD - Silent redirection to prevent glitchy toasts
+  // SECURE AUTH GUARD
   useEffect(() => {
-    if (!authLoading && !profileLoading && isMounted) {
+    if (isMounted && !authLoading) {
       if (!user) {
         router.replace('/vendor/login');
-      } else if (!vendorProfile) {
-        // Redirecting customer-role users trying to access vendor panel silently
+      } else if (!profileLoading && !vendorProfile) {
+        // Only redirect if load is FINISHED and profile is definitely missing
         router.replace('/vendor/login');
       }
     }
@@ -154,41 +153,11 @@ export default function VendorDashboard() {
       if (myProducts) {
         myProducts.forEach(p => { 
           batch.set(doc(firestore, 'products', p.id), { isAvailable: online }, { merge: true }); 
-          batch.set(doc(firestore, 'vendors', user.uid, 'products', p.id), { isAvailable: online }, { merge: true });
         });
       }
       await batch.commit();
       toast({ title: online ? "Store Open! 🟢" : "Store Closed 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
-  };
-
-  const handleSaveProduct = async () => {
-    if (!firestore || !user || !vendorProfile) return;
-    setIsSavingProduct(true);
-    const productData = {
-      name: productForm.name, price: parseFloat(productForm.price), mrp: parseFloat(productForm.mrp || productForm.price),
-      description: productForm.description, category: productForm.category.toLowerCase(),
-      vendorId: user.uid, restaurantName: vendorProfile.storeName, zoneId: vendorProfile.zoneId || null,
-      town: vendorProfile.town || 'Local', serviceMode: vendorProfile.category || 'Food',
-      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/400/300',
-      isVarietyRequired: productForm.options.length > 0 ? productForm.isVarietyRequired : false,
-      options: productForm.options.filter(o => o.name?.trim() !== ''),
-      isAvailable: vendorProfile.isOnline !== false, updatedAt: serverTimestamp()
-    };
-    try {
-      if (editingProduct) { 
-        await setDoc(doc(firestore, 'products', editingProduct.id), productData, { merge: true }); 
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingProduct.id), productData, { merge: true });
-      }
-      else { 
-        const newRef = doc(collection(firestore, 'products')); 
-        await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() }); 
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
-      }
-      setIsProductModalOpen(false);
-      toast({ title: "Product Saved!" });
-    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
-    finally { setIsSavingProduct(false); }
   };
 
   const filteredOrders = useMemo(() => {
@@ -199,11 +168,9 @@ export default function VendorDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading) {
-    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (!isMounted || authLoading || profileLoading || !vendorProfile) {
+    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Access...</p></div>;
   }
-
-  if (!user || !vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -254,7 +221,7 @@ export default function VendorDashboard() {
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
                   <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: p.isVeg !== false, isVarietyRequired: p.isVarietyRequired || false, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
+                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-primary italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => handleEdit(p)} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
               </div>
             )}
 

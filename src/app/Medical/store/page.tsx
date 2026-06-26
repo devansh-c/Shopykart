@@ -61,7 +61,6 @@ export default function MedicalDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
@@ -77,42 +76,16 @@ export default function MedicalDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD - Silent redirection to prevent glitchy toasts
+  // SECURE AUTH GUARD
   useEffect(() => {
-    if (!authLoading && !profileLoading && isMounted) {
+    if (isMounted && !authLoading) {
       if (!user) {
         router.replace('/vendor/login?type=Medical');
-      } else if (!vendorProfile) {
+      } else if (!profileLoading && !vendorProfile) {
         router.replace('/vendor/login?type=Medical');
       }
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
-
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [productForm, setProductProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] as any[]
-  });
-  const [isSavingProduct, setIsSavingProduct] = useState(false);
-  
-  const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
-
-  useEffect(() => {
-    if (vendorProfile) {
-      setProfileForm({
-        storeName: vendorProfile.storeName || '',
-        address: vendorProfile.address || '',
-        phone: vendorProfile.phone || '',
-        fullName: vendorProfile.fullName || ''
-      });
-    }
-  }, [vendorProfile]);
-
-  const categoriesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'categories'), where('serviceType', '==', 'Medical'));
-  }, [firestore]);
-  const { data: medicalCategories } = useCollection<any>(categoriesQuery);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -125,12 +98,6 @@ export default function MedicalDashboard() {
     return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
   }, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
-
-  const payoutQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'));
-  }, [firestore, user]);
-  const { data: payouts } = useCollection<any>(payoutQuery);
 
   const orders = useMemo(() => {
     if (!rawOrders || !user) return [];
@@ -153,42 +120,6 @@ export default function MedicalDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  const handleAddVariety = () => {
-    setProductProductForm({ ...productForm, options: [...productForm.options, { name: '', price: 0 }] });
-  };
-
-  const handleRemoveVariety = (idx: number) => {
-    setProductProductForm({ ...productForm, options: productForm.options.filter((_, i) => i !== idx) });
-  };
-
-  const handleUpdateVariety = (idx: number, field: string, val: any) => {
-    const newOptions = [...productForm.options];
-    newOptions[idx] = { ...newOptions[idx], [field]: field === 'price' ? parseFloat(val) || 0 : val };
-    setProductProductForm({ ...productForm, options: newOptions });
-  };
-
-  const handleSaveProduct = async () => {
-    if (!firestore || !user || !vendorProfile) return;
-    setIsSavingProduct(true);
-    const productData = {
-      name: productForm.name, price: parseFloat(productForm.price), mrp: parseFloat(productForm.mrp || productForm.price),
-      description: productForm.description, category: productForm.category.toLowerCase(),
-      vendorId: user.uid, restaurantName: vendorProfile.storeName, zoneId: vendorProfile.zoneId || null,
-      town: vendorProfile.town || 'Local', serviceMode: 'Medical',
-      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/medical/400/300',
-      isVarietyRequired: productForm.options.length > 0 ? productForm.isVarietyRequired : false,
-      options: productForm.options.filter(o => o.name?.trim() !== ''),
-      isAvailable: vendorProfile.isOnline !== false, updatedAt: serverTimestamp()
-    };
-    try {
-      if (editingProduct) { await setDoc(doc(firestore, 'products', editingProduct.id), productData, { merge: true }); }
-      else { const newRef = doc(collection(firestore, 'products')); await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() }); }
-      setIsProductModalOpen(false);
-      toast({ title: "Product Saved!" });
-    } catch (e) { toast({ variant: "destructive", title: "Error" }); }
-    finally { setIsSavingProduct(false); }
-  };
-
   const filteredOrders = useMemo(() => {
     return orders?.filter(o => {
       const status = (o.status || '').toUpperCase();
@@ -197,11 +128,9 @@ export default function MedicalDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading) {
-    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
+  if (!isMounted || authLoading || profileLoading || !vendorProfile) {
+    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Pharmacy Access...</p></div>;
   }
-
-  if (!user || !vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -238,8 +167,7 @@ export default function MedicalDashboard() {
                           <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-teal-600" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
                           {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (<div key={i} className="flex justify-between items-center text-xs font-bold"><span className="text-gray-700">{item.quantity}x {item.name}</span><span className="text-teal-600">₹{(item.price * item.quantity).toFixed(2)}</span></div>))}
                       </div>
-                      <Dialog><DialogTrigger asChild><button className="w-full bg-white border-2 border-teal-200 text-teal-600 h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button></DialogTrigger>
-                      <DialogContent className="rounded-[2.5rem] max-w-[340px] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]"><DialogHeader className="sr-only"><DialogTitle>Order Bill</DialogTitle></DialogHeader><div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center"><div className="w-full scale-[1.05] origin-top mb-4"></div></div><div className="p-4 bg-teal-50 border-t flex gap-2 shrink-0"><Button className="flex-1 bg-black h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg"><Printer className="h-4 w-4 mr-2" /> PRINT</Button><Button disabled className="flex-1 bg-teal-600 h-12 rounded-xl text-white font-black text-[10px] uppercase shadow-lg">SAVE</Button></div></DialogContent></Dialog>
+                      <button className="w-full bg-white border-2 border-teal-200 text-teal-600 h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Details</button>
                     </div>
                   )) : (
                     <div className="text-center py-20 opacity-30 flex flex-col items-center">
@@ -252,40 +180,8 @@ export default function MedicalDashboard() {
 
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
-                  <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Pharmacy Catalog</h2><Button onClick={() => { setEditingProduct(null); setProductProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); setIsProductModalOpen(true); }} className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD PRODUCT</Button></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-teal-600 italic">₹{p.price}</p></div></div><div className="flex gap-2"><button onClick={() => { setEditingProduct(p); setProductProductForm({ name: p.name, price: p.price.toString(), mrp: (p.mrp || p.price).toString(), description: p.description || '', category: p.category || '', isVeg: true, isVarietyRequired: p.isVarietyRequired || false, imageUrl: p.imageUrl, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button><button onClick={() => { if(confirm("Delete?")) deleteDoc(doc(firestore!, 'products', p.id)); }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button></div></div>))}</div>
-              </div>
-            )}
-
-            {activeMainTab === 'payouts' && (
-              <div className="p-4 space-y-6 animate-in fade-in duration-500">
-                  <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-1"><Wallet className="h-4 w-4 text-teal-500" /><span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Pharmacy Wallet</span></div>
-                        <h3 className="text-5xl font-black italic tracking-tighter">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</h3>
-                    </div>
-                    <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-10" />
-                  </div>
-                  <div className="space-y-4">
-                    <h2 className="text-sm font-black uppercase tracking-widest text-gray-800 ml-1">Settlement History</h2>
-                    {payouts?.map(p => (<div key={p.id} className="bg-white p-5 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><div className="h-11 w-11 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><ArrowUpRight className="h-6 w-6" /></div><div><h4 className="font-black text-sm italic uppercase">{p.note || 'Settlement'}</h4><p className="text-[9px] font-bold text-muted-foreground uppercase">{p.date?.seconds ? format(new Date(p.date.seconds * 1000), 'MMM d, yyyy') : 'Recent'}</p></div></div><div className="text-right"><span className="text-lg font-black text-green-600">+₹{p.amount}</span></div></div>))}
-                  </div>
-              </div>
-            )}
-
-            {activeMainTab === 'account' && (
-              <div className="p-4 space-y-6 animate-in fade-in duration-500">
-                  <div className="flex flex-col items-center py-8">
-                    <div className="relative group"><div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted">{vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <HeartPulse className="h-12 w-12 m-auto text-gray-300" />}</div><button className="absolute bottom-[-10px] right-[-10px] bg-white p-3 rounded-2xl shadow-xl border border-border text-teal-600"><Camera className="h-5 w-5" /></button></div>
-                    <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Healthcare Provider</p>
-                  </div>
-                  <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
-                    <Input value={profileForm.storeName} onChange={e => setProfileForm({...profileForm, storeName: e.target.value})} placeholder="Pharmacy Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    <Button onClick={async () => { await updateDoc(doc(firestore!, 'vendors', user!.uid), { storeName: profileForm.storeName, address: profileForm.address }); toast({title:'Updated'}); }} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">SAVE UPDATES</Button>
-                    <Button variant="ghost" onClick={() => { signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]">LOGOUT</Button>
-                  </div>
+                  <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Pharmacy Catalog</h2></div>
+                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-teal-600 italic">₹{p.price}</p></div></div></div>))}</div>
               </div>
             )}
          </div>
