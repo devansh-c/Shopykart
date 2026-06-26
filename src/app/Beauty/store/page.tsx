@@ -76,9 +76,9 @@ export default function BeautyDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD
+  // AUTH GUARD - Refined to prevent "glitch"
   useEffect(() => {
-    if (!authLoading && !profileLoading) {
+    if (!authLoading && !profileLoading && isMounted) {
       if (!user) {
         router.replace('/vendor/login?type=Beauty');
       } else if (!vendorProfile) {
@@ -86,7 +86,7 @@ export default function BeautyDashboard() {
         router.replace('/vendor/login?type=Beauty');
       }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router, toast]);
+  }, [user, authLoading, vendorProfile, profileLoading, router, toast, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -198,9 +198,11 @@ export default function BeautyDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading || !user || !vendorProfile) {
+  if (!isMounted || authLoading || profileLoading) {
     return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /></div>;
   }
+
+  if (!user || !vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -331,7 +333,7 @@ export default function BeautyDashboard() {
                           <Switch checked={productForm.isVarietyRequired} onCheckedChange={(v) => setProductProductForm({...productForm, isVarietyRequired: v})} className="scale-50 data-[state=checked]:bg-rose-600" />
                         </div>
                       </div>
-                      <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-rose-50 text-rose-600 font-black uppercase text-[8px] border border-rose-100">Add Variety</button>
+                      <button onClick={handleAddVariety} className="h-8 px-3 rounded-lg bg-rose-50 text-rose-600 font-black uppercase text-[8px] border border-teal-100">Add Variety</button>
                    </div>
                    <div className="space-y-2">
                       {productForm.options.map((opt, i) => (

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -83,7 +82,7 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD
+  // AUTH GUARD - Refined to prevent "glitch"
   useEffect(() => {
     if (!authLoading && !profileLoading && isMounted) {
       if (!user) {
@@ -199,9 +198,11 @@ export default function VendorDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading || !user || !vendorProfile) {
+  if (!isMounted || authLoading || profileLoading) {
     return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
+
+  if (!user || !vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">

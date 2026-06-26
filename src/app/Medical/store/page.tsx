@@ -50,8 +50,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { toJpeg } from 'html-to-image';
-import { saveAs } from 'file-saver';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -69,6 +67,8 @@ export default function MedicalDashboard() {
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
 
+  useEffect(() => { setIsMounted(true); }, []);
+
   // Vendor Profile
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -76,9 +76,9 @@ export default function MedicalDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD
+  // AUTH GUARD - Refined to prevent "glitch"
   useEffect(() => {
-    if (!authLoading && !profileLoading) {
+    if (!authLoading && !profileLoading && isMounted) {
       if (!user) {
         router.replace('/vendor/login?type=Medical');
       } else if (!vendorProfile) {
@@ -86,7 +86,7 @@ export default function MedicalDashboard() {
         router.replace('/vendor/login?type=Medical');
       }
     }
-  }, [user, authLoading, vendorProfile, profileLoading, router, toast]);
+  }, [user, authLoading, vendorProfile, profileLoading, router, toast, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -96,8 +96,6 @@ export default function MedicalDashboard() {
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
-
-  useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
     if (vendorProfile) {
@@ -199,9 +197,11 @@ export default function MedicalDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || profileLoading || !user || !vendorProfile) {
+  if (!isMounted || authLoading || profileLoading) {
     return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /></div>;
   }
+
+  if (!user || !vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
