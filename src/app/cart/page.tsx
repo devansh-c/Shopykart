@@ -27,7 +27,9 @@ import {
   Hash,
   Heart,
   Package,
-  MessageSquareQuote
+  MessageSquareQuote,
+  AlertCircle,
+  Store
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -103,7 +105,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(2)}`}
         </span>
-        {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">INCOMPLETE DETAILS</span>}
+        {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ORDER BLOCKED</span>}
       </div>
 
       <div 
@@ -172,6 +174,13 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
+  // FETCH VENDORS TO VALIDATE ONLINE STATUS
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
+
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
@@ -195,6 +204,19 @@ export default function CartPage() {
   const customSurchargeTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
   }, [cart]);
+
+  // VALIDATE IF ANY STORE IN CART IS OFFLINE
+  const blockedVendorNames = useMemo(() => {
+    if (!vendors || cart.length === 0) return [];
+    const offlineVendors = new Set<string>();
+    cart.forEach(item => {
+      const v = vendors.find(v => v.id === item.vendorId);
+      if (v && v.isOnline === false) {
+        offlineVendors.add(v.storeName || 'Store');
+      }
+    });
+    return Array.from(offlineVendors);
+  }, [cart, vendors]);
 
   const dynamic_charges = useMemo(() => {
     if (!dbCharges) return [];
@@ -263,7 +285,7 @@ export default function CartPage() {
   }, [profile]);
 
   const executeOrderPlacement = useCallback(() => {
-    if (!firestore || isPlacing) return;
+    if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
     
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
     setIsPlacing(true);
@@ -341,7 +363,7 @@ export default function CartPage() {
       setIsPaymentDialogOpen(false);
     }, 100);
     
-  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip]);
+  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames]);
 
   const handleOnlinePaymentFlow = () => {
     window.open(upiUri);
@@ -349,6 +371,10 @@ export default function CartPage() {
   };
 
   const handleCheckout = useCallback(async () => {
+    if (blockedVendorNames.length > 0) {
+      toast({ variant: "destructive", title: "Store Closed", description: `Please remove items from ${blockedVendorNames.join(', ')} to continue.` });
+      return;
+    }
     if (totalPrice < 35 && grandTotal < 35) {
       toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
       return;
@@ -364,7 +390,7 @@ export default function CartPage() {
     } else {
       executeOrderPlacement();
     }
-  }, [totalPrice, grandTotal, customerName, customerPhone, customerAddress, paymentMethod, toast, executeOrderPlacement]);
+  }, [totalPrice, grandTotal, customerName, customerPhone, customerAddress, paymentMethod, toast, executeOrderPlacement, blockedVendorNames]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponInput.trim()) return;
@@ -387,7 +413,7 @@ export default function CartPage() {
     }
   };
 
-  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3;
+  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || blockedVendorNames.length > 0;
 
   if (totalItems === 0 && !isPlacing) {
     return (
@@ -408,36 +434,67 @@ export default function CartPage() {
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
+        
+        {/* STORE CLOSED ALERT */}
+        {blockedVendorNames.length > 0 && (
+          <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[2rem] p-6 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-500">
+             <div className="flex items-center gap-3 text-red-600">
+                <AlertCircle className="h-6 w-6 animate-pulse" />
+                <h4 className="font-black italic uppercase text-sm">Store is Closed</h4>
+             </div>
+             <p className="text-[10px] font-bold text-red-700 uppercase leading-relaxed">
+                Currently <b>{blockedVendorNames.join(', ')}</b> is not accepting orders. Please remove their products to proceed with the rest of your items.
+             </p>
+          </div>
+        )}
+
         {/* ITEMS IN BAG */}
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 transition-all hover:shadow-lg">
           <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
           <div className="space-y-4">
-            {cart.map((item) => (
-              <div key={item.id + (item.selectedOption?.name || '')} className="flex gap-4 items-start">
-                <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm mt-1"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" /></div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-xs text-gray-800 truncate uppercase">{item.name}</h3>
-                  {item.selectedOption && <p className="text-[8px] font-black text-primary uppercase italic">{item.selectedOption.name}</p>}
-                  
-                  {/* ITEM INSTRUCTIONS DISPLAY */}
-                  {item.instructions && (
-                    <div className="mt-1 flex items-start gap-1 bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
-                      <MessageSquareQuote className="h-2.5 w-2.5 text-primary shrink-0 mt-0.5" />
-                      <p className="text-[8px] font-bold text-primary italic leading-tight">{item.instructions}</p>
-                    </div>
-                  )}
+            {cart.map((item) => {
+              const vendor = vendors?.find(v => v.id === item.vendorId);
+              const isItemOffline = vendor?.isOnline === false;
 
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
-                      <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">-</button>
-                      <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
-                      <button onClick={() => addToCart(item)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">+</button>
+              return (
+                <div key={item.id + (item.selectedOption?.name || '')} className={cn("flex gap-4 items-start transition-opacity", isItemOffline && "opacity-60")}>
+                  <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm mt-1">
+                    <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                    {isItemOffline && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <X className="h-5 w-5 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                       <h3 className="font-bold text-xs text-gray-800 truncate uppercase">{item.name}</h3>
+                       {isItemOffline && (
+                         <span className="text-[7px] font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 uppercase animate-pulse">Closed</span>
+                       )}
                     </div>
-                    <div className="text-sm font-black text-gray-900 italic">₹{item.price.toFixed(2)}</div>
+                    {item.selectedOption && <p className="text-[8px] font-black text-primary uppercase italic">{item.selectedOption.name}</p>}
+                    
+                    {/* ITEM INSTRUCTIONS DISPLAY */}
+                    {item.instructions && (
+                      <div className="mt-1 flex items-start gap-1 bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
+                        <MessageSquareQuote className="h-2.5 w-2.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[8px] font-bold text-primary italic leading-tight">{item.instructions}</p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
+                        <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">-</button>
+                        <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
+                        <button onClick={() => !isItemOffline && addToCart(item)} disabled={isItemOffline} className={cn("w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary", isItemOffline && "opacity-20 cursor-not-allowed")}>+</button>
+                      </div>
+                      <div className="text-sm font-black text-gray-900 italic">₹{item.price.toFixed(2)}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

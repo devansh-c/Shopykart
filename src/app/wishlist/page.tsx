@@ -1,12 +1,13 @@
 "use client"
 
 import { useCart } from '@/components/cart/CartProvider';
-import { Heart, Plus, ChevronLeft, Loader2 } from 'lucide-react';
+import { Heart, Plus, ChevronLeft, Loader2, Store, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
+import { cn } from '@/lib/utils';
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
@@ -19,6 +20,12 @@ export default function WishlistPage() {
   }, [firestore]);
   
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id)) || [];
 
@@ -57,13 +64,24 @@ export default function WishlistPage() {
       <div className="grid grid-cols-2 gap-4 p-4">
         {favoriteProducts.map((product) => {
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
+          const vendor = vendors?.find(v => v.id === product.vendorId);
+          const isOffline = vendor?.isOnline === false || product.isAvailable === false;
 
           return (
-            <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300">
+            <div key={product.id} className={cn(
+              "bg-white rounded-2xl overflow-hidden shadow-sm border border-border/40 flex flex-col group animate-in fade-in zoom-in duration-300 transition-all",
+              isOffline && "opacity-80"
+            )}>
               <div className="relative aspect-square">
                 <ProductQuickView product={product}>
                   <button className="relative w-full h-full">
-                    <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform" unoptimized />
+                    <Image src={imageUrl} alt={product.name} fill className={cn("object-cover group-hover:scale-105 transition-transform", isOffline && "grayscale")} unoptimized />
+                    {isOffline && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
+                        <Store className="h-6 w-6 text-white/80 mb-2" />
+                        <span className="text-white font-black text-[10px] uppercase italic border border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed Now</span>
+                      </div>
+                    )}
                   </button>
                 </ProductQuickView>
                 <button 
@@ -80,13 +98,20 @@ export default function WishlistPage() {
                     <p className="text-primary font-black text-sm">₹{product.price.toFixed(2)}</p>
                   </button>
                 </ProductQuickView>
-                <button 
-                  onClick={() => addToCart({ ...product, imageUrl })}
-                  className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
-                >
-                  <Plus className="h-3 w-3" />
-                  ADD TO CART
-                </button>
+                
+                {isOffline ? (
+                  <div className="mt-3 w-full bg-gray-100 text-gray-400 text-[8px] font-black h-8 rounded-xl flex items-center justify-center gap-1 italic border border-gray-200">
+                    <AlertCircle className="h-2.5 w-2.5" /> STORE OFFLINE
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => addToCart({ ...product, imageUrl })}
+                    className="mt-3 w-full bg-primary text-white text-[10px] font-black h-8 rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-all"
+                  >
+                    <Plus className="h-3 w-3" />
+                    ADD TO CART
+                  </button>
+                )}
               </div>
             </div>
           );
