@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Snappy Order Success Overlay.
  * Optimized for a 1.5s total display window.
+ * Sound removed for customers to ensure a non-disturbing experience.
  */
 export function OrderSuccessOverlay({ isVisible }: { isVisible: boolean }) {
   const [shouldRender, setShouldRender] = useState(false);
@@ -15,9 +16,7 @@ export function OrderSuccessOverlay({ isVisible }: { isVisible: boolean }) {
   useEffect(() => {
     if (isVisible) {
       setShouldRender(true);
-      // Play order placed ring sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.log("Audio play blocked by browser"));
+      // Sound playback removed for customers to avoid disturbance
     }
   }, [isVisible]);
 

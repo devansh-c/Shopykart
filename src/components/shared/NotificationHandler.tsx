@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -13,7 +14,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Critical Alert & Live Tracking System.
  * - Admin/Vendors: Get LOUD persistent alarms for new orders until accepted.
- * - Customers: Get real-time status updates with a "TRACK" button.
+ * - Customers: SILENT visual tracking updates only.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -67,11 +68,13 @@ export function NotificationHandler() {
     checkRole();
   }, [user, firestore]);
 
-  // 2. Initialize Audio (Admin/Vendor Only) - Using a very loud and clear alarm sound
+  // 2. Initialize Audio (Admin/Vendor Only)
   useEffect(() => {
-    if (typeof window === 'undefined' || userRole === 'customer') return;
+    if (typeof window === 'undefined' || !userRole || userRole === 'customer' || userRole === 'delivery') {
+      return;
+    }
 
-    // Direct loud alarm sound URL
+    // Alarm sound only for business operators
     const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
     const audio = new Audio(alarmUrl);
     audio.loop = true;
@@ -88,7 +91,6 @@ export function NotificationHandler() {
       }
     };
 
-    // User interaction required to enable audio in modern browsers
     window.addEventListener('click', wakeUpAudio, { once: true });
     return () => {
       window.removeEventListener('click', wakeUpAudio);
@@ -99,12 +101,13 @@ export function NotificationHandler() {
     };
   }, [userRole]);
 
-  // 3. Audio Control logic
+  // 3. Audio Control logic (Strictly Business Roles)
   useEffect(() => {
-    if (!audioRef.current || userRole === 'customer') return;
+    if (!audioRef.current || userRole === 'customer' || userRole === 'delivery') {
+      return;
+    }
     
     if (isRinging && !isAudioContextBlocked) {
-      // Force play if ringing
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -131,7 +134,6 @@ export function NotificationHandler() {
         if (userRole === 'admin') {
           myAlerts = allPlacedOrders;
         } else if (userRole === 'vendor') {
-          // Vendor only rings for orders containing their vendorId
           myAlerts = allPlacedOrders.filter((o: any) => 
             o.vendorId === user.uid || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid))
           );
@@ -143,7 +145,7 @@ export function NotificationHandler() {
       return () => unsubAdmin();
     }
 
-    // --- CUSTOMER LISTENER (Live Tracking) ---
+    // --- CUSTOMER LISTENER (Live Tracking - Completely Silent) ---
     if (userRole === 'customer') {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const unsubCustomer = onSnapshot(q, (snapshot) => {
@@ -152,11 +154,11 @@ export function NotificationHandler() {
             const order = { id: change.doc.id, ...change.doc.data() as any };
             const prevStatus = lastStatuses.current.get(order.id);
             
+            // Only show modal if status actually changed
             if (prevStatus && prevStatus !== order.status) {
               setCustomerUpdate(order);
             }
           }
-          // Update map of statuses
           snapshot.docs.forEach(d => lastStatuses.current.set(d.id, (d.data() as any).status));
         });
         
@@ -199,7 +201,6 @@ export function NotificationHandler() {
       {/* 1. ADMIN/VENDOR ALARM UI */}
       {(userRole === 'admin' || userRole === 'vendor') && (
         <>
-          {/* Audio Blocked Overlay (Sticky at top) */}
           {isAudioContextBlocked && (
             <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60000] animate-in slide-in-from-top-4 duration-500">
                <Button 
@@ -217,7 +218,6 @@ export function NotificationHandler() {
             </div>
           )}
 
-          {/* New Order Alarm Modal */}
           <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
             <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none">
               <DialogHeader className="sr-only">
@@ -254,11 +254,6 @@ export function NotificationHandler() {
                         </div>
                      </div>
                    ))}
-                   {ringingOrders.length > 1 && (
-                     <div className="bg-red-50 p-2 rounded-xl text-red-600 font-black text-[9px] uppercase">
-                       +{ringingOrders.length - 1} More Pending Orders
-                     </div>
-                   )}
                 </div>
 
                 <Button 
@@ -268,20 +263,13 @@ export function NotificationHandler() {
                 >
                   {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT ORDER"}
                 </Button>
-                
-                {isAudioContextBlocked && (
-                  <div className="flex items-center gap-2 text-red-500 animate-pulse">
-                    <VolumeX className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Audio is muted by browser</span>
-                  </div>
-                )}
               </div>
             </DialogContent>
           </Dialog>
         </>
       )}
 
-      {/* 2. CUSTOMER LIVE TRACKING UI */}
+      {/* 2. CUSTOMER LIVE TRACKING UI (Completely Silent) */}
       {userRole === 'customer' && (
         <Dialog open={!!customerUpdate} onOpenChange={(val) => !val && setCustomerUpdate(null)}>
            <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[50000] focus:outline-none bottom-4 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
