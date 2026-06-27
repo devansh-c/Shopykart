@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useTransition, Suspense, useEffect, memo } from 'react';
@@ -90,7 +91,7 @@ export default function ShopyKartApp() {
                     <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>
                   </div>
                </div>
-               <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
+               <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 v-5" />}</div>
             </div>
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
@@ -108,10 +109,16 @@ export default function ShopyKartApp() {
                 </div>
               </div>
             )}
-            {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={150}><OfferSlider /></ScrollReveal>}
-            {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={200}><TopTenProducts /></ScrollReveal>}
-            {!searchQuery && activeCategory === 'all' && <ScrollReveal delay={250}><StoreSection activeMode={activeMode} /></ScrollReveal>}
-            {!searchQuery && <ScrollReveal delay={300}><OffersSection /></ScrollReveal>}
+            {!searchQuery && activeCategory === 'all' && (
+              <Suspense fallback={<div className="h-[160px] mx-4 bg-muted animate-pulse rounded-2xl" />}><OfferSlider /></Suspense>
+            )}
+            {!searchQuery && activeCategory === 'all' && (
+              <Suspense fallback={<div className="h-[200px] mx-4 bg-muted/10 animate-pulse rounded-2xl" />}><TopTenProducts /></Suspense>
+            )}
+            {!searchQuery && activeCategory === 'all' && (
+              <Suspense fallback={<div className="h-[240px] mx-4 bg-muted/5 animate-pulse rounded-2xl" />}><StoreSection activeMode={activeMode} /></Suspense>
+            )}
+            {!searchQuery && <Suspense fallback={null}><OffersSection /></Suspense>}
             {activeMode === 'Food' && !searchQuery && <ScrollReveal delay={320}><SmartBasketAI /></ScrollReveal>}
             <ScrollReveal delay={350}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode="Food" /></ScrollReveal>
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>

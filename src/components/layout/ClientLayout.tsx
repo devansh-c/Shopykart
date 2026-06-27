@@ -52,14 +52,14 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
-    // Fail-safe: Mark as ready after 1.5s even if Firebase is exhausted/slow
-    const failSafeTimer = setTimeout(() => onReady(true), 1500);
+    // Fail-safe: Mark as ready after 1 second even if Firebase is exhausted/slow
+    const failSafeTimer = setTimeout(() => onReady(true), 1000);
 
     if (!loading) {
       clearTimeout(failSafeTimer);
       onReady(true);
       if (!user && !hasActiveSession) {
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1200);
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1000);
         return () => clearTimeout(authTimer);
       }
     }

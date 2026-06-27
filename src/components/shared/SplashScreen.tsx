@@ -11,7 +11,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with absolute fail-safe dismissal.
- * Ensures it disappears within 2.5s regardless of app-ready state to prevent app hanging.
+ * Ensures it disappears within 1.5s regardless of app-ready state to prevent app hanging.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -25,9 +25,9 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // 1. MINIMUM VISIBILITY TIMER (Faster for Returning users)
+    // 1. MINIMUM VISIBILITY TIMER (Very fast for smooth entry)
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const minDuration = isReturning ? 300 : 800;
+    const minDuration = isReturning ? 200 : 500;
     
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
@@ -37,7 +37,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     // Even if Firebase is exhausted or app-ready fails, splash MUST vanish.
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
-    }, 2500);
+    }, 1500); // Reduced to 1.5s for maximum speed
     
     return () => {
       clearTimeout(minTimer);
@@ -56,7 +56,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 400); 
+      }, 300); 
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';
@@ -80,7 +80,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-400 ease-in-out h-screen w-screen",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-300 ease-in-out h-screen w-screen",
         isActuallyVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
