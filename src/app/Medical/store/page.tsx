@@ -76,26 +76,36 @@ export default function MedicalDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD: Multi-check for stability
+  // AUTH GUARD: Bulletproof session recovery
   useEffect(() => {
     if (!isMounted || authLoading) return;
 
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
 
-    if (!user && !sessionActive) {
-      router.replace('/vendor/login?type=Medical');
-      return;
+    // If Firebase finished loading and NO user is found
+    if (!user && !authLoading) {
+      if (!sessionActive) {
+        router.replace('/vendor/login?type=Medical');
+      } else {
+        const failSafe = setTimeout(() => {
+          if (!user) {
+            localStorage.removeItem('shopykart_session_active');
+            router.replace('/vendor/login?type=Medical');
+          }
+        }, 3000);
+        return () => clearTimeout(failSafe);
+      }
     }
 
-    if (!authLoading && !user) {
-      localStorage.removeItem('shopykart_session_active');
-      router.replace('/vendor/login?type=Medical');
-      return;
-    }
-
-    if (user && !profileLoading && !vendorProfile) {
-       localStorage.removeItem('shopykart_session_active');
-       router.replace('/vendor/login?type=Medical');
+    // If user exists but after profile settled, it's confirmed NOT to be a vendor
+    if (user && !profileLoading && vendorProfile === null) {
+      const finalCheck = setTimeout(() => {
+        if (!vendorProfile) {
+          localStorage.removeItem('shopykart_session_active');
+          router.replace('/vendor/login?type=Medical');
+        }
+      }, 1000);
+      return () => clearTimeout(finalCheck);
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
@@ -141,7 +151,7 @@ export default function MedicalDashboard() {
   }, [orders, orderFilter]);
 
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
-    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verifying Identity...</p></div>;
+    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verifying secure session...</p></div>;
   }
 
   if (!vendorProfile) return null;

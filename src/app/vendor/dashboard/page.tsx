@@ -83,30 +83,39 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD: Multi-check for stability
+  // AUTH GUARD: Bulletproof session recovery
   useEffect(() => {
     if (!isMounted || authLoading) return;
 
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
 
-    // Fast check: If no firebase user AND no local session, go to login
-    if (!user && !sessionActive) {
-      router.replace('/vendor/login');
-      return;
+    // If Firebase finished loading and NO user is found
+    if (!user && !authLoading) {
+      // If we don't even have a session active flag, redirect immediately
+      if (!sessionActive) {
+        router.replace('/vendor/login');
+      } else {
+        // If we DO have a session flag, give Firebase 3 seconds to find the session before kicking out
+        const failSafe = setTimeout(() => {
+          if (!user) {
+            localStorage.removeItem('shopykart_session_active');
+            router.replace('/vendor/login');
+          }
+        }, 3000);
+        return () => clearTimeout(failSafe);
+      }
     }
 
-    // Secondary check: If Firebase finished loading and STILL no user, even with session active, 
-    // it means session is expired or invalid.
-    if (!authLoading && !user) {
-      localStorage.removeItem('shopykart_session_active');
-      router.replace('/vendor/login');
-      return;
-    }
-
-    // Final check: If user exists but is not a vendor after data settles
-    if (user && !profileLoading && !vendorProfile) {
-       localStorage.removeItem('shopykart_session_active');
-       router.replace('/vendor/login');
+    // If user exists but after profile settled, it's confirmed NOT to be a vendor
+    if (user && !profileLoading && vendorProfile === null) {
+      // Small buffer to prevent race conditions during write/read
+      const finalCheck = setTimeout(() => {
+        if (!vendorProfile) {
+          localStorage.removeItem('shopykart_session_active');
+          router.replace('/vendor/login');
+        }
+      }, 1000);
+      return () => clearTimeout(finalCheck);
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
@@ -246,7 +255,7 @@ export default function VendorDashboard() {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening your portal...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Restoring secure session...</p>
       </div>
     );
   }
