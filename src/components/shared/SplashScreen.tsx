@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,7 +11,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with absolute fail-safe dismissal.
- * Ensures it disappears within 3s regardless of app-ready state.
+ * Ensures it disappears within 2.5s regardless of app-ready state to prevent app hanging.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -26,13 +27,14 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     
     // 1. MINIMUM VISIBILITY TIMER (Faster for Returning users)
     const isReturning = localStorage.getItem('shopykart_session_active') === 'true';
-    const minDuration = isReturning ? 300 : 1000;
+    const minDuration = isReturning ? 300 : 800;
     
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
     }, minDuration);
 
-    // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe)
+    // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe for "Trouble Starting" issues)
+    // Even if Firebase is exhausted or app-ready fails, splash MUST vanish.
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
     }, 2500);
@@ -54,7 +56,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 400); // Faster fade
+      }, 400); 
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';

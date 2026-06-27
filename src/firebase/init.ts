@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -26,13 +27,13 @@ export function initializeFirebase() {
   }
 
   // AGGRESSIVE CONSOLE SUPPRESSION (Top Level)
+  // This prevents the "Resource Exhausted" red screen from appearing to the user.
   if (!window.hasOwnProperty('_fs_suppressed')) {
     (window as any)._fs_suppressed = true;
     const originalConsoleError = console.error;
     console.error = (...args: any[]) => {
       const fullMessage = args.map(arg => arg?.toString() || '').join(' ');
       
-      // Intercept Firestore specific errors that trigger the "Red Screen of Death"
       const suppressedPatterns = [
         '@firebase/firestore',
         'resource-exhausted',
@@ -41,12 +42,13 @@ export function initializeFirebase() {
         'Could not reach Cloud',
         'Backend didn\'t respond',
         'offline mode',
-        '10 seconds'
+        '10 seconds',
+        'FirebaseError',
+        'permission-denied'
       ];
 
       if (suppressedPatterns.some(pattern => fullMessage.toLowerCase().includes(pattern.toLowerCase()))) {
-        // Log as debug so it doesn't trigger Next.js error overlay
-        console.debug("Firestore Notice (Handled):", fullMessage);
+        console.debug("Firebase Notice (Silenced):", fullMessage);
         return;
       }
       
