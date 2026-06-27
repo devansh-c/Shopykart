@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -91,7 +92,8 @@ export function TopTenProducts() {
         {filteredTopProducts.map((product, index) => {
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/600`;
           const vendor = vendors?.find(v => v.id === product.vendorId);
-          const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
+          // DEEP OFFLINE CHECK
+          const isOffline = (vendor?.isOnline === false) || (vendor?.isOnline !== false && product.isAvailable === false);
           const colorClass = CARD_COLORS[index % CARD_COLORS.length];
           
           return (

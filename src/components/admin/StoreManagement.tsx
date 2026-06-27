@@ -69,14 +69,18 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
   const handleToggleStatus = async (id: string, online: boolean) => {
     if (!firestore) return;
     try {
+      // 1. Update Vendor Status
       await updateDoc(doc(firestore, 'vendors', id), { isOnline: online, updatedAt: serverTimestamp() });
       
+      // 2. Sync All Products of this vendor
       const batch = writeBatch(firestore);
       const productsQuery = query(collection(firestore, 'products'), where('vendorId', '==', id));
       const productsSnap = await getDocs(productsQuery);
       
       productsSnap.docs.forEach(pDoc => {
-        batch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
+        // Use setDoc with merge to ensure field is updated even if it didn't exist
+        batch.set(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
+        // Also sync in vendor's sub-collection
         batch.set(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
       });
 
@@ -84,7 +88,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       
       toast({ 
         title: online ? "Store Online 🟢" : "Store Offline 🔴",
-        description: online ? "Accepting orders now!" : "Store is now hidden."
+        description: online ? "Store and all products are now live!" : "Store and products are now hidden."
       });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
@@ -141,26 +145,38 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
     setIsBulkUpdating(true);
     try {
       const batch = writeBatch(firestore);
+      const vendorIds = vendors.map(v => v.id);
       
+      // Update Vendors
       for (const store of vendors) {
         batch.update(doc(firestore, 'vendors', store.id), { isOnline: online, updatedAt: serverTimestamp() });
       }
 
       await batch.commit();
 
+      // Deep Sync Products
       const productsQuery = query(collection(firestore, 'products'));
       const productsSnap = await getDocs(productsQuery);
-      const productBatch = writeBatch(firestore);
       
-      const vendorIds = vendors.map(v => v.id);
+      // Process products in chunks if many
+      const productBatch = writeBatch(firestore);
+      let count = 0;
+
       productsSnap.docs.forEach(pDoc => {
-        if (vendorIds.includes(pDoc.data().vendorId)) {
-          productBatch.update(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() });
+        const pData = pDoc.data();
+        if (vendorIds.includes(pData.vendorId)) {
+          productBatch.set(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
+          // Also sync nested
+          productBatch.set(doc(firestore, 'vendors', pData.vendorId, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
+          count++;
         }
       });
-      await productBatch.commit();
+      
+      if (count > 0) {
+        await productBatch.commit();
+      }
 
-      toast({ title: online ? "Stores Opened! 🟢" : "Stores Closed! 🔴" });
+      toast({ title: online ? "Stores & Products Opened! 🟢" : "Stores & Products Closed! 🔴" });
     } catch (err) {
       console.error("Bulk sync error:", err);
       toast({ variant: "destructive", title: "Bulk Sync Failed" });

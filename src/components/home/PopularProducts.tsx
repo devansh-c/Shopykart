@@ -13,7 +13,9 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
-  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
+  // RELIABLE OFFLINE CHECK: If vendor is online, we prioritize that over individual product availability
+  // unless product is explicitly set to available: false.
+  const isOffline = (vendor?.isOnline === false) || (vendor?.isOnline !== false && product.isAvailable === false);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
   // SHOWOFF PRICE: Always show discount on Home page for attraction if sale is active
