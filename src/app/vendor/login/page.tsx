@@ -23,39 +23,51 @@ function LoginPageContent() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showFormAnyway, setShowFormAnyway] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, loading: authLoading } = useUser();
 
-  // STABLE AUTO-REDIRECT: If already logged in, skip the form entirely
+  // STABLE AUTO-REDIRECT & FAIL-SAFE TIMEOUT
   useEffect(() => {
-    if (authLoading || !user || !firestore || isRedirecting) return;
+    if (authLoading) return;
+
+    // Fail-safe: If stuck on "Restoring..." for more than 2.5s, just show the form
+    const failSafe = setTimeout(() => {
+      if (!isRedirecting) setShowFormAnyway(true);
+    }, 2500);
 
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!sessionActive) return;
-
-    const checkProfile = async () => {
-      try {
-        setIsRedirecting(true);
-        const vendorRef = doc(firestore, 'vendors', user.uid);
-        const vendorSnap = await getDoc(vendorRef);
-        
-        if (vendorSnap.exists()) {
-          const data = vendorSnap.data();
-          if (data.category === 'Medical') router.replace('/Medical/store');
-          else if (data.category === 'Beauty') router.replace('/Beauty/store');
-          else router.replace('/vendor/dashboard');
-        } else {
-          // If user exists in Auth but not in Vendors, it might be a Customer
+    
+    if (user && firestore && sessionActive && !isRedirecting) {
+      const checkProfile = async () => {
+        try {
+          setIsRedirecting(true);
+          const vendorRef = doc(firestore, 'vendors', user.uid);
+          const vendorSnap = await getDoc(vendorRef);
+          
+          if (vendorSnap.exists()) {
+            const data = vendorSnap.data();
+            if (data.category === 'Medical') router.replace('/Medical/store');
+            else if (data.category === 'Beauty') router.replace('/Beauty/store');
+            else router.replace('/vendor/dashboard');
+          } else {
+            setIsRedirecting(false);
+            setShowFormAnyway(true);
+          }
+        } catch (e) {
           setIsRedirecting(false);
+          setShowFormAnyway(true);
         }
-      } catch (e) {
-        setIsRedirecting(false);
-      }
-    };
-    checkProfile();
+      };
+      checkProfile();
+    } else if (!user || !sessionActive) {
+      setShowFormAnyway(true);
+    }
+
+    return () => clearTimeout(failSafe);
   }, [user, authLoading, firestore, router, isRedirecting]);
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -74,7 +86,6 @@ function LoginPageContent() {
     let loginEmail = input;
 
     try {
-      // 1. Resolve Store ID to Email if needed
       if (!input.includes('@')) {
         const q = query(collection(firestore, 'vendors'), where('storeId', '==', input));
         const querySnapshot = await getDocs(q);
@@ -86,11 +97,9 @@ function LoginPageContent() {
         loginEmail = querySnapshot.docs[0].data().email; 
       }
 
-      // 2. Firebase Sign In
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, pass);
       const authenticatedUser = userCredential.user;
 
-      // 3. Verify Vendor Status
       const vendorRef = doc(firestore, 'vendors', authenticatedUser.uid);
       const vendorSnap = await getDoc(vendorRef);
 
@@ -103,25 +112,23 @@ function LoginPageContent() {
 
       const vendorData = vendorSnap.data();
       localStorage.setItem('shopykart_session_active', 'true');
-      toast({ title: "Authenticated", description: `Welcome ${vendorData.storeName}` });
+      toast({ title: "Authenticated" });
       
-      // 4. Role-based Route
       if (vendorData.category === 'Medical') router.replace('/Medical/store');
       else if (vendorData.category === 'Beauty') router.replace('/Beauty/store');
       else router.replace('/vendor/dashboard');
       
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Login Failed", description: "Invalid credentials." });
+      toast({ variant: "destructive", title: "Login Failed" });
       setLoading(false);
     }
   };
 
-  // While redirecting or checking auth, show minimal professional state
-  if (isRedirecting || (user && !authLoading)) {
+  if (isRedirecting && !showFormAnyway) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Restoring secure session...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic animate-pulse">Restoring secure session...</p>
       </div>
     );
   }

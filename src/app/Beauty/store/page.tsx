@@ -76,15 +76,26 @@ export default function BeautyDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // STABLE AUTH GUARD
+  // AUTH GUARD: Multi-check for stability
   useEffect(() => {
-    if (isMounted && !authLoading && !profileLoading) {
-      const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-      if (!user && !sessionActive) {
-        router.replace('/vendor/login?type=Beauty');
-      } else if (user && !vendorProfile) {
-        if (!sessionActive) router.replace('/vendor/login?type=Beauty');
-      }
+    if (!isMounted || authLoading) return;
+
+    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+
+    if (!user && !sessionActive) {
+      router.replace('/vendor/login?type=Beauty');
+      return;
+    }
+
+    if (!authLoading && !user) {
+      localStorage.removeItem('shopykart_session_active');
+      router.replace('/vendor/login?type=Beauty');
+      return;
+    }
+
+    if (user && !profileLoading && !vendorProfile) {
+       localStorage.removeItem('shopykart_session_active');
+       router.replace('/vendor/login?type=Beauty');
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
@@ -133,7 +144,7 @@ export default function BeautyDashboard() {
     return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-rose-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Access...</p></div>;
   }
 
-  if (!vendorProfile && !profileLoading) return null;
+  if (!vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">

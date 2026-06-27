@@ -83,22 +83,28 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD: Bulletproof logic
+  // AUTH GUARD: Multi-check for stability
   useEffect(() => {
-    if (!isMounted || authLoading || profileLoading) return;
+    if (!isMounted || authLoading) return;
 
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
 
-    // Case 1: No firebase user and no session flag -> Go to Login
+    // Fast check: If no firebase user AND no local session, go to login
     if (!user && !sessionActive) {
       router.replace('/vendor/login');
       return;
     }
 
-    // Case 2: Firebase auth loaded, user found but NO vendor profile -> Access Denied
+    // Secondary check: If Firebase finished loading and STILL no user, even with session active, 
+    // it means session is expired or invalid.
+    if (!authLoading && !user) {
+      localStorage.removeItem('shopykart_session_active');
+      router.replace('/vendor/login');
+      return;
+    }
+
+    // Final check: If user exists but is not a vendor after data settles
     if (user && !profileLoading && !vendorProfile) {
-       // Only logout if they aren't just a regular customer browsing
-       // For vendor portals, we strictly need a vendor doc
        localStorage.removeItem('shopykart_session_active');
        router.replace('/vendor/login');
     }
@@ -185,7 +191,7 @@ export default function VendorDashboard() {
 
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, and Category are required." });
+      toast({ variant: "destructive", title: "Missing Info" });
       return;
     }
 
@@ -245,7 +251,6 @@ export default function VendorDashboard() {
     );
   }
 
-  // If user is not vendor, and we haven't redirected yet, don't render anything
   if (!vendorProfile) return null;
 
   return (
@@ -359,7 +364,7 @@ export default function VendorDashboard() {
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => { setEditingId(p.id); setProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
-                          <button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     ))}
