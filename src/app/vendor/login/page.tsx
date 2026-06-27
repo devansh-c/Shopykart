@@ -29,34 +29,33 @@ function LoginPageContent() {
   const firestore = useFirestore();
   const { user, loading: authLoading } = useUser();
 
-  // AUTO-REDIRECT LOGIC: Ultra-Stable & Faster
+  // STABLE AUTO-REDIRECT: If already logged in, skip the form entirely
   useEffect(() => {
+    if (authLoading || !user || !firestore || isRedirecting) return;
+
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    
-    if (!authLoading && user && firestore && !isRedirecting && sessionActive) {
-      const checkProfile = async () => {
-        try {
-          setIsRedirecting(true);
-          const vendorRef = doc(firestore, 'vendors', user.uid);
-          const vendorSnap = await getDoc(vendorRef);
-          if (vendorSnap.exists()) {
-            const data = vendorSnap.data();
-            if (data.category === 'Medical') {
-              router.replace('/Medical/store');
-            } else if (data.category === 'Beauty') {
-              router.replace('/Beauty/store');
-            } else {
-              router.replace('/vendor/dashboard');
-            }
-          } else {
-            setIsRedirecting(false);
-          }
-        } catch (e) {
+    if (!sessionActive) return;
+
+    const checkProfile = async () => {
+      try {
+        setIsRedirecting(true);
+        const vendorRef = doc(firestore, 'vendors', user.uid);
+        const vendorSnap = await getDoc(vendorRef);
+        
+        if (vendorSnap.exists()) {
+          const data = vendorSnap.data();
+          if (data.category === 'Medical') router.replace('/Medical/store');
+          else if (data.category === 'Beauty') router.replace('/Beauty/store');
+          else router.replace('/vendor/dashboard');
+        } else {
+          // If user exists in Auth but not in Vendors, it might be a Customer
           setIsRedirecting(false);
         }
-      };
-      checkProfile();
-    }
+      } catch (e) {
+        setIsRedirecting(false);
+      }
+    };
+    checkProfile();
   }, [user, authLoading, firestore, router, isRedirecting]);
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -67,7 +66,7 @@ function LoginPageContent() {
     const pass = password.trim();
 
     if (!input || !pass) {
-      toast({ variant: "destructive", title: "Missing Credentials" });
+      toast({ variant: "destructive", title: "Credentials Missing" });
       return;
     }
 
@@ -75,47 +74,56 @@ function LoginPageContent() {
     let loginEmail = input;
 
     try {
+      // 1. Resolve Store ID to Email if needed
       if (!input.includes('@')) {
         const q = query(collection(firestore, 'vendors'), where('storeId', '==', input));
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
-          toast({ variant: "destructive", title: "Access Denied", description: "No store found with this ID." });
+          toast({ variant: "destructive", title: "Access Denied", description: "Invalid Store ID." });
           setLoading(false);
           return;
         }
         loginEmail = querySnapshot.docs[0].data().email; 
       }
 
+      // 2. Firebase Sign In
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, pass);
       const authenticatedUser = userCredential.user;
 
+      // 3. Verify Vendor Status
       const vendorRef = doc(firestore, 'vendors', authenticatedUser.uid);
       const vendorSnap = await getDoc(vendorRef);
 
       if (!vendorSnap.exists()) {
         await signOut(auth);
-        toast({ variant: "destructive", title: "Access Denied", description: "Account is not a registered vendor." });
+        toast({ variant: "destructive", title: "Access Denied", description: "Not a registered vendor." });
         setLoading(false);
         return;
       }
 
       const vendorData = vendorSnap.data();
       localStorage.setItem('shopykart_session_active', 'true');
-      toast({ title: "Welcome back!", description: vendorData.storeName });
+      toast({ title: "Authenticated", description: `Welcome ${vendorData.storeName}` });
       
+      // 4. Role-based Route
       if (vendorData.category === 'Medical') router.replace('/Medical/store');
       else if (vendorData.category === 'Beauty') router.replace('/Beauty/store');
       else router.replace('/vendor/dashboard');
       
     } catch (err: any) {
-      console.error("Login Error:", err);
-      toast({ variant: "destructive", title: "Authentication Failed", description: "Invalid ID or Password." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Invalid credentials." });
       setLoading(false);
     }
   };
 
-  if (isRedirecting) {
-    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Redirecting to Dashboard...</p></div>;
+  // While redirecting or checking auth, show minimal professional state
+  if (isRedirecting || (user && !authLoading)) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Restoring secure session...</p>
+      </div>
+    );
   }
 
   return (

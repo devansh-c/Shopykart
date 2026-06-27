@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -75,14 +76,35 @@ export default function VendorDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // Vendor Profile
+  // Vendor Profile Hook
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // Fetch Categories for selection
+  // AUTH GUARD: Bulletproof logic
+  useEffect(() => {
+    if (!isMounted || authLoading || profileLoading) return;
+
+    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+
+    // Case 1: No firebase user and no session flag -> Go to Login
+    if (!user && !sessionActive) {
+      router.replace('/vendor/login');
+      return;
+    }
+
+    // Case 2: Firebase auth loaded, user found but NO vendor profile -> Access Denied
+    if (user && !profileLoading && !vendorProfile) {
+       // Only logout if they aren't just a regular customer browsing
+       // For vendor portals, we strictly need a vendor doc
+       localStorage.removeItem('shopykart_session_active');
+       router.replace('/vendor/login');
+    }
+  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
+
+  // Fetch Categories
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
@@ -94,18 +116,6 @@ export default function VendorDashboard() {
     const vType = (vendorProfile.category || 'Food').toLowerCase();
     return allCategories.filter((cat: any) => (cat.serviceType || 'Food').toLowerCase() === vType);
   }, [allCategories, vendorProfile]);
-
-  // STABLE AUTH GUARD
-  useEffect(() => {
-    if (isMounted && !authLoading && !profileLoading) {
-      const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-      if (!user && !sessionActive) {
-        router.replace('/vendor/login');
-      } else if (user && !vendorProfile) {
-        if (!sessionActive) router.replace('/vendor/login');
-      }
-    }
-  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -227,10 +237,16 @@ export default function VendorDashboard() {
   }, [orders, orderFilter]);
 
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
-    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Portal Security...</p></div>;
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Opening your portal...</p>
+      </div>
+    );
   }
 
-  if (!vendorProfile && !profileLoading) return null;
+  // If user is not vendor, and we haven't redirected yet, don't render anything
+  if (!vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
