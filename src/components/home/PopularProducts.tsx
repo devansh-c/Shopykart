@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -63,7 +62,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
           <div className="flex items-baseline gap-2 mb-2">
              <div className="text-xl font-black text-primary italic">₹{showoffPrice.toFixed(0)}</div>
-             {isSaleActive && <div className="text-xs font-bold text-gray-400 line-through">₹{basePrice}</div>}
+             {isSaleActive && <div className="text-sm font-bold text-gray-400 line-through">₹{basePrice}</div>}
           </div>
           
           <div className="flex items-center gap-2">
@@ -181,6 +180,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbProducts.filter(product => {
+      if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
       const productMode = product.serviceMode || vendor?.category || 'Food';
       if (productMode !== activeMode) return false;

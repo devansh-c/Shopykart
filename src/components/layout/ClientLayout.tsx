@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -52,14 +51,14 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
-    // Fail-safe: Mark as ready after 1 second even if Firebase is exhausted/slow
-    const failSafeTimer = setTimeout(() => onReady(true), 1000);
+    // Fail-safe: Mark as ready after 800ms even if Firebase is slow
+    const failSafeTimer = setTimeout(() => onReady(true), 800);
 
     if (!loading) {
       clearTimeout(failSafeTimer);
       onReady(true);
       if (!user && !hasActiveSession) {
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1000);
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1200);
         return () => clearTimeout(authTimer);
       }
     }

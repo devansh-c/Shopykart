@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -44,7 +43,9 @@ export function initializeFirebase() {
         'offline mode',
         '10 seconds',
         'FirebaseError',
-        'permission-denied'
+        'permission-denied',
+        'auth/network-request-failed',
+        'Internal Server Error'
       ];
 
       if (suppressedPatterns.some(pattern => fullMessage.toLowerCase().includes(pattern.toLowerCase()))) {
