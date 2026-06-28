@@ -47,13 +47,18 @@ const isStoreScheduleOpen = (store: any) => {
 
   const parseTime = (t: string) => {
     try {
-      const parts = t.trim().split(' ');
-      if (parts.length < 2) return 0;
-      const [time, modifier] = parts;
-      let [hours, minutes] = time.split(':').map(Number);
-      if (modifier === 'PM' && hours < 12) hours += 12;
-      if (modifier === 'AM' && hours === 12) hours = 0;
-      return hours * 60 + (minutes || 0);
+      const clean = t.trim().toUpperCase();
+      const match = clean.match(/(\d+):(\d+)\s*(AM|PM)/);
+      if (!match) return 0;
+      
+      let [_, h, m, mod] = match;
+      let hours = parseInt(h, 10);
+      let minutes = parseInt(m, 10);
+      
+      if (mod === 'PM' && hours < 12) hours += 12;
+      if (mod === 'AM' && hours === 12) hours = 0;
+      
+      return hours * 60 + minutes;
     } catch (e) { return 0; }
   };
 
@@ -83,7 +88,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const vendor = vendors?.find(v => v.id === product.vendorId);
-  // Robust offline check including timing
   const isScheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
   const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !isScheduleOpen;
 

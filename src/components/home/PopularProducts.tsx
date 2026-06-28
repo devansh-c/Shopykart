@@ -13,7 +13,7 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
 
 const isStoreScheduleOpen = (store: any) => {
-  if (!store) return true; // Default to open if data not yet arrived to prevent flicker
+  if (!store) return true;
   if (store.isOnline === false) return false;
   if (!store.openingTime || !store.closingTime) return true;
 
@@ -22,13 +22,18 @@ const isStoreScheduleOpen = (store: any) => {
 
   const parseTime = (t: string) => {
     try {
-      const parts = t.trim().split(' ');
-      if (parts.length < 2) return 0;
-      const [time, modifier] = parts;
-      let [hours, minutes] = time.split(':').map(Number);
-      if (modifier === 'PM' && hours < 12) hours += 12;
-      if (modifier === 'AM' && hours === 12) hours = 0;
-      return hours * 60 + (minutes || 0);
+      const clean = t.trim().toUpperCase();
+      const match = clean.match(/(\d+):(\d+)\s*(AM|PM)/);
+      if (!match) return 0;
+      
+      let [_, h, m, mod] = match;
+      let hours = parseInt(h, 10);
+      let minutes = parseInt(m, 10);
+      
+      if (mod === 'PM' && hours < 12) hours += 12;
+      if (mod === 'AM' && hours === 12) hours = 0;
+      
+      return hours * 60 + minutes;
     } catch (e) { return 0; }
   };
 
@@ -38,13 +43,12 @@ const isStoreScheduleOpen = (store: any) => {
   if (start < end) {
     return currentTime >= start && currentTime <= end;
   } else {
-    // Cross midnight
+    // Handles cross-midnight scenarios (e.g., 6 PM to 2 AM)
     return currentTime >= start || currentTime <= end;
   }
 };
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
-  // CRITICAL FIX: Offline if manual flag is false OR timing is outside range.
   const isScheduleOpen = isStoreScheduleOpen(vendor);
   const isOffline = vendor ? (vendor.isOnline === false || product.isAvailable === false || !isScheduleOpen) : false;
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;

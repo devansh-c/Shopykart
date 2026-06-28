@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -17,6 +18,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const isStoreScheduleOpen = (store: any) => {
+  if (!store) return true;
+  if (store.isOnline === false) return false;
+  if (!store.openingTime || !store.closingTime) return true;
+
+  const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (t: string) => {
+    try {
+      const clean = t.trim().toUpperCase();
+      const match = clean.match(/(\d+):(\d+)\s*(AM|PM)/);
+      if (!match) return 0;
+      
+      let [_, h, m, mod] = match;
+      let hours = parseInt(h, 10);
+      let minutes = parseInt(m, 10);
+      
+      if (mod === 'PM' && hours < 12) hours += 12;
+      if (mod === 'AM' && hours === 12) hours = 0;
+      
+      return hours * 60 + minutes;
+    } catch (e) { return 0; }
+  };
+
+  const start = parseTime(store.openingTime);
+  const end = parseTime(store.closingTime);
+
+  if (start < end) {
+    return currentTime >= start && currentTime <= end;
+  } else {
+    return currentTime >= start || currentTime <= end;
+  }
+};
 
 export default function MenuContent() {
   const searchParams = useSearchParams();
@@ -41,7 +77,8 @@ export default function MenuContent() {
   }, [firestore, vendorIdParam]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
-  const isOffline = vendorProfile?.isOnline === false;
+  const isScheduleOpen = isStoreScheduleOpen(vendorProfile);
+  const isOffline = vendorProfile?.isOnline === false || !isScheduleOpen;
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -63,8 +100,8 @@ export default function MenuContent() {
     result.sort((a: any, b: any) => {
       const vA = allVendors.find(v => v.id === a.vendorId);
       const vB = allVendors.find(v => v.id === b.vendorId);
-      const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
-      const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
+      const onlineA = (vA?.isOnline !== false && a.isAvailable !== false && isStoreScheduleOpen(vA)) ? 1 : 0;
+      const onlineB = (vB?.isOnline !== false && b.isAvailable !== false && isStoreScheduleOpen(vB)) ? 1 : 0;
 
       if (onlineA !== onlineB) return onlineB - onlineA;
 
@@ -105,7 +142,9 @@ export default function MenuContent() {
             
             {isOffline && (
                <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
-                  <span className="text-white font-black text-4xl uppercase italic tracking-tighter">Closed Now</span>
+                  <span className="text-white font-black text-4xl uppercase italic tracking-tighter">
+                    {vendorProfile?.isOnline === false ? 'Closed Now' : 'Timing Closed'}
+                  </span>
                </div>
             )}
 
@@ -180,7 +219,7 @@ export default function MenuContent() {
             const quantity = cartItem?.quantity || 0;
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/food/400/300`;
             const vendor = allVendors?.find(v => v.id === product.vendorId);
-            const productIsOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
+            const productIsOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !isStoreScheduleOpen(vendor);
 
             return (
               <div 
@@ -191,7 +230,7 @@ export default function MenuContent() {
                 )}
               >
                 <div className="flex-1 pr-4 min-w-0">
-                  <ProductQuickView product={product}>
+                  <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor) : true}>
                     <button className={cn("block text-left w-full", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
@@ -207,7 +246,7 @@ export default function MenuContent() {
                 </div>
                 
                 <div className="relative w-28 h-28 flex-shrink-0">
-                  <ProductQuickView product={product}>
+                  <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor) : true}>
                     <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <img 
                         src={imageUrl} 
@@ -217,7 +256,9 @@ export default function MenuContent() {
                       />
                       {(productIsOffline || isOffline) && (
                         <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
-                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight border border-white/30 px-2 py-1 rounded-md">Unavailable</span>
+                          <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight border border-white/30 px-2 py-1 rounded-md">
+                            {vendor?.isOnline === false ? 'Closed' : !isStoreScheduleOpen(vendor) ? 'Timing' : 'Unavailable'}
+                          </span>
                         </div>
                       )}
                     </button>
@@ -228,7 +269,7 @@ export default function MenuContent() {
                         OFFLINE
                       </div>
                     ) : quantity === 0 ? (
-                      <ProductQuickView product={product}>
+                      <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor) : true}>
                         <button 
                           className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all"
                         >

@@ -307,7 +307,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                           <div className="bg-primary/5 p-5 rounded-[1.5rem] border border-primary/10 space-y-4">
                              <div className="flex items-center gap-2 mb-1">
                                <Timer className="h-4 w-4 text-primary" />
-                               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Working Hours (Automatic)</span>
+                               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Working Hours (Format: HH:MM AM/PM)</span>
                              </div>
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
