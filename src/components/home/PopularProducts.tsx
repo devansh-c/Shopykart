@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -12,12 +13,11 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
-  // RELIABLE OFFLINE CHECK: If vendor is online, we prioritize that over individual product availability
-  // unless product is explicitly set to available: false.
-  const isOffline = (vendor?.isOnline === false) || (vendor?.isOnline !== false && product.isAvailable === false);
+  // CRITICAL FIX: Only mark as offline if we DEFINITELY know the vendor is offline.
+  // If vendor data hasn't arrived yet, don't show "Closed" to prevent flickering.
+  const isOffline = vendor ? (vendor.isOnline === false || product.isAvailable === false) : false;
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
-  // SHOWOFF PRICE: Always show discount on Home page for attraction if sale is active
   const basePrice = product.price || 0;
   const isSaleActive = globalOffer?.isActive;
   
@@ -30,8 +30,6 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 
   const handleQuickAdd = () => {
     if (isOffline) return;
-    
-    // REAL PRICE CALCULATION: Checks if Milestone toggle is ON in Admin
     const isClosedMode = globalOffer?.isClosedAfterMilestone === true;
     const finalPrice = (isSaleActive && !isClosedMode) ? showoffPrice : basePrice;
 
@@ -80,7 +78,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
           {isOffline && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center transition-opacity animate-in fade-in duration-300">
-              <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed</span>
+              <span className="text-white font-black text-12px uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed</span>
             </div>
           )}
         </div>
@@ -152,9 +150,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery);
 
-  // Global Offer Hook
   const offerRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'global_offer');
@@ -174,7 +171,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [cart]);
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts) return [];
+    // CRITICAL: If data is still loading from database, return empty to trigger skeletons
+    // instead of showing potentially stale or "Closed" looking items.
+    if (!dbProducts || (vendorsLoading && !vendors)) return [];
+    
     const searchLower = searchQuery.toLowerCase().trim();
     const categoryLower = category.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
@@ -197,8 +197,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     }).sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
-      const onlineA = (vA?.isOnline !== false && a.isAvailable !== false) ? 1 : 0;
-      const onlineB = (vB?.isOnline !== false && b.isAvailable !== false) ? 1 : 0;
+      
+      // Default to "Open" (1) if vendor is still loading to prevent flicker
+      const onlineA = vA ? (vA.isOnline !== false && a.isAvailable !== false ? 1 : 0) : 1;
+      const onlineB = vB ? (vB.isOnline !== false && b.isAvailable !== false ? 1 : 0) : 1;
       
       if (onlineA !== onlineB) return onlineB - onlineA;
       
@@ -206,7 +208,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const ratingB = vB?.rating || 0;
       return ratingB - ratingA;
     });
-  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode]);
+  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, vendors, vendorsLoading]);
 
   const navigateToProduct = (id: string) => {
     startTransition(() => {
@@ -214,7 +216,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
+  if ((productsLoading || vendorsLoading) && (!dbProducts || dbProducts.length === 0)) {
     return (
       <div className="px-4 py-8 space-y-6">
         <ProductSkeleton />
@@ -244,7 +246,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             globalOffer={globalOffer}
           />
         ))}
-        {productsToDisplay.length === 0 && !productsLoading && (
+        {productsToDisplay.length === 0 && !productsLoading && !vendorsLoading && (
           <div className="text-center py-20 opacity-30">
             <ShoppingBag className="h-16 w-16 mx-auto mb-4" />
             <p className="font-black italic uppercase tracking-widest text-sm">No Items Found</p>

@@ -9,10 +9,6 @@ import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
-/**
- * @fileOverview Redesigned Compact Premium Store Section.
- * Updated: Increased rounding to 3xl and further reduced height for a compact feel.
- */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
@@ -63,6 +59,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       
       return isApproved && matchesMode;
     }).sort((a, b) => {
+      // Default to "Open" if undefined to prevent flicker
       const onlineA = a.isOnline !== false ? 1 : 0;
       const onlineB = b.isOnline !== false ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;

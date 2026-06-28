@@ -10,9 +10,6 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
-/**
- * @fileOverview Stores listing page with slightly rounded edges and compact length.
- */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
