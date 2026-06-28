@@ -14,19 +14,19 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * Standardized Time Parser for Automatic Timing System.
- * Supports: "9:00 AM", "09:00AM", "9 AM", "21:00", etc.
+ * Supports: "9:00 AM", "09.00AM", "9 AM", "21:00", "0930", etc.
  */
 const parseTime = (t: string) => {
   if (!t) return 0;
   try {
     const clean = t.trim().toUpperCase();
-    // Handles formats like 09:30 AM or 9 AM
-    const match = clean.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
+    // Improved regex to handle various separators and formats
+    const match = clean.match(/(\d+)(?:[:.\s](\d+))?\s*(AM|PM)?/);
     if (!match) return 0;
     
     let hours = parseInt(match[1], 10);
     let minutes = parseInt(match[2] || '0', 10);
-    let mod = match[3];
+    const mod = match[3];
     
     if (mod === 'PM' && hours < 12) hours += 12;
     if (mod === 'AM' && hours === 12) hours = 0;
@@ -120,7 +120,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           {isOffline && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center transition-opacity animate-in fade-in duration-300">
               <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">
-                {vendor?.isOnline === false ? 'Closed' : !isScheduleOpen ? `Opens at ${vendor.openingTime}` : 'Offline'}
+                {vendor?.isOnline === false ? 'Closed' : !isScheduleOpen ? `Opens at ${vendor?.openingTime || '09:00 AM'}` : 'Offline'}
               </span>
             </div>
           )}

@@ -24,7 +24,8 @@ import {
   ImageIcon,
   Star,
   Clock,
-  Timer
+  Timer,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -307,7 +308,7 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                           <div className="bg-primary/5 p-5 rounded-[1.5rem] border border-primary/10 space-y-4">
                              <div className="flex items-center gap-2 mb-1">
                                <Timer className="h-4 w-4 text-primary" />
-                               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Working Hours (Format: HH:MM AM/PM)</span>
+                               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Working Hours (Format: 09:00 AM)</span>
                              </div>
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
@@ -318,6 +319,10 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                                    <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Closes at</label>
                                    <Input value={editingStore?.closingTime || '11:00 PM'} onChange={e => setEditingStore({...editingStore, closingTime: e.target.value})} placeholder="e.g. 11:00 PM" className="h-10 rounded-xl bg-white border-none font-bold text-center" />
                                 </div>
+                             </div>
+                             <div className="flex gap-2 text-amber-600 bg-amber-50 p-3 rounded-xl">
+                               <AlertCircle className="h-4 w-4 shrink-0" />
+                               <p className="text-[8px] font-bold uppercase leading-tight">Note: Stores tabhi khulenge jab manual toggle upar se "LIVE" ho.</p>
                              </div>
                           </div>
 

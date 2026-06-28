@@ -172,7 +172,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[1px]">
                     <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/30 px-4 py-1.5 rounded-xl backdrop-blur-md">
-                      {store.isOnline === false ? 'CLOSED' : !isScheduleOpen ? `OPENS AT ${store.openingTime}` : 'CLOSED'}
+                      {store.isOnline === false ? 'CLOSED' : !isScheduleOpen ? `OPENS AT ${store.openingTime || '09:00 AM'}` : 'CLOSED'}
                     </span>
                   </div>
                 )}
