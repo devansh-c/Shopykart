@@ -9,6 +9,24 @@ import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
+const parseTime = (t: string) => {
+  if (!t) return 0;
+  try {
+    const clean = t.trim().toUpperCase();
+    const match = clean.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
+    if (!match) return 0;
+    
+    let hours = parseInt(match[1], 10);
+    let minutes = parseInt(match[2] || '0', 10);
+    let mod = match[3];
+    
+    if (mod === 'PM' && hours < 12) hours += 12;
+    if (mod === 'AM' && hours === 12) hours = 0;
+    
+    return hours * 60 + minutes;
+  } catch (e) { return 0; }
+};
+
 const isStoreScheduleOpen = (store: any) => {
   if (!store) return true;
   if (store.isOnline === false) return false;
@@ -17,30 +35,12 @@ const isStoreScheduleOpen = (store: any) => {
   const now = new Date();
   const currentTime = now.getHours() * 60 + now.getMinutes();
 
-  const parseTime = (t: string) => {
-    try {
-      const clean = t.trim().toUpperCase();
-      const match = clean.match(/(\d+):(\d+)\s*(AM|PM)/);
-      if (!match) return 0;
-      
-      let [_, h, m, mod] = match;
-      let hours = parseInt(h, 10);
-      let minutes = parseInt(m, 10);
-      
-      if (mod === 'PM' && hours < 12) hours += 12;
-      if (mod === 'AM' && hours === 12) hours = 0;
-      
-      return hours * 60 + minutes;
-    } catch (e) { return 0; }
-  };
-
   const start = parseTime(store.openingTime);
   const end = parseTime(store.closingTime);
 
   if (start < end) {
     return currentTime >= start && currentTime <= end;
   } else {
-    // Cross-midnight timing
     return currentTime >= start || currentTime <= end;
   }
 };
