@@ -22,7 +22,9 @@ import {
   HeartPulse,
   Camera,
   ImageIcon,
-  Star
+  Star,
+  Clock,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -69,18 +71,14 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
   const handleToggleStatus = async (id: string, online: boolean) => {
     if (!firestore) return;
     try {
-      // 1. Update Vendor Status
       await updateDoc(doc(firestore, 'vendors', id), { isOnline: online, updatedAt: serverTimestamp() });
       
-      // 2. Sync All Products of this vendor
       const batch = writeBatch(firestore);
       const productsQuery = query(collection(firestore, 'products'), where('vendorId', '==', id));
       const productsSnap = await getDocs(productsQuery);
       
       productsSnap.docs.forEach(pDoc => {
-        // Use setDoc with merge to ensure field is updated even if it didn't exist
         batch.set(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
-        // Also sync in vendor's sub-collection
         batch.set(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
       });
 
@@ -108,6 +106,8 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         password: editingStore.password || '',
         imageUrl: editingStore.imageUrl || '',
         rating: parseFloat(editingStore.rating) || 0,
+        openingTime: editingStore.openingTime || '09:00 AM',
+        closingTime: editingStore.closingTime || '11:00 PM',
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
@@ -139,7 +139,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
 
   const handleBulkStatus = async (online: boolean) => {
     if (!firestore || !vendors || vendors.length === 0) return;
-    
     if (!confirm(online ? "Open all stores in this list?" : "Close all stores in this list immediately?")) return;
 
     setIsBulkUpdating(true);
@@ -147,18 +146,13 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       const batch = writeBatch(firestore);
       const vendorIds = vendors.map(v => v.id);
       
-      // Update Vendors
       for (const store of vendors) {
         batch.update(doc(firestore, 'vendors', store.id), { isOnline: online, updatedAt: serverTimestamp() });
       }
-
       await batch.commit();
 
-      // Deep Sync Products
       const productsQuery = query(collection(firestore, 'products'));
       const productsSnap = await getDocs(productsQuery);
-      
-      // Process products in chunks if many
       const productBatch = writeBatch(firestore);
       let count = 0;
 
@@ -166,19 +160,14 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         const pData = pDoc.data();
         if (vendorIds.includes(pData.vendorId)) {
           productBatch.set(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
-          // Also sync nested
           productBatch.set(doc(firestore, 'vendors', pData.vendorId, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
           count++;
         }
       });
       
-      if (count > 0) {
-        await productBatch.commit();
-      }
-
+      if (count > 0) await productBatch.commit();
       toast({ title: online ? "Stores & Products Opened! 🟢" : "Stores & Products Closed! 🔴" });
     } catch (err) {
-      console.error("Bulk sync error:", err);
       toast({ variant: "destructive", title: "Bulk Sync Failed" });
     } finally {
       setIsBulkUpdating(false);
@@ -191,11 +180,11 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
              <div className="bg-primary/20 p-3 rounded-2xl border border-primary/20">
-                {categoryFilter === 'Medical' ? <HeartPulse className="h-6 w-6 text-primary" /> : <Power className="h-6 w-6 text-primary" />}
+                {categoryFilter === 'Medical' ? <HeartPulse className="h-6 w-6 text-primary" /> : <Clock className="h-6 w-6 text-primary" />}
              </div>
              <div>
-                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">{categoryFilter ? `${categoryFilter} Control` : 'Network Master'}</h3>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Instant control for {vendors?.length || 0} vendors</p>
+                <h3 className="text-white font-black italic uppercase tracking-tighter text-lg">Auto-Timing Active</h3>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Managing {vendors?.length || 0} vendors by schedule</p>
              </div>
           </div>
           
@@ -256,13 +245,17 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                 <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border-2 border-primary/10">
                    {store.imageUrl ? <img src={store.imageUrl} className="h-full w-full object-cover" alt="" /> : <Store className="h-7 w-7 m-auto opacity-20" />}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight mb-1 truncate max-w-[120px]">{store.storeName}</h3>
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] font-black uppercase text-primary tracking-widest italic">{store.town}</span>
                     <Badge className="bg-amber-50 text-amber-600 border-none font-black text-[9px] flex items-center gap-1">
                       <Star className="h-2 w-2 fill-amber-600" /> {store.rating || '0.0'}
                     </Badge>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-2 bg-muted/30 px-2 py-0.5 rounded-lg border border-border/50">
+                    <Clock className="h-2.5 w-2.5 text-muted-foreground" />
+                    <span className="text-[8px] font-black text-muted-foreground uppercase">{store.openingTime || '09:00 AM'} - {store.closingTime || '11:00 PM'}</span>
                   </div>
                 </div>
               </div>
@@ -282,16 +275,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                       <span className="text-[11px] font-black text-white tracking-widest uppercase">{store.password || '••••••••'}</span>
                    </div>
                 </div>
-              </div>
-
-              <div className="bg-muted/30 rounded-2xl p-4 space-y-3 mb-6">
-                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
-                       <User className="h-3.5 w-3.5 text-primary" />
-                       {store.firstName || 'Owner'}
-                    </div>
-                    <button onClick={() => window.open(`tel:${store.phone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
-                 </div>
               </div>
 
               <div className="mt-auto flex gap-3">
@@ -320,6 +303,24 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
                              <Input value={editingStore?.storeName || ''} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
                           </div>
+
+                          <div className="bg-primary/5 p-5 rounded-[1.5rem] border border-primary/10 space-y-4">
+                             <div className="flex items-center gap-2 mb-1">
+                               <Timer className="h-4 w-4 text-primary" />
+                               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Working Hours (Automatic)</span>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Opens at</label>
+                                   <Input value={editingStore?.openingTime || '09:00 AM'} onChange={e => setEditingStore({...editingStore, openingTime: e.target.value})} placeholder="e.g. 09:00 AM" className="h-10 rounded-xl bg-white border-none font-bold text-center" />
+                                </div>
+                                <div className="space-y-1">
+                                   <label className="text-[8px] font-black uppercase text-muted-foreground ml-1">Closes at</label>
+                                   <Input value={editingStore?.closingTime || '11:00 PM'} onChange={e => setEditingStore({...editingStore, closingTime: e.target.value})} placeholder="e.g. 11:00 PM" className="h-10 rounded-xl bg-white border-none font-bold text-center" />
+                                </div>
+                             </div>
+                          </div>
+
                           <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Phone Number</label>

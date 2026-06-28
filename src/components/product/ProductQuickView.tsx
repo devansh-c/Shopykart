@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -14,7 +15,8 @@ import {
   Calendar,
   AlertCircle,
   Zap,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -32,9 +34,40 @@ interface ProductQuickViewProps {
   children: React.ReactNode;
   isMedical?: boolean;
   globalOffer?: any;
+  vendorScheduleOpen?: boolean;
 }
 
-export function ProductQuickView({ product, children, isMedical, globalOffer }: ProductQuickViewProps) {
+const isStoreScheduleOpen = (store: any) => {
+  if (!store) return true;
+  if (store.isOnline === false) return false;
+  if (!store.openingTime || !store.closingTime) return true;
+
+  const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (t: string) => {
+    try {
+      const parts = t.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
+      let [hours, minutes] = time.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    } catch (e) { return 0; }
+  };
+
+  const start = parseTime(store.openingTime);
+  const end = parseTime(store.closingTime);
+
+  if (start < end) {
+    return currentTime >= start && currentTime <= end;
+  } else {
+    return currentTime >= start || currentTime <= end;
+  }
+};
+
+export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -50,13 +83,14 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const vendor = vendors?.find(v => v.id === product.vendorId);
-  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false);
+  // Robust offline check including timing
+  const isScheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
+  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !isScheduleOpen;
 
   const liked = isInWishlist(product.id);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
   const hasOptions = product.options && product.options.length > 0;
 
-  // MILESTONE LOGIC: Strictly enforced Original Price if isClosedAfterMilestone is ON.
   const isSaleActive = globalOffer?.isActive;
   const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone === true;
   
@@ -65,51 +99,29 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
     const optPrice = selectedOption ? selectedOption.price : 0;
     const totalBase = base + optPrice;
 
-    // Milestone Check: If mode is ON, return original price immediately
-    if (isClosedMode) {
-      return totalBase;
-    }
+    if (isClosedMode) return totalBase;
 
-    // Apply discount only if sale is active and NOT in milestone mode
     if (isSaleActive) {
       const val = Number(globalOffer.value) || 0;
       if (globalOffer.type === 'percentage') return totalBase * (1 - val / 100);
       return Math.max(0, totalBase - val);
     }
-
     return totalBase;
   }, [product, selectedOption, isSaleActive, isClosedMode, globalOffer]);
 
   const handleAddToCart = () => {
     if (isOffline) return;
-
     if (product.isVarietyRequired && !selectedOption && hasOptions) {
-      toast({ 
-        variant: "destructive", 
-        title: "Selection Required", 
-        description: "Please select a variety first." 
-      });
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a variety first." });
       return;
     }
 
-    addToCart({ 
-      ...product, 
-      imageUrl, 
-      quantity: localQuantity,
-      selectedOption: selectedOption,
-      instructions: isMedical ? '' : instructions,
-      price: currentPrice // This is the strictly calculated price based on Milestone Mode
-    });
-    
+    addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption: selectedOption, instructions: isMedical ? '' : instructions, price: currentPrice });
     setIsOpen(false);
     setLocalQuantity(1);
     setSelectedOption(null);
     setInstructions('');
-    
-    toast({
-      title: "Added to Bag",
-      description: `${product.name} added successfully.`
-    });
+    toast({ title: "Added to Bag", description: `${product.name} added successfully.` });
   };
 
   const rating = useMemo(() => {
@@ -119,21 +131,11 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl animate-in fade-in zoom-in duration-75 focus:outline-none bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] z-[11000]">
-        <DialogHeader className="sr-only">
-          <DialogTitle>{product.name}</DialogTitle>
-        </DialogHeader>
-        
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl focus:outline-none bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] z-[11000]">
+        <DialogHeader className="sr-only"><DialogTitle>{product.name}</DialogTitle></DialogHeader>
         <div className="bg-white relative max-h-[90vh] overflow-y-auto no-scrollbar pb-32">
-          <button 
-            onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border border-border/50 flex items-center justify-center text-gray-400 active:scale-90 transition-none z-50"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border border-border/50 flex items-center justify-center text-gray-400 active:scale-90 transition-none z-50"><X className="h-4 w-4" /></button>
 
           <div className="p-6 pt-10 pb-4">
              <div className="flex gap-4">
@@ -145,7 +147,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                       </div>
                    )}
                 </div>
-                
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                    <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -154,38 +155,36 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic truncate">{product.restaurantName || 'ShopyKart Store'}</p>
-                        {product.isSilentPackaging && (
-                          <Badge className="bg-black text-white text-[6px] px-1 py-0 rounded flex items-center gap-1 uppercase border-none shadow-sm">
-                             <ShieldCheck className="h-2 w-2" /> Silent
-                          </Badge>
-                        )}
                       </div>
-                      
                       <div className="flex items-center gap-1.5 mt-1.5">
                          <div className="flex items-center gap-0.5">
-                            <span className="text-[10px] font-black text-gray-800 mr-1">{rating}</span>
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} className={cn("h-3 w-3", s <= parseFloat(rating) ? "fill-amber-400 text-amber-400" : "text-gray-200")} />
-                            ))}
+                           <span className="text-[10px] font-black text-gray-800 mr-1">{rating}</span>
+                           {[1, 2, 3, 4, 5].map((s) => (
+                             <Star key={s} className={cn("h-3 w-3", s <= parseFloat(rating) ? "fill-amber-400 text-amber-400" : "text-gray-200")} />
+                           ))}
                          </div>
                          <span className="text-[9px] font-bold text-gray-400 ml-0.5">({product.reviewsCount || '35'})</span>
                       </div>
                    </div>
-
                    <div className="flex justify-between items-center mt-2">
-                      <div className="flex flex-col">
-                        <div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹ {(currentPrice || 0).toFixed(0)}</div>
-                      </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                        className={cn("p-2 rounded-xl bg-gray-50 transition-none active:scale-75", liked ? "text-primary shadow-inner" : "text-gray-300")}
-                      >
-                        <Heart className={cn("h-5 w-5", liked && "fill-primary")} />
-                      </button>
+                      <div className="flex flex-col"><div className="text-2xl font-black text-gray-900 italic tracking-tighter leading-none">₹ {(currentPrice || 0).toFixed(0)}</div></div>
+                      <button onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }} className={cn("p-2 rounded-xl bg-gray-50 transition-none active:scale-75", liked ? "text-primary shadow-inner" : "text-gray-300")}><Heart className={cn("h-5 w-5", liked && "fill-primary")} /></button>
                    </div>
                 </div>
              </div>
           </div>
+
+          {!isScheduleOpen && vendor && (
+             <div className="px-6 pb-2">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
+                   <div className="bg-amber-500 p-2 rounded-lg text-white"><Clock className="h-4 w-4" /></div>
+                   <div>
+                      <p className="text-[10px] font-black text-amber-700 uppercase tracking-tighter">STORE IS CLOSED</p>
+                      <p className="text-[9px] font-bold text-amber-600 uppercase tracking-widest leading-relaxed mt-0.5">Schedule: {vendor.openingTime} - {vendor.closingTime}. Abhi orders nahi liye ja rahe.</p>
+                   </div>
+                </div>
+             </div>
+          )}
 
           {isClosedMode && (
              <div className="px-6 pb-2">
@@ -193,151 +192,45 @@ export function ProductQuickView({ product, children, isMedical, globalOffer }: 
                    <div className="bg-red-500 p-2 rounded-lg"><AlertCircle className="h-4 w-4 text-white" /></div>
                    <div>
                       <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter">SALE IS CLOSED</p>
-                      <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest leading-relaxed mt-0.5">Our first 10 orders have been completed, so sale is closed. Standard pricing now applies.</p>
+                      <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest leading-relaxed mt-0.5">Our first 10 orders have been completed, so sale is closed.</p>
                    </div>
                 </div>
              </div>
           )}
 
           <div className="px-6 py-2">
-            {product.description && (
-              <p className="text-[11px] font-medium text-muted-foreground leading-relaxed italic line-clamp-3">
-                {product.description}
-              </p>
-            )}
+            {product.description && <p className="text-[11px] font-medium text-muted-foreground leading-relaxed italic line-clamp-3">{product.description}</p>}
           </div>
 
           <div className="px-6 py-4 space-y-5">
-            {(product.isSilentPackaging || product.mfgDate || product.expiryDate) && (
-              <div className="space-y-3">
-                {product.isSilentPackaging && (
-                  <div className="bg-teal-50 p-6 rounded-[2rem] border-2 border-dashed border-teal-200 flex flex-col items-center text-center gap-3 animate-in fade-in zoom-in-95 duration-500">
-                    <ShieldCheck className="h-10 w-10 text-teal-600" />
-                    <div className="space-y-1">
-                      <h4 className="font-black text-lg italic uppercase tracking-tight text-teal-900 leading-none">Silent Packaging Enabled</h4>
-                      <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest leading-relaxed px-4">
-                        Delivered in discreet, unmarked packaging for your 100% privacy.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {(product.mfgDate || product.expiryDate) && (
-                   <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100 space-y-3 shadow-sm">
-                      <div className="flex items-center gap-2 mb-1">
-                         <AlertCircle className="h-3.5 w-3.5 text-gray-400" />
-                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none">Product Information</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                         {product.mfgDate && (
-                           <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">MFG Date</span>
-                              <div className="flex items-center gap-1.5">
-                                 <Calendar className="h-3 w-3 text-gray-400" />
-                                 <span className="text-[10px] font-bold text-gray-700">{product.mfgDate}</span>
-                              </div>
-                           </div>
-                         )}
-                         {product.expiryDate && (
-                           <div className="flex flex-col gap-1">
-                              <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Expiry Date</span>
-                              <div className="flex items-center gap-1.5">
-                                 <Calendar className="h-3 w-3 text-red-400" />
-                                 <span className="text-[10px] font-bold text-red-500">{product.expiryDate}</span>
-                              </div>
-                           </div>
-                         )}
-                      </div>
-                   </div>
-                )}
-              </div>
-            )}
-
             {hasOptions ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                   <h4 className="text-base font-black uppercase tracking-tighter text-gray-800">Addons</h4>
-                   {product.isVarietyRequired ? (
-                     <span className="text-[8px] font-black uppercase text-white bg-primary px-2 py-0.5 rounded-full animate-pulse">Required</span>
-                   ) : (
-                     <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-full italic">Optional</span>
-                   )}
-                </div>
+                <div className="flex items-center justify-between"><h4 className="text-base font-black uppercase tracking-tighter text-gray-800">Addons</h4>{product.isVarietyRequired ? (<span className="text-[8px] font-black uppercase text-white bg-primary px-2 py-0.5 rounded-full animate-pulse">Required</span>) : (<span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-full italic">Optional</span>)}</div>
                 <div className="space-y-2">
                   {product.options.map((opt: any, idx: number) => {
                     const isSelected = selectedOption?.name === opt.name;
                     return (
-                      <button 
-                        key={idx} 
-                        disabled={isOffline}
-                        onClick={() => setSelectedOption(isSelected ? null : opt)}
-                        className={cn(
-                          "w-full flex items-center justify-between p-4 rounded-[1.25rem] border-2 transition-none active:scale-[0.98]",
-                          isSelected ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50/50"
-                        )}
-                      >
-                         <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "h-5 w-5 rounded-lg border-2 flex items-center justify-center transition-none",
-                              isSelected ? "border-primary bg-primary" : "border-gray-300 bg-white"
-                            )}>
-                              {isSelected && <CheckCircle2 className="h-3 w-3 text-white" />}
-                            </div>
-                            <span className="text-sm font-black uppercase italic text-gray-700 tracking-tight">{opt.name}</span>
-                         </div>
+                      <button key={idx} disabled={isOffline} onClick={() => setSelectedOption(isSelected ? null : opt)} className={cn("w-full flex items-center justify-between p-4 rounded-[1.25rem] border-2 transition-none active:scale-[0.98]", isSelected ? "border-primary bg-primary/5 shadow-inner" : "border-gray-50 bg-gray-50/50")}>
+                         <div className="flex items-center gap-3"><div className={cn("h-5 w-5 rounded-lg border-2 flex items-center justify-center transition-none", isSelected ? "border-primary bg-primary" : "border-gray-300 bg-white")}>{isSelected && <CheckCircle2 className="h-3 w-3 text-white" />}</div><span className="text-sm font-black uppercase italic text-gray-700 tracking-tight">{opt.name}</span></div>
                          <span className="text-sm font-black text-gray-400 italic">₹ {opt.price.toFixed(2)}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-            ) : (
-              !isMedical && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                     <Sparkles className="h-3.5 w-3.5 text-primary" />
-                     <h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4>
-                  </div>
-                  <Textarea 
-                    disabled={isOffline}
-                    placeholder="E.g. Don't add onion, make it extra spicy..." 
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    className="rounded-[1.25rem] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 font-medium text-xs min-h-[100px] p-4"
-                  />
-                </div>
-              )
-            )}
+            ) : (!isMedical && (<div className="space-y-3"><div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4></div><Textarea disabled={isOffline} placeholder="E.g. Don't add onion, make it extra spicy..." value={instructions} onChange={(e) => setInstructions(e.target.value)} className="rounded-[1.25rem] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 font-medium text-xs min-h-[100px] p-4" /></div>))}
           </div>
 
           <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className={cn("flex items-center bg-muted/30 rounded-xl h-12 px-1.5 border border-gray-100 shadow-sm", isOffline && "opacity-50")}>
-                   <button 
-                    disabled={isOffline}
-                    onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))}
-                    className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"
-                   >
-                     <Minus className="h-4 w-4" />
-                   </button>
+                   <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"><Minus className="h-4 w-4" /></button>
                    <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
-                   <button 
-                    disabled={isOffline}
-                    onClick={() => setLocalQuantity(localQuantity + 1)}
-                    className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"
-                   >
-                     <Plus className="h-4 w-4" />
-                   </button>
+                   <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"><Plus className="h-4 w-4" /></button>
                 </div>
-
-                <Button 
-                  onClick={handleAddToCart}
-                  disabled={isOffline}
-                  className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none"
-                >
+                <Button onClick={handleAddToCart} disabled={isOffline} className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none">
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  {isOffline ? 'OFFLINE' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                  {isOffline ? (isScheduleOpen ? 'OFFLINE' : 'TIMING CLOSED') : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>
              </div>
           </div>

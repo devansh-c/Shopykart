@@ -9,6 +9,36 @@ import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
+const isStoreScheduleOpen = (store: any) => {
+  if (!store) return true;
+  if (store.isOnline === false) return false;
+  if (!store.openingTime || !store.closingTime) return true;
+
+  const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (t: string) => {
+    try {
+      const parts = t.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
+      let [hours, minutes] = time.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    } catch (e) { return 0; }
+  };
+
+  const start = parseTime(store.openingTime);
+  const end = parseTime(store.closingTime);
+
+  if (start < end) {
+    return currentTime >= start && currentTime <= end;
+  } else {
+    return currentTime >= start || currentTime <= end;
+  }
+};
+
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
@@ -59,9 +89,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       
       return isApproved && matchesMode;
     }).sort((a, b) => {
-      // Default to "Open" if undefined to prevent flicker
-      const onlineA = a.isOnline !== false ? 1 : 0;
-      const onlineB = b.isOnline !== false ? 1 : 0;
+      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a) ? 1 : 0;
+      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
@@ -111,7 +140,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-          const isOffline = store.isOnline === false;
+          const isScheduleOpen = isStoreScheduleOpen(store);
+          const isOffline = store.isOnline === false || !isScheduleOpen;
           const rating = store.rating || '0.0';
           
           return (
@@ -136,7 +166,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[1px]">
                     <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/30 px-4 py-1.5 rounded-xl backdrop-blur-md">
-                      CLOSED
+                      {store.isOnline === false ? 'CLOSED' : !isScheduleOpen ? `OPENS AT ${store.openingTime}` : 'CLOSED'}
                     </span>
                   </div>
                 )}

@@ -12,10 +12,41 @@ import { useRouter } from "next/navigation"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
 
+const isStoreScheduleOpen = (store: any) => {
+  if (!store) return true; // Default to open if data not yet arrived to prevent flicker
+  if (store.isOnline === false) return false;
+  if (!store.openingTime || !store.closingTime) return true;
+
+  const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (t: string) => {
+    try {
+      const parts = t.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
+      let [hours, minutes] = time.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    } catch (e) { return 0; }
+  };
+
+  const start = parseTime(store.openingTime);
+  const end = parseTime(store.closingTime);
+
+  if (start < end) {
+    return currentTime >= start && currentTime <= end;
+  } else {
+    // Cross midnight
+    return currentTime >= start || currentTime <= end;
+  }
+};
+
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
-  // CRITICAL FIX: Only mark as offline if we DEFINITELY know the vendor is offline.
-  // If vendor data hasn't arrived yet, don't show "Closed" to prevent flickering.
-  const isOffline = vendor ? (vendor.isOnline === false || product.isAvailable === false) : false;
+  // CRITICAL FIX: Offline if manual flag is false OR timing is outside range.
+  const isScheduleOpen = isStoreScheduleOpen(vendor);
+  const isOffline = vendor ? (vendor.isOnline === false || product.isAvailable === false || !isScheduleOpen) : false;
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
   const basePrice = product.price || 0;
@@ -78,13 +109,15 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
           {isOffline && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center transition-opacity animate-in fade-in duration-300">
-              <span className="text-white font-black text-12px uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed</span>
+              <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">
+                {vendor?.isOnline === false ? 'Closed' : !isScheduleOpen ? `Opens at ${vendor.openingTime}` : 'Offline'}
+              </span>
             </div>
           )}
         </div>
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
           {quantity === 0 ? (
-            <ProductQuickView product={product} globalOffer={globalOffer}>
+            <ProductQuickView product={product} globalOffer={globalOffer} vendorScheduleOpen={isScheduleOpen}>
               <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
                 {isOffline ? 'OFF' : 'ADD'}
               </button>
@@ -171,8 +204,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [cart]);
 
   const productsToDisplay = useMemo(() => {
-    // CRITICAL: If data is still loading from database, return empty to trigger skeletons
-    // instead of showing potentially stale or "Closed" looking items.
     if (!dbProducts || (vendorsLoading && !vendors)) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
@@ -198,9 +229,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
       
-      // Default to "Open" (1) if vendor is still loading to prevent flicker
-      const onlineA = vA ? (vA.isOnline !== false && a.isAvailable !== false ? 1 : 0) : 1;
-      const onlineB = vB ? (vB.isOnline !== false && b.isAvailable !== false ? 1 : 0) : 1;
+      const onlineA = vA ? (vA.isOnline !== false && a.isAvailable !== false && isStoreScheduleOpen(vA) ? 1 : 0) : 1;
+      const onlineB = vB ? (vB.isOnline !== false && b.isAvailable !== false && isStoreScheduleOpen(vB) ? 1 : 0) : 1;
       
       if (onlineA !== onlineB) return onlineB - onlineA;
       
