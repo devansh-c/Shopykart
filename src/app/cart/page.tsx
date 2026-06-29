@@ -52,9 +52,8 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * ULTRA-RELIABLE MODERN SLIDER (Fixed Interaction Logic)
- * Uses relative startX to ensure sliding works on all devices.
- * Added auto-reset if confirm is triggered but doesn't navigate.
+ * HYPER-SMOOTH PREMIUM SLIDER v3
+ * Features: High-frequency pointer tracking, Hardware acceleration, Spring-physics resets.
  */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
@@ -62,8 +61,8 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const currentXRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
 
-  // Sync state if disabled changed
   useEffect(() => {
     if (isDisabled) {
       setSlideX(0);
@@ -82,27 +81,32 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging || !sliderRef.current) return;
     
-    const rect = sliderRef.current.getBoundingClientRect();
-    const maxX = rect.width - 68; // Handle is 52px + 16px (p-2 padding)
+    // Using RAF for silky smooth frame updates
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     
-    let x = e.clientX - startXRef.current;
-    x = Math.max(0, Math.min(x, maxX));
-    
-    setSlideX(x);
-    currentXRef.current = x;
+    rafRef.current = requestAnimationFrame(() => {
+      const rect = sliderRef.current!.getBoundingClientRect();
+      const maxX = rect.width - 68; // Handle is 52px + 16px padding
+      
+      let x = e.clientX - startXRef.current;
+      x = Math.max(0, Math.min(x, maxX));
+      
+      setSlideX(x);
+      currentXRef.current = x;
+    });
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (!isDragging || !sliderRef.current) return;
     setIsDragging(false);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     
     const maxX = sliderRef.current.clientWidth - 68;
     // Require 85% slide for confirmation
     if (currentXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
-      // Snap back after a short delay if navigation didn't happen
-      // This solves the "stuck at end" issue
+      // Snap back if no immediate navigation (prevents stuck state)
       setTimeout(() => {
         setSlideX(0);
         currentXRef.current = 0;
@@ -117,52 +121,54 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     <div 
       ref={sliderRef} 
       className={cn(
-        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transform-gpu transition-all duration-300",
-        isDisabled ? "bg-gray-100 opacity-60 border-gray-200" : isDragging ? "bg-emerald-600 shadow-emerald-500/20" : "bg-emerald-500 shadow-emerald-500/10"
+        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transition-colors duration-300",
+        isDisabled ? "bg-gray-100 opacity-60" : isDragging ? "bg-emerald-600" : "bg-emerald-500"
       )}
     >
-      {/* Background Text Label */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12">
         <span className={cn(
-          "text-[12px] font-black text-white uppercase italic tracking-widest transition-all duration-300", 
+          "text-[12px] font-black text-white uppercase italic tracking-widest transition-all duration-200", 
           (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(0)}`}
         </span>
         {isDisabled && (
           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-             <AlertCircle className="h-3 w-3" /> FILL DETAILS TO ORDER
+             <AlertCircle className="h-3 w-3" /> FILL DETAILS
           </span>
         )}
       </div>
 
-      {/* The Draggable Handle */}
       <div 
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-all duration-200 touch-none", 
-          isDisabled ? "opacity-30 pointer-events-none" : "opacity-100",
-          isDragging && "shadow-[0_0_20px_rgba(255,255,255,0.6)] scale-105"
+          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu touch-none", 
+          isDisabled ? "opacity-30" : "opacity-100",
+          isDragging && "scale-105"
         )} 
         style={{ 
           transform: `translate3d(${slideX}px, 0, 0)`,
+          transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
           willChange: 'transform'
         }}
       >
         <ChevronRight className={cn(
-          "h-7 w-7 stroke-[3] transition-colors", 
+          "h-7 w-7 stroke-[3]", 
           isDragging ? "text-emerald-600" : "text-emerald-500"
         )} />
       </div>
 
-      {/* Progress Track */}
       {!isDisabled && (
         <div 
-          className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none" 
-          style={{ width: `${slideX + 34}px`, transition: isDragging ? 'none' : 'width 0.3s ease-out' }} 
+          className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none transform-gpu" 
+          style={{ 
+            width: `${slideX + 34}px`, 
+            transition: isDragging ? 'none' : 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+            willChange: 'width'
+          }} 
         />
       )}
     </div>
@@ -204,7 +210,6 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
-  // FETCH VENDORS TO VALIDATE ONLINE STATUS
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
@@ -235,7 +240,6 @@ export default function CartPage() {
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
   }, [cart]);
 
-  // VALIDATE IF ANY STORE IN CART IS OFFLINE
   const blockedVendorNames = useMemo(() => {
     if (!vendors || cart.length === 0) return [];
     const offlineVendors = new Set<string>();
