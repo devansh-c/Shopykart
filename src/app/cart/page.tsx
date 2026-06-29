@@ -54,6 +54,7 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 /**
  * ULTRA-RELIABLE MODERN SLIDER (Fixed Interaction Logic)
  * Uses relative startX to ensure sliding works on all devices.
+ * Added auto-reset if confirm is triggered but doesn't navigate.
  */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
@@ -62,12 +63,19 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   const startXRef = useRef(0);
   const currentXRef = useRef(0);
 
+  // Sync state if disabled changed
+  useEffect(() => {
+    if (isDisabled) {
+      setSlideX(0);
+      currentXRef.current = 0;
+    }
+  }, [isDisabled]);
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (isDisabled) return;
     const handle = e.currentTarget as HTMLElement;
     handle.setPointerCapture(e.pointerId);
     setIsDragging(true);
-    // Track where the user started relative to current position
     startXRef.current = e.clientX - currentXRef.current;
   };
 
@@ -93,6 +101,12 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     if (currentXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
+      // Snap back after a short delay if navigation didn't happen
+      // This solves the "stuck at end" issue
+      setTimeout(() => {
+        setSlideX(0);
+        currentXRef.current = 0;
+      }, 1500);
     } else {
       setSlideX(0);
       currentXRef.current = 0;
@@ -113,7 +127,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
           "text-[12px] font-black text-white uppercase italic tracking-widest transition-all duration-300", 
           (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}>
-          {label || `SLIDE TO ORDER • ₹${total.toFixed(2)}`}
+          {label || `SLIDE TO ORDER • ₹${total.toFixed(0)}`}
         </span>
         {isDisabled && (
           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -129,9 +143,9 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-shadow touch-none", 
+          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-all duration-200 touch-none", 
           isDisabled ? "opacity-30 pointer-events-none" : "opacity-100",
-          isDragging && "shadow-[0_0_20px_rgba(255,255,255,0.6)]"
+          isDragging && "shadow-[0_0_20px_rgba(255,255,255,0.6)] scale-105"
         )} 
         style={{ 
           transform: `translate3d(${slideX}px, 0, 0)`,
@@ -682,7 +696,7 @@ export default function CartPage() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto">
+        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto transform-gpu">
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                  <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
