@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
@@ -8,42 +7,7 @@ import { collection } from "firebase/firestore"
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-
-const parseTime = (t: string) => {
-  if (!t) return 0;
-  try {
-    const clean = t.trim().toUpperCase();
-    const match = clean.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
-    if (!match) return 0;
-    
-    let hours = parseInt(match[1], 10);
-    let minutes = parseInt(match[2] || '0', 10);
-    let mod = match[3];
-    
-    if (mod === 'PM' && hours < 12) hours += 12;
-    if (mod === 'AM' && hours === 12) hours = 0;
-    
-    return hours * 60 + minutes;
-  } catch (e) { return 0; }
-};
-
-const isStoreScheduleOpen = (store: any) => {
-  if (!store) return true;
-  if (store.isOnline === false) return false;
-  if (!store.openingTime || !store.closingTime) return true;
-
-  const now = new Date();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-
-  const start = parseTime(store.openingTime);
-  const end = parseTime(store.closingTime);
-
-  if (start < end) {
-    return currentTime >= start && currentTime <= end;
-  } else {
-    return currentTime >= start || currentTime <= end;
-  }
-};
+import { isStoreScheduleOpen } from "./PopularProducts"
 
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -51,6 +15,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const [isPending, startTransition] = useTransition();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const updateZone = () => {
@@ -59,7 +24,12 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
-    return () => window.removeEventListener('user-address-updated', updateZone);
+    
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => {
+      window.removeEventListener('user-address-updated', updateZone);
+      clearInterval(interval);
+    }
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -146,8 +116,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-          const isScheduleOpen = isStoreScheduleOpen(store);
-          const isOffline = store.isOnline === false || !isScheduleOpen;
+          const scheduleOpen = isStoreScheduleOpen(store);
+          const isOffline = store.isOnline === false || !scheduleOpen;
           const rating = store.rating || '0.0';
           
           return (
@@ -172,7 +142,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[1px]">
                     <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/30 px-4 py-1.5 rounded-xl backdrop-blur-md">
-                      {store.isOnline === false ? 'CLOSED' : !isScheduleOpen ? `OPENS AT ${store.openingTime || '09:00 AM'}` : 'CLOSED'}
+                      {store.isOnline === false ? 'CLOSED' : !scheduleOpen ? `OPENS AT ${store.openingTime || '09:00 AM'}` : 'CLOSED'}
                     </span>
                   </div>
                 )}

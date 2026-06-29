@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Star, 
@@ -28,6 +27,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 interface ProductQuickViewProps {
   product: any;
@@ -37,42 +37,6 @@ interface ProductQuickViewProps {
   vendorScheduleOpen?: boolean;
 }
 
-const parseTime = (t: string) => {
-  if (!t) return 0;
-  try {
-    const clean = t.trim().toUpperCase();
-    const match = clean.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
-    if (!match) return 0;
-    
-    let hours = parseInt(match[1], 10);
-    let minutes = parseInt(match[2] || '0', 10);
-    let mod = match[3];
-    
-    if (mod === 'PM' && hours < 12) hours += 12;
-    if (mod === 'AM' && hours === 12) hours = 0;
-    
-    return hours * 60 + minutes;
-  } catch (e) { return 0; }
-};
-
-const isStoreScheduleOpen = (store: any) => {
-  if (!store) return true;
-  if (store.isOnline === false) return false;
-  if (!store.openingTime || !store.closingTime) return true;
-
-  const now = new Date();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-
-  const start = parseTime(store.openingTime);
-  const end = parseTime(store.closingTime);
-
-  if (start < end) {
-    return currentTime >= start && currentTime <= end;
-  } else {
-    return currentTime >= start || currentTime <= end;
-  }
-};
-
 export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
@@ -81,6 +45,14 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
   const [instructions, setInstructions] = useState('');
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      const interval = setInterval(() => setTick(t => t + 1), 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen]);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -89,8 +61,8 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const vendor = vendors?.find(v => v.id === product.vendorId);
-  const isScheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
-  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !isScheduleOpen;
+  const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
+  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !scheduleOpen;
 
   const liked = isInWishlist(product.id);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;
@@ -179,7 +151,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
              </div>
           </div>
 
-          {!isScheduleOpen && vendor && (
+          {!scheduleOpen && vendor && (
              <div className="px-6 pb-2">
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
                    <div className="bg-amber-500 p-2 rounded-lg text-white"><Clock className="h-4 w-4" /></div>
@@ -235,7 +207,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                 </div>
                 <Button onClick={handleAddToCart} disabled={isOffline} className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none">
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  {isOffline ? (isScheduleOpen ? 'OFFLINE' : 'TIMING CLOSED') : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                  {isOffline ? (scheduleOpen ? 'OFFLINE' : 'TIMING CLOSED') : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>
              </div>
           </div>

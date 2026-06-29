@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -13,14 +12,13 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * Standardized Time Parser for Automatic Timing System.
- * Supports: "9:00 AM", "09.00AM", "9 AM", "21:00", "0930", etc.
+ * Standardized Time Parser v3 - Highly Forgiving.
+ * Supports: "9:00 AM", "09.00AM", "9 AM", "21:00", "0930", "9:30pm" etc.
  */
-const parseTime = (t: string) => {
+export const parseTimeToMinutes = (t: string) => {
   if (!t) return 0;
   try {
     const clean = t.trim().toUpperCase();
-    // Improved regex to handle various separators and formats
     const match = clean.match(/(\d+)(?:[:.\s](\d+))?\s*(AM|PM)?/);
     if (!match) return 0;
     
@@ -35,7 +33,7 @@ const parseTime = (t: string) => {
   } catch (e) { return 0; }
 };
 
-const isStoreScheduleOpen = (store: any) => {
+export const isStoreScheduleOpen = (store: any) => {
   if (!store) return true;
   if (store.isOnline === false) return false;
   if (!store.openingTime || !store.closingTime) return true;
@@ -43,13 +41,13 @@ const isStoreScheduleOpen = (store: any) => {
   const now = new Date();
   const currentTime = now.getHours() * 60 + now.getMinutes();
 
-  const start = parseTime(store.openingTime);
-  const end = parseTime(store.closingTime);
+  const start = parseTimeToMinutes(store.openingTime);
+  const end = parseTimeToMinutes(store.closingTime);
 
   if (start < end) {
     return currentTime >= start && currentTime <= end;
   } else {
-    // Handles cross-midnight scenarios (e.g., 6 PM to 2 AM)
+    // Cross-midnight
     return currentTime >= start || currentTime <= end;
   }
 };
@@ -171,6 +169,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const firestore = useFirestore();
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const updateZone = () => {
@@ -179,7 +178,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
-    return () => window.removeEventListener('user-address-updated', updateZone);
+    
+    // Auto-refresh schedule check every 30 seconds
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+
+    return () => {
+      window.removeEventListener('user-address-updated', updateZone);
+      clearInterval(interval);
+    }
   }, []);
 
   const productsQuery = useMemoFirebase(() => {

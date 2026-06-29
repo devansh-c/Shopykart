@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Plus, Minus, SlidersHorizontal, X, Clock, MapPin, Utensils } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
+import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 import {
   Select,
   SelectContent,
@@ -18,42 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const parseTime = (t: string) => {
-  if (!t) return 0;
-  try {
-    const clean = t.trim().toUpperCase();
-    const match = clean.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
-    if (!match) return 0;
-    
-    let hours = parseInt(match[1], 10);
-    let minutes = parseInt(match[2] || '0', 10);
-    let mod = match[3];
-    
-    if (mod === 'PM' && hours < 12) hours += 12;
-    if (mod === 'AM' && hours === 12) hours = 0;
-    
-    return hours * 60 + minutes;
-  } catch (e) { return 0; }
-};
-
-const isStoreScheduleOpen = (store: any) => {
-  if (!store) return true;
-  if (store.isOnline === false) return false;
-  if (!store.openingTime || !store.closingTime) return true;
-
-  const now = new Date();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-
-  const start = parseTime(store.openingTime);
-  const end = parseTime(store.closingTime);
-
-  if (start < end) {
-    return currentTime >= start && currentTime <= end;
-  } else {
-    return currentTime >= start || currentTime <= end;
-  }
-};
 
 export default function MenuContent() {
   const searchParams = useSearchParams();
@@ -63,8 +27,14 @@ export default function MenuContent() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState('recommended');
   const { cart, addToCart, removeFromCart } = useCart();
+  const [, setTick] = useState(0);
   
   const firestore = useFirestore();
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -78,8 +48,8 @@ export default function MenuContent() {
   }, [firestore, vendorIdParam]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
-  const isScheduleOpen = isStoreScheduleOpen(vendorProfile);
-  const isOffline = vendorProfile?.isOnline === false || !isScheduleOpen;
+  const scheduleOpen = isStoreScheduleOpen(vendorProfile);
+  const isOffline = vendorProfile?.isOnline === false || !scheduleOpen;
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -144,7 +114,7 @@ export default function MenuContent() {
             {isOffline && (
                <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
                   <span className="text-white font-black text-4xl uppercase italic tracking-tighter">
-                    {vendorProfile?.isOnline === false ? 'Closed Now' : 'Timing Closed'}
+                    {vendorProfile?.isOnline === false ? 'Closed Now' : !scheduleOpen ? `Opens at ${vendorProfile?.openingTime}` : 'Closed'}
                   </span>
                </div>
             )}

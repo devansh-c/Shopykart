@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,7 +9,7 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with TURBO fail-safe dismissal.
+ * @fileOverview Optimized SplashScreen with ULTRA-TURBO fail-safe dismissal.
  * Ensures it disappears within 1.0s regardless of app-ready state.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
@@ -25,20 +24,25 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // 1. MINIMUM VISIBILITY TIMER (Turbo Speed)
+    // 1. MINIMUM VISIBILITY TIMER (Snappy feel)
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 300);
+    }, 200);
 
     // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe)
-    // Forced removal at 1.0s to ensure user is never stuck.
+    // Forced removal at 1.0s to ensure zero blockage.
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
     }, 1000); 
     
+    // 3. EVENT-BASED DISMISSAL
+    const handleLoad = () => setIsActuallyVisible(false);
+    window.addEventListener('load', handleLoad);
+
     return () => {
       clearTimeout(minTimer);
       clearTimeout(maxTimer);
+      window.removeEventListener('load', handleLoad);
     };
   }, []);
 
