@@ -51,29 +51,37 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
-// ULTRA-RELIABLE MODERN SLIDER (Using Pointer Events API)
+/**
+ * ULTRA-RELIABLE MODERN SLIDER (Fixed Interaction Logic)
+ * Uses relative startX to ensure sliding works on all devices.
+ */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
-  const slideXRef = useRef(0);
+  const startXRef = useRef(0);
+  const currentXRef = useRef(0);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (isDisabled) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const handle = e.currentTarget as HTMLElement;
+    handle.setPointerCapture(e.pointerId);
     setIsDragging(true);
+    // Track where the user started relative to current position
+    startXRef.current = e.clientX - currentXRef.current;
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging || !sliderRef.current) return;
     
     const rect = sliderRef.current.getBoundingClientRect();
-    const maxX = rect.width - 68;
-    let x = e.clientX - rect.left - 34;
+    const maxX = rect.width - 68; // Handle is 52px + 16px (p-2 padding)
+    
+    let x = e.clientX - startXRef.current;
     x = Math.max(0, Math.min(x, maxX));
     
     setSlideX(x);
-    slideXRef.current = x;
+    currentXRef.current = x;
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -81,12 +89,13 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     setIsDragging(false);
     
     const maxX = sliderRef.current.clientWidth - 68;
-    if (slideXRef.current > maxX * 0.8) {
+    // Require 85% slide for confirmation
+    if (currentXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
     } else {
       setSlideX(0);
-      slideXRef.current = 0;
+      currentXRef.current = 0;
     }
   };
 
@@ -95,28 +104,34 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
       ref={sliderRef} 
       className={cn(
         "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transform-gpu transition-all duration-300",
-        isDisabled ? "bg-gray-200" : isDragging ? "bg-emerald-600" : "bg-[#10B981]"
+        isDisabled ? "bg-gray-100 opacity-60 border-gray-200" : isDragging ? "bg-emerald-600 shadow-emerald-500/20" : "bg-emerald-500 shadow-emerald-500/10"
       )}
     >
+      {/* Background Text Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <span className={cn(
-          "text-[13px] font-black text-white uppercase italic tracking-widest transition-all duration-200", 
+          "text-[12px] font-black text-white uppercase italic tracking-widest transition-all duration-300", 
           (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(2)}`}
         </span>
-        {isDisabled && <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ORDER BLOCKED</span>}
+        {isDisabled && (
+          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+             <AlertCircle className="h-3 w-3" /> FILL DETAILS TO ORDER
+          </span>
+        )}
       </div>
 
+      {/* The Draggable Handle */}
       <div 
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-shadow", 
+          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu transition-shadow touch-none", 
           isDisabled ? "opacity-30 pointer-events-none" : "opacity-100",
-          isDragging && "shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+          isDragging && "shadow-[0_0_20px_rgba(255,255,255,0.6)]"
         )} 
         style={{ 
           transform: `translate3d(${slideX}px, 0, 0)`,
@@ -125,14 +140,15 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
       >
         <ChevronRight className={cn(
           "h-7 w-7 stroke-[3] transition-colors", 
-          isDragging ? "text-emerald-600" : "text-[#10B981]"
+          isDragging ? "text-emerald-600" : "text-emerald-500"
         )} />
       </div>
 
+      {/* Progress Track */}
       {!isDisabled && (
         <div 
           className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none" 
-          style={{ width: `${slideX + 54}px`, transition: isDragging ? 'none' : 'width 0.3s ease-out' }} 
+          style={{ width: `${slideX + 34}px`, transition: isDragging ? 'none' : 'width 0.3s ease-out' }} 
         />
       )}
     </div>
@@ -313,7 +329,7 @@ export default function CartPage() {
         isCustom: !!item.isCustom, 
         vendorId: item.vendorId || 'global',
         restaurantName: item.restaurantName || 'ShopyKart Store',
-        instructions: item.instructions || '' // Save per-item instructions
+        instructions: item.instructions || ''
       })),
       subtotal: totalPrice,
       charges: finalCharges,
@@ -335,7 +351,7 @@ export default function CartPage() {
       couponDiscount,
       deliveryTip,
       couponCode: appliedCoupon?.code || null,
-      instructions // General order instructions
+      instructions
     };
 
     router.replace(`/orders/track?id=${orderId}`);
@@ -435,7 +451,6 @@ export default function CartPage() {
 
       <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
         
-        {/* STORE CLOSED ALERT */}
         {blockedVendorNames.length > 0 && (
           <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[2rem] p-6 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-500">
              <div className="flex items-center gap-3 text-red-600">
@@ -448,7 +463,6 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* ITEMS IN BAG */}
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 transition-all hover:shadow-lg">
           <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
           <div className="space-y-4">
@@ -475,7 +489,6 @@ export default function CartPage() {
                     </div>
                     {item.selectedOption && <p className="text-[8px] font-black text-primary uppercase italic">{item.selectedOption.name}</p>}
                     
-                    {/* ITEM INSTRUCTIONS DISPLAY */}
                     {item.instructions && (
                       <div className="mt-1 flex items-start gap-1 bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
                         <MessageSquareQuote className="h-2.5 w-2.5 text-primary shrink-0 mt-0.5" />
@@ -498,11 +511,10 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* GENERAL INSTRUCTIONS */}
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 transition-all hover:shadow-lg">
           <div className="flex items-center gap-2 mb-4"><MessageSquareQuote className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Cooking Instructions</h2></div>
           <Textarea 
-            placeholder="Anything else we should know for the entire order? (e.g. Ring the bell, avoid chilly)" 
+            placeholder="Anything else we should know? (e.g. Ring the bell, avoid chilly)" 
             value={instructions}
             onChange={e => setInstructions(e.target.value)}
             className="rounded-2xl bg-gray-50 border-none font-medium min-h-[80px] p-4 text-xs"
@@ -593,7 +605,7 @@ export default function CartPage() {
                       </span>
                     </button>
                  </DialogTrigger>
-                 <DialogContent className="rounded-[2rem] max-w-xs">
+                 <DialogContent className="rounded-[2.5rem] max-w-xs">
                     <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Custom Tip</DialogTitle></DialogHeader>
                     <div className="p-4 space-y-4">
                        <Input 
