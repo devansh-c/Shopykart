@@ -62,7 +62,8 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
 
   const vendor = vendors?.find(v => v.id === product.vendorId);
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
-  const isOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !scheduleOpen;
+  // CRITICAL FIX: Ignore product.isAvailable, only rely on Store Online + Timing
+  const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
 
   const liked = isInWishlist(product.id);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`;

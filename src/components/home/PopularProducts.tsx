@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * Standardized Time Parser v3 - Highly Forgiving.
- * Supports: "9:00 AM", "09.00AM", "9 AM", "21:00", "0930", "9:30pm" etc.
  */
 export const parseTimeToMinutes = (t: string) => {
   if (!t) return 0;
@@ -53,8 +52,11 @@ export const isStoreScheduleOpen = (store: any) => {
 };
 
 const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
+  // CRITICAL FIX: Product is only offline if the STORE is offline or outside timing.
+  // We ignore product.isAvailable here because it often gets out of sync.
   const isScheduleOpen = isStoreScheduleOpen(vendor);
-  const isOffline = vendor ? (vendor.isOnline === false || product.isAvailable === false || !isScheduleOpen) : false;
+  const isOffline = vendor ? (vendor.isOnline === false || !isScheduleOpen) : false;
+  
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
 
   const basePrice = product.price || 0;
@@ -245,8 +247,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
       
-      const onlineA = vA ? (vA.isOnline !== false && a.isAvailable !== false && isStoreScheduleOpen(vA) ? 1 : 0) : 1;
-      const onlineB = vB ? (vB.isOnline !== false && b.isAvailable !== false && isStoreScheduleOpen(vB) ? 1 : 0) : 1;
+      const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA) ? 1 : 0) : 1;
+      const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB) ? 1 : 0) : 1;
       
       if (onlineA !== onlineB) return onlineB - onlineA;
       

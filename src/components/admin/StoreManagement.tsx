@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -72,14 +71,18 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
   const handleToggleStatus = async (id: string, online: boolean) => {
     if (!firestore) return;
     try {
+      // 1. Update Vendor Status
       await updateDoc(doc(firestore, 'vendors', id), { isOnline: online, updatedAt: serverTimestamp() });
       
+      // 2. Force-refresh all products of this vendor to be "Available" if store is opened
       const batch = writeBatch(firestore);
       const productsQuery = query(collection(firestore, 'products'), where('vendorId', '==', id));
       const productsSnap = await getDocs(productsQuery);
       
       productsSnap.docs.forEach(pDoc => {
+        // We set isAvailable to the same status as store online toggle
         batch.set(pDoc.ref, { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
+        // Also update in vendor's subcollection for consistency
         batch.set(doc(firestore, 'vendors', id, 'products', pDoc.id), { isAvailable: online, updatedAt: serverTimestamp() }, { merge: true });
       });
 
@@ -147,11 +150,13 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       const batch = writeBatch(firestore);
       const vendorIds = vendors.map(v => v.id);
       
+      // Update all vendors in the list
       for (const store of vendors) {
         batch.update(doc(firestore, 'vendors', store.id), { isOnline: online, updatedAt: serverTimestamp() });
       }
       await batch.commit();
 
+      // Update all associated products in a separate batch (Firestore limit is 500 per batch)
       const productsQuery = query(collection(firestore, 'products'));
       const productsSnap = await getDocs(productsQuery);
       const productBatch = writeBatch(firestore);

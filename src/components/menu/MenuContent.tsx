@@ -71,8 +71,9 @@ export default function MenuContent() {
     result.sort((a: any, b: any) => {
       const vA = allVendors.find(v => v.id === a.vendorId);
       const vB = allVendors.find(v => v.id === b.vendorId);
-      const onlineA = (vA?.isOnline !== false && a.isAvailable !== false && isStoreScheduleOpen(vA)) ? 1 : 0;
-      const onlineB = (vB?.isOnline !== false && b.isAvailable !== false && isStoreScheduleOpen(vB)) ? 1 : 0;
+      // CRITICAL FIX: Product only offline if its store is offline or timing mismatch
+      const onlineA = (vA?.isOnline !== false && isStoreScheduleOpen(vA)) ? 1 : 0;
+      const onlineB = (vB?.isOnline !== false && isStoreScheduleOpen(vB)) ? 1 : 0;
 
       if (onlineA !== onlineB) return onlineB - onlineA;
 
@@ -190,7 +191,8 @@ export default function MenuContent() {
             const quantity = cartItem?.quantity || 0;
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/food/400/300`;
             const vendor = allVendors?.find(v => v.id === product.vendorId);
-            const productIsOffline = (vendor?.isOnline === false) || (product.isAvailable === false) || !isStoreScheduleOpen(vendor);
+            // OVERRIDE: Product offline only if Store is closed or timing closed
+            const productIsOffline = (vendor?.isOnline === false) || !isStoreScheduleOpen(vendor);
 
             return (
               <div 
@@ -228,7 +230,7 @@ export default function MenuContent() {
                       {(productIsOffline || isOffline) && (
                         <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
                           <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight border border-white/30 px-2 py-1 rounded-md">
-                            {vendor?.isOnline === false ? 'Closed' : !isStoreScheduleOpen(vendor) ? 'Timing' : 'Unavailable'}
+                            {vendor?.isOnline === false ? 'Closed' : !isStoreScheduleOpen(vendor) ? 'Timing' : 'Closed'}
                           </span>
                         </div>
                       )}
