@@ -91,9 +91,8 @@ export default function CartPage() {
 
   // --- NATIVE TURBO SLIDER REFS ---
   const sliderRef = useRef<HTMLDivElement>(null);
-  const handleRef = useRef<HTMLDivElement>(null);
-  const fillRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const currentXRef = useRef(0);
 
   // Local Validation Message
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -216,12 +215,7 @@ export default function CartPage() {
     return null;
   }, [blockedVendorNames, totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode]);
 
-  const executeOrderPlacement = useCallback((e?: any) => {
-    if (e && e.preventDefault) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
+  const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
     
     setIsPlacing(true);
@@ -310,6 +304,77 @@ export default function CartPage() {
     
   }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames]);
 
+  // --- OPTIMIZED SLIDER INTERACTION ENGINE ---
+  const updateVisuals = (x: number, isDragging: boolean) => {
+    if (!sliderRef.current) return;
+    sliderRef.current.style.setProperty('--slide-x', `${x}px`);
+    sliderRef.current.style.setProperty('--slide-opacity', isDragging ? '1' : '0');
+    sliderRef.current.style.setProperty('--slide-scale', isDragging ? '1.02' : '1');
+    sliderRef.current.style.setProperty('--slide-transition', isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), width 0.4s cubic-bezier(0.23, 1, 0.32, 1)');
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (isPlacing || blockedVendorNames.length > 0) return;
+    
+    const error = validateOrderReady();
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    
+    setValidationError(null);
+    isDraggingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    
+    handlePointerMove(e);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || !sliderRef.current) return;
+    
+    const rect = sliderRef.current.getBoundingClientRect();
+    const handleWidth = 64; // w-16 = 64px
+    const maxPath = rect.width - handleWidth - 16; // 8px padding on each side
+    
+    let x = e.clientX - rect.left - (handleWidth / 2);
+    x = Math.max(0, Math.min(x, maxPath));
+    
+    currentXRef.current = x;
+    updateVisuals(x, true);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || !sliderRef.current) return;
+    isDraggingRef.current = false;
+    
+    const rect = sliderRef.current.getBoundingClientRect();
+    const handleWidth = 64;
+    const maxPath = rect.width - handleWidth - 16;
+    
+    const threshold = maxPath * 0.85;
+
+    if (currentXRef.current >= threshold) {
+      // Completed!
+      currentXRef.current = maxPath;
+      updateVisuals(maxPath, false);
+      
+      if (paymentMethod === 'online') {
+        setIsPaymentDialogOpen(true);
+        setPaymentStep('selection');
+        setTimeout(() => resetSlider(), 500);
+      } else {
+        executeOrderPlacement();
+      }
+    } else {
+      resetSlider();
+    }
+  };
+
+  const resetSlider = () => {
+    currentXRef.current = 0;
+    updateVisuals(0, false);
+  };
+
   const handleApplyCoupon = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!firestore || !couponInput.trim()) return;
@@ -336,87 +401,6 @@ export default function CartPage() {
     e.preventDefault();
     window.open(upiUri);
     setPaymentStep('utr');
-  };
-
-  // --- OPTIMIZED SLIDER INTERACTION ENGINE ---
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isPlacing || blockedVendorNames.length > 0) return;
-    
-    const error = validateOrderReady();
-    if (error) {
-      setValidationError(error);
-      return;
-    }
-    
-    setValidationError(null);
-    isDraggingRef.current = true;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    
-    updateSliderPosition(e.clientX);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current) return;
-    updateSliderPosition(e.clientX);
-  };
-
-  const updateSliderPosition = (clientX: number) => {
-    if (!sliderRef.current || !handleRef.current || !fillRef.current) return;
-    
-    const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 56; // 14rem/w-14 approx
-    const maxPath = rect.width - handleWidth - 8; // padding correction
-    
-    // Calculate relative X based on pointer center snap
-    let x = clientX - rect.left - (handleWidth / 2);
-    x = Math.max(0, Math.min(x, maxPath));
-    
-    // Direct DOM manipulation for zero-lag performance
-    handleRef.current.style.transform = `translateX(${x}px)`;
-    handleRef.current.style.transition = 'none';
-    fillRef.current.style.width = `${x + (handleWidth / 2)}px`;
-    fillRef.current.style.transition = 'none';
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
-    
-    if (!sliderRef.current || !handleRef.current || !fillRef.current) return;
-    
-    const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 56;
-    const maxPath = rect.width - handleWidth - 8;
-    const currentX = parseFloat(handleRef.current.style.transform.replace('translateX(', '').replace('px)', '')) || 0;
-    
-    const threshold = maxPath * 0.85;
-
-    if (currentX >= threshold) {
-      // Snap to end
-      handleRef.current.style.transition = 'transform 0.2s cubic-bezier(0.23, 1, 0.32, 1)';
-      handleRef.current.style.transform = `translateX(${maxPath}px)`;
-      fillRef.current.style.transition = 'width 0.2s cubic-bezier(0.23, 1, 0.32, 1)';
-      fillRef.current.style.width = '100%';
-
-      if (paymentMethod === 'online') {
-        setIsPaymentDialogOpen(true);
-        setPaymentStep('selection');
-        // Reset after small delay so dialog can open
-        setTimeout(() => resetSlider(), 500);
-      } else {
-        executeOrderPlacement();
-      }
-    } else {
-      resetSlider();
-    }
-  };
-
-  const resetSlider = () => {
-    if (!handleRef.current || !fillRef.current) return;
-    handleRef.current.style.transition = 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
-    handleRef.current.style.transform = 'translateX(0px)';
-    fillRef.current.style.transition = 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
-    fillRef.current.style.width = '0px';
   };
 
   return (
@@ -665,7 +649,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Bottom Sticky Footer with TURBO SLIDER */}
+      {/* Bottom Sticky Footer with REBUILT TURBO SLIDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[3rem] pointer-events-auto transform-gpu">
            
@@ -683,7 +667,7 @@ export default function CartPage() {
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            
-           {/* HIGH-PERFORMANCE SLIDER TRACK */}
+           {/* REBUILT ULTRA-SMOOTH SLIDER TRACK */}
            <div 
              ref={sliderRef}
              onPointerDown={handlePointerDown}
@@ -694,12 +678,20 @@ export default function CartPage() {
                "relative h-20 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden",
                (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/30"
              )}
+             style={{
+               ['--slide-x' as any]: '0px',
+               ['--slide-opacity' as any]: '0',
+               ['--slide-scale' as any]: '1',
+               ['--slide-transition' as any]: 'none'
+             }}
            >
-              {/* Dynamic Fill Background (Directly controlled by Ref) */}
+              {/* Performance Optimized Background Fill */}
               <div 
-                ref={fillRef}
                 className="absolute left-0 top-0 bottom-0 bg-emerald-600/10 pointer-events-none"
-                style={{ width: '0px' }}
+                style={{ 
+                  width: 'calc(var(--slide-x) + 32px)',
+                  transition: 'var(--slide-transition)'
+                }}
               />
 
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -713,12 +705,14 @@ export default function CartPage() {
 
               {/* Slider Handle (Round Button) */}
               <div 
-                ref={handleRef}
                 className={cn(
                   "absolute left-2 w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center shadow-2xl transform-gpu z-20 border-4 border-white/20",
                   isPlacing && "animate-pulse"
                 )}
-                style={{ transform: 'translateX(0px)' }}
+                style={{ 
+                  transform: 'translateX(var(--slide-x)) scale(var(--slide-scale))',
+                  transition: 'var(--slide-transition)'
+                }}
               >
                 {isPlacing ? (
                   <Loader2 className="h-7 w-7 text-white animate-spin" />
