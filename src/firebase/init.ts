@@ -18,7 +18,7 @@ let authInstance: Auth | null = null;
 /**
  * Optimized Firebase initialization singleton.
  * Configured for MAXIMUM SPEED AND STABILITY.
- * Added aggressive console suppression to prevent Next.js Error Overlay for transient connection issues and quota limits.
+ * Refined console suppression to be ultra-safe and prevent hangs.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -26,32 +26,37 @@ export function initializeFirebase() {
   }
 
   // AGGRESSIVE CONSOLE SUPPRESSION (Top Level)
-  // This prevents the "Resource Exhausted" red screen from appearing to the user.
   if (!window.hasOwnProperty('_fs_suppressed')) {
     (window as any)._fs_suppressed = true;
     const originalConsoleError = console.error;
     console.error = (...args: any[]) => {
-      const fullMessage = args.map(arg => arg?.toString() || '').join(' ');
-      
-      const suppressedPatterns = [
-        '@firebase/firestore',
-        'resource-exhausted',
-        'quota exceeded',
-        'bandwidth',
-        'Could not reach Cloud',
-        'Backend didn\'t respond',
-        'offline mode',
-        '10 seconds',
-        'FirebaseError',
-        'permission-denied',
-        'auth/network-request-failed',
-        'Internal Server Error'
-      ];
+      try {
+        const fullMessage = args.map(arg => {
+          if (typeof arg === 'string') return arg;
+          if (arg instanceof Error) return arg.message;
+          return '[Object]'; // Safely handle circular objects
+        }).join(' ');
+        
+        const suppressedPatterns = [
+          '@firebase/firestore',
+          'resource-exhausted',
+          'quota exceeded',
+          'bandwidth',
+          'Could not reach Cloud',
+          'Backend didn\'t respond',
+          'offline mode',
+          '10 seconds',
+          'FirebaseError',
+          'permission-denied',
+          'auth/network-request-failed',
+          'Internal Server Error'
+        ];
 
-      if (suppressedPatterns.some(pattern => fullMessage.toLowerCase().includes(pattern.toLowerCase()))) {
-        console.debug("Firebase Notice (Silenced):", fullMessage);
-        return;
-      }
+        if (suppressedPatterns.some(pattern => fullMessage.toLowerCase().includes(pattern.toLowerCase()))) {
+          console.debug("Firebase Notice (Silenced):", fullMessage);
+          return;
+        }
+      } catch (e) {}
       
       originalConsoleError.apply(console, args);
     };

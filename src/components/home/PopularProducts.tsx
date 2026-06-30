@@ -12,7 +12,7 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * Standardized Time Parser v3 - Highly Forgiving.
+ * Standardized Time Parser v4 - Hydration Safe.
  */
 export const parseTimeToMinutes = (t: string) => {
   if (!t) return 0;
@@ -32,13 +32,15 @@ export const parseTimeToMinutes = (t: string) => {
   } catch (e) { return 0; }
 };
 
-export const isStoreScheduleOpen = (store: any) => {
+export const isStoreScheduleOpen = (store: any, currentMinutesOverride?: number) => {
   if (!store) return true;
   if (store.isOnline === false) return false;
   if (!store.openingTime || !store.closingTime) return true;
 
-  const now = new Date();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
+  // Use override if provided (prevents hydration mismatch)
+  const currentTime = currentMinutesOverride !== undefined 
+    ? currentMinutesOverride 
+    : (new Date().getHours() * 60 + new Date().getMinutes());
 
   const start = parseTimeToMinutes(store.openingTime);
   const end = parseTimeToMinutes(store.closingTime);
@@ -51,10 +53,8 @@ export const isStoreScheduleOpen = (store: any) => {
   }
 };
 
-const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer }: any) => {
-  // CRITICAL FIX: Product is only offline if the STORE is offline or outside timing.
-  // We ignore product.isAvailable here because it often gets out of sync.
-  const isScheduleOpen = isStoreScheduleOpen(vendor);
+const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggleWishlist, isLiked, onNavigate, globalOffer, currentMinutes }: any) => {
+  const isScheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
   const isOffline = vendor ? (vendor.isOnline === false || !isScheduleOpen) : false;
   
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
@@ -170,8 +170,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   const firestore = useFirestore();
-  const [, setTick] = useState(0);
 
   useEffect(() => {
     const updateZone = () => {
@@ -181,8 +181,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     
-    // Auto-refresh schedule check every 30 seconds
-    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    // Set minutes only on client to avoid hydration mismatch
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 30000);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -247,8 +252,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
       
-      const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA) ? 1 : 0) : 1;
-      const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB) ? 1 : 0) : 1;
+      // If currentMinutes is null, we are on server or hasn't hydrated. Assume open to avoid "Closed" flicker.
+      const mins = currentMinutes ?? 720; // Default to mid-day for sorting consistency
+      const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, mins) ? 1 : 0) : 1;
+      const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, mins) ? 1 : 0) : 1;
       
       if (onlineA !== onlineB) return onlineB - onlineA;
       
@@ -256,7 +263,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const ratingB = vB?.rating || 0;
       return ratingB - ratingA;
     });
-  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, vendors, vendorsLoading]);
+  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, vendors, vendorsLoading, currentMinutes]);
 
   const navigateToProduct = (id: string) => {
     startTransition(() => {
@@ -292,6 +299,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             isLiked={isInWishlist(product.id)}
             onNavigate={navigateToProduct}
             globalOffer={globalOffer}
+            currentMinutes={currentMinutes}
           />
         ))}
         {productsToDisplay.length === 0 && !productsLoading && !vendorsLoading && (

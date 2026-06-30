@@ -52,8 +52,8 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * HYPER-SMOOTH PREMIUM SLIDER v3
- * Features: High-frequency pointer tracking, Hardware acceleration, Spring-physics resets.
+ * HYPER-SMOOTH PREMIUM SLIDER v4
+ * Features: High-frequency pointer tracking, Spring-physics resets, COD-aware state.
  */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
@@ -62,6 +62,13 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   const startXRef = useRef(0);
   const currentXRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+
+  // Sync currentX with slideX to prevent logic jumps
+  useEffect(() => {
+    if (!isDragging && slideX === 0) {
+      currentXRef.current = 0;
+    }
+  }, [isDragging, slideX]);
 
   useEffect(() => {
     if (isDisabled) {
@@ -81,12 +88,11 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging || !sliderRef.current) return;
     
-    // Using RAF for silky smooth frame updates
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     
     rafRef.current = requestAnimationFrame(() => {
       const rect = sliderRef.current!.getBoundingClientRect();
-      const maxX = rect.width - 68; // Handle is 52px + 16px padding
+      const maxX = rect.width - 68;
       
       let x = e.clientX - startXRef.current;
       x = Math.max(0, Math.min(x, maxX));
@@ -102,11 +108,10 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     
     const maxX = sliderRef.current.clientWidth - 68;
-    // Require 85% slide for confirmation
     if (currentXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
-      // Snap back if no immediate navigation (prevents stuck state)
+      // Snap back if navigation doesn't happen (order blocked)
       setTimeout(() => {
         setSlideX(0);
         currentXRef.current = 0;

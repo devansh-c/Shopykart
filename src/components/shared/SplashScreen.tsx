@@ -10,7 +10,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview Optimized SplashScreen with ULTRA-TURBO fail-safe dismissal.
- * Ensures it disappears within 1.0s regardless of app-ready state.
+ * Ensures it disappears within 0.8s regardless of app-ready state to prevent preview hang.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -27,13 +27,13 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     // 1. MINIMUM VISIBILITY TIMER (Snappy feel)
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 200);
+    }, 150);
 
-    // 2. ABSOLUTE MAXIMUM TIMEOUT (Fail-safe)
-    // Forced removal at 1.0s to ensure zero blockage.
+    // 2. ABSOLUTE MAXIMUM TIMEOUT (Turbo Fail-safe)
+    // Forced removal at 0.8s to ensure zero blockage for preview tools.
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
-    }, 1000); 
+    }, 800); 
     
     // 3. EVENT-BASED DISMISSAL
     const handleLoad = () => setIsActuallyVisible(false);

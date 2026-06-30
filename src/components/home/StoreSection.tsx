@@ -15,7 +15,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const [isPending, startTransition] = useTransition();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
-  const [, setTick] = useState(0);
+  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     const updateZone = () => {
@@ -25,7 +25,13 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     
-    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 30000);
+
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
       clearInterval(interval);
@@ -42,6 +48,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const mins = currentMinutes ?? 720;
 
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
@@ -65,12 +72,12 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       
       return isApproved && matchesMode;
     }).sort((a, b) => {
-      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a) ? 1 : 0;
-      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b) ? 1 : 0;
+      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a, mins) ? 1 : 0;
+      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b, mins) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, activeMode, activeZoneId, activeCity]);
+  }, [dbVendors, activeMode, activeZoneId, activeCity, currentMinutes]);
 
   const handleStoreClick = (id: string) => {
     startTransition(() => {
@@ -116,7 +123,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
         {filteredVendors.map((store: any) => {
           const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-          const scheduleOpen = isStoreScheduleOpen(store);
+          const mins = currentMinutes ?? 720;
+          const scheduleOpen = isStoreScheduleOpen(store, mins);
           const isOffline = store.isOnline === false || !scheduleOpen;
           const rating = store.rating || '0.0';
           
