@@ -52,16 +52,17 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * HYPER-SMOOTH PREMIUM SLIDER v5 (Interactive Track Edition)
- * Features: Snap-to-pointer on track touch, Global pointer capture, Spring physics.
+ * HYPER-SMOOTH PREMIUM SLIDER v6 (Robust Pointer Edition)
+ * Fixed: Snap-to-pointer interaction and mobile event consistency.
  */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const currentXRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
+  const maxXRef = useRef(0);
 
+  // Reset slider if disabled changes
   useEffect(() => {
     if (isDisabled) {
       setSlideX(0);
@@ -69,55 +70,54 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     }
   }, [isDisabled]);
 
-  const updateSlidePosition = (clientX: number) => {
+  const handleMove = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
     
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const rect = sliderRef.current.getBoundingClientRect();
+    const maxX = rect.width - 68; // Handle width (52) + padding (8+8)
+    maxXRef.current = maxX;
+
+    // Center the handle on the pointer
+    let x = clientX - rect.left - 34; 
+    x = Math.max(0, Math.min(x, maxX));
     
-    rafRef.current = requestAnimationFrame(() => {
-      const rect = sliderRef.current!.getBoundingClientRect();
-      const maxX = rect.width - 68; // Container width minus handle width
-      
-      // Calculate x relative to container left, centering pointer on the handle
-      let x = clientX - rect.left - 34; 
-      x = Math.max(0, Math.min(x, maxX));
-      
-      setSlideX(x);
-      currentXRef.current = x;
-    });
-  };
+    setSlideX(x);
+    currentXRef.current = x;
+  }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (isDisabled) return;
     
+    // Capture pointer so moves outside track are still recorded
     const container = e.currentTarget as HTMLElement;
     container.setPointerCapture(e.pointerId);
     setIsDragging(true);
     
     // Immediate snap to click position
-    updateSlidePosition(e.clientX);
+    handleMove(e.clientX);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
-    updateSlidePosition(e.clientX);
+    handleMove(e.clientX);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (!isDragging || !sliderRef.current) return;
+    if (!isDragging) return;
     setIsDragging(false);
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     
-    const maxX = sliderRef.current.clientWidth - 68;
-    if (currentXRef.current > maxX * 0.85) {
-      setSlideX(maxX);
+    const threshold = maxXRef.current * 0.85;
+    if (currentXRef.current > threshold) {
+      setSlideX(maxXRef.current);
       onConfirm();
-      // Auto-reset if action blocked or delayed
+      
+      // Safety reset after short delay if navigation is slow
       setTimeout(() => {
         setSlideX(0);
         currentXRef.current = 0;
-      }, 1500);
+      }, 2000);
     } else {
+      // Snap back to start
       setSlideX(0);
       currentXRef.current = 0;
     }
@@ -135,6 +135,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         isDisabled ? "bg-gray-100 opacity-60 cursor-not-allowed" : isDragging ? "bg-emerald-600" : "bg-emerald-50"
       )}
     >
+      {/* Background Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12">
         <span className={cn(
           "text-[12px] font-black uppercase italic tracking-widest transition-all duration-200", 
@@ -150,7 +151,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )}
       </div>
 
-      {/* Dynamic Fill Track */}
+      {/* Progress Fill */}
       {!isDisabled && (
         <div 
           className="absolute left-0 top-0 bottom-0 bg-emerald-500 pointer-events-none transform-gpu" 
@@ -162,7 +163,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         />
       )}
 
-      {/* The Handle */}
+      {/* The Sliding Handle */}
       <div 
         className={cn(
           "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl transform-gpu touch-none pointer-events-none", 
@@ -456,7 +457,7 @@ export default function CartPage() {
     }
   };
 
-  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || blockedVendorNames.length > 0;
+  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || customerPincode.length !== 6 || blockedVendorNames.length > 0;
 
   if (totalItems === 0 && !isPlacing) {
     return (
@@ -708,6 +709,7 @@ export default function CartPage() {
         </div>
       </div>
 
+      {/* Bottom Sticky Payment Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto transform-gpu">
            <div className="flex items-center justify-between px-2">
