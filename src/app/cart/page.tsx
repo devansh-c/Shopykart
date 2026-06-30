@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -106,8 +107,8 @@ export default function CartPage() {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
   }, [firestore]);
-  const { data: branding } = useDoc<any>(brandingRef);
-  const coinValue = branding?.coinValue || 0.5;
+  const { data: settings } = useDoc<any>(brandingRef);
+  const coinValue = settings?.coinValue || 0.5;
 
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -336,7 +337,7 @@ export default function CartPage() {
     }
   };
 
-  // --- SLIDER INTERACTION LOGIC ---
+  // --- NATIVE TURBO SLIDER LOGIC ---
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isPlacing) return;
     
@@ -348,30 +349,36 @@ export default function CartPage() {
     
     setValidationError(null);
     setIsDragging(true);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     
+    // Capture the pointer to the container so moves work anywhere
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    
+    // Snap handle to the touch point immediately
     const rect = sliderRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left - 28; 
-    setSlidePosition(Math.max(0, Math.min(x, rect.width - 64)));
+    const x = e.clientX - rect.left - 24; // Center the 48px circle
+    const maxPath = rect.width - 56; // 48px circle + 8px padding
+    setSlidePosition(Math.max(0, Math.min(x, maxPath)));
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging || isPlacing) return;
+    
     const rect = sliderRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left - 28;
-    setSlidePosition(Math.max(0, Math.min(x, rect.width - 64)));
+    const x = e.clientX - rect.left - 24; 
+    const maxPath = rect.width - 56;
+    setSlidePosition(Math.max(0, Math.min(x, maxPath)));
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDragging || isPlacing) return;
     setIsDragging(false);
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-
+    
     const rect = sliderRef.current!.getBoundingClientRect();
-    const threshold = rect.width - 80;
+    const maxPath = rect.width - 56;
+    const threshold = maxPath * 0.8; // 80% completion
 
     if (slidePosition >= threshold) {
-      setSlidePosition(rect.width - 64);
+      setSlidePosition(maxPath);
       if (paymentMethod === 'online') {
         setIsPaymentDialogOpen(true);
         setPaymentStep('selection');
@@ -678,7 +685,8 @@ export default function CartPage() {
 
               <div 
                 className={cn(
-                  "absolute left-2 w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg transition-transform duration-75 ease-out transform-gpu",
+                  "absolute left-2 w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg transform-gpu z-20",
+                  !isDragging && "transition-all duration-300 cubic-bezier(0.23,1,0.32,1)",
                   isPlacing && "animate-pulse"
                 )}
                 style={{ transform: `translateX(${slidePosition}px)` }}
@@ -760,3 +768,4 @@ export default function CartPage() {
     </div>
   );
 }
+
