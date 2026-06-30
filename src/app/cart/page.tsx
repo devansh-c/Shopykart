@@ -44,6 +44,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import dynamic from 'next/dynamic';
 
 const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
@@ -60,6 +61,7 @@ export default function CartPage() {
   
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [useCoins, setUseCoins] = useState(false);
   const [premiumPackaging, setPremiumPackaging] = useState(false);
@@ -247,8 +249,17 @@ export default function CartPage() {
       instructions
     };
 
-    router.replace(`/orders/track?id=${orderId}`);
+    // 1. PLAY SUCCESS SOUND
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+      audio.volume = 0.6;
+      audio.play().catch(() => {});
+    } catch (e) {}
 
+    // 2. SHOW SUCCESS OVERLAY
+    setShowSuccessOverlay(true);
+
+    // 3. OPTIMISTIC DB WRITE
     setDoc(doc(firestore, 'orders', orderId), orderData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -267,10 +278,12 @@ export default function CartPage() {
       }, { merge: true }).catch(() => {});
     }
 
+    // 4. DELAYED REDIRECT FOR CELEBRATION
     setTimeout(() => {
       clearCart();
       setIsPaymentDialogOpen(false);
-    }, 100);
+      router.replace(`/orders/track?id=${orderId}`);
+    }, 1500);
     
   }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames]);
 
@@ -324,7 +337,7 @@ export default function CartPage() {
 
   const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || customerPincode.length !== 6 || blockedVendorNames.length > 0;
 
-  if (totalItems === 0 && !isPlacing) {
+  if (totalItems === 0 && !isPlacing && !showSuccessOverlay) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-white h-32 w-32 rounded-full flex items-center justify-center mb-6 shadow-sm"><ShoppingBag className="h-12 w-12 text-gray-200" /></div>
@@ -337,6 +350,8 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-white pb-64">
+      <OrderSuccessOverlay isVisible={showSuccessOverlay} />
+      
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
         <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
