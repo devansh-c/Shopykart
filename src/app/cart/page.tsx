@@ -87,6 +87,9 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
+  // Local Validation Message to avoid top-scrolling toasts
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
@@ -204,6 +207,8 @@ export default function CartPage() {
     if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
     
     setIsPlacing(true);
+    setValidationError(null);
+
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
 
     const finalUid = user?.uid || 'guest_' + Date.now();
@@ -257,7 +262,7 @@ export default function CartPage() {
     // 1. PLAY SUCCESS SOUND IMMEDIATELY
     try {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
-      audio.volume = 0.7;
+      audio.volume = 0.8;
       audio.play().catch(() => {});
     } catch (e) {}
 
@@ -299,19 +304,23 @@ export default function CartPage() {
   };
 
   const handleCheckout = useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    setValidationError(null);
 
     if (blockedVendorNames.length > 0) {
-      toast({ variant: "destructive", title: "Store Closed", description: `Please remove items from ${blockedVendorNames.join(', ')} to continue.` });
+      setValidationError(`Store Closed: ${blockedVendorNames.join(', ')}`);
       return;
     }
     if (totalPrice < 35 && grandTotal < 35) {
-      toast({ variant: "destructive", title: "Order Value Low", description: "Minimum order value is ₹35." });
+      setValidationError("Minimum order value is ₹35.");
       return;
     }
     if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || customerPincode.length !== 6) {
-      toast({ variant: "destructive", title: "Incomplete Details", description: "Please complete delivery info first." });
+      setValidationError("Please fill all details correctly.");
       return;
     }
     
@@ -321,7 +330,7 @@ export default function CartPage() {
     } else {
       executeOrderPlacement();
     }
-  }, [totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode, paymentMethod, toast, executeOrderPlacement, blockedVendorNames]);
+  }, [totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode, paymentMethod, executeOrderPlacement, blockedVendorNames]);
 
   const handleApplyCoupon = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -344,19 +353,6 @@ export default function CartPage() {
       setIsVerifyingCoupon(false);
     }
   };
-
-  const isCheckoutDisabled = !customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || customerPincode.length !== 6 || blockedVendorNames.length > 0;
-
-  if (totalItems === 0 && !isPlacing && !showSuccessOverlay) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-white h-32 w-32 rounded-full flex items-center justify-center mb-6 shadow-sm"><ShoppingBag className="h-12 w-12 text-gray-200" /></div>
-        <h2 className="text-xl font-bold text-gray-800">Your cart is empty</h2>
-        <Button onClick={() => router.push('/menu')} className="rounded-xl h-12 px-8 font-bold bg-primary mt-6">BROWSE MENU</Button>
-        <BottomNav />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white pb-64">
@@ -606,7 +602,15 @@ export default function CartPage() {
 
       {/* Bottom Sticky Payment Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4 rounded-t-[2.5rem] pointer-events-auto transform-gpu">
+        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[2.5rem] pointer-events-auto transform-gpu">
+           
+           {/* LOCAL VALIDATION MESSAGE - STAYS AT BOTTOM TO PREVENT AUTO-SCROLL TO TOP */}
+           {validationError && (
+             <div className="px-4 py-2 bg-red-50 border border-red-100 rounded-xl animate-in slide-in-from-bottom-2 duration-300">
+               <p className="text-[10px] font-black text-red-600 uppercase tracking-tight text-center">{validationError}</p>
+             </div>
+           )}
+
            <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                  <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
@@ -618,10 +622,10 @@ export default function CartPage() {
            <Button 
             type="button"
             onClick={handleCheckout} 
-            disabled={isPlacing || isCheckoutDisabled}
+            disabled={isPlacing || blockedVendorNames.length > 0}
             className={cn(
               "w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3",
-              (isPlacing || isCheckoutDisabled) ? "bg-gray-200 text-gray-400" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+              (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200 text-gray-400" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
             )}
           >
             {isPlacing ? (
