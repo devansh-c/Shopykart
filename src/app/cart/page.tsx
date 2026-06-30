@@ -52,33 +52,29 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * HYPER-SMOOTH PREMIUM SLIDER v6 (Robust Pointer Edition)
- * Fixed: Snap-to-pointer interaction and mobile event consistency.
+ * HYPER-SMOOTH NATIVE SLIDER v8 (Total Control Edition)
+ * Fixed: Full track snapping and absolute pointer tracking.
  */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const currentXRef = useRef(0);
-  const maxXRef = useRef(0);
 
-  // Reset slider if disabled changes
-  useEffect(() => {
-    if (isDisabled) {
-      setSlideX(0);
-      currentXRef.current = 0;
-    }
-  }, [isDisabled]);
+  // Constants
+  const HANDLE_SIZE = 52;
+  const PADDING = 8;
 
   const handleMove = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
     
     const rect = sliderRef.current.getBoundingClientRect();
-    const maxX = rect.width - 68; // Handle width (52) + padding (8+8)
-    maxXRef.current = maxX;
-
-    // Center the handle on the pointer
-    let x = clientX - rect.left - 34; 
+    const maxX = rect.width - HANDLE_SIZE - (PADDING * 2);
+    
+    // Position handle so it's centered under the finger
+    let x = clientX - rect.left - (HANDLE_SIZE / 2) - PADDING;
+    
+    // Clamp values
     x = Math.max(0, Math.min(x, maxX));
     
     setSlideX(x);
@@ -88,12 +84,11 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   const onPointerDown = (e: React.PointerEvent) => {
     if (isDisabled) return;
     
-    // Capture pointer so moves outside track are still recorded
+    setIsDragging(true);
     const container = e.currentTarget as HTMLElement;
     container.setPointerCapture(e.pointerId);
-    setIsDragging(true);
     
-    // Immediate snap to click position
+    // Snap immediately to where user clicked
     handleMove(e.clientX);
   };
 
@@ -106,18 +101,27 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     if (!isDragging) return;
     setIsDragging(false);
     
-    const threshold = maxXRef.current * 0.85;
-    if (currentXRef.current > threshold) {
-      setSlideX(maxXRef.current);
+    const rect = sliderRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const maxX = rect.width - HANDLE_SIZE - (PADDING * 2);
+    const threshold = maxX * 0.85;
+
+    if (currentXRef.current >= threshold) {
+      setSlideX(maxX);
+      // Haptic feedback for success
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
       onConfirm();
       
-      // Safety reset after short delay if navigation is slow
+      // Reset after a buffer for UX
       setTimeout(() => {
         setSlideX(0);
         currentXRef.current = 0;
-      }, 2000);
+      }, 3000);
     } else {
-      // Snap back to start
+      // Snap back smoothly
       setSlideX(0);
       currentXRef.current = 0;
     }
@@ -131,16 +135,17 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       className={cn(
-        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transition-colors duration-300 cursor-pointer",
-        isDisabled ? "bg-gray-100 opacity-60 cursor-not-allowed" : isDragging ? "bg-emerald-600" : "bg-emerald-50"
+        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none transform-gpu",
+        isDisabled ? "bg-gray-100 opacity-60" : isDragging ? "bg-emerald-600" : "bg-emerald-50"
       )}
+      style={{ touchAction: 'none', userSelect: 'none' }}
     >
-      {/* Background Label */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12">
+      {/* Background Track Label */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12 z-0">
         <span className={cn(
-          "text-[12px] font-black uppercase italic tracking-widest transition-all duration-200", 
-          isDisabled ? "text-gray-400" : isDragging ? "text-white/40" : "text-emerald-600/60",
-          (slideX > 60 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
+          "text-[12px] font-black uppercase italic tracking-widest transition-all duration-300", 
+          isDisabled ? "text-gray-400" : isDragging ? "text-white/30" : "text-emerald-600/60",
+          (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(0)}`}
         </span>
@@ -151,29 +156,28 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )}
       </div>
 
-      {/* Progress Fill */}
+      {/* Dynamic Progress Fill */}
       {!isDisabled && (
         <div 
-          className="absolute left-0 top-0 bottom-0 bg-emerald-500 pointer-events-none transform-gpu" 
+          className="absolute left-0 top-0 bottom-0 bg-emerald-500 pointer-events-none transform-gpu z-1" 
           style={{ 
-            width: `${slideX + 52}px`, 
+            width: `${slideX + (HANDLE_SIZE / 2) + PADDING}px`, 
             transition: isDragging ? 'none' : 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-            willChange: 'width'
+            opacity: isDragging ? 1 : 0.2
           }} 
         />
       )}
 
-      {/* The Sliding Handle */}
+      {/* The Sliding Handle Button */}
       <div 
         className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl transform-gpu touch-none pointer-events-none", 
+          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-xl transform-gpu pointer-events-none", 
           isDisabled ? "opacity-30" : "opacity-100",
-          isDragging && "scale-105 shadow-emerald-900/20"
+          isDragging && "scale-105 shadow-emerald-900/30"
         )} 
         style={{ 
           transform: `translate3d(${slideX}px, 0, 0)`,
-          transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-          willChange: 'transform'
+          transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'
         }}
       >
         <ChevronRight className={cn(
