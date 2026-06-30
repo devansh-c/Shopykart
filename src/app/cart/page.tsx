@@ -89,10 +89,13 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
-  // Slider State
+  // --- NATIVE TURBO SLIDER REFS ---
   const [slidePosition, setSlidePosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
+  const currentXRef = useRef(0);
+  const isDraggingRef = useRef(false);
 
   // Local Validation Message
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -205,6 +208,16 @@ export default function CartPage() {
     }
   }, [profile]);
 
+  const validateOrderReady = useCallback(() => {
+    if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
+    if (totalPrice < 35 && grandTotal < 35) return "Min order ₹35 required";
+    if (!customerName.trim()) return "Enter Full Name";
+    if (customerPhone.length !== 10) return "Enter 10-digit Phone";
+    if (customerAddress.trim().length < 3) return "Enter House/Street Details";
+    if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
+    return null;
+  }, [blockedVendorNames, totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode]);
+
   const executeOrderPlacement = useCallback((e?: any) => {
     if (e && e.preventDefault) {
       e.preventDefault();
@@ -299,22 +312,6 @@ export default function CartPage() {
     
   }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames]);
 
-  const handleOnlinePaymentFlow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    window.open(upiUri);
-    setPaymentStep('utr');
-  };
-
-  const validateOrderReady = useCallback(() => {
-    if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
-    if (totalPrice < 35 && grandTotal < 35) return "Min order ₹35 required";
-    if (!customerName.trim()) return "Enter Full Name";
-    if (customerPhone.length !== 10) return "Enter 10-digit Phone";
-    if (customerAddress.trim().length < 3) return "Enter House/Street Details";
-    if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
-    return null;
-  }, [blockedVendorNames, totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode]);
-
   const handleApplyCoupon = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!firestore || !couponInput.trim()) return;
@@ -337,7 +334,13 @@ export default function CartPage() {
     }
   };
 
-  // --- NATIVE TURBO SLIDER LOGIC ---
+  const handleOnlinePaymentFlow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.open(upiUri);
+    setPaymentStep('utr');
+  };
+
+  // --- TURBO SLIDER LOGIC ---
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isPlacing) return;
     
@@ -348,45 +351,56 @@ export default function CartPage() {
     }
     
     setValidationError(null);
+    isDraggingRef.current = true;
     setIsDragging(true);
     
-    // Capture the pointer to the container so moves work anywhere
+    // Capture to container immediately
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    
-    // Snap handle to the touch point immediately
-    const rect = sliderRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left - 24; // Center the 48px circle
-    const maxPath = rect.width - 56; // 48px circle + 8px padding
-    setSlidePosition(Math.max(0, Math.min(x, maxPath)));
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || isPlacing) return;
     
     const rect = sliderRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left - 24; 
     const maxPath = rect.width - 56;
-    setSlidePosition(Math.max(0, Math.min(x, maxPath)));
+    const newX = Math.max(0, Math.min(x, maxPath));
+    currentXRef.current = newX;
+    setSlidePosition(newX);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current || isPlacing) return;
+    
+    const rect = sliderRef.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left - 24; 
+    const maxPath = rect.width - 56;
+    const newX = Math.max(0, Math.min(x, maxPath));
+    
+    currentXRef.current = newX;
+    setSlidePosition(newX);
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (!isDragging || isPlacing) return;
+    if (!isDraggingRef.current || isPlacing) return;
+    isDraggingRef.current = false;
     setIsDragging(false);
     
     const rect = sliderRef.current!.getBoundingClientRect();
     const maxPath = rect.width - 56;
-    const threshold = maxPath * 0.8; // 80% completion
+    const threshold = maxPath * 0.8;
 
-    if (slidePosition >= threshold) {
+    if (currentXRef.current >= threshold) {
+      currentXRef.current = maxPath;
       setSlidePosition(maxPath);
       if (paymentMethod === 'online') {
         setIsPaymentDialogOpen(true);
         setPaymentStep('selection');
-        setSlidePosition(0);
+        setTimeout(() => {
+          currentXRef.current = 0;
+          setSlidePosition(0);
+        }, 300);
       } else {
         executeOrderPlacement();
       }
     } else {
+      currentXRef.current = 0;
       setSlidePosition(0);
     }
   };
@@ -684,6 +698,7 @@ export default function CartPage() {
               />
 
               <div 
+                ref={handleRef}
                 className={cn(
                   "absolute left-2 w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg transform-gpu z-20",
                   !isDragging && "transition-all duration-300 cubic-bezier(0.23,1,0.32,1)",
@@ -768,4 +783,3 @@ export default function CartPage() {
     </div>
   );
 }
-
