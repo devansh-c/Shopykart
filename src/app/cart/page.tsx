@@ -304,7 +304,7 @@ export default function CartPage() {
     
   }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames]);
 
-  // --- OPTIMIZED SLIDER INTERACTION ENGINE ---
+  // --- OPTIMIZED SLIDER INTERACTION ENGINE (ANYWHERE SNAP) ---
   const updateVisuals = (x: number, isDragging: boolean) => {
     if (!sliderRef.current) return;
     sliderRef.current.style.setProperty('--slide-x', `${x}px`);
@@ -326,15 +326,22 @@ export default function CartPage() {
     isDraggingRef.current = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     
-    handlePointerMove(e);
+    // Immediate snap calculation
+    const rect = sliderRef.current!.getBoundingClientRect();
+    const handleWidth = 64;
+    const maxPath = rect.width - handleWidth - 16;
+    let x = e.clientX - rect.left - (handleWidth / 2);
+    x = Math.max(0, Math.min(x, maxPath));
+    currentXRef.current = x;
+    updateVisuals(x, true);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current || !sliderRef.current) return;
     
     const rect = sliderRef.current.getBoundingClientRect();
-    const handleWidth = 64; // w-16 = 64px
-    const maxPath = rect.width - handleWidth - 16; // 8px padding on each side
+    const handleWidth = 64;
+    const maxPath = rect.width - handleWidth - 16;
     
     let x = e.clientX - rect.left - (handleWidth / 2);
     x = Math.max(0, Math.min(x, maxPath));
@@ -649,7 +656,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Bottom Sticky Footer with REBUILT TURBO SLIDER */}
+      {/* Bottom Sticky Footer with REBUILT TURBO SLIDER (ANYWHERE SNAP) */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[3rem] pointer-events-auto transform-gpu">
            
@@ -667,7 +674,7 @@ export default function CartPage() {
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            
-           {/* REBUILT ULTRA-SMOOTH SLIDER TRACK */}
+           {/* REBUILT ULTRA-SMOOTH SLIDER (ANYWHERE SNAP SUPPORT) */}
            <div 
              ref={sliderRef}
              onPointerDown={handlePointerDown}
@@ -675,7 +682,7 @@ export default function CartPage() {
              onPointerUp={handlePointerUp}
              onPointerLeave={handlePointerUp}
              className={cn(
-               "relative h-20 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden",
+               "relative h-20 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden cursor-pointer",
                (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/30"
              )}
              style={{
