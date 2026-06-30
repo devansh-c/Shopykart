@@ -29,7 +29,8 @@ import {
   Package,
   MessageSquareQuote,
   AlertCircle,
-  Store
+  Store,
+  ArrowRight
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -87,7 +88,12 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
-  // Local Validation Message to avoid top-scrolling toasts
+  // Slider State
+  const [slidePosition, setSlidePosition] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // Local Validation Message
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -198,8 +204,8 @@ export default function CartPage() {
     }
   }, [profile]);
 
-  const executeOrderPlacement = useCallback((e?: React.FormEvent | React.MouseEvent) => {
-    if (e) {
+  const executeOrderPlacement = useCallback((e?: any) => {
+    if (e && e.preventDefault) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -210,7 +216,6 @@ export default function CartPage() {
     setValidationError(null);
 
     const orderId = Math.floor(10000 + Math.random() * 90000).toString();
-
     const finalUid = user?.uid || 'guest_' + Date.now();
     const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
     const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
@@ -259,17 +264,14 @@ export default function CartPage() {
       instructions
     };
 
-    // 1. PLAY SUCCESS SOUND IMMEDIATELY
     try {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
       audio.volume = 0.8;
       audio.play().catch(() => {});
     } catch (e) {}
 
-    // 2. SHOW SUCCESS OVERLAY
     setShowSuccessOverlay(true);
 
-    // 3. OPTIMISTIC DB WRITE (Non-blocking)
     setDoc(doc(firestore, 'orders', orderId), orderData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -288,7 +290,6 @@ export default function CartPage() {
       }, { merge: true }).catch(() => {});
     }
 
-    // 4. CELEBRATION DELAY THEN REDIRECT
     setTimeout(() => {
       clearCart();
       setIsPaymentDialogOpen(false);
@@ -303,34 +304,15 @@ export default function CartPage() {
     setPaymentStep('utr');
   };
 
-  const handleCheckout = useCallback(async (e: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    setValidationError(null);
-
-    if (blockedVendorNames.length > 0) {
-      setValidationError(`Store Closed: ${blockedVendorNames.join(', ')}`);
-      return;
-    }
-    if (totalPrice < 35 && grandTotal < 35) {
-      setValidationError("Minimum order value is ₹35.");
-      return;
-    }
-    if (!customerName.trim() || customerPhone.length !== 10 || customerAddress.trim().length < 3 || customerPincode.length !== 6) {
-      setValidationError("Please fill all details correctly.");
-      return;
-    }
-    
-    if (paymentMethod === 'online') {
-      setIsPaymentDialogOpen(true);
-      setPaymentStep('selection');
-    } else {
-      executeOrderPlacement();
-    }
-  }, [totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode, paymentMethod, executeOrderPlacement, blockedVendorNames]);
+  const validateOrderReady = useCallback(() => {
+    if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
+    if (totalPrice < 35 && grandTotal < 35) return "Min order ₹35 required";
+    if (!customerName.trim()) return "Enter Full Name";
+    if (customerPhone.length !== 10) return "Enter 10-digit Phone";
+    if (customerAddress.trim().length < 3) return "Enter House/Street Details";
+    if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
+    return null;
+  }, [blockedVendorNames, totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode]);
 
   const handleApplyCoupon = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -351,6 +333,54 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Verification Failed" });
     } finally {
       setIsVerifyingCoupon(false);
+    }
+  };
+
+  // --- SLIDER INTERACTION LOGIC ---
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (isPlacing) return;
+    
+    const error = validateOrderReady();
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    
+    setValidationError(null);
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    
+    const rect = sliderRef.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left - 28; 
+    setSlidePosition(Math.max(0, Math.min(x, rect.width - 64)));
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || isPlacing) return;
+    const rect = sliderRef.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left - 28;
+    setSlidePosition(Math.max(0, Math.min(x, rect.width - 64)));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging || isPlacing) return;
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+
+    const rect = sliderRef.current!.getBoundingClientRect();
+    const threshold = rect.width - 80;
+
+    if (slidePosition >= threshold) {
+      setSlidePosition(rect.width - 64);
+      if (paymentMethod === 'online') {
+        setIsPaymentDialogOpen(true);
+        setPaymentStep('selection');
+        setSlidePosition(0);
+      } else {
+        executeOrderPlacement();
+      }
+    } else {
+      setSlidePosition(0);
     }
   };
 
@@ -600,11 +630,10 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Bottom Sticky Payment Bar */}
+      {/* Bottom Sticky Footer */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[2.5rem] pointer-events-auto transform-gpu">
            
-           {/* LOCAL VALIDATION MESSAGE - STAYS AT BOTTOM TO PREVENT AUTO-SCROLL TO TOP */}
            {validationError && (
              <div className="px-4 py-2 bg-red-50 border border-red-100 rounded-xl animate-in slide-in-from-bottom-2 duration-300">
                <p className="text-[10px] font-black text-red-600 uppercase tracking-tight text-center">{validationError}</p>
@@ -619,24 +648,48 @@ export default function CartPage() {
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            
-           <Button 
-            type="button"
-            onClick={handleCheckout} 
-            disabled={isPlacing || blockedVendorNames.length > 0}
-            className={cn(
-              "w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3",
-              (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200 text-gray-400" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
-            )}
-          >
-            {isPlacing ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : (
-              <>
-                <CheckCircle2 className="h-6 w-6" />
-                PLACE ORDER • ₹{grandTotal.toFixed(0)}
-              </>
-            )}
-          </Button>
+           <div 
+             ref={sliderRef}
+             onPointerDown={handlePointerDown}
+             onPointerMove={handlePointerMove}
+             onPointerUp={handlePointerUp}
+             className={cn(
+               "relative h-16 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden",
+               (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/20"
+             )}
+           >
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                 <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-sm font-black uppercase italic tracking-tighter transition-opacity duration-300",
+                      isDragging ? "opacity-20" : "opacity-40 text-emerald-900"
+                    )}>
+                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (validationError ? validationError.toUpperCase() : 'SLIDE TO ORDER')}
+                    </span>
+                    {!isDragging && !isPlacing && <ArrowRight className="h-4 w-4 text-emerald-600 animate-bounce-x" />}
+                 </div>
+              </div>
+
+              {/* Dynamic Fill Background */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 bg-emerald-600/10 transition-all duration-75"
+                style={{ width: `${slidePosition + 32}px` }}
+              />
+
+              <div 
+                className={cn(
+                  "absolute left-2 w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg transition-transform duration-75 ease-out transform-gpu",
+                  isPlacing && "animate-pulse"
+                )}
+                style={{ transform: `translateX(${slidePosition}px)` }}
+              >
+                {isPlacing ? (
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                ) : (
+                  <ArrowRight className="h-6 w-6 text-white stroke-[3]" />
+                )}
+              </div>
+           </div>
         </div>
       </div>
 
