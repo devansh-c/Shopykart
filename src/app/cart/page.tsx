@@ -52,23 +52,15 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
 });
 
 /**
- * HYPER-SMOOTH PREMIUM SLIDER v4
- * Features: High-frequency pointer tracking, Spring-physics resets, COD-aware state.
+ * HYPER-SMOOTH PREMIUM SLIDER v5 (Interactive Track Edition)
+ * Features: Snap-to-pointer on track touch, Global pointer capture, Spring physics.
  */
 const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
   const [slideX, setSlideX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
-  const startXRef = useRef(0);
   const currentXRef = useRef(0);
   const rafRef = useRef<number | null>(null);
-
-  // Sync currentX with slideX to prevent logic jumps
-  useEffect(() => {
-    if (!isDragging && slideX === 0) {
-      currentXRef.current = 0;
-    }
-  }, [isDragging, slideX]);
 
   useEffect(() => {
     if (isDisabled) {
@@ -77,29 +69,38 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     }
   }, [isDisabled]);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (isDisabled) return;
-    const handle = e.currentTarget as HTMLElement;
-    handle.setPointerCapture(e.pointerId);
-    setIsDragging(true);
-    startXRef.current = e.clientX - currentXRef.current;
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !sliderRef.current) return;
+  const updateSlidePosition = (clientX: number) => {
+    if (!sliderRef.current) return;
     
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     
     rafRef.current = requestAnimationFrame(() => {
       const rect = sliderRef.current!.getBoundingClientRect();
-      const maxX = rect.width - 68;
+      const maxX = rect.width - 68; // Container width minus handle width
       
-      let x = e.clientX - startXRef.current;
+      // Calculate x relative to container left, centering pointer on the handle
+      let x = clientX - rect.left - 34; 
       x = Math.max(0, Math.min(x, maxX));
       
       setSlideX(x);
       currentXRef.current = x;
     });
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (isDisabled) return;
+    
+    const container = e.currentTarget as HTMLElement;
+    container.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    
+    // Immediate snap to click position
+    updateSlidePosition(e.clientX);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    updateSlidePosition(e.clientX);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -111,7 +112,7 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
     if (currentXRef.current > maxX * 0.85) {
       setSlideX(maxX);
       onConfirm();
-      // Snap back if navigation doesn't happen (order blocked)
+      // Auto-reset if action blocked or delayed
       setTimeout(() => {
         setSlideX(0);
         currentXRef.current = 0;
@@ -125,15 +126,20 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
   return (
     <div 
       ref={sliderRef} 
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       className={cn(
-        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transition-colors duration-300",
-        isDisabled ? "bg-gray-100 opacity-60" : isDragging ? "bg-emerald-600" : "bg-emerald-500"
+        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-xl select-none touch-none transition-colors duration-300 cursor-pointer",
+        isDisabled ? "bg-gray-100 opacity-60 cursor-not-allowed" : isDragging ? "bg-emerald-600" : "bg-emerald-50"
       )}
     >
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12">
         <span className={cn(
-          "text-[12px] font-black text-white uppercase italic tracking-widest transition-all duration-200", 
-          (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
+          "text-[12px] font-black uppercase italic tracking-widest transition-all duration-200", 
+          isDisabled ? "text-gray-400" : isDragging ? "text-white/40" : "text-emerald-600/60",
+          (slideX > 60 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}>
           {label || `SLIDE TO ORDER • ₹${total.toFixed(0)}`}
         </span>
@@ -144,15 +150,24 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         )}
       </div>
 
+      {/* Dynamic Fill Track */}
+      {!isDisabled && (
+        <div 
+          className="absolute left-0 top-0 bottom-0 bg-emerald-500 pointer-events-none transform-gpu" 
+          style={{ 
+            width: `${slideX + 52}px`, 
+            transition: isDragging ? 'none' : 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+            willChange: 'width'
+          }} 
+        />
+      )}
+
+      {/* The Handle */}
       <div 
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
         className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transform-gpu touch-none", 
+          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-2xl transform-gpu touch-none pointer-events-none", 
           isDisabled ? "opacity-30" : "opacity-100",
-          isDragging && "scale-105"
+          isDragging && "scale-105 shadow-emerald-900/20"
         )} 
         style={{ 
           transform: `translate3d(${slideX}px, 0, 0)`,
@@ -161,21 +176,10 @@ const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm:
         }}
       >
         <ChevronRight className={cn(
-          "h-7 w-7 stroke-[3]", 
+          "h-7 w-7 stroke-[4]", 
           isDragging ? "text-emerald-600" : "text-emerald-500"
         )} />
       </div>
-
-      {!isDisabled && (
-        <div 
-          className="absolute left-0 top-0 bottom-0 bg-white/20 pointer-events-none transform-gpu" 
-          style={{ 
-            width: `${slideX + 34}px`, 
-            transition: isDragging ? 'none' : 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-            willChange: 'width'
-          }} 
-        />
-      )}
     </div>
   );
 });
