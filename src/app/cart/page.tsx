@@ -51,145 +51,6 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
-/**
- * HYPER-SMOOTH NATIVE SLIDER v8 (Total Control Edition)
- * Fixed: Full track snapping and absolute pointer tracking.
- */
-const SlideToOrder = memo(({ onConfirm, total, isDisabled, label }: { onConfirm: () => void, total: number, isDisabled: boolean, label?: string }) => {
-  const [slideX, setSlideX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const currentXRef = useRef(0);
-
-  // Constants
-  const HANDLE_SIZE = 52;
-  const PADDING = 8;
-
-  const handleMove = useCallback((clientX: number) => {
-    if (!sliderRef.current) return;
-    
-    const rect = sliderRef.current.getBoundingClientRect();
-    const maxX = rect.width - HANDLE_SIZE - (PADDING * 2);
-    
-    // Position handle so it's centered under the finger
-    let x = clientX - rect.left - (HANDLE_SIZE / 2) - PADDING;
-    
-    // Clamp values
-    x = Math.max(0, Math.min(x, maxX));
-    
-    setSlideX(x);
-    currentXRef.current = x;
-  }, []);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (isDisabled) return;
-    
-    setIsDragging(true);
-    const container = e.currentTarget as HTMLElement;
-    container.setPointerCapture(e.pointerId);
-    
-    // Snap immediately to where user clicked
-    handleMove(e.clientX);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    handleMove(e.clientX);
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    
-    const rect = sliderRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    const maxX = rect.width - HANDLE_SIZE - (PADDING * 2);
-    const threshold = maxX * 0.85;
-
-    if (currentXRef.current >= threshold) {
-      setSlideX(maxX);
-      // Haptic feedback for success
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-      onConfirm();
-      
-      // Reset after a buffer for UX
-      setTimeout(() => {
-        setSlideX(0);
-        currentXRef.current = 0;
-      }, 3000);
-    } else {
-      // Snap back smoothly
-      setSlideX(0);
-      currentXRef.current = 0;
-    }
-  };
-
-  return (
-    <div 
-      ref={sliderRef} 
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      className={cn(
-        "relative h-[68px] w-full rounded-full p-2 flex items-center overflow-hidden shadow-2xl select-none touch-none transform-gpu",
-        isDisabled ? "bg-gray-100 opacity-60" : isDragging ? "bg-emerald-600" : "bg-emerald-50"
-      )}
-      style={{ touchAction: 'none', userSelect: 'none' }}
-    >
-      {/* Background Track Label */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12 z-0">
-        <span className={cn(
-          "text-[12px] font-black uppercase italic tracking-widest transition-all duration-300", 
-          isDisabled ? "text-gray-400" : isDragging ? "text-white/30" : "text-emerald-600/60",
-          (slideX > 40 || isDisabled) ? "opacity-0 scale-95" : "opacity-100 scale-100"
-        )}>
-          {label || `SLIDE TO ORDER • ₹${total.toFixed(0)}`}
-        </span>
-        {isDisabled && (
-          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-             <AlertCircle className="h-3 w-3" /> FILL DETAILS
-          </span>
-        )}
-      </div>
-
-      {/* Dynamic Progress Fill */}
-      {!isDisabled && (
-        <div 
-          className="absolute left-0 top-0 bottom-0 bg-emerald-500 pointer-events-none transform-gpu z-1" 
-          style={{ 
-            width: `${slideX + (HANDLE_SIZE / 2) + PADDING}px`, 
-            transition: isDragging ? 'none' : 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-            opacity: isDragging ? 1 : 0.2
-          }} 
-        />
-      )}
-
-      {/* The Sliding Handle Button */}
-      <div 
-        className={cn(
-          "relative z-10 h-[52px] w-[52px] rounded-full bg-white flex items-center justify-center shadow-xl transform-gpu pointer-events-none", 
-          isDisabled ? "opacity-30" : "opacity-100",
-          isDragging && "scale-105 shadow-emerald-900/30"
-        )} 
-        style={{ 
-          transform: `translate3d(${slideX}px, 0, 0)`,
-          transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'
-        }}
-      >
-        <ChevronRight className={cn(
-          "h-7 w-7 stroke-[4]", 
-          isDragging ? "text-emerald-600" : "text-emerald-500"
-        )} />
-      </div>
-    </div>
-  );
-});
-SlideToOrder.displayName = "SlideToOrder";
-
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
   const router = useRouter();
@@ -723,7 +584,24 @@ export default function CartPage() {
               </div>
               <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
-           <SlideToOrder onConfirm={handleCheckout} total={grandTotal} isDisabled={isPlacing || isCheckoutDisabled} />
+           
+           <Button 
+            onClick={handleCheckout} 
+            disabled={isPlacing || isCheckoutDisabled}
+            className={cn(
+              "w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3",
+              (isPlacing || isCheckoutDisabled) ? "bg-gray-200 text-gray-400" : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+            )}
+          >
+            {isPlacing ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 className="h-6 w-6" />
+                PLACE ORDER • ₹{grandTotal.toFixed(0)}
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -772,12 +650,13 @@ export default function CartPage() {
                       <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">UTR number verify hone ke baad hi order accept hoga. Wrong UTR se order cancel ho sakta hai.</p>
                    </div>
                    
-                   <SlideToOrder 
-                    onConfirm={executeOrderPlacement} 
-                    total={grandTotal} 
-                    isDisabled={utrNumber.length !== 12 || isPlacing} 
-                    label="SLIDE TO VERIFY & ORDER"
-                   />
+                   <Button 
+                    onClick={executeOrderPlacement} 
+                    disabled={utrNumber.length !== 12 || isPlacing}
+                    className="w-full h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all"
+                  >
+                    {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "VERIFY & PLACE ORDER"}
+                  </Button>
                 </div>
                 <button onClick={() => setPaymentStep('selection')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Wait, I haven't paid yet</button>
               </div>
