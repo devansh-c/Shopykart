@@ -90,11 +90,9 @@ export default function CartPage() {
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
   // --- NATIVE TURBO SLIDER REFS ---
-  const [slidePosition, setSlidePosition] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
-  const currentXRef = useRef(0);
+  const fillRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
   // Local Validation Message
@@ -340,9 +338,9 @@ export default function CartPage() {
     setPaymentStep('utr');
   };
 
-  // --- TURBO SLIDER LOGIC ---
+  // --- OPTIMIZED SLIDER INTERACTION ENGINE ---
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isPlacing) return;
+    if (isPlacing || blockedVendorNames.length > 0) return;
     
     const error = validateOrderReady();
     if (error) {
@@ -352,57 +350,73 @@ export default function CartPage() {
     
     setValidationError(null);
     isDraggingRef.current = true;
-    setIsDragging(true);
-    
-    // Capture to container immediately
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     
-    const rect = sliderRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left - 24; 
-    const maxPath = rect.width - 56;
-    const newX = Math.max(0, Math.min(x, maxPath));
-    currentXRef.current = newX;
-    setSlidePosition(newX);
+    updateSliderPosition(e.clientX);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current || isPlacing) return;
+    if (!isDraggingRef.current) return;
+    updateSliderPosition(e.clientX);
+  };
+
+  const updateSliderPosition = (clientX: number) => {
+    if (!sliderRef.current || !handleRef.current || !fillRef.current) return;
     
-    const rect = sliderRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left - 24; 
-    const maxPath = rect.width - 56;
-    const newX = Math.max(0, Math.min(x, maxPath));
+    const rect = sliderRef.current.getBoundingClientRect();
+    const handleWidth = 56; // 14rem/w-14 approx
+    const maxPath = rect.width - handleWidth - 8; // padding correction
     
-    currentXRef.current = newX;
-    setSlidePosition(newX);
+    // Calculate relative X based on pointer center snap
+    let x = clientX - rect.left - (handleWidth / 2);
+    x = Math.max(0, Math.min(x, maxPath));
+    
+    // Direct DOM manipulation for zero-lag performance
+    handleRef.current.style.transform = `translateX(${x}px)`;
+    handleRef.current.style.transition = 'none';
+    fillRef.current.style.width = `${x + (handleWidth / 2)}px`;
+    fillRef.current.style.transition = 'none';
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current || isPlacing) return;
+    if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
-    setIsDragging(false);
     
-    const rect = sliderRef.current!.getBoundingClientRect();
-    const maxPath = rect.width - 56;
-    const threshold = maxPath * 0.8;
+    if (!sliderRef.current || !handleRef.current || !fillRef.current) return;
+    
+    const rect = sliderRef.current.getBoundingClientRect();
+    const handleWidth = 56;
+    const maxPath = rect.width - handleWidth - 8;
+    const currentX = parseFloat(handleRef.current.style.transform.replace('translateX(', '').replace('px)', '')) || 0;
+    
+    const threshold = maxPath * 0.85;
 
-    if (currentXRef.current >= threshold) {
-      currentXRef.current = maxPath;
-      setSlidePosition(maxPath);
+    if (currentX >= threshold) {
+      // Snap to end
+      handleRef.current.style.transition = 'transform 0.2s cubic-bezier(0.23, 1, 0.32, 1)';
+      handleRef.current.style.transform = `translateX(${maxPath}px)`;
+      fillRef.current.style.transition = 'width 0.2s cubic-bezier(0.23, 1, 0.32, 1)';
+      fillRef.current.style.width = '100%';
+
       if (paymentMethod === 'online') {
         setIsPaymentDialogOpen(true);
         setPaymentStep('selection');
-        setTimeout(() => {
-          currentXRef.current = 0;
-          setSlidePosition(0);
-        }, 300);
+        // Reset after small delay so dialog can open
+        setTimeout(() => resetSlider(), 500);
       } else {
         executeOrderPlacement();
       }
     } else {
-      currentXRef.current = 0;
-      setSlidePosition(0);
+      resetSlider();
     }
+  };
+
+  const resetSlider = () => {
+    if (!handleRef.current || !fillRef.current) return;
+    handleRef.current.style.transition = 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+    handleRef.current.style.transform = 'translateX(0px)';
+    fillRef.current.style.transition = 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+    fillRef.current.style.width = '0px';
   };
 
   return (
@@ -651,9 +665,9 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Bottom Sticky Footer */}
+      {/* Bottom Sticky Footer with TURBO SLIDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[2.5rem] pointer-events-auto transform-gpu">
+        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[3rem] pointer-events-auto transform-gpu">
            
            {validationError && (
              <div className="px-4 py-2 bg-red-50 border border-red-100 rounded-xl animate-in slide-in-from-bottom-2 duration-300">
@@ -669,47 +683,47 @@ export default function CartPage() {
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            
+           {/* HIGH-PERFORMANCE SLIDER TRACK */}
            <div 
              ref={sliderRef}
              onPointerDown={handlePointerDown}
              onPointerMove={handlePointerMove}
              onPointerUp={handlePointerUp}
+             onPointerLeave={handlePointerUp}
              className={cn(
-               "relative h-16 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden",
-               (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/20"
+               "relative h-20 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden",
+               (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/30"
              )}
            >
+              {/* Dynamic Fill Background (Directly controlled by Ref) */}
+              <div 
+                ref={fillRef}
+                className="absolute left-0 top-0 bottom-0 bg-emerald-600/10 pointer-events-none"
+                style={{ width: '0px' }}
+              />
+
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-sm font-black uppercase italic tracking-tighter transition-opacity duration-300",
-                      isDragging ? "opacity-20" : "opacity-40 text-emerald-900"
-                    )}>
-                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (validationError ? validationError.toUpperCase() : 'SLIDE TO ORDER')}
+                    <span className="text-sm font-black uppercase italic tracking-tighter text-emerald-900/40">
+                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (validationError ? validationError.toUpperCase() : 'SLIDE TO PLACE ORDER')}
                     </span>
-                    {!isDragging && !isPlacing && <ArrowRight className="h-4 w-4 text-emerald-600 animate-bounce-x" />}
+                    {!isPlacing && <ArrowRight className="h-4 w-4 text-emerald-600/40 animate-bounce-x" />}
                  </div>
               </div>
 
-              {/* Dynamic Fill Background */}
-              <div 
-                className="absolute left-0 top-0 bottom-0 bg-emerald-600/10 transition-all duration-75"
-                style={{ width: `${slidePosition + 32}px` }}
-              />
-
+              {/* Slider Handle (Round Button) */}
               <div 
                 ref={handleRef}
                 className={cn(
-                  "absolute left-2 w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg transform-gpu z-20",
-                  !isDragging && "transition-all duration-300 cubic-bezier(0.23,1,0.32,1)",
+                  "absolute left-2 w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center shadow-2xl transform-gpu z-20 border-4 border-white/20",
                   isPlacing && "animate-pulse"
                 )}
-                style={{ transform: `translateX(${slidePosition}px)` }}
+                style={{ transform: 'translateX(0px)' }}
               >
                 {isPlacing ? (
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  <Loader2 className="h-7 w-7 text-white animate-spin" />
                 ) : (
-                  <ArrowRight className="h-6 w-6 text-white stroke-[3]" />
+                  <ArrowRight className="h-8 w-8 text-white stroke-[4]" />
                 )}
               </div>
            </div>
