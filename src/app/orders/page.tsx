@@ -1,18 +1,21 @@
 "use client"
 
-import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2 } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useMemo, useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -37,7 +40,25 @@ export default function OrdersPage() {
     });
   }, [orders]);
 
-  // Refined loading state: Only show spinner if we expect data but don't have it yet
+  const handleCancelOrder = async (orderId: string) => {
+    if (!firestore || cancellingId) return;
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+
+    setCancellingId(orderId);
+    try {
+      await updateDoc(doc(firestore, 'orders', orderId), {
+        status: 'Cancelled',
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Order Cancelled" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Could not cancel order." });
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  // Refined loading state
   const isLoading = userLoading || (user && ordersLoading && !orders);
 
   return (
@@ -95,16 +116,28 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <div className="border-t border-dashed border-border pt-5 flex items-center justify-between">
-                <div className="flex flex-col">
+              <div className="border-t border-dashed border-border pt-5 flex items-center justify-between gap-3">
+                <div className="flex flex-col flex-1">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Paid</span>
                   <span className="text-xl font-black text-foreground italic tracking-tight">₹{order.total?.toFixed(2)}</span>
                 </div>
+                
+                {order.status === 'Placed' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
+                    disabled={cancellingId === order.id}
+                    className="bg-red-50 text-red-500 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-red-100 transition-colors"
+                  >
+                    {cancellingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    Cancel
+                  </button>
+                )}
+
                 <button 
                   onClick={() => router.push(`/orders/track?id=${order.id}`)}
                   className="bg-[#0B0B0B] text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-primary transition-colors"
                 >
-                  Track Order
+                  Track
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </button>
               </div>

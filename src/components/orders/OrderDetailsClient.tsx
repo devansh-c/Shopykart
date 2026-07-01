@@ -1,9 +1,9 @@
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles, Trash2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -27,10 +27,10 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Use forcedId (from dynamic route) or search param 'id'
   const orderId = forcedId || searchParams.get('id');
   
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const orderRef = useMemoFirebase(() => {
     if (!firestore || !orderId || orderId === 'track' || orderId === 'status' || orderId === 'active') return null;
@@ -44,6 +44,25 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
     return doc(firestore, 'app_settings', 'branding');
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
+
+  const handleCancelOrder = async () => {
+    if (!firestore || !order || isCancelling) return;
+    
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+
+    setIsCancelling(true);
+    try {
+      await updateDoc(doc(firestore, 'orders', order.id), {
+        status: 'Cancelled',
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Order Cancelled", description: "Your order has been removed." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Cancellation Failed", description: "Please contact support." });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const generateReceiptHTML = (orderData: any, settingsData: any) => {
     const upiId = "9450355709@axl";
@@ -209,6 +228,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
   if (!order) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase">Order Not Found</h2><Button onClick={() => router.push('/')} className="mt-8">Home</Button></div>;
 
   const isCancelled = order.status === 'Cancelled';
+  const canCancel = order.status === 'Placed';
   const currentStatusIdx = steps.findIndex(s => s.id === order.status);
 
   return (
@@ -254,14 +274,27 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
         <div className={cn(
-          "rounded-2xl p-5 flex items-center gap-4 border shadow-sm",
+          "rounded-2xl p-5 flex items-center justify-between gap-4 border shadow-sm",
           isCancelled ? "bg-red-50 border-red-100 text-red-600" : "bg-[#FFF8E6] border-[#FFE8B3] text-[#B38B00]"
         )}>
-          {isCancelled ? <XCircle className="h-8 w-8" /> : <Clock className="h-8 w-8 animate-pulse" />}
-          <div>
-            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">ORDER #{order.orderDisplayId || order.id.slice(-5)}</span>
-            <div className="font-black text-xl italic uppercase tracking-tighter">{isCancelled ? "Cancelled" : order.status}</div>
+          <div className="flex items-center gap-4">
+            {isCancelled ? <XCircle className="h-8 w-8" /> : <Clock className="h-8 w-8 animate-pulse" />}
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-widest opacity-60">ORDER #{order.orderDisplayId || order.id.slice(-5)}</span>
+              <div className="font-black text-xl italic uppercase tracking-tighter">{isCancelled ? "Cancelled" : order.status}</div>
+            </div>
           </div>
+
+          {canCancel && (
+            <button 
+              onClick={handleCancelOrder}
+              disabled={isCancelling}
+              className="bg-white border-2 border-red-100 text-red-500 h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+            >
+              {isCancelling ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Cancel
+            </button>
+          )}
         </div>
 
         {order.premiumPackaging && (
