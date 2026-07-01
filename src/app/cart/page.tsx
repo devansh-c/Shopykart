@@ -207,7 +207,7 @@ export default function CartPage() {
 
   const validateOrderReady = useCallback(() => {
     if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
-    if (totalPrice < 35 && grandTotal < 35) return "Min order ₹35 required";
+    if (totalPrice < 40 && grandTotal < 40) return "Min order ₹40 required";
     if (!customerName.trim()) return "Enter Full Name";
     if (customerPhone.length !== 10) return "Enter 10-digit Phone";
     if (customerAddress.trim().length < 3) return "Enter House/Street Details";
@@ -791,6 +791,8 @@ export default function CartPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      <div className="h-20" />
       
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent>
