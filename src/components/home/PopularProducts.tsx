@@ -179,7 +179,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
     };
     syncTime();
-    const interval = setInterval(syncTime, 60000); // Check once per minute is enough
+    const interval = setInterval(syncTime, 60000); 
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -189,7 +189,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(300));
+    // Removed limit or set high enough to show "all" products
+    return query(collection(firestore, 'products'));
   }, [firestore]);
 
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
@@ -228,11 +229,15 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return dbProducts.filter(product => {
       if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
+      
+      // Filter by active mode (Food, Grocery, etc)
       const productMode = product.serviceMode || vendor?.category || 'Food';
       if (productMode !== activeMode) return false;
 
-      const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
+      // Local Zone Filter - More inclusive
+      const productTown = (product.town || vendor?.town || 'Local').toLowerCase().trim();
       if (activeZoneId || targetCityNormalized) {
+        // If product is marked strictly for a different city, hide it. Otherwise show.
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
@@ -276,6 +281,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     <div className="px-4 py-8 content-visibility-auto transform-gpu">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
+        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{productsToDisplay.length} ITEMS</span>
       </div>
       <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-200", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (

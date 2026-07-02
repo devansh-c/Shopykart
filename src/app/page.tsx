@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useTransition, Suspense, useEffect, memo } from 'react';
@@ -47,6 +46,7 @@ export default function ShopyKartApp() {
   const handleModeChange = (mode: string) => {
     startTransition(() => {
       setActiveMode(mode);
+      setActiveCategory('all'); // Reset category when mode changes
     });
   };
 
@@ -91,8 +91,9 @@ export default function ShopyKartApp() {
                     <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>
                   </div>
                </div>
-               <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 v-5" />}</div>
+               <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
+            <ScrollReveal delay={100}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
         ) : (
@@ -120,7 +121,7 @@ export default function ShopyKartApp() {
             )}
             {!searchQuery && <Suspense fallback={null}><OffersSection /></Suspense>}
             {activeMode === 'Food' && !searchQuery && <ScrollReveal delay={320}><SmartBasketAI /></ScrollReveal>}
-            <ScrollReveal delay={350}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode="Food" /></ScrollReveal>
+            <ScrollReveal delay={350}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
         )}
