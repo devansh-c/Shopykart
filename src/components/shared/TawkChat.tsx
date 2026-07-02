@@ -4,8 +4,7 @@ import { useEffect } from 'react';
 
 /**
  * @fileOverview Tawk.to Live Chat Integration.
- * Optimized with native script injection for maximum reliability in preview environments.
- * Added yOffset to prevent the widget from being hidden behind the Bottom Navigation.
+ * Fixed: Corrected the dynamic import logic and ensured the script is injected directly.
  */
 export function TawkChat() {
   useEffect(() => {
@@ -23,7 +22,7 @@ export function TawkChat() {
     
     s1.id = 'tawk-script';
     s1.async = true;
-    // Using the user's key: e3da7e12a118e3f5b38146a34fcc3bf34b82a96a
+    // API KEY: e3da7e12a118e3f5b38146a34fcc3bf34b82a96a
     s1.src = 'https://embed.tawk.to/e3da7e12a118e3f5b38146a34fcc3bf34b82a96a/default';
     s1.charset = 'UTF-8';
     s1.setAttribute('crossorigin', '*');
@@ -38,20 +37,18 @@ export function TawkChat() {
     (window as any).Tawk_API.onLoad = function() {
       try {
         (window as any).Tawk_API.setAttributes({
-          'yOffset': 80 // Pushes the widget 80px up from the bottom
+          'yOffset': 80 
         }, function(error: any) {
           if (error) console.warn("Tawk.to Nudge Failed:", error);
         });
-        console.log("Tawk.to Chat Widget: Active & Nudged Up ✅");
+        console.log("Tawk.to Chat Widget: Active ✅");
       } catch (e) {
-        console.warn("Tawk.to API not ready for nudge.");
+        console.warn("Tawk.to API setup delay.");
       }
     };
 
     return () => {
-      // Clean up script on unmount if necessary (optional)
-      const existing = document.getElementById('tawk-script');
-      if (existing) existing.remove();
+      // Keep script alive to prevent widget disappearing on route change
     };
   }, []);
 

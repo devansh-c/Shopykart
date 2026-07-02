@@ -102,7 +102,7 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
       <SplashScreen isAppReady={isAppFullyReady} />
       
-      {/* Tawk.to moved outside AuthGuard for availability during login/registration */}
+      {/* Tawk.to correctly placed outside AuthGuard */}
       {!isExcludedPath && <DynamicTawkChat />}
       
       <AuthGuard onReady={setIsAppFullyReady}>
