@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -44,10 +44,14 @@ export default function ReceiptGenerator() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
-  const [orderId, setOrderId] = useState(() => Math.floor(10000 + Math.random() * 90000).toString());
+  const [orderId, setOrderId] = useState('');
   const [items, setItems] = useState<Item[]>([
     { id: '1', name: '', quantity: 1, price: 0 }
   ]);
+
+  useEffect(() => {
+    setOrderId(Math.floor(10000 + Math.random() * 90000).toString());
+  }, []);
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;

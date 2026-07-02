@@ -58,7 +58,7 @@ export async function getPersonalizedOfferSuggestions(input: PersonalizedOfferSu
   try {
     // Dynamic import to hide Genkit from the client-side bundler
     const { getAI } = await import('@/ai/genkit');
-    const ai = getAI();
+    const ai = await getAI();
 
     if (!ai || !ai.definePrompt) return fallbackOffers;
 
