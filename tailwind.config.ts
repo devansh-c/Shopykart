@@ -1,6 +1,6 @@
-import type {Config} from 'tailwindcss';
+import type {Config} from 'tailwind-merge';
 
-export default {
+const config: Config = {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -98,13 +98,20 @@ export default {
           '0%': { transform: 'translateX(-100%) translateY(-100%) rotate(-45deg)' },
           '100%': { transform: 'translateX(100%) translateY(100%) rotate(-45deg)' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'shine': 'shine 4s infinite linear',
+        'float': 'float 3s ease-in-out infinite',
       },
     },
   },
   plugins: [require('tailwindcss-animate')],
-} satisfies Config;
+} as Config;
+
+export default config;
