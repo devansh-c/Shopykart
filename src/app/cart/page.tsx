@@ -207,13 +207,14 @@ export default function CartPage() {
 
   const validateOrderReady = useCallback(() => {
     if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
-    if (totalPrice < 40 && grandTotal < 40) return "Min order ₹40 required";
+    // STRICT FIX: Minimum 40 INR check on totalPrice (Subtotal)
+    if (totalPrice < 40) return "Min items value ₹40 required";
     if (!customerName.trim()) return "Enter Full Name";
     if (customerPhone.length !== 10) return "Enter 10-digit Phone";
     if (customerAddress.trim().length < 3) return "Enter House/Street Details";
     if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
     return null;
-  }, [blockedVendorNames, totalPrice, grandTotal, customerName, customerPhone, customerAddress, customerPincode]);
+  }, [blockedVendorNames, totalPrice, customerName, customerPhone, customerAddress, customerPincode]);
 
   const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
