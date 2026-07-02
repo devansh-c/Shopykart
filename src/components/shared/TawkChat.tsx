@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 /**
  * @fileOverview Tawk.to Live Chat Integration.
- * Fixed: Corrected the dynamic import logic and ensured the script is injected directly.
+ * Updated to use the correct Site ID (Property ID) from the user's dashboard.
  */
 export function TawkChat() {
   useEffect(() => {
@@ -12,6 +12,10 @@ export function TawkChat() {
 
     // Prevent multiple script loads
     if (document.getElementById('tawk-script')) return;
+
+    // Using Site ID from screenshot: 6a32055016fcef1d436f9f9d
+    const propertyId = '6a32055016fcef1d436f9f9d';
+    const widgetId = 'default';
 
     // Tawk.to standard initialization
     (window as any).Tawk_API = (window as any).Tawk_API || {};
@@ -22,8 +26,7 @@ export function TawkChat() {
     
     s1.id = 'tawk-script';
     s1.async = true;
-    // API KEY: e3da7e12a118e3f5b38146a34fcc3bf34b82a96a
-    s1.src = 'https://embed.tawk.to/e3da7e12a118e3f5b38146a34fcc3bf34b82a96a/default';
+    s1.src = `https://embed.tawk.to/${propertyId}/${widgetId}`;
     s1.charset = 'UTF-8';
     s1.setAttribute('crossorigin', '*');
 
@@ -41,7 +44,7 @@ export function TawkChat() {
         }, function(error: any) {
           if (error) console.warn("Tawk.to Nudge Failed:", error);
         });
-        console.log("Tawk.to Chat Widget: Active ✅");
+        console.log("Tawk.to Chat Widget: Active with correct Site ID ✅");
       } catch (e) {
         console.warn("Tawk.to API setup delay.");
       }
