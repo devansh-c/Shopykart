@@ -19,7 +19,6 @@ const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonus
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => ({ default: m.LocationRequest })), { ssr: false });
 const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => ({ default: m.FloatingCart })), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
-const DynamicTawkChat = dynamic(() => import('@/components/shared/TawkChat').then(m => ({ default: m.TawkChat })), { ssr: false });
 
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -52,14 +51,12 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
-    // Fail-safe: Mark as ready after 500ms even if Firebase is slow
     const failSafeTimer = setTimeout(() => onReady(true), 500);
 
     if (!loading) {
       clearTimeout(failSafeTimer);
       onReady(true);
       if (!user && !hasActiveSession) {
-        // Show auth only after a small delay to prevent flickering
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 1000);
         return () => clearTimeout(authTimer);
       }
@@ -101,9 +98,6 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
       <SplashScreen isAppReady={isAppFullyReady} />
-      
-      {/* Tawk.to correctly placed outside AuthGuard */}
-      {!isExcludedPath && <DynamicTawkChat />}
       
       <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col">
