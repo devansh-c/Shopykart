@@ -19,7 +19,8 @@ import {
   Copy,
   Check,
   Building2,
-  Navigation
+  Navigation,
+  Mail
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
@@ -65,10 +66,11 @@ export default function CustomerManagement() {
     return users.filter(u => {
       const name = (u.fullName || '').toLowerCase();
       const phone = (u.phoneNumber || '');
+      const email = (u.email || '').toLowerCase();
       const addr = (u.address || '').toLowerCase();
       const city = (u.city || '').toLowerCase();
       const q = searchQuery.toLowerCase();
-      return name.includes(q) || phone.includes(q) || addr.includes(q) || city.includes(q);
+      return name.includes(q) || phone.includes(q) || email.includes(q) || addr.includes(q) || city.includes(q);
     });
   }, [users, searchQuery]);
 
@@ -208,7 +210,7 @@ export default function CustomerManagement() {
          <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input 
-               placeholder="Search by name, phone, or area..." 
+               placeholder="Search by name, phone, or email..." 
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
                className="pl-10 h-11 rounded-xl bg-white border-none shadow-sm font-bold"
@@ -283,20 +285,30 @@ export default function CustomerManagement() {
                 </div>
 
                 <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4 flex-1 border border-border/30">
-                  <div className="flex items-center justify-between border-b border-white pb-3 mb-1">
-                    <div className="flex items-center gap-2">
-                       <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                          <PhoneCall className="h-3.5 w-3.5 text-green-500" />
-                       </div>
-                       <span className="text-sm font-black tracking-tight">{user.phoneNumber || 'N/A'}</span>
+                  <div className="flex flex-col gap-2 border-b border-white pb-3 mb-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <div className="bg-white p-1.5 rounded-lg shadow-sm">
+                            <PhoneCall className="h-3.5 w-3.5 text-green-500" />
+                         </div>
+                         <span className="text-sm font-black tracking-tight">{user.phoneNumber || 'N/A'}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {user.phoneNumber && (
+                          <>
+                            <button onClick={() => window.open(`tel:${user.phoneNumber}`)} className="p-2 bg-green-500 text-white rounded-lg active:scale-90 transition-transform shadow-md"><PhoneCall className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => window.open(`https://wa.me/91${user.phoneNumber}`)} className="p-2 bg-green-50 text-green-600 rounded-lg active:scale-90 transition-transform"><MessageCircle className="h-3.5 w-3.5" /></button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      {user.phoneNumber && (
-                        <>
-                          <button onClick={() => window.open(`tel:${user.phoneNumber}`)} className="p-2 bg-green-500 text-white rounded-lg active:scale-90 transition-transform shadow-md"><PhoneCall className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => window.open(`https://wa.me/91${user.phoneNumber}`)} className="p-2 bg-green-50 text-green-600 rounded-lg active:scale-90 transition-transform"><MessageCircle className="h-3.5 w-3.5" /></button>
-                        </>
-                      )}
+                    
+                    {/* EMAIL DISPLAY */}
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="bg-white p-1.5 rounded-lg shadow-sm">
+                         <Mail className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <span className="text-[11px] font-bold text-gray-700 truncate">{user.email || 'No email registered'}</span>
                     </div>
                   </div>
 
