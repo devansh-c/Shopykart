@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
-import { Zap, Plus, Minus, Heart, SlidersHorizontal, Utensils, ShoppingBag, Loader2, Star, Clock, Sparkles, AlertCircle } from "lucide-react"
+import { Zap, Plus, Minus, Heart, Star, Clock, ShoppingBag, Loader2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -37,7 +37,6 @@ export const isStoreScheduleOpen = (store: any, currentMinutesOverride?: number)
   if (store.isOnline === false) return false;
   if (!store.openingTime || !store.closingTime) return true;
 
-  // Use override if provided (prevents hydration mismatch)
   const currentTime = currentMinutesOverride !== undefined 
     ? currentMinutesOverride 
     : (new Date().getHours() * 60 + new Date().getMinutes());
@@ -48,7 +47,6 @@ export const isStoreScheduleOpen = (store: any, currentMinutesOverride?: number)
   if (start < end) {
     return currentTime >= start && currentTime <= end;
   } else {
-    // Cross-midnight
     return currentTime >= start || currentTime <= end;
   }
 };
@@ -58,7 +56,6 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
   const isOffline = vendor ? (vendor.isOnline === false || !isScheduleOpen) : false;
   
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
-
   const basePrice = product.price || 0;
   const isSaleActive = globalOffer?.isActive;
   
@@ -67,7 +64,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
     const val = Number(globalOffer.value) || 0;
     if (globalOffer.type === 'percentage') return basePrice * (1 - val / 100);
     return Math.max(0, basePrice - val);
-  }, [basePrice, globalOffer]);
+  }, [basePrice, isSaleActive, globalOffer]);
 
   const handleQuickAdd = () => {
     if (isOffline) return;
@@ -84,28 +81,28 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 
   return (
     <div className={cn(
-      "relative bg-white rounded-[2rem] transition-all duration-500 will-change-transform transform-gpu p-6 flex justify-between items-start",
-      "shadow-[0_0_30px_rgba(197,160,33,0.18)] border-2 border-[#C5A021] hover:shadow-[0_0_45px_rgba(197,160,33,0.3)] hover:border-[#B8860B]",
-      isOffline && "opacity-60 grayscale-[0.5] shadow-none border-gray-200"
+      "relative bg-white rounded-[2rem] transition-all duration-300 will-change-transform transform-gpu p-5 flex justify-between items-start",
+      "shadow-[0_4px_20px_-2px_rgba(197,160,33,0.12)] border border-[#C5A021]/30",
+      isOffline && "opacity-60 grayscale-[0.5] shadow-none border-gray-100"
     )}>
       <div className="flex-1 pr-4 min-w-0">
         <div className="flex items-center gap-2 mb-2">
-          <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
+          <div className="h-3 w-3 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
           {isSaleActive && (
             <Badge className="bg-primary text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full animate-pulse border-none">
-              FLASH SALE LIVE
+              SALE LIVE
             </Badge>
           )}
         </div>
         <div onClick={() => !isOffline && onNavigate(product.id)} className={cn("block text-left w-full cursor-pointer", isOffline && "pointer-events-none")}>
-          <h3 className="font-bold text-lg text-[#1C1C1C] mb-1.5 italic tracking-tight line-clamp-2 uppercase">{product.name}</h3>
-          <div className="flex items-baseline gap-2 mb-2">
+          <h3 className="font-bold text-base text-[#1C1C1C] mb-1 italic tracking-tight line-clamp-2 uppercase leading-tight">{product.name}</h3>
+          <div className="flex items-baseline gap-2 mb-1.5">
              <div className="text-xl font-black text-primary italic">₹{showoffPrice.toFixed(0)}</div>
-             {isSaleActive && <div className="text-sm font-bold text-gray-400 line-through">₹{basePrice}</div>}
+             {isSaleActive && <div className="text-xs font-bold text-gray-400 line-through">₹{basePrice}</div>}
           </div>
           
           <div className="flex items-center gap-2">
-            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-60">from {product.restaurantName || 'Nearby'}</p>
+            <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate">from {product.restaurantName || 'Nearby'}</p>
             {vendor?.rating && (
               <Badge className="bg-amber-50 text-amber-600 border-none font-black text-[7px] flex items-center gap-0.5 h-3 px-1">
                 <Star className="h-2 w-2 fill-amber-600" /> {vendor.rating}
@@ -114,35 +111,32 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
           </div>
         </div>
       </div>
-      <div className="relative w-28 h-28 shrink-0">
+      <div className="relative w-24 h-24 shrink-0">
         <div onClick={() => !isOffline && onNavigate(product.id)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner cursor-pointer transform-gpu">
           <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
           {isOffline && (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-3 text-center transition-opacity animate-in fade-in duration-300">
-              <span className="text-white font-black text-[10px] uppercase italic tracking-tighter border-2 border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">
-                {vendor?.isOnline === false ? 'Closed' : !isScheduleOpen ? `Opens at ${vendor?.openingTime || '09:00 AM'}` : 'Offline'}
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-2 text-center transition-opacity animate-in fade-in duration-300">
+              <span className="text-white font-black text-[9px] uppercase italic tracking-tighter border border-white/30 px-2 py-1 rounded backdrop-blur-sm">
+                CLOSED
               </span>
             </div>
           )}
         </div>
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1 z-20">
           {quantity === 0 ? (
             <ProductQuickView product={product} globalOffer={globalOffer} vendorScheduleOpen={isScheduleOpen}>
-              <button disabled={isOffline} className={cn("w-full h-9 bg-white shadow-lg font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-200" : "text-primary border-2 border-primary")}>
+              <button disabled={isOffline} className={cn("w-full h-8 bg-white shadow-md font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-100" : "text-primary border-2 border-primary")}>
                 {isOffline ? 'OFF' : 'ADD'}
               </button>
             </ProductQuickView>
           ) : (
-            <div className={cn("flex items-center justify-between w-full h-9 bg-primary text-white rounded-xl shadow-lg", isOffline && "opacity-50")}>
+            <div className={cn("flex items-center justify-between w-full h-8 bg-primary text-white rounded-xl shadow-lg", isOffline && "opacity-50")}>
               <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
-              <span className="text-xs font-black min-w-[20px] text-center">{quantity}</span>
-              <button disabled={isOffline} onClick={() => !isOffline && handleQuickAdd()} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3.5 w-3.5" /></button>
+              <span className="text-[10px] font-black min-w-[15px] text-center">{quantity}</span>
+              <button disabled={isOffline} onClick={() => !isOffline && handleQuickAdd()} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3 w-3" /></button>
             </div>
           )}
         </div>
-        <button onClick={() => onToggleWishlist(product.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 shadow-md z-20 active:scale-75 transition-transform">
-          <Heart className={cn("h-3.5 w-3.5", isLiked ? "fill-primary text-primary" : "text-gray-300")} />
-        </button>
       </div>
     </div>
   );
@@ -151,14 +145,13 @@ ProductItem.displayName = "ProductItem";
 
 function ProductSkeleton() {
   return (
-    <div className="relative bg-white rounded-[2rem] border border-gray-100 p-6 flex justify-between items-start shadow-sm animate-pulse h-[160px]">
+    <div className="relative bg-white rounded-[2rem] border border-gray-100 p-5 flex justify-between items-start shadow-sm animate-pulse h-[140px]">
       <div className="flex-1 pr-4">
         <div className="h-3 w-3 bg-gray-200 rounded-sm mb-3" />
-        <div className="h-6 w-3/4 bg-gray-100 rounded-md mb-2" />
+        <div className="h-5 w-3/4 bg-gray-100 rounded-md mb-2" />
         <div className="h-4 w-1/4 bg-gray-100 rounded-md mb-4" />
-        <div className="h-3 w-1/2 bg-gray-50 rounded-md" />
       </div>
-      <div className="w-28 h-28 bg-gray-100 rounded-2xl" />
+      <div className="w-24 h-24 bg-gray-100 rounded-2xl" />
     </div>
   );
 }
@@ -181,13 +174,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     
-    // Set minutes only on client to avoid hydration mismatch
     const syncTime = () => {
       const now = new Date();
       setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
     };
     syncTime();
-    const interval = setInterval(syncTime, 30000);
+    const interval = setInterval(syncTime, 60000); // Check once per minute is enough
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -197,7 +189,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(500));
+    return query(collection(firestore, 'products'), limit(300));
   }, [firestore]);
 
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
@@ -252,8 +244,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
       
-      // If currentMinutes is null, we are on server or hasn't hydrated. Assume open to avoid "Closed" flicker.
-      const mins = currentMinutes ?? 720; // Default to mid-day for sorting consistency
+      const mins = currentMinutes ?? 720;
       const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, mins) ? 1 : 0) : 1;
       const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, mins) ? 1 : 0) : 1;
       
@@ -283,10 +274,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   return (
     <div className="px-4 py-8 content-visibility-auto transform-gpu">
-      <div className="flex items-center justify-between mb-8 px-2">
+      <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
       </div>
-      <div className={cn("grid grid-cols-1 gap-8 transition-opacity duration-200", isPending && "opacity-50")}>
+      <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-200", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}

@@ -34,7 +34,7 @@
     outline: none !important;
   }
   
-  /* GLOBAL SCROLLBAR HIDER - SAFED DANDA REMOVAL */
+  /* GLOBAL SCROLLBAR HIDER */
   ::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
@@ -42,10 +42,11 @@
   }
 
   html {
-    scrollbar-width: none !important; /* Firefox */
-    -ms-overflow-style: none !important; /* IE/Edge */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
     height: 100%;
     overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -56,20 +57,20 @@
     overflow-x: hidden;
     overflow-y: auto !important;
     min-height: 100vh;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch !important; /* Force smooth momentum scroll on iOS */
   }
 
   input, textarea, [contenteditable] {
     user-select: text !important;
   }
   
-  /* NUCLEAR PERFORMANCE ENGINE v6 - Virtual Scroll & Hardware Acceleration */
+  /* NUCLEAR PERFORMANCE ENGINE v7 - Virtual Scroll & Hardware Acceleration */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;
     contain: layout style paint;
-    transform: translateZ(0); /* Force GPU Layer */
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   .transform-gpu {
@@ -87,13 +88,13 @@
     scrollbar-width: none;
   }
 
-  /* Extreme Performance: Prevent layout shifts */
+  /* Smooth Premium Cards - Optimized Shadow for Performance */
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
     contain: content;
     transform: translateZ(0);
     will-change: transform;
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px -2px rgba(0,0,0,0.02);
   }
 
   nav.fixed {
