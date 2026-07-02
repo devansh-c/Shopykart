@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -20,6 +19,7 @@ const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonus
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => ({ default: m.LocationRequest })), { ssr: false });
 const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => ({ default: m.FloatingCart })), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
+const DynamicTawkChat = dynamic(() => import('@/components/shared/TawkChat').then(m => ({ default: m.TawkChat })), { ssr: false });
 
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -115,6 +115,7 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
           
           {!isExcludedPath && <DynamicFloatingCart />}
           {!isExcludedPath && <DynamicBottomNav />}
+          {!isExcludedPath && <DynamicTawkChat />}
         </div>
       </AuthGuard>
       <Toaster />
