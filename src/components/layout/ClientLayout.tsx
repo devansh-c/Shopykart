@@ -102,6 +102,9 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
       <SplashScreen isAppReady={isAppFullyReady} />
       
+      {/* Tawk.to moved outside AuthGuard for availability during login/registration */}
+      {!isExcludedPath && <DynamicTawkChat />}
+      
       <AuthGuard onReady={setIsAppFullyReady}>
         <div className="relative min-h-screen flex flex-col">
           <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
@@ -115,7 +118,6 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
           
           {!isExcludedPath && <DynamicFloatingCart />}
           {!isExcludedPath && <DynamicBottomNav />}
-          {!isExcludedPath && <DynamicTawkChat />}
         </div>
       </AuthGuard>
       <Toaster />
