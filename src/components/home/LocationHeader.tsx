@@ -16,7 +16,6 @@ import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
-import { identifyFood } from '@/ai/flows/visual-search-flow';
 import { cn } from '@/lib/utils';
 import { CustomDishDialog } from './CustomDishDialog';
 
@@ -108,6 +107,8 @@ export function LocationHeader({
     reader.onloadend = async () => {
       const base64String = reader.result as string;
       try {
+        // Dynamic import to isolate AI logic from client bundle init
+        const { identifyFood } = await import('@/ai/flows/visual-search-flow');
         const result = await identifyFood({ photoDataUri: base64String });
         onSearchChange(result.identifiedFood);
       } catch (err) {
@@ -135,14 +136,12 @@ export function LocationHeader({
     <div className="w-full bg-[#0B0B0B] pb-4 pt-2 px-4 space-y-3 rounded-b-[2.5rem] shadow-2xl relative z-50">
       <div className="flex items-center justify-between">
         <div onClick={handleChangeLocation} className="flex items-center gap-2 cursor-pointer max-w-[65%] group">
-          {/* Changed MapPin background and text to White/Glass */}
           <div className="h-9 w-9 bg-white/10 rounded-xl flex items-center justify-center text-white border border-white/10 group-active:scale-90 transition-transform">
             <MapPin className="h-4 w-4" />
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1">
               <span className="text-white text-[13px] font-black truncate tracking-tight">{currentAddress}</span>
-              {/* Changed Chevron to white */}
               <ChevronDown className="h-3.5 w-3.5 text-white shrink-0 transition-transform group-hover:translate-y-0.5" />
             </div>
             <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest truncate leading-none mt-0.5">
@@ -195,7 +194,6 @@ export function LocationHeader({
                <button onClick={handleCameraClick} className="p-1.5 text-white active:scale-90 transition-all">
                 {isIdentifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
-              {/* Changed Mic listening color to white pulse */}
               <button onClick={handleMicClick} className={cn("p-1.5 text-white active:scale-90 transition-all", isListening && "animate-pulse")}>
                 <Mic className="h-3.5 w-3.5" />
               </button>

@@ -12,18 +12,22 @@ export const z = zod;
 
 /**
  * Optimized AI instance getter.
- * This prevents the 'require' calls from executing during client-side bundling
- * or during static analysis which causes "Internal Server Error".
+ * This prevents the 'require' calls from executing during client-side bundling.
  */
 export const getAI = async () => {
+  // SSR/Static Check
   if (typeof window !== 'undefined') {
-    return {} as any;
+    return null;
   }
   
   try {
     // Dynamic import to hide Node.js modules from the browser bundler
-    const { genkit } = await import('genkit');
-    const { googleAI } = await import('@genkit-ai/google-genai');
+    // Using variable to further obscure from some static analyzers
+    const genkitPackage = 'genkit';
+    const googlePackage = '@genkit-ai/google-genai';
+    
+    const { genkit } = await import(genkitPackage);
+    const { googleAI } = await import(googlePackage);
     
     return genkit({
       plugins: [googleAI()],
@@ -31,9 +35,9 @@ export const getAI = async () => {
     });
   } catch (e) {
     console.error("Genkit init failed on server:", e);
-    return {} as any;
+    return null;
   }
 };
 
-// Legacy export for compatibility, though getAI() is preferred
-export const ai = typeof window !== 'undefined' ? ({} as any) : null;
+// Stub for client side
+export const ai = null;
