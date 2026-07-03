@@ -32,15 +32,15 @@ export const parseTimeToMinutes = (t: string) => {
   } catch (e) { return 0; }
 };
 
-export const isStoreScheduleOpen = (store: any, currentMinutesOverride?: number) => {
+export const isStoreScheduleOpen = (store: any, currentMinutesOverride?: number | null) => {
   if (!store) return true;
   if (store.isOnline === false) return false;
   if (!store.openingTime || !store.closingTime) return true;
 
-  const currentTime = currentMinutesOverride !== undefined 
-    ? currentMinutesOverride 
-    : (new Date().getHours() * 60 + new Date().getMinutes());
+  // Hydration Safety: If we don't have a synced time yet, assume open to match server render
+  if (currentMinutesOverride === null || currentMinutesOverride === undefined) return true;
 
+  const currentTime = currentMinutesOverride;
   const start = parseTimeToMinutes(store.openingTime);
   const end = parseTimeToMinutes(store.closingTime);
 
@@ -189,7 +189,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Removed limit or set high enough to show "all" products
     return query(collection(firestore, 'products'));
   }, [firestore]);
 
@@ -230,14 +229,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
       
-      // Filter by active mode (Food, Grocery, etc)
       const productMode = product.serviceMode || vendor?.category || 'Food';
       if (productMode !== activeMode) return false;
 
-      // Local Zone Filter - More inclusive
       const productTown = (product.town || vendor?.town || 'Local').toLowerCase().trim();
       if (activeZoneId || targetCityNormalized) {
-        // If product is marked strictly for a different city, hide it. Otherwise show.
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }

@@ -27,12 +27,17 @@ export default function MenuContent() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState('recommended');
   const { cart, addToCart, removeFromCart } = useCart();
-  const [, setTick] = useState(0);
+  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   
   const firestore = useFirestore();
 
   useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -48,7 +53,7 @@ export default function MenuContent() {
   }, [firestore, vendorIdParam]);
   const { data: vendorProfile } = useDoc<any>(vendorRef);
 
-  const scheduleOpen = isStoreScheduleOpen(vendorProfile);
+  const scheduleOpen = isStoreScheduleOpen(vendorProfile, currentMinutes);
   const isOffline = vendorProfile?.isOnline === false || !scheduleOpen;
 
   const productsQuery = useMemoFirebase(() => {
@@ -71,9 +76,9 @@ export default function MenuContent() {
     result.sort((a: any, b: any) => {
       const vA = allVendors.find(v => v.id === a.vendorId);
       const vB = allVendors.find(v => v.id === b.vendorId);
-      // CRITICAL FIX: Product only offline if its store is offline or timing mismatch
-      const onlineA = (vA?.isOnline !== false && isStoreScheduleOpen(vA)) ? 1 : 0;
-      const onlineB = (vB?.isOnline !== false && isStoreScheduleOpen(vB)) ? 1 : 0;
+      
+      const onlineA = (vA?.isOnline !== false && isStoreScheduleOpen(vA, currentMinutes)) ? 1 : 0;
+      const onlineB = (vB?.isOnline !== false && isStoreScheduleOpen(vB, currentMinutes)) ? 1 : 0;
 
       if (onlineA !== onlineB) return onlineB - onlineA;
 
@@ -86,7 +91,7 @@ export default function MenuContent() {
     });
 
     return result;
-  }, [searchQuery, activeCategory, sortBy, dbProducts, vendorIdParam, allVendors]);
+  }, [searchQuery, activeCategory, sortBy, dbProducts, vendorIdParam, allVendors, currentMinutes]);
 
   const categories = [
     { id: 'all', name: 'All' },
@@ -191,8 +196,7 @@ export default function MenuContent() {
             const quantity = cartItem?.quantity || 0;
             const imageUrl = product.imageUrl || `https://picsum.photos/seed/food/400/300`;
             const vendor = allVendors?.find(v => v.id === product.vendorId);
-            // OVERRIDE: Product offline only if Store is closed or timing closed
-            const productIsOffline = (vendor?.isOnline === false) || !isStoreScheduleOpen(vendor);
+            const productIsOffline = (vendor?.isOnline === false) || !isStoreScheduleOpen(vendor, currentMinutes);
 
             return (
               <div 
@@ -203,7 +207,7 @@ export default function MenuContent() {
                 )}
               >
                 <div className="flex-1 pr-4 min-w-0">
-                  <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor) : true}>
+                  <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor, currentMinutes) : true}>
                     <button className={cn("block text-left w-full", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
@@ -219,7 +223,7 @@ export default function MenuContent() {
                 </div>
                 
                 <div className="relative w-28 h-28 flex-shrink-0">
-                  <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor) : true}>
+                  <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor, currentMinutes) : true}>
                     <button className={cn("relative w-full h-full rounded-2xl overflow-hidden bg-muted", (productIsOffline || isOffline) && "pointer-events-none")}>
                       <img 
                         src={imageUrl} 
@@ -230,7 +234,7 @@ export default function MenuContent() {
                       {(productIsOffline || isOffline) && (
                         <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center text-center p-2">
                           <span className="text-white font-black text-[10px] uppercase italic tracking-tighter leading-tight border border-white/30 px-2 py-1 rounded-md">
-                            {vendor?.isOnline === false ? 'Closed' : !isStoreScheduleOpen(vendor) ? 'Timing' : 'Closed'}
+                            {vendor?.isOnline === false ? 'Closed' : !isStoreScheduleOpen(vendor, currentMinutes) ? 'Timing' : 'Closed'}
                           </span>
                         </div>
                       )}
@@ -242,7 +246,7 @@ export default function MenuContent() {
                         OFFLINE
                       </div>
                     ) : quantity === 0 ? (
-                      <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor) : true}>
+                      <ProductQuickView product={product} vendorScheduleOpen={vendor ? isStoreScheduleOpen(vendor, currentMinutes) : true}>
                         <button 
                           className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all"
                         >
