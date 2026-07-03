@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -86,15 +87,24 @@ export default function OrderManagement() {
     if (!element) return;
     setDownloadingId(order.id);
     try {
-      const { toJpeg } = await import('html-to-image');
+      const { toBlob } = await import('html-to-image');
       const { saveAs } = await import('file-saver');
-      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      saveAs(blob, `ShopyKart_Admin_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
-      toast({ title: "Saved!" });
+      
+      const blob = await toBlob(element, { 
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2
+      });
+      
+      if (blob) {
+        saveAs(blob, `ShopyKart_Admin_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
+        toast({ title: "Saved!" });
+      } else {
+        throw new Error("Blob generation failed");
+      }
     } catch (err) {
-      toast({ variant: "destructive", title: "Error" });
+      console.error("Download Error:", err);
+      toast({ variant: "destructive", title: "Download Failed", description: "Could not generate image." });
     } finally {
       setDownloadingId(null);
     }
@@ -204,7 +214,7 @@ export default function OrderManagement() {
         <div className="border-t border-dashed border-black my-3" />
         <div className="border border-dashed border-black p-3 text-center mb-3">
            <p className="text-[7px] font-black tracking-widest mb-1">PAYMENT QR</p>
-           <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" />
+           <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" crossOrigin="anonymous" />
            <p className="text-[8px] font-black mt-1">PAYABLE: ₹{orderData.total?.toFixed(2)}</p>
         </div>
         <div className="text-center text-[7px] font-black tracking-widest opacity-60">POWERED BY SHOPYKART POS</div>

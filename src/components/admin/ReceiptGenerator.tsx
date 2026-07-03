@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -88,21 +89,24 @@ export default function ReceiptGenerator() {
 
     setIsDownloading(true);
     try {
-      const { toJpeg } = await import('html-to-image');
+      const { toBlob } = await import('html-to-image');
       const { saveAs } = await import('file-saver');
       
-      const dataUrl = await toJpeg(element, { 
-        quality: 0.95, 
+      const blob = await toBlob(element, { 
+        cacheBust: true, 
         backgroundColor: '#ffffff',
         pixelRatio: 2
       });
       
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      saveAs(blob, `Manual_Receipt_${orderId}.jpg`);
-      toast({ title: "Receipt Saved! ✅" });
+      if (blob) {
+        saveAs(blob, `Manual_Receipt_${orderId}.jpg`);
+        toast({ title: "Receipt Saved! ✅" });
+      } else {
+        throw new Error("Blob creation failed");
+      }
     } catch (err) {
-      toast({ variant: "destructive", title: "Download Failed" });
+      console.error("Download Failed:", err);
+      toast({ variant: "destructive", title: "Download Failed", description: "Check connection and try again." });
     } finally {
       setIsDownloading(false);
     }

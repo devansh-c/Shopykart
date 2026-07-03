@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -140,7 +141,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
 
         <div className="border border-dashed border-black p-3 text-center space-y-2 mb-3">
           <p className="text-[7px] font-black tracking-widest">PAYMENT QR (SCAN TO PAY)</p>
-          <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" />
+          <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" crossOrigin="anonymous" />
           <p className="text-[8px] font-black">PAYABLE: ₹{amount}</p>
         </div>
 
@@ -166,15 +167,24 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
     }
 
     try {
-      const { toJpeg } = await import('html-to-image');
+      const { toBlob } = await import('html-to-image');
       const { saveAs } = await import('file-saver');
-      const dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      saveAs(blob, `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
-      toast({ title: "Saved to Gallery! ✅" });
+      
+      const blob = await toBlob(element, { 
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2
+      });
+      
+      if (blob) {
+        saveAs(blob, `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
+        toast({ title: "Saved to Gallery! ✅" });
+      } else {
+        throw new Error("Blob creation failed");
+      }
     } catch (err) {
-      toast({ variant: "destructive", title: "Download Failed" });
+      console.error("Receipt Download Error:", err);
+      toast({ variant: "destructive", title: "Download Failed", description: "Image generation interrupted." });
     } finally {
       setIsDownloading(false);
     }
