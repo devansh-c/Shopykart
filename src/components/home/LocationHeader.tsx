@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,7 +16,7 @@ import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { CustomDishDialog } from './CustomDishDialog';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -243,7 +242,7 @@ export function LocationHeader({
                  )}>FOOD</span>
                  <span className={cn(
                    "text-[6px] font-black transition-opacity duration-300 select-none",
-                   activeMode === 'Grocery' ? "text-white opacity-0" : "text-white opacity-30"
+                   activeMode === 'Food' ? "text-white opacity-0" : "text-white opacity-30"
                  )}>GROC</span>
               </div>
 
