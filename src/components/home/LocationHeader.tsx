@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,7 +10,8 @@ import {
   MapPin,
   Utensils,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Crown
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useCart } from '@/components/cart/CartProvider';
@@ -18,6 +20,8 @@ import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { CustomDishDialog } from './CustomDishDialog';
+import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 type LocationHeaderProps = {
   searchValue: string;
@@ -58,11 +62,25 @@ export function LocationHeader({
   onModeChange,
 }: LocationHeaderProps) {
   const { totalItems } = useCart();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [currentAddress, setCurrentAddress] = useState('Select Location');
   const [addressSubtitle, setAddressSubtitle] = useState('Tap to set area');
+
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: profile } = useDoc<any>(profileRef);
+
+  const isPremium = useMemo(() => {
+    if (!profile?.isPremium || !profile?.premiumExpiry) return false;
+    const expiry = new Date(profile.premiumExpiry).getTime();
+    return expiry > Date.now();
+  }, [profile]);
 
   useEffect(() => {
     const updateAddress = () => {
@@ -107,7 +125,6 @@ export function LocationHeader({
     reader.onloadend = async () => {
       const base64String = reader.result as string;
       try {
-        // Dynamic import to isolate AI logic from client bundle init
         const { identifyFood } = await import('@/ai/flows/visual-search-flow');
         const result = await identifyFood({ photoDataUri: base64String });
         onSearchChange(result.identifiedFood);
@@ -144,9 +161,17 @@ export function LocationHeader({
               <span className="text-white text-[13px] font-black truncate tracking-tight">{currentAddress}</span>
               <ChevronDown className="h-3.5 w-3.5 text-white shrink-0 transition-transform group-hover:translate-y-0.5" />
             </div>
-            <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest truncate leading-none mt-0.5">
-              {addressSubtitle}
-            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest truncate leading-none">
+                {addressSubtitle}
+              </span>
+              {isPremium && (
+                <div className="bg-amber-400/20 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/20">
+                  <Crown className="h-2 w-2 text-amber-500 fill-amber-500" />
+                  <span className="text-[7px] font-black text-amber-500 uppercase">Premium User</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -229,7 +254,7 @@ export function LocationHeader({
                 )}
                 style={{
                   background: 'radial-gradient(circle at 35% 35%, #FFFFFF 0%, #D1D1D1 60%, #B0B0B0 100%)',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.8)'
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.7), theme(spacing.px) px rgba(255,255,255,0.8)'
                 }}
               >
                 {activeMode === 'Food' ? <Utensils className="h-2.5 w-2.5 text-gray-800" /> : <ShoppingBag className="h-2.5 w-2.5 text-gray-800" />}

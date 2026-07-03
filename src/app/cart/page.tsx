@@ -31,7 +31,8 @@ import {
   MessageSquareQuote,
   AlertCircle,
   Store,
-  ArrowRight
+  ArrowRight,
+  Crown
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -89,12 +90,10 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
-  // --- NATIVE TURBO SLIDER REFS ---
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const currentXRef = useRef(0);
 
-  // Local Validation Message
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -116,6 +115,12 @@ export default function CartPage() {
   }, [firestore, user]);
   const { data: profile } = useDoc<any>(profileRef);
   const availableCoins = profile?.coins || 0;
+
+  const isPremium = useMemo(() => {
+    if (!profile?.isPremium || !profile?.premiumExpiry) return false;
+    const expiry = new Date(profile.premiumExpiry).getTime();
+    return expiry > Date.now();
+  }, [profile]);
 
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -146,14 +151,23 @@ export default function CartPage() {
       if (!charge.zoneId || charge.zoneId === 'global') return true;
       return charge.zoneId === activeZoneId;
     });
+
     return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
-      if (charge.type === 'fixed') amount = chargeVal;
-      else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
+      
+      // PREMIUM BENEFIT: WAIVE DELIVERY CHARGES
+      const isDeliveryCharge = charge.name.toLowerCase().includes('delivery');
+      if (isPremium && isDeliveryCharge) {
+        amount = 0;
+      } else {
+        if (charge.type === 'fixed') amount = chargeVal;
+        else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
+      }
+
       return { ...charge, calculatedAmount: amount };
     });
-  }, [dbCharges, totalPrice]);
+  }, [dbCharges, totalPrice, isPremium]);
 
   const chargesTotalSum = useMemo(() => {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
@@ -207,7 +221,6 @@ export default function CartPage() {
 
   const validateOrderReady = useCallback(() => {
     if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
-    // STRICT FIX: Minimum 40 INR check on totalPrice (Subtotal)
     if (totalPrice < 40) return "Min items value ₹40 required";
     if (!customerName.trim()) return "Enter Full Name";
     if (customerPhone.length !== 10) return "Enter 10-digit Phone";
@@ -268,7 +281,8 @@ export default function CartPage() {
       couponDiscount,
       deliveryTip,
       couponCode: appliedCoupon?.code || null,
-      instructions
+      instructions,
+      isPremiumOrder: isPremium
     };
 
     try {
@@ -303,9 +317,8 @@ export default function CartPage() {
       router.replace(`/orders/track?id=${orderId}`);
     }, 1600);
     
-  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames]);
+  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames, isPremium]);
 
-  // --- OPTIMIZED SLIDER INTERACTION ENGINE (ANYWHERE SNAP) ---
   const updateVisuals = (x: number, isDragging: boolean) => {
     if (!sliderRef.current) return;
     sliderRef.current.style.setProperty('--slide-x', `${x}px`);
@@ -327,7 +340,6 @@ export default function CartPage() {
     isDraggingRef.current = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     
-    // Immediate snap calculation
     const rect = sliderRef.current!.getBoundingClientRect();
     const handleWidth = 64;
     const maxPath = rect.width - handleWidth - 16;
@@ -362,7 +374,6 @@ export default function CartPage() {
     const threshold = maxPath * 0.85;
 
     if (currentXRef.current >= threshold) {
-      // Completed!
       currentXRef.current = maxPath;
       updateVisuals(maxPath, false);
       
@@ -422,6 +433,20 @@ export default function CartPage() {
 
       <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
         
+        {isPremium && (
+          <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-[2rem] p-6 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
+             <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                <Crown className="h-6 w-6 fill-white" />
+             </div>
+             <div>
+                <h4 className="font-black italic uppercase text-amber-900 text-sm">Premium Benefit Active</h4>
+                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-relaxed">
+                   Free delivery applied to your order! Enjoy your premium perks.
+                </p>
+             </div>
+          </div>
+        )}
+
         {blockedVendorNames.length > 0 && (
           <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[2rem] p-6 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-500">
              <div className="flex items-center gap-3 text-red-600">
@@ -645,9 +670,19 @@ export default function CartPage() {
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
             <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
-            {dynamic_charges.map((charge: any) => (
-              <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest"><span>{charge.name}</span><span>₹{charge.calculatedAmount.toFixed(2)}</span></div>
-            ))}
+            {dynamic_charges.map((charge: any) => {
+              const isWaived = isPremium && charge.name.toLowerCase().includes('delivery');
+              return (
+                <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest">
+                  <span>{charge.name}</span>
+                  {isWaived ? (
+                    <span className="text-green-600 font-black flex items-center gap-1"><ShieldCheck className="h-2.5 w-2.5" /> FREE</span>
+                  ) : (
+                    <span>₹{charge.calculatedAmount.toFixed(2)}</span>
+                  )}
+                </div>
+              );
+            })}
             {premiumPackaging && <div className="flex justify-between font-bold text-[11px] text-rose-500 uppercase tracking-widest"><span>Premium Packaging</span><span>₹10.00</span></div>}
             {appliedCoupon && <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Discount</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>}
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
@@ -657,7 +692,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Bottom Sticky Footer with REBUILT TURBO SLIDER (ANYWHERE SNAP) */}
       <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[3rem] pointer-events-auto transform-gpu">
            
@@ -675,7 +709,6 @@ export default function CartPage() {
               <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            
-           {/* REBUILT ULTRA-SMOOTH SLIDER (ANYWHERE SNAP SUPPORT) */}
            <div 
              ref={sliderRef}
              onPointerDown={handlePointerDown}
@@ -693,7 +726,6 @@ export default function CartPage() {
                ['--slide-transition' as any]: 'none'
              }}
            >
-              {/* Performance Optimized Background Fill */}
               <div 
                 className="absolute left-0 top-0 bottom-0 bg-emerald-600/10 pointer-events-none"
                 style={{ 
@@ -711,7 +743,6 @@ export default function CartPage() {
                  </div>
               </div>
 
-              {/* Slider Handle (Round Button) */}
               <div 
                 className={cn(
                   "absolute left-2 w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center shadow-2xl transform-gpu z-20 border-4 border-white/20",

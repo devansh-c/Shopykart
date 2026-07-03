@@ -78,6 +78,8 @@
         "pincode": { "type": "string" },
         "zoneId": { "type": "string" },
         "coins": { "type": "number", "default": 0 },
+        "isPremium": { "type": "boolean", "default": false },
+        "premiumExpiry": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },

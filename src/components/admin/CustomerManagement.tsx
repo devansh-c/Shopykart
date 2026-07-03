@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, orderBy, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { 
   User, 
   PhoneCall, 
@@ -20,17 +21,21 @@ import {
   Check,
   Building2,
   Navigation,
-  Mail
+  Mail,
+  Crown,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 export default function CustomerManagement() {
   const firestore = useFirestore();
@@ -99,6 +104,21 @@ export default function CustomerManagement() {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
       setIsAdjusting(false);
+    }
+  };
+
+  const handleTogglePremium = async (userId: string, currentStatus: boolean) => {
+    if (!firestore) return;
+    try {
+      const expiry = currentStatus ? null : addDays(new Date(), 60).toISOString();
+      await updateDoc(doc(firestore, 'users', userId), {
+        isPremium: !currentStatus,
+        premiumExpiry: expiry,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: !currentStatus ? "Premium Enabled! 👑" : "Premium Removed" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
     }
   };
 
@@ -229,20 +249,42 @@ export default function CustomerManagement() {
               ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, h:mm a') 
               : 'Recently';
 
+            const isPremium = user.isPremium && new Date(user.premiumExpiry).getTime() > Date.now();
+
             return (
               <div key={user.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group relative flex flex-col transform-gpu">
+                
+                <div className="absolute top-6 right-6 z-10 flex flex-col items-end gap-2">
+                   {isPremium && (
+                      <Badge className="bg-amber-400 text-black border-none font-black text-[7px] uppercase tracking-widest animate-pulse">
+                         <Crown className="h-2 w-2 mr-1 fill-black" /> ELITE USER
+                      </Badge>
+                   )}
+                   <div className="bg-white/80 backdrop-blur-md px-2 py-1.5 rounded-xl border shadow-sm flex items-center gap-2">
+                      <span className="text-[7px] font-black uppercase text-gray-400">Elite</span>
+                      <Switch 
+                        checked={user.isPremium === true} 
+                        onCheckedChange={() => handleTogglePremium(user.id, user.isPremium === true)}
+                        className="scale-75 data-[state=checked]:bg-amber-500"
+                      />
+                   </div>
+                </div>
+
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative">
-                    <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 overflow-hidden">
+                    <div className={cn(
+                      "h-14 w-14 rounded-2xl flex items-center justify-center border overflow-hidden",
+                      isPremium ? "border-amber-400 bg-amber-50" : "border-primary/10 bg-primary/5"
+                    )}>
                       {user.profileImageUrl ? (
                         <img src={user.profileImageUrl} className="h-full w-full object-cover" alt="" />
                       ) : (
-                        <User className="h-7 w-7" />
+                        <User className={cn("h-7 w-7", isPremium ? "text-amber-500" : "text-primary")} />
                       )}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate">
+                    <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate pr-20">
                       {user.fullName || 'New User'}
                     </h3>
                     <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
@@ -285,6 +327,12 @@ export default function CustomerManagement() {
                 </div>
 
                 <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4 flex-1 border border-border/30">
+                  {isPremium && (
+                    <div className="flex items-center gap-2 bg-amber-50 p-2 rounded-xl border border-amber-100 mb-1">
+                       <AlertCircle className="h-3 w-3 text-amber-600" />
+                       <span className="text-[8px] font-bold text-amber-700 uppercase">Elite UTR: {user.premiumUtr || 'ADMIN_ENABLED'}</span>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-2 border-b border-white pb-3 mb-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -303,7 +351,6 @@ export default function CustomerManagement() {
                       </div>
                     </div>
                     
-                    {/* EMAIL DISPLAY */}
                     <div className="flex items-center gap-2 px-1">
                       <div className="bg-white p-1.5 rounded-lg shadow-sm">
                          <Mail className="h-3.5 w-3.5 text-blue-500" />
