@@ -1,11 +1,12 @@
+
 "use client"
 
 import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2, Clock, TrendingUp, Crown, Check, X, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { 
   Bar, 
   BarChart, 
@@ -15,23 +16,34 @@ import {
   Tooltip as ReChartsTooltip,
   Cell
 } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { useToast } from '@/hooks/use-toast';
+import { addDays } from 'date-fns';
 
 export default function AdminOverview() {
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Fetch real data
+  // Fetch orders
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'orders');
   }, [firestore]);
   const { data: orders } = useCollection<any>(ordersQuery);
 
+  // Fetch users
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'users');
   }, [firestore]);
   const { data: users } = useCollection<any>(usersQuery);
+
+  // Fetch Pending Premium Requests
+  const premiumQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'premium_subscriptions'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+  const { data: premiumRequests, loading: premiumLoading } = useCollection<any>(premiumQuery);
 
   const stats = useMemo(() => {
     const totalOrders = orders?.length || 0;
@@ -46,7 +58,49 @@ export default function AdminOverview() {
     ];
   }, [orders, users]);
 
-  // Chart Data: Last 7 days
+  const handleVerifyPremium = async (req: any) => {
+    if (!firestore || processingId) return;
+    setProcessingId(req.id);
+    try {
+      const expiryDate = addDays(new Date(), 60).toISOString();
+      
+      // 1. Update User Profile
+      await updateDoc(doc(firestore, 'users', req.userId), {
+        isPremium: true,
+        premiumExpiry: expiryDate,
+        updatedAt: serverTimestamp()
+      });
+
+      // 2. Update Subscription Status
+      await updateDoc(doc(firestore, 'premium_subscriptions', req.id), {
+        status: 'verified',
+        verifiedAt: serverTimestamp()
+      });
+
+      toast({ title: "Premium Activated! 👑", description: `${req.customerName} is now an Elite member.` });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Verification Failed" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectPremium = async (reqId: string) => {
+    if (!firestore || processingId) return;
+    setProcessingId(reqId);
+    try {
+      await updateDoc(doc(firestore, 'premium_subscriptions', reqId), {
+        status: 'failed',
+        rejectedAt: serverTimestamp()
+      });
+      toast({ title: "Request Rejected", description: "Customer can try again." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Action Failed" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const chartData = useMemo(() => {
     if (!orders) return [];
     const last7Days = Array.from({ length: 7 }).map((_, i) => {
@@ -73,7 +127,7 @@ export default function AdminOverview() {
   }, [orders]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          <Card className="col-span-1 md:col-span-2 border-primary/20 bg-white shadow-xl rounded-[2.5rem] overflow-hidden">
             <div className="bg-[#0B0B0B] p-6 text-white">
@@ -140,6 +194,73 @@ export default function AdminOverview() {
             </div>
             <div className="absolute inset-0 bg-black/10 -skew-x-12 translate-x-1/2" />
          </Card>
+      </div>
+
+      {/* NEW UTR VERIFICATION SECTION */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 px-2">
+          <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg"><Crown className="h-5 w-5" /></div>
+          <h3 className="text-xl font-black italic uppercase tracking-tighter">Premium UTR Verification</h3>
+          {premiumRequests && premiumRequests.length > 0 && (
+            <Badge className="bg-red-500 text-white animate-pulse">{premiumRequests.length} PENDING</Badge>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           {premiumLoading ? (
+             <div className="col-span-full h-32 bg-white rounded-3xl flex items-center justify-center border border-dashed"><Loader2 className="h-6 w-6 animate-spin text-amber-500" /></div>
+           ) : premiumRequests && premiumRequests.length > 0 ? (
+             premiumRequests.map((req: any) => (
+               <div key={req.id} className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 shadow-sm flex flex-col justify-between group hover:shadow-xl transition-all">
+                  <div className="flex items-start justify-between mb-4">
+                     <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
+                           <ShieldCheck className="h-6 w-6" />
+                        </div>
+                        <div>
+                           <h4 className="font-black text-sm uppercase italic">{req.customerName}</h4>
+                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                             {req.createdAt?.seconds ? format(new Date(req.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Recently'}
+                           </span>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                        <span className="text-[10px] font-black text-gray-400 uppercase block mb-1">Payment</span>
+                        <div className="text-lg font-black italic text-green-600 leading-none">₹{req.amount}</div>
+                     </div>
+                  </div>
+
+                  <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50 mb-6">
+                     <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 block">UTR Number (Transaction ID)</span>
+                     <div className="text-lg font-black tracking-[0.2em] text-amber-900 italic">{req.utr}</div>
+                  </div>
+
+                  <div className="flex gap-3">
+                     <button 
+                      onClick={() => handleVerifyPremium(req)}
+                      disabled={processingId === req.id}
+                      className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-green-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+                     >
+                       {processingId === req.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                       VERIFY & ACTIVATE
+                     </button>
+                     <button 
+                      onClick={() => handleRejectPremium(req.id)}
+                      disabled={processingId === req.id}
+                      className="h-12 w-12 bg-red-50 text-red-500 border border-red-100 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                     >
+                       <X className="h-5 w-5" />
+                     </button>
+                  </div>
+               </div>
+             ))
+           ) : (
+             <div className="col-span-full h-32 bg-white rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center opacity-40">
+                <Clock className="h-8 w-8 mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">No pending premium requests</p>
+             </div>
+           )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

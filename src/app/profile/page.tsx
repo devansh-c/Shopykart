@@ -34,14 +34,16 @@ import {
   Crown,
   Smartphone,
   Hash,
-  ArrowRight
+  ArrowRight,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { useRef, useState, useEffect, useMemo, useTransition } from 'react';
 import { compressImage } from '@/lib/image-utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
@@ -69,7 +71,7 @@ export default function ProfilePage() {
 
   // Premium State
   const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
-  const [premiumStep, setPremiumStep] = useState<'info' | 'payment' | 'utr' | 'success'>('info');
+  const [premiumStep, setPremiumStep] = useState<'info' | 'payment' | 'utr' | 'success' | 'pending' | 'failed'>('info');
   const [premiumUtr, setPremiumUtr] = useState('');
   const [isActivating, setIsActivating] = useState(false);
   
@@ -85,11 +87,27 @@ export default function ProfilePage() {
 
   const { data: profile } = useDoc<any>(profileRef);
 
+  // Fetch Current Request Status
+  const requestQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'premium_subscriptions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
+  }, [firestore, user]);
+  const { data: latestRequests, loading: requestLoading } = useCollection<any>(requestQuery);
+  const activeRequest = latestRequests?.[0];
+
   const isPremium = useMemo(() => {
     if (!profile?.isPremium || !profile?.premiumExpiry) return false;
     const expiry = new Date(profile.premiumExpiry).getTime();
     return expiry > Date.now();
   }, [profile]);
+
+  useEffect(() => {
+    if (activeRequest) {
+      if (activeRequest.status === 'pending') setPremiumStep('pending');
+      else if (activeRequest.status === 'failed') setPremiumStep('failed');
+      else if (activeRequest.status === 'verified') setPremiumStep('success');
+    }
+  }, [activeRequest]);
 
   const premiumPrice = 249;
   const gstRate = 0.18;
@@ -136,35 +154,25 @@ export default function ProfilePage() {
     }
   };
 
-  const handleActivatePremium = async () => {
+  const handleRequestPremium = async () => {
     if (!firestore || !user || premiumUtr.length !== 12) return;
     
     setIsActivating(true);
     try {
-      const expiryDate = addDays(new Date(), 60); // 2 months validity
-      
-      // Update User Profile with Premium Status
-      await setDoc(doc(firestore, 'users', user.uid), {
-        isPremium: true,
-        premiumExpiry: expiryDate.toISOString(),
-        premiumUtr: premiumUtr,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      // Save Premium Purchase Log for Admin
+      // Create Premium Activation Request
       await addDoc(collection(firestore, 'premium_subscriptions'), {
         userId: user.uid,
         customerName: profile?.fullName || 'User',
         utr: premiumUtr,
+        status: 'pending',
         amount: parseFloat(totalPremiumPrice),
-        expiry: expiryDate.toISOString(),
         createdAt: serverTimestamp()
       });
 
-      setPremiumStep('success');
-      toast({ title: "Premium Activated! 👑", description: "You are now a ShopyKart Elite member." });
+      setPremiumStep('pending');
+      toast({ title: "Request Sent!", description: "Admin will verify your payment soon." });
     } catch (err) {
-      toast({ variant: "destructive", title: "Activation Failed", description: "Contact support if payment was deducted." });
+      toast({ variant: "destructive", title: "Action Failed" });
     } finally {
       setIsActivating(false);
     }
@@ -312,7 +320,7 @@ export default function ProfilePage() {
         {/* PREMIUM UPGRADE CARD */}
         {!isPremium && (
           <button 
-            onClick={() => { setPremiumStep('info'); setIsPremiumDialogOpen(true); }}
+            onClick={() => setIsPremiumDialogOpen(true)}
             className="w-full relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#1C1C1C] to-black p-8 text-left shadow-2xl border border-white/5 active:scale-[0.98] transition-all group"
           >
              <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-12" />
@@ -686,17 +694,47 @@ export default function ProfilePage() {
                    </div>
                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-start gap-3">
                       <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                      <p className="text-[9px] font-bold text-amber-700 uppercase leading-relaxed">UTR submit karte hi aapka Elite status activate ho jayega. False UTR se account block ho sakta hai.</p>
+                      <p className="text-[9px] font-bold text-amber-700 uppercase leading-relaxed">Admin aapke UTR ko verify karenge, uske baad hi membership active hogi.</p>
                    </div>
                    
                    <Button 
-                    onClick={handleActivatePremium} 
+                    onClick={handleRequestPremium} 
                     disabled={premiumUtr.length !== 12 || isActivating}
                     className="w-full h-16 rounded-[2rem] bg-amber-500 hover:bg-amber-600 text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all"
                   >
-                    {isActivating ? <Loader2 className="h-6 w-6 animate-spin" /> : "ACTIVATE ELITE STATUS"}
+                    {isActivating ? <Loader2 className="h-6 w-6 animate-spin" /> : "SUBMIT FOR VERIFICATION"}
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {premiumStep === 'pending' && (
+              <div className="text-center space-y-8 py-6 animate-in zoom-in duration-500">
+                  <div className="h-20 w-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-blue-500 mx-auto border border-blue-100">
+                     <Clock className="h-10 w-10 animate-spin-slow" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black italic uppercase text-gray-900 leading-tight">Verification<br /><span className="text-blue-500">Pending.</span></h2>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-4">
+                      Aapka UTR submit ho gaya hai. Humara team ise verify kar raha hai. 1-2 ghante mein elite status active ho jayega.
+                    </p>
+                  </div>
+                  <Button onClick={() => setIsPremiumDialogOpen(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE</Button>
+              </div>
+            )}
+
+            {premiumStep === 'failed' && (
+              <div className="text-center space-y-8 py-6 animate-in zoom-in duration-500">
+                  <div className="h-20 w-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto border border-red-100">
+                     <AlertCircle className="h-10 w-10 animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black italic uppercase text-gray-900 leading-tight">Verification<br /><span className="text-red-500">Failed.</span></h2>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-4">
+                      Admin ne aapka UTR reject kar diya hai. Shayad UTR number galat tha ya payment receive nahi hua.
+                    </p>
+                  </div>
+                  <Button onClick={() => setPremiumStep('payment')} className="w-full h-14 bg-red-600 text-white rounded-2xl font-black uppercase italic shadow-lg">TRY AGAIN</Button>
               </div>
             )}
 
