@@ -44,7 +44,7 @@ export function EmailAuth() {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleForgotPassword = () => {
-    const adminPhone = "919450355709";
+    const adminPhone = "917992090977";
     const message = `Hey ShopyKart Team, I forgot my password. My registered email is: ${email || "[Enter Email Here]"}. Please help me reset it.`;
     window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };

@@ -376,7 +376,7 @@ export default function ProfilePage() {
                   </button>
 
                   <button 
-                    onClick={() => window.open('https://wa.me/919450355709')}
+                    onClick={() => window.open('https://wa.me/917992090977')}
                     className="w-full bg-green-50/50 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all border border-green-100/50"
                   >
                       <div className="flex items-center gap-4">
