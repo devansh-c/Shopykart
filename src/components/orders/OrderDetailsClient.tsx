@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -168,7 +167,9 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
 
     try {
       const { toBlob } = await import('html-to-image');
-      const { saveAs } = await import('file-saver');
+      const FileSaver = await import('file-saver');
+      // Handle potential default export or direct export
+      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
       
       const blob = await toBlob(element, { 
         cacheBust: true,
@@ -176,7 +177,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
         pixelRatio: 2
       });
       
-      if (blob) {
+      if (blob && typeof saveAs === 'function') {
         saveAs(blob, `ShopyKart_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
         toast({ title: "Saved to Gallery! ✅" });
       } else {

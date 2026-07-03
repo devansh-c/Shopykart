@@ -37,7 +37,9 @@ export default function ExportManagement() {
     
     try {
       const JSZip = (await import('jszip')).default;
-      const { saveAs } = await import('file-saver');
+      const FileSaver = await import('file-saver');
+      // Handle potential default export or named export
+      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
 
       const zip = new JSZip();
       const collections = ['products', 'vendors', 'orders', 'categories', 'coupons', 'users', 'tickets', 'pages'];
@@ -53,9 +55,12 @@ export default function ExportManagement() {
       }
 
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `ShopyKart_Data_Backup_${new Date().toISOString().split('T')[0]}.zip`);
-      
-      toast({ title: "Data Exported! ✅" });
+      if (typeof saveAs === 'function') {
+        saveAs(content, `ShopyKart_Data_Backup_${new Date().toISOString().split('T')[0]}.zip`);
+        toast({ title: "Data Exported! ✅" });
+      } else {
+        throw new Error("File saver failed to load");
+      }
     } catch (err) {
       toast({ variant: "destructive", title: "Export Failed" });
     } finally {

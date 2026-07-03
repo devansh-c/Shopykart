@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -90,7 +89,9 @@ export default function ReceiptGenerator() {
     setIsDownloading(true);
     try {
       const { toBlob } = await import('html-to-image');
-      const { saveAs } = await import('file-saver');
+      const FileSaver = await import('file-saver');
+      // Handle potential default export or named export
+      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
       
       const blob = await toBlob(element, { 
         cacheBust: true, 
@@ -98,7 +99,7 @@ export default function ReceiptGenerator() {
         pixelRatio: 2
       });
       
-      if (blob) {
+      if (blob && typeof saveAs === 'function') {
         saveAs(blob, `Manual_Receipt_${orderId}.jpg`);
         toast({ title: "Receipt Saved! ✅" });
       } else {

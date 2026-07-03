@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -88,7 +87,9 @@ export default function OrderManagement() {
     setDownloadingId(order.id);
     try {
       const { toBlob } = await import('html-to-image');
-      const { saveAs } = await import('file-saver');
+      const FileSaver = await import('file-saver');
+      // Handle potential default export or direct export
+      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
       
       const blob = await toBlob(element, { 
         cacheBust: true,
@@ -96,7 +97,7 @@ export default function OrderManagement() {
         pixelRatio: 2
       });
       
-      if (blob) {
+      if (blob && typeof saveAs === 'function') {
         saveAs(blob, `ShopyKart_Admin_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
         toast({ title: "Saved!" });
       } else {
