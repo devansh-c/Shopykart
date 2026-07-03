@@ -36,7 +36,8 @@ import {
   Hash,
   ArrowRight,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -344,7 +345,7 @@ export default function ProfilePage() {
                 <span className="text-xs font-black uppercase tracking-widest">Membership Active</span>
              </div>
              <p className="text-[10px] font-bold text-green-600 uppercase">
-                Expires on: {format(new Date(profile.premiumExpiry), 'dd MMM yyyy')}
+                Expires on: {profile.premiumExpiry ? format(new Date(profile.premiumExpiry), 'dd MMM yyyy') : 'N/A'}
              </p>
           </div>
         )}
@@ -488,7 +489,7 @@ export default function ProfilePage() {
                         <div className="bg-green-100 p-2.5 rounded-xl text-green-600"><MessageCircle className="h-5 w-5" /></div>
                         <div className="text-left">
                             <span className="text-sm font-bold block leading-none">WhatsApp Now</span>
-                            <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Fastest Support</span>
+                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Fastest Support</span>
                         </div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-green-200" />
