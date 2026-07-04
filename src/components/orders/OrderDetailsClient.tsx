@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles, Trash2, Crown } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -74,6 +75,14 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
 
     return (
       <div id={`receipt-content-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100 shadow-none print:shadow-none">
+        {orderData.isPremiumOrder && (
+          <div className="text-center mb-2">
+             <div className="bg-[#0B0B0B] text-amber-400 py-1.5 px-3 rounded-sm font-black text-[7px] tracking-[0.2em] inline-block mb-2 border border-amber-500 shadow-lg">
+               ★ PREMIUM ELITE CUSTOMER ★
+             </div>
+          </div>
+        )}
+        
         <div className="text-center space-y-1 mb-4">
           <h2 className="text-2xl font-black italic tracking-tighter leading-none">SHOPYKART</h2>
           <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY NETWORK</p>
@@ -95,7 +104,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
 
         <div className="border-t border-dashed border-black my-2" />
         
-        <div className="space-y-1 mb-2">
+        <div className="space-y-1 mb-3">
            <span className="font-black block">DELIVERY ADDRESS:</span>
            <p className="text-[9px] leading-tight opacity-80">{orderData.address}</p>
         </div>
@@ -168,7 +177,6 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
     try {
       const { toBlob } = await import('html-to-image');
       const FileSaver = await import('file-saver');
-      // Handle potential default export or direct export
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
       
       const blob = await toBlob(element, { 
@@ -241,6 +249,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
   const isCancelled = order.status === 'Cancelled';
   const canCancel = order.status === 'Placed';
   const currentStatusIdx = steps.findIndex(s => s.id === order.status);
+  const isElite = order.isPremiumOrder === true;
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-32">
@@ -284,6 +293,21 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {isElite && (
+          <div className="bg-[#0B0B0B] rounded-2xl p-4 flex items-center justify-between border-b-4 border-amber-500 shadow-xl animate-in slide-in-from-top-4 duration-500">
+             <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black">
+                   <Crown className="h-6 w-6 fill-black" />
+                </div>
+                <div>
+                   <h4 className="text-amber-400 font-black italic uppercase text-xs leading-none">Elite Delivery</h4>
+                   <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1">Priority Service Enabled</p>
+                </div>
+             </div>
+             <Badge className="bg-amber-500 text-black font-black text-[7px] uppercase border-none px-2 py-0.5">VIP</Badge>
+          </div>
+        )}
+
         <div className={cn(
           "rounded-2xl p-5 flex items-center justify-between gap-4 border shadow-sm",
           isCancelled ? "bg-red-50 border-red-100 text-red-600" : "bg-[#FFF8E6] border-[#FFE8B3] text-[#B38B00]"

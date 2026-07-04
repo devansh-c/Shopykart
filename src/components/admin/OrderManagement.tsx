@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -29,7 +30,8 @@ import {
   Copy,
   ShieldAlert,
   CheckCircle2,
-  MessageSquareQuote
+  MessageSquareQuote,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -88,7 +90,6 @@ export default function OrderManagement() {
     try {
       const { toBlob } = await import('html-to-image');
       const FileSaver = await import('file-saver');
-      // Handle potential default export or direct export
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
       
       const blob = await toBlob(element, { 
@@ -158,6 +159,14 @@ export default function OrderManagement() {
     
     return (
       <div id={`receipt-content-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100">
+        {orderData.isPremiumOrder && (
+          <div className="text-center mb-2">
+             <div className="bg-black text-white py-1 px-2 rounded-sm font-black text-[7px] tracking-[0.2em] inline-block mb-2 border border-amber-500">
+               ★ PREMIUM ELITE CUSTOMER ★
+             </div>
+          </div>
+        )}
+        
         <div className="text-center mb-4">
           <h2 className="text-xl font-black italic tracking-tighter leading-none">SHOPYKART</h2>
           <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY NETWORK</p>
@@ -240,17 +249,31 @@ export default function OrderManagement() {
 
           const isPrepaid = order.paymentMethod === 'online';
           const needsVerification = isPrepaid && order.paymentStatus === 'UTR_Pending_Verification';
+          const isElite = order.isPremiumOrder === true;
 
           return (
-            <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
+            <div key={order.id} className={cn(
+              "bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden",
+              isElite && "border-amber-200 shadow-lg shadow-amber-50"
+            )}>
+              {isElite && (
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-amber-600 to-amber-400" />
+              )}
+              
               <div className="flex flex-col lg:flex-row justify-between gap-6">
                 <div className="flex-1 flex items-start space-x-5">
-                  <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0", order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 'bg-primary/5 text-primary')}>
+                  <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0", order.status === 'Delivered' ? 'bg-green-50 text-green-600' : isElite ? 'bg-amber-50 text-amber-600' : 'bg-primary/5 text-primary')}>
                     <Package className="h-7 w-7" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center flex-wrap gap-2 mb-2">
                       <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
+                      {isElite && (
+                        <Badge className="bg-[#0B0B0B] text-amber-400 border-none px-3 py-1 font-black text-[8px] uppercase tracking-widest flex items-center gap-1.5 animate-in zoom-in duration-500">
+                           <Crown className="h-3 w-3 fill-amber-400" />
+                           PREMIUM ELITE ORDER
+                        </Badge>
+                      )}
                       <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary")}>{order.status}</Badge>
                       <Badge className={cn(
                         "text-[8px] font-black uppercase rounded-full px-2 py-1 flex items-center gap-1",
@@ -272,7 +295,6 @@ export default function OrderManagement() {
                     </div>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
                     
-                    {/* CUSTOMER NOTE DISPLAY */}
                     {order.instructions && (
                       <div className="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
                          <MessageSquareQuote className="h-5 w-5 text-amber-600 shrink-0" />
@@ -283,7 +305,6 @@ export default function OrderManagement() {
                       </div>
                     )}
 
-                    {/* PREPAID UTR BOX */}
                     {isPrepaid && order.utrNumber && (
                       <div className="mb-4 bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between group/utr hover:bg-blue-50 transition-colors">
                         <div className="flex flex-col">
@@ -333,7 +354,6 @@ export default function OrderManagement() {
                                      <span className="flex-1 truncate mr-2">{item.quantity}x {item.name}</span>
                                      <span className="shrink-0 text-primary">₹{item.price * item.quantity}</span>
                                   </div>
-                                  {/* PER ITEM INSTRUCTIONS IN ADMIN */}
                                   {item.instructions && (
                                     <span className="text-[8px] font-black text-primary mt-1 flex items-center gap-1">
                                        <MessageSquareQuote className="h-2 w-2" /> {item.instructions}
