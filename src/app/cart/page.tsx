@@ -697,8 +697,8 @@ export default function CartPage() {
                       <Crown className="h-6 w-6 fill-black" />
                    </div>
                    <div className="flex flex-col">
-                      <h4 className="text-white font-black italic uppercase text-sm leading-none">Save ₹{potentialSavings.toFixed(0)} now!</h4>
-                      <p className="text-amber-400 text-[8px] font-bold uppercase tracking-widest mt-1">Elite members pay zero tax & fees.</p>
+                      <h4 className="text-white font-black italic uppercase text-sm leading-none">2 MONTHS UNLIMITED FREE DELIVERY!</h4>
+                      <p className="text-amber-400 text-[8px] font-bold uppercase tracking-widest mt-1">Join Elite & Save ₹{potentialSavings.toFixed(0)} now.</p>
                    </div>
                 </div>
                 <button 
