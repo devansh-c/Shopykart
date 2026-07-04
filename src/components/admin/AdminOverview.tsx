@@ -17,7 +17,7 @@ import {
   Cell
 } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
-import { addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
 
 export default function AdminOverview() {
   const firestore = useFirestore();
