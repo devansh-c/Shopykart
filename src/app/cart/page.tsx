@@ -156,9 +156,8 @@ export default function CartPage() {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
       
-      // PREMIUM BENEFIT: WAIVE DELIVERY CHARGES
-      const isDeliveryCharge = charge.name.toLowerCase().includes('delivery');
-      if (isPremium && isDeliveryCharge) {
+      // PREMIUM BENEFIT: WAIVE ALL TAXES & CHARGES
+      if (isPremium) {
         amount = 0;
       } else {
         if (charge.type === 'fixed') amount = chargeVal;
@@ -441,7 +440,7 @@ export default function CartPage() {
              <div>
                 <h4 className="font-black italic uppercase text-amber-900 text-sm">Premium Benefit Active</h4>
                 <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-relaxed">
-                   Free delivery applied to your order! Enjoy your premium perks.
+                   Taxes & Charges waived for you! Enjoy your premium perks.
                 </p>
              </div>
           </div>
@@ -671,7 +670,7 @@ export default function CartPage() {
           <div className="space-y-3">
             <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
             {dynamic_charges.map((charge: any) => {
-              const isWaived = isPremium && charge.name.toLowerCase().includes('delivery');
+              const isWaived = isPremium;
               return (
                 <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest">
                   <span>{charge.name}</span>
