@@ -41,11 +41,11 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, collection, addDoc, query, where, orderBy, limit } from 'firebase/firestore';
-import { useRef, useState, useEffect, useMemo, useTransition } from 'react';
+import { useRef, useState, useEffect, useMemo, useTransition, Suspense } from 'react';
 import { compressImage } from '@/lib/image-utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -55,8 +55,9 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format, addDays } from 'date-fns';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -87,6 +88,13 @@ export default function ProfilePage() {
   }, [firestore, user]);
 
   const { data: profile } = useDoc<any>(profileRef);
+
+  // Auto-open Premium Dialog if ?upgrade=true
+  useEffect(() => {
+    if (searchParams.get('upgrade') === 'true' && !profile?.isPremium) {
+      setIsPremiumDialogOpen(true);
+    }
+  }, [searchParams, profile]);
 
   // Fetch Current Request Status
   const requestQuery = useMemoFirebase(() => {
@@ -763,5 +771,13 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <ProfileContent />
+    </Suspense>
   );
 }

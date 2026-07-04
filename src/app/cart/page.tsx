@@ -32,7 +32,8 @@ import {
   AlertCircle,
   Store,
   ArrowRight,
-  Crown
+  Crown,
+  Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -172,6 +173,26 @@ export default function CartPage() {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamic_charges]);
 
+  // For Upsell calculation: How much they WOULD pay if not premium
+  const potentialSavings = useMemo(() => {
+    if (!dbCharges || isPremium) return 0;
+    const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+    const relevantCharges = dbCharges.filter(charge => {
+      if (!charge.zoneId || charge.zoneId === 'global') return true;
+      return charge.zoneId === activeZoneId;
+    });
+
+    const standardCharges = relevantCharges.reduce((acc, charge) => {
+      const chargeVal = Number(charge.value) || 0;
+      let amount = 0;
+      if (charge.type === 'fixed') amount = chargeVal;
+      else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
+      return acc + amount;
+    }, 0);
+
+    return standardCharges;
+  }, [dbCharges, totalPrice, isPremium]);
+
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
     const discountStr = appliedCoupon.discount || '0';
@@ -220,13 +241,14 @@ export default function CartPage() {
 
   const validateOrderReady = useCallback(() => {
     if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
+    if (totalItems === 0) return "Bag is empty";
     if (totalPrice < 40) return "Min items value ₹40 required";
     if (!customerName.trim()) return "Enter Full Name";
     if (customerPhone.length !== 10) return "Enter 10-digit Phone";
     if (customerAddress.trim().length < 3) return "Enter House/Street Details";
     if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
     return null;
-  }, [blockedVendorNames, totalPrice, customerName, customerPhone, customerAddress, customerPincode]);
+  }, [blockedVendorNames, totalPrice, totalItems, customerName, customerPhone, customerAddress, customerPincode]);
 
   const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
@@ -664,6 +686,30 @@ export default function CartPage() {
               </button>
            </div>
         </div>
+
+        {/* PREMUM UPSELL SECTION - Only for non-premium users */}
+        {!isPremium && potentialSavings > 0 && (
+          <div className="bg-gradient-to-br from-[#1C1C1C] to-black rounded-[2rem] p-6 shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+             <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
+             <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-xl shadow-amber-500/20">
+                      <Crown className="h-6 w-6 fill-black" />
+                   </div>
+                   <div className="flex flex-col">
+                      <h4 className="text-white font-black italic uppercase text-sm leading-none">Save ₹{potentialSavings.toFixed(0)} now!</h4>
+                      <p className="text-amber-400 text-[8px] font-bold uppercase tracking-widest mt-1">Elite members pay zero tax & fees.</p>
+                   </div>
+                </div>
+                <button 
+                  onClick={() => router.push('/profile?upgrade=true')}
+                  className="bg-amber-500 text-white h-9 px-4 rounded-xl font-black uppercase italic text-[9px] tracking-widest active:scale-95 transition-all shadow-lg"
+                >
+                   Upgrade Elite
+                </button>
+             </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-[2rem] p-7 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4 transition-all hover:shadow-lg">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
