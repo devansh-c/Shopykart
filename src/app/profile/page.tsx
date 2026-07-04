@@ -89,12 +89,19 @@ function ProfileContent() {
 
   const { data: profile } = useDoc<any>(profileRef);
 
+  const isPremium = useMemo(() => {
+    if (!profile?.isPremium || !profile?.premiumExpiry) return false;
+    const expiry = new Date(profile.premiumExpiry).getTime();
+    return expiry > Date.now();
+  }, [profile]);
+
   // Auto-open Premium Dialog if ?upgrade=true
   useEffect(() => {
-    if (searchParams.get('upgrade') === 'true' && !profile?.isPremium) {
+    if (searchParams.get('upgrade') === 'true' && !isPremium) {
+      setPremiumStep('info'); // Force Info step when opening from upgrade link
       setIsPremiumDialogOpen(true);
     }
-  }, [searchParams, profile]);
+  }, [searchParams, isPremium]);
 
   // Fetch Current Request Status
   const requestQuery = useMemoFirebase(() => {
@@ -104,19 +111,16 @@ function ProfileContent() {
   const { data: latestRequests, loading: requestLoading } = useCollection<any>(requestQuery);
   const activeRequest = latestRequests?.[0];
 
-  const isPremium = useMemo(() => {
-    if (!profile?.isPremium || !profile?.premiumExpiry) return false;
-    const expiry = new Date(profile.premiumExpiry).getTime();
-    return expiry > Date.now();
-  }, [profile]);
-
   useEffect(() => {
     if (activeRequest) {
       if (activeRequest.status === 'pending') setPremiumStep('pending');
       else if (activeRequest.status === 'failed') setPremiumStep('failed');
-      else if (activeRequest.status === 'verified') setPremiumStep('success');
+      else if (activeRequest.status === 'verified' && isPremium) {
+        // Only show success screen if the request is verified AND the user is currently premium
+        setPremiumStep('success');
+      }
     }
-  }, [activeRequest]);
+  }, [activeRequest, isPremium]);
 
   const premiumPrice = 249;
   const gstRate = 0.18;
@@ -329,7 +333,7 @@ function ProfileContent() {
         {/* PREMIUM UPGRADE CARD */}
         {!isPremium && (
           <button 
-            onClick={() => setIsPremiumDialogOpen(true)}
+            onClick={() => { setPremiumStep('info'); setIsPremiumDialogOpen(true); }}
             className="w-full relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#1C1C1C] to-black p-8 text-left shadow-2xl border border-white/5 active:scale-[0.98] transition-all group"
           >
              <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-12" />

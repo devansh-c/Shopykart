@@ -688,7 +688,7 @@ export default function CartPage() {
         </div>
 
         {/* PREMUM UPSELL SECTION - Only for non-premium users */}
-        {!isPremium && potentialSavings > 0 && (
+        {!isPremium && (
           <div className="bg-gradient-to-br from-[#1C1C1C] to-black rounded-[2rem] p-6 shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
              <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />
              <div className="relative z-10 flex items-center justify-between">
@@ -698,7 +698,7 @@ export default function CartPage() {
                    </div>
                    <div className="flex flex-col">
                       <h4 className="text-white font-black italic uppercase text-sm leading-none">2 MONTHS UNLIMITED FREE DELIVERY!</h4>
-                      <p className="text-amber-400 text-[8px] font-bold uppercase tracking-widest mt-1">Join Elite & Save ₹{potentialSavings.toFixed(0)} now.</p>
+                      <p className="text-amber-400 text-[8px] font-bold uppercase tracking-widest mt-1">Join Elite & Enjoy Exclusive Benefits.</p>
                    </div>
                 </div>
                 <button 
