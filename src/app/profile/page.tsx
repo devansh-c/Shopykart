@@ -37,7 +37,8 @@ import {
   ArrowRight,
   Clock,
   AlertCircle,
-  Calendar
+  Calendar,
+  QrCode
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -127,6 +128,7 @@ function ProfileContent() {
   const totalPremiumPrice = (premiumPrice * (1 + gstRate)).toFixed(2);
   const upiId = "9450355709@axl";
   const premiumUpiUri = `upi://pay?pa=${upiId}&pn=ShopyKart&am=${totalPremiumPrice}&cu=INR&tn=Premium_Membership_Upgrade`;
+  const premiumQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(premiumUpiUri)}`;
 
   const pagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -678,10 +680,28 @@ function ProfileContent() {
                      <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{totalPremiumPrice}</div>
                      <Badge className="bg-primary text-white border-none px-3 py-1 font-black text-[8px] uppercase">Gst Included</Badge>
                    </div>
+
+                   <div className="bg-white p-6 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-4 shadow-sm">
+                      <div className="flex items-center gap-2 text-primary">
+                         <QrCode className="h-4 w-4" />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Payment QR Code</span>
+                      </div>
+                      <div className="relative p-2 bg-white rounded-2xl border shadow-inner">
+                         <img src={premiumQrUrl} alt="Payment QR" className="w-48 h-48 object-contain" crossOrigin="anonymous" />
+                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+                            <h4 className="text-4xl font-black italic -rotate-12">SHOPYKART</h4>
+                         </div>
+                      </div>
+                      <div className="text-center">
+                         <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Scan with any UPI App</p>
+                         <p className="text-[10px] font-black text-primary mt-1 italic tracking-tighter">9450355709@axl</p>
+                      </div>
+                   </div>
                    
                    <div className="w-full space-y-3">
                       <Button onClick={() => { window.open(premiumUpiUri); setPremiumStep('utr'); }} className="w-full h-18 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all">PAY & PROCEED</Button>
-                      <button onClick={() => setPremiumStep('info')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline text-center block">Wait, I have questions</button>
+                      <button onClick={() => setPremiumStep('utr')} className="w-full text-[10px] font-black text-amber-600 uppercase tracking-widest underline text-center block">Already Paid via QR? Enter UTR</button>
+                      <button onClick={() => setPremiumStep('info')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline text-center block pt-2">Wait, I have questions</button>
                    </div>
                 </div>
               </div>
@@ -717,6 +737,7 @@ function ProfileContent() {
                   >
                     {isActivating ? <Loader2 className="h-6 w-6 animate-spin" /> : "SUBMIT FOR VERIFICATION"}
                   </Button>
+                  <button onClick={() => setPremiumStep('payment')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center block">← Back to Payment</button>
                 </div>
               </div>
             )}
