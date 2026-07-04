@@ -596,11 +596,11 @@ export default function ProfilePage() {
 
       {/* PREMIUM DIALOG */}
       <Dialog open={isPremiumDialogOpen} onOpenChange={setIsPremiumDialogOpen}>
-        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[90vh] flex flex-col">
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[90vh] flex flex-col z-[11000]">
           <DialogHeader className="sr-only"><DialogTitle>Premium Membership</DialogTitle></DialogHeader>
           <div className="bg-amber-400 h-3 w-full shrink-0" />
           
-          <div className="p-8 space-y-6 overflow-y-auto no-scrollbar flex-1">
+          <div className="p-8 pb-24 space-y-6 overflow-y-auto no-scrollbar flex-1 pb-safe">
             {premiumStep === 'info' && (
               <div className="space-y-8 animate-in fade-in duration-500">
                  <div className="text-center space-y-4">
