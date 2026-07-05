@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Genkit initialization. 
  * Updated to be safe for both server and client-side (static export) environments.
@@ -23,15 +24,19 @@ export const getAI = async () => {
   try {
     // Use webpackIgnore to prevent Webpack from attempting to bundle these Node-only modules
     // during the client-side build process for static export.
-    const { genkit } = await import(/* webpackIgnore: true */ 'genkit');
-    const { googleAI } = await import(/* webpackIgnore: true */ '@genkit-ai/google-genai');
+    // Also use try/catch to gracefully handle environments where these aren't available.
+    const genkitModule = await import(/* webpackIgnore: true */ 'genkit');
+    const googleAIModule = await import(/* webpackIgnore: true */ '@genkit-ai/google-genai');
+    
+    const { genkit } = genkitModule;
+    const { googleAI } = googleAIModule;
     
     return genkit({
       plugins: [googleAI()],
       model: 'googleai/gemini-2.5-flash',
     });
   } catch (e) {
-    console.error("Genkit init failed on server:", e);
+    console.debug("Genkit init bypassed on client or failed on server:", e);
     return null;
   }
 };

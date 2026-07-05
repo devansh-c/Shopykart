@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -190,18 +191,16 @@ export function PromoPopup() {
         const isPhaseOne = prev < 88;
 
         if (isPhaseOne) {
-          // PHASE 1: Threshold 230 - High requirement
           if (peak > 230) {
             next = Math.min(88, prev + 1.2); 
           } else {
-            next = Math.max(0, prev - 3.5); // INSTANT DROP
+            next = Math.max(0, prev - 3.5); 
           }
         } else {
-          // PHASE 2: Lock at 90%
           if (peak > 230) {
             next = Math.min(90, prev + 0.01); 
           } else {
-            next = Math.max(0, prev - 6.5); // FASTER DROP
+            next = Math.max(0, prev - 6.5); 
           }
         }
         return next;
@@ -249,11 +248,11 @@ export function PromoPopup() {
       <div className="relative w-full h-full min-h-screen flex flex-col items-center pt-10 px-6 max-w-lg mx-auto">
         <div className="w-full flex justify-between items-center mb-4 px-2">
            <button onClick={handleClose} className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md active:scale-90 transition-transform">
-             <X className="h-5 v-5" />
+             <X className="h-5 w-5" />
            </button>
            <div className="flex gap-2">
-              <button className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md"><Volume2 className="h-5 v-5" /></button>
-              <button className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md"><Share2 className="h-5 v-5" /></button>
+              <button className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md"><Volume2 className="h-5 w-5" /></button>
+              <button className="bg-white/20 p-2 rounded-full text-white backdrop-blur-md"><Share2 className="h-5 w-5" /></button>
            </div>
         </div>
 

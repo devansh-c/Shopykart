@@ -65,6 +65,7 @@ function ProfileContent() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [isMounted, setIsMounted] = useState(false);
   
   const [isUploading, setIsUploading] = useState(false);
   const [isSupportExpanded, setIsSupportExpanded] = useState(false);
@@ -82,6 +83,10 @@ function ProfileContent() {
     description: '',
     phone: ''
   });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -109,7 +114,7 @@ function ProfileContent() {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'premium_subscriptions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
   }, [firestore, user]);
-  const { data: latestRequests, loading: requestLoading } = useCollection<any>(requestQuery);
+  const { data: latestRequests } = useCollection<any>(requestQuery);
   const activeRequest = latestRequests?.[0];
 
   useEffect(() => {
@@ -117,7 +122,6 @@ function ProfileContent() {
       if (activeRequest.status === 'pending') setPremiumStep('pending');
       else if (activeRequest.status === 'failed') setPremiumStep('failed');
       else if (activeRequest.status === 'verified' && isPremium) {
-        // Only show success screen if the request is verified AND the user is currently premium
         setPremiumStep('success');
       }
     }
@@ -136,11 +140,6 @@ function ProfileContent() {
   }, [firestore]);
   const { data: pages } = useCollection<any>(pagesQuery);
 
-  useEffect(() => {
-    const routes = ['/Beauty/store', '/Medical/store', '/vendor/dashboard', '/delivery/dashboard', '/admin/login', '/admin/dashboard'];
-    routes.forEach(route => router.prefetch(route));
-  }, [router]);
-  
   const mainItems = [
     { label: 'Wishlist', icon: Heart, path: '/wishlist' },
     { label: 'Active Cart', icon: ShoppingCart, path: '/cart' },
@@ -174,7 +173,6 @@ function ProfileContent() {
     
     setIsActivating(true);
     try {
-      // Create Premium Activation Request
       await addDoc(collection(firestore, 'premium_subscriptions'), {
         userId: user.uid,
         customerName: profile?.fullName || 'User',
@@ -217,7 +215,6 @@ function ProfileContent() {
           toast({ title: "Profile Updated", description: "Image changed successfully." });
         }
       } catch (err) {
-        console.error("Upload Failed");
         toast({ variant: "destructive", title: "Upload Failed" });
       } finally {
         setIsUploading(false);
@@ -243,7 +240,6 @@ function ProfileContent() {
       setTicketState('success');
       setTicketData({ description: '', phone: '' });
     } catch (err) {
-      console.error("Ticket error:", err);
       toast({ variant: "destructive", title: "Could not raise ticket" });
     } finally {
       setIsRaising(false);
@@ -332,7 +328,6 @@ function ProfileContent() {
 
       <div className="px-4 mt-8 space-y-6">
         
-        {/* PREMIUM UPGRADE CARD */}
         {!isPremium && (
           <button 
             onClick={() => { setPremiumStep('info'); setIsPremiumDialogOpen(true); }}
@@ -352,7 +347,7 @@ function ProfileContent() {
           </button>
         )}
 
-        {isPremium && (
+        {isPremium && isMounted && (
           <div className="bg-green-50 border-2 border-dashed border-green-200 rounded-[2rem] p-6 flex flex-col gap-2">
              <div className="flex items-center gap-2 text-green-700">
                 <ShieldCheck className="h-5 w-5" />
@@ -608,9 +603,8 @@ function ProfileContent() {
         </button>
       </div>
 
-      {/* PREMIUM DIALOG */}
       <Dialog open={isPremiumDialogOpen} onOpenChange={setIsPremiumDialogOpen}>
-        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[90vh] flex flex-col z-[11000]">
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 max-h-[90vh] flex flex-col z-[11000]">
           <DialogHeader className="sr-only"><DialogTitle>Premium Membership</DialogTitle></DialogHeader>
           <div className="bg-amber-400 h-3 w-full shrink-0" />
           

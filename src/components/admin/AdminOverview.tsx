@@ -23,6 +23,11 @@ export default function AdminOverview() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch orders
   const ordersQuery = useMemoFirebase(() => {
@@ -140,7 +145,7 @@ export default function AdminOverview() {
                </div>
             </div>
             <CardContent className="p-8 h-[300px]">
-               {orders ? (
+               {isMounted && orders ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <XAxis 
@@ -196,12 +201,11 @@ export default function AdminOverview() {
          </Card>
       </div>
 
-      {/* NEW UTR VERIFICATION SECTION */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
           <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg"><Crown className="h-5 w-5" /></div>
           <h3 className="text-xl font-black italic uppercase tracking-tighter">Premium UTR Verification</h3>
-          {premiumRequests && premiumRequests.length > 0 && (
+          {isMounted && premiumRequests && premiumRequests.length > 0 && (
             <Badge className="bg-red-500 text-white animate-pulse">{premiumRequests.length} PENDING</Badge>
           )}
         </div>
@@ -209,7 +213,7 @@ export default function AdminOverview() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
            {premiumLoading ? (
              <div className="col-span-full h-32 bg-white rounded-3xl flex items-center justify-center border border-dashed"><Loader2 className="h-6 w-6 animate-spin text-amber-500" /></div>
-           ) : premiumRequests && premiumRequests.length > 0 ? (
+           ) : isMounted && premiumRequests && premiumRequests.length > 0 ? (
              premiumRequests.map((req: any) => (
                <div key={req.id} className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 shadow-sm flex flex-col justify-between group hover:shadow-xl transition-all">
                   <div className="flex items-start justify-between mb-4">
@@ -254,12 +258,12 @@ export default function AdminOverview() {
                   </div>
                </div>
              ))
-           ) : (
+           ) : isMounted ? (
              <div className="col-span-full h-32 bg-white rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center opacity-40">
                 <Clock className="h-8 w-8 mb-2" />
                 <p className="text-[10px] font-black uppercase tracking-widest">No pending premium requests</p>
              </div>
-           )}
+           ) : null}
         </div>
       </div>
 
