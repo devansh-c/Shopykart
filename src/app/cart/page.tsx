@@ -4,6 +4,7 @@
 import { useCart } from '@/components/cart/CartProvider';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Minus, 
   Plus, 
@@ -567,12 +568,12 @@ export default function CartPage() {
 
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 flex items-center justify-between transition-all hover:shadow-lg">
           <div className="flex items-center gap-3"><div className="h-10 w-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 shadow-inner"><Coins className="h-6 w-6" /></div><div><h3 className="text-sm font-black uppercase tracking-tight italic">ShopyKart Coins</h3><p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Balance: {availableCoins} Coins</p></div></div>
-          <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
+          <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-50" />
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 flex items-center justify-between transition-all hover:shadow-lg">
           <div className="flex items-center gap-3"><div className="h-10 w-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500 shadow-inner"><Package className="h-6 w-6" /></div><div><h3 className="text-sm font-black uppercase tracking-tight italic">Premium Packaging</h3><p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Extra safety & premium feel • ₹10</p></div></div>
-          <Switch checked={premiumPackaging} onCheckedChange={setPremiumPackaging} className="data-[state=checked]:bg-rose-500" />
+          <Switch checked={premiumPackaging} onCheckedChange={setPremiumPackaging} className="data-[state=checked]:bg-rose-50" />
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4 transition-all hover:shadow-lg">

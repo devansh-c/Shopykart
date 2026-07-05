@@ -7,8 +7,9 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -32,6 +33,9 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
   
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => { setIsMounted(true); }, []);
 
   const orderRef = useMemoFirebase(() => {
     if (!firestore || !orderId || orderId === 'track' || orderId === 'status' || orderId === 'active') return null;
@@ -265,7 +269,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
           {!isCancelled && (
             <Dialog>
               <DialogTrigger asChild>
-                <button className="bg-blue-50 text-blue-600 h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all">
+                <button className="bg-blue-50 text-blue-600 h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all shadow-sm">
                   <Eye className="h-3.5 w-3.5" /> View Bill
                 </button>
               </DialogTrigger>
