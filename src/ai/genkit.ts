@@ -1,7 +1,7 @@
 /**
  * @fileOverview Genkit initialization. 
  * Updated to be safe for both server and client-side (static export) environments.
- * Uses dynamic imports to prevent Node.js modules from leaking into the browser bundle.
+ * Uses dynamic imports with webpackIgnore to prevent Node.js modules from leaking into the browser bundle.
  */
 
 import { z as zod } from 'zod';
@@ -12,22 +12,19 @@ export const z = zod;
 
 /**
  * Optimized AI instance getter.
- * This prevents the 'require' calls from executing during client-side bundling.
+ * This prevents the 'require' or 'import' calls from triggering bundling errors during client-side compilation.
  */
 export const getAI = async () => {
-  // SSR/Static Check
+  // SSR/Static Check: Skip initialization in the browser/APK environment
   if (typeof window !== 'undefined') {
     return null;
   }
   
   try {
-    // Dynamic import to hide Node.js modules from the browser bundler
-    // Using variable to further obscure from some static analyzers
-    const genkitPackage = 'genkit';
-    const googlePackage = '@genkit-ai/google-genai';
-    
-    const { genkit } = await import(genkitPackage);
-    const { googleAI } = await import(googlePackage);
+    // Use webpackIgnore to prevent Webpack from attempting to bundle these Node-only modules
+    // during the client-side build process for static export.
+    const { genkit } = await import(/* webpackIgnore: true */ 'genkit');
+    const { googleAI } = await import(/* webpackIgnore: true */ '@genkit-ai/google-genai');
     
     return genkit({
       plugins: [googleAI()],
