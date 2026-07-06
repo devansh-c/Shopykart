@@ -174,7 +174,6 @@ export default function CartPage() {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamic_charges]);
 
-  // For Upsell calculation: How much they WOULD pay if not premium
   const potentialSavings = useMemo(() => {
     if (!dbCharges || isPremium) return 0;
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
@@ -491,7 +490,7 @@ export default function CartPage() {
               return (
                 <div key={item.id + (item.selectedOption?.name || '')} className={cn("flex gap-4 items-start transition-opacity", isItemOffline && "opacity-60")}>
                   <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm mt-1">
-                    <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                    <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                     {isItemOffline && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <X className="h-5 w-5 text-white" />
@@ -688,7 +687,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* PREMUM UPSELL SECTION - Only for non-premium users */}
         {!isPremium && (
           <div className="bg-gradient-to-br from-[#1C1C1C] to-black rounded-[2rem] p-6 shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
              <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-10" />

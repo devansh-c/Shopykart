@@ -192,7 +192,7 @@ export default function AdminOverview() {
 
          <Card className="border-none shadow-sm rounded-[2rem] bg-primary text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
             <div className="relative z-10">
-               <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
+               <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin" />
                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Business Console</h4>
                <div className="text-4xl font-black italic tracking-tighter text-white leading-none">REAL<br/>INSIGHTS</div>
                <p className="text-[9px] font-bold text-white/80 mt-6 uppercase leading-relaxed">Aapke saare stats ab live orders se connected hain.</p>
@@ -215,7 +215,7 @@ export default function AdminOverview() {
              <div className="col-span-full h-32 bg-white rounded-3xl flex items-center justify-center border border-dashed"><Loader2 className="h-6 w-6 animate-spin text-amber-500" /></div>
            ) : isMounted && premiumRequests && premiumRequests.length > 0 ? (
              premiumRequests.map((req: any) => (
-               <div key={req.id} className="bg-white p-6 rounded-[2rem] border-2 border-amber-100 shadow-sm flex flex-col justify-between group hover:shadow-xl transition-all">
+               <div key={req.id} className="bg-white p-6 rounded-[2.5rem] border-2 border-amber-100 shadow-sm flex flex-col justify-between group hover:shadow-xl transition-all">
                   <div className="flex items-start justify-between mb-4">
                      <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">

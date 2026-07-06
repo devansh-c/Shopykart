@@ -125,7 +125,7 @@ export default function PremiumUserManagement() {
                      isExpired ? "bg-red-50 text-red-400" : "bg-amber-50 text-amber-600 border-amber-100"
                    )}>
                       {user.profileImageUrl ? (
-                        <img src={user.profileImageUrl} className="h-full w-full object-cover rounded-2xl" />
+                        <img src={user.profileImageUrl} className="h-full w-full object-cover rounded-2xl" alt="" />
                       ) : (
                         <User className="h-7 w-7" />
                       )}
