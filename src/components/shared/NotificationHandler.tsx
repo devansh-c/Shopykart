@@ -11,10 +11,10 @@ import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v4.
- * - Fix: Robust Audio Unblocking with Pre-loading.
- * - Guaranteed Audio: High-pitched emergency industrial siren.
- * - Role: Works for both Firebase Auth users and LocalStorage (CEO/Staff).
+ * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v5 - Guaranteed Interactions.
+ * - Fix: Added pointer-events-auto and ultra-high z-index for activation banner.
+ * - Audio: Forced pre-warmup on first interaction.
+ * - Role: LocalStorage based detection for CEO/Staff.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -48,7 +48,6 @@ export function NotificationHandler() {
   useEffect(() => {
     const checkRole = async () => {
       const isAdminAuth = localStorage.getItem('admin_auth') === 'true';
-      const teamPerms = localStorage.getItem('team_permissions');
 
       if (isAdminAuth) {
         setUserRole('admin');
@@ -83,7 +82,6 @@ export function NotificationHandler() {
   useEffect(() => {
     if (typeof window === 'undefined' || !isManagementPath) return;
 
-    // Standard High-Pitch Siren SFX
     const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3';
     const audio = new Audio(alarmUrl);
     audio.loop = true;
@@ -111,7 +109,6 @@ export function NotificationHandler() {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          console.warn("Audio playback prevented. Re-blocking UI.");
           setIsAudioContextBlocked(true);
         });
       }
@@ -139,14 +136,12 @@ export function NotificationHandler() {
   useEffect(() => {
     if (!firestore || !userRole) return;
 
-    // --- EMERGENCY LISTENER ---
     if ((userRole === 'admin' || userRole === 'vendor') && isManagementPath) {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
       const unsubEmergency = onSnapshot(q, (snapshot) => {
         const allPlaced = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         let targeted: any[] = [];
 
-        // Simple filtering: Admins see all, vendors see their own
         if (userRole === 'admin') {
           targeted = allPlaced;
         } else if (userRole === 'vendor' && user) {
@@ -158,12 +153,11 @@ export function NotificationHandler() {
         setRingingOrders(targeted);
         setIsRinging(targeted.length > 0);
       }, (err) => {
-        console.error("Firestore Listener Error:", err);
+        console.debug("Firestore Listener Notice:", err);
       });
       return () => unsubEmergency();
     }
 
-    // --- CUSTOMER SILENT TRACKER ---
     if (userRole === 'customer' && user) {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const unsubCustomer = onSnapshot(q, (snapshot) => {
@@ -186,20 +180,24 @@ export function NotificationHandler() {
     }
   }, [user, firestore, userRole, isManagementPath, pathname]);
 
-  const handleManualUnblock = () => {
+  const handleManualUnblock = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (audioRef.current) {
-      // Force load and play/pause cycle to satisfy browser requirements
       audioRef.current.load();
-      audioRef.current.play().then(() => {
-        // Success: Browser has unblocked us
-        audioRef.current?.pause();
-        audioRef.current!.currentTime = 0;
-        setIsAudioContextBlocked(false);
-        toast({ title: "Alarm System Active! 🔊", description: "Siren and vibration are now ready." });
-      }).catch(err => {
-        console.error("Manual unblock failed:", err);
-        toast({ variant: "destructive", title: "Action Required", description: "Please tap the banner again to enable sound." });
-      });
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          audioRef.current?.pause();
+          audioRef.current!.currentTime = 0;
+          setIsAudioContextBlocked(false);
+          toast({ title: "System Active! 🔊", description: "Real-time alarms enabled." });
+        }).catch(err => {
+          toast({ variant: "destructive", title: "Action Needed", description: "Click again to allow sound." });
+        });
+      }
     }
   };
 
@@ -221,19 +219,21 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* ⚠️ ALARM ACTIVATION BANNER */}
+      {/* ⚠️ ALARM ACTIVATION BANNER - FIXED CLICKABILITY */}
       {(userRole === 'admin' || userRole === 'vendor') && isManagementPath && isAudioContextBlocked && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60000] w-full max-w-sm px-4 animate-in slide-in-from-top-4 duration-700">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] w-full max-w-sm px-4 pointer-events-auto cursor-pointer animate-in slide-in-from-top-4 duration-700">
            <button 
             onClick={handleManualUnblock}
-            className="w-full bg-[#0B0B0B] text-white border-2 border-primary rounded-[2.5rem] p-6 shadow-[0_0_80px_rgba(239,68,68,0.5)] flex items-center gap-5 hover:bg-primary transition-all active:scale-95 group"
+            className="w-full bg-black text-white border-2 border-primary rounded-[2.5rem] p-6 shadow-[0_0_80px_rgba(239,68,68,0.4)] flex items-center gap-5 hover:bg-primary transition-all active:scale-95 group relative overflow-hidden"
            >
-              <div className="h-14 w-14 bg-primary/20 rounded-[1.5rem] flex items-center justify-center animate-pulse shrink-0 border border-primary/20">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              
+              <div className="h-14 w-14 bg-primary/20 rounded-[1.5rem] flex items-center justify-center animate-pulse shrink-0 border border-primary/20 pointer-events-none">
                 <Volume2 className="h-7 w-7 text-primary group-hover:text-white" />
               </div>
-              <div className="flex flex-col items-start text-left">
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">System Standby</span>
-                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP TO ENABLE LIVE ALARM</span>
+              <div className="flex flex-col items-start text-left pointer-events-none">
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">Status: Paused</span>
+                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP HERE TO ENABLE ALARM</span>
               </div>
            </button>
         </div>
@@ -243,7 +243,7 @@ export function NotificationHandler() {
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_100px_rgba(239,68,68,0.3)] bg-white z-[55000] focus:outline-none">
           <DialogHeader className="sr-only">
-            <DialogTitle>Order Emergency Alert</DialogTitle>
+            <DialogTitle>New Order Alert</DialogTitle>
           </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
              <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">NEW ORDER DETECTED</span>
@@ -304,7 +304,7 @@ export function NotificationHandler() {
         <Dialog open={!!customerUpdate} onOpenChange={(val) => !val && setCustomerUpdate(null)}>
            <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">
               <DialogHeader className="sr-only">
-                <DialogTitle>Order Progress Update</DialogTitle>
+                <DialogTitle>Status Update</DialogTitle>
               </DialogHeader>
               <div className="p-10 space-y-8 text-center flex flex-col items-center">
                  <div className="relative">
