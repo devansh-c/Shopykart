@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -235,6 +234,9 @@ export function NotificationHandler() {
       {/* 🚨 EMERGENCY ALARM OVERLAY */}
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_100px_rgba(239,68,68,0.3)] bg-white z-[55000] focus:outline-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>New Order Alarm</DialogTitle>
+          </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
              <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">NEW ORDER DETECTED</span>
           </div>
@@ -295,6 +297,9 @@ export function NotificationHandler() {
       {userRole === 'customer' && customerUpdate && (
         <Dialog open={!!customerUpdate} onOpenChange={(val) => !val && setCustomerUpdate(null)}>
            <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none bottom-6 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+              <DialogHeader className="sr-only">
+                <DialogTitle>Order Status Update</DialogTitle>
+              </DialogHeader>
               <div className="p-10 space-y-8 text-center flex flex-col items-center">
                  <div className="relative">
                     <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
