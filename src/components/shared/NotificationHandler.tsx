@@ -11,10 +11,10 @@ import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v2.
- * - Guaranteed Audio: Uses a forced interaction banner to unblock audio context.
- * - Persistent Siren: High-pitch siren loops until order is accepted.
- * - Haptic Feedback: Heavy vibration patterns for mobile.
+ * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v3.
+ * - Fix: Detects Admin/CEO via localStorage (since master login is hardcoded).
+ * - Guaranteed Audio: High-pitched industrial alarm siren.
+ * - Persistent: Loops until the order is accepted.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -44,47 +44,52 @@ export function NotificationHandler() {
            p.startsWith('/beauty/store');
   }, [pathname]);
 
-  // 1. Role Detection
+  // 1. Role Detection (REFACTORED for CEO/Staff support)
   useEffect(() => {
-    if (!user || !firestore) {
-      setUserRole(null);
-      return;
-    }
-    
     const checkRole = async () => {
-      const email = user.email?.toLowerCase();
-      if (email === 'ceo@shopykart.co.in') {
-        setUserRole('admin');
-        return;
+      // MASTER ADMIN CHECK (via localStorage for CEO)
+      const isAdminAuth = localStorage.getItem('admin_auth') === 'true';
+      const teamPerms = localStorage.getItem('team_permissions');
+
+      if (isAdminAuth) {
+        if (teamPerms === 'all') {
+          setUserRole('admin');
+          return;
+        } else if (teamPerms) {
+          setUserRole('admin'); // Treat staff as admin for notification purposes
+          return;
+        }
       }
-      
-      try {
-        const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
-        if (vendorDoc.exists()) {
-          setUserRole('vendor');
-          return;
+
+      // VENDOR CHECK (via Firebase User)
+      if (user && firestore) {
+        try {
+          const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
+          if (vendorDoc.exists()) {
+            setUserRole('vendor');
+            return;
+          }
+          
+          const partnerDoc = await getDoc(doc(firestore, 'delivery_partners', user.uid));
+          if (partnerDoc.exists()) {
+            setUserRole('delivery');
+            return;
+          }
+          
+          setUserRole('customer');
+        } catch (e) {
+          setUserRole('customer');
         }
-        
-        const partnerDoc = await getDoc(doc(firestore, 'delivery_partners', user.uid));
-        if (partnerDoc.exists()) {
-          setUserRole('delivery');
-          return;
-        }
-        
-        setUserRole('customer');
-      } catch (e) {
-        setUserRole('customer');
       }
     };
     
     checkRole();
-  }, [user, firestore]);
+  }, [user, firestore, pathname]);
 
-  // 2. Initialize Persistent Audio Object
+  // 2. Initialize Audio Object
   useEffect(() => {
     if (typeof window === 'undefined' || !isManagementPath) return;
 
-    // High-pitched industrial alarm siren
     const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3';
     const audio = new Audio(alarmUrl);
     audio.loop = true;
@@ -108,10 +113,8 @@ export function NotificationHandler() {
     }
     
     if (isRinging && !isAudioContextBlocked) {
-      // 🔊 START SIREN
       audioRef.current.play().catch(() => setIsAudioContextBlocked(true));
 
-      // 📳 START AGGRESSIVE VIBRATION
       if (typeof window !== 'undefined' && window.navigator.vibrate) {
         window.navigator.vibrate([1000, 500, 1000, 500, 1000]);
         vibInterval = setInterval(() => {
@@ -119,7 +122,6 @@ export function NotificationHandler() {
         }, 3000);
       }
     } else {
-      // 🔇 STOP EVERYTHING
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       if (typeof window !== 'undefined' && window.navigator.vibrate) {
@@ -134,7 +136,7 @@ export function NotificationHandler() {
 
   // 4. Real-time Database Listener
   useEffect(() => {
-    if (!user || !firestore || !userRole) return;
+    if (!firestore || !userRole) return;
 
     // --- ADMIN / VENDOR EMERGENCY LISTENER ---
     if ((userRole === 'admin' || userRole === 'vendor') && isManagementPath) {
@@ -145,10 +147,13 @@ export function NotificationHandler() {
 
         if (userRole === 'admin') {
           targeted = allPlaced;
-        } else if (userRole === 'vendor') {
+        } else if (userRole === 'vendor' && user) {
           targeted = allPlaced.filter((o: any) => 
             o.vendorId === user.uid || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid))
           );
+        } else if (userRole === 'vendor' && !user) {
+          // Fallback if vendor session recovered but user hook laggy
+          targeted = allPlaced; 
         }
 
         setRingingOrders(targeted);
@@ -158,7 +163,7 @@ export function NotificationHandler() {
     }
 
     // --- CUSTOMER SILENT TRACKER ---
-    if (userRole === 'customer') {
+    if (userRole === 'customer' && user) {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const unsubCustomer = onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
@@ -209,8 +214,6 @@ export function NotificationHandler() {
     }
   };
 
-  if (!userRole) return null;
-
   return (
     <>
       {/* ⚠️ FORCE PERMISSION BANNER */}
@@ -224,8 +227,8 @@ export function NotificationHandler() {
                 <Volume2 className="h-7 w-7 text-primary group-hover:text-white" />
               </div>
               <div className="flex flex-col items-start text-left">
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">Permission Required</span>
-                <span className="text-[14px] font-black italic uppercase text-white mt-2 group-hover:text-white">TAP TO ACTIVATE ALARM SYSTEM</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">System Standby</span>
+                <span className="text-[14px] font-black italic uppercase text-white mt-2 group-hover:text-white">TAP TO ENABLE LIVE ALARM</span>
               </div>
            </button>
         </div>
@@ -235,7 +238,7 @@ export function NotificationHandler() {
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_100px_rgba(239,68,68,0.3)] bg-white z-[55000] focus:outline-none">
           <DialogHeader className="sr-only">
-            <DialogTitle>New Order Alarm</DialogTitle>
+            <DialogTitle>New Order Alert</DialogTitle>
           </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
              <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">NEW ORDER DETECTED</span>
@@ -256,7 +259,7 @@ export function NotificationHandler() {
                 ALARM ON.<br /><span className="text-black">NEW ORDER!</span>
               </h2>
               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] bg-gray-50 px-6 py-2.5 rounded-full border border-gray-100 inline-block">
-                Phone Vibrating & Ringing...
+                Siren & Vibration Active
               </p>
             </div>
 
