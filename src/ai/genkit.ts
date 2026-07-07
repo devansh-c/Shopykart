@@ -1,8 +1,8 @@
 
 /**
  * @fileOverview Genkit initialization. 
- * Updated to be safe for both server and client-side (static export) environments.
- * Uses dynamic imports with webpackIgnore to prevent Node.js modules from leaking into the browser bundle.
+ * Optimized for both server and client-side (static export) environments.
+ * Uses a robust check to prevent Node.js modules from leaking into the browser bundle.
  */
 
 import { z as zod } from 'zod';
@@ -13,21 +13,21 @@ export const z = zod;
 
 /**
  * Optimized AI instance getter.
- * This prevents the 'require' or 'import' calls from triggering bundling errors during client-side compilation.
+ * This prevents bundling errors during client-side compilation for static export.
  */
 export const getAI = async () => {
-  // SSR/Static Check: Skip initialization in the browser/APK environment
+  // SSR/Static Check: Skip initialization in the browser environment
   if (typeof window !== 'undefined') {
     return null;
   }
   
   try {
-    // Use webpackIgnore to prevent Webpack from attempting to bundle these Node-only modules
-    // during the client-side build process for static export.
-    // Also use try/catch to gracefully handle environments where these aren't available.
-    const genkitModule = await import(/* webpackIgnore: true */ 'genkit');
-    const googleAIModule = await import(/* webpackIgnore: true */ '@genkit-ai/google-genai');
+    // Using a more robust way to import Node-only modules that Next.js/Webpack will ignore on the client
+    const genkitModule = await import('genkit').catch(() => null);
+    const googleAIModule = await import('@genkit-ai/google-genai').catch(() => null);
     
+    if (!genkitModule || !googleAIModule) return null;
+
     const { genkit } = genkitModule;
     const { googleAI } = googleAIModule;
     
@@ -36,7 +36,7 @@ export const getAI = async () => {
       model: 'googleai/gemini-2.5-flash',
     });
   } catch (e) {
-    console.debug("Genkit init bypassed on client or failed on server:", e);
+    console.debug("Genkit init bypassed on client or failed on server");
     return null;
   }
 };

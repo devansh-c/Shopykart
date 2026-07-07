@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwind-merge';
 
 const config: Config = {
@@ -108,6 +109,7 @@ const config: Config = {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'shine': 'shine 4s infinite linear',
         'float': 'float 3s ease-in-out infinite',
+        'spin-slow': 'spin 3s linear infinite',
       },
     },
   },

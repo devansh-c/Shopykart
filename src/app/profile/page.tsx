@@ -104,12 +104,11 @@ function ProfileContent() {
   // Auto-open Premium Dialog if ?upgrade=true
   useEffect(() => {
     if (searchParams.get('upgrade') === 'true' && !isPremium) {
-      setPremiumStep('info'); // Force Info step when opening from upgrade link
+      setPremiumStep('info');
       setIsPremiumDialogOpen(true);
     }
   }, [searchParams, isPremium]);
 
-  // Fetch Current Request Status
   const requestQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'premium_subscriptions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
@@ -139,21 +138,6 @@ function ProfileContent() {
     return collection(firestore, 'pages');
   }, [firestore]);
   const { data: pages } = useCollection<any>(pagesQuery);
-
-  const mainItems = [
-    { label: 'Wishlist', icon: Heart, path: '/wishlist' },
-    { label: 'Active Cart', icon: ShoppingCart, path: '/cart' },
-    { label: 'Personal Information', icon: User, path: '' },
-    { label: 'Delivery Addresses', icon: MapPin, path: '' },
-  ];
-
-  const dashboardItems = [
-    { label: 'Join as Beauty & Cosmetics', icon: Sparkles, path: '/Beauty/store', description: 'Sell luxury skincare & makeup', highlight: true, accent: 'rose' },
-    { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
-    { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
-    { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
-    { label: 'Join as Team Member', icon: ShieldAlert, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
-  ];
 
   const handleAction = (path: string, label: string) => {
     if (path) {
@@ -273,7 +257,7 @@ function ProfileContent() {
   const displayPhone = profile?.phoneNumber || user?.phoneNumber || 'Identity Verified';
 
   return (
-    <div className="min-h-screen bg-white pb-32 page-enter">
+    <div className="min-h-screen bg-white pb-32">
       <div className="bg-primary h-56 relative flex flex-col items-center justify-center pt-8">
         <div className="absolute bottom-0 w-full h-16 bg-white rounded-t-[3rem]" />
         
@@ -304,7 +288,7 @@ function ProfileContent() {
         </div>
       </div>
 
-      <div className="px-4 text-center mt-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="px-4 text-center mt-12">
         <div className="flex items-center justify-center gap-2 mb-1">
            {isPremium ? (
              <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 flex items-center gap-1.5 animate-pulse">
@@ -377,7 +361,12 @@ function ProfileContent() {
 
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Personal Settings</h3>
-          {mainItems.map((item) => (
+          {[
+            { label: 'Wishlist', icon: Heart, path: '/wishlist' },
+            { label: 'Active Cart', icon: ShoppingCart, path: '/cart' },
+            { label: 'Personal Information', icon: User, path: '' },
+            { label: 'Delivery Addresses', icon: MapPin, path: '' },
+          ].map((item) => (
             <button 
               key={item.label}
               onClick={() => handleAction(item.path, item.label)}
@@ -420,7 +409,13 @@ function ProfileContent() {
 
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Business & Portals</h3>
-          {dashboardItems.map((item: any) => (
+          {[
+            { label: 'Join as Beauty & Cosmetics', icon: Sparkles, path: '/Beauty/store', description: 'Sell luxury skincare & makeup', highlight: true, accent: 'rose' },
+            { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
+            { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
+            { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
+            { label: 'Join as Team Member', icon: ShieldAlert, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
+          ].map((item: any) => (
             <button 
               key={item.label}
               onClick={() => handleAction(item.path, item.label)}
@@ -442,7 +437,7 @@ function ProfileContent() {
                 </div>
                 <div className="text-left">
                   <span className="text-sm font-bold block leading-none">{item.label}</span>
-                  <span className={cn("text-[10px] font-medium", "text-muted-foreground")}>{item.description}</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">{item.description}</span>
                 </div>
               </div>
               <ChevronRight className={cn(
@@ -524,7 +519,7 @@ function ProfileContent() {
                         {ticketState === 'form' ? (
                           <div className="p-8 space-y-6">
                               <div className="flex flex-col items-center text-center space-y-2">
-                                <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100 animate-in zoom-in duration-500">
+                                <div className="bg-amber-50 h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-amber-600 border border-amber-100">
                                     <LifeBuoy className="h-8 w-8" />
                                 </div>
                                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Support Request</h2>
@@ -567,7 +562,7 @@ function ProfileContent() {
                               </Button>
                           </div>
                         ) : (
-                          <div className="p-10 text-center space-y-6 animate-in zoom-in duration-700">
+                          <div className="p-10 text-center space-y-6">
                               <div className="relative mx-auto w-24 h-24">
                                 <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
                                 <div className="relative bg-green-500 h-24 w-24 rounded-full flex items-center justify-center shadow-xl shadow-green-200">
@@ -610,7 +605,7 @@ function ProfileContent() {
           
           <div className="p-8 pb-24 space-y-6 overflow-y-auto no-scrollbar flex-1 pb-safe">
             {premiumStep === 'info' && (
-              <div className="space-y-8 animate-in fade-in duration-500">
+              <div className="space-y-8">
                  <div className="text-center space-y-4">
                     <div className="h-20 w-20 bg-amber-50 rounded-[2rem] flex items-center justify-center text-amber-600 mx-auto shadow-inner border border-amber-100">
                        <Crown className="h-10 w-10 fill-amber-600" />
@@ -661,7 +656,7 @@ function ProfileContent() {
             )}
 
             {premiumStep === 'payment' && (
-              <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              <div className="space-y-8">
                 <div className="text-center space-y-2">
                   <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><Smartphone className="h-8 w-8" /></div>
                   <h2 className="text-2xl font-black italic uppercase tracking-tighter">Upgrade Payment</h2>
@@ -702,7 +697,7 @@ function ProfileContent() {
             )}
 
             {premiumStep === 'utr' && (
-              <div className="w-full space-y-6 animate-in slide-in-from-right-4 duration-500">
+              <div className="w-full space-y-6">
                 <div className="text-center space-y-2">
                   <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mx-auto mb-2"><CheckCircle2 className="h-8 w-8" /></div>
                   <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Identity Check</h2>
@@ -737,7 +732,7 @@ function ProfileContent() {
             )}
 
             {premiumStep === 'pending' && (
-              <div className="text-center space-y-8 py-6 animate-in zoom-in duration-500">
+              <div className="text-center space-y-8 py-6">
                   <div className="h-20 w-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-blue-500 mx-auto border border-blue-100">
                      <Clock className="h-10 w-10 animate-spin-slow" />
                   </div>
@@ -752,7 +747,7 @@ function ProfileContent() {
             )}
 
             {premiumStep === 'failed' && (
-              <div className="text-center space-y-8 py-6 animate-in zoom-in duration-500">
+              <div className="text-center space-y-8 py-6">
                   <div className="h-20 w-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto border border-red-100">
                      <AlertCircle className="h-10 w-10 animate-pulse" />
                   </div>
@@ -767,7 +762,7 @@ function ProfileContent() {
             )}
 
             {premiumStep === 'success' && (
-              <div className="text-center space-y-8 py-6 animate-in zoom-in duration-700">
+              <div className="text-center space-y-8 py-6">
                   <div className="relative mx-auto w-24 h-24">
                     <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-20" />
                     <div className="relative bg-amber-500 h-24 w-24 rounded-[2rem] flex items-center justify-center shadow-xl shadow-amber-200">

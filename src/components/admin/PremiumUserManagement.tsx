@@ -13,9 +13,7 @@ import {
   ShieldCheck, 
   Clock, 
   Trash2, 
-  AlertCircle,
-  TrendingUp,
-  Sparkles
+  AlertCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
@@ -23,7 +21,6 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
 
 export default function PremiumUserManagement() {
   const firestore = useFirestore();
@@ -35,7 +32,6 @@ export default function PremiumUserManagement() {
     setIsMounted(true);
   }, []);
 
-  // Fetch only Premium Users
   const premiumUsersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'), where('isPremium', '==', true));
@@ -53,7 +49,7 @@ export default function PremiumUserManagement() {
     }).sort((a, b) => {
       const dateA = a.premiumExpiry ? new Date(a.premiumExpiry).getTime() : 0;
       const dateB = b.premiumExpiry ? new Date(b.premiumExpiry).getTime() : 0;
-      return dateA - dateB; // Show soonest expiring first
+      return dateA - dateB;
     });
   }, [users, searchQuery]);
 
@@ -74,7 +70,7 @@ export default function PremiumUserManagement() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6">
       <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-8 transform-gpu">
          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="flex items-center gap-5">
@@ -109,7 +105,7 @@ export default function PremiumUserManagement() {
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
             const expiryDate = user.premiumExpiry ? new Date(user.premiumExpiry) : null;
-            const daysRemaining = expiryDate ? differenceInDays(expiryDate, new Date()) : 0;
+            const daysRemaining = (isMounted && expiryDate) ? differenceInDays(expiryDate, new Date()) : 0;
             const isExpiringSoon = daysRemaining <= 7;
             const isExpired = daysRemaining < 0;
 
