@@ -16,7 +16,7 @@ import dynamic from 'next/dynamic';
 
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
 const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay'), { ssr: false });
-const DynamicWelcomeBonus = dynamic(() => import('@/auth/WelcomeBonusOverlay'), { ssr: false });
+const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay'), { ssr: false });
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
 const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart'), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
