@@ -23,8 +23,12 @@ export const getAI = async () => {
   
   try {
     // Using a more robust way to import Node-only modules that Next.js/Webpack will ignore on the client
-    const genkitModule = await import('genkit').catch(() => null);
-    const googleAIModule = await import('@genkit-ai/google-genai').catch(() => null);
+    // We use a variable for the module name to avoid static analysis during build
+    const gName = 'genkit';
+    const pName = '@genkit-ai/google-genai';
+    
+    const genkitModule = await import(gName).catch(() => null);
+    const googleAIModule = await import(pName).catch(() => null);
     
     if (!genkitModule || !googleAIModule) return null;
 

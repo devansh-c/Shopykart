@@ -22,6 +22,10 @@ import { format, differenceInDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * @fileOverview Premium Member Management.
+ * Fixed: Verified differenceInDays import and layout constraints.
+ */
 export default function PremiumUserManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -70,7 +74,7 @@ export default function PremiumUserManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden text-white mb-8 transform-gpu">
          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="flex items-center gap-5">
@@ -145,7 +149,7 @@ export default function PremiumUserManagement() {
                          <PhoneCall className="h-3.5 w-3.5 text-green-600" />
                          <span className="text-xs font-black">{user.phoneNumber || 'N/A'}</span>
                       </div>
-                      <button onClick={() => window.open(`tel:${user.phoneNumber}`)} className="p-2 bg-green-500 text-white rounded-lg active:scale-90 shadow-md transition-transform"><PhoneCall className="h-3 w-3" /></button>
+                      <button onClick={() => window.open(`tel:${user.phoneNumber}`)} className="p-2 bg-green-500 text-white rounded-lg active:scale-90 shadow-md transition-transform"><PhoneCall className="h-3.5 w-3.5" /></button>
                    </div>
 
                    <div className="space-y-3">

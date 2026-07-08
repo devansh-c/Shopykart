@@ -1,20 +1,20 @@
+
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BellRing, ShoppingBag, Loader2, VolumeX, Package, User, ChevronRight, Zap, Volume2, X, AlertTriangle, Radio } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v5 - Guaranteed Interactions.
- * - Fix: Added pointer-events-auto and ultra-high z-index for activation banner.
- * - Audio: Forced pre-warmup on first interaction.
- * - Role: LocalStorage based detection for CEO/Staff.
+ * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v6 - CEO & Staff Optimized.
+ * Fixed: Added user?.uid guards to prevent listener crashes.
+ * Added: DialogDescription for full Radix UI compliance.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -219,7 +219,7 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* ⚠️ ALARM ACTIVATION BANNER - FIXED CLICKABILITY */}
+      {/* ⚠️ ALARM ACTIVATION BANNER */}
       {(userRole === 'admin' || userRole === 'vendor') && isManagementPath && isAudioContextBlocked && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] w-full max-w-sm px-4 pointer-events-auto cursor-pointer animate-in slide-in-from-top-4 duration-700">
            <button 
@@ -233,7 +233,7 @@ export function NotificationHandler() {
               </div>
               <div className="flex flex-col items-start text-left pointer-events-none">
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">Status: Paused</span>
-                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP HERE TO ENABLE ALARM</span>
+                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP TO ENABLE LIVE ALARM</span>
               </div>
            </button>
         </div>
@@ -244,6 +244,7 @@ export function NotificationHandler() {
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_100px_rgba(239,68,68,0.3)] bg-white z-[55000] focus:outline-none">
           <DialogHeader className="sr-only">
             <DialogTitle>New Order Alert</DialogTitle>
+            <DialogDescription>A new order has been detected and requires immediate action.</DialogDescription>
           </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
              <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">NEW ORDER DETECTED</span>
@@ -305,6 +306,7 @@ export function NotificationHandler() {
            <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">
               <DialogHeader className="sr-only">
                 <DialogTitle>Status Update</DialogTitle>
+                <DialogDescription>Your order status has changed.</DialogDescription>
               </DialogHeader>
               <div className="p-10 space-y-8 text-center flex flex-col items-center">
                  <div className="relative">

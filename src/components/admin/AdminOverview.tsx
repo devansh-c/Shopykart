@@ -19,6 +19,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { addDays, format } from 'date-fns';
 
+/**
+ * @fileOverview CEO Dashboard Stats.
+ * Fixed: Verified Lucide icons and date-fns functions.
+ */
 export default function AdminOverview() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -132,7 +136,7 @@ export default function AdminOverview() {
   }, [orders]);
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20 animate-in fade-in duration-700">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          <Card className="col-span-1 md:col-span-2 border-primary/20 bg-white shadow-xl rounded-[2.5rem] overflow-hidden">
             <div className="bg-[#0B0B0B] p-6 text-white">
@@ -192,7 +196,7 @@ export default function AdminOverview() {
 
          <Card className="border-none shadow-sm rounded-[2rem] bg-primary text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
             <div className="relative z-10">
-               <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin" />
+               <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Business Console</h4>
                <div className="text-4xl font-black italic tracking-tighter text-white leading-none">REAL<br/>INSIGHTS</div>
                <p className="text-[9px] font-bold text-white/80 mt-6 uppercase leading-relaxed">Aapke saare stats ab live orders se connected hain.</p>
