@@ -7,7 +7,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BellRing, ShoppingBag, Loader2, VolumeX, Package, User, ChevronRight, Zap, Volume2, X, AlertTriangle, Radio } from 'lucide-react';
+import { BellRing, ShoppingBag, Loader2, Package, User, ChevronRight, Zap, Volume2, X, AlertTriangle, Radio } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
  * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v7 - ULTRA FAST & AGGRESSIVE.
  * Optimized for lightning-fast detection and continuous high-speed vibration.
  */
-export function NotificationHandler() {
+export default function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -116,11 +116,9 @@ export function NotificationHandler() {
 
       // ULTRA-FAST VIBRATION PATTERN
       if (typeof window !== 'undefined' && window.navigator.vibrate) {
-        // Pattern: [Vibrate, Pause, Vibrate]
         const pattern = [400, 100, 400];
         window.navigator.vibrate(pattern);
         
-        // Rapid repetition every 1.2 seconds
         vibInterval = setInterval(() => {
           window.navigator.vibrate(pattern);
         }, 1200);
@@ -158,7 +156,6 @@ export function NotificationHandler() {
           );
         }
 
-        // Trigger update immediately
         setRingingOrders(targeted);
         setIsRinging(targeted.length > 0);
       }, (err) => {
@@ -228,7 +225,6 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* ⚠️ ALARM ACTIVATION BANNER - ULTRA HIGH PRIORITY */}
       {(userRole === 'admin' || userRole === 'vendor') && isManagementPath && isAudioContextBlocked && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] w-full max-w-sm px-4 pointer-events-auto cursor-pointer animate-in slide-in-from-top-4 duration-700">
            <button 
@@ -248,7 +244,6 @@ export function NotificationHandler() {
         </div>
       )}
 
-      {/* 🚨 EMERGENCY ALARM OVERLAY */}
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_120px_rgba(239,68,68,0.4)] bg-white z-[55000] focus:outline-none">
           <DialogHeader className="sr-only">
@@ -309,7 +304,6 @@ export function NotificationHandler() {
         </DialogContent>
       </Dialog>
 
-      {/* 📦 CUSTOMER NOTIFICATION */}
       {userRole === 'customer' && customerUpdate && (
         <Dialog open={!!customerUpdate} onOpenChange={(val) => !val && setCustomerUpdate(null)}>
            <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">

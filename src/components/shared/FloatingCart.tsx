@@ -10,37 +10,25 @@ import Link from 'next/link';
 
 /**
  * @fileOverview Compact Luxury White & Golden Floating Cart.
- * Fixed: Bobbing float animation with golden glowing border.
  */
-export function FloatingCart() {
+export default function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Logic: Show only if items > 0 and NOT on checkout-related pages
     const isHiddenPage = ['/cart', '/admin', '/vendor', '/delivery', '/Medical', '/Beauty'].some(path => pathname?.startsWith(path));
     
     if (totalItems > 0 && !isHiddenPage) {
       setIsVisible(true);
-      
-      // Clear existing timer to reset the 5s window
-      if (dismissTimerRef.current) {
-        clearTimeout(dismissTimerRef.current);
-      }
-
-      // Auto-hide after exactly 5 seconds
-      dismissTimerRef.current = setTimeout(() => {
-        setIsVisible(false);
-      }, 5000);
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = setTimeout(() => { setIsVisible(false); }, 5000);
     } else {
       setIsVisible(false);
     }
 
-    return () => {
-      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    };
+    return () => { if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current); };
   }, [totalItems, pathname]);
 
   if (totalItems === 0) return null;
@@ -50,16 +38,13 @@ export function FloatingCart() {
       "fixed bottom-[74px] left-4 right-4 z-[9998] transition-all duration-700 ease-premium transform-gpu pointer-events-none",
       isVisible ? "translate-y-0 opacity-100 scale-100" : "translate-y-10 opacity-0 scale-90 pointer-events-none"
     )}>
-      {/* Bobbing animation wrapper */}
       <div className={cn("w-full flex justify-center", isVisible && "animate-float")}>
         <Link 
           href="/cart"
           prefetch={false}
           className="w-full max-w-[280px] relative overflow-hidden bg-white text-[#B8860B] rounded-2xl flex items-center justify-between px-4 py-2 shadow-[0_0_20px_rgba(197,160,33,0.3)] border-2 border-[#C5A021] active:scale-[0.96] transition-all duration-300 group pointer-events-auto"
         >
-          {/* Continuous Shine Animation Overlay (Golden Glow Effect) */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021]/10 to-transparent -translate-x-full animate-shine pointer-events-none" />
-          
           <div className="flex items-center gap-3 relative z-10">
             <div className="bg-[#C5A021]/10 backdrop-blur-md h-7 w-7 rounded-xl flex items-center justify-center border border-[#C5A021]/20 shadow-inner">
               <ShoppingCart className="h-3.5 w-3.5 text-[#B8860B]" />
@@ -75,7 +60,6 @@ export function FloatingCart() {
               </span>
             </div>
           </div>
-          
           <div className="bg-[#C5A021] text-white h-7 w-7 rounded-lg shadow-lg flex items-center justify-center group-active:translate-x-1 transition-transform relative z-10">
             <ArrowRight className="h-3.5 w-3.5 stroke-[3]" />
           </div>

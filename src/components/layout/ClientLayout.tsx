@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -13,12 +14,12 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 
-const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler').then(m => ({ default: m.NotificationHandler })), { ssr: false });
-const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay').then(m => ({ default: m.AdOverlay })), { ssr: false });
-const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay').then(m => ({ default: m.WelcomeBonusOverlay })), { ssr: false });
-const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest').then(m => ({ default: m.LocationRequest })), { ssr: false });
-const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart').then(m => ({ default: m.FloatingCart })), { ssr: false });
-const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav').then(m => ({ default: m.BottomNav })), { ssr: false });
+const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
+const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay'), { ssr: false });
+const DynamicWelcomeBonus = dynamic(() => import('@/auth/WelcomeBonusOverlay'), { ssr: false });
+const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
+const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart'), { ssr: false });
+const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 
 const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
   const { user, loading } = useUser();
@@ -36,7 +37,7 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') ||
-           p.startsWith('/medical') ||
+           p.startsWith('/medical') || 
            p.startsWith('/beauty');
   }, [pathname]);
 

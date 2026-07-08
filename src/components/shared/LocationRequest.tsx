@@ -1,19 +1,17 @@
+
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { MapPin, ChevronRight, Store, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { MapPin, ChevronRight, Store } from 'lucide-react';
 
 /**
  * @fileOverview Ultra-Fast Location Picker.
- * Optimized with local caching to eliminate "white screen" delay.
- * Using onClick for scroll safety.
  */
-export function LocationRequest() {
+export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
   const [displayZones, setDisplayZones] = useState<any[]>([]);
   const { toast } = useToast();
@@ -27,21 +25,13 @@ export function LocationRequest() {
   
   const { data: activeZones, loading } = useCollection<any>(zonesQuery);
 
-  // 1. LOAD FROM CACHE INSTANTLY
   useEffect(() => {
-    const handleOpen = () => {
-      setIsOpen(true);
-    };
+    const handleOpen = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpen);
     
-    // Check if we have cached zones to show immediately
     const cached = localStorage.getItem('shopykart_zones_cache');
     if (cached) {
-      try {
-        setDisplayZones(JSON.parse(cached));
-      } catch (e) {
-        console.warn("Cache parse failed");
-      }
+      try { setDisplayZones(JSON.parse(cached)); } catch (e) {}
     }
 
     const isLocationSet = localStorage.getItem('user_location_set') === 'true';
@@ -53,12 +43,9 @@ export function LocationRequest() {
       };
     }
 
-    return () => {
-      window.removeEventListener('open-location-picker', handleOpen);
-    };
+    return () => { window.removeEventListener('open-location-picker', handleOpen); };
   }, []);
 
-  // 2. UPDATE CACHE WHEN FRESH DATA ARRIVES
   useEffect(() => {
     if (activeZones && activeZones.length > 0) {
       setDisplayZones(activeZones);
@@ -134,15 +121,8 @@ export function LocationRequest() {
                 ))}
               </div>
             )}
-            
-            {activeZones && activeZones.length === 0 && !loading && (
-              <div className="text-center py-20 opacity-40">
-                <p className="text-[10px] font-black uppercase tracking-widest">No zones active in your city</p>
-              </div>
-            )}
           </div>
         </div>
-
         <div className="p-5 bg-white border-t shrink-0 text-center opacity-30">
            <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.5em]">ShopyKart Ecosystem</p>
         </div>

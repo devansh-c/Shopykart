@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,9 +10,8 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview Interstitial Ad component for monetization.
- * Dynamically fetches Ad content from Admin Panel settings.
  */
-export function AdOverlay() {
+export default function AdOverlay() {
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const pathname = usePathname();
@@ -29,23 +29,18 @@ export function AdOverlay() {
 
   useEffect(() => {
     setMounted(true);
-    // 1. Initial check: Is it a customer path? (Not admin/vendor/delivery)
     const isCustomerPath = !pathname?.startsWith('/admin') && 
                            !pathname?.startsWith('/vendor') && 
                            !pathname?.startsWith('/delivery');
     
     if (!isCustomerPath) return;
 
-    // 2. Session check: Have we shown the ad already?
     const shown = sessionStorage.getItem('shopykart_ad_shown');
 
-    // 3. Logic to show Ad if enabled in Admin Panel
     if (!shown && !userLoading && !settingsLoading && user && settings?.isAdEnabled !== false && settings?.adImageUrl) {
       const timer = setTimeout(() => {
         setIsVisible(true);
         sessionStorage.setItem('shopykart_ad_shown', 'true');
-        
-        // Enable close button after 2.5 seconds
         setTimeout(() => setCanClose(true), 2500);
       }, 2500);
 
@@ -68,21 +63,12 @@ export function AdOverlay() {
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/90 animate-in fade-in duration-500 backdrop-blur-md">
       <div className="relative w-full max-w-sm mx-4 aspect-[9/16] bg-white rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/20 flex flex-col group animate-in zoom-in-95 duration-500">
-        
-        {/* Ad Content */}
         <div className="relative flex-1">
-          <img 
-            src={settings.adImageUrl} 
-            className="w-full h-full object-cover" 
-            alt="Sponsored"
-          />
-          
-          {/* Ad Overlays */}
+          <img src={settings.adImageUrl} className="w-full h-full object-cover" alt="Sponsored" />
           <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
             <Sparkles className="h-3 w-3 text-primary" />
             <span className="text-[8px] font-black text-white uppercase tracking-widest">Sponsored</span>
           </div>
-
           <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black via-black/60 to-transparent text-white">
             <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none mb-3">
               {settings.adTitle || 'Explore Quality.'}
@@ -99,8 +85,6 @@ export function AdOverlay() {
             </button>
           </div>
         </div>
-
-        {/* Close Button */}
         <button 
           onClick={handleClose}
           disabled={!canClose}
@@ -114,7 +98,6 @@ export function AdOverlay() {
           <X className="h-5 w-5" />
           {!canClose && <div className="absolute inset-0 border-2 border-white/20 rounded-full border-t-white animate-spin" />}
         </button>
-
       </div>
     </div>
   );

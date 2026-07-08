@@ -1,11 +1,11 @@
+
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Store, Package, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { memo, useMemo, useTransition } from 'react';
-import Link from 'next/link';
+import React, { useMemo, useTransition } from 'react';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
@@ -17,19 +17,16 @@ const navItems = [
 
 /**
  * PERFORMANCE REFACTOR: Bottom Navigation with useTransition.
- * Using onClick for scroll/drag safety.
  */
-export const BottomNav = memo(() => {
+export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
   const [isPending, startTransition] = useTransition();
   
   const isExcludedPath = useMemo(() => {
-    // Robust check including trailing slashes and sub-paths
     if (!pathname) return false;
     const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`;
-    
     return normalizedPath.startsWith('/admin/') || 
            normalizedPath.startsWith('/vendor/') || 
            normalizedPath.startsWith('/delivery/') ||
@@ -89,6 +86,4 @@ export const BottomNav = memo(() => {
       </div>
     </nav>
   );
-});
-
-BottomNav.displayName = "BottomNav";
+}
