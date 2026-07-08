@@ -12,9 +12,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v6 - CEO & Staff Optimized.
- * Fixed: Added user?.uid guards to prevent listener crashes.
- * Added: DialogDescription for full Radix UI compliance.
+ * @fileOverview ULTIMATE EMERGENCY ALARM SYSTEM v7 - ULTRA FAST & AGGRESSIVE.
+ * Optimized for lightning-fast detection and continuous high-speed vibration.
  */
 export function NotificationHandler() {
   const { user } = useUser();
@@ -78,10 +77,11 @@ export function NotificationHandler() {
     checkRole();
   }, [user, firestore, pathname]);
 
-  // 2. Initialize Audio Object with Pre-loading
+  // 2. Initialize Audio Object with Ultra-Fast Looping
   useEffect(() => {
     if (typeof window === 'undefined' || !isManagementPath) return;
 
+    // Fast-paced emergency siren
     const alarmUrl = 'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3';
     const audio = new Audio(alarmUrl);
     audio.loop = true;
@@ -97,7 +97,7 @@ export function NotificationHandler() {
     };
   }, [isManagementPath]);
 
-  // 3. Audio & Vibration Engine
+  // 3. RAPID Audio & Vibration Engine
   useEffect(() => {
     let vibInterval: NodeJS.Timeout;
 
@@ -106,6 +106,7 @@ export function NotificationHandler() {
     }
     
     if (isRinging && !isAudioContextBlocked) {
+      // Immediate playback
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -113,15 +114,22 @@ export function NotificationHandler() {
         });
       }
 
+      // ULTRA-FAST VIBRATION PATTERN
       if (typeof window !== 'undefined' && window.navigator.vibrate) {
-        window.navigator.vibrate([1000, 500, 1000, 500, 1000]);
+        // Pattern: [Vibrate, Pause, Vibrate]
+        const pattern = [400, 100, 400];
+        window.navigator.vibrate(pattern);
+        
+        // Rapid repetition every 1.2 seconds
         vibInterval = setInterval(() => {
-          window.navigator.vibrate([1000, 500, 1000]);
-        }, 3000);
+          window.navigator.vibrate(pattern);
+        }, 1200);
       }
     } else {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
       if (typeof window !== 'undefined' && window.navigator.vibrate) {
         window.navigator.vibrate(0);
       }
@@ -132,7 +140,7 @@ export function NotificationHandler() {
     };
   }, [isRinging, isAudioContextBlocked, userRole, isManagementPath]);
 
-  // 4. Real-time Database Listener
+  // 4. Real-time Database Listener - HIGH PRIORITY
   useEffect(() => {
     if (!firestore || !userRole) return;
 
@@ -150,6 +158,7 @@ export function NotificationHandler() {
           );
         }
 
+        // Trigger update immediately
         setRingingOrders(targeted);
         setIsRinging(targeted.length > 0);
       }, (err) => {
@@ -193,7 +202,7 @@ export function NotificationHandler() {
           audioRef.current?.pause();
           audioRef.current!.currentTime = 0;
           setIsAudioContextBlocked(false);
-          toast({ title: "System Active! 🔊", description: "Real-time alarms enabled." });
+          toast({ title: "System Fast-Active! 🔊", description: "Real-time rapid alarms enabled." });
         }).catch(err => {
           toast({ variant: "destructive", title: "Action Needed", description: "Click again to allow sound." });
         });
@@ -219,21 +228,21 @@ export function NotificationHandler() {
 
   return (
     <>
-      {/* ⚠️ ALARM ACTIVATION BANNER */}
+      {/* ⚠️ ALARM ACTIVATION BANNER - ULTRA HIGH PRIORITY */}
       {(userRole === 'admin' || userRole === 'vendor') && isManagementPath && isAudioContextBlocked && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] w-full max-w-sm px-4 pointer-events-auto cursor-pointer animate-in slide-in-from-top-4 duration-700">
            <button 
             onClick={handleManualUnblock}
-            className="w-full bg-black text-white border-2 border-primary rounded-[2.5rem] p-6 shadow-[0_0_80px_rgba(239,68,68,0.4)] flex items-center gap-5 hover:bg-primary transition-all active:scale-95 group relative overflow-hidden"
+            className="w-full bg-black text-white border-2 border-primary rounded-[2.5rem] p-6 shadow-[0_0_80px_rgba(239,68,68,0.5)] flex items-center gap-5 hover:bg-primary transition-all active:scale-95 group relative overflow-hidden"
            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               
               <div className="h-14 w-14 bg-primary/20 rounded-[1.5rem] flex items-center justify-center animate-pulse shrink-0 border border-primary/20 pointer-events-none">
                 <Volume2 className="h-7 w-7 text-primary group-hover:text-white" />
               </div>
               <div className="flex flex-col items-start text-left pointer-events-none">
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">Status: Paused</span>
-                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP TO ENABLE LIVE ALARM</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary group-hover:text-white leading-none">Alarm System</span>
+                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP TO ENABLE FAST ALERTS</span>
               </div>
            </button>
         </div>
@@ -241,13 +250,13 @@ export function NotificationHandler() {
 
       {/* 🚨 EMERGENCY ALARM OVERLAY */}
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
-        <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_100px_rgba(239,68,68,0.3)] bg-white z-[55000] focus:outline-none">
+        <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-[0_0_120px_rgba(239,68,68,0.4)] bg-white z-[55000] focus:outline-none">
           <DialogHeader className="sr-only">
-            <DialogTitle>New Order Alert</DialogTitle>
-            <DialogDescription>A new order has been detected and requires immediate action.</DialogDescription>
+            <DialogTitle>Urgent: New Order Detected</DialogTitle>
+            <DialogDescription>A new order has been detected and requires immediate action to stop the alarm.</DialogDescription>
           </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
-             <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">NEW ORDER DETECTED</span>
+             <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">URGENT: NEW ORDER</span>
           </div>
           <div className="p-10 space-y-10 flex flex-col items-center text-center">
             <div className="relative">
@@ -262,10 +271,10 @@ export function NotificationHandler() {
 
             <div className="space-y-4">
               <h2 className="text-5xl font-black italic uppercase tracking-tighter leading-none text-red-600">
-                ALARM ON.<br /><span className="text-black">NEW ORDER!</span>
+                ALARM ON.<br /><span className="text-black">RAPID ALERT!</span>
               </h2>
               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] bg-gray-50 px-6 py-2.5 rounded-full border border-gray-100 inline-block">
-                Siren & Vibration Active
+                High-Speed Vibration Active
               </p>
             </div>
 
