@@ -61,6 +61,7 @@ export default function BeautyDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
@@ -76,13 +77,27 @@ export default function BeautyDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
+  // Categories for Selection
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'categories'), where('serviceType', '==', 'Beauty'));
+  }, [firestore]);
+  const { data: beautyCategories } = useCollection<any>(categoriesQuery);
+
+  // Product Form State
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: '', price: '', mrp: '', description: '', category: '', imageUrl: ''
+  });
+
   // AUTH GUARD: Bulletproof session recovery
   useEffect(() => {
     if (!isMounted || authLoading) return;
 
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
 
-    // If Firebase finished loading and NO user is found
     if (!user && !authLoading) {
       if (!sessionActive) {
         router.replace('/vendor/login?type=Beauty');
@@ -97,7 +112,6 @@ export default function BeautyDashboard() {
       }
     }
 
-    // If user exists but after profile settled, it's confirmed NOT to be a vendor
     if (user && !profileLoading && vendorProfile === null) {
       const finalCheck = setTimeout(() => {
         if (!vendorProfile) {
@@ -140,6 +154,65 @@ export default function BeautyDashboard() {
       await batch.commit();
       toast({ title: online ? "Beauty Hub Open! 🟢" : "Beauty Hub Closed 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProduct = async () => {
+    if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
+      toast({ variant: "destructive", title: "Missing Information" });
+      return;
+    }
+
+    setIsSavingProduct(true);
+    const pData = {
+      name: productForm.name.trim(),
+      price: parseFloat(productForm.price),
+      mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
+      description: productForm.description.trim(),
+      category: productForm.category.toLowerCase().trim(),
+      vendorId: user.uid,
+      restaurantName: vendorProfile?.storeName || 'Beauty Hub',
+      serviceMode: 'Beauty',
+      zoneId: vendorProfile?.zoneId || null,
+      town: vendorProfile?.town || 'Local',
+      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/beauty/400/400',
+      isAvailable: true,
+      isVeg: true, 
+      updatedAt: serverTimestamp(),
+    };
+
+    try {
+      if (editingId) {
+        await setDoc(doc(firestore, 'products', editingId), pData, { merge: true });
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingId), pData, { merge: true });
+      } else {
+        const newRef = doc(collection(firestore, 'products'));
+        await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      }
+      setIsProductModalOpen(false);
+      resetForm();
+      toast({ title: "Product Saved!" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '' });
   };
 
   const filteredOrders = useMemo(() => {
@@ -204,8 +277,74 @@ export default function BeautyDashboard() {
 
             {activeMainTab === 'catalog' && (
               <div className="p-4 space-y-4 animate-in fade-in duration-500">
-                  <div className="flex items-center justify-between mb-2"><h2 className="text-xl font-black italic uppercase tracking-tighter">Beauty Inventory</h2></div>
-                  <div className="grid grid-cols-1 gap-4">{myProducts?.map(p => (<div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm"><div className="flex items-center gap-4"><img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover" alt="" /><div><h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4><p className="text-xs font-black text-rose-600 italic">₹{p.price}</p></div></div></div>))}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-xl font-black italic uppercase tracking-tighter">Beauty Inventory</h2>
+                    <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetForm(); }}>
+                       <DialogTrigger asChild>
+                         <Button className="bg-rose-600 rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
+                       </DialogTrigger>
+                       <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                          <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingId ? 'Edit Product' : 'New Beauty item'}</DialogTitle></DialogHeader>
+                          <div className="p-8 space-y-6">
+                             <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                                {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                             </div>
+                             <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
+                             
+                             <div className="space-y-4">
+                                <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                                <div className="grid grid-cols-2 gap-4">
+                                  <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
+                                  <Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-rose-400 font-bold" />
+                                </div>
+                                <Textarea placeholder="Description / Features" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
+                                
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category</label>
+                                  <Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                      <SelectValue placeholder="Category" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                      {beautyCategories?.map((cat: any) => (
+                                        <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
+                                          {cat.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                             </div>
+                             <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-rose-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                               {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
+                             </Button>
+                          </div>
+                       </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    {myProducts?.map(p => (
+                      <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
+                          <div>
+                            <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
+                            <p className="text-xs font-black text-rose-600 italic">₹{p.price}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditingId(p.id); setProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
+                          <button onClick={() => { if(confirm("Delete item?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {(!myProducts || myProducts.length === 0) && (
+                       <div className="text-center py-20 opacity-30 flex flex-col items-center">
+                          <ShoppingBag className="h-16 w-16 mb-4" />
+                          <p className="font-black italic uppercase text-xs">Inventory is empty</p>
+                       </div>
+                    )}
+                  </div>
               </div>
             )}
          </div>
