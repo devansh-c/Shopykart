@@ -29,7 +29,12 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
       firestore={instances?.firestore || null} 
       auth={instances?.auth || null}
     >
-      {children}
+      {/* 
+        CRITICAL: Only render children when instances are ready. 
+        This prevents 'null' firestore from being passed to hooks/components 
+        on the very first render, avoiding "Expected first argument..." errors.
+      */}
+      {instances ? children : null}
     </FirebaseProvider>
   );
 }

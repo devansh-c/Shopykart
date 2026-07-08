@@ -2,13 +2,13 @@
 
 import { useEffect } from 'react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function BrandingLoader() {
   const firestore = useFirestore();
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    const { doc } = require('firebase/firestore');
     return doc(firestore, 'app_settings', 'branding');
   }, [firestore]);
 

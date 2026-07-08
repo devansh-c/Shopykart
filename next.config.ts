@@ -15,30 +15,35 @@ const nextConfig: NextConfig = {
   /* ENSURE CLEAN URLS & INDEX.HTML GENERATION */
   trailingSlash: true,
   
-  /* TURBOPACK CONFIG - Simple & Clean to avoid SSR conflicts */
+  /* TURBOPACK CONFIG - Optimized for Client Side Mocks */
   experimental: {
     turbo: {
       resolveAlias: {
-        // Only essential browser mocks
+        // Essential browser mocks for Node.js modules
         canvas: 'node-libs-browser/mock/empty',
+        fs: 'node-libs-browser/mock/empty',
+        path: 'path-browserify',
+        os: 'os-browserify',
+        stream: 'stream-browserify',
       },
     },
   },
 
-  /* WEBPACK FALLBACK - Only for Client Side */
+  /* WEBPACK FALLBACK - Robust Polyfills */
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
-        path: false,
-        os: false,
+        path: require.resolve('path-browserify'),
+        os: require.resolve('os-browserify/browser'),
         net: false,
         tls: false,
         child_process: false,
         readline: false,
         http2: false,
         dns: false,
+        stream: require.resolve('stream-browserify'),
       };
     }
     return config;

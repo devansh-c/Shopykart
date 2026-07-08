@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, onSnapshot, doc, updateDoc, orderBy, limit } from 'firebase/firestore';
 
 /**
  * @fileOverview TelegramNotifier listens to order status changes and sends alerts.
- * SSR Safe: Using internal dynamic requires to prevent gRPC leaks.
  */
 export default function TelegramNotifier() {
   const firestore = useFirestore();
@@ -13,7 +13,6 @@ export default function TelegramNotifier() {
 
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    const { doc } = require('firebase/firestore');
     return doc(firestore, 'app_settings', 'branding');
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
@@ -22,8 +21,6 @@ export default function TelegramNotifier() {
     if (!firestore || !settings?.enableTelegram || !settings?.telegramBotToken || !settings?.telegramChatId) {
       return;
     }
-
-    const { collection, query, onSnapshot, doc, updateDoc, orderBy, limit } = require('firebase/firestore');
 
     const ordersQuery = query(
       collection(firestore, 'orders'),
