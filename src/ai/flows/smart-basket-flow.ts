@@ -3,7 +3,7 @@
  * Optimized for Static Export: Removed top-level Genkit imports to prevent build errors in APK.
  */
 
-import { z } from '@/ai/genkit';
+import { z } from 'zod';
 
 const SmartBasketInputSchema = z.object({
   dishName: z.string().describe('The name of the dish the user wants to cook.'),

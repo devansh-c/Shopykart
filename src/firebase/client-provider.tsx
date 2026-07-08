@@ -11,7 +11,7 @@ interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
-export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [instances, setInstances] = useState<{
     firebaseApp: FirebaseApp | null;
     firestore: Firestore | null;

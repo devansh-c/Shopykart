@@ -3,7 +3,7 @@
  * Optimized for Static Export: Removed top-level Genkit imports to prevent build errors in APK.
  */
 
-import { z } from '@/ai/genkit';
+import { z } from 'zod';
 
 const PersonalizedOfferSuggestionsInputSchema = z.object({
   userId: z.string().describe('The ID of the user requesting personalized offers.'),

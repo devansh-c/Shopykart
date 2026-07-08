@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -16,21 +15,17 @@ const nextConfig: NextConfig = {
   /* ENSURE CLEAN URLS & INDEX.HTML GENERATION */
   trailingSlash: true,
   
-  /* TURBOPACK CONFIG - Simplified for maximum stability */
+  /* TURBOPACK CONFIG - Simple & Clean to avoid SSR conflicts */
   experimental: {
     turbo: {
       resolveAlias: {
-        fs: 'node-libs-browser/mock/empty',
-        path: 'node-libs-browser/mock/empty',
-        os: 'node-libs-browser/mock/empty',
-        net: 'node-libs-browser/mock/empty',
-        tls: 'node-libs-browser/mock/empty',
-        child_process: 'node-libs-browser/mock/empty',
+        // Only essential browser mocks
+        canvas: 'node-libs-browser/mock/empty',
       },
     },
   },
 
-  /* FIX FOR NODE.JS MODULES IN CLIENT BUNDLE */
+  /* WEBPACK FALLBACK - Only for Client Side */
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -42,7 +37,6 @@ const nextConfig: NextConfig = {
         tls: false,
         child_process: false,
         readline: false,
-        perf_hooks: false,
         http2: false,
         dns: false,
       };

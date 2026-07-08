@@ -1,7 +1,7 @@
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
-import { FirebaseClientProvider, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { SplashScreen } from '@/components/shared/SplashScreen';
@@ -12,6 +12,7 @@ import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 
 // DYNAMIC IMPORTS TO PREVENT NODE.JS MODULES IN SSR
+const DynamicFirebaseClientProvider = dynamic(() => import('@/firebase/client-provider'), { ssr: false });
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
 const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
@@ -123,12 +124,12 @@ AppContent.displayName = "AppContent";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <FirebaseClientProvider>
+    <DynamicFirebaseClientProvider>
       <DynamicBrandingLoader />
       <FirebaseErrorListener />
       <CartProvider>
         <AppContent>{children}</AppContent>
       </CartProvider>
-    </FirebaseClientProvider>
+    </DynamicFirebaseClientProvider>
   );
 }

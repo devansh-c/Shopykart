@@ -1,8 +1,7 @@
-
 /**
  * @fileOverview Genkit initialization. 
  * Optimized for both server and client-side (static export) environments.
- * Uses webpackIgnore to prevent Node.js modules from leaking into the browser bundle.
+ * Uses dynamic imports with webpackIgnore to prevent Node.js modules from leaking into the browser bundle.
  */
 
 import { z as zod } from 'zod';
@@ -21,11 +20,10 @@ export const getAI = async () => {
   }
   
   try {
-    // Using webpackIgnore to tell Next.js/Turbopack to skip these in the client bundle
-    // @ts-ignore
-    const genkitModule = await import(/* webpackIgnore: true */ 'genkit').catch(() => null);
-    // @ts-ignore
-    const googleAIModule = await import(/* webpackIgnore: true */ '@genkit-ai/google-genai').catch(() => null);
+    // Dynamically importing Genkit on server-side only with webpackIgnore
+    // This prevents the bundler from trying to resolve these Node.js-only modules.
+    const genkitModule = await import(/* webpackIgnore: true */ 'genkit');
+    const googleAIModule = await import(/* webpackIgnore: true */ '@genkit-ai/google-genai');
     
     if (!genkitModule || !googleAIModule) return null;
 
@@ -37,6 +35,7 @@ export const getAI = async () => {
       model: 'googleai/gemini-2.5-flash',
     });
   } catch (e) {
+    console.error("Genkit initialization failed:", e);
     return null;
   }
 };

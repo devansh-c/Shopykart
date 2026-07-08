@@ -1,63 +1,28 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { 
-  Firestore, 
-  initializeFirestore, 
-  persistentLocalCache, 
-  CACHE_SIZE_UNLIMITED,
-  persistentMultipleTabManager
-} from 'firebase/firestore';
-import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 let appInstance: FirebaseApp | null = null;
-let firestoreInstance: Firestore | null = null;
-let authInstance: Auth | null = null;
+let firestoreInstance: any = null;
+let authInstance: any = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Configured for MAXIMUM SPEED AND STABILITY.
- * Refined console suppression to be ultra-safe and prevent hangs.
+ * Uses dynamic requires to prevent Node-only modules (like gRPC) from leaking into SSR.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
-  // AGGRESSIVE CONSOLE SUPPRESSION (Top Level)
-  if (!window.hasOwnProperty('_fs_suppressed')) {
+  // AGGRESSIVE CONSOLE SUPPRESSION
+  if (!(window as any)._fs_suppressed) {
     (window as any)._fs_suppressed = true;
     const originalConsoleError = console.error;
     console.error = (...args: any[]) => {
-      try {
-        const fullMessage = args.map(arg => {
-          if (typeof arg === 'string') return arg;
-          if (arg instanceof Error) return arg.message;
-          return '[Object]'; // Safely handle circular objects
-        }).join(' ');
-        
-        const suppressedPatterns = [
-          '@firebase/firestore',
-          'resource-exhausted',
-          'quota exceeded',
-          'bandwidth',
-          'Could not reach Cloud',
-          'Backend didn\'t respond',
-          'offline mode',
-          '10 seconds',
-          'FirebaseError',
-          'permission-denied',
-          'auth/network-request-failed',
-          'Internal Server Error'
-        ];
-
-        if (suppressedPatterns.some(pattern => fullMessage.toLowerCase().includes(pattern.toLowerCase()))) {
-          console.debug("Firebase Notice (Silenced):", fullMessage);
-          return;
-        }
-      } catch (e) {}
-      
+      const msg = args.join(' ');
+      if (msg.includes('firestore') || msg.includes('quota') || msg.includes('network')) return;
       originalConsoleError.apply(console, args);
     };
   }
@@ -66,12 +31,23 @@ export function initializeFirebase() {
     try {
       appInstance = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
       
-      authInstance = getAuth(appInstance);
-      setPersistence(authInstance, browserLocalPersistence).catch((err) => {
-        console.warn("Auth persistence error:", err);
-      });
+      // Dynamic imports for browser-only SDKs to avoid SSR gRPC issues
+      const { 
+        initializeFirestore, 
+        persistentLocalCache, 
+        CACHE_SIZE_UNLIMITED,
+        persistentMultipleTabManager 
+      } = require('firebase/firestore');
+      
+      const { 
+        getAuth, 
+        setPersistence, 
+        browserLocalPersistence 
+      } = require('firebase/auth');
 
-      // REAL-TIME PRIORITY INITIALIZATION
+      authInstance = getAuth(appInstance);
+      setPersistence(authInstance, browserLocalPersistence).catch(() => {});
+
       firestoreInstance = initializeFirestore(appInstance, {
         localCache: persistentLocalCache({
           cacheSizeBytes: CACHE_SIZE_UNLIMITED,
@@ -80,10 +56,9 @@ export function initializeFirebase() {
         experimentalForceLongPolling: true,
       });
 
-      console.log("ShopyKart Real-Time Engine: Active ✅");
-
+      console.log("ShopyKart Engine: Client Ready ✅");
     } catch (error) {
-      console.error("Firebase initialization failed:", error);
+      console.error("Firebase init failed:", error);
     }
   }
 

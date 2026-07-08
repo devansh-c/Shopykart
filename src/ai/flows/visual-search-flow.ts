@@ -3,7 +3,7 @@
  * Optimized for Static Export: Removed top-level Genkit imports to prevent build errors in APK.
  */
 
-import { z } from '@/ai/genkit';
+import { z } from 'zod';
 
 const VisualSearchInputSchema = z.object({
   photoDataUri: z.string().describe("A photo of a food item as a data URI."),
