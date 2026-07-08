@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -6,14 +5,15 @@ import { FirebaseClientProvider, useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { SplashScreen } from '@/components/shared/SplashScreen';
-import { BrandingLoader } from '@/components/shared/BrandingLoader';
-import { TelegramNotifier } from '@/components/shared/TelegramNotifier';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 
+// DYNAMIC IMPORTS TO PREVENT NODE.JS MODULES IN SSR
+const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
+const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
 const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay'), { ssr: false });
 const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay'), { ssr: false });
@@ -105,7 +105,7 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
           <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
             {!isExcludedPath && <DynamicLocationRequest />}
             <DynamicNotificationHandler />
-            <TelegramNotifier />
+            <DynamicTelegramNotifier />
             <DynamicAdOverlay />
             <DynamicWelcomeBonus />
             {children}
@@ -124,7 +124,7 @@ AppContent.displayName = "AppContent";
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <FirebaseClientProvider>
-      <BrandingLoader />
+      <DynamicBrandingLoader />
       <FirebaseErrorListener />
       <CartProvider>
         <AppContent>{children}</AppContent>

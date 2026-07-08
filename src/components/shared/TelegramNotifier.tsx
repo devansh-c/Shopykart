@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -9,7 +8,7 @@ import { collection, query, onSnapshot, doc, updateDoc, Timestamp, orderBy, limi
  * @fileOverview TelegramNotifier listens to order status changes and sends alerts to Telegram.
  * Optimized for Static Hosting. Works as long as the app is open in any tab.
  */
-export function TelegramNotifier() {
+export default function TelegramNotifier() {
   const firestore = useFirestore();
   const processedOrdersInSession = useRef<Set<string>>(new Set());
 

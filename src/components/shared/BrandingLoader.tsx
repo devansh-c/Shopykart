@@ -8,7 +8,7 @@ import { doc } from 'firebase/firestore';
  * @fileOverview BrandingLoader handles dynamic branding from Firestore.
  * Refactored to safely update document properties with better hydration support.
  */
-export function BrandingLoader() {
+export default function BrandingLoader() {
   const firestore = useFirestore();
 
   const brandingRef = useMemoFirebase(() => {
