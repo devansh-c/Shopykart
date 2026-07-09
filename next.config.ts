@@ -15,11 +15,11 @@ const nextConfig: NextConfig = {
   /* ENSURE CLEAN URLS & INDEX.HTML GENERATION */
   trailingSlash: true,
   
-  /* TURBOPACK CONFIG - Optimized for Client Side Mocks */
+  /* TURBOPACK CONFIG - Optimized for Next.js 15 */
   experimental: {
-    turbo: {
+    turbopack: {
       resolveAlias: {
-        // Essential browser mocks for Node.js modules
+        // Essential browser mocks for Node.js modules to prevent build errors
         canvas: 'node-libs-browser/mock/empty',
         fs: 'node-libs-browser/mock/empty',
         path: 'path-browserify',
@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
     },
   },
 
-  /* WEBPACK FALLBACK - Robust Polyfills */
+  /* WEBPACK FALLBACK - Robust Polyfills for non-Turbo environments */
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

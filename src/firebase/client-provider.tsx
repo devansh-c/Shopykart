@@ -11,6 +11,10 @@ interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
+/**
+ * @fileOverview High-reliability Firebase Provider for client-side environments.
+ * Prevents "Expected first argument..." errors by ensuring instances are ready.
+ */
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [instances, setInstances] = useState<{
     firebaseApp: FirebaseApp | null;
@@ -19,6 +23,7 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
   } | null>(null);
 
   useEffect(() => {
+    // Initialization happens ONLY once the component is mounted in the browser.
     const results = initializeFirebase();
     setInstances(results);
   }, []);
@@ -30,9 +35,9 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
       auth={instances?.auth || null}
     >
       {/* 
-        CRITICAL: Only render children when instances are ready. 
-        This prevents 'null' firestore from being passed to hooks/components 
-        on the very first render, avoiding "Expected first argument..." errors.
+        CRITICAL: Only render children when instances are fully hydrated. 
+        This prevents 'null' firestore from leaking into hooks during the very first render,
+        avoiding the "Expected first argument to collection()..." crash.
       */}
       {instances ? children : null}
     </FirebaseProvider>
