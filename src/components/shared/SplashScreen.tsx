@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -73,6 +72,13 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
             QUALITY FIRST
           </span>
         </div>
+      </div>
+
+      {/* Footer Signature */}
+      <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+         <p className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em] italic">
+            Handicrafted by Devansh
+         </p>
       </div>
     </div>
   );
