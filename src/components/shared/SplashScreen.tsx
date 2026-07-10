@@ -12,7 +12,7 @@ interface SplashScreenProps {
 /**
  * @fileOverview Minimalist Splash Screen.
  * Shows only the Shopykart logo for exactly 2 seconds.
- * Style updated: Extra compact logo height and instant rendering.
+ * Style updated: Matches user image exactly with compact pill design.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [shouldRender, setShouldRender] = useState(true);
@@ -62,14 +62,14 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform px-6"
       >
-        {/* ULTRA-COMPACT PILL LOGO - Height reduced as requested */}
-        <div className="px-12 py-2 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[280px]">
+        {/* EXACT IMAGE MATCH LOGO: ULTRA-COMPACT PILL */}
+        <div className="px-12 py-2 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[280px] h-14 justify-center">
           <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
-          <div className="w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-2 opacity-50" />
-          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-2">
+          <div className="w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-1.5 opacity-50" />
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-1">
             QUALITY FIRST
           </span>
         </div>
