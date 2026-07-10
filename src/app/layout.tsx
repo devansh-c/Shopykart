@@ -36,7 +36,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0B0B0B',
+  themeColor: '#FFFFFF',
 };
 
 export default function RootLayout({
@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="antialiased bg-[#0B0B0B] text-foreground overflow-x-hidden">
+      <body className="antialiased bg-white text-foreground overflow-x-hidden">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

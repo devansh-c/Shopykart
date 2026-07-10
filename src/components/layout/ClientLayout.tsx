@@ -1,10 +1,10 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
 import { useUser } from '@/firebase';
 import { usePathname } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { SplashScreen } from '@/components/shared/SplashScreen';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
@@ -53,13 +53,13 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
-    const failSafeTimer = setTimeout(() => onReady(true), 500);
+    const failSafeTimer = setTimeout(() => onReady(true), 100);
 
     if (!loading) {
       clearTimeout(failSafeTimer);
       onReady(true);
       if (!user && !hasActiveSession) {
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 1000);
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 500);
         return () => clearTimeout(authTimer);
       }
     }
@@ -97,11 +97,9 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
 
   return (
     <div className={cn(
-      "relative min-h-screen flex flex-col overflow-x-hidden transition-colors duration-500",
-      isAppFullyReady ? "bg-[#FAFAFA]" : "bg-[#0B0B0B]"
+      "relative min-h-screen flex flex-col overflow-x-hidden transition-colors duration-300",
+      isAppFullyReady ? "bg-[#FAFAFA]" : "bg-white"
     )}>
-      <SplashScreen isAppReady={isAppFullyReady} />
-      
       {mounted && (
         <AuthGuard onReady={setIsAppFullyReady}>
           <div className="relative min-h-screen flex flex-col">
