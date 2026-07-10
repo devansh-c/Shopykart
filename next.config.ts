@@ -15,17 +15,15 @@ const nextConfig: NextConfig = {
   /* ENSURE CLEAN URLS & INDEX.HTML GENERATION */
   trailingSlash: true,
   
-  /* TURBOPACK CONFIG - Optimized for Next.js 15 */
-  experimental: {
-    turbopack: {
-      resolveAlias: {
-        // Essential browser mocks for Node.js modules to prevent build errors
-        canvas: 'node-libs-browser/mock/empty',
-        fs: 'node-libs-browser/mock/empty',
-        path: 'path-browserify',
-        os: 'os-browserify',
-        stream: 'stream-browserify',
-      },
+  /* TURBOPACK CONFIG - Optimized for Next.js 15 (Root level property) */
+  turbopack: {
+    resolveAlias: {
+      // Essential browser mocks for Node.js modules to prevent build errors
+      canvas: 'node-libs-browser/mock/empty',
+      fs: 'node-libs-browser/mock/empty',
+      path: 'path-browserify',
+      os: 'os-browserify',
+      stream: 'stream-browserify',
     },
   },
 
