@@ -8,8 +8,7 @@ import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 /**
- * @fileOverview Logo component updated to match the stretched pill design.
- * Width slightly increased for better visual balance as requested.
+ * @fileOverview Logo component adjusted: Decreased width and increased height.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -44,12 +43,12 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-6 py-1 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[150px] justify-center h-10", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-5 py-1.5 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[130px] justify-center h-12", 
         className
       )}
     >
       {branding?.logoUrl ? (
-        <img src={branding.logoUrl} alt={branding.siteTitle || 'Logo'} className="h-6 w-auto object-contain" />
+        <img src={branding.logoUrl} alt={branding.siteTitle || 'Logo'} className="h-8 w-auto object-contain" />
       ) : (
         <>
           <h1 className="flex items-center text-xl font-black italic tracking-tighter leading-none">
