@@ -9,8 +9,8 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Refined Splash Screen with smaller logo and no zoom.
- * Duration: Exactly 2 seconds.
+ * @fileOverview Minimalist Splash Screen.
+ * Shows only the Shopykart logo for exactly 2 seconds.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [shouldRender, setShouldRender] = useState(true);
@@ -60,34 +60,15 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform"
       >
-        <div className="px-10 py-8 border border-[#C5A021]/30 rounded-[2.5rem] bg-black/40 backdrop-blur-xl shadow-[0_0_60px_rgba(197,160,33,0.1)] flex flex-col items-center animate-in fade-in duration-1000">
-          <h1 className="flex items-center text-3xl font-black italic tracking-tighter leading-none">
+        <div className="px-8 py-6 border border-[#C5A021]/30 rounded-[2rem] bg-black/40 backdrop-blur-xl shadow-[0_0_60px_rgba(197,160,33,0.1)] flex flex-col items-center animate-in fade-in duration-1000">
+          <h1 className="flex items-center text-2xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
           <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-3" />
-          <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 mt-3">
+          <span className="text-[6px] font-black uppercase tracking-[0.4em] text-white/40 mt-3">
             QUALITY FIRST
           </span>
-        </div>
-      </div>
-      
-      <div className="absolute bottom-16 flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-2">
-           <div className="flex items-center gap-2">
-              <div className="h-1 w-1 bg-primary rounded-full animate-ping" />
-              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-white/20">
-                INITIALIZING HUB
-              </p>
-           </div>
-           <div className="w-24 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
-             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
-           </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-1 opacity-40">
-           <p className="text-[7px] font-black text-gray-500 uppercase tracking-[0.3em]">Handicrafted by</p>
-           <p className="text-[10px] font-black italic text-white tracking-widest uppercase">DEVANSH</p>
         </div>
       </div>
     </div>
