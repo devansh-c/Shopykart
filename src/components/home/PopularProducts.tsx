@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -144,6 +145,29 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 });
 ProductItem.displayName = "ProductItem";
 
+const SkeletonLoader = () => (
+  <div className="px-4 py-8 space-y-6">
+    <div className="flex items-center justify-between mb-4 px-2">
+      <Skeleton className="h-4 w-32 rounded-full bg-muted/40" />
+      <Skeleton className="h-3 w-16 rounded-full bg-muted/30" />
+    </div>
+    {[1, 2, 3, 4].map(i => (
+      <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-border/50 shadow-sm">
+        <div className="flex-1 space-y-3 pr-4">
+          <div className="flex gap-2"><Skeleton className="h-3 w-3 rounded-sm" /><Skeleton className="h-3 w-20 rounded-full" /></div>
+          <Skeleton className="h-6 w-full rounded-lg" />
+          <Skeleton className="h-4 w-1/2 rounded-lg" />
+          <div className="flex gap-2 pt-2"><Skeleton className="h-3 w-16 rounded-full" /><Skeleton className="h-3 w-12 rounded-full" /></div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <Skeleton className="h-24 w-24 rounded-2xl" />
+          <Skeleton className="h-8 w-20 rounded-xl" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [isPending, startTransition] = useTransition();
@@ -185,7 +209,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery);
 
   const offerRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -206,21 +230,19 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [cart]);
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts) return [];
+    if (!dbProducts) return null;
     
     const searchLower = searchQuery.toLowerCase().trim();
     const categoryLower = category.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
-    return dbProducts.filter(product => {
+    const filtered = dbProducts.filter(product => {
       if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
       
-      // Strict Service Mode Check
       const productMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
       if (productMode !== activeMode.toLowerCase()) return false;
 
-      // Relaxed Visibility: Show all items unless strictly from a different city
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
       
       if (targetCityNormalized && productTown) {
@@ -245,6 +267,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const ratingB = vB?.rating || 0;
       return ratingB - ratingA;
     });
+
+    return filtered;
   }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, currentMinutes]);
 
   const navigateToProduct = (id: string) => {
@@ -253,29 +277,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
-    return (
-      <div className="px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between mb-4 px-2">
-          <Skeleton className="h-4 w-24 rounded-full" />
-          <Skeleton className="h-3 w-16 rounded-full" />
-        </div>
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-border/50">
-            <div className="flex-1 space-y-3 pr-4">
-              <div className="flex gap-2"><Skeleton className="h-3 w-3 rounded-sm" /><Skeleton className="h-3 w-12 rounded-full" /></div>
-              <Skeleton className="h-5 w-full rounded-lg" />
-              <Skeleton className="h-4 w-3/4 rounded-lg" />
-              <div className="flex gap-2"><Skeleton className="h-3 w-10 rounded-full" /><Skeleton className="h-3 w-10 rounded-full" /></div>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <Skeleton className="h-24 w-24 rounded-2xl" />
-              <Skeleton className="h-8 w-20 rounded-xl" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+  // Show Skeleton as long as data is null or loading is explicitly true and data hasn't arrived
+  if ((productsLoading && !dbProducts) || productsToDisplay === null) {
+    return <SkeletonLoader />;
   }
 
   return (
@@ -284,7 +288,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
         <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{productsToDisplay.length} ITEMS</span>
       </div>
-      <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-200", isPending && "opacity-50")}>
+      <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-200", (isPending || vendorsLoading) && "opacity-50")}>
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}
@@ -300,8 +304,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             currentMinutes={currentMinutes}
           />
         ))}
-        {productsToDisplay.length === 0 && !productsLoading && (
-          <div className="text-center py-20 opacity-30">
+        {productsToDisplay.length === 0 && (
+          <div className="text-center py-20 opacity-30 animate-in fade-in duration-700">
             <ShoppingBag className="h-16 w-16 mx-auto mb-4" />
             <p className="font-black italic uppercase tracking-widest text-sm">No Items Found</p>
           </div>

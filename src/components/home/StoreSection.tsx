@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
@@ -11,7 +12,7 @@ import { isStoreScheduleOpen } from "./PopularProducts"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview StoreSection with optimized visibility and fast shimmer.
+ * @fileOverview StoreSection with robust shimmer and isolation.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -50,7 +51,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
   const filteredVendors = useMemo(() => {
-    if (!dbVendors) return [];
+    if (!dbVendors) return null;
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
     const mins = currentMinutes ?? 720;
 
@@ -58,7 +59,6 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
       
-      // Relaxed Visibility for Stores
       const vTown = (v.town || '').toLowerCase().trim();
 
       if (targetCityNormalized && vTown) {
@@ -83,28 +83,28 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
   if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
-  if (loading && (!dbVendors || dbVendors.length === 0)) {
+  if ((loading && !dbVendors) || filteredVendors === null) {
     return (
-      <div className="py-6 px-6 space-y-6">
+      <div className="py-6 px-6 space-y-6 animate-in fade-in duration-300">
         <div className="flex items-center justify-between">
            <div className="space-y-2">
-             <Skeleton className="h-6 w-32 rounded-lg" />
-             <Skeleton className="h-2 w-20 rounded-full" />
+             <Skeleton className="h-6 w-32 rounded-lg bg-muted/40" />
+             <Skeleton className="h-2 w-20 rounded-full bg-muted/20" />
            </div>
-           <Skeleton className="h-4 w-16 rounded-full" />
+           <Skeleton className="h-4 w-16 rounded-full bg-muted/30" />
         </div>
         <div className="flex overflow-x-auto space-x-5 no-scrollbar">
            {[1, 2].map(i => (
-             <div key={i} className="min-w-[280px] bg-white rounded-3xl overflow-hidden border border-border p-0">
-               <Skeleton className="h-36 w-full" />
+             <div key={i} className="min-w-[280px] bg-white rounded-3xl overflow-hidden border border-border/50 p-0 shadow-sm">
+               <Skeleton className="h-36 w-full bg-muted/30" />
                <div className="p-4 space-y-3">
                  <div className="flex justify-between items-center">
-                    <Skeleton className="h-5 w-32 rounded-lg" />
-                    <Skeleton className="h-5 w-10 rounded-lg" />
+                    <Skeleton className="h-5 w-32 rounded-lg bg-muted/40" />
+                    <Skeleton className="h-5 w-10 rounded-lg bg-muted/20" />
                  </div>
                  <div className="flex gap-2">
-                    <Skeleton className="h-3 w-16 rounded-full" />
-                    <Skeleton className="h-3 w-16 rounded-full" />
+                    <Skeleton className="h-3 w-16 rounded-full bg-muted/10" />
+                    <Skeleton className="h-3 w-16 rounded-full bg-muted/10" />
                  </div>
                </div>
              </div>
