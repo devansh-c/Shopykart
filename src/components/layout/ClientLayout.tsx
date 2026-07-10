@@ -95,27 +95,30 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
            p.startsWith('/beauty');
   }, [pathname]);
 
-  if (!mounted) return null;
-
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden">
+    <div className={cn(
+      "relative min-h-screen flex flex-col overflow-x-hidden transition-colors duration-500",
+      isAppFullyReady ? "bg-[#FAFAFA]" : "bg-[#0B0B0B]"
+    )}>
       <SplashScreen isAppReady={isAppFullyReady} />
       
-      <AuthGuard onReady={setIsAppFullyReady}>
-        <div className="relative min-h-screen flex flex-col">
-          <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
-            {!isExcludedPath && <DynamicLocationRequest />}
-            <DynamicNotificationHandler />
-            <DynamicTelegramNotifier />
-            <DynamicAdOverlay />
-            <DynamicWelcomeBonus />
-            {children}
-          </main>
-          
-          {!isExcludedPath && <DynamicFloatingCart />}
-          {!isExcludedPath && <DynamicBottomNav />}
-        </div>
-      </AuthGuard>
+      {mounted && (
+        <AuthGuard onReady={setIsAppFullyReady}>
+          <div className="relative min-h-screen flex flex-col">
+            <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
+              {!isExcludedPath && <DynamicLocationRequest />}
+              <DynamicNotificationHandler />
+              <DynamicTelegramNotifier />
+              <DynamicAdOverlay />
+              <DynamicWelcomeBonus />
+              {children}
+            </main>
+            
+            {!isExcludedPath && <DynamicFloatingCart />}
+            {!isExcludedPath && <DynamicBottomNav />}
+          </div>
+        </AuthGuard>
+      )}
       <Toaster />
     </div>
   );

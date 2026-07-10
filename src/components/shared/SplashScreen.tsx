@@ -10,7 +10,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview ULTRA-TURBO SplashScreen.
- * Reduced timers to 100ms for instant app feel.
+ * Optimized to prevent white flash by removing initial mounted check.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -52,13 +52,17 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
   useEffect(() => {
     if (!isActuallyVisible) {
-      document.body.style.overflow = '';
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
       }, 100); 
       return () => clearTimeout(removeTimer);
     } else {
-      document.body.style.overflow = 'hidden';
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'hidden';
+      }
     }
   }, [isActuallyVisible]);
 
@@ -74,7 +78,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     }
   };
 
-  if (!shouldRender || !mounted) return null;
+  if (!shouldRender) return null;
 
   return (
     <div 
