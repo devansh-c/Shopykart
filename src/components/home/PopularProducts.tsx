@@ -219,17 +219,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const productMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
       if (productMode !== activeMode.toLowerCase()) return false;
 
-      // Inclusive Location Filtering: Show all unless city strictly mismatch
-      const productTown = (product.town || vendor?.town || 'Local').toLowerCase().trim();
-      const productZoneId = product.zoneId || vendor?.zoneId || null;
-
-      if (targetCityNormalized) {
+      // Relaxed Visibility: Show all items unless strictly from a different city
+      const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
+      
+      if (targetCityNormalized && productTown) {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
-      
-      // Only filter by Zone if product strictly belongs to one and user also has a zone set
-      if (activeZoneId && productZoneId && productZoneId !== activeZoneId) return false;
 
       const matchesSearch = !searchLower || product.name?.toLowerCase().includes(searchLower) || product.category?.toLowerCase().includes(searchLower);
       const matchesCategory = categoryLower === 'all' || product.category?.toLowerCase().trim() === categoryLower;

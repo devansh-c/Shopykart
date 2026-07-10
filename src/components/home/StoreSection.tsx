@@ -57,16 +57,13 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       const isApproved = v.status === 'approved' || !v.status;
       const matchesMode = (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
       
+      // Relaxed Visibility for Stores
       const vTown = (v.town || '').toLowerCase().trim();
-      const vZoneId = v.zoneId || null;
 
-      if (targetCityNormalized) {
+      if (targetCityNormalized && vTown) {
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
       }
-      
-      // Only filter by Zone if both have strict IDs set
-      if (activeZoneId && vZoneId && vZoneId !== activeZoneId) return false;
       
       return isApproved && matchesMode;
     }).sort((a, b) => {

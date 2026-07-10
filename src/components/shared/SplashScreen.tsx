@@ -10,7 +10,7 @@ interface SplashScreenProps {
 
 /**
  * @fileOverview ULTRA-TURBO SplashScreen.
- * Reduced timers to 400ms for instant app feel.
+ * Reduced timers to 100ms for instant app feel.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -24,15 +24,15 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // Snappy feel - only 100ms min
+    // Snappy feel - almost instant
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 100);
+    }, 50);
 
-    // Turbo Fail-safe: 400ms max
+    // Turbo Fail-safe: 200ms max for instant UX
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
-    }, 400); 
+    }, 200); 
     
     const handleLoad = () => setIsActuallyVisible(false);
     window.addEventListener('load', handleLoad);
@@ -55,7 +55,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 200); 
+      }, 100); 
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';
