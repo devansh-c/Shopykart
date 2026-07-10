@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,7 +14,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-RESILIENT hook to fetch collections.
- * Optimized for INSTANT updates and silent error handling for quota limits.
+ * Optimized for INSTANT updates and reliable loading states.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -38,17 +39,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           id: doc.id,
         }));
         
-        setData(items);
-        
-        const isFromCache = snapshot.metadata.fromCache;
-        if (!isFromCache || items.length > 0) {
-           setLoading(false);
-        }
-        
+        setData(items as T[]);
+        // Always set loading to false on the first snapshot to prevent skeleton hangs
+        setLoading(false);
         setError(null);
       },
       async (err: FirestoreError) => {
-        // Suppress expected transient and quota errors to prevent UI blocking
+        // Suppress expected transient and quota errors
         const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal', 'permission-denied'];
         
         if (err.code === 'permission-denied') {
@@ -58,17 +55,10 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
             operation: 'list',
           });
           errorEmitter.emit('permission-error', permissionError);
-          setLoading(false);
-          return;
+        } else if (!silentCodes.includes(err.code)) {
+          setError(err);
         }
         
-        if (silentCodes.includes(err.code)) {
-          console.debug(`Firestore Collection Notice: [${err.code}]`);
-          setLoading(false);
-          return;
-        }
-
-        setError(err);
         setLoading(false);
       }
     );

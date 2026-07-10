@@ -30,13 +30,12 @@ export function initializeFirebase() {
       authInstance = getAuth(appInstance);
       setPersistence(authInstance, browserLocalPersistence).catch(() => {});
 
-      // Use initializeFirestore with Long Polling to fix "Could not reach backend" error
-      // in constrained network/proxy environments.
+      // Use standard initialization but ensure long polling for proxy compatibility
       firestoreInstance = initializeFirestore(appInstance, {
         experimentalForceLongPolling: true,
       });
 
-      console.log("ShopyKart Engine: Connection Secured ✅");
+      console.log("ShopyKart Engine: Rapid Connection Secured ✅");
     } catch (error) {
       console.error("Firebase init failed:", error);
       if (appInstance) {
