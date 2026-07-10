@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -74,11 +75,15 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         </div>
       </div>
 
-      {/* Footer Signature */}
+      {/* Footer Signature - Updated to White, Non-Italic with Shine */}
       <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
-         <p className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em] italic">
-            Handicrafted by Devansh
-         </p>
+         <div className="relative overflow-hidden px-4">
+            <p className="text-[9px] font-black text-white uppercase tracking-[0.4em] relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+               Handicrafted by Devansh
+            </p>
+            {/* Shine Sweep Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shine pointer-events-none" />
+         </div>
       </div>
     </div>
   );
