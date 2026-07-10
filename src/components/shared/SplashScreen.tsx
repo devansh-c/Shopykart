@@ -9,8 +9,8 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Optimized SplashScreen with ULTRA-TURBO fail-safe dismissal.
- * Ensures it disappears within 0.8s regardless of app-ready state to prevent preview hang.
+ * @fileOverview ULTRA-TURBO SplashScreen.
+ * Reduced timers to 400ms for instant app feel.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [isTimerDone, setIsTimerDone] = useState(false);
@@ -24,18 +24,16 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   useEffect(() => {
     setMounted(true);
     
-    // 1. MINIMUM VISIBILITY TIMER (Snappy feel)
+    // Snappy feel - only 100ms min
     const minTimer = setTimeout(() => {
       setIsTimerDone(true);
-    }, 150);
+    }, 100);
 
-    // 2. ABSOLUTE MAXIMUM TIMEOUT (Turbo Fail-safe)
-    // Forced removal at 0.8s to ensure zero blockage for preview tools.
+    // Turbo Fail-safe: 400ms max
     const maxTimer = setTimeout(() => {
       setIsActuallyVisible(false);
-    }, 800); 
+    }, 400); 
     
-    // 3. EVENT-BASED DISMISSAL
     const handleLoad = () => setIsActuallyVisible(false);
     window.addEventListener('load', handleLoad);
 
@@ -57,7 +55,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       document.body.style.overflow = '';
       const removeTimer = setTimeout(() => {
         setShouldRender(false);
-      }, 300); 
+      }, 200); 
       return () => clearTimeout(removeTimer);
     } else {
       document.body.style.overflow = 'hidden';
@@ -81,14 +79,14 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-300 ease-in-out h-screen w-screen",
+        "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-opacity duration-200 ease-in-out h-screen w-screen",
         isActuallyVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
       <div 
         onClick={handleTap}
         className={cn(
-          "relative flex flex-col items-center transition-all duration-500 transform",
+          "relative flex flex-col items-center transition-all duration-300 transform",
           isActuallyVisible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         )}
       >
@@ -104,7 +102,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
       </div>
       
       <div className={cn(
-        "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-500 delay-200",
+        "absolute bottom-12 flex flex-col items-center gap-2 transition-all duration-300 delay-100",
         isActuallyVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">

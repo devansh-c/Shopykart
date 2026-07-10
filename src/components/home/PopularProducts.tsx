@@ -122,7 +122,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
             </div>
           )}
         </div>
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1 z-20">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
           {quantity === 0 ? (
             <ProductQuickView product={product} globalOffer={globalOffer} vendorScheduleOpen={isScheduleOpen}>
               <button disabled={isOffline} className={cn("w-full h-8 bg-white shadow-md font-black text-[9px] uppercase rounded-xl transition-all active:scale-95", isOffline ? "text-gray-300 border-2 border-gray-100" : "text-primary border-2 border-primary")}>
@@ -219,18 +219,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const productMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
       if (productMode !== activeMode.toLowerCase()) return false;
 
-      // Inclusive Location Filtering
+      // Inclusive Location Filtering: Show all unless city strictly mismatch
       const productTown = (product.town || vendor?.town || 'Local').toLowerCase().trim();
       const productZoneId = product.zoneId || vendor?.zoneId || null;
 
-      if (activeZoneId || targetCityNormalized) {
-        // Only block if there's a definite city mismatch (Ranipur vs Mauranipur)
+      if (targetCityNormalized) {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
-        
-        // If product is linked to a specific zone, it must match or be a global product
-        if (activeZoneId && productZoneId && productZoneId !== activeZoneId) return false;
       }
+      
+      // Only filter by Zone if product strictly belongs to one and user also has a zone set
+      if (activeZoneId && productZoneId && productZoneId !== activeZoneId) return false;
 
       const matchesSearch = !searchLower || product.name?.toLowerCase().includes(searchLower) || product.category?.toLowerCase().includes(searchLower);
       const matchesCategory = categoryLower === 'all' || product.category?.toLowerCase().trim() === categoryLower;

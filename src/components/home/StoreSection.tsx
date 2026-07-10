@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { isStoreScheduleOpen } from "./PopularProducts"
 
+/**
+ * @fileOverview StoreSection with optimized visibility.
+ */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
@@ -57,14 +60,13 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       const vTown = (v.town || '').toLowerCase().trim();
       const vZoneId = v.zoneId || null;
 
-      if (activeZoneId || targetCityNormalized) {
-        // Block cross-city only
+      if (targetCityNormalized) {
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
-        
-        // Zone matching: inclusive of global stores
-        if (activeZoneId && vZoneId && vZoneId !== activeZoneId) return false;
       }
+      
+      // Only filter by Zone if both have strict IDs set
+      if (activeZoneId && vZoneId && vZoneId !== activeZoneId) return false;
       
       return isApproved && matchesMode;
     }).sort((a, b) => {
