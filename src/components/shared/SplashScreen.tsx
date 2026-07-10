@@ -9,8 +9,8 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview FIXED Splash Screen.
- * Set to exactly 2 seconds as requested. Initial black flash removed via Layout.
+ * @fileOverview Standardized Splash Screen with Devansh Signature.
+ * Duration: Exactly 2 seconds.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [shouldRender, setShouldRender] = useState(true);
@@ -20,7 +20,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // 1. Force the splash screen to stay for exactly 2 seconds
+    // Force the splash screen to stay for exactly 2 seconds
     const splashTimer = setTimeout(() => {
       setIsVisible(false);
       // Wait for fade animation to complete before removing from DOM
@@ -60,7 +60,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform"
       >
-        <div className="px-12 py-8 border border-[#C5A021]/30 rounded-[3rem] bg-black/40 backdrop-blur-xl shadow-[0_0_80px_rgba(197,160,33,0.15)] flex flex-col items-center animate-in zoom-in duration-700">
+        <div className="px-12 py-10 border border-[#C5A021]/30 rounded-[3rem] bg-black/40 backdrop-blur-xl shadow-[0_0_80px_rgba(197,160,33,0.15)] flex flex-col items-center animate-in zoom-in duration-700">
           <h1 className="flex items-center text-5xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
@@ -72,15 +72,22 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         </div>
       </div>
       
-      <div className="absolute bottom-16 flex flex-col items-center gap-3">
-        <div className="flex items-center gap-2">
-           <div className="h-1 w-1 bg-primary rounded-full animate-ping" />
-           <p className="text-[9px] font-black uppercase tracking-[0.5em] text-white/20">
-             INITIALIZING HUB
-           </p>
+      <div className="absolute bottom-16 flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-2">
+           <div className="flex items-center gap-2">
+              <div className="h-1 w-1 bg-primary rounded-full animate-ping" />
+              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-white/20">
+                INITIALIZING HUB
+              </p>
+           </div>
+           <div className="w-32 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
+             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
+           </div>
         </div>
-        <div className="w-32 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
+
+        <div className="flex flex-col items-center gap-1 opacity-40">
+           <p className="text-[7px] font-black text-gray-500 uppercase tracking-[0.3em]">Handicrafted by</p>
+           <p className="text-[10px] font-black italic text-white tracking-widest uppercase">DEVANSH</p>
         </div>
       </div>
     </div>
