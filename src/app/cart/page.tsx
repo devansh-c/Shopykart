@@ -351,12 +351,7 @@ export default function CartPage() {
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isPlacing || blockedVendorNames.length > 0) return;
     
-    const error = validateOrderReady();
-    if (error) {
-      setValidationError(error);
-      return;
-    }
-    
+    // Always allow sliding to check validation at the end
     setValidationError(null);
     isDraggingRef.current = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -395,6 +390,15 @@ export default function CartPage() {
     const threshold = maxPath * 0.85;
 
     if (currentXRef.current >= threshold) {
+      // Validate BEFORE actually proceeding
+      const error = validateOrderReady();
+      if (error) {
+        setValidationError(error);
+        toast({ variant: "destructive", title: "Information Missing", description: error });
+        resetSlider();
+        return;
+      }
+
       currentXRef.current = maxPath;
       updateVisuals(maxPath, false);
       
@@ -781,7 +785,7 @@ export default function CartPage() {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <div className="flex items-center gap-2">
                     <span className="text-sm font-black uppercase italic tracking-tighter text-emerald-900/40">
-                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (validationError ? validationError.toUpperCase() : 'SLIDE TO PLACE ORDER')}
+                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (validationError ? 'PLEASE CHECK ABOVE' : 'SLIDE TO PLACE ORDER')}
                     </span>
                     {!isPlacing && <ArrowRight className="h-4 w-4 text-emerald-600/40 animate-bounce-x" />}
                  </div>
@@ -876,3 +880,4 @@ export default function CartPage() {
     </div>
   );
 }
+
