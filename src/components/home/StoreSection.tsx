@@ -88,23 +88,23 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       <div className="py-6 px-6 space-y-6 animate-in fade-in duration-300">
         <div className="flex items-center justify-between">
            <div className="space-y-2">
-             <Skeleton className="h-6 w-32 rounded-lg bg-muted/40" />
-             <Skeleton className="h-2 w-20 rounded-full bg-muted/20" />
+             <Skeleton className="h-6 w-32 rounded-lg bg-zinc-200" />
+             <Skeleton className="h-2 w-20 rounded-full bg-zinc-100" />
            </div>
-           <Skeleton className="h-4 w-16 rounded-full bg-muted/30" />
+           <Skeleton className="h-4 w-16 rounded-full bg-zinc-200" />
         </div>
         <div className="flex overflow-x-auto space-x-5 no-scrollbar">
            {[1, 2].map(i => (
-             <div key={i} className="min-w-[280px] bg-white rounded-3xl overflow-hidden border border-border/50 p-0 shadow-sm">
-               <Skeleton className="h-36 w-full bg-muted/30" />
+             <div key={i} className="min-w-[280px] bg-white rounded-3xl overflow-hidden border border-zinc-100 p-0 shadow-sm">
+               <Skeleton className="h-36 w-full bg-zinc-200" />
                <div className="p-4 space-y-3">
                  <div className="flex justify-between items-center">
-                    <Skeleton className="h-5 w-32 rounded-lg bg-muted/40" />
-                    <Skeleton className="h-5 w-10 rounded-lg bg-muted/20" />
+                    <Skeleton className="h-5 w-32 rounded-lg bg-zinc-200" />
+                    <Skeleton className="h-5 w-10 rounded-lg bg-zinc-100" />
                  </div>
                  <div className="flex gap-2">
-                    <Skeleton className="h-3 w-16 rounded-full bg-muted/10" />
-                    <Skeleton className="h-3 w-16 rounded-full bg-muted/10" />
+                    <Skeleton className="h-3 w-16 rounded-full bg-zinc-100" />
+                    <Skeleton className="h-3 w-16 rounded-full bg-zinc-100" />
                  </div>
                </div>
              </div>

@@ -81,7 +81,11 @@ export function TopTenProducts() {
     return (
       <div className="py-6 px-4 flex space-x-4 overflow-x-auto no-scrollbar">
          {[1, 2, 3].map(i => (
-           <div key={i} className="min-w-[160px] aspect-[2/3] bg-gray-100 rounded-[2.5rem] animate-pulse" />
+           <div key={i} className="min-w-[160px] aspect-[2/3] bg-zinc-100 rounded-[2.5rem] p-4 flex flex-col justify-between shadow-sm">
+             <Skeleton className="h-6 w-full bg-zinc-200" />
+             <Skeleton className="flex-1 w-full my-4 rounded-2xl bg-zinc-200" />
+             <Skeleton className="h-10 w-full bg-zinc-300" />
+           </div>
          ))}
       </div>
     );
