@@ -37,7 +37,7 @@ export const isStoreScheduleOpen = (store: any, currentMinutesOverride?: number 
   if (store.isOnline === false) return false;
   if (!store.openingTime || !store.closingTime) return true;
 
-  // Hydration Safety: If we don't have a synced time yet, assume open to match server render
+  // Hydration Safety
   if (currentMinutesOverride === null || currentMinutesOverride === undefined) return true;
 
   const currentTime = currentMinutesOverride;
@@ -143,19 +143,6 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onToggle
 });
 ProductItem.displayName = "ProductItem";
 
-function ProductSkeleton() {
-  return (
-    <div className="relative bg-white rounded-[2rem] border border-gray-100 p-5 flex justify-between items-start shadow-sm animate-pulse h-[140px]">
-      <div className="flex-1 pr-4">
-        <div className="h-3 w-3 bg-gray-200 rounded-sm mb-3" />
-        <div className="h-5 w-3/4 bg-gray-100 rounded-md mb-2" />
-        <div className="h-4 w-1/4 bg-gray-100 rounded-md mb-4" />
-      </div>
-      <div className="w-24 h-24 bg-gray-100 rounded-2xl" />
-    </div>
-  );
-}
-
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart, toggleWishlist, isInWishlist } = useCart();
   const [isPending, startTransition] = useTransition();
@@ -163,7 +150,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number>(720); // Default to noon to avoid hydration mismatch
+  const [currentMinutes, setCurrentMinutes] = useState<number>(720); 
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -189,16 +176,15 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'));
+    return collection(firestore, 'products');
   }, [firestore]);
-
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery);
+  const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const offerRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -229,13 +215,21 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
       
-      const productMode = product.serviceMode || vendor?.category || 'Food';
-      if (productMode !== activeMode) return false;
+      // Strict Service Mode Check
+      const productMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
+      if (productMode !== activeMode.toLowerCase()) return false;
 
+      // Inclusive Location Filtering
       const productTown = (product.town || vendor?.town || 'Local').toLowerCase().trim();
+      const productZoneId = product.zoneId || vendor?.zoneId || null;
+
       if (activeZoneId || targetCityNormalized) {
+        // Only block if there's a definite city mismatch (Ranipur vs Mauranipur)
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
+        
+        // If product is linked to a specific zone, it must match or be a global product
+        if (activeZoneId && productZoneId && productZoneId !== activeZoneId) return false;
       }
 
       const matchesSearch = !searchLower || product.name?.toLowerCase().includes(searchLower) || product.category?.toLowerCase().includes(searchLower);
@@ -263,13 +257,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  // Only show skeletons if we have absolutely no data yet and are still in a loading state
   if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
     return (
       <div className="px-4 py-8 space-y-6">
-        <ProductSkeleton />
-        <ProductSkeleton />
-        <ProductSkeleton />
+        <div className="h-32 w-full bg-gray-100 rounded-3xl animate-pulse" />
+        <div className="h-32 w-full bg-gray-100 rounded-3xl animate-pulse" />
       </div>
     );
   }

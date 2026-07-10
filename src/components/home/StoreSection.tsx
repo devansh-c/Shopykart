@@ -52,22 +52,18 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
-      const matchesMode = (v.category || 'Food') === activeMode;
+      const matchesMode = (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
       
-      if (activeZoneId || targetCityNormalized) {
-        const matchesId = activeZoneId && v.zoneId === activeZoneId;
-        const vTown = (v.town || '').toLowerCase().trim();
-        
-        const matchesTown = targetCityNormalized && (
-          vTown === targetCityNormalized || 
-          vTown.startsWith(targetCityNormalized) ||
-          targetCityNormalized.startsWith(vTown)
-        );
+      const vTown = (v.town || '').toLowerCase().trim();
+      const vZoneId = v.zoneId || null;
 
+      if (activeZoneId || targetCityNormalized) {
+        // Block cross-city only
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
-
-        if (!matchesId && !matchesTown) return false;
+        
+        // Zone matching: inclusive of global stores
+        if (activeZoneId && vZoneId && vZoneId !== activeZoneId) return false;
       }
       
       return isApproved && matchesMode;
@@ -87,21 +83,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
   if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
-  if (loading && !dbVendors) {
-    return (
-      <div className="py-6 px-6 flex space-x-4 overflow-x-auto no-scrollbar">
-        {[1, 2].map((i) => (
-          <div key={i} className="min-w-[280px] h-[240px] bg-white rounded-3xl border border-gray-100 shadow-sm p-4 animate-pulse">
-            <div className="h-32 bg-gray-50 rounded-2xl mb-4" />
-            <div className="h-5 bg-gray-100 rounded-md w-3/4 mb-2" />
-            <div className="h-3 bg-gray-50 rounded-md w-1/2" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (filteredVendors.length === 0 && !loading) return null;
+  if (loading && !dbVendors) return null;
 
   return (
     <div className="py-6 content-visibility-auto transform-gpu">
@@ -150,7 +132,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
                 {isOffline && (
                   <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[1px]">
                     <span className="text-white font-black text-lg uppercase italic tracking-tighter border-2 border-white/30 px-4 py-1.5 rounded-xl backdrop-blur-md">
-                      {store.isOnline === false ? 'CLOSED' : !scheduleOpen ? `OPENS AT ${store.openingTime || '09:00 AM'}` : 'CLOSED'}
+                      CLOSED
                     </span>
                   </div>
                 )}
