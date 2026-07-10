@@ -9,7 +9,7 @@ interface SplashScreenProps {
 }
 
 /**
- * @fileOverview Standardized Splash Screen with Devansh Signature.
+ * @fileOverview Refined Splash Screen with smaller logo and no zoom.
  * Duration: Exactly 2 seconds.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
@@ -48,7 +48,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
     <div 
       className={cn(
         "fixed inset-0 z-[50000] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-500 ease-in-out h-screen w-screen",
-        isVisible ? "opacity-100 scale-100" : "opacity-0 scale-110 pointer-events-none"
+        isVisible ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
       )}
     >
       {/* Background Decor */}
@@ -60,13 +60,13 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform"
       >
-        <div className="px-12 py-10 border border-[#C5A021]/30 rounded-[3rem] bg-black/40 backdrop-blur-xl shadow-[0_0_80px_rgba(197,160,33,0.15)] flex flex-col items-center animate-in zoom-in duration-700">
-          <h1 className="flex items-center text-5xl font-black italic tracking-tighter leading-none">
+        <div className="px-10 py-8 border border-[#C5A021]/30 rounded-[2.5rem] bg-black/40 backdrop-blur-xl shadow-[0_0_60px_rgba(197,160,33,0.1)] flex flex-col items-center animate-in fade-in duration-1000">
+          <h1 className="flex items-center text-3xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
-          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-4" />
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mt-4">
+          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-3" />
+          <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 mt-3">
             QUALITY FIRST
           </span>
         </div>
@@ -80,7 +80,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
                 INITIALIZING HUB
               </p>
            </div>
-           <div className="w-32 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
+           <div className="w-24 h-0.5 bg-white/5 rounded-full overflow-hidden relative">
              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A021] to-transparent animate-running-line" />
            </div>
         </div>
