@@ -1,12 +1,10 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { firebaseConfig } from './config';
 import { 
   initializeFirestore, 
-  persistentLocalCache, 
-  CACHE_SIZE_UNLIMITED,
-  persistentMultipleTabManager,
   Firestore,
   getFirestore
 } from 'firebase/firestore';
@@ -32,18 +30,15 @@ export function initializeFirebase() {
       authInstance = getAuth(appInstance);
       setPersistence(authInstance, browserLocalPersistence).catch(() => {});
 
-      // Use initializeFirestore to enable persistence
+      // Use initializeFirestore with Long Polling to fix "Could not reach backend" error
+      // in constrained network/proxy environments.
       firestoreInstance = initializeFirestore(appInstance, {
-        localCache: persistentLocalCache({
-          cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-          tabManager: persistentMultipleTabManager()
-        }),
+        experimentalForceLongPolling: true,
       });
 
-      console.log("ShopyKart Engine: Client Ready ✅");
+      console.log("ShopyKart Engine: Connection Secured ✅");
     } catch (error) {
       console.error("Firebase init failed:", error);
-      // Fallback to standard firestore if initialization failed (e.g. already initialized elsewhere)
       if (appInstance) {
         firestoreInstance = getFirestore(appInstance);
         authInstance = getAuth(appInstance);
