@@ -13,7 +13,7 @@ interface SplashScreenProps {
  * @fileOverview Minimalist Splash Screen.
  * Shows only the Shopykart logo for exactly 2 seconds.
  * Style updated: Matches user image exactly with compact pill design.
- * Length (width) slightly increased for better aesthetics.
+ * Length (width) increased and height (width/thickness) decreased for a sleeker look.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [shouldRender, setShouldRender] = useState(true);
@@ -63,8 +63,8 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform px-6"
       >
-        {/* EXACT IMAGE MATCH LOGO: ULTRA-COMPACT PILL (Width slightly increased) */}
-        <div className="px-16 py-3 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[300px] h-16 justify-center">
+        {/* EXACT IMAGE MATCH LOGO: ULTRA-COMPACT PILL (Stretched & Thinner) */}
+        <div className="px-24 py-2 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[400px] h-14 justify-center">
           <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
