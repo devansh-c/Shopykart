@@ -163,7 +163,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
+  const [currentMinutes, setCurrentMinutes] = useState<number>(720); // Default to noon to avoid hydration mismatch
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -219,7 +219,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [cart]);
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts || (vendorsLoading && !vendors)) return [];
+    if (!dbProducts) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
     const categoryLower = category.toLowerCase().trim();
@@ -245,7 +245,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
       
-      const mins = currentMinutes ?? 720;
+      const mins = currentMinutes;
       const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, mins) ? 1 : 0) : 1;
       const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, mins) ? 1 : 0) : 1;
       
@@ -255,7 +255,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const ratingB = vB?.rating || 0;
       return ratingB - ratingA;
     });
-  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, vendors, vendorsLoading, currentMinutes]);
+  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, currentMinutes]);
 
   const navigateToProduct = (id: string) => {
     startTransition(() => {
@@ -263,7 +263,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if ((productsLoading || vendorsLoading) && (!dbProducts || dbProducts.length === 0)) {
+  // Only show skeletons if we have absolutely no data yet and are still in a loading state
+  if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
     return (
       <div className="px-4 py-8 space-y-6">
         <ProductSkeleton />
@@ -295,7 +296,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             currentMinutes={currentMinutes}
           />
         ))}
-        {productsToDisplay.length === 0 && !productsLoading && !vendorsLoading && (
+        {productsToDisplay.length === 0 && !productsLoading && (
           <div className="text-center py-20 opacity-30">
             <ShoppingBag className="h-16 w-16 mx-auto mb-4" />
             <p className="font-black italic uppercase tracking-widest text-sm">No Items Found</p>

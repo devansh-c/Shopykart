@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -30,22 +29,27 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
 
     setLoading(true);
     
+    // Fail-safe: Force loading to false if no response in 2.5 seconds
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+    
     const unsubscribe = onSnapshot(
       query,
       { includeMetadataChanges: true }, 
       (snapshot: QuerySnapshot<T>) => {
+        clearTimeout(timeout);
         const items = snapshot.docs.map(doc => ({
           ...doc.data(),
           id: doc.id,
         }));
         
         setData(items as T[]);
-        // Always set loading to false on the first snapshot to prevent skeleton hangs
         setLoading(false);
         setError(null);
       },
       async (err: FirestoreError) => {
-        // Suppress expected transient and quota errors
+        clearTimeout(timeout);
         const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal', 'permission-denied'];
         
         if (err.code === 'permission-denied') {
@@ -63,7 +67,10 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [query]);
 
   return { data, loading, error };
