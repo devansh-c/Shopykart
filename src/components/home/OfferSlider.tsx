@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/carousel"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function OfferSlider() {
   const firestore = useFirestore();
@@ -39,7 +40,15 @@ export function OfferSlider() {
     return dbBanners;
   }, [dbBanners, activeZoneId]);
 
-  if (loading || !filteredBanners || filteredBanners.length === 0) return null;
+  if (loading && (!dbBanners || dbBanners.length === 0)) {
+    return (
+      <div className="w-full px-4 py-2">
+        <Skeleton className="h-[160px] w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!filteredBanners || filteredBanners.length === 0) return null;
 
   return (
     <div className="w-full px-4">

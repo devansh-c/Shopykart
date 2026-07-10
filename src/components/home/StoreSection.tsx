@@ -8,9 +8,10 @@ import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { isStoreScheduleOpen } from "./PopularProducts"
+import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview StoreSection with optimized visibility.
+ * @fileOverview StoreSection with optimized visibility and fast shimmer.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -82,7 +83,36 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
   if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
-  if (loading && !dbVendors) return null;
+  if (loading && (!dbVendors || dbVendors.length === 0)) {
+    return (
+      <div className="py-6 px-6 space-y-6">
+        <div className="flex items-center justify-between">
+           <div className="space-y-2">
+             <Skeleton className="h-6 w-32 rounded-lg" />
+             <Skeleton className="h-2 w-20 rounded-full" />
+           </div>
+           <Skeleton className="h-4 w-16 rounded-full" />
+        </div>
+        <div className="flex overflow-x-auto space-x-5 no-scrollbar">
+           {[1, 2].map(i => (
+             <div key={i} className="min-w-[280px] bg-white rounded-3xl overflow-hidden border border-border p-0">
+               <Skeleton className="h-36 w-full" />
+               <div className="p-4 space-y-3">
+                 <div className="flex justify-between items-center">
+                    <Skeleton className="h-5 w-32 rounded-lg" />
+                    <Skeleton className="h-5 w-10 rounded-lg" />
+                 </div>
+                 <div className="flex gap-2">
+                    <Skeleton className="h-3 w-16 rounded-full" />
+                    <Skeleton className="h-3 w-16 rounded-full" />
+                 </div>
+               </div>
+             </div>
+           ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6 content-visibility-auto transform-gpu">

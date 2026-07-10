@@ -10,6 +10,7 @@ import { collection, query, limit, doc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 
 /**
  * Standardized Time Parser v4 - Hydration Safe.
@@ -255,8 +256,24 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   if (productsLoading && (!dbProducts || dbProducts.length === 0)) {
     return (
       <div className="px-4 py-8 space-y-6">
-        <div className="h-32 w-full bg-gray-100 rounded-3xl animate-pulse" />
-        <div className="h-32 w-full bg-gray-100 rounded-3xl animate-pulse" />
+        <div className="flex items-center justify-between mb-4 px-2">
+          <Skeleton className="h-4 w-24 rounded-full" />
+          <Skeleton className="h-3 w-16 rounded-full" />
+        </div>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-border/50">
+            <div className="flex-1 space-y-3 pr-4">
+              <div className="flex gap-2"><Skeleton className="h-3 w-3 rounded-sm" /><Skeleton className="h-3 w-12 rounded-full" /></div>
+              <Skeleton className="h-5 w-full rounded-lg" />
+              <Skeleton className="h-4 w-3/4 rounded-lg" />
+              <div className="flex gap-2"><Skeleton className="h-3 w-10 rounded-full" /><Skeleton className="h-3 w-10 rounded-full" /></div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Skeleton className="h-24 w-24 rounded-2xl" />
+              <Skeleton className="h-8 w-20 rounded-xl" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
