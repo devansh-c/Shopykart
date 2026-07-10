@@ -64,13 +64,14 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         className="relative flex flex-col items-center transition-all duration-700 transform px-6"
       >
         {/* EXACT IMAGE MATCH LOGO: ULTRA-COMPACT STRETCHED PILL */}
-        <div className="px-32 py-1.5 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[550px] h-12 justify-center">
+        {/* Adjusted: Length increased (px-48, min-w-650) and Width/Height decreased (h-10) */}
+        <div className="px-48 py-0.5 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_80px_rgba(197,160,33,0.2)] flex flex-col items-center min-w-[650px] h-10 justify-center">
           <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
-          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-1.5 opacity-50" />
-          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-1">
+          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-1 opacity-50" />
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-0.5">
             QUALITY FIRST
           </span>
         </div>
