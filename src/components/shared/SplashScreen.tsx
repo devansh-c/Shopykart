@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useRef } from 'react';
@@ -11,6 +12,7 @@ interface SplashScreenProps {
 /**
  * @fileOverview Minimalist Splash Screen.
  * Shows only the Shopykart logo for exactly 2 seconds.
+ * Style updated to match user provided image.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [shouldRender, setShouldRender] = useState(true);
@@ -58,15 +60,16 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
 
       <div 
         onClick={handleTap}
-        className="relative flex flex-col items-center transition-all duration-700 transform"
+        className="relative flex flex-col items-center transition-all duration-700 transform px-6"
       >
-        <div className="px-8 py-6 border border-[#C5A021]/30 rounded-[2rem] bg-black/40 backdrop-blur-xl shadow-[0_0_60px_rgba(197,160,33,0.1)] flex flex-col items-center animate-in fade-in duration-1000">
-          <h1 className="flex items-center text-2xl font-black italic tracking-tighter leading-none">
+        {/* Pill Shaped Logo Container matching user image */}
+        <div className="px-12 py-8 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center animate-in fade-in duration-1000 min-w-[280px]">
+          <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
-          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-3" />
-          <span className="text-[6px] font-black uppercase tracking-[0.4em] text-white/40 mt-3">
+          <div className="w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-4 opacity-50" />
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-4">
             QUALITY FIRST
           </span>
         </div>
