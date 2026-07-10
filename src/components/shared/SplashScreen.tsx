@@ -12,7 +12,7 @@ interface SplashScreenProps {
 /**
  * @fileOverview Minimalist Splash Screen.
  * Shows only the Shopykart logo for exactly 2 seconds.
- * Style updated to match user provided image with reduced vertical height.
+ * Style updated: Extra compact logo height and instant rendering.
  */
 export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
   const [shouldRender, setShouldRender] = useState(true);
@@ -62,21 +62,21 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform px-6"
       >
-        {/* Pill Shaped Logo Container matching user image with reduced vertical padding */}
-        <div className="px-12 py-5 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center animate-in fade-in duration-1000 min-w-[280px]">
+        {/* ULTRA-COMPACT PILL LOGO - Matching Image exactly with py-3 */}
+        <div className="px-12 py-3 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[280px]">
           <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
-          <div className="w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-3 opacity-50" />
-          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-3">
+          <div className="w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/60 to-transparent mt-2 opacity-50" />
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 mt-2">
             QUALITY FIRST
           </span>
         </div>
       </div>
 
-      {/* Footer Signature - Updated to White, Non-Italic with Shine */}
-      <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+      {/* Footer Signature - White, Non-Italic with Shine */}
+      <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-in fade-in duration-1000 delay-300">
          <div className="relative overflow-hidden px-4">
             <p className="text-[9px] font-black text-white uppercase tracking-[0.4em] relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
                Handicrafted by Devansh
