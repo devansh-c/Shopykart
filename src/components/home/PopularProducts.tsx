@@ -148,11 +148,11 @@ ProductItem.displayName = "ProductItem";
 const SkeletonLoader = () => (
   <div className="px-4 py-8 space-y-6">
     <div className="flex items-center justify-between mb-4 px-2">
-      <Skeleton className="h-4 w-32 rounded-full bg-zinc-200" />
-      <Skeleton className="h-3 w-16 rounded-full bg-zinc-100" />
+      <Skeleton className="h-4 w-32 rounded-full bg-zinc-900/50" />
+      <Skeleton className="h-3 w-16 rounded-full bg-zinc-800/50" />
     </div>
     {[1, 2, 3, 4].map(i => (
-      <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-zinc-100 shadow-sm">
+      <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-zinc-100 shadow-sm overflow-hidden">
         <div className="flex-1 space-y-3 pr-4">
           <div className="flex gap-2"><Skeleton className="h-3 w-3 rounded-sm bg-zinc-200" /><Skeleton className="h-3 w-20 rounded-full bg-zinc-100" /></div>
           <Skeleton className="h-6 w-full rounded-lg bg-zinc-200" />
@@ -245,6 +245,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
       
+      // RELAXED FILTERING: Only hide if there's a definite conflict
       if (targetCityNormalized && productTown) {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
@@ -277,8 +278,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  // Show Skeleton as long as data is null or loading is explicitly true and data hasn't arrived
-  if ((productsLoading && !dbProducts) || productsToDisplay === null) {
+  if (productsToDisplay === null || (productsLoading && (!dbProducts || dbProducts.length === 0))) {
     return <SkeletonLoader />;
   }
 

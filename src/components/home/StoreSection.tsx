@@ -12,7 +12,7 @@ import { isStoreScheduleOpen } from "./PopularProducts"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview StoreSection with robust shimmer and isolation.
+ * @fileOverview StoreSection with ultra-fast dark shimmer.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -61,6 +61,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       
       const vTown = (v.town || '').toLowerCase().trim();
 
+      // RELAXED FILTERING: Open Hub
       if (targetCityNormalized && vTown) {
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
@@ -83,15 +84,15 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
   if (activeMode === 'Medical' || activeMode === 'Beauty') return null;
 
-  if ((loading && !dbVendors) || filteredVendors === null) {
+  if (filteredVendors === null || (loading && (!dbVendors || dbVendors.length === 0))) {
     return (
       <div className="py-6 px-6 space-y-6 animate-in fade-in duration-300">
         <div className="flex items-center justify-between">
            <div className="space-y-2">
-             <Skeleton className="h-6 w-32 rounded-lg bg-zinc-200" />
-             <Skeleton className="h-2 w-20 rounded-full bg-zinc-100" />
+             <Skeleton className="h-6 w-32 rounded-lg bg-zinc-900/50" />
+             <Skeleton className="h-2 w-20 rounded-full bg-zinc-800/50" />
            </div>
-           <Skeleton className="h-4 w-16 rounded-full bg-zinc-200" />
+           <Skeleton className="h-4 w-16 rounded-full bg-zinc-900/50" />
         </div>
         <div className="flex overflow-x-auto space-x-5 no-scrollbar">
            {[1, 2].map(i => (

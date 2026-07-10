@@ -62,8 +62,8 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         onClick={handleTap}
         className="relative flex flex-col items-center transition-all duration-700 transform px-6"
       >
-        {/* ULTRA-COMPACT PILL LOGO - Matching Image exactly with py-3 */}
-        <div className="px-12 py-3 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[280px]">
+        {/* ULTRA-COMPACT PILL LOGO - Height reduced as requested */}
+        <div className="px-12 py-2 border-2 border-[#C5A021]/40 rounded-full bg-black shadow-[0_0_60px_rgba(197,160,33,0.15)] flex flex-col items-center min-w-[280px]">
           <h1 className="flex items-center text-4xl font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
@@ -75,7 +75,7 @@ export function SplashScreen({ isAppReady = false }: SplashScreenProps) {
         </div>
       </div>
 
-      {/* Footer Signature - White, Non-Italic with Shine */}
+      {/* Footer Signature - White, Straight with Shine */}
       <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-in fade-in duration-1000 delay-300">
          <div className="relative overflow-hidden px-4">
             <p className="text-[9px] font-black text-white uppercase tracking-[0.4em] relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
