@@ -8,7 +8,7 @@ import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 /**
- * @fileOverview Logo component adjusted: Narrower width and increased height as requested.
+ * @fileOverview Logo component adjusted: Reduced horizontal length for a more compact appearance.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -43,7 +43,7 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-4 py-1.5 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[110px] justify-center h-16", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-2 py-1.5 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[90px] justify-center h-16", 
         className
       )}
     >
@@ -51,12 +51,12 @@ export function Logo({ className }: { className?: string }) {
         <img src={branding.logoUrl} alt={branding.siteTitle || 'Logo'} className="h-12 w-auto object-contain" />
       ) : (
         <>
-          <h1 className="flex items-center text-xl font-black italic tracking-tighter leading-none">
+          <h1 className="flex items-center text-lg font-black italic tracking-tighter leading-none">
             <span className="text-white">SHOPY</span>
             <span className="text-[#C5A021]">KART</span>
           </h1>
           <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-1 opacity-50" />
-          <span className="text-[6px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">
+          <span className="text-[5px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">
             QUALITY FIRST
           </span>
         </>
