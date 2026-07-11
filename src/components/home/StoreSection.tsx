@@ -53,11 +53,17 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return null;
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const currentModeLower = activeMode.toLowerCase();
     const mins = currentMinutes ?? 720;
 
     return dbVendors.filter(v => {
       const isApproved = v.status === 'approved' || !v.status;
-      const matchesMode = (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
+      
+      // RELAXED MODE MATCHING: Map "Restaurant" to "Food"
+      const rawVMode = (v.category || 'Food').toLowerCase();
+      const vMode = (rawVMode === 'restaurant' || rawVMode === 'food') ? 'food' : rawVMode;
+      
+      if (vMode !== currentModeLower) return false;
       
       const vTown = (v.town || '').toLowerCase().trim();
 
@@ -67,7 +73,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
       }
       
-      return isApproved && matchesMode;
+      return isApproved;
     }).sort((a, b) => {
       const onlineA = a.isOnline !== false && isStoreScheduleOpen(a, mins) ? 1 : 0;
       const onlineB = b.isOnline !== false && isStoreScheduleOpen(b, mins) ? 1 : 0;

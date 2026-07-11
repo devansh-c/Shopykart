@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -168,7 +169,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number>(new Date().getHours() * 60 + new Date().getMinutes()); 
+  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null); 
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -183,6 +184,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const now = new Date();
       setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
     };
+    syncTime();
     const interval = setInterval(syncTime, 60000); 
 
     return () => {
@@ -227,13 +229,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const searchLower = searchQuery.toLowerCase().trim();
     const categoryLower = category.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const currentModeLower = activeMode.toLowerCase();
 
     return dbProducts.filter(product => {
       if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
       
-      const productMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
-      if (productMode !== activeMode.toLowerCase()) return false;
+      // RELAXED MODE MATCHING: Map "Restaurant" to "Food"
+      const rawMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
+      const productMode = (rawMode === 'restaurant' || rawMode === 'food') ? 'food' : rawMode;
+      
+      if (productMode !== currentModeLower) return false;
 
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
       
