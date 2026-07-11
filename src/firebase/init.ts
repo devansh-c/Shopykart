@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -16,6 +15,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
+ * Ensures service instances are correctly retrieved even if the app already exists.
  * SSR Safe: Only runs on the client.
  */
 export function initializeFirebase() {
@@ -23,25 +23,39 @@ export function initializeFirebase() {
     return { firebaseApp: null, firestore: null, auth: null };
   }
 
+  // 1. Initialize or Get Firebase App
   if (!appInstance) {
     try {
       appInstance = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-      
+    } catch (error) {
+      console.error("Firebase App initialization failed:", error);
+    }
+  }
+
+  if (!appInstance) {
+    return { firebaseApp: null, firestore: null, auth: null };
+  }
+
+  // 2. Initialize or Get Auth Instance
+  if (!authInstance) {
+    try {
       authInstance = getAuth(appInstance);
       setPersistence(authInstance, browserLocalPersistence).catch(() => {});
+    } catch (error) {
+      console.error("Firebase Auth initialization failed:", error);
+    }
+  }
 
-      // Use standard initialization but ensure long polling for proxy compatibility
+  // 3. Initialize or Get Firestore Instance
+  if (!firestoreInstance) {
+    try {
+      // Use standard initialization with long polling for proxy/firewall compatibility
       firestoreInstance = initializeFirestore(appInstance, {
         experimentalForceLongPolling: true,
       });
-
-      console.log("ShopyKart Engine: Rapid Connection Secured ✅");
     } catch (error) {
-      console.error("Firebase init failed:", error);
-      if (appInstance) {
-        firestoreInstance = getFirestore(appInstance);
-        authInstance = getAuth(appInstance);
-      }
+      // Fallback if already initialized
+      firestoreInstance = getFirestore(appInstance);
     }
   }
 
