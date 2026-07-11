@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -10,9 +9,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
+import FirebaseClientProvider from '@/firebase/client-provider';
 
-// DYNAMIC IMPORTS TO PREVENT NODE.JS MODULES IN SSR
-const DynamicFirebaseClientProvider = dynamic(() => import('@/firebase/client-provider'), { ssr: false });
+// DYNAMIC IMPORTS FOR SECONDARY OVERLAYS
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
 const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
@@ -53,18 +52,13 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
-    const failSafeTimer = setTimeout(() => onReady(true), 100);
-
     if (!loading) {
-      clearTimeout(failSafeTimer);
       onReady(true);
       if (!user && !hasActiveSession) {
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 500);
         return () => clearTimeout(authTimer);
       }
     }
-    
-    return () => clearTimeout(failSafeTimer);
   }, [user, loading, hasActiveSession, onReady, isExcludedPath]);
 
   return (
@@ -125,12 +119,12 @@ AppContent.displayName = "AppContent";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <DynamicFirebaseClientProvider>
+    <FirebaseClientProvider>
       <DynamicBrandingLoader />
       <FirebaseErrorListener />
       <CartProvider>
         <AppContent>{children}</AppContent>
       </CartProvider>
-    </DynamicFirebaseClientProvider>
+    </FirebaseClientProvider>
   );
 }

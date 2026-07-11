@@ -12,8 +12,8 @@ interface FirebaseClientProviderProps {
 }
 
 /**
- * @fileOverview High-reliability Firebase Provider for client-side environments.
- * Prevents "Expected first argument..." errors by ensuring instances are ready.
+ * Ensures Firebase is only initialized once in the browser.
+ * Prevents hydration errors and "Firestore instance is null" crashes.
  */
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [instances, setInstances] = useState<{
@@ -23,23 +23,23 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
   } | null>(null);
 
   useEffect(() => {
-    // Initialization happens ONLY once the component is mounted in the browser.
+    // Immediate initialization on mount
     const results = initializeFirebase();
     setInstances(results);
   }, []);
 
+  // Standard Next.js pattern: Don't render until client-side state is ready
+  if (!instances) {
+    return null;
+  }
+
   return (
     <FirebaseProvider 
-      firebaseApp={instances?.firebaseApp || null} 
-      firestore={instances?.firestore || null} 
-      auth={instances?.auth || null}
+      firebaseApp={instances.firebaseApp} 
+      firestore={instances.firestore} 
+      auth={instances.auth}
     >
-      {/* 
-        CRITICAL: Only render children when instances are fully hydrated. 
-        This prevents 'null' firestore from leaking into hooks during the very first render,
-        avoiding the "Expected first argument to collection()..." crash.
-      */}
-      {instances ? children : null}
+      {children}
     </FirebaseProvider>
   );
 }
