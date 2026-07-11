@@ -43,7 +43,7 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-6 py-1 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[180px] justify-center h-11", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-6 py-1 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[150px] justify-center h-10", 
         className
       )}
     >
