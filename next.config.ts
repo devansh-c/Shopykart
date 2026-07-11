@@ -16,17 +16,12 @@ const nextConfig: NextConfig = {
   /* ENSURE CLEAN URLS & INDEX.HTML GENERATION */
   trailingSlash: true,
   
-  /* Standard Webpack Polyfills for Firebase compatibility */
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-      path: require.resolve('path-browserify'),
-      os: require.resolve('os-browserify/browser'),
-      stream: require.resolve('stream-browserify'),
-    };
-    return config;
-  },
+  /* Turbopack Optimization: Removing explicit webpack config to resolve conflict */
+  experimental: {
+    // Turbopack will handle basic modules automatically. 
+    // If specific polyfills are needed for node modules in browser, 
+    // they should be configured under the 'turbo' key.
+  }
 };
 
 export default nextConfig;
