@@ -15,7 +15,6 @@ let authInstance: Auth | null = null;
 
 /**
  * Optimized Firebase initialization singleton.
- * Ensures service instances are correctly retrieved even if the app already exists.
  * SSR Safe: Only runs on the client.
  */
 export function initializeFirebase() {
@@ -49,12 +48,9 @@ export function initializeFirebase() {
   // 3. Initialize or Get Firestore Instance
   if (!firestoreInstance) {
     try {
-      // Use standard initialization with long polling for proxy/firewall compatibility
-      firestoreInstance = initializeFirestore(appInstance, {
-        experimentalForceLongPolling: true,
-      });
+      // Performance: Removed experimentalForceLongPolling for standard environments to use faster WebSockets/GRPC
+      firestoreInstance = getFirestore(appInstance);
     } catch (error) {
-      // Fallback if already initialized
       firestoreInstance = getFirestore(appInstance);
     }
   }

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -147,21 +146,15 @@ ProductItem.displayName = "ProductItem";
 
 const SkeletonLoader = () => (
   <div className="px-4 py-8 space-y-6">
-    <div className="flex items-center justify-between mb-4 px-2">
-      <Skeleton className="h-4 w-32 rounded-full bg-zinc-200" />
-      <Skeleton className="h-3 w-16 rounded-full bg-zinc-100" />
-    </div>
     {[1, 2, 3, 4].map(i => (
-      <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-zinc-100 shadow-sm overflow-hidden">
+      <div key={i} className="bg-white rounded-[2rem] p-5 flex justify-between items-start border border-zinc-100 shadow-sm overflow-hidden animate-pulse">
         <div className="flex-1 space-y-3 pr-4">
-          <div className="flex gap-2"><Skeleton className="h-3 w-3 rounded-sm bg-zinc-100" /><Skeleton className="h-3 w-20 rounded-full bg-zinc-50" /></div>
-          <Skeleton className="h-6 w-full rounded-lg bg-zinc-100" />
-          <Skeleton className="h-4 w-1/2 rounded-lg bg-zinc-50" />
-          <div className="flex gap-2 pt-2"><Skeleton className="h-3 w-16 rounded-full bg-zinc-100" /><Skeleton className="h-3 w-12 rounded-full bg-zinc-50" /></div>
+          <div className="flex gap-2"><div className="h-3 w-3 rounded-sm bg-zinc-100" /><div className="h-3 w-20 rounded-full bg-zinc-50" /></div>
+          <div className="h-6 w-full rounded-lg bg-zinc-100" />
+          <div className="h-4 w-1/2 rounded-lg bg-zinc-50" />
         </div>
         <div className="flex flex-col items-center gap-2">
-          <Skeleton className="h-24 w-24 rounded-2xl bg-zinc-100" />
-          <Skeleton className="h-8 w-20 rounded-xl bg-zinc-50" />
+          <div className="h-24 w-24 rounded-2xl bg-zinc-100" />
         </div>
       </div>
     ))}
@@ -175,7 +168,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number>(720); 
+  const [currentMinutes, setCurrentMinutes] = useState<number>(new Date().getHours() * 60 + new Date().getMinutes()); 
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -190,7 +183,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const now = new Date();
       setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
     };
-    syncTime();
     const interval = setInterval(syncTime, 60000); 
 
     return () => {
@@ -236,7 +228,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const categoryLower = category.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
-    const filtered = dbProducts.filter(product => {
+    return dbProducts.filter(product => {
       if (!product) return false;
       const vendor = vendorMap.get(product.vendorId);
       
@@ -245,7 +237,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
       
-      // RELAXED FILTERING: Only hide if there's a definite conflict
       if (targetCityNormalized && productTown) {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
@@ -269,8 +260,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       return ratingB - ratingA;
     });
 
-    return filtered;
-  }, [searchQuery, category, dbProducts, vendorMap, activeZoneId, activeCity, activeMode, currentMinutes]);
+  }, [searchQuery, category, dbProducts, vendorMap, activeCity, activeMode, currentMinutes]);
 
   const navigateToProduct = (id: string) => {
     startTransition(() => {
@@ -278,7 +268,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsToDisplay === null || (productsLoading && (!dbProducts || dbProducts.length === 0))) {
+  if (productsToDisplay === null || productsLoading) {
     return <SkeletonLoader />;
   }
 
@@ -288,7 +278,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
         <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{productsToDisplay.length} ITEMS</span>
       </div>
-      <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-200", (isPending || vendorsLoading) && "opacity-50")}>
+      <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-200", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id}

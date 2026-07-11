@@ -12,7 +12,7 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient hook to fetch a single document with silent quota handling.
+ * @fileOverview High-speed hook to fetch a single document with optimized caching.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
@@ -27,16 +27,12 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
     }
 
     setLoading(true);
+    // Performance: removed includeMetadataChanges for faster initial response
     const unsubscribe = onSnapshot(
       ref,
-      { includeMetadataChanges: true },
       (snapshot: DocumentSnapshot<T>) => {
         setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
-        
-        if (!snapshot.metadata.fromCache || snapshot.exists()) {
-          setLoading(false);
-        }
-        
+        setLoading(false);
         setError(null);
       },
       async (err: FirestoreError) => {
@@ -54,7 +50,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
           setError(err);
           setLoading(false);
         } else {
-          console.debug(`Firestore Doc Notice: [${err.code}]`);
           setLoading(false);
         }
       }

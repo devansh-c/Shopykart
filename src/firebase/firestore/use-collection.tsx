@@ -12,8 +12,8 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview ULTRA-RESILIENT hook to fetch collections.
- * Optimized for INSTANT updates and reliable loading states.
+ * @fileOverview ULTRA-FAST hook to fetch collections.
+ * Optimized to leverage local cache instantly and reduce synchronization noise.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -29,16 +29,10 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
 
     setLoading(true);
     
-    // Fail-safe: Force loading to false if no response in 2.5 seconds
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
-    
+    // Performance: removed includeMetadataChanges to prevent unnecessary re-renders during background sync
     const unsubscribe = onSnapshot(
       query,
-      { includeMetadataChanges: true }, 
       (snapshot: QuerySnapshot<T>) => {
-        clearTimeout(timeout);
         const items = snapshot.docs.map(doc => ({
           ...doc.data(),
           id: doc.id,
@@ -49,7 +43,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setError(null);
       },
       async (err: FirestoreError) => {
-        clearTimeout(timeout);
         const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal', 'permission-denied'];
         
         if (err.code === 'permission-denied') {
@@ -67,10 +60,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
       }
     );
 
-    return () => {
-      clearTimeout(timeout);
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [query]);
 
   return { data, loading, error };
