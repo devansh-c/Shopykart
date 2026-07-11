@@ -447,6 +447,14 @@ export default function CartPage() {
     setPaymentStep('utr');
   };
 
+  const handleMapPinConfirm = (lat: number, lng: number) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    localStorage.setItem('user_plus_code', `${lat},${lng}`);
+    setIsMapOpen(false);
+    toast({ title: "Location Set! 📍", description: "Your pin has been saved." });
+  };
+
   return (
     <div className="min-h-screen bg-white pb-64">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
@@ -811,73 +819,77 @@ export default function CartPage() {
         </div>
       </div>
 
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Secure Payment</DialogTitle>
-          </DialogHeader>
-          <div className="bg-primary h-2 w-full" />
-          <div className="p-8 space-y-8 flex flex-col items-center">
-            {paymentStep === 'selection' ? (
-              <>
-                <div className="text-center space-y-2">
-                  <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><Smartphone className="h-8 w-8" /></div>
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Instant Payment</h2>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Click button to open your UPI app and pay.</p>
-                </div>
-                <div className="w-full space-y-4">
-                   <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
-                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
-                     <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
-                   </div>
-                   <Button type="button" onClick={handleOnlinePaymentFlow} className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all">PAY & PROCEED</Button>
-                </div>
-              </>
-            ) : (
-              <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center space-y-2">
-                  <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mx-auto mb-2"><CheckCircle2 className="h-8 w-8" /></div>
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Final Verification</h2>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Enter 12-digit UTR Number from your payment receipt.</p>
-                </div>
+      <div className="fixed top-0 left-0 right-0 z-[10001] pointer-events-none">
+        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+          <DialogContent className="rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none pointer-events-auto">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Secure Payment</DialogTitle>
+            </DialogHeader>
+            <div className="bg-primary h-2 w-full" />
+            <div className="p-8 space-y-8 flex flex-col items-center">
+              {paymentStep === 'selection' ? (
+                <>
+                  <div className="text-center space-y-2">
+                    <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><Smartphone className="h-8 w-8" /></div>
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter">Instant Payment</h2>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Click button to open your UPI app and pay.</p>
+                  </div>
+                  <div className="w-full space-y-4">
+                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span>
+                      <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{grandTotal.toFixed(2)}</div>
+                    </div>
+                    <Button type="button" onClick={handleOnlinePaymentFlow} className="w-full h-18 py-8 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all">PAY & PROCEED</Button>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="text-center space-y-2">
+                    <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mx-auto mb-2"><CheckCircle2 className="h-8 w-8" /></div>
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Final Verification</h2>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Enter 12-digit UTR Number from your payment receipt.</p>
+                  </div>
 
-                <div className="space-y-4">
-                   <div className="relative group">
-                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary" />
-                      <Input 
-                        placeholder="12 DIGIT UTR NO." 
-                        value={utrNumber}
-                        onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0, 12))}
-                        className="h-16 pl-12 rounded-2xl bg-gray-50 border-none font-black italic text-xl tracking-[0.2em] text-center"
-                      />
-                   </div>
-                   <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
-                      <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
-                      <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">UTR verify hone ke baad order accept hoga. Wrong UTR se order cancel ho sakta hai.</p>
-                   </div>
-                   
-                   <Button 
-                    type="button"
-                    onClick={executeOrderPlacement} 
-                    disabled={utrNumber.length !== 12 || isPlacing}
-                    className="w-full h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all"
-                  >
-                    {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "VERIFY & PLACE ORDER"}
-                  </Button>
+                  <div className="space-y-4">
+                    <div className="relative group">
+                        <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary" />
+                        <Input 
+                          placeholder="12 DIGIT UTR NO." 
+                          value={utrNumber}
+                          onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0, 12))}
+                          className="h-16 pl-12 rounded-2xl bg-gray-50 border-none font-black italic text-xl tracking-[0.2em] text-center"
+                        />
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
+                        <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                        <p className="text-[9px] font-bold text-blue-700 uppercase leading-relaxed">UTR verify hone ke baad order accept hoga. Wrong UTR se order cancel ho sakta hai.</p>
+                    </div>
+                    
+                    <Button 
+                      type="button"
+                      onClick={executeOrderPlacement} 
+                      disabled={utrNumber.length !== 12 || isPlacing}
+                      className="w-full h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all"
+                    >
+                      {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : "VERIFY & PLACE ORDER"}
+                    </Button>
+                  </div>
+                  <button type="button" onClick={() => setPaymentStep('selection')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Wait, I haven't paid yet</button>
                 </div>
-                <button type="button" onClick={() => setPaymentStep('selection')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Wait, I haven't paid yet</button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
       
       <div className="h-20" />
       
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-sm h-[500px] p-0 overflow-hidden"><DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader><MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); }} /></DialogContent>
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm h-[650px] p-0 overflow-hidden border-none shadow-2xl bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+          <DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader>
+          <MapPicker onConfirm={handleMapPinConfirm} />
+        </DialogContent>
       </Dialog>
     </div>
   );
 }
-
