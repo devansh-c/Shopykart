@@ -14,17 +14,16 @@ import {
   Monitor,
   Keyboard,
   MousePointer2,
-  Cpu
+  Cpu,
+  Github,
+  Rocket,
+  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
-/**
- * @fileOverview Deployment Hub with Keyboard Workflow instructions.
- * Optimized for users on Laptops without a mouse.
- */
 export default function ExportManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -38,7 +37,6 @@ export default function ExportManagement() {
     try {
       const JSZip = (await import('jszip')).default;
       const FileSaver = await import('file-saver');
-      // Handle potential default export or named export
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
 
       const zip = new JSZip();
@@ -86,13 +84,51 @@ export default function ExportManagement() {
          <div>
             <h3 className="font-black italic uppercase text-sm">Deployment Hub</h3>
             <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed">
-               Package your source code for Android Studio to generate the APK.
+               Build your Android app bundle directly in the cloud.
             </p>
          </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
+        {/* CLOUD BUILD (GITHUB ACTIONS) */}
+        <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden">
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="bg-white text-black p-3 rounded-2xl shadow-lg">
+              <Github className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Cloud Build (No PC needed)</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Build via GitHub Actions</p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
+             <ol className="space-y-4">
+                <li className="flex gap-4">
+                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">1</span>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Is code ko apne GitHub Repository mein push karein.</p>
+                </li>
+                <li className="flex gap-4">
+                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">2</span>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">GitHub par 'Actions' tab mein jayein.</p>
+                </li>
+                <li className="flex gap-4">
+                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">3</span>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">'Build Android APK' workflow select karein aur 'Run workflow' par click karein.</p>
+                </li>
+                <li className="flex gap-4">
+                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">4</span>
+                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">5-10 minute intezar karein, aapka APK ready ho jayega!</p>
+                </li>
+             </ol>
+             <div className="pt-4">
+                <Badge className="bg-green-600 text-white font-black text-[8px] uppercase tracking-widest px-3 py-1">Recommended Method</Badge>
+             </div>
+          </div>
+          <div className="absolute top-0 right-0 h-full w-32 bg-primary/5 -skew-x-12 translate-x-10" />
+        </div>
+
         {/* DATABASE EXPORT */}
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -117,87 +153,44 @@ export default function ExportManagement() {
           </Button>
         </div>
 
-        {/* KEYBOARD FLOW FOR SOURCE CODE */}
-        <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden">
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="bg-primary p-3 rounded-2xl text-white shadow-lg shadow-primary/20">
-              <Keyboard className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Keyboard-Only Workflow</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No Mouse Required to Package Code</p>
-            </div>
-          </div>
-
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-5 relative z-10">
-             <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                   <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">1</div>
-                   <div className="flex-1">
-                      <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed mb-2">Run this in Terminal below:</p>
-                      <div className="relative group">
-                        <div className="bg-black border border-white/20 p-3 rounded-xl font-mono text-xs text-green-400 overflow-x-auto">npm run zip-project</div>
-                        <button onClick={() => handleCopyCommand('npm run zip-project')} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/10 p-2 rounded-lg active:scale-90"><Copy className="h-3 w-3" /></button>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                   <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">2</div>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Press <code className="bg-white/10 px-1 rounded text-primary font-black">Ctrl + Shift + E</code> to focus Sidebar Explorer.</p>
-                </div>
-
-                <div className="flex items-start gap-4">
-                   <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">3</div>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Arrow keys to select <code className="text-green-400 font-black">shopykart-source.zip</code> and press <code className="bg-white/10 px-1 rounded text-primary font-black">Shift + F10</code>.</p>
-                </div>
-
-                <div className="flex items-start gap-4">
-                   <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">4</div>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Arrow down to <code className="text-white font-black underline decoration-primary decoration-2">Download</code> and press Enter.</p>
-                </div>
-             </div>
-          </div>
-        </div>
-
-        {/* ANDROID STUDIO GUIDE */}
+        {/* LOCAL CLI BUILD (FOR LAPTOP) */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-             <Cpu className="h-40 w-40" />
-          </div>
           <div className="flex items-center gap-4 relative z-10">
             <div className="bg-green-600 p-3 rounded-2xl text-white shadow-lg shadow-green-200">
-              <Monitor className="h-6 w-6" />
+              <Smartphone className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Native APK Build</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Requirements: Android Studio & Java on Laptop</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Local CLI Build (No Studio UI)</h3>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Requires Android SDK installed on Laptop</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
              <div className="space-y-4">
-                <ul className="space-y-3">
-                   {[
-                     "Extract the downloaded ZIP on your Laptop.",
-                     "Open the extracted folder in Android Studio.",
-                     "Wait for Gradle Sync to complete (1-3 mins).",
-                     "Go to Menu: Build &gt; Build Bundle(s) / APK(s).",
-                     "Select 'Build APK(s)' to generate the final installer."
-                   ].map((step, i) => (
-                     <li key={i} className="flex items-center gap-3 bg-muted/30 p-4 rounded-2xl border border-border/50">
-                        <span className="h-6 w-6 rounded-full bg-black text-white flex items-center justify-center font-black text-[10px] shrink-0">{i+1}</span>
-                        <span className="text-[10px] font-black uppercase text-gray-700" dangerouslySetInnerHTML={{ __html: step }} />
-                     </li>
-                   ))}
-                </ul>
+                <p className="text-[11px] font-bold text-gray-500 uppercase leading-relaxed">
+                  Agar aapke paas Android SDK hai par aap Android Studio nahi kholna chahte, toh terminal mein ye commands run karein:
+                </p>
+                <div className="bg-muted/50 p-4 rounded-2xl font-mono text-[10px] text-gray-800 space-y-2 border">
+                   <div className="flex justify-between items-center group">
+                      <span>npm run build:static</span>
+                      <button onClick={() => handleCopyCommand('npm run build:static')} className="opacity-0 group-hover:opacity-100 text-primary"><Copy className="h-3 w-3" /></button>
+                   </div>
+                   <div className="flex justify-between items-center group">
+                      <span>npx cap sync android</span>
+                      <button onClick={() => handleCopyCommand('npx cap sync android')} className="opacity-0 group-hover:opacity-100 text-primary"><Copy className="h-3 w-3" /></button>
+                   </div>
+                   <div className="flex justify-between items-center group">
+                      <span>npm run android:build-apk</span>
+                      <button onClick={() => handleCopyCommand('npm run android:build-apk')} className="opacity-0 group-hover:opacity-100 text-primary"><Copy className="h-3 w-3" /></button>
+                   </div>
+                </div>
              </div>
 
-             <div className="bg-amber-50 p-6 rounded-[2.5rem] border border-amber-100 flex flex-col justify-center items-center text-center space-y-4">
-                <AlertCircle className="h-12 w-12 text-amber-600 animate-pulse" />
-                <h4 className="font-black italic uppercase text-amber-800 text-lg">Build Notice</h4>
-                <p className="text-[10px] font-bold text-amber-700/70 uppercase leading-relaxed max-w-[220px]">
-                   APK build process (Gradle) Cloud environment par supported nahi hai. Aapko ye apne Laptop par hi karna hoga.
+             <div className="bg-blue-50 p-6 rounded-[2.5rem] border border-blue-100 flex flex-col justify-center items-center text-center space-y-4">
+                <Rocket className="h-12 w-12 text-blue-600 animate-bounce" />
+                <h4 className="font-black italic uppercase text-blue-800 text-lg">Fast Build Mode</h4>
+                <p className="text-[10px] font-bold text-blue-700/70 uppercase leading-relaxed max-w-[220px]">
+                   Aapka APK <code className="bg-blue-200 px-1 rounded">android/app/build/outputs/apk/debug/</code> folder mein mil jayega.
                 </p>
              </div>
           </div>
