@@ -9,17 +9,13 @@ import {
   Copy,
   Check,
   Zap,
-  AlertCircle,
-  FileCode,
-  Monitor,
-  Keyboard,
-  MousePointer2,
-  Cpu,
-  Github,
-  Rocket,
   Smartphone,
   Info,
-  Package
+  Package,
+  Github,
+  Globe,
+  PlusCircle,
+  SmartphoneNfc
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -68,151 +64,76 @@ export default function ExportManagement() {
     }
   };
 
-  const handleCopyCommand = (cmd: string) => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(cmd);
-      setIsCopied(true);
-      toast({ title: "Command Copied!" });
-      setTimeout(() => setIsCopied(false), 2000);
-    }
-  };
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
-      {/* EXPLANATION BANNER */}
-      <div className="bg-amber-50 p-6 rounded-[2.5rem] border border-amber-200 flex items-start gap-4">
-         <div className="h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-            <Info className="h-6 w-6" />
-         </div>
-         <div className="space-y-1">
-            <h3 className="font-black italic uppercase text-sm text-amber-900">Important Note on APK Downloads</h3>
-            <p className="text-[10px] font-bold text-amber-700 uppercase leading-relaxed">
-               Web Browser se direct APK download nahi ho sakta kyunki APK banane ke liye Android SDK aur Gradle ki zaroorat hoti hai.
-               Lekin aap yahan se **Source Code** download kar sakte hain aur usse kisi bhi PC par APK bana sakte hain.
-            </p>
-         </div>
+      {/* THE EASY WAY (PWA) */}
+      <div className="bg-gradient-to-br from-primary to-accent p-8 rounded-[3rem] shadow-2xl text-white relative overflow-hidden group">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 text-center md:text-left">
+            <div className="bg-white/20 w-16 h-16 rounded-[1.5rem] flex items-center justify-center backdrop-blur-md mx-auto md:mx-0">
+              <SmartphoneNfc className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-black italic uppercase tracking-tighter">Sabse Easy Way (Install App)</h3>
+              <p className="text-sm font-bold opacity-80 uppercase tracking-widest mt-1">Bina APK download kiye app chalayein</p>
+            </div>
+            <div className="bg-black/20 p-6 rounded-3xl border border-white/10 space-y-3">
+              <p className="text-xs font-bold leading-relaxed uppercase">
+                1. Apne phone ke Chrome browser mein <span className="text-white font-black underline">shopykart.co.in</span> kholein.<br/>
+                2. Side mein bane <span className="font-black">3-Dots (Menu)</span> par click karein.<br/>
+                3. <span className="bg-white text-primary px-2 py-0.5 rounded font-black italic">"INSTALL APP"</span> select karein.
+              </p>
+              <div className="flex items-center gap-2 text-[10px] font-black text-amber-300">
+                <Zap className="h-3 w-3 fill-amber-300" /> YE APK SE BHI FAST AUR SMOOTH HAI!
+              </div>
+            </div>
+          </div>
+          <div className="relative shrink-0">
+             <div className="w-48 h-48 bg-white/10 rounded-full blur-3xl animate-pulse absolute inset-0" />
+             <PlusCircle className="h-32 w-32 text-white/20 rotate-12 group-hover:rotate-45 transition-transform duration-1000" />
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 h-full w-44 bg-white/5 -skew-x-12 translate-x-20" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* CLOUD BUILD (GITHUB ACTIONS) */}
+        {/* CLOUD APK BUILD */}
         <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white space-y-6 relative overflow-hidden">
           <div className="flex items-center gap-4 relative z-10">
             <div className="bg-white text-black p-3 rounded-2xl shadow-lg">
               <Github className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Cloud Build (No PC needed)</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Build via GitHub Actions</p>
+              <h3 className="text-xl font-black italic uppercase tracking-tighter">Pro Way: Cloud APK Build</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Generate .APK file via GitHub</p>
             </div>
           </div>
-
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-4 relative z-10">
-             <ol className="space-y-4">
-                <li className="flex gap-4">
-                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">1</span>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">Is code ko apne GitHub Repository mein push karein.</p>
-                </li>
-                <li className="flex gap-4">
-                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">2</span>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">GitHub par 'Actions' tab mein jayein.</p>
-                </li>
-                <li className="flex gap-4">
-                   <span className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center font-black text-[10px] shrink-0">3</span>
-                   <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">'Build Android APK' workflow run karein.</p>
-                </li>
-             </ol>
-             <div className="pt-4 flex items-center gap-3">
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-[9px] font-black text-green-500 uppercase tracking-widest">Highly Recommended</span>
-             </div>
-          </div>
+          <p className="text-xs text-gray-400 leading-relaxed relative z-10 uppercase font-bold">
+            Agar aapko file share karni hai, toh code GitHub par push karein. GitHub apne aap APK banakar aapko link bhej dega.
+          </p>
           <div className="absolute top-0 right-0 h-full w-32 bg-primary/5 -skew-x-12 translate-x-10" />
-        </div>
-
-        {/* PROJECT SOURCE DOWNLOAD */}
-        <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-             <Package className="h-40 w-40" />
-          </div>
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg shadow-emerald-200">
-              <Archive className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Download Source</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Complete Project Code (.ZIP)</p>
-            </div>
-          </div>
-          
-          <div className="space-y-4 relative z-10">
-             <p className="text-[10px] font-bold text-gray-500 uppercase leading-relaxed">
-                Code download karke use kisi bhi PC par **Android Studio** se open karein aur direct APK generate karein.
-             </p>
-             <Button 
-                onClick={() => toast({ title: "Backup Feature Ready", description: "Use command line to zip files or export database below." })}
-                className="w-full h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase italic shadow-2xl transition-all"
-              >
-                <Download className="h-5 w-5 mr-2" />
-                PROJECT BACKUP READY
-              </Button>
-          </div>
         </div>
 
         {/* DATABASE EXPORT */}
         <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-             <Database className="h-40 w-40" />
-          </div>
           <div className="flex items-center gap-4 relative z-10">
-            <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
+            <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg">
               <Database className="h-6 w-6" />
             </div>
             <div>
               <h3 className="text-xl font-black italic uppercase tracking-tighter">Database Export</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Firestore JSON Records</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">JSON Records Backup</p>
             </div>
           </div>
           <Button 
             onClick={handleExportData} 
             disabled={isExporting}
-            className="w-full h-16 rounded-[2rem] bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic shadow-2xl transition-all"
+            className="w-full h-16 rounded-[2rem] bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic shadow-xl active:scale-95 transition-all"
           >
             {isExporting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Download className="h-5 w-5 mr-2" />}
-            EXPORT LIVE DATA
+            DOWNLOAD DATA ZIP
           </Button>
         </div>
-
-        {/* LOCAL CLI BUILD (FOR LAPTOP) */}
-        <div className="bg-white p-8 rounded-[3rem] border border-border shadow-xl space-y-6 relative overflow-hidden group">
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="bg-purple-600 p-3 rounded-2xl text-white shadow-lg shadow-purple-200">
-              <Smartphone className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black italic uppercase tracking-tighter">Local Build Commands</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">For developers with PC</p>
-            </div>
-          </div>
-
-          <div className="space-y-4 relative z-10">
-             <div className="bg-muted/50 p-4 rounded-2xl font-mono text-[10px] text-gray-800 space-y-2 border">
-                <div className="flex justify-between items-center group">
-                   <span>npm run build:static</span>
-                   <button onClick={() => handleCopyCommand('npm run build:static')} className="opacity-0 group-hover:opacity-100 text-primary"><Copy className="h-3 w-3" /></button>
-                </div>
-                <div className="flex justify-between items-center group">
-                   <span>npx cap sync android</span>
-                   <button onClick={() => handleCopyCommand('npx cap sync android')} className="opacity-0 group-hover:opacity-100 text-primary"><Copy className="h-3 w-3" /></button>
-                </div>
-                <div className="flex justify-between items-center group">
-                   <span>npm run android:build-apk</span>
-                   <button onClick={() => handleCopyCommand('npm run android:build-apk')} className="opacity-0 group-hover:opacity-100 text-primary"><Copy className="h-3 w-3" /></button>
-                </div>
-             </div>
-          </div>
-        </div>
-
       </div>
     </div>
   );
