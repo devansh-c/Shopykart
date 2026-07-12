@@ -1,8 +1,11 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* FORCING STATIC EXPORT FOR EXTERNAL HOSTING & APK */
-  output: 'export',
+  /* 
+   * OPTIMIZED FOR FIREBASE APP HOSTING (SSR)
+   * Removing 'output: export' allows the app to support dynamic server-side rendering,
+   * which is required for runtime-generated IDs in routes like /orders/[orderId].
+   */
   images: {
     unoptimized: true,
   },

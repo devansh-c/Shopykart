@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -22,5 +21,6 @@ export default async function OrderPage({
   );
 }
 
-export const dynamic = 'force-static';
-export const revalidate = false;
+// Set to force-dynamic to support runtime ID resolution on Firebase App Hosting
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
