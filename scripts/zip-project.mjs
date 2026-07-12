@@ -1,49 +1,44 @@
 import fs from 'fs';
+import path from 'path';
 import archiver from 'archiver';
 
 /**
- * @fileOverview Specialized Bundle Script.
- * Packages the entire ShopyKart source for Android Studio consumption.
+ * Script to zip the project source code for portability.
+ * Excludes large folders like node_modules and .next
  */
+async function zipProject() {
+  const output = fs.createWriteStream(path.join(process.cwd(), 'shopykart_source_code.zip'));
+  const archive = archiver('zip', {
+    zlib: { level: 9 } // Maximum compression
+  });
 
-const output = fs.createWriteStream('shopykart-source.zip');
-const archive = archiver('zip', { zlib: { level: 9 } });
+  output.on('close', () => {
+    console.log(`✅ Project zipped successfully! Total size: ${(archive.pointer() / 1024 / 1024).toFixed(2)} MB`);
+    console.log('You can now download this zip file from the project explorer.');
+  });
 
-output.on('close', function() {
-  console.log('\n✅ Project successfully zipped! (Total: ' + (archive.pointer() / 1024 / 1024).toFixed(2) + ' MB)');
-  console.log('----------------------------------------------------');
-  console.log('👉 KEYBOARD WORKFLOW TO DOWNLOAD:');
-  console.log('1. Press Ctrl + Shift + E to focus Sidebar.');
-  console.log('2. Arrow keys to select "shopykart-source.zip".');
-  console.log('3. Press Shift + F10 (or Menu Key) for Options.');
-  console.log('4. Select "Download" and press Enter.');
-  console.log('----------------------------------------------------\n');
-});
+  archive.on('error', (err) => {
+    throw err;
+  });
 
-archive.on('error', function(err) { throw err; });
-archive.pipe(output);
+  archive.pipe(output);
 
-// Filter list to keep the ZIP small and clean
-const ignore = [
-  'node_modules',
-  '.next',
-  'out',
-  'shopykart-source.zip',
-  '.git',
-  '.agents',
-  '.firebase'
-];
+  // Add files and directories
+  const items = fs.readdirSync(process.cwd());
+  const excluded = ['node_modules', '.next', '.git', 'out', 'shopykart_source_code.zip', 'android/app/build', 'android/.gradle'];
 
-const items = fs.readdirSync('.');
-items.forEach(item => {
-  if (!ignore.includes(item)) {
+  for (const item of items) {
+    if (excluded.includes(item)) continue;
+    
     const stats = fs.statSync(item);
     if (stats.isDirectory()) {
-      archive.directory(item + '/', item);
+      archive.directory(item, item);
     } else {
       archive.file(item, { name: item });
     }
   }
-});
 
-archive.finalize();
+  await archive.finalize();
+}
+
+zipProject().catch(console.error);
