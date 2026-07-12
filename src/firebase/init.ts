@@ -1,6 +1,6 @@
 'use client';
 
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
@@ -11,7 +11,7 @@ let authInstance: Auth | null = null;
 
 /**
  * Robust Firebase initialization singleton for Next.js.
- * Ensures instances are created once and reused consistently across HMR.
+ * Ensures instances are created once and reused consistently.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -19,20 +19,17 @@ export function initializeFirebase() {
   }
 
   try {
-    // 1. App Instance - Using safer array access for HMR compatibility
-    if (!appInstance) {
-      const apps = getApps();
-      appInstance = apps.length > 0 ? apps[0] : initializeApp(firebaseConfig);
+    if (getApps().length === 0) {
+      appInstance = initializeApp(firebaseConfig);
+    } else {
+      appInstance = getApp();
     }
 
-    // 2. Auth Instance
     if (!authInstance && appInstance) {
       authInstance = getAuth(appInstance);
-      // Non-blocking persistence setting
       setPersistence(authInstance, browserLocalPersistence).catch(() => {});
     }
 
-    // 3. Firestore Instance
     if (!firestoreInstance && appInstance) {
       firestoreInstance = getFirestore(appInstance);
     }

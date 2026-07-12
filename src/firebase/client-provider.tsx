@@ -1,9 +1,6 @@
 'use client';
 
 import React, { ReactNode, useEffect, useState, useMemo } from 'react';
-import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth';
 import { FirebaseProvider } from './provider';
 import { initializeFirebase } from './init';
 
@@ -28,9 +25,10 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
     setIsReady(true);
   }, []);
 
-  // Avoid rendering until client-side hydration is complete
-  if (!isReady || !instances) {
-    return null;
+  // During SSR or initial hydration, we render the children but not the provider 
+  // until we're ready on the client to avoid mismatch.
+  if (!isReady || !instances || !instances.firebaseApp) {
+    return <div className="min-h-screen bg-white" />;
   }
 
   return (
