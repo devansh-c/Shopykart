@@ -2,10 +2,11 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* 
-   * OPTIMIZED FOR FIREBASE APP HOSTING (SSR)
-   * Removing 'output: export' allows the app to support dynamic server-side rendering,
-   * which is required for runtime-generated IDs in routes like /orders/[orderId].
+   * HYBRID BUILD CONFIGURATION
+   * If process.env.NEXT_PUBLIC_STATIC_EXPORT is true, we enable 'export' for Capacitor APK.
+   * Otherwise, we allow SSR for Firebase App Hosting.
    */
+  output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : undefined,
   images: {
     unoptimized: true,
   },
@@ -15,7 +16,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  /* CLEAN URLS FOR BETTER NAVIGATION */
   trailingSlash: true,
 };
 
