@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState, useMemo } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
@@ -13,23 +13,23 @@ interface FirebaseClientProviderProps {
 
 /**
  * Ensures Firebase is only initialized once in the browser.
- * Prevents hydration errors and "Firestore instance is null" crashes.
+ * Prevents hydration errors and instance mismatch crashes.
  */
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const [instances, setInstances] = useState<{
-    firebaseApp: FirebaseApp | null;
-    firestore: Firestore | null;
-    auth: Auth | null;
-  } | null>(null);
-
-  useEffect(() => {
-    // Immediate initialization on mount
-    const results = initializeFirebase();
-    setInstances(results);
+  const [isReady, setIsReady] = useState(false);
+  
+  // Memoize instances to ensure they are stable across renders
+  const instances = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return initializeFirebase();
   }, []);
 
-  // Standard Next.js pattern: Don't render until client-side state is ready
-  if (!instances) {
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
+
+  // Avoid rendering until client-side hydration is complete
+  if (!isReady || !instances) {
     return null;
   }
 

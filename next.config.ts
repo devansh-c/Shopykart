@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  /* ENSURE CLEAN URLS & INDEX.HTML GENERATION */
+  /* CLEAN URLS FOR BETTER NAVIGATION */
   trailingSlash: true,
 };
 
