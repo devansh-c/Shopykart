@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 /**
  * @fileOverview High-Performance StoreSection.
- * Optimized: Robust filtering for visibility.
+ * Optimized: Robust filtering for visibility and service mode handling.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -37,7 +37,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(100));
+    return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -56,7 +56,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       if (vMode !== currentModeLower) return false;
       
       const vTown = (v.town || '').toLowerCase().trim();
-      if (targetCityNormalized && vTown && vTown !== 'local') {
+      if (targetCityNormalized && vTown && vTown !== 'local' && vTown !== 'all') {
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
       }

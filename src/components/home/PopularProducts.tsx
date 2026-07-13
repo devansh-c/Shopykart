@@ -144,16 +144,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => clearInterval(interval);
   }, []);
 
-  // Performance Query: Increased limit to ensure more products are visible
+  // Performance Query: Significantly increased limit to avoid missing products
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(150));
+    return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(100));
+    return query(collection(firestore, 'vendors'), limit(200));
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
@@ -185,14 +185,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // ROBUST SERVICE MODE CHECK: Fixes missing items in Food hub
+      // FLEXIBLE SERVICE MODE CHECK: Handle various case types and missing values
       const rawMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
       const productMode = (rawMode === 'restaurant' || rawMode === 'food') ? 'food' : rawMode;
       if (productMode !== currentModeLower) return false;
 
-      // FLEXIBLE CITY CHECK: Ensure products from 'all' towns or matching towns show up
+      // ULTRA-FLEXIBLE CITY CHECK: Show items from matching city OR marked as 'local' OR if no city selected
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
-      if (targetCityNormalized && productTown && productTown !== 'local') {
+      if (targetCityNormalized && productTown && productTown !== 'local' && productTown !== 'all') {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
@@ -205,6 +205,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     }).sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
+      // Prioritize online stores, but don't hide products if vendor is still loading
       const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentMinutes) ? 1 : 0) : 1;
       const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentMinutes) ? 1 : 0) : 1;
       if (onlineA !== onlineB) return onlineB - onlineA;
@@ -224,7 +225,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     <div className="px-4 py-8 content-visibility-auto transform-gpu">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">{searchQuery ? 'Results' : `⚡ ${activeMode.toUpperCase()} HUB`}</h2>
-        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{productsToDisplay.length} ITEMS</span>
+        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{productsToDisplay.length} ITEMS AVAILABLE</span>
       </div>
       <div className={cn("grid grid-cols-1 gap-6 transition-opacity duration-300", isPending && "opacity-50")}>
         {productsToDisplay.map((product) => (
@@ -233,7 +234,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         {productsToDisplay.length === 0 && (
           <div className="text-center py-20 opacity-30 animate-in fade-in duration-700">
             <ShoppingBag className="h-16 w-16 mx-auto mb-4" />
-            <p className="font-black italic uppercase tracking-widest text-sm">No Items Found</p>
+            <p className="font-black italic uppercase tracking-widest text-sm">No Items Found In This Section</p>
           </div>
         )}
       </div>
