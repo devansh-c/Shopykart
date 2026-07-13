@@ -115,7 +115,7 @@ export default function CartPage() {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: profile } = useDoc<any>(profileRef);
+  const { data: profile, loading: profileLoading } = useDoc<any>(profileRef);
   const availableCoins = profile?.coins || 0;
 
   const isPremium = useMemo(() => {
@@ -128,7 +128,7 @@ export default function CartPage() {
     if (!firestore) return null;
     return collection(firestore, 'checkout_charges');
   }, [firestore]);
-  const { data: dbCharges } = useCollection<any>(chargesQuery);
+  const { data: dbCharges, loading: chargesLoading } = useCollection<any>(chargesQuery);
 
   const customSurchargeTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
@@ -147,7 +147,9 @@ export default function CartPage() {
   }, [cart, vendors]);
 
   const dynamic_charges = useMemo(() => {
-    if (!dbCharges) return [];
+    // If charges haven't loaded yet, return an empty list to avoid jumping prices
+    if (!dbCharges || profileLoading || chargesLoading) return [];
+    
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
     const relevantCharges = dbCharges.filter(charge => {
       if (!charge.zoneId || charge.zoneId === 'global') return true;
@@ -159,16 +161,19 @@ export default function CartPage() {
       const chargeVal = Number(charge.value) || 0;
       
       // PREMIUM BENEFIT: WAIVE ALL TAXES & CHARGES
-      if (isPremium) {
+      // We explicitly mark if it was waived for UI transparency
+      const isWaived = isPremium;
+
+      if (isWaived) {
         amount = 0;
       } else {
         if (charge.type === 'fixed') amount = chargeVal;
         else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
       }
 
-      return { ...charge, calculatedAmount: amount };
+      return { ...charge, calculatedAmount: amount, isWaived };
     });
-  }, [dbCharges, totalPrice, isPremium]);
+  }, [dbCharges, totalPrice, isPremium, profileLoading, chargesLoading]);
 
   const chargesTotalSum = useMemo(() => {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
@@ -240,6 +245,7 @@ export default function CartPage() {
   }, [profile]);
 
   const validateOrderReady = useCallback(() => {
+    if (chargesLoading || profileLoading) return "Syncing taxes...";
     if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
     if (totalItems === 0) return "Bag is empty";
     if (totalPrice < 40) return "Min items value ₹40 required";
@@ -248,7 +254,7 @@ export default function CartPage() {
     if (customerAddress.trim().length < 3) return "Enter House/Street Details";
     if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
     return null;
-  }, [blockedVendorNames, totalPrice, totalItems, customerName, customerPhone, customerAddress, customerPincode]);
+  }, [blockedVendorNames, totalPrice, totalItems, customerName, customerPhone, customerAddress, customerPincode, chargesLoading, profileLoading]);
 
   const executeOrderPlacement = useCallback(() => {
     if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
@@ -349,7 +355,7 @@ export default function CartPage() {
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isPlacing || blockedVendorNames.length > 0) return;
+    if (isPlacing || blockedVendorNames.length > 0 || profileLoading || chargesLoading) return;
     
     // Always allow sliding to check validation at the end
     setValidationError(null);
@@ -394,7 +400,7 @@ export default function CartPage() {
       const error = validateOrderReady();
       if (error) {
         setValidationError(error);
-        toast({ variant: "destructive", title: "Information Missing", description: error });
+        toast({ variant: "destructive", title: "Wait...", description: error });
         resetSlider();
         return;
       }
@@ -466,15 +472,15 @@ export default function CartPage() {
 
       <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu">
         
-        {isPremium && (
+        {isPremium && !profileLoading && (
           <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-[2rem] p-6 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
              <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <Crown className="h-6 w-6 fill-white" />
              </div>
              <div>
-                <h4 className="font-black italic uppercase text-amber-900 text-sm">Premium Benefit Active</h4>
+                <h4 className="font-black italic uppercase text-amber-900 text-sm">Elite Privilege Active</h4>
                 <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-relaxed">
-                   Taxes & Charges waived for you! Enjoy your premium perks.
+                   Unlimited Free Delivery & Taxes waived for you!
                 </p>
              </div>
           </div>
@@ -555,13 +561,30 @@ export default function CartPage() {
           <div className="space-y-4">
               <button type="button" onClick={() => setIsMapOpen(true)} className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all"><MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP</button>
               <div className="space-y-3">
-                <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="PINCODE *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center" />
-                  <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60 text-center" />
+                <div className="grid grid-cols-1 gap-3">
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Full Name</label>
+                      <Input placeholder="E.G. RAHUL SINGH *" value={customerName} onChange={e => setCustomerName(e.target.value.toUpperCase())} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                   </div>
                 </div>
-                <Textarea placeholder="HOUSE NO / STREET DETAILS *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="rounded-xl bg-gray-50 border-none font-medium min-h-[90px] p-4 text-xs" />
-                <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Pincode</label>
+                      <Input placeholder="PINCODE *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center" />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-gray-400 ml-1">City</label>
+                      <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60 text-center" />
+                   </div>
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Address Details</label>
+                   <Textarea placeholder="HOUSE NO / STREET DETAILS *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="rounded-xl bg-gray-50 border-none font-medium min-h-[90px] p-4 text-xs" />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Mobile Number</label>
+                   <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                </div>
               </div>
           </div>
         </div>
@@ -726,19 +749,25 @@ export default function CartPage() {
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
             <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
-            {dynamic_charges.map((charge: any) => {
-              const isWaived = isPremium;
-              return (
-                <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest">
-                  <span>{charge.name}</span>
-                  {isWaived ? (
-                    <span className="text-green-600 font-black flex items-center gap-1"><ShieldCheck className="h-2.5 w-2.5" /> FREE</span>
-                  ) : (
-                    <span>₹{charge.calculatedAmount.toFixed(2)}</span>
-                  )}
-                </div>
-              );
-            })}
+            {chargesLoading || profileLoading ? (
+              <div className="flex justify-between font-bold text-[11px] text-gray-300 uppercase tracking-widest animate-pulse">
+                <span>Calculating Taxes...</span>
+                <span>--</span>
+              </div>
+            ) : (
+              dynamic_charges.map((charge: any) => {
+                return (
+                  <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest">
+                    <span>{charge.name}</span>
+                    {charge.isWaived ? (
+                      <span className="text-green-600 font-black flex items-center gap-1"><ShieldCheck className="h-2.5 w-2.5" /> FREE (Elite)</span>
+                    ) : (
+                      <span>₹{charge.calculatedAmount.toFixed(2)}</span>
+                    )}
+                  </div>
+                );
+              })
+            )}
             {premiumPackaging && <div className="flex justify-between font-bold text-[11px] text-rose-500 uppercase tracking-widest"><span>Premium Packaging</span><span>₹10.00</span></div>}
             {appliedCoupon && <div className="flex justify-between font-black text-[11px] text-green-600 uppercase tracking-widest"><span>Discount</span><span>- ₹{couponDiscount.toFixed(2)}</span></div>}
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
@@ -773,7 +802,7 @@ export default function CartPage() {
              onPointerLeave={handlePointerUp}
              className={cn(
                "relative h-20 w-full rounded-[2.5rem] flex items-center select-none touch-none transform-gpu overflow-hidden cursor-pointer",
-               (isPlacing || blockedVendorNames.length > 0) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/30"
+               (isPlacing || blockedVendorNames.length > 0 || chargesLoading || profileLoading) ? "bg-gray-200" : "bg-[#F3F4F6] border-2 border-emerald-600/30"
              )}
              style={{
                ['--slide-x' as any]: '0px',
@@ -793,23 +822,23 @@ export default function CartPage() {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <div className="flex items-center gap-2">
                     <span className="text-sm font-black uppercase italic tracking-tighter text-emerald-900/40">
-                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (validationError ? 'PLEASE CHECK ABOVE' : 'SLIDE TO PLACE ORDER')}
+                      {isPlacing ? 'PLACING...' : blockedVendorNames.length > 0 ? 'STORE CLOSED' : (chargesLoading || profileLoading) ? 'SYNCING TAXES...' : (validationError ? 'CHECK ERRORS ABOVE' : 'SLIDE TO PLACE ORDER')}
                     </span>
-                    {!isPlacing && <ArrowRight className="h-4 w-4 text-emerald-600/40 animate-bounce-x" />}
+                    {!isPlacing && !chargesLoading && !profileLoading && <ArrowRight className="h-4 w-4 text-emerald-600/40 animate-bounce-x" />}
                  </div>
               </div>
 
               <div 
                 className={cn(
                   "absolute left-2 w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center shadow-2xl transform-gpu z-20 border-4 border-white/20",
-                  isPlacing && "animate-pulse"
+                  (isPlacing || chargesLoading || profileLoading) && "animate-pulse"
                 )}
                 style={{ 
                   transform: 'translateX(var(--slide-x)) scale(var(--slide-scale))',
                   transition: 'var(--slide-transition)'
                 }}
               >
-                {isPlacing ? (
+                {(isPlacing || chargesLoading || profileLoading) ? (
                   <Loader2 className="h-7 w-7 text-white animate-spin" />
                 ) : (
                   <ArrowRight className="h-8 w-8 text-white stroke-[4]" />
