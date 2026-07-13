@@ -7,6 +7,9 @@ export const generateStaticParams = async () => {
   return [];
 };
 
+// Next.js 15: Use dynamicParams to allow on-demand generation without breaking static export
+export const dynamicParams = true;
+
 export default async function OrderPage({
   params,
 }: {
@@ -25,7 +28,3 @@ export default async function OrderPage({
     </Suspense>
   );
 }
-
-// Set to force-dynamic to support runtime ID resolution on Firebase App Hosting
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;

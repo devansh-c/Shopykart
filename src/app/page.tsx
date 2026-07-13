@@ -9,8 +9,8 @@ import dynamic from 'next/dynamic';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
- * Optimized with Dynamic Imports to handle chunk loading robustly.
- * Removed Smart Basket AI to reduce system load.
+ * Optimized with Dynamic Imports for robust publishing.
+ * Removed Smart Basket AI completely to reduce system load and build errors.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -46,7 +46,7 @@ export default function ShopyKartApp() {
   const handleModeChange = (mode: string) => {
     startTransition(() => {
       setActiveMode(mode);
-      setActiveCategory('all'); // Reset category when mode changes
+      setActiveCategory('all');
     });
   };
 
