@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
   manifest: '/manifest.json',
   icons: {
-    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
-    apple: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>',
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
   },
   alternates: {
     canonical: 'https://shopykart.co.in/',
@@ -36,7 +36,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#FFFFFF',
+  themeColor: '#000000',
 };
 
 export default function RootLayout({
@@ -49,7 +49,7 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="ShopyKart" />
       </head>
       <body className="antialiased bg-white text-foreground overflow-x-hidden" suppressHydrationWarning>
