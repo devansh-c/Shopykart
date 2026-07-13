@@ -9,26 +9,31 @@ interface FirebaseClientProviderProps {
 }
 
 /**
- * Ensures Firebase is only initialized once in the browser.
- * Prevents hydration errors and instance mismatch crashes.
+ * Ensures Firebase is only initialized once in the browser environment.
+ * Handles hydration state to prevent instance mismatch crashes during dev compilation.
  */
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [isReady, setIsReady] = useState(false);
   
-  // Memoize instances to ensure they are stable across renders
+  // Memoize instances to ensure they are stable across refreshes
   const instances = useMemo(() => {
     if (typeof window === 'undefined') return null;
     return initializeFirebase();
   }, []);
 
   useEffect(() => {
-    setIsReady(true);
+    // Small delay to ensure hydration settles before marking ready
+    const timer = setTimeout(() => setIsReady(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  // During SSR or initial hydration, we render the children but not the provider 
-  // until we're ready on the client to avoid mismatch.
+  // Show a clean initial state during SSR or hydration
   if (!isReady || !instances || !instances.firebaseApp) {
-    return <div className="min-h-screen bg-white" />;
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (

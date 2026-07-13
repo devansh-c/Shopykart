@@ -52,7 +52,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ShopyKart" />
       </head>
-      <body className="antialiased bg-white text-foreground overflow-x-hidden">
+      <body className="antialiased bg-white text-foreground overflow-x-hidden" suppressHydrationWarning>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
