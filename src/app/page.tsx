@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 /**
  * @fileOverview ShopyKart Main Entrance.
  * Optimized with Dynamic Imports to handle chunk loading robustly.
+ * Removed Smart Basket AI to reduce system load.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -23,7 +24,6 @@ const OffersSection = dynamic(() => import('@/components/home/OffersSection'), {
 const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
 const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })), { ssr: false });
 const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })), { ssr: false });
-const SmartBasketAI = dynamic(() => import('@/components/home/SmartBasketAI').then(m => ({ default: m.SmartBasketAI })), { ssr: false });
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,7 +120,6 @@ export default function ShopyKartApp() {
               <Suspense fallback={<div className="h-[240px] mx-4 bg-muted/5 animate-pulse rounded-2xl" />}><StoreSection activeMode={activeMode} /></Suspense>
             )}
             {!searchQuery && <Suspense fallback={null}><OffersSection /></Suspense>}
-            {activeMode === 'Food' && !searchQuery && <ScrollReveal delay={320}><SmartBasketAI /></ScrollReveal>}
             <ScrollReveal delay={350}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>

@@ -132,7 +132,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const firestore = useFirestore();
 
   useEffect(() => {
-    // Immediate read for ultra-fast initial filter application
     const savedCity = localStorage.getItem('user_city');
     if (savedCity) setActiveCity(savedCity);
 
@@ -145,17 +144,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => clearInterval(interval);
   }, []);
 
-  // Performance Query: Limit products to 60 and trigger immediately
+  // Performance Query: Increased limit to ensure more products are visible
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(60));
+    return query(collection(firestore, 'products'), limit(150));
   }, [firestore]);
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
-  // Trigger vendors query in parallel
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(40));
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
@@ -186,17 +184,24 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
     return dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
+      
+      // ROBUST SERVICE MODE CHECK: Fixes missing items in Food hub
       const rawMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
       const productMode = (rawMode === 'restaurant' || rawMode === 'food') ? 'food' : rawMode;
       if (productMode !== currentModeLower) return false;
 
+      // FLEXIBLE CITY CHECK: Ensure products from 'all' towns or matching towns show up
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
-      if (targetCityNormalized && productTown) {
+      if (targetCityNormalized && productTown && productTown !== 'local') {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
 
-      return (!searchLower || product.name?.toLowerCase().includes(searchLower)) && (categoryLower === 'all' || product.category?.toLowerCase().trim() === categoryLower);
+      // CATEGORY & SEARCH
+      const matchesSearch = !searchLower || product.name?.toLowerCase().includes(searchLower);
+      const matchesCategory = categoryLower === 'all' || product.category?.toLowerCase().trim() === categoryLower;
+
+      return matchesSearch && matchesCategory;
     }).sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);

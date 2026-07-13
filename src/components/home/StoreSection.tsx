@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 /**
  * @fileOverview High-Performance StoreSection.
- * Optimized: Immediate query trigger without waiting for state.
+ * Optimized: Robust filtering for visibility.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -22,7 +22,6 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    // Immediate read from localStorage for faster filter application
     const savedCity = localStorage.getItem('user_city');
     if (savedCity) setActiveCity(savedCity);
 
@@ -36,11 +35,9 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     return () => clearInterval(interval);
   }, []);
 
-  // Optimized Query: Removed dependency on firestore instance being 'ready' beyond truthy check
-  // Limit increased to 30 for better coverage in one batch
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(30));
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -58,9 +55,8 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       
       if (vMode !== currentModeLower) return false;
       
-      // Flexible city matching
       const vTown = (v.town || '').toLowerCase().trim();
-      if (targetCityNormalized && vTown) {
+      if (targetCityNormalized && vTown && vTown !== 'local') {
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
       }
