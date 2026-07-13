@@ -2,6 +2,11 @@ import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
+// For static export compatibility (APK build)
+export const generateStaticParams = async () => {
+  return [];
+};
+
 export default async function OrderPage({
   params,
 }: {

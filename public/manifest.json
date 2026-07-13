@@ -1,11 +1,11 @@
 {
-  "name": "ShopyKart",
+  "name": "ShopyKart Premium Delivery",
   "short_name": "ShopyKart",
-  "description": "Premium Food & Grocery Delivery",
+  "description": "Gourmet food and essentials delivered instantly.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#EF4444",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FF0000",
   "icons": [
     {
       "src": "https://picsum.photos/seed/shopy-icon/192/192",
