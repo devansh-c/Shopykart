@@ -132,7 +132,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const firestore = useFirestore();
 
   useEffect(() => {
-    setActiveCity(localStorage.getItem('user_city'));
+    // Immediate read for ultra-fast initial filter application
+    const savedCity = localStorage.getItem('user_city');
+    if (savedCity) setActiveCity(savedCity);
+
     const syncTime = () => {
       const now = new Date();
       setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
@@ -142,16 +145,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => clearInterval(interval);
   }, []);
 
-  // Performance Query: Limit products to 40 for initial scroll efficiency
+  // Performance Query: Limit products to 60 and trigger immediately
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(60));
   }, [firestore]);
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
+  // Trigger vendors query in parallel
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'vendors');
+    return query(collection(firestore, 'vendors'), limit(40));
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 

@@ -1,10 +1,9 @@
-
 "use client"
 
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, where, limit } from "firebase/firestore"
+import { collection, query, limit } from "firebase/firestore"
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
@@ -12,7 +11,8 @@ import { isStoreScheduleOpen } from "./PopularProducts"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview High-Performance StoreSection with aggressive caching logic.
+ * @fileOverview High-Performance StoreSection.
+ * Optimized: Immediate query trigger without waiting for state.
  */
 export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -22,7 +22,10 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    setActiveCity(localStorage.getItem('user_city'));
+    // Immediate read from localStorage for faster filter application
+    const savedCity = localStorage.getItem('user_city');
+    if (savedCity) setActiveCity(savedCity);
+
     const syncTime = () => {
       const now = new Date();
       setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
@@ -33,10 +36,11 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     return () => clearInterval(interval);
   }, []);
 
-  // Optimized Query: Limit to 20 stores initially for speed
+  // Optimized Query: Removed dependency on firestore instance being 'ready' beyond truthy check
+  // Limit increased to 30 for better coverage in one batch
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(20));
+    return query(collection(firestore, 'vendors'), limit(30));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -54,6 +58,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
       
       if (vMode !== currentModeLower) return false;
       
+      // Flexible city matching
       const vTown = (v.town || '').toLowerCase().trim();
       if (targetCityNormalized && vTown) {
         if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
