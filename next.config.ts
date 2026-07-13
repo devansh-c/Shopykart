@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   /* 
    * HYBRID BUILD CONFIGURATION
    * We enable 'export' only if strictly requested via env var.
-   * Standard undefined output works best for Firebase Studio Publish.
+   * Standard build is preferred for Firebase Studio Publish.
    */
   output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : undefined,
   images: {
@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   trailingSlash: true,
+  // Increase timeout for build optimization
+  staticPageGenerationTimeout: 300,
 };
 
 export default nextConfig;
