@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -146,7 +145,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   // Performance Query: Limit products to 40 for initial scroll efficiency
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(40));
+    return query(collection(firestore, 'products'), limit(60));
   }, [firestore]);
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
@@ -210,7 +209,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsToDisplay === null || productsLoading) return <SkeletonLoader />;
+  if (productsToDisplay === null || (productsLoading && !dbProducts)) return <SkeletonLoader />;
 
   return (
     <div className="px-4 py-8 content-visibility-auto transform-gpu">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,14 +6,17 @@ import { Loader2, Sparkles } from 'lucide-react';
 
 /**
  * @fileOverview High-end animated Splash Screen with shimmer effects.
+ * Optimized to be used as both an app-ready indicator and a fallback loader.
  */
 export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   const [shouldExit, setShouldExit] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (isAppReady) {
       // Small delay for smooth exit animation
-      const timer = setTimeout(() => setShouldExit(true), 2000);
+      const timer = setTimeout(() => setShouldExit(true), 1500);
       return () => clearTimeout(timer);
     }
   }, [isAppReady]);
@@ -24,7 +26,7 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   return (
     <div className={cn(
       "fixed inset-0 z-[999999] bg-[#0B0B0B] flex flex-col items-center justify-center transition-all duration-1000 ease-premium",
-      isAppReady ? "opacity-0 scale-110 pointer-events-none" : "opacity-100 scale-100"
+      (isAppReady && mounted) ? "opacity-0 scale-110 pointer-events-none" : "opacity-100 scale-100"
     )}>
       {/* Dynamic Background */}
       <div className="absolute inset-0 overflow-hidden">

@@ -3,6 +3,7 @@
 import React, { ReactNode, useEffect, useState, useMemo } from 'react';
 import { FirebaseProvider } from './provider';
 import { initializeFirebase } from './init';
+import { SplashScreen } from '@/components/shared/SplashScreen';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -10,7 +11,7 @@ interface FirebaseClientProviderProps {
 
 /**
  * Ensures Firebase is only initialized once in the browser environment.
- * Handles hydration state to prevent instance mismatch crashes during dev compilation.
+ * Replaced default spinner with SplashScreen for a seamless initial boot.
  */
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [isReady, setIsReady] = useState(false);
@@ -22,18 +23,13 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
   }, []);
 
   useEffect(() => {
-    // Small delay to ensure hydration settles before marking ready
-    const timer = setTimeout(() => setIsReady(true), 0);
-    return () => clearTimeout(timer);
+    // Immediate ready state to allow SplashScreen to handle the exit transition
+    setIsReady(true);
   }, []);
 
-  // Show a clean initial state during SSR or hydration
+  // Show the luxury Splash Screen instead of the red spinner during initial boot
   if (!isReady || !instances || !instances.firebaseApp) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <SplashScreen isAppReady={false} />;
   }
 
   return (
