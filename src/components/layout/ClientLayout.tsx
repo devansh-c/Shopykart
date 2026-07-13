@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
+import { SplashScreen } from '@/components/shared/SplashScreen';
 
 // DYNAMIC IMPORTS FOR SECONDARY OVERLAYS
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
@@ -94,6 +96,8 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
       "relative min-h-screen flex flex-col overflow-x-hidden transition-colors duration-300",
       isAppFullyReady ? "bg-[#FAFAFA]" : "bg-white"
     )}>
+      <SplashScreen isAppReady={isAppFullyReady} />
+      
       {mounted && (
         <AuthGuard onReady={setIsAppFullyReady}>
           <div className="relative min-h-screen flex flex-col">
