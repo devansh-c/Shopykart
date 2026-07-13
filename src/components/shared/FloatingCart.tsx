@@ -10,6 +10,7 @@ import Link from 'next/link';
 
 /**
  * @fileOverview Compact Luxury White & Golden Floating Cart.
+ * Updated: Disabled on product pages to avoid overlapping with action bar.
  */
 export default function FloatingCart() {
   const { totalItems, totalPrice } = useCart();
@@ -18,7 +19,7 @@ export default function FloatingCart() {
   const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const isHiddenPage = ['/cart', '/admin', '/vendor', '/delivery', '/Medical', '/Beauty'].some(path => pathname?.startsWith(path));
+    const isHiddenPage = ['/cart', '/admin', '/vendor', '/delivery', '/Medical', '/Beauty', '/product'].some(path => pathname?.startsWith(path));
     
     if (totalItems > 0 && !isHiddenPage) {
       setIsVisible(true);

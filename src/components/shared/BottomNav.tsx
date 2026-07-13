@@ -17,6 +17,7 @@ const navItems = [
 
 /**
  * PERFORMANCE REFACTOR: Bottom Navigation with useTransition.
+ * Updated to exclude product and tracking pages for better action bar visibility.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -32,6 +33,9 @@ export default function BottomNav() {
            normalizedPath.startsWith('/delivery/') ||
            normalizedPath.startsWith('/Medical/') ||
            normalizedPath.startsWith('/Beauty/') ||
+           normalizedPath.startsWith('/product/') ||
+           normalizedPath.startsWith('/orders/track/') ||
+           normalizedPath.startsWith('/pages/view/') ||
            normalizedPath.startsWith('/cart/');
   }, [pathname]);
 

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -333,7 +334,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
                      )}>
                        {selectedOption?.name === opt.name && <CheckCircle2 className="h-3 w-3 text-white" />}
                      </div>
-                     <span className="text-sm font-black uppercase italic">{opt.name}</span>
+                     <span className="text-sm font-black uppercase italic text-gray-700 tracking-tight">{opt.name}</span>
                   </div>
                   <span className="text-sm font-black text-primary">
                     {opt.price > 0 ? `+ ₹${opt.price}` : 'FREE'}
@@ -424,7 +425,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 z-[11000] bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-4 max-w-lg mx-auto">
           <div className={cn("flex items-center bg-muted/50 rounded-2xl h-14 px-2", isOffline && "opacity-50")}>
             <button 
