@@ -30,14 +30,15 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 
   useEffect(() => {
     setIsClient(true);
-    // Instant boot for session holders
+    // Instant boot logic for session holders, but allow Splash screen to mount
     const hasSession = localStorage.getItem('shopykart_session_active') === 'true';
     if (hasSession) {
-      onReady(true);
+      const bootTimer = setTimeout(() => onReady(true), 100);
+      return () => clearTimeout(bootTimer);
     }
     
-    // Safety timer
-    const timer = setTimeout(() => onReady(true), 1200);
+    // Safety timer to prevent stuck loading
+    const timer = setTimeout(() => onReady(true), 1500);
     return () => clearTimeout(timer);
   }, [onReady]);
 
@@ -86,7 +87,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           
           <AuthGuard onReady={setIsAppFullyReady}>
             <div className={cn(
-              "relative min-h-screen flex flex-col transition-opacity duration-300",
+              "relative min-h-screen flex flex-col transition-opacity duration-700 delay-300",
               isAppFullyReady ? "opacity-100" : "opacity-0"
             )}>
               <main className={cn("flex-1", !isExcludedPath && "pb-44")}>

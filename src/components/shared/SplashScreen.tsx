@@ -5,28 +5,32 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview High-end Minimalist Splash Screen.
- * Optimized: Fixed hydration issues and improved exit speed for premium feel.
+ * Optimized: Guaranteed visibility for 1.8s to ensure premium branding experience.
  */
 export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
-  const [shouldExit, setShouldExit] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [minDurationPassed, setMinTimeElapsed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    if (isAppReady) {
-      // Small delay for the final scale-up transition
-      const timer = setTimeout(() => setShouldExit(true), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isAppReady]);
+    // Minimum time to show branding (1.8 seconds)
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, 1800);
 
-  // Prevent any rendering on server to avoid hydration mismatch
-  if (!mounted || shouldExit) return null;
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Hydration safety: Don't render anything on server
+  if (!mounted) return null;
+
+  // The splash screen hides ONLY when both app is ready AND min duration has passed
+  const shouldHide = isAppReady && minDurationPassed;
 
   return (
     <div className={cn(
-      "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-all duration-700 ease-premium transform-gpu",
-      isAppReady ? "opacity-0 pointer-events-none scale-110 blur-xl" : "opacity-100"
+      "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-all duration-1000 ease-premium transform-gpu",
+      shouldHide ? "opacity-0 pointer-events-none scale-110 blur-xl" : "opacity-100"
     )}>
       {/* Main Logo Container - Luxury Box */}
       <div className="relative flex flex-col items-center px-12 py-8 border-2 border-[#C5A021]/20 rounded-[3.5rem] bg-black shadow-[0_0_100px_rgba(197,160,33,0.1)] animate-in fade-in zoom-in duration-1000">
@@ -56,14 +60,14 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
         <div 
           className={cn(
             "h-full bg-[#C5A021] shadow-[0_0_20px_#C5A021] transition-all duration-500 ease-out",
-            isAppReady ? "w-full" : "w-1/4 animate-running-line"
+            shouldHide ? "w-full" : "w-1/4 animate-running-line"
           )} 
         />
       </div>
 
       {/* Version Tag */}
       <div className="absolute bottom-10 left-0 right-0 text-center">
-         <p className="text-[7px] font-black text-white/10 uppercase tracking-[0.8em]">Secure Enterprise Core v7.0</p>
+         <p className="text-[7px] font-black text-white/10 uppercase tracking-[0.8em]">Secure Enterprise Core v7.2</p>
       </div>
     </div>
   );
