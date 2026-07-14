@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
-import { SplashScreen } from '@/components/shared/SplashScreen';
 
 // DYNAMIC IMPORTS
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
@@ -22,7 +21,7 @@ const DynamicLocationRequest = dynamic(() => import('@/components/shared/Locatio
 const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart'), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 
-const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (ready: boolean) => void }) => {
+const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
   const pathname = usePathname();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
@@ -30,27 +29,16 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 
   useEffect(() => {
     setIsClient(true);
-    // Instant boot logic for session holders, but allow Splash screen to mount
-    const hasSession = localStorage.getItem('shopykart_session_active') === 'true';
-    if (hasSession) {
-      const bootTimer = setTimeout(() => onReady(true), 100);
-      return () => clearTimeout(bootTimer);
-    }
-    
-    // Safety timer to prevent stuck loading
-    const timer = setTimeout(() => onReady(true), 1500);
-    return () => clearTimeout(timer);
-  }, [onReady]);
+  }, []);
 
   useEffect(() => {
     if (!loading) {
-      onReady(true);
       if (!user && localStorage.getItem('shopykart_session_active') !== 'true') {
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 400);
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 200);
         return () => clearTimeout(authTimer);
       }
     }
-  }, [user, loading, onReady]);
+  }, [user, loading]);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
@@ -68,7 +56,6 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 AuthGuard.displayName = "AuthGuard";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
-  const [isAppFullyReady, setIsAppFullyReady] = useState(false);
   const pathname = usePathname();
 
   const isExcludedPath = useMemo(() => {
@@ -83,13 +70,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         <div className="relative min-h-screen flex flex-col">
           <DynamicBrandingLoader />
           <FirebaseErrorListener />
-          <SplashScreen isAppReady={isAppFullyReady} />
           
-          <AuthGuard onReady={setIsAppFullyReady}>
-            <div className={cn(
-              "relative min-h-screen flex flex-col transition-opacity duration-700 delay-300",
-              isAppFullyReady ? "opacity-100" : "opacity-0"
-            )}>
+          <AuthGuard>
+            <div className="relative min-h-screen flex flex-col">
               <main className={cn("flex-1", !isExcludedPath && "pb-44")}>
                 {!isExcludedPath && <DynamicLocationRequest />}
                 <DynamicNotificationHandler />
