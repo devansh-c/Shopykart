@@ -1,38 +1,22 @@
-npm run static-build
 # ShopyKart - Premium Food Delivery
 
-This is the official NextJS source code for ShopyKart.
+Official NextJS source code for ShopyKart.
 
-## 🚀 Domain Connection Instructions (Shopykart.co.in)
+## 🚀 Domain Status (shopykart.co.in)
 
-To finish connecting your domain, please follow these steps:
-
-1. **Firebase Console**:
-   - Go to [Firebase Hosting Dashboard](https://console.firebase.google.com/project/_/hosting/main).
-   - Click **"Add custom domain"**.
-   - Enter `shopykart.co.in`.
-
-2. **DNS Verification**:
-   - Firebase will provide a **TXT record**.
-   - Log in to your domain registrar (e.g., GoDaddy, Hostinger).
-   - Go to DNS Management and add the TXT record as shown in Firebase.
-
-3. **Point to IP**:
-   - Once verified, Firebase will provide two **A records**.
-   - Add these A records to your DNS settings.
-   - Wait for SSL propagation (usually takes 1-2 hours).
-
-4. **⚠️ IMPORTANT: Authorize Auth Domain**:
+✅ **Hosting:** Connected via Firebase App Hosting.
+✅ **Email Templates:** Domain verified for custom sender.
+⚠️ **FINAL STEP REQUIRED:** 
    - Go to [Firebase Authentication Settings](https://console.firebase.google.com/project/_/authentication/settings).
    - Under **"Authorized domains"**, click **"Add domain"**.
    - Add `shopykart.co.in`.
-   - Without this, Apple Login and Email Auth will throw `unauthorized-domain` errors.
+   - *Reason:* Bina iske login flows (Google/Email) block ho sakte hain.
 
 ## 🛠 Project Structure
 - `src/app`: App Router pages.
 - `src/components`: UI and Business logic components.
-- `src/ai`: Genkit flows for AI features.
+- `src/ai`: Genkit flows (Smart Basket Removed).
 - `src/firebase`: Real-time database and auth configuration.
 
 ## 📦 Deployment
-Run `npm run static-build` to generate the `out/` folder for production.
+Run `npm run build` or use the "Publish" button in Firebase Studio.
