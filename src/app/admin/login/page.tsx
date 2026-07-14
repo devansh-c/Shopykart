@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, Suspense } from 'react';
@@ -12,6 +11,9 @@ import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Admin Login with noindex to keep it off Google Search.
+ */
 function AdminLoginPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,18 +31,15 @@ function AdminLoginPageContent() {
     const perms = localStorage.getItem('team_permissions');
 
     if (isTeamMode) {
-      // If entering Team Mode, but currently logged in as Master, clear it.
       if (perms === 'all') {
         localStorage.removeItem('admin_auth');
         localStorage.removeItem('team_permissions');
       }
     } else {
-      // If entering Master Mode, but currently logged in as Staff, clear it.
       if (perms !== 'all' && auth === 'true') {
         localStorage.removeItem('admin_auth');
         localStorage.removeItem('team_permissions');
       } else if (auth === 'true' && perms === 'all') {
-        // Already logged in as CEO, redirect to dashboard
         router.push('/admin/dashboard');
       }
     }
@@ -96,6 +95,11 @@ function AdminLoginPageContent() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+      {/* NOINDEX HEADER FOR SEO PROTECTION - ADMIN MUST NOT BE ON GOOGLE */}
+      <head>
+        <meta name="robots" content="noindex, nofollow" />
+      </head>
+
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
         <CardHeader className="text-center pt-10">
           <div className={cn(

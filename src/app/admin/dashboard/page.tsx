@@ -254,7 +254,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row transform-gpu">
-      {/* NOINDEX HEADER FOR SEO PROTECTION */}
+      {/* NOINDEX HEADER FOR SEO PROTECTION - ADMIN MUST NOT BE ON GOOGLE */}
       <head>
         <meta name="robots" content="noindex, nofollow" />
       </head>

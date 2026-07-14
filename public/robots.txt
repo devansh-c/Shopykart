@@ -1,13 +1,11 @@
 User-agent: *
-Allow: /
-Allow: /menu/
+Disallow: /admin/
+Disallow: /admin/*
+Allow: /vendor/
+Allow: /delivery/
 Allow: /product/
 Allow: /pages/
 Allow: /stores/
-Disallow: /admin/
-Disallow: /vendor/
-Disallow: /delivery/
-Disallow: /cart/
-Disallow: /orders/
+Allow: /
 
 Sitemap: https://shopycart.site/sitemap.xml

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck, UserX, ReceiptText, FileText, Type, Trash2, Share2, Instagram, Facebook, Twitter, MessageCircle, Phone, Mail } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ReceiptText, FileText, Type, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview BrandingManagement with Footer sections removed as requested.
+ */
 export default function BrandingManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -44,15 +47,6 @@ export default function BrandingManagement() {
     receiptFooter: 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
     receiptThankYou: 'Enjoy your delicious meal!',
     showGstOnReceipt: true,
-    // Footer & Socials
-    footerAbout: 'Premium food delivery service serving the best gourmet meals in Ranipur and Mauranipur.',
-    footerCopyright: '© 2024 ShopyKart Private Limited',
-    contactEmail: 'support@shopykart.co.in',
-    contactPhone: '+91 79920 90977',
-    instagramUrl: '',
-    facebookUrl: '',
-    twitterUrl: '',
-    whatsappUrl: 'https://wa.me/917992090977',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -74,14 +68,6 @@ export default function BrandingManagement() {
         receiptFooter: settings.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
         receiptThankYou: settings.receiptThankYou || 'Enjoy your delicious meal!',
         showGstOnReceipt: settings.showGstOnReceipt !== false,
-        footerAbout: settings.footerAbout || 'Premium food delivery service serving the best gourmet meals in Ranipur and Mauranipur.',
-        footerCopyright: settings.footerCopyright || '© 2024 ShopyKart Private Limited',
-        contactEmail: settings.contactEmail || 'support@shopykart.co.in',
-        contactPhone: settings.contactPhone || '+91 79920 90977',
-        instagramUrl: settings.instagramUrl || '',
-        facebookUrl: settings.facebookUrl || '',
-        twitterUrl: settings.twitterUrl || '',
-        whatsappUrl: settings.whatsappUrl || 'https://wa.me/917992090977',
       });
     }
   }, [settings]);
@@ -136,7 +122,7 @@ export default function BrandingManagement() {
         coinValue: parseFloat(formData.coinValue) || 0.5,
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      toast({ title: "Settings Saved!", description: "Identity, receipts, and footer are now live." });
+      toast({ title: "Settings Saved!", description: "Branding and receipts are now live." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -149,10 +135,9 @@ export default function BrandingManagement() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <Tabs defaultValue="brand" className="w-full">
-        <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-2 md:flex">
-           <TabsTrigger value="brand" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Identity & Apps</TabsTrigger>
-           <TabsTrigger value="receipt" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Receipt Designer</TabsTrigger>
-           <TabsTrigger value="footer" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Footer & Socials</TabsTrigger>
+        <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-3 md:flex">
+           <TabsTrigger value="brand" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Identity & SEO</TabsTrigger>
+           <TabsTrigger value="receipt" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Receipts</TabsTrigger>
            <TabsTrigger value="automation" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Automation</TabsTrigger>
         </TabsList>
 
@@ -177,18 +162,8 @@ export default function BrandingManagement() {
                     <>
                       <img src={formData.logoUrl} className="h-full w-full object-contain p-4" alt="Logo" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); logoInputRef.current?.click(); }}
-                          className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteImage('logoUrl'); }}
-                          className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); logoInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('logoUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
@@ -199,7 +174,7 @@ export default function BrandingManagement() {
               </div>
 
               <div className="space-y-2 relative group">
-                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Global Notification Logo</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Notification Icon</label>
                 <div 
                   onClick={() => !formData.notificationLogoUrl && notifyInputRef.current?.click()} 
                   className={cn(
@@ -211,18 +186,8 @@ export default function BrandingManagement() {
                     <>
                       <img src={formData.notificationLogoUrl} className="h-full w-full object-contain p-4" alt="Notify" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); notifyInputRef.current?.click(); }}
-                          className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteImage('notificationLogoUrl'); }}
-                          className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); notifyInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('notificationLogoUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
@@ -233,7 +198,7 @@ export default function BrandingManagement() {
               </div>
 
               <div className="space-y-2 relative group">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Favicon (Tab Icon)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Favicon (Tab)</label>
                 <div 
                   onClick={() => !formData.faviconUrl && faviconInputRef.current?.click()} 
                   className={cn(
@@ -245,18 +210,8 @@ export default function BrandingManagement() {
                     <>
                       <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="Favicon" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); faviconInputRef.current?.click(); }}
-                          className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteImage('faviconUrl'); }}
-                          className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); faviconInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><LinkIcon className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('faviconUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
@@ -269,11 +224,11 @@ export default function BrandingManagement() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Site Title (SEO)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Site SEO Title</label>
                   <Input value={formData.siteTitle} onChange={e => setFormData({...formData, siteTitle: e.target.value})} className="h-12 rounded-xl font-bold" />
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Economy: 1 Coin = ? INR</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">1 Coin = ? INR</label>
                   <Input type="number" step="0.1" value={formData.coinValue} onChange={e => setFormData({...formData, coinValue: e.target.value})} className="h-12 rounded-xl font-black italic text-primary" />
                </div>
             </div>
@@ -285,164 +240,35 @@ export default function BrandingManagement() {
             <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-6">
                <div className="flex items-center gap-3">
                   <div className="bg-blue-50 p-2 rounded-xl text-blue-600"><ReceiptText className="h-5 w-5" /></div>
-                  <h3 className="text-lg font-black italic uppercase">Receipt Configuration</h3>
+                  <h3 className="text-lg font-black italic uppercase">Receipt Design</h3>
                </div>
 
                <div className="space-y-5">
                   <div className="space-y-1">
-                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Store Address / Header</label>
-                     <Textarea 
-                       value={formData.receiptHeader} 
-                       onChange={e => setFormData({...formData, receiptHeader: e.target.value})}
-                       className="min-h-[120px] rounded-2xl font-bold text-xs" 
-                     />
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Header Address</label>
+                     <Textarea value={formData.receiptHeader} onChange={e => setFormData({...formData, receiptHeader: e.target.value})} className="min-h-[120px] rounded-2xl font-bold text-xs" />
                   </div>
                   <div className="space-y-1">
-                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Catchy Thank You Note</label>
-                     <Input 
-                       value={formData.receiptThankYou} 
-                       onChange={e => setFormData({...formData, receiptThankYou: e.target.value})}
-                       className="h-12 rounded-xl font-bold text-primary italic" 
-                     />
-                  </div>
-                  <div className="space-y-1">
-                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Footer Legal/Terms</label>
-                     <Textarea 
-                       value={formData.receiptFooter} 
-                       onChange={e => setFormData({...formData, receiptFooter: e.target.value})}
-                       className="min-h-[80px] rounded-2xl text-[10px] font-bold" 
-                     />
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Thank You Note</label>
+                     <Input value={formData.receiptThankYou} onChange={e => setFormData({...formData, receiptThankYou: e.target.value})} className="h-12 rounded-xl font-bold text-primary italic" />
                   </div>
                   <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
-                     <div className="flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4 text-green-600" />
-                        <span className="text-[10px] font-black uppercase">Auto-Calculate Taxes</span>
-                     </div>
+                     <span className="text-[10px] font-black uppercase">Show GST Details</span>
                      <Switch checked={formData.showGstOnReceipt} onCheckedChange={v => setFormData({...formData, showGstOnReceipt: v})} />
                   </div>
                </div>
             </div>
 
             <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-dashed border-gray-300 flex flex-col items-center justify-center relative overflow-hidden">
-               <div className="absolute top-4 left-4"><Badge className="bg-blue-600 text-white font-black text-[8px] uppercase">Live Preview</Badge></div>
-               <div className="w-full max-w-[300px] bg-white shadow-2xl p-6 border-t-[6px] border-black space-y-4 font-mono text-[10px]">
+               <Badge className="absolute top-4 left-4 bg-blue-600 text-white font-black text-[8px] uppercase">Preview</Badge>
+               <div className="w-full max-w-[280px] bg-white shadow-2xl p-6 border-t-[6px] border-black space-y-4 font-mono text-[10px]">
                   <div className="text-center space-y-1">
                      <h4 className="font-black text-xs uppercase">SHOPYKART</h4>
                      <p className="whitespace-pre-line leading-tight opacity-60 uppercase">{formData.receiptHeader}</p>
                   </div>
-                  <div className="border-y border-dashed py-2 space-y-1">
-                     <div className="flex justify-between font-black uppercase"><span>Item x1</span><span>₹199.00</span></div>
-                     <div className="flex justify-between font-black uppercase"><span>Item x2</span><span>₹450.00</span></div>
-                  </div>
-                  <div className="space-y-1">
-                     <div className="flex justify-between font-black"><span>TOTAL</span><span>₹649.00</span></div>
-                     <p className="text-center italic font-bold pt-2 text-primary">{formData.receiptThankYou}</p>
-                  </div>
-                  <div className="text-center opacity-40 text-[7px] pt-4 uppercase">
-                     {formData.receiptFooter}
-                  </div>
+                  <div className="border-y border-dashed py-2 flex justify-between font-black uppercase"><span>TOTAL</span><span>₹649.00</span></div>
+                  <p className="text-center italic font-bold pt-2 text-primary">{formData.receiptThankYou}</p>
                </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="footer" className="space-y-8 mt-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-6">
-              <div className="flex items-center gap-3">
-                 <div className="bg-purple-50 p-2 rounded-xl text-purple-600"><FileText className="h-5 w-5" /></div>
-                 <h3 className="text-lg font-black italic uppercase">Footer Configuration</h3>
-              </div>
-
-              <div className="space-y-5">
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Footer About Text</label>
-                    <Textarea 
-                      value={formData.footerAbout} 
-                      onChange={e => setFormData({...formData, footerAbout: e.target.value})}
-                      className="min-h-[100px] rounded-2xl font-medium" 
-                    />
-                 </div>
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Copyright Line</label>
-                    <Input 
-                      value={formData.footerCopyright} 
-                      onChange={e => setFormData({...formData, footerCopyright: e.target.value})}
-                      className="h-12 rounded-xl font-bold" 
-                    />
-                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Support Email</label>
-                       <Input 
-                        value={formData.contactEmail} 
-                        onChange={e => setFormData({...formData, contactEmail: e.target.value})}
-                        className="h-12 rounded-xl font-bold" 
-                       />
-                    </div>
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Support Phone</label>
-                       <Input 
-                        value={formData.contactPhone} 
-                        onChange={e => setFormData({...formData, contactPhone: e.target.value})}
-                        className="h-12 rounded-xl font-bold" 
-                       />
-                    </div>
-                 </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-6">
-              <div className="flex items-center gap-3">
-                 <div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Share2 className="h-5 w-5" /></div>
-                 <h3 className="text-lg font-black italic uppercase">Social Connectivity</h3>
-              </div>
-
-              <div className="space-y-4">
-                 <div className="relative group">
-                    <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-pink-500" />
-                    <Input 
-                      placeholder="Instagram URL" 
-                      value={formData.instagramUrl} 
-                      onChange={e => setFormData({...formData, instagramUrl: e.target.value})}
-                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
-                    />
-                 </div>
-                 <div className="relative group">
-                    <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600" />
-                    <Input 
-                      placeholder="Facebook URL" 
-                      value={formData.facebookUrl} 
-                      onChange={e => setFormData({...formData, facebookUrl: e.target.value})}
-                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
-                    />
-                 </div>
-                 <div className="relative group">
-                    <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-400" />
-                    <Input 
-                      placeholder="Twitter URL" 
-                      value={formData.twitterUrl} 
-                      onChange={e => setFormData({...formData, twitterUrl: e.target.value})}
-                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
-                    />
-                 </div>
-                 <div className="relative group">
-                    <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                    <Input 
-                      placeholder="WhatsApp URL (Direct link)" 
-                      value={formData.whatsappUrl} 
-                      onChange={e => setFormData({...formData, whatsappUrl: e.target.value})}
-                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
-                    />
-                 </div>
-              </div>
-
-              <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100/50 flex gap-4">
-                 <div className="bg-white p-2 rounded-xl shadow-sm text-purple-600 h-fit"><Zap className="h-4 w-4" /></div>
-                 <p className="text-[10px] font-bold text-purple-800 uppercase leading-relaxed">
-                   Links ko empty chhodne par footer se wo icon apne aap hide ho jayega.
-                 </p>
-              </div>
             </div>
           </div>
         </TabsContent>
@@ -452,7 +278,7 @@ export default function BrandingManagement() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-500/10 p-2 rounded-xl text-blue-600"><Send className="h-5 w-5" /></div>
-                <h3 className="text-lg font-black italic uppercase">Telegram Integration</h3>
+                <h3 className="text-lg font-black italic uppercase">Telegram Alerts</h3>
               </div>
               <Switch checked={formData.enableTelegram} onCheckedChange={(checked) => setFormData({...formData, enableTelegram: checked})} />
             </div>
@@ -460,14 +286,10 @@ export default function BrandingManagement() {
                <div className="space-y-4">
                   <Input value={formData.telegramBotToken} onChange={e => setFormData({...formData, telegramBotToken: e.target.value})} placeholder="Bot Token" className="h-12 rounded-xl bg-muted/5 border-none font-bold" />
                   <Input value={formData.telegramChatId} onChange={e => setFormData({...formData, telegramChatId: e.target.value})} placeholder="Chat ID" className="h-12 rounded-xl bg-muted/5 border-none font-bold" />
-                  <Button onClick={handleTestTelegram} disabled={isTesting} variant="outline" className="w-full h-12 rounded-xl border-blue-100 text-blue-600 font-black uppercase text-[10px]">
-                    {isTesting ? "SENDING..." : "TEST CONNECTION"}
-                  </Button>
+                  <Button onClick={handleTestTelegram} disabled={isTesting} variant="outline" className="w-full h-12 rounded-xl border-blue-100 text-blue-600 font-black uppercase text-[10px]">TEST CONNECTION</Button>
                </div>
                <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 flex flex-col justify-center">
-                  <p className="text-[10px] font-bold text-blue-700 uppercase leading-relaxed italic">
-                    Is bot ke zariye aapko har order aur status update ka real-time notification aapke phone par Telegram ke zariye milega.
-                  </p>
+                  <p className="text-[10px] font-bold text-blue-700 uppercase leading-relaxed italic">Get real-time order alerts on Telegram.</p>
                </div>
             </div>
           </div>
@@ -477,7 +299,7 @@ export default function BrandingManagement() {
       <div className="flex justify-center pt-10">
         <Button onClick={handleSave} disabled={isSaving} className="w-full md:w-auto px-16 h-18 rounded-[2rem] bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-2xl transition-all hover:bg-primary">
           {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Save className="h-6 w-6 mr-3" />}
-          PUBLISH ALL SETTINGS
+          SAVE CONFIGURATION
         </Button>
       </div>
     </div>
