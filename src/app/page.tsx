@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 /**
  * @fileOverview ShopyKart Main Entrance.
  * Optimized with Dynamic Imports for robust publishing.
- * Removed Smart Basket AI completely to reduce system load and build errors.
+ * Added dynamic Footer component.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -24,6 +24,7 @@ const OffersSection = dynamic(() => import('@/components/home/OffersSection'), {
 const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
 const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })), { ssr: false });
 const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })), { ssr: false });
+const Footer = dynamic(() => import('@/components/shared/Footer').then(m => ({ default: m.Footer })), { ssr: false });
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,6 +125,9 @@ export default function ShopyKartApp() {
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
         )}
+        
+        {/* Added Premium Dynamic Footer */}
+        {!searchQuery && <Footer />}
       </main>
     </div>
   );

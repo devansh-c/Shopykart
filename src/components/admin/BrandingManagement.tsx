@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck, UserX, ReceiptText, FileText, Type, Trash2 } from 'lucide-react';
+import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ThermometerSun, AlertTriangle, Clock, CalendarClock, Truck, UserX, ReceiptText, FileText, Type, Trash2, Share2, Instagram, Facebook, Twitter, MessageCircle, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,6 +44,15 @@ export default function BrandingManagement() {
     receiptFooter: 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
     receiptThankYou: 'Enjoy your delicious meal!',
     showGstOnReceipt: true,
+    // Footer & Socials
+    footerAbout: 'Premium food delivery service serving the best gourmet meals in Ranipur and Mauranipur.',
+    footerCopyright: '© 2024 ShopyKart Private Limited',
+    contactEmail: 'support@shopykart.co.in',
+    contactPhone: '+91 79920 90977',
+    instagramUrl: '',
+    facebookUrl: '',
+    twitterUrl: '',
+    whatsappUrl: 'https://wa.me/917992090977',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -65,6 +74,14 @@ export default function BrandingManagement() {
         receiptFooter: settings.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
         receiptThankYou: settings.receiptThankYou || 'Enjoy your delicious meal!',
         showGstOnReceipt: settings.showGstOnReceipt !== false,
+        footerAbout: settings.footerAbout || 'Premium food delivery service serving the best gourmet meals in Ranipur and Mauranipur.',
+        footerCopyright: settings.footerCopyright || '© 2024 ShopyKart Private Limited',
+        contactEmail: settings.contactEmail || 'support@shopykart.co.in',
+        contactPhone: settings.contactPhone || '+91 79920 90977',
+        instagramUrl: settings.instagramUrl || '',
+        facebookUrl: settings.facebookUrl || '',
+        twitterUrl: settings.twitterUrl || '',
+        whatsappUrl: settings.whatsappUrl || 'https://wa.me/917992090977',
       });
     }
   }, [settings]);
@@ -82,7 +99,6 @@ export default function BrandingManagement() {
       toast({ title: "Image Loaded", description: "Save changes to make it live." });
     };
     reader.readAsDataURL(file);
-    // Reset input so the same file can be uploaded again if deleted
     e.target.value = '';
   };
 
@@ -120,7 +136,7 @@ export default function BrandingManagement() {
         coinValue: parseFloat(formData.coinValue) || 0.5,
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      toast({ title: "Settings Saved!", description: "All changes including receipt designs are now live." });
+      toast({ title: "Settings Saved!", description: "Identity, receipts, and footer are now live." });
     } catch (err) {
       toast({ variant: "destructive", title: "Update Failed" });
     } finally {
@@ -136,6 +152,7 @@ export default function BrandingManagement() {
         <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-2 md:flex">
            <TabsTrigger value="brand" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Identity & Apps</TabsTrigger>
            <TabsTrigger value="receipt" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Receipt Designer</TabsTrigger>
+           <TabsTrigger value="footer" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Footer & Socials</TabsTrigger>
            <TabsTrigger value="automation" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Automation</TabsTrigger>
         </TabsList>
 
@@ -158,7 +175,7 @@ export default function BrandingManagement() {
                 >
                   {formData.logoUrl ? (
                     <>
-                      <img src={formData.logoUrl} className="h-full w-full object-contain p-4" />
+                      <img src={formData.logoUrl} className="h-full w-full object-contain p-4" alt="Logo" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); logoInputRef.current?.click(); }}
@@ -192,7 +209,7 @@ export default function BrandingManagement() {
                 >
                   {formData.notificationLogoUrl ? (
                     <>
-                      <img src={formData.notificationLogoUrl} className="h-full w-full object-contain p-4" />
+                      <img src={formData.notificationLogoUrl} className="h-full w-full object-contain p-4" alt="Notify" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); notifyInputRef.current?.click(); }}
@@ -226,7 +243,7 @@ export default function BrandingManagement() {
                 >
                   {formData.faviconUrl ? (
                     <>
-                      <img src={formData.faviconUrl} className="h-10 w-10 object-contain" />
+                      <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="Favicon" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); faviconInputRef.current?.click(); }}
@@ -325,6 +342,107 @@ export default function BrandingManagement() {
                      {formData.receiptFooter}
                   </div>
                </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="footer" className="space-y-8 mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-6">
+              <div className="flex items-center gap-3">
+                 <div className="bg-purple-50 p-2 rounded-xl text-purple-600"><FileText className="h-5 w-5" /></div>
+                 <h3 className="text-lg font-black italic uppercase">Footer Configuration</h3>
+              </div>
+
+              <div className="space-y-5">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Footer About Text</label>
+                    <Textarea 
+                      value={formData.footerAbout} 
+                      onChange={e => setFormData({...formData, footerAbout: e.target.value})}
+                      className="min-h-[100px] rounded-2xl font-medium" 
+                    />
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Copyright Line</label>
+                    <Input 
+                      value={formData.footerCopyright} 
+                      onChange={e => setFormData({...formData, footerCopyright: e.target.value})}
+                      className="h-12 rounded-xl font-bold" 
+                    />
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Support Email</label>
+                       <Input 
+                        value={formData.contactEmail} 
+                        onChange={e => setFormData({...formData, contactEmail: e.target.value})}
+                        className="h-12 rounded-xl font-bold" 
+                       />
+                    </div>
+                    <div className="space-y-1">
+                       <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Support Phone</label>
+                       <Input 
+                        value={formData.contactPhone} 
+                        onChange={e => setFormData({...formData, contactPhone: e.target.value})}
+                        className="h-12 rounded-xl font-bold" 
+                       />
+                    </div>
+                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm space-y-6">
+              <div className="flex items-center gap-3">
+                 <div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Share2 className="h-5 w-5" /></div>
+                 <h3 className="text-lg font-black italic uppercase">Social Connectivity</h3>
+              </div>
+
+              <div className="space-y-4">
+                 <div className="relative group">
+                    <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-pink-500" />
+                    <Input 
+                      placeholder="Instagram URL" 
+                      value={formData.instagramUrl} 
+                      onChange={e => setFormData({...formData, instagramUrl: e.target.value})}
+                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
+                    />
+                 </div>
+                 <div className="relative group">
+                    <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600" />
+                    <Input 
+                      placeholder="Facebook URL" 
+                      value={formData.facebookUrl} 
+                      onChange={e => setFormData({...formData, facebookUrl: e.target.value})}
+                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
+                    />
+                 </div>
+                 <div className="relative group">
+                    <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-400" />
+                    <Input 
+                      placeholder="Twitter URL" 
+                      value={formData.twitterUrl} 
+                      onChange={e => setFormData({...formData, twitterUrl: e.target.value})}
+                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
+                    />
+                 </div>
+                 <div className="relative group">
+                    <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    <Input 
+                      placeholder="WhatsApp URL (Direct link)" 
+                      value={formData.whatsappUrl} 
+                      onChange={e => setFormData({...formData, whatsappUrl: e.target.value})}
+                      className="h-12 pl-12 rounded-xl bg-gray-50 border-none font-medium" 
+                    />
+                 </div>
+              </div>
+
+              <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100/50 flex gap-4">
+                 <div className="bg-white p-2 rounded-xl shadow-sm text-purple-600 h-fit"><Zap className="h-4 w-4" /></div>
+                 <p className="text-[10px] font-bold text-purple-800 uppercase leading-relaxed">
+                   Links ko empty chhodne par footer se wo icon apne aap hide ho jayega.
+                 </p>
+              </div>
             </div>
           </div>
         </TabsContent>
