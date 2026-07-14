@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview High-end Minimalist Splash Screen.
  * Optimized: Logo is stable in the center (no popup/zoom).
+ * Logo size reduced as requested. SEO safe as it is client-side only.
  * Guaranteed visibility for 1.8s to ensure premium branding experience.
  */
 export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
@@ -34,21 +35,21 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
       shouldHide ? "opacity-0 pointer-events-none scale-110 blur-xl" : "opacity-100"
     )}>
       {/* Main Logo Container - Stable Luxury Box */}
-      <div className="relative flex flex-col items-center px-12 py-8 border-2 border-[#C5A021]/20 rounded-[3.5rem] bg-black shadow-[0_0_100px_rgba(197,160,33,0.1)] animate-in fade-in duration-1000">
+      <div className="relative flex flex-col items-center px-10 py-6 border-2 border-[#C5A021]/20 rounded-[2.5rem] bg-black shadow-[0_0_100px_rgba(197,160,33,0.1)] animate-in fade-in duration-1000">
         
         {/* Glowing Aura behind Logo */}
-        <div className="absolute inset-0 bg-[#C5A021]/5 blur-[60px] rounded-full animate-pulse pointer-events-none" />
+        <div className="absolute inset-0 bg-[#C5A021]/5 blur-[40px] rounded-full animate-pulse pointer-events-none" />
 
-        <div className="relative flex items-center text-5xl sm:text-7xl font-black italic tracking-tighter leading-none select-none">
+        <div className="relative flex items-center text-3xl sm:text-4xl font-black italic tracking-tighter leading-none select-none">
           <span className="text-white drop-shadow-lg">SHOPY</span>
           <span className="text-[#C5A021] drop-shadow-[0_0_15px_rgba(197,160,33,0.4)] ml-1">KART</span>
         </div>
         
         {/* Elegant Gold Separator */}
-        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-5 opacity-60" />
+        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-4 opacity-60" />
         
         {/* Luxury Slogan */}
-        <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-[0.5em] text-white/30 mt-5 select-none text-center italic">
+        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.5em] text-white/30 mt-4 select-none text-center italic">
           QUALITY FIRST DELIVERY
         </span>
       </div>
@@ -57,7 +58,7 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
 
       {/* Bottom Loading Indicator */}
-      <div className="absolute bottom-0 left-0 w-full h-[4px] bg-white/[0.03] overflow-hidden">
+      <div className="absolute bottom-0 left-0 w-full h-[3px] bg-white/[0.03] overflow-hidden">
         <div 
           className={cn(
             "h-full bg-[#C5A021] shadow-[0_0_20px_#C5A021] transition-all duration-500 ease-out",
