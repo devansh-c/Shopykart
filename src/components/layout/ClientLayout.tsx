@@ -31,7 +31,12 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // SAFETY TIMEOUT: If auth doesn't load in 6 seconds, force show the app
+    const safetyTimer = setTimeout(() => {
+      onReady(true);
+    }, 6000);
+    return () => clearTimeout(safetyTimer);
+  }, [onReady]);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;

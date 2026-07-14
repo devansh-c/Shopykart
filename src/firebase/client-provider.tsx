@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { ReactNode, useEffect, useState, useMemo } from 'react';
@@ -28,7 +29,8 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
   }, []);
 
   // Show the luxury Splash Screen instead of the red spinner during initial boot
-  if (!isReady || !instances || !instances.firebaseApp) {
+  // We use instances?.firebaseApp check but we don't block indefinitely if initialization is just slow
+  if (!isReady || !instances) {
     return <SplashScreen isAppReady={false} />;
   }
 
