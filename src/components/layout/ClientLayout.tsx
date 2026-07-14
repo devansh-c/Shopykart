@@ -30,10 +30,10 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 
   useEffect(() => {
     setIsClient(true);
-    // REDUCED SAFETY TIMEOUT: From 6s to 3s for faster recovery
+    // BLAZING FAST SAFETY TIMEOUT: From 3s to 1s for near-instant app loading
     const safetyTimer = setTimeout(() => {
       onReady(true);
-    }, 3000);
+    }, 1000);
     return () => clearTimeout(safetyTimer);
   }, [onReady]);
 
@@ -59,7 +59,6 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
     }
 
     // OPTIMIZATION: If we have an active session flag, show app content immediately
-    // Don't wait for 'loading' to be false.
     if (hasActiveSession) {
       onReady(true);
     }
@@ -116,7 +115,7 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
       {mounted && (
         <AuthGuard onReady={setIsAppFullyReady}>
           <div className={cn(
-            "relative min-h-screen flex flex-col transition-opacity duration-500",
+            "relative min-h-screen flex flex-col transition-opacity duration-300",
             isAppFullyReady ? "opacity-100" : "opacity-0"
           )}>
             <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>

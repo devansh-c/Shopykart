@@ -16,7 +16,7 @@ interface FirebaseClientProviderProps {
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [isReady, setIsReady] = useState(false);
   
-  // Memoize instances for stability
+  // Initialize instances immediately on client side
   const instances = useMemo(() => {
     if (typeof window === 'undefined') return null;
     return initializeFirebase();
@@ -24,6 +24,7 @@ export default function FirebaseClientProvider({ children }: FirebaseClientProvi
 
   useEffect(() => {
     // Check if Firebase is initialized successfully
+    // Empty dependency array ensures this hook never changes size or order
     if (instances?.firebaseApp) {
       setIsReady(true);
     }
