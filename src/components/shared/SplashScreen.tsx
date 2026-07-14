@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview High-end Minimalist Splash Screen.
- * Optimized: Guaranteed visibility for 1.8s to ensure premium branding experience.
+ * Optimized: Logo is stable in the center (no popup/zoom).
+ * Guaranteed visibility for 1.8s to ensure premium branding experience.
  */
 export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   const [mounted, setMounted] = useState(false);
@@ -32,8 +33,8 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
       "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-all duration-1000 ease-premium transform-gpu",
       shouldHide ? "opacity-0 pointer-events-none scale-110 blur-xl" : "opacity-100"
     )}>
-      {/* Main Logo Container - Luxury Box */}
-      <div className="relative flex flex-col items-center px-12 py-8 border-2 border-[#C5A021]/20 rounded-[3.5rem] bg-black shadow-[0_0_100px_rgba(197,160,33,0.1)] animate-in fade-in zoom-in duration-1000">
+      {/* Main Logo Container - Stable Luxury Box */}
+      <div className="relative flex flex-col items-center px-12 py-8 border-2 border-[#C5A021]/20 rounded-[3.5rem] bg-black shadow-[0_0_100px_rgba(197,160,33,0.1)] animate-in fade-in duration-1000">
         
         {/* Glowing Aura behind Logo */}
         <div className="absolute inset-0 bg-[#C5A021]/5 blur-[60px] rounded-full animate-pulse pointer-events-none" />
