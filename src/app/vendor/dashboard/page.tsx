@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -89,13 +88,10 @@ export default function VendorDashboard() {
 
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
 
-    // If Firebase finished loading and NO user is found
     if (!user && !authLoading) {
-      // If we don't even have a session active flag, redirect immediately
       if (!sessionActive) {
         router.replace('/vendor/login');
       } else {
-        // If we DO have a session flag, give Firebase 3 seconds to find the session before kicking out
         const failSafe = setTimeout(() => {
           if (!user) {
             localStorage.removeItem('shopykart_session_active');
@@ -106,9 +102,7 @@ export default function VendorDashboard() {
       }
     }
 
-    // If user exists but after profile settled, it's confirmed NOT to be a vendor
     if (user && !profileLoading && vendorProfile === null) {
-      // Small buffer to prevent race conditions during write/read
       const finalCheck = setTimeout(() => {
         if (!vendorProfile) {
           localStorage.removeItem('shopykart_session_active');
@@ -264,6 +258,11 @@ export default function VendorDashboard() {
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
+      {/* NOINDEX HEADER FOR SEO PROTECTION */}
+      <head>
+        <meta name="robots" content="noindex, nofollow" />
+      </head>
+
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b shrink-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50">
@@ -405,7 +404,7 @@ export default function VendorDashboard() {
          </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-[1000] rounded-t-[2.5rem] shadow-2xl transform-gpu">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-1000 rounded-t-[2.5rem] shadow-2xl transform-gpu">
         {[
           {id:'orders',label:'Orders',icon:LayoutDashboard},
           {id:'catalog',label:'Catalog',icon:Layers},

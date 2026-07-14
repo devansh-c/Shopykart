@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -8,9 +7,9 @@ import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 
-export default function StaticPageView() {
+export default function StaticPageView({ forcedId }: { forcedId?: string }) {
   const searchParams = useSearchParams();
-  const pageId = searchParams.get('id');
+  const pageId = forcedId || searchParams.get('id');
   const router = useRouter();
   const firestore = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
@@ -46,7 +45,7 @@ export default function StaticPageView() {
   return (
     <div className="min-h-screen bg-white pb-20">
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center border-b border-gray-100">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors">
+        <button onClick={() => router.push('/')} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors">
           <ChevronLeft className="h-6 w-6 text-gray-700" />
         </button>
         <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">{page.title}</h1>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, memo, useTransition, useMemo } from 'react';
@@ -255,6 +254,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col md:flex-row transform-gpu">
+      {/* NOINDEX HEADER FOR SEO PROTECTION */}
+      <head>
+        <meta name="robots" content="noindex, nofollow" />
+      </head>
+
       <header className="md:hidden bg-white border-b border-border/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <div className={cn("p-2 rounded-xl text-white", allowedFeatures === 'all' ? "bg-black" : "bg-primary")}>

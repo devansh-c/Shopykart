@@ -11,15 +11,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ShopyKart | Premium Food Delivery',
-  description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
+  title: 'ShopyKart | Premium Food & Gourmet Delivery',
+  description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur. Order Pizza, Burgers, and more.',
   manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/favicon.ico',
-  },
+  metadataBase: new URL('https://shopycart.site'),
   alternates: {
-    canonical: 'https://shopycart.site/',
+    canonical: '/',
   },
   openGraph: {
     type: 'website',
@@ -27,6 +24,31 @@ export const metadata: Metadata = {
     title: 'ShopyKart | Premium Food Delivery',
     siteName: 'ShopyKart',
     description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
+    images: [
+      {
+        url: 'https://picsum.photos/seed/shopy-og/1200/630',
+        width: 1200,
+        height: 630,
+        alt: 'ShopyKart Premium Delivery',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ShopyKart | Premium Food Delivery',
+    description: 'Best gourmet meals in Ranipur and Mauranipur.',
+    images: ['https://picsum.photos/seed/shopy-twitter/1200/600'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
