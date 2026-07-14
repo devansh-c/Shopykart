@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview High-end Minimalist Splash Screen.
- * Optimized: Blazing fast exit for better UX.
+ * Optimized: Fixed hydration issues and improved exit speed.
  */
 export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   const [shouldExit, setShouldExit] = useState(false);
@@ -14,18 +14,18 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   useEffect(() => {
     setMounted(true);
     if (isAppReady) {
-      // Blazing fast exit transition (150ms instead of 400ms)
-      const timer = setTimeout(() => setShouldExit(true), 150);
+      const timer = setTimeout(() => setShouldExit(true), 200);
       return () => clearTimeout(timer);
     }
   }, [isAppReady]);
 
-  if (shouldExit) return null;
+  // Prevent any rendering on server to avoid hydration mismatch
+  if (!mounted || shouldExit) return null;
 
   return (
     <div className={cn(
-      "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-opacity duration-300 ease-out",
-      (isAppReady && mounted) ? "opacity-0 pointer-events-none scale-105" : "opacity-100"
+      "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-all duration-300 ease-out",
+      isAppReady ? "opacity-0 pointer-events-none scale-105" : "opacity-100"
     )}>
       {/* Centered Logo Container */}
       <div className="relative flex flex-col items-center px-12 py-5 border-2 border-[#C5A021]/30 rounded-[3rem] bg-black shadow-[0_0_50px_rgba(197,160,33,0.1)]">
@@ -38,7 +38,7 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
         <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/50 to-transparent mt-3 opacity-60" />
         
         {/* Slogan */}
-        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mt-3 select-none">
+        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mt-3 select-none text-center">
           QUALITY FIRST
         </span>
       </div>
@@ -48,7 +48,7 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
         <div 
           className={cn(
             "h-full bg-[#C5A021] shadow-[0_0_15px_#C5A021]",
-            isAppReady ? "w-full transition-all duration-300 ease-out" : "w-1/3 animate-running-line"
+            isAppReady ? "w-full transition-all duration-300" : "w-1/3 animate-running-line"
           )} 
         />
       </div>

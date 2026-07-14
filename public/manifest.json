@@ -1,23 +1,21 @@
 {
-  "name": "ShopyKart Premium Delivery",
+  "name": "ShopyKart Premium",
   "short_name": "ShopyKart",
-  "description": "Gourmet meals delivered to your doorstep.",
+  "description": "Premium Gourmet Food Delivery",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#000000",
+  "theme_color": "#EF4444",
   "icons": [
     {
       "src": "https://picsum.photos/seed/shopy/192/192",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "https://picsum.photos/seed/shopy/512/512",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }

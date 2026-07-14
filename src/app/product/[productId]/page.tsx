@@ -2,12 +2,15 @@ import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 
-// For static export compatibility (APK build)
+/**
+ * @fileOverview Dynamic route for product details.
+ * Fixed for Static Build: Uses fallback to prevent Publish errors.
+ */
+
 export const generateStaticParams = async () => {
   return [];
 };
 
-// Next.js 15: Use dynamicParams to allow on-demand generation without breaking static export
 export const dynamicParams = true;
 
 export default async function ProductPage({

@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 
-// DYNAMIC IMPORTS FOR SECONDARY OVERLAYS - Kept dynamic for performance
+// DYNAMIC IMPORTS
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
 const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
@@ -30,119 +30,79 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 
   useEffect(() => {
     setIsClient(true);
-    // BLAZING FAST SAFETY TIMEOUT: From 3s to 1s for near-instant app loading
-    const safetyTimer = setTimeout(() => {
+    // Instant boot for session holders
+    const hasSession = localStorage.getItem('shopykart_session_active') === 'true';
+    if (hasSession) {
       onReady(true);
-    }, 1000);
-    return () => clearTimeout(safetyTimer);
+    }
+    
+    // Safety timer
+    const timer = setTimeout(() => onReady(true), 1200);
+    return () => clearTimeout(timer);
   }, [onReady]);
+
+  useEffect(() => {
+    if (!loading) {
+      onReady(true);
+      if (!user && localStorage.getItem('shopykart_session_active') !== 'true') {
+        const authTimer = setTimeout(() => setShowAuthOverlay(true), 400);
+        return () => clearTimeout(authTimer);
+      }
+    }
+  }, [user, loading, onReady]);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    return p.startsWith('/admin') || 
-           p.startsWith('/vendor') || 
-           p.startsWith('/delivery') ||
-           p.startsWith('/medical') || 
-           p.startsWith('/beauty');
+    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
-
-  const hasActiveSession = useMemo(() => {
-    if (!isClient) return false;
-    return localStorage.getItem('shopykart_session_active') === 'true';
-  }, [isClient]);
-
-  useEffect(() => {
-    if (isExcludedPath) {
-      onReady(true);
-      return;
-    }
-
-    // OPTIMIZATION: If we have an active session flag, show app content immediately
-    if (hasActiveSession) {
-      onReady(true);
-    }
-
-    if (!loading) {
-      onReady(true);
-      if (!user && !hasActiveSession) {
-        // Slow show for auth overlay to prevent flicker
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 500);
-        return () => clearTimeout(authTimer);
-      }
-    }
-  }, [user, loading, hasActiveSession, onReady, isExcludedPath]);
 
   return (
     <>
       {children}
-      {!isExcludedPath && showAuthOverlay && !user && hasActiveSession === false && isClient && <EmailAuth />}
+      {!isExcludedPath && showAuthOverlay && !user && isClient && <EmailAuth />}
     </>
   );
 });
 AuthGuard.displayName = "AuthGuard";
 
-const AppContent = memo(({ children }: { children: ReactNode }) => {
-  const pathname = usePathname();
+export function ClientLayout({ children }: { children: ReactNode }) {
   const [isAppFullyReady, setIsAppFullyReady] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const pathname = usePathname();
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    return p.startsWith('/admin') || 
-           p.startsWith('/vendor') || 
-           p.startsWith('/delivery') ||
-           p.startsWith('/medical') || 
-           p.startsWith('/beauty');
+    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
   return (
-    <div className={cn(
-      "relative min-h-screen flex flex-col overflow-x-hidden transition-colors duration-300",
-      isAppFullyReady ? "bg-[#FAFAFA]" : "bg-black"
-    )}>
-      {/* High-priority overlays */}
-      <DynamicBrandingLoader />
-      <FirebaseErrorListener />
-      
-      <SplashScreen isAppReady={isAppFullyReady} />
-      
-      {mounted && (
-        <AuthGuard onReady={setIsAppFullyReady}>
-          <div className={cn(
-            "relative min-h-screen flex flex-col transition-opacity duration-300",
-            isAppFullyReady ? "opacity-100" : "opacity-0"
-          )}>
-            <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
-              {!isExcludedPath && <DynamicLocationRequest />}
-              <DynamicNotificationHandler />
-              <DynamicTelegramNotifier />
-              <DynamicAdOverlay />
-              <DynamicWelcomeBonus />
-              {children}
-            </main>
-            
-            {!isExcludedPath && <DynamicFloatingCart />}
-            {!isExcludedPath && <DynamicBottomNav />}
-          </div>
-        </AuthGuard>
-      )}
-      <Toaster />
-    </div>
-  );
-});
-AppContent.displayName = "AppContent";
-
-export function ClientLayout({ children }: { children: ReactNode }) {
-  return (
     <FirebaseClientProvider>
       <CartProvider>
-        <AppContent>{children}</AppContent>
+        <div className="relative min-h-screen flex flex-col">
+          <DynamicBrandingLoader />
+          <FirebaseErrorListener />
+          <SplashScreen isAppReady={isAppFullyReady} />
+          
+          <AuthGuard onReady={setIsAppFullyReady}>
+            <div className={cn(
+              "relative min-h-screen flex flex-col transition-opacity duration-300",
+              isAppFullyReady ? "opacity-100" : "opacity-0"
+            )}>
+              <main className={cn("flex-1", !isExcludedPath && "pb-44")}>
+                {!isExcludedPath && <DynamicLocationRequest />}
+                <DynamicNotificationHandler />
+                <DynamicTelegramNotifier />
+                <DynamicAdOverlay />
+                <DynamicWelcomeBonus />
+                {children}
+              </main>
+              {!isExcludedPath && <DynamicFloatingCart />}
+              {!isExcludedPath && <DynamicBottomNav />}
+            </div>
+          </AuthGuard>
+          <Toaster />
+        </div>
       </CartProvider>
     </FirebaseClientProvider>
   );
