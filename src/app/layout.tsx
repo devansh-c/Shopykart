@@ -19,11 +19,11 @@ export const metadata: Metadata = {
     apple: '/favicon.ico',
   },
   alternates: {
-    canonical: 'https://shopykart.site/',
+    canonical: 'https://shopycart.site/',
   },
   openGraph: {
     type: 'website',
-    url: 'https://shopykart.site/',
+    url: 'https://shopycart.site/',
     title: 'ShopyKart | Premium Food Delivery',
     siteName: 'ShopyKart',
     description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',

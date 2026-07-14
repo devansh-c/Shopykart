@@ -2,14 +2,14 @@
 
 Official NextJS source code for ShopyKart.
 
-## 🚀 Domain Status (shopykart.site)
+## 🚀 Domain Status (shopycart.site)
 
 ✅ **Hosting:** Connected via Firebase App Hosting (Temporary Domain).
 ✅ **Email Templates:** Domain verified for custom sender.
 ⚠️ **FINAL STEP REQUIRED:** 
    - Go to [Firebase Authentication Settings](https://console.firebase.google.com/project/_/authentication/settings).
    - Under **"Authorized domains"**, click **"Add domain"**.
-   - Add `shopykart.site`.
+   - Add `shopycart.site`.
    - *Reason:* Bina iske login flows (Google/Email) block ho sakte hain.
 
 ## 🛠 Project Structure
