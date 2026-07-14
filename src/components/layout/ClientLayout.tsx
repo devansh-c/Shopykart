@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -13,7 +12,7 @@ import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
 import { SplashScreen } from '@/components/shared/SplashScreen';
 
-// DYNAMIC IMPORTS FOR SECONDARY OVERLAYS
+// DYNAMIC IMPORTS FOR SECONDARY OVERLAYS - Kept dynamic for performance
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
 const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
@@ -31,10 +30,10 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
 
   useEffect(() => {
     setIsClient(true);
-    // SAFETY TIMEOUT: If auth doesn't load in 6 seconds, force show the app
+    // REDUCED SAFETY TIMEOUT: From 6s to 3s for faster recovery
     const safetyTimer = setTimeout(() => {
       onReady(true);
-    }, 6000);
+    }, 3000);
     return () => clearTimeout(safetyTimer);
   }, [onReady]);
 
@@ -59,9 +58,16 @@ const AuthGuard = memo(({ children, onReady }: { children: ReactNode; onReady: (
       return;
     }
 
+    // OPTIMIZATION: If we have an active session flag, show app content immediately
+    // Don't wait for 'loading' to be false.
+    if (hasActiveSession) {
+      onReady(true);
+    }
+
     if (!loading) {
       onReady(true);
       if (!user && !hasActiveSession) {
+        // Slow show for auth overlay to prevent flicker
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 500);
         return () => clearTimeout(authTimer);
       }
@@ -99,13 +105,20 @@ const AppContent = memo(({ children }: { children: ReactNode }) => {
   return (
     <div className={cn(
       "relative min-h-screen flex flex-col overflow-x-hidden transition-colors duration-300",
-      isAppFullyReady ? "bg-[#FAFAFA]" : "bg-white"
+      isAppFullyReady ? "bg-[#FAFAFA]" : "bg-black"
     )}>
+      {/* High-priority overlays */}
+      <DynamicBrandingLoader />
+      <FirebaseErrorListener />
+      
       <SplashScreen isAppReady={isAppFullyReady} />
       
       {mounted && (
         <AuthGuard onReady={setIsAppFullyReady}>
-          <div className="relative min-h-screen flex flex-col">
+          <div className={cn(
+            "relative min-h-screen flex flex-col transition-opacity duration-500",
+            isAppFullyReady ? "opacity-100" : "opacity-0"
+          )}>
             <main className={cn("flex-1 pb-44", !isExcludedPath && "content-visibility-auto")}>
               {!isExcludedPath && <DynamicLocationRequest />}
               <DynamicNotificationHandler />
@@ -129,8 +142,6 @@ AppContent.displayName = "AppContent";
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <FirebaseClientProvider>
-      <DynamicBrandingLoader />
-      <FirebaseErrorListener />
       <CartProvider>
         <AppContent>{children}</AppContent>
       </CartProvider>

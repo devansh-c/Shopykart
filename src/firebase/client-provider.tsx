@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { ReactNode, useEffect, useState, useMemo } from 'react';
@@ -12,25 +11,26 @@ interface FirebaseClientProviderProps {
 
 /**
  * Ensures Firebase is only initialized once in the browser environment.
- * Replaced default spinner with SplashScreen for a seamless initial boot.
+ * Optimized initialization for near-instant boot.
  */
 export default function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const [isReady, setIsReady] = useState(false);
   
-  // Memoize instances to ensure they are stable across refreshes
+  // Memoize instances for stability
   const instances = useMemo(() => {
     if (typeof window === 'undefined') return null;
     return initializeFirebase();
   }, []);
 
   useEffect(() => {
-    // Immediate ready state to allow SplashScreen to handle the exit transition
-    setIsReady(true);
-  }, []);
+    // Check if Firebase is initialized successfully
+    if (instances?.firebaseApp) {
+      setIsReady(true);
+    }
+  }, [instances]);
 
-  // Show the luxury Splash Screen instead of the red spinner during initial boot
-  // We use instances?.firebaseApp check but we don't block indefinitely if initialization is just slow
-  if (!isReady || !instances) {
+  // If SSR or Firebase not ready yet, show Splash
+  if (typeof window === 'undefined' || !isReady || !instances) {
     return <SplashScreen isAppReady={false} />;
   }
 

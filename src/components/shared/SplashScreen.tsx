@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview High-end Minimalist Splash Screen.
- * Optimized: Shortened exit delay for snappier app start.
+ * Optimized: Blazing fast exit for better UX.
  */
 export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   const [shouldExit, setShouldExit] = useState(false);
@@ -14,8 +14,8 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
   useEffect(() => {
     setMounted(true);
     if (isAppReady) {
-      // Shortened exit transition from 1000ms to 400ms for speed
-      const timer = setTimeout(() => setShouldExit(true), 400);
+      // Blazing fast exit transition (150ms instead of 400ms)
+      const timer = setTimeout(() => setShouldExit(true), 150);
       return () => clearTimeout(timer);
     }
   }, [isAppReady]);
@@ -24,8 +24,8 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
 
   return (
     <div className={cn(
-      "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-opacity duration-500 ease-premium",
-      (isAppReady && mounted) ? "opacity-0 pointer-events-none" : "opacity-100"
+      "fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center transition-opacity duration-300 ease-out",
+      (isAppReady && mounted) ? "opacity-0 pointer-events-none scale-105" : "opacity-100"
     )}>
       {/* Centered Logo Container */}
       <div className="relative flex flex-col items-center px-12 py-5 border-2 border-[#C5A021]/30 rounded-[3rem] bg-black shadow-[0_0_50px_rgba(197,160,33,0.1)]">
@@ -47,8 +47,8 @@ export function SplashScreen({ isAppReady = false }: { isAppReady?: boolean }) {
       <div className="absolute bottom-0 left-0 w-full h-[4px] bg-white/5 overflow-hidden">
         <div 
           className={cn(
-            "h-full bg-[#C5A021] transition-all duration-700 ease-out shadow-[0_0_15px_#C5A021]",
-            isAppReady ? "w-full" : "w-1/3 animate-running-line"
+            "h-full bg-[#C5A021] shadow-[0_0_15px_#C5A021]",
+            isAppReady ? "w-full transition-all duration-300 ease-out" : "w-1/3 animate-running-line"
           )} 
         />
       </div>
