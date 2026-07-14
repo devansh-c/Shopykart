@@ -204,10 +204,10 @@ export default function VendorDashboard() {
       mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
       price: parseFloat(productForm.price),
       description: productForm.description.trim(),
-      category: productForm.category.toLowerCase().trim(),
+      category: productForm.category.toLowerCase().trim() || 'general',
+      serviceMode: vendorProfile?.category || 'Food',
       vendorId: user.uid,
       restaurantName: vendorProfile?.storeName || 'My Store',
-      serviceMode: vendorProfile?.category || 'Food',
       zoneId: vendorProfile?.zoneId || null,
       town: vendorProfile?.town || 'Local',
       isVeg: productForm.isVeg,
@@ -258,11 +258,6 @@ export default function VendorDashboard() {
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
-      {/* NOINDEX HEADER FOR SEO PROTECTION */}
-      <head>
-        <meta name="robots" content="noindex, nofollow" />
-      </head>
-
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b shrink-0 z-50">
          <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50">

@@ -135,11 +135,6 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative transform-gpu">
-      {/* NOINDEX HEADER FOR SEO PROTECTION */}
-      <head>
-        <meta name="robots" content="noindex, nofollow" />
-      </head>
-
       <header className="bg-white px-6 py-6 border-b sticky top-0 z-50 flex items-center justify-between">
         <div className="flex items-center gap-4">
            <div className="h-12 w-12 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted"><img src={partnerProfile.photoUrl} className="h-full w-full object-cover" alt="" /></div>
@@ -174,7 +169,7 @@ export default function DeliveryDashboard() {
         ].map(item => (
           <button key={item.id} onClick={() => handleTabSelect(item.id as MainTab)} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
             <item.icon className={cn("h-5 w-5", activeTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
-            <span className={cn("text-[9px] font-black uppercase tracking-widest", activeTab === id ? "text-white" : "text-gray-500")}>{item.label}</span>
+            <span className={cn("text-[9px] font-black uppercase tracking-widest", activeTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
         ))}
       </nav>

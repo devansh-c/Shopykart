@@ -12,7 +12,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Admin Login with noindex to keep it off Google Search.
+ * @fileOverview Admin Login without manual head tags to prevent hydration errors.
  */
 function AdminLoginPageContent() {
   const [email, setEmail] = useState('');
@@ -95,11 +95,6 @@ function AdminLoginPageContent() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-      {/* NOINDEX HEADER FOR SEO PROTECTION - ADMIN MUST NOT BE ON GOOGLE */}
-      <head>
-        <meta name="robots" content="noindex, nofollow" />
-      </head>
-
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
         <CardHeader className="text-center pt-10">
           <div className={cn(
