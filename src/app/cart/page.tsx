@@ -147,7 +147,6 @@ export default function CartPage() {
   }, [cart, vendors]);
 
   const dynamic_charges = useMemo(() => {
-    // If charges haven't loaded yet, return an empty list to avoid jumping prices
     if (!dbCharges || profileLoading || chargesLoading) return [];
     
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
@@ -159,9 +158,6 @@ export default function CartPage() {
     return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
-      
-      // PREMIUM BENEFIT: WAIVE ALL TAXES & CHARGES
-      // We explicitly mark if it was waived for UI transparency
       const isWaived = isPremium;
 
       if (isWaived) {
@@ -178,25 +174,6 @@ export default function CartPage() {
   const chargesTotalSum = useMemo(() => {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
   }, [dynamic_charges]);
-
-  const potentialSavings = useMemo(() => {
-    if (!dbCharges || isPremium) return 0;
-    const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
-    const relevantCharges = dbCharges.filter(charge => {
-      if (!charge.zoneId || charge.zoneId === 'global') return true;
-      return charge.zoneId === activeZoneId;
-    });
-
-    const standardCharges = relevantCharges.reduce((acc, charge) => {
-      const chargeVal = Number(charge.value) || 0;
-      let amount = 0;
-      if (charge.type === 'fixed') amount = chargeVal;
-      else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
-      return acc + amount;
-    }, 0);
-
-    return standardCharges;
-  }, [dbCharges, totalPrice, isPremium]);
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
@@ -357,7 +334,6 @@ export default function CartPage() {
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isPlacing || blockedVendorNames.length > 0 || profileLoading || chargesLoading) return;
     
-    // Always allow sliding to check validation at the end
     setValidationError(null);
     isDraggingRef.current = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -396,7 +372,6 @@ export default function CartPage() {
     const threshold = maxPath * 0.85;
 
     if (currentXRef.current >= threshold) {
-      // Validate BEFORE actually proceeding
       const error = validateOrderReady();
       if (error) {
         setValidationError(error);
@@ -462,7 +437,7 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-64">
+    <div className="min-h-screen bg-white pb-32">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
@@ -533,9 +508,9 @@ export default function CartPage() {
 
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
-                        <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary">-</button>
+                        <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500">-</button>
                         <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
-                        <button onClick={() => !isItemOffline && addToCart(item)} disabled={isItemOffline} className={cn("w-6 h-full flex items-center justify-center font-bold text-gray-500 hover:text-primary", isItemOffline && "opacity-20 cursor-not-allowed")}>+</button>
+                        <button onClick={() => !isItemOffline && addToCart(item)} disabled={isItemOffline} className={cn("w-6 h-full flex items-center justify-center font-bold text-gray-500", isItemOffline && "opacity-20 cursor-not-allowed")}>+</button>
                       </div>
                       <div className="text-sm font-black text-gray-900 italic">₹{item.price.toFixed(2)}</div>
                     </div>
@@ -775,10 +750,9 @@ export default function CartPage() {
           </div>
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[10000] max-w-lg mx-auto pb-safe pointer-events-none">
-        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-t-[3rem] pointer-events-auto transform-gpu">
+        {/* SLIDE TO PLACE ORDER - NOW IN SCROLLABLE FLOW */}
+        <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-[3rem] transform-gpu mt-8">
            
            {validationError && (
              <div className="px-4 py-2 bg-red-50 border border-red-100 rounded-xl animate-in slide-in-from-bottom-2 duration-300">
@@ -791,7 +765,6 @@ export default function CartPage() {
                  <div className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">{paymentMethod === 'online' ? <CreditCard className="h-5 w-5 text-gray-700" /> : <Banknote className="h-5 w-5 text-gray-700" />}</div>
                  <div className="flex flex-col"><span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Settling via</span><span className="text-sm font-black italic uppercase text-gray-900 leading-none">{paymentMethod === 'online' ? 'UPI / Online' : 'Cash on Delivery'}</span></div>
               </div>
-              <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-1.5 bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-black uppercase text-[10px] tracking-widest border border-rose-100">CHANGE <ChevronUp className="h-3.5 w-3.5" /></button>
            </div>
            
            <div 
@@ -911,8 +884,6 @@ export default function CartPage() {
         </Dialog>
       </div>
       
-      <div className="h-20" />
-      
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm h-[650px] p-0 overflow-hidden border-none shadow-2xl bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
           <DialogHeader className="sr-only"><DialogTitle>Pin Delivery Location</DialogTitle></DialogHeader>
@@ -922,3 +893,4 @@ export default function CartPage() {
     </div>
   );
 }
+
