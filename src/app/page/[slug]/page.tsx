@@ -5,7 +5,8 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Updated for Next.js 15 Async Params and consolidated routing.
+ * Handles both Slugs and IDs to resolve routing conflicts.
+ * Standardized dynamic segment to fix server startup errors.
  */
 
 export const generateStaticParams = async () => {
@@ -15,7 +16,8 @@ export const generateStaticParams = async () => {
 export const dynamicParams = true;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
@@ -26,7 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
 
   return (
     <Suspense fallback={
