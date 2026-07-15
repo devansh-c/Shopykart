@@ -14,13 +14,13 @@ export const metadata: Metadata = {
   title: 'ShopyKart | Premium Food & Gourmet Delivery',
   description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur. Order Pizza, Burgers, and more.',
   manifest: '/manifest.json',
-  metadataBase: new URL('https://shopycart.site'),
+  metadataBase: new URL('https://shopykart.co.in'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     type: 'website',
-    url: 'https://shopycart.site/',
+    url: 'https://shopykart.co.in/',
     title: 'ShopyKart | Premium Food Delivery',
     siteName: 'ShopyKart',
     description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur.',
