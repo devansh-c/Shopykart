@@ -5,7 +5,8 @@ import MenuContent from '@/components/menu/MenuContent';
 import type { Metadata } from 'next';
 
 /**
- * @fileOverview Unified SEO Route for Stores.
+ * @fileOverview Universal SEO Route for Stores.
+ * Handles both legacy IDs and new descriptive slugs.
  */
 
 export const generateStaticParams = async () => {

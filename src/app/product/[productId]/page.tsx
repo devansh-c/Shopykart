@@ -1,12 +1,9 @@
 
-import { redirect } from 'next/navigation';
-
 /**
- * @fileOverview Neutralized to resolve dynamic route conflict with [slug].
- * Next.js cannot have [productId] and [slug] in the same directory level.
+ * @fileOverview Neutralized to prevent conflict with [slug].
+ * Next.js cannot have two dynamic folders at the same level.
+ * Consolidating logic into [slug] folder.
  */
-export default async function LegacyProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
-  const resolvedParams = await params;
-  // Redirect to the unified SEO-friendly route
-  redirect(`/product/${resolvedParams.productId}`);
+export default function LegacyProductFolder() {
+  return null;
 }

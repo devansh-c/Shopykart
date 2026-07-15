@@ -1,10 +1,9 @@
 
-import { redirect } from 'next/navigation';
-
 /**
- * @fileOverview Neutralized to resolve dynamic route conflict with [slug].
+ * @fileOverview Neutralized to prevent conflict with [slug].
+ * Next.js cannot have two dynamic folders at the same level.
+ * Consolidating logic into [slug] folder.
  */
-export default async function LegacyStoreRedirect({ params }: { params: Promise<{ storeId: string }> }) {
-  const resolvedParams = await params;
-  redirect(`/store/${resolvedParams.storeId}`);
+export default function LegacyStoreFolder() {
+  return null;
 }

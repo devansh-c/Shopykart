@@ -1,9 +1,14 @@
+
 'use client';
 
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
+/**
+ * @fileOverview Direct page view path.
+ * Wrapped in Suspense to prevent SSR bail-out issues.
+ */
 export default function GenericPageViewPage() {
   return (
     <Suspense fallback={

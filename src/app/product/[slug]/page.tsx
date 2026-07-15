@@ -5,8 +5,9 @@ import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
 
 /**
- * @fileOverview Unified SEO Route for Products.
+ * @fileOverview Universal SEO Route for Products.
  * Handles both legacy alphanumeric IDs and new descriptive slugs.
+ * Consolidated to prevent Dynamic Route Conflicts in Next.js.
  */
 
 export const generateStaticParams = async () => {

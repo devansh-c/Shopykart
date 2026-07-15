@@ -1,10 +1,8 @@
 
-import { redirect } from 'next/navigation';
-
 /**
- * @fileOverview Neutralized to resolve plural/singular page route ambiguity.
+ * @fileOverview Legacy pages folder neutralized.
+ * Using /page/[slug] for SEO routing.
  */
-export default async function LegacyPageRedirect({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
-  redirect(`/page/${resolvedParams.id}`);
+export default function LegacyPagesFolder() {
+  return null;
 }

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
@@ -9,42 +10,57 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, limit, doc } from 'firebase/firestore';
+import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
  * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs.
  */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const slug = forcedSlug || (params?.slug as string);
+  const rawSlug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart } = useCart();
   
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const firestore = useFirestore();
 
-  // 1. Try to find by SEO Slug
-  const slugQuery = useMemoFirebase(() => {
-    if (!firestore || !slug) return null;
-    return query(collection(firestore, 'products'), where('slug', '==', slug), limit(1));
-  }, [firestore, slug]);
+  useEffect(() => {
+    async function resolveProduct() {
+      if (!firestore || !rawSlug) return;
+      setLoading(true);
+      try {
+        // 1. Try Slug
+        const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
+        const slugSnap = await (async () => {
+          // Internal fetch because useCollection is not async-await friendly in loops
+          const { getDocs } = await import('firebase/firestore');
+          return getDocs(slugQ);
+        })();
 
-  const { data: slugResults, loading: slugLoading } = useCollection<any>(slugQuery);
-  
-  // 2. Fallback: Try to find by Document ID (Legacy Support)
-  const idQuery = useMemoFirebase(() => {
-    if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
-    return query(collection(firestore, 'products'), where('__name__', '==', slug), limit(1));
-  }, [firestore, slug, slugResults]);
+        if (!slugSnap.empty) {
+          setProduct({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
+        } else {
+          // 2. Try ID Fallback
+          const idRef = doc(firestore, 'products', rawSlug);
+          const idSnap = await getDoc(idRef);
+          if (idSnap.exists()) {
+            setProduct({ id: idSnap.id, ...idSnap.data() });
+          }
+        }
+      } catch (err) {
+        console.error("Resolution error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    resolveProduct();
+  }, [firestore, rawSlug]);
 
-  const { data: idResults, loading: idLoading } = useCollection<any>(idQuery);
-
-  const product = (slugResults && slugResults.length > 0) ? slugResults[0] : (idResults && idResults.length > 0 ? idResults[0] : null);
-  const loading = slugLoading || idLoading;
-  
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
@@ -88,7 +104,7 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
     toast({ title: "Added to Cart" });
   };
 
-  if (loading && !product) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!product && !loading) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase">Item Not Found</h2><Button onClick={() => router.push('/')} className="mt-8">Home</Button></div>;
 
   return (
