@@ -7,8 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Generates an SEO friendly slug from a string.
+ * High performance regex to ensure clean URLs.
  */
 export function slugify(text: string) {
+  if (!text) return '';
   return text
     .toString()
     .toLowerCase()
@@ -21,8 +23,7 @@ export function slugify(text: string) {
 }
 
 /**
- * Extracts the real Firestore ID from an SEO slug.
- * Assumes format: name-slug-here-ID
+ * Legacy Support: Extracts ID if present (kept for internal logic if needed)
  */
 export function extractIdFromSlug(slug: string) {
   if (!slug) return '';

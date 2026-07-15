@@ -1,20 +1,16 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Check, Store, Loader2, X, Power, PowerOff, Star, MapPin, ListPlus, Trophy, AlertCircle, FileUp, Download, Zap } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Loader2, Trophy, FileUp, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { cn, slugify } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { collection, doc, updateDoc, serverTimestamp, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { compressImage } from '@/lib/image-utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -22,34 +18,18 @@ import { Switch } from '@/components/ui/switch';
 export default function ProductManagement() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const bulkInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Bulk Status Dialog State
-  const [isBulkStatusDialogOpen, setIsBulkStatusDialogOpen] = useState(false);
-  const [bulkMode, setBulkMode] = useState<'open' | 'close'>('open');
-  const [selectedBulkZoneId, setSelectedBulkZoneId] = useState<string>('');
-
   const [name, setName] = useState('');
-  const [mrp, setMrp] = useState('');
+  const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
-  const [isVeg, setIsVeg] = useState(true);
-  const [isTopTen, setIsTopTen] = useState(false);
-  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
-  const [mfgDate, setMfgDate] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -63,182 +43,23 @@ export default function ProductManagement() {
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  const zonesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'zones');
-  }, [firestore]);
-  const { data: zones } = useCollection<any>(zonesQuery);
-
-  const filteredProducts = useMemo(() => {
-    if (!products) return [];
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return products;
-    
-    return products.filter(p => 
-      p.name?.toLowerCase().includes(q) || 
-      p.category?.toLowerCase().includes(q) || 
-      p.restaurantName?.toLowerCase().includes(q)
-    );
-  }, [products, searchQuery]);
-
-  const handleToggleTopTen = async (id: string, vId: string, currentStatus: boolean) => {
-    if (!firestore) return;
-    const newStatus = !currentStatus;
-    try {
-      const batch = writeBatch(firestore);
-      batch.update(doc(firestore, 'products', id), { isTopTen: newStatus, updatedAt: serverTimestamp() });
-      if (vId && vId !== 'global') {
-        batch.update(doc(firestore, 'vendors', vId, 'products', id), { isTopTen: newStatus, updatedAt: serverTimestamp() });
-      }
-      await batch.commit();
-      toast({ title: newStatus ? "Added to Top 10! 🏆" : "Removed from Top 10" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Failed to update status" });
-    }
-  };
-
-  const handleBulkStatusAction = async () => {
-    if (!firestore || !vendors || !selectedBulkZoneId) {
-      toast({ variant: "destructive", title: "Error", description: "Please select a zone first." });
-      return;
-    }
-
-    setIsBulkUpdating(true);
-    const isOnline = bulkMode === 'open';
-    const zoneName = zones?.find(z => z.id === selectedBulkZoneId)?.name || 'Selected Zone';
-
-    try {
-      const batch = writeBatch(firestore);
-      const targetVendors = vendors.filter(v => v.zoneId === selectedBulkZoneId);
-      
-      if (targetVendors.length === 0) {
-        toast({ variant: "destructive", title: "No Stores", description: `No stores found in ${zoneName}.` });
-        setIsBulkUpdating(false);
-        return;
-      }
-
-      targetVendors.forEach(v => {
-        batch.update(doc(firestore, 'vendors', v.id), { isOnline, updatedAt: serverTimestamp() });
-      });
-
-      const vendorIds = targetVendors.map(v => v.id);
-      const targetProducts = products?.filter(p => vendorIds.includes(p.vendorId)) || [];
-
-      targetProducts.forEach(p => {
-        batch.set(doc(firestore, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() }, { merge: true });
-        batch.set(doc(firestore, 'vendors', p.vendorId, 'products', p.id), { isAvailable: isOnline, updatedAt: serverTimestamp() }, { merge: true });
-      });
-
-      await batch.commit();
-      
-      toast({ title: isOnline ? "Zone Online! 🟢" : "Zone Closed! 🔴", description: `Updated ${targetVendors.length} stores in ${zoneName}.` });
-      setIsBulkStatusDialogOpen(false);
-      setSelectedBulkZoneId('');
-    } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
-    finally { setIsBulkUpdating(false); }
-  };
-
-  const handleBulkImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !firestore) return;
-
-    setIsBulkUpdating(true);
-    toast({ title: "Importing...", description: "Processing your file. Please wait." });
-
-    try {
-      const XLSX = (await import('xlsx'));
-      const reader = new FileReader();
-      
-      reader.onload = async (evt) => {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data: any[] = XLSX.utils.sheet_to_json(ws);
-
-        if (data.length === 0) {
-          toast({ variant: "destructive", title: "Empty File", description: "No data found in sheet." });
-          setIsBulkUpdating(false);
-          return;
-        }
-
-        let successCount = 0;
-        for (let i = 0; i < data.length; i += 500) {
-          const batch = writeBatch(firestore);
-          const chunk = data.slice(i, i + 500);
-
-          chunk.forEach(item => {
-            const newRef = doc(collection(firestore, 'products'));
-            const vendor = vendors?.find(v => v.id === String(item.vendorId || item.VendorID));
-            
-            const pData = {
-              id: newRef.id,
-              name: String(item.name || item.Name || 'Unnamed Product'),
-              price: parseFloat(item.price || item.Price || 0),
-              mrp: parseFloat(item.mrp || item.MRP || item.price || item.Price || 0),
-              category: String(item.category || item.Category || 'General').toLowerCase(),
-              vendorId: String(item.vendorId || item.VendorID || 'global'),
-              restaurantName: vendor?.storeName || item.storeName || item.StoreName || 'ShopyKart Select',
-              description: String(item.description || item.Description || ''),
-              imageUrl: String(item.imageUrl || item.ImageUrl || 'https://picsum.photos/seed/bulk/400/400'),
-              serviceMode: vendor?.category || 'Food',
-              zoneId: vendor?.zoneId || null,
-              town: vendor?.town || 'Local',
-              isAvailable: true,
-              isVeg: item.isVeg !== undefined ? Boolean(item.isVeg) : true,
-              isTopTen: item.isTopTen !== undefined ? Boolean(item.isTopTen) : false,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            };
-            
-            batch.set(newRef, pData);
-            if (pData.vendorId !== 'global') {
-              batch.set(doc(firestore, 'vendors', pData.vendorId, 'products', newRef.id), pData);
-            }
-            successCount++;
-          });
-
-          await batch.commit();
-        }
-
-        toast({ title: "Import Complete! ✅", description: `${successCount} products added to Hub.` });
-        setIsBulkImportOpen(false);
-        setIsBulkUpdating(false);
-      };
-      reader.readAsBinaryString(file);
-    } catch (err) {
-      console.error("Bulk error:", err);
-      toast({ variant: "destructive", title: "Import Failed", description: "Format error or network issue." });
-      setIsBulkUpdating(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!firestore || !name || !price || !selectedVendorId) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name, Price, and Vendor are required." });
+      toast({ variant: "destructive", title: "Missing Info" });
       return;
     }
     
+    setIsProcessing(true);
     const vendor = vendors?.find(v => v.id === selectedVendorId);
+    const finalSlug = slug.trim().toLowerCase().replace(/\s+/g, '-') || slugify(name);
+
     const productData = {
       name: name.trim(),
-      mrp: parseFloat(mrp) || parseFloat(price),
+      slug: finalSlug,
       price: parseFloat(price),
-      description: description.trim(),
-      category: category.toLowerCase().trim() || 'general',
-      serviceMode: vendor?.category || 'Food',
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'Store',
-      zoneId: vendor?.zoneId || null,
-      town: vendor?.town || 'Local',
-      isVeg,
-      isTopTen,
-      isVarietyRequired: options.length > 0 ? isVarietyRequired : false,
-      mfgDate: mfgDate || null,
-      expiryDate: expiryDate || null,
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
-      isAvailable: true,
-      options: options.filter(opt => opt.name.trim() !== ''),
       updatedAt: serverTimestamp(),
     };
 
@@ -253,205 +74,66 @@ export default function ProductManagement() {
       }
       setIsAddOpen(false);
       resetForm();
-      toast({ title: "Product Published" });
-    } catch (e) { toast({ variant: "destructive", title: "Error Saving" }); }
+      toast({ title: "Product SEO Published" });
+    } catch (e) { toast({ variant: "destructive", title: "Save Error" }); }
+    finally { setIsProcessing(false); }
   };
 
   const resetForm = () => {
-    setEditingId(null); setName(''); setMrp(''); setPrice(''); setDescription(''); setCategory(''); setSelectedVendorId('');
-    setIsVeg(true); setIsTopTen(false); setIsVarietyRequired(false); setSelectedImage(null); setOptions([]); setMfgDate(''); setExpiryDate('');
+    setEditingId(null); setName(''); setSlug(''); setPrice(''); setSelectedVendorId(''); setSelectedImage(null);
   };
 
   const handleEdit = (p: any) => {
-    setEditingId(p.id); 
-    setName(p.name); 
-    setMrp((p.mrp || p.price).toString());
-    setPrice(p.price.toString()); 
-    setDescription(p.description || ''); 
-    setCategory(p.category);
-    setSelectedVendorId(p.vendorId); 
-    setIsVeg(p.isVeg !== false);
-    setIsTopTen(p.isTopTen || false);
-    setIsVarietyRequired(p.isVarietyRequired || false);
-    setMfgDate(p.mfgDate || '');
-    setExpiryDate(p.expiryDate || '');
-    setSelectedImage(p.imageUrl); 
-    setOptions(p.options || []); 
-    setIsAddOpen(true);
+    setEditingId(p.id); setName(p.name); setSlug(p.slug || ''); setPrice(p.price.toString()); 
+    setSelectedVendorId(p.vendorId); setSelectedImage(p.imageUrl); setIsAddOpen(true);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 bg-white p-4 rounded-3xl border shadow-sm items-center">
-        <div className="relative w-full">
+      <div className="flex justify-between items-center bg-white p-4 rounded-3xl border shadow-sm">
+        <div className="relative w-72">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, category or store..." 
-            className="pl-12 h-11 bg-muted/30 border-none rounded-xl font-bold" 
-          />
+          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search inventory..." className="pl-12 h-11 bg-muted/30 border-none rounded-xl font-bold" />
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-2 w-full">
-           <Button 
-            onClick={() => { setBulkMode('open'); setIsBulkStatusDialogOpen(true); }} 
-            className="h-9 px-4 rounded-xl bg-green-600 hover:bg-green-700 font-black uppercase text-[9px] text-white"
-           >
-            OPEN BY ZONE
-           </Button>
-           
-           <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
-             <DialogTrigger asChild>
-               <Button className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 font-black uppercase text-[9px] text-white">
-                 <FileUp className="mr-1.5 h-3.5 w-3.5" /> BULK IMPORT
-               </Button>
-             </DialogTrigger>
-             <DialogContent className="rounded-[2.5rem] max-w-sm">
-                <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Bulk Data Import</DialogTitle></DialogHeader>
-                <div className="p-6 space-y-6">
-                   <div onClick={() => bulkInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center bg-blue-50/50 cursor-pointer hover:border-blue-300 transition-all group">
-                      {isBulkUpdating ? <Loader2 className="h-8 w-8 animate-spin text-blue-600" /> : (
-                        <>
-                          <FileUp className="h-8 w-8 text-blue-400 group-hover:scale-110 transition-transform" />
-                          <span className="text-[10px] font-black uppercase text-blue-600 mt-2">Upload Excel / CSV</span>
-                        </>
-                      )}
-                   </div>
-                   <input type="file" ref={bulkInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleBulkImport} />
-                   
-                   <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-2">
-                      <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
-                        Headers: name, price, mrp, category, vendorId
-                      </p>
-                   </div>
-                </div>
-             </DialogContent>
-           </Dialog>
-
-           <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
-              <DialogTrigger asChild>
-                <Button className="bg-black hover:bg-gray-900 rounded-xl h-9 px-4 font-black uppercase italic text-[9px] text-white">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> NEW PRODUCT
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Inventory Master</DialogTitle></DialogHeader>
-                <div className="p-8 space-y-6">
-                   <div onClick={() => fileInputRef.current?.click()} className="h-44 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
-                      {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Upload Product Photo</span></div>}
-                   </div>
-                   <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
-                      const f = e.target.files?.[0]; if(f){ const r = new FileReader(); r.onloadend = async () => setSelectedImage(await compressImage(r.result as string, 800, 800)); r.readAsDataURL(f); }
-                   }} />
-                   
-                   <div className="space-y-4">
-                      <Input placeholder="Product Name" value={name} onChange={e => setName(e.target.value)} className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
-                      
-                      <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                        <div className="flex items-center gap-3">
-                           <Trophy className={cn("h-5 w-5", isTopTen ? "text-amber-500 fill-amber-500" : "text-gray-400")} />
-                           <div className="flex flex-col">
-                              <span className="text-xs font-black uppercase tracking-tight">Add to Top 10?</span>
-                              <span className="text-[8px] font-bold text-muted-foreground uppercase">Show in Flash Loot deals</span>
-                           </div>
-                        </div>
-                        <Switch checked={isTopTen} onCheckedChange={setIsTopTen} className="data-[state=checked]:bg-amber-500" />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input placeholder="MRP ₹" type="number" value={mrp} onChange={e => setMrp(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none" />
-                        <Input placeholder="Selling Price ₹" type="number" value={price} onChange={e => setPrice(e.target.value)} className="h-12 rounded-xl border-primary/40 font-bold" />
-                      </div>
-                      <Textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
-                      <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                        <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Assign to Store" /></SelectTrigger>
-                        <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} className="h-12 rounded-xl bg-muted/20 border-none font-bold" />
-                   </div>
-                   <Button onClick={handleSave} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">PUBLISH TO HUB</Button>
-                </div>
-              </DialogContent>
-           </Dialog>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
-        {loading && !products ? (
-          <div className="col-span-full flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-        ) : filteredProducts.length > 0 ? (
-          filteredProducts.map(p => (
-            <div key={p.id} className={cn("bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm hover:shadow-md transition-all relative overflow-hidden", p.isAvailable === false && "opacity-60")}>
-              {p.isTopTen && (
-                <div className="absolute top-0 right-0">
-                  <div className="bg-amber-500 text-white text-[6px] font-black uppercase px-2 py-0.5 rounded-bl-lg flex items-center gap-0.5">
-                    <Trophy className="h-2 w-2" /> LOOT
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-4">
-                <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" />
-                <div className="min-w-0">
-                  <h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[8px] font-black text-primary bg-primary/5 px-1.5 py-0.5 rounded-full uppercase">{p.serviceMode || 'Food'}</span>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase truncate max-w-[80px]">{p.restaurantName}</p>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-primary font-black text-xs">₹{p.price}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => handleToggleTopTen(p.id, p.vendorId, p.isTopTen || false)} 
-                  className={cn(
-                    "h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-75",
-                    p.isTopTen ? "bg-amber-100 text-amber-600 shadow-inner" : "bg-gray-50 text-gray-300"
-                  )}
-                  title="Toggle Top 10"
-                >
-                  <Trophy className={cn("h-4 w-4", p.isTopTen && "fill-amber-600")} />
-                </button>
-                <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
-                <Button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} size="icon" variant="ghost" className="h-8 w-8 bg-red-50 text-red-500 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="col-span-full text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
-            <Package className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">
-              {searchQuery ? `No products match "${searchQuery}"` : "No products in inventory"}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <Dialog open={isBulkStatusDialogOpen} onOpenChange={setIsBulkStatusDialogOpen}>
-         <DialogContent className="rounded-[2.5rem] max-w-sm">
-            <DialogHeader><DialogTitle className="font-black italic uppercase text-center">{bulkMode === 'open' ? 'Open Zone' : 'Close Zone'}</DialogTitle></DialogHeader>
-            <div className="p-6 space-y-6">
-               <Select value={selectedBulkZoneId} onValueChange={setSelectedBulkZoneId}>
-                  <SelectTrigger className="h-14 rounded-2xl font-bold bg-muted/20 border-none"><SelectValue placeholder="Select Serving Zone" /></SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    {zones?.map((z: any) => <SelectItem key={z.id} value={z.id} className="font-bold py-3 uppercase">{z.name}</SelectItem>)}
-                  </SelectContent>
+        <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
+          <DialogTrigger asChild><Button className="bg-black rounded-xl font-black uppercase italic"><Plus className="h-4 w-4 mr-2" /> ADD PRODUCT</Button></DialogTrigger>
+          <DialogContent className="rounded-[2.5rem] max-w-md focus:outline-none">
+            <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Product SEO Hub</DialogTitle></DialogHeader>
+            <div className="p-4 space-y-6">
+               <Input value={name} onChange={e => setName(e.target.value)} placeholder="Product Name" className="h-12 rounded-xl font-bold bg-muted/20" />
+               <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> Super SEO Slug</label>
+                  <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="dairy-milk-silk" className="h-12 rounded-xl bg-primary/5 border-primary/10 font-black italic text-primary" />
+               </div>
+               <Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Selling Price ₹" className="h-12 rounded-xl font-black text-lg" />
+               <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                  <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue placeholder="Assign Store" /></SelectTrigger>
+                  <SelectContent className="rounded-2xl">{vendors?.map((v:any) => <SelectItem key={v.id} value={v.id}>{v.storeName}</SelectItem>)}</SelectContent>
                </Select>
-               <Button 
-                onClick={handleBulkStatusAction} 
-                disabled={isBulkUpdating || !selectedBulkZoneId}
-                className={cn(
-                  "w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all",
-                  bulkMode === 'open' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-                )}
-               >
-                 {isBulkUpdating ? <Loader2 className="h-6 w-6 animate-spin" /> : `CONFIRM ${bulkMode.toUpperCase()}`}
+               <Button onClick={handleSave} disabled={isProcessing} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">
+                 {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : 'PUBLISH SUPER SEO'}
                </Button>
             </div>
-         </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {products?.map(p => (
+          <div key={p.id} className="bg-white p-4 rounded-3xl border flex items-center justify-between group shadow-sm transition-all relative overflow-hidden">
+            <div className="flex items-center gap-4">
+              <img src={p.imageUrl} className="h-14 w-14 rounded-xl object-cover" />
+              <div className="min-w-0">
+                <h4 className="font-black text-sm uppercase italic truncate max-w-[120px]">{p.name}</h4>
+                <p className="text-[9px] font-black text-primary truncate italic leading-none">/product/{p.slug || slugify(p.name)}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => handleEdit(p)} size="icon" variant="ghost" className="h-8 w-8 bg-blue-50 text-blue-600 rounded-lg"><Edit className="h-4 w-4" /></Button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

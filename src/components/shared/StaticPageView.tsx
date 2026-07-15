@@ -1,15 +1,20 @@
+
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, FileText, Loader2, Calendar } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
+/**
+ * @fileOverview StaticPageView that intelligently handles both Slugs and IDs.
+ */
 export default function StaticPageView({ forcedId }: { forcedId?: string }) {
-  const searchParams = useSearchParams();
-  const pageId = forcedId || searchParams.get('id');
+  const params = useParams();
+  const slug = params?.slug as string;
+  const idFromUrl = params?.id as string;
   const router = useRouter();
   const firestore = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
@@ -18,12 +23,31 @@ export default function StaticPageView({ forcedId }: { forcedId?: string }) {
     setIsMounted(true);
   }, []);
 
-  const pageRef = useMemoFirebase(() => {
-    if (!firestore || !pageId) return null;
-    return doc(firestore, 'pages', String(pageId));
-  }, [firestore, pageId]);
+  // Try to find by slug first, then by ID if forcedId is provided
+  const pageQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    
+    const targetSlug = slug || idFromUrl || forcedId;
+    if (!targetSlug) return null;
 
-  const { data: page, loading } = useDoc<any>(pageRef);
+    // Check if the parameter looks like a direct ID or a slug
+    return query(collection(firestore, 'pages'), where('slug', '==', targetSlug), limit(1));
+  }, [firestore, slug, idFromUrl, forcedId]);
+
+  const { data: pageResults, loading: slugLoading } = useCollection<any>(pageQuery);
+  
+  // Fallback for direct ID access if slug query returns nothing
+  const idQuery = useMemoFirebase(() => {
+    if (!firestore || pageResults?.length) return null;
+    const targetId = forcedId || idFromUrl || slug;
+    if (!targetId) return null;
+    return query(collection(firestore, 'pages'), where('__name__', '==', targetId), limit(1));
+  }, [firestore, slug, idFromUrl, forcedId, pageResults]);
+
+  const { data: idResults, loading: idLoading } = useCollection<any>(idQuery);
+
+  const page = pageResults?.[0] || idResults?.[0];
+  const loading = slugLoading || idLoading;
 
   if (loading && !page) {
     return (
@@ -33,11 +57,11 @@ export default function StaticPageView({ forcedId }: { forcedId?: string }) {
     );
   }
 
-  if (!page) {
+  if (!page && !loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
         <h2 className="text-xl font-black italic uppercase">Page Not Found</h2>
-        <button onClick={() => router.back()} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Go Back</button>
+        <button onClick={() => router.push('/')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Go Back Home</button>
       </div>
     );
   }
@@ -48,7 +72,7 @@ export default function StaticPageView({ forcedId }: { forcedId?: string }) {
         <button onClick={() => router.push('/')} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors">
           <ChevronLeft className="h-6 w-6 text-gray-700" />
         </button>
-        <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">{page.title}</h1>
+        <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">{page?.title}</h1>
         <div className="w-10" />
       </div>
 
@@ -58,10 +82,10 @@ export default function StaticPageView({ forcedId }: { forcedId?: string }) {
               <FileText className="h-6 w-6" />
            </div>
            <div>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">{page.title}</h2>
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">{page?.title}</h2>
               <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">
                  <Calendar className="h-3 w-3" />
-                 Last Updated: {isMounted && page.updatedAt?.seconds ? format(new Date(page.updatedAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+                 Last Updated: {isMounted && page?.updatedAt?.seconds ? format(new Date(page.updatedAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
               </div>
            </div>
         </div>
@@ -69,7 +93,7 @@ export default function StaticPageView({ forcedId }: { forcedId?: string }) {
         <article className="prose prose-sm max-w-none">
            <div 
              className="text-gray-700 leading-relaxed space-y-4 whitespace-pre-line font-medium"
-             dangerouslySetInnerHTML={{ __html: page.content }}
+             dangerouslySetInnerHTML={{ __html: page?.content || '' }}
            />
         </article>
 

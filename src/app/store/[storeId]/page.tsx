@@ -1,21 +1,10 @@
-'use client';
 
-import { Suspense, lazy } from 'react';
-import { Loader2 } from 'lucide-react';
-import MenuContent from '@/components/menu/MenuContent';
+import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview SEO Friendly dynamic route for stores.
- * Handles format: /store/name-slug-ID
+ * @fileOverview Redirect legacy ID-based store routes to the unified Slug route.
  */
-export default function StorePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    }>
-      <MenuContent />
-    </Suspense>
-  );
+export default async function LegacyStoreRedirect({ params }: { params: Promise<{ storeId: string }> }) {
+  const resolvedParams = await params;
+  redirect(`/store/${resolvedParams.storeId}`);
 }
