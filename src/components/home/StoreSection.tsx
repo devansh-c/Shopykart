@@ -4,14 +4,28 @@ import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
-import React, { useMemo, useTransition } from "react"
+import React, { useMemo, useTransition, useState, useEffect } from "react"
 import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
+/**
+ * @fileOverview StoreSection with NUCLEAR STRICT Location Filtering.
+ * Ensures stores from Mauranipur don't appear in Ranipur and vice-versa.
+ */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [activeCity, setActiveCity] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateLoc = () => {
+      setActiveCity(localStorage.getItem('user_city'));
+    };
+    updateLoc();
+    window.addEventListener('user-address-updated', updateLoc);
+    return () => window.removeEventListener('user-address-updated', updateLoc);
+  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -22,13 +36,27 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
-    return dbVendors.filter(v => (v.category || 'Food').toLowerCase() === activeMode.toLowerCase());
-  }, [dbVendors, activeMode]);
+    
+    // Normalize target city for strict matching
+    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+
+    return dbVendors.filter(v => {
+      const vTown = (v.town || '').toLowerCase().trim();
+
+      // NUCLEAR STRICT LOCATION FILTERING
+      if (targetCityNormalized && targetCityNormalized !== 'local') {
+        const matchesCity = vTown === targetCityNormalized;
+        if (!matchesCity) return false;
+      }
+
+      return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
+    });
+  }, [dbVendors, activeMode, activeCity]);
 
   const handleStoreClick = (store: any) => {
     const slug = store.slug || slugify(store.storeName);
     startTransition(() => {
-      router.push(`/store/${slug}`);
+      router.push(`/store/${slug}-${store.id}`);
     });
   };
 

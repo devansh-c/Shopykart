@@ -10,7 +10,7 @@ import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview PopularProducts with Strict Location Filtering.
+ * @fileOverview PopularProducts with NUCLEAR STRICT Location Filtering.
  * Ensures Ranipur and Mauranipur content never mixes.
  */
 
@@ -136,12 +136,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // ULTRA-STRICT LOCATION FILTERING
+      // NUCLEAR STRICT LOCATION FILTERING
       if (targetCityNormalized && targetCityNormalized !== 'local') {
-        // Must match exactly to the normalized town name
         const matchesCity = productTown === targetCityNormalized;
-        
-        // If it doesn't match the city, we hide it immediately (Ignore loose matches or zone fallbacks for products)
         if (!matchesCity) return false;
       }
 
