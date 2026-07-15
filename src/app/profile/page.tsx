@@ -1,4 +1,3 @@
-
 "use client"
 
 import { 
@@ -53,7 +52,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { format, addDays } from 'date-fns';
 
 function ProfileContent() {
@@ -111,7 +110,7 @@ function ProfileContent() {
 
   const requestQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'premium_subscriptions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
+    return query(collection(firestore, 'premium_subscriptions'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'), limit(1));
   }, [firestore, user]);
   const { data: latestRequests } = useCollection<any>(requestQuery);
   const activeRequest = latestRequests?.[0];
@@ -388,10 +387,11 @@ function ProfileContent() {
             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Information & Legal</h3>
             {pages.map((page: any) => {
               const Icon = getPageIcon(page.title);
+              const seoSlug = page.slug || slugify(page.title);
               return (
                 <button 
                   key={page.id}
-                  onClick={() => handleAction(`/pages/view?id=${page.id}`, page.title)}
+                  onClick={() => handleAction(`/pages/${seoSlug}-${page.id}`, page.title)}
                   className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all"
                 >
                   <div className="flex items-center space-x-4">
