@@ -37,7 +37,6 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
   // 2. Fallback: Try to find by Document ID (Legacy Support)
   const idQuery = useMemoFirebase(() => {
     if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
-    // We check if slug itself is a valid ID pattern
     return query(collection(firestore, 'products'), where('__name__', '==', slug), limit(1));
   }, [firestore, slug, slugResults]);
 
@@ -101,21 +100,21 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
       </div>
 
       <div className={cn("relative w-full aspect-[4/3] bg-muted", isOffline && "grayscale")}>
-        <Image src={product.imageUrl} alt={product.name} fill className="object-cover" priority unoptimized />
+        <Image src={product?.imageUrl} alt={product?.name || 'Product'} fill className="object-cover" priority unoptimized />
       </div>
 
       <div className="relative z-10 -mt-8 bg-white rounded-t-[2.5rem] px-6 pt-8 pb-4">
         <div className="flex justify-between items-start mb-2">
-          <h2 className="text-2xl font-black text-foreground leading-tight uppercase italic">{product.name}</h2>
-          {product.isVeg && <div className="h-6 w-6 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mt-1"><div className="h-full w-full bg-green-600 rounded-full" /></div>}
+          <h2 className="text-2xl font-black text-foreground leading-tight uppercase italic">{product?.name}</h2>
+          {product?.isVeg && <div className="h-6 w-6 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5 mt-1"><div className="h-full w-full bg-green-600 rounded-full" /></div>}
         </div>
 
         <div className="flex items-baseline gap-3 mb-4">
            <div className="text-3xl font-black text-gray-900 italic">₹{(currentPrice || 0).toFixed(0)}</div>
-           {isSaleActive && <div className="text-sm font-bold text-gray-400 line-through">₹{product.price}</div>}
+           {isSaleActive && <div className="text-sm font-bold text-gray-400 line-through">₹{product?.price}</div>}
         </div>
 
-        <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-6 italic">{product.description}</p>
+        <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-6 italic">{product?.description}</p>
 
         <div className="fixed bottom-0 left-0 right-0 z-[11000] bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
           <div className="flex items-center gap-4 max-w-lg mx-auto">
