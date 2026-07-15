@@ -6,7 +6,6 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Universal SEO Route for Stores.
  * Handles both Slugs and IDs to resolve routing conflicts.
- * Consolidated dynamic segment to handle the 'storeId' vs 'slug' conflict.
  */
 
 export const generateStaticParams = async () => {
@@ -28,8 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+  const { slug } = await params;
 
   return (
     <Suspense fallback={
