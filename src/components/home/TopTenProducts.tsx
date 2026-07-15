@@ -66,22 +66,23 @@ export function TopTenProducts() {
 
   const filteredTopProducts = useMemo(() => {
     if (!allTopProducts || !vendors) return [];
+    
+    // Normalize target city for strict exact matching
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // STRICT LOCATION FILTERING
-      if (targetCityNormalized) {
-        const matchesCity = productTown === targetCityNormalized || productTown.includes(targetCityNormalized);
-        const matchesZone = activeZoneId && p.zoneId === activeZoneId;
-        
-        if (!matchesCity && !matchesZone) return false;
+      // ULTRA-STRICT LOCATION FILTERING
+      if (targetCityNormalized && targetCityNormalized !== 'local') {
+        // Must match exactly
+        const matchesCity = productTown === targetCityNormalized;
+        if (!matchesCity) return false;
       }
       return true;
     }).slice(0, 10);
-  }, [allTopProducts, vendors, activeZoneId, activeCity]);
+  }, [allTopProducts, vendors, activeCity]);
 
   const navigateToProduct = (product: any) => {
     const slug = slugify(product.name);

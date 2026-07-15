@@ -40,19 +40,20 @@ export default function StoresPage() {
     if (!dbVendors) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
+    
+    // Normalize target city for strict exact matching
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
-      const vZoneId = v.zoneId;
 
-      // STRICT LOCATION FILTERING
-      if (targetCityNormalized) {
-        // If city is specified, the vendor town MUST match or the zone must belong to that city
-        const matchesCity = vTown === targetCityNormalized || vTown.includes(targetCityNormalized);
-        const matchesZone = activeZoneId && vZoneId === activeZoneId;
+      // ULTRA-STRICT LOCATION FILTERING
+      if (targetCityNormalized && targetCityNormalized !== 'local') {
+        // Must match exactly to the town name
+        const matchesCity = vTown === targetCityNormalized;
         
-        if (!matchesCity && !matchesZone) return false;
+        // If it doesn't match the city, we hide it immediately
+        if (!matchesCity) return false;
       }
 
       const matchesSearch = !searchLower || 
@@ -68,7 +69,7 @@ export default function StoresPage() {
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, activeZoneId, activeCity, searchQuery]);
+  }, [dbVendors, activeCity, searchQuery]);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -121,7 +122,7 @@ export default function StoresPage() {
                   isOffline && "opacity-80 grayscale-[0.2]"
                 )}
               >
-                <div className="relative h-36 w-full bg-muted">
+                <div className="relative h-36 w-full bg-muted overflow-hidden">
                   <Image src={displayImage} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" unoptimized />
                   {isOffline && (
                     <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">

@@ -129,18 +129,20 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
+    // Normalize target city for strict exact matching
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
 
     return dbProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // STRICT LOCATION FILTERING
-      if (targetCityNormalized) {
-        const matchesCity = productTown === targetCityNormalized || productTown.includes(targetCityNormalized);
-        const matchesZone = activeZoneId && p.zoneId === activeZoneId;
+      // ULTRA-STRICT LOCATION FILTERING
+      if (targetCityNormalized && targetCityNormalized !== 'local') {
+        // Must match exactly to the normalized town name
+        const matchesCity = productTown === targetCityNormalized;
         
-        if (!matchesCity && !matchesZone) return false;
+        // If it doesn't match the city, we hide it immediately (Ignore loose matches or zone fallbacks for products)
+        if (!matchesCity) return false;
       }
 
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -149,7 +151,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       
       return modeMatch && searchMatch && catMatch;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, activeCity]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeCity]);
 
   const navigateToProduct = (product: any) => {
     const slug = product.slug || slugify(product.name);
