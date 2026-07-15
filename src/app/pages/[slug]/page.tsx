@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview SEO Optimized Route for Legal and Policy Pages.
- * Fixed conflicting dynamic segments.
+ * Fixed conflicting dynamic segments by using a unified [slug] parameter.
  */
 
 export const generateStaticParams = async () => {
