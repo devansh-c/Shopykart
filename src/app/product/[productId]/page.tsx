@@ -9,9 +9,8 @@ export const generateStaticParams = async () => {
   return [];
 };
 
-export default async function RedundantProductRedirect({ params }: { params: any }) {
-  const resolvedParams = await params;
-  const id = resolvedParams.productId;
-  redirect(`/product/${id}/`);
+export default async function RedundantProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
+  const { productId } = await params;
+  redirect(`/product/${productId}/`);
   return null;
 }

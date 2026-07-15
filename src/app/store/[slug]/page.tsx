@@ -15,8 +15,7 @@ export const generateStaticParams = async () => {
 export const dynamicParams = true;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+  const { slug } = await params;
   const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
@@ -27,8 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+  const { slug } = await params;
 
   return (
     <Suspense fallback={
