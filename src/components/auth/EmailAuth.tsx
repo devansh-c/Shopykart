@@ -35,7 +35,6 @@ export function EmailAuth() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -76,18 +75,16 @@ export function EmailAuth() {
       toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
       setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
-      console.error("Auth Error:", err.code);
-      
       if (err.code === 'auth/unauthorized-domain') {
         const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
         toast({ 
           variant: "destructive", 
-          title: "Domain Restricted", 
-          description: `Authorized Domains mein "${currentDomain}" add karein.`,
-          duration: 8000
+          title: "Domain Not Authorized", 
+          description: `Firebase Console > Auth > Settings mein "${currentDomain}" add karein.`,
+          duration: 10000
         });
-      } else {
-        toast({ variant: "destructive", title: "Auth Failed", description: "Please use Email Login." });
+      } else if (err.code !== 'auth/popup-closed-by-user') {
+        toast({ variant: "destructive", title: "Auth Failed", description: "Please use Email/Password to login." });
       }
     } finally {
       setSocialLoading(null);
@@ -133,7 +130,7 @@ export function EmailAuth() {
       setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
       setLoading(false);
-      toast({ variant: "destructive", title: "Auth Error", description: "Check credentials." });
+      toast({ variant: "destructive", title: "Auth Error", description: "Invalid credentials or account exists." });
     }
   };
 
@@ -195,7 +192,7 @@ export function EmailAuth() {
 
           <div className="grid grid-cols-2 gap-4">
              <button onClick={() => handleSocialAuth('google')} disabled={!!socialLoading} className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95">
-                {socialLoading === 'google' ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                {socialLoading === 'google' ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (
                   <>
                     <svg className="h-5 w-5" viewBox="0 0 24 24">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -209,7 +206,7 @@ export function EmailAuth() {
              </button>
 
              <button onClick={() => handleSocialAuth('apple')} disabled={!!socialLoading} className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95">
-                {socialLoading === 'apple' ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                {socialLoading === 'apple' ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : (
                   <>
                     <Apple className="h-5 w-5 text-white fill-white" />
                     <span className="text-[10px] font-black text-white uppercase">Apple</span>

@@ -35,6 +35,7 @@ function LoginPageContent() {
       let provider;
       if (providerName === 'google') {
         provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
       } else {
         provider = new OAuthProvider('apple.com');
       }
@@ -50,7 +51,7 @@ function LoginPageContent() {
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
-          description: "No vendor profile found for this social account." 
+          description: "No vendor profile found for this social account. Use manual login if your Store ID was created with a custom password." 
         });
       } else {
         localStorage.setItem('shopykart_session_active', 'true');
@@ -61,9 +62,15 @@ function LoginPageContent() {
       }
     } catch (err: any) {
       if (err.code === 'auth/unauthorized-domain') {
-        toast({ variant: "destructive", title: "Domain Error", description: "Please authorize this domain in Firebase Console." });
-      } else {
-        toast({ variant: "destructive", title: "Failed", description: "Use ID/Password login." });
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+        toast({ 
+          variant: "destructive", 
+          title: "Domain Restricted", 
+          description: `Authorized Domains mein "${currentDomain}" add karein.`,
+          duration: 8000
+        });
+      } else if (err.code !== 'auth/popup-closed-by-user') {
+        toast({ variant: "destructive", title: "Failed", description: "Please use manual Store ID login." });
       }
     } finally {
       setSocialLoading(null);
