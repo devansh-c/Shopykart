@@ -5,6 +5,5 @@
 import { redirect } from 'next/navigation';
 
 export default async function NeutralizedPagesPage() {
-  // This route is purely a placeholder to prevent folder structure conflicts.
   return null;
 }

@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Universal SEO Route for Products.
  * Handles both legacy alphanumeric IDs and new descriptive slugs.
- * Updated for Next.js 15 Async Params.
+ * Updated for Next.js 15: params is now a Promise.
  */
 
 export const generateStaticParams = async () => {

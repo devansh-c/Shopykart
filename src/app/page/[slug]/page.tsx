@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Unified SEO Route for Information Pages.
  * Handles both legacy IDs and new descriptive slugs.
- * Updated for Next.js 15 Async Params.
+ * Updated for Next.js 15: params is now a Promise.
  */
 
 export const generateStaticParams = async () => {
@@ -35,7 +35,7 @@ export default async function GenericPage({ params }: { params: Promise<{ slug: 
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Retrieving Information...</p>
         </div>
       </div>

@@ -757,7 +757,6 @@ export default function CartPage() {
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
         </div>
 
-        {/* SLIDE TO PLACE ORDER - Reduced bottom margin for clean look */}
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-[3rem] transform-gpu mt-8">
            
            {validationError && (
