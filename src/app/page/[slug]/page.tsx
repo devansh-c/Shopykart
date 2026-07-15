@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Consolidates all page viewing logic to avoid conflicts.
+ * Updated for Next.js 15 Async Params and consolidated routing.
  */
 
 export const generateStaticParams = async () => {
@@ -27,7 +27,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
 
   return (
     <Suspense fallback={

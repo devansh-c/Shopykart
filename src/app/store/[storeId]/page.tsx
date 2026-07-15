@@ -9,9 +9,9 @@ export const generateStaticParams = async () => {
   return [];
 };
 
-export default async function RedundantStoreRedirect({ params }: { params: Promise<{ storeId: string }> }) {
-  const { storeId } = await params;
-  // Redirect to the consolidated [slug] route which handles both IDs and Slugs
-  redirect(`/store/${storeId}/`);
+export default async function RedundantStoreRedirect({ params }: { params: any }) {
+  const resolvedParams = await params;
+  const id = resolvedParams.storeId;
+  redirect(`/store/${id}/`);
   return null;
 }
