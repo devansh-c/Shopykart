@@ -21,6 +21,7 @@ import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { generateWelcomeEmail } from '@/ai/flows/welcome-email-flow';
 
 type AuthView = 'login' | 'signup' | 'forgot-password' | 'verify-email';
 
@@ -74,9 +75,14 @@ export function EmailAuth() {
         };
         await setDoc(userDocRef, userData);
         localStorage.setItem('show_welcome_bonus', 'true');
+        
+        // TRIGGER WELCOME EMAIL AI
+        await generateWelcomeEmail({ 
+          userName: firebaseUser.displayName || 'Customer', 
+          email: firebaseUser.email || '' 
+        });
       }
 
-      // Social accounts are usually already verified by Google/Apple
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
       
@@ -123,7 +129,6 @@ export function EmailAuth() {
         const firebaseUser = userCredential.user;
         await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
 
-        // SEND VERIFICATION EMAIL
         await sendEmailVerification(firebaseUser);
 
         await setDoc(doc(firestore, 'users', firebaseUser.uid), {
@@ -138,12 +143,18 @@ export function EmailAuth() {
         });
 
         localStorage.setItem('show_welcome_bonus', 'true');
+        
+        // TRIGGER WELCOME EMAIL AI
+        await generateWelcomeEmail({ 
+          userName: fullName.toUpperCase(), 
+          email: trimmedEmail 
+        });
+
         setView('verify-email');
         toast({ title: "Verification Sent!", description: "Please check your inbox to activate account." });
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         
-        // CHECK IF VERIFIED
         if (!userCredential.user.emailVerified) {
           setView('verify-email');
           setLoading(false);
