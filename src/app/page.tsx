@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useTransition, Suspense, useEffect, memo } from 'react';
@@ -6,11 +7,12 @@ import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
+import { useUser } from '@/firebase';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
  * Optimized with Dynamic Imports for robust publishing.
- * Removed Footer as requested.
+ * Added Auth-Listener to clear search on login/register.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -31,10 +33,19 @@ export default function ShopyKartApp() {
   const [activeMode, setActiveMode] = useState('Food');
   const [isPending, startTransition] = useTransition();
   const [isMounted, setIsMounted] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // CRITICAL FIX: Reset search bar whenever user logs in or registers
+  // This prevents browser autofill from breaking the results view
+  useEffect(() => {
+    if (user) {
+      setSearchQuery('');
+    }
+  }, [user]);
 
   const handleBackToFood = () => {
     startTransition(() => {

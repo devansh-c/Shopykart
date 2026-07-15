@@ -212,7 +212,10 @@ export function LocationHeader({
             <Input
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              autoComplete="off"
+              autoComplete="one-time-code"
+              name="shopykart-search-field"
+              id="global-search-input"
+              spellCheck={false}
               className="h-full w-full bg-transparent border-none pl-10 pr-20 text-white font-bold placeholder:text-transparent focus-visible:ring-0 text-xs"
             />
             {!searchValue && <SearchPlaceholder />}
