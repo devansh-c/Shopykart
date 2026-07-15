@@ -70,6 +70,7 @@ export default function CartPage() {
   const [useCoins, setUseCoins] = useState(false);
   const [premiumPackaging, setPremiumPackaging] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
   
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -96,6 +97,10 @@ export default function CartPage() {
   const currentXRef = useRef(0);
 
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -434,6 +439,8 @@ export default function CartPage() {
     setIsMapOpen(false);
     toast({ title: "Location Set! 📍", description: "Your pin has been saved." });
   };
+
+  if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="min-h-screen bg-white">
@@ -892,4 +899,3 @@ export default function CartPage() {
     </div>
   );
 }
-

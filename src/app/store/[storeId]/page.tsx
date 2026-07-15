@@ -4,8 +4,7 @@
  */
 import { redirect } from 'next/navigation';
 
-export default async function NeutralizedStorePage({ params }: { params: Promise<{ storeId: string }> }) {
-  const resolvedParams = await params;
-  redirect(`/store/${resolvedParams.storeId}`);
+export default async function NeutralizedStorePage() {
+  // This route is purely a placeholder to prevent folder structure conflicts.
   return null;
 }

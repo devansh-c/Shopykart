@@ -4,8 +4,7 @@
  */
 import { redirect } from 'next/navigation';
 
-export default async function NeutralizedPagesPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
-  redirect(`/page/${resolvedParams.id}`);
+export default async function NeutralizedPagesPage() {
+  // This route is purely a placeholder to prevent folder structure conflicts.
   return null;
 }

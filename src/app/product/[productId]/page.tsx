@@ -4,8 +4,8 @@
  */
 import { redirect } from 'next/navigation';
 
-export default async function NeutralizedProductPage({ params }: { params: Promise<{ productId: string }> }) {
-  const resolvedParams = await params;
-  redirect(`/product/${resolvedParams.productId}`);
+export default async function NeutralizedProductPage() {
+  // This route is purely a placeholder to prevent folder structure conflicts.
+  // Next.js App Router fails when [productId] and [slug] exist at the same level.
   return null;
 }
