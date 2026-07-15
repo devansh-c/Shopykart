@@ -13,7 +13,7 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase
 import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
- * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs.
+ * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs defensively.
  */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -34,22 +34,21 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
       if (!firestore || !rawSlug) return;
       setLoading(true);
       try {
-        // 1. Try Slug
+        // 1. First, try finding by SEO Slug field
         const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
-        const slugSnap = await (async () => {
-          // Internal fetch because useCollection is not async-await friendly in loops
-          const { getDocs } = await import('firebase/firestore');
-          return getDocs(slugQ);
-        })();
+        const { getDocs } = await import('firebase/firestore');
+        const slugSnap = await getDocs(slugQ);
 
         if (!slugSnap.empty) {
           setProduct({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
         } else {
-          // 2. Try ID Fallback
+          // 2. Fallback: Try finding by Document ID (Legacy Support)
           const idRef = doc(firestore, 'products', rawSlug);
           const idSnap = await getDoc(idRef);
           if (idSnap.exists()) {
             setProduct({ id: idSnap.id, ...idSnap.data() });
+          } else {
+            console.warn("Product not found by slug or ID:", rawSlug);
           }
         }
       } catch (err) {
@@ -105,7 +104,7 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
   };
 
   if (loading) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  if (!product && !loading) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase">Item Not Found</h2><Button onClick={() => router.push('/')} className="mt-8">Home</Button></div>;
+  if (!product && !loading) return <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase text-muted-foreground">Item Not Found</h2><Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl">Back to Home</Button></div>;
 
   return (
     <div className="min-h-screen bg-white pb-40">

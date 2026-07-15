@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Universal SEO Route for Products.
  * Handles both legacy alphanumeric IDs and new descriptive slugs.
- * Consolidated to prevent Dynamic Route Conflicts in Next.js.
+ * Consolidated to prevent "Internal Server Error" caused by route conflicts.
  */
 
 export const generateStaticParams = async () => {

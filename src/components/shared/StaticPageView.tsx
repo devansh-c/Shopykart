@@ -1,44 +1,54 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, FileText, Loader2, Calendar } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
+import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 
 /**
- * @fileOverview StaticPageView that intelligently handles both Slugs and IDs.
+ * @fileOverview StaticPageView that intelligently handles both Slugs and IDs defensively.
  */
 export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const slug = forcedSlug || (params?.slug as string);
+  const rawSlug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   const firestore = useFirestore();
+  const [page, setPage] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    async function resolvePage() {
+      if (!firestore || !rawSlug) return;
+      setLoading(true);
+      try {
+        // 1. Try SEO Slug
+        const slugQ = query(collection(firestore, 'pages'), where('slug', '==', rawSlug), limit(1));
+        const { getDocs } = await import('firebase/firestore');
+        const slugSnap = await getDocs(slugQ);
 
-  // 1. Try to find by SEO Slug
-  const slugQuery = useMemoFirebase(() => {
-    if (!firestore || !slug) return null;
-    return query(collection(firestore, 'pages'), where('slug', '==', slug), limit(1));
-  }, [firestore, slug]);
-
-  const { data: slugResults, loading: slugLoading } = useCollection<any>(slugQuery);
-  
-  // 2. Fallback: Try to find by Document ID (Legacy Support)
-  const idQuery = useMemoFirebase(() => {
-    if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
-    return query(collection(firestore, 'pages'), where('__name__', '==', slug), limit(1));
-  }, [firestore, slug, slugResults]);
-
-  const { data: idResults, loading: idLoading } = useCollection<any>(idQuery);
-
-  const page = (slugResults && slugResults.length > 0) ? slugResults[0] : (idResults && idResults.length > 0 ? idResults[0] : null);
-  const loading = slugLoading || idLoading;
+        if (!slugSnap.empty) {
+          setPage({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
+        } else {
+          // 2. Fallback: Document ID
+          const idRef = doc(firestore, 'pages', rawSlug);
+          const idSnap = await getDoc(idRef);
+          if (idSnap.exists()) {
+            setPage({ id: idSnap.id, ...idSnap.data() });
+          }
+        }
+      } catch (err) {
+        console.error("Page resolution error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    resolvePage();
+  }, [firestore, rawSlug]);
 
   if (loading && !page) {
     return (

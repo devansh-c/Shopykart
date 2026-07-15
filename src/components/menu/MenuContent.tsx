@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,22 +11,24 @@ import { cn, slugify } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
+import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview MenuContent with SEO Slug support and robust data fetching.
+ * @fileOverview MenuContent with SEO Slug support and defensive resolution.
  */
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const slug = forcedSlug || (params?.slug as string);
+  const rawSlug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const { addToCart } = useCart();
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
+  const [vendorProfile, setVendorProfile] = useState<any>(null);
+  const [vendorLoading, setVendorLoading] = useState(true);
   
   const firestore = useFirestore();
 
@@ -39,32 +42,45 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  // SEO Query: Find vendor by slug first, then by ID as fallback
-  const vendorSlugQuery = useMemoFirebase(() => {
-    if (!firestore || !slug) return null;
-    return query(collection(firestore, 'vendors'), where('slug', '==', slug), limit(1));
-  }, [firestore, slug]);
+  // SEO Resolution Logic: Slug -> ID
+  useEffect(() => {
+    async function resolveVendor() {
+      if (!firestore || !rawSlug) return;
+      setVendorLoading(true);
+      try {
+        const { getDocs } = await import('firebase/firestore');
+        
+        // 1. Try Slug
+        const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
+        const slugSnap = await getDocs(slugQ);
 
-  const { data: slugResults, loading: slugLoading } = useCollection<any>(vendorSlugQuery);
+        if (!slugSnap.empty) {
+          setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
+        } else {
+          // 2. Fallback: ID
+          const idRef = doc(firestore, 'vendors', rawSlug);
+          const idSnap = await getDoc(idRef);
+          if (idSnap.exists()) {
+            setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+          }
+        }
+      } catch (err) {
+        console.error("Vendor resolution error:", err);
+      } finally {
+        setVendorLoading(false);
+      }
+    }
+    resolveVendor();
+  }, [firestore, rawSlug]);
 
-  const vendorIdQuery = useMemoFirebase(() => {
-    if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
-    return query(collection(firestore, 'vendors'), where('__name__', '==', slug), limit(1));
-  }, [firestore, slug, slugResults]);
-
-  const { data: idResults, loading: idLoading } = useCollection<any>(vendorIdQuery);
-
-  const vendorProfile = (slugResults && slugResults.length > 0) ? slugResults[0] : (idResults && idResults.length > 0 ? idResults[0] : null);
-  const vendorLoading = slugLoading || idLoading;
-
-  const scheduleOpen = isStoreScheduleOpen(vendorProfile, currentMinutes);
+  const scheduleOpen = useMemo(() => isStoreScheduleOpen(vendorProfile, currentMinutes), [vendorProfile, currentMinutes]);
   const isOffline = vendorProfile?.isOnline === false || !scheduleOpen;
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', vendorProfile.id));
   }, [firestore, vendorProfile]);
-  const { data: dbProducts, loading: dbLoading } = useCollection<any>(productsQuery);
+  const { data: dbProducts } = useCollection<any>(productsQuery);
 
   const filteredAndSortedProducts = useMemo(() => {
     if (!dbProducts) return [];
@@ -77,7 +93,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
 
   if (vendorLoading && !vendorProfile) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
-  if (!vendorProfile && !vendorLoading) return <div className="h-screen bg-white flex flex-col items-center justify-center p-8"><h2 className="text-xl font-black italic uppercase">Store Not Found</h2><Button onClick={() => router.push('/')} className="mt-8">Home</Button></div>;
+  if (!vendorProfile && !vendorLoading) return <div className="h-screen bg-white flex flex-col items-center justify-center p-8"><h2 className="text-xl font-black italic uppercase text-muted-foreground">Store Not Found</h2><Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl">Back to Home</Button></div>;
 
   return (
     <div className="min-h-screen bg-white pb-40">

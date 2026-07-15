@@ -6,7 +6,8 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Compliant with Next.js 15 Promise-based params.
+ * Handles both legacy IDs and new descriptive slugs.
+ * Consolidated to prevent "Internal Server Error" caused by route conflicts.
  */
 
 export const generateStaticParams = async () => {
