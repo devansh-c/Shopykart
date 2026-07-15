@@ -47,7 +47,7 @@ export function TopTenProducts() {
 
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(30));
+    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(100));
   }, [firestore]);
 
   const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
@@ -67,12 +67,14 @@ export function TopTenProducts() {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // HYBRID SMART FILTERING:
+      // PERMISSIVE HYBRID FILTERING:
       if (targetCity && targetCity !== 'local' && productTown && productTown !== 'local') {
-        if (productTown !== targetCity) return false;
+        if (!productTown.includes(targetCity) && !targetCity.includes(productTown)) {
+          return false;
+        }
       }
       return true;
-    }).slice(0, 10);
+    }).slice(0, 30); // Show more items if available
   }, [allTopProducts, vendors, activeCity]);
 
   const navigateToProduct = (product: any) => {

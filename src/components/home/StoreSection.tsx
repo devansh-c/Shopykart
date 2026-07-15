@@ -25,7 +25,8 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(30));
+    // Increased limit to show more stores
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -38,9 +39,11 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
 
-      // HYBRID SMART FILTERING:
+      // PERMISSIVE HYBRID FILTERING:
       if (targetCity && targetCity !== 'local' && vTown && vTown !== 'local') {
-        if (vTown !== targetCity) return false;
+        if (!vTown.includes(targetCity) && !targetCity.includes(vTown)) {
+          return false;
+        }
       }
 
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
