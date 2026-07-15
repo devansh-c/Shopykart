@@ -63,6 +63,7 @@ export default function CartPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  const [isMounted, setIsMounted] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
@@ -70,7 +71,6 @@ export default function CartPage() {
   const [useCoins, setUseCoins] = useState(false);
   const [premiumPackaging, setPremiumPackaging] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
   
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -518,7 +518,7 @@ export default function CartPage() {
                         <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
                         <button onClick={() => !isItemOffline && addToCart(item)} disabled={isItemOffline} className={cn("w-6 h-full flex items-center justify-center font-bold text-gray-500", isItemOffline && "opacity-20 cursor-not-allowed")}>+</button>
                       </div>
-                      <div className="text-sm font-black text-gray-900 italic">₹{item.price.toFixed(2)}</div>
+                      <div className={cn("text-sm font-black text-gray-900 italic", !isMounted && "invisible")}>₹{item.price.toFixed(2)}</div>
                     </div>
                   </div>
                 </div>
@@ -729,7 +729,7 @@ export default function CartPage() {
         <div className="bg-white rounded-[2rem] p-7 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4 transition-all hover:shadow-lg">
           <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
           <div className="space-y-3">
-            <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
+            <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span className={cn(!isMounted && "invisible")}>₹{totalPrice.toFixed(2)}</span></div>
             {chargesLoading || profileLoading ? (
               <div className="flex justify-between font-bold text-[11px] text-gray-300 uppercase tracking-widest animate-pulse">
                 <span>Calculating Taxes...</span>
@@ -754,7 +754,7 @@ export default function CartPage() {
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-black text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>- ₹{coinDiscount.toFixed(2)}</span></div>}
             {deliveryTip > 0 && <div className="flex justify-between font-black text-[11px] text-orange-600 uppercase tracking-widest"><span>Delivery Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
           </div>
-          <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(2)}</span></div>
+          <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className={cn("text-3xl font-black text-primary italic tracking-tighter", !isMounted && "invisible")}>₹{grandTotal.toFixed(2)}</span></div>
         </div>
 
         <div className="bg-white border-t-2 border-[#C5A021]/40 p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-3 rounded-[3rem] transform-gpu mt-8">

@@ -1,16 +1,18 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Neutralized to resolve dynamic route conflict in Next.js 15.
- * All dynamic matching for /product/* is now handled by src/app/product/[slug]/page.tsx.
+ * @fileOverview Redundant dynamic segment neutralized to resolve Next.js 15 Turbopack conflict.
+ * All /product/* logic is now handled by src/app/product/[slug]/page.tsx.
  */
 
 export const generateStaticParams = async () => {
   return [];
 };
 
-export default async function LegacyProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
+export default async function NeutralizedProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
   const { productId } = await params;
+  // This route is technically unreachable if Turbopack is happy, 
+  // but if it exists, it MUST use a different param name OR be static.
   redirect(`/product/${productId}/`);
   return null;
 }

@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Universal SEO Route for Products.
- * Consolidates legacy [productId] and [slug] to prevent route conflict.
+ * Consolidates dynamic segments to prevent Next.js 15 Turbopack conflicts.
  */
 
 export const generateStaticParams = async () => {
