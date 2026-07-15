@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -132,8 +133,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const firestore = useFirestore();
 
   useEffect(() => {
-    const savedCity = localStorage.getItem('user_city');
-    if (savedCity) setActiveCity(savedCity);
+    const updateLocation = () => {
+      const savedCity = localStorage.getItem('user_city');
+      setActiveCity(savedCity);
+    };
+    
+    updateLocation();
+    window.addEventListener('user-address-updated', updateLocation);
 
     const syncTime = () => {
       const now = new Date();
@@ -141,7 +147,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
     syncTime();
     const interval = setInterval(syncTime, 60000); 
-    return () => clearInterval(interval);
+    
+    return () => {
+      window.removeEventListener('user-address-updated', updateLocation);
+      clearInterval(interval);
+    };
   }, []);
 
   // Performance Query: Significantly increased limit to avoid missing products

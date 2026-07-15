@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -74,6 +75,9 @@ export function EmailAuth() {
 
       localStorage.setItem('shopykart_session_active', 'true');
       toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
+      
+      // Dispatch sync event
+      window.dispatchEvent(new CustomEvent('user-address-updated'));
       setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
       if (err.code === 'auth/unauthorized-domain') {
@@ -128,6 +132,9 @@ export function EmailAuth() {
         localStorage.setItem('shopykart_session_active', 'true');
       }
       toast({ title: "Authenticated!" });
+      
+      // Dispatch sync event
+      window.dispatchEvent(new CustomEvent('user-address-updated'));
       setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
       setLoading(false);
