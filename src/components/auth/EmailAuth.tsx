@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Lock, User, Phone, MessageCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, MessageCircle, Apple } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -20,12 +23,12 @@ import { useRouter } from 'next/navigation';
 type AuthView = 'login' | 'signup';
 
 /**
- * @fileOverview High-Priority Authentication Layer.
- * Fixed: Robust registration handling and error visibility.
+ * @fileOverview Authentication Layer with Google & Apple integration.
  */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
@@ -49,39 +52,88 @@ export function EmailAuth() {
     window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const handleSocialAuth = async (providerName: 'google' | 'apple') => {
+    if (!auth || !firestore) return;
+    setSocialLoading(providerName);
+
+    try {
+      let provider;
+      if (providerName === 'google') {
+        provider = new GoogleAuthProvider();
+      } else {
+        provider = new OAuthProvider('apple.com');
+      }
+
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+
+      // Check if user already exists in Firestore
+      const userDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
+      
+      if (!userDoc.exists()) {
+        const userData = {
+          fullName: firebaseUser.displayName?.toUpperCase() || 'PREMIUM USER',
+          email: firebaseUser.email,
+          uid: firebaseUser.uid,
+          coins: 10, // Welcome Bonus
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          role: 'customer'
+        };
+        await setDoc(doc(firestore, 'users', firebaseUser.uid), userData);
+        localStorage.setItem('show_welcome_bonus', 'true');
+      }
+
+      localStorage.setItem('shopykart_session_active', 'true');
+      toast({ title: "Authenticated!", description: `Welcome, ${firebaseUser.displayName || 'User'}` });
+      
+      setTimeout(() => {
+        router.replace('/');
+      }, 100);
+    } catch (err: any) {
+      console.error("Social Auth Error:", err);
+      toast({ 
+        variant: "destructive", 
+        title: "Auth Failed", 
+        description: "Could not connect with " + providerName 
+      });
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
   const handleAuth = async () => {
     if (!auth || !firestore) {
-      toast({ variant: "destructive", title: "Wait...", description: "System is initializing. Try again in 2 seconds." });
+      toast({ variant: "destructive", title: "Wait...", description: "System is initializing." });
       return;
     }
 
     if (loading || isFinishing) return;
 
-    // --- VALIDATION ---
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPass = password.trim();
 
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      toast({ variant: "destructive", title: "Email Required", description: "Please enter a valid email address." });
+      toast({ variant: "destructive", title: "Email Required", description: "Enter valid email." });
       return;
     }
 
     if (trimmedPass.length < 6) {
-      toast({ variant: "destructive", title: "Secure Password", description: "Password must be at least 6 characters." });
+      toast({ variant: "destructive", title: "Secure Password", description: "Min 6 characters." });
       return;
     }
 
     if (view === 'signup') {
       if (!fullName.trim()) {
-        toast({ variant: "destructive", title: "Name Required", description: "Please enter your full name." });
+        toast({ variant: "destructive", title: "Name Required" });
         return;
       }
       if (phoneNumber.trim().length !== 10) {
-        toast({ variant: "destructive", title: "Mobile Required", description: "Enter your 10-digit mobile number." });
+        toast({ variant: "destructive", title: "Phone Required" });
         return;
       }
       if (trimmedPass !== confirmPassword.trim()) {
-        toast({ variant: "destructive", title: "Mismatch", description: "Passwords do not match." });
+        toast({ variant: "destructive", title: "Mismatch" });
         return;
       }
     }
@@ -90,13 +142,9 @@ export function EmailAuth() {
 
     try {
       if (view === 'signup') {
-        // 1. Create Auth User
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         const firebaseUser = userCredential.user;
-        
         setIsFinishing(true);
-
-        // 2. Update Auth Profile
         await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
 
         const userData = {
@@ -110,47 +158,25 @@ export function EmailAuth() {
           role: 'customer'
         };
 
-        // 3. Save to Firestore (Optimistic)
-        const userRef = doc(firestore, 'users', firebaseUser.uid);
-        setDoc(userRef, userData, { merge: true })
-          .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: userRef.path,
-              operation: 'create',
-              requestResourceData: userData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-          });
+        await setDoc(doc(firestore, 'users', firebaseUser.uid), userData);
 
-        // 4. Persistence
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('user_name', fullName.toUpperCase());
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        toast({ title: "Welcome to ShopyKart! ✨", description: "Identity verified. Let's shop!" });
-        
-        // Immediate clean entry using router replacement
-        setTimeout(() => {
-          router.replace('/');
-        }, 100);
+        toast({ title: "Welcome! ✨", description: "Identity verified." });
+        setTimeout(() => router.replace('/'), 100);
       } else {
-        // Login Flow
         await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         localStorage.setItem('shopykart_session_active', 'true');
-        toast({ title: "Authenticated!", description: "Welcome back to the hub." });
-        
-        setTimeout(() => {
-          router.replace('/');
-        }, 100);
+        toast({ title: "Authenticated!" });
+        setTimeout(() => router.replace('/'), 100);
       }
     } catch (err: any) {
       setLoading(false);
       setIsFinishing(false);
-      let msg = "Something went wrong. Please check your data.";
-      if (err.code === 'auth/email-already-in-use') msg = "This email is already in our records.";
-      else if (err.code === 'auth/invalid-credential') msg = "Incorrect ID or Password.";
-      else if (err.code === 'auth/network-request-failed') msg = "Network slow. Check your connection.";
-      
+      let msg = "Check your credentials.";
+      if (err.code === 'auth/email-already-in-use') msg = "Email already registered.";
       toast({ variant: "destructive", title: "Auth Error", description: msg });
     }
   };
@@ -159,7 +185,6 @@ export function EmailAuth() {
 
   return (
     <div className="fixed inset-0 z-[999999] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar pointer-events-auto">
-      {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
          <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 blur-[120px] rounded-full" />
          <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-primary/10 blur-[120px] rounded-full" />
@@ -258,12 +283,52 @@ export function EmailAuth() {
             type="button"
             onClick={() => handleAuth()}
             disabled={loading || isFinishing} 
-            className="w-full h-20 bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl mt-4 active:scale-95 transition-all py-6 flex items-center justify-center gap-3 disabled:opacity-70 border-b-4 border-black/20"
+            className="w-full h-18 bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl mt-2 active:scale-95 transition-all py-5 flex items-center justify-center gap-3 disabled:opacity-70 border-b-4 border-black/20"
           >
             {loading || isFinishing ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN SHOPYKART' : 'ENTER HUB')}
           </button>
 
-          <div className="flex flex-col items-center gap-4 pt-6">
+          <div className="relative py-4">
+             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+             <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-[#0B0B0B] px-3 text-gray-500">Or continue with</span></div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+             <button 
+              type="button"
+              onClick={() => handleSocialAuth('google')}
+              disabled={!!socialLoading}
+              className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+             >
+                {socialLoading === 'google' ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : (
+                  <>
+                    <svg className="h-5 w-5" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.26.81-.58z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Google</span>
+                  </>
+                )}
+             </button>
+
+             <button 
+              type="button"
+              onClick={() => handleSocialAuth('apple')}
+              disabled={!!socialLoading}
+              className="h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+             >
+                {socialLoading === 'apple' ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : (
+                  <>
+                    <Apple className="h-5 w-5 text-white fill-white" />
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Apple</span>
+                  </>
+                )}
+             </button>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 pt-4">
             <button 
               type="button" 
               onClick={() => { setView(view === 'login' ? 'signup' : 'login'); }} 
