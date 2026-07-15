@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Universal SEO Route for Products.
- * Consolidates dynamic segments to handle both IDs and Slugs.
+ * Handles both Slugs and IDs to resolve routing conflicts.
  * Updated for Next.js 15 Async Params.
  */
 
