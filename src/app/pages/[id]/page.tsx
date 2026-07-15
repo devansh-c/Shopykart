@@ -1,15 +1,10 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Redirect segment neutralized to resolve Next.js dynamic routing conflict.
- * Consolidates logic into the [slug] route to fix 'id' !== 'slug' error.
+ * @fileOverview Neutralized to resolve routing conflict ('id' !== 'slug').
+ * Redirects to the unified [slug] route.
  */
-
-export const generateStaticParams = async () => {
-  return [];
-};
-
-export default async function RedundantPagesRedirect({ params }: { params: Promise<{ id: string }> }) {
+export default async function RedirectLegacyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   redirect(`/pages/${id}/`);
   return null;

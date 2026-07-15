@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Universal SEO Route for Products.
  * Handles both Slugs and IDs to resolve routing conflicts.
- * Consolidated dynamic segment to fix server startup errors.
+ * Consolidated dynamic segment to fix 'productId' !== 'slug' error.
  */
 
 export const generateStaticParams = async () => {

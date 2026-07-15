@@ -1,15 +1,10 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Redirect segment neutralized to resolve Next.js dynamic routing conflict.
- * Consolidates logic into the [slug] route to fix 'storeId' !== 'slug' error.
+ * @fileOverview Neutralized to resolve routing conflict ('storeId' !== 'slug').
+ * Redirects to the unified [slug] route.
  */
-
-export const generateStaticParams = async () => {
-  return [];
-};
-
-export default async function RedundantStoreRedirect({ params }: { params: Promise<{ storeId: string }> }) {
+export default async function RedirectLegacyStore({ params }: { params: Promise<{ storeId: string }> }) {
   const { storeId } = await params;
   redirect(`/store/${storeId}/`);
   return null;
