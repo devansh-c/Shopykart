@@ -1,9 +1,7 @@
-
 /**
- * @fileOverview Legacy route neutralized to prevent Dynamic Route Conflict with [slug].
- * All product logic has been moved to /src/app/product/[slug]/page.tsx.
- * This file is kept to avoid breaking the build if the folder cannot be deleted.
+ * @fileOverview Conflict Resolution Route.
+ * Logic moved to src/app/product/[slug]/page.tsx to resolve dynamic segment conflict.
  */
-export default function LegacyProductPage() {
+export default function NeutralizedProductRoute() {
   return null;
 }

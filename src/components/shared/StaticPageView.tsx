@@ -1,5 +1,4 @@
-
-'use client';
+"use client"
 
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, FileText, Loader2, Calendar } from 'lucide-react';
@@ -26,9 +25,10 @@ export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) 
       if (!firestore || !rawSlug) return;
       setLoading(true);
       try {
+        const { getDocs } = await import('firebase/firestore');
+
         // 1. Try SEO Slug
         const slugQ = query(collection(firestore, 'pages'), where('slug', '==', rawSlug), limit(1));
-        const { getDocs } = await import('firebase/firestore');
         const slugSnap = await getDocs(slugQ);
 
         if (!slugSnap.empty) {

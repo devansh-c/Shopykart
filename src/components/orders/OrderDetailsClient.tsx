@@ -2,7 +2,7 @@
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles, Trash2, Crown } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, ReceiptText, Printer, Download, Eye, MapPin, CreditCard, Banknote, Sparkles, Trash2, Crown, MessageSquareQuote } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -260,7 +260,7 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/orders')} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors">
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-6 w-6 text-gray-700" />
           </button>
           <h1 className="text-lg font-bold italic uppercase tracking-tighter">Track Order</h1>
         </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
@@ -34,9 +33,10 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
       if (!firestore || !rawSlug) return;
       setLoading(true);
       try {
+        const { getDocs } = await import('firebase/firestore');
+        
         // 1. First, try finding by SEO Slug field
         const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
-        const { getDocs } = await import('firebase/firestore');
         const slugSnap = await getDocs(slugQ);
 
         if (!slugSnap.empty) {
