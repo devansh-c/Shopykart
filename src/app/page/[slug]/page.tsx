@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Updated for Next.js 15 async params.
+ * Consolidates all page viewing logic to avoid conflicts.
  */
 
 export const generateStaticParams = async () => {

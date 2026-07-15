@@ -9,10 +9,9 @@ export const generateStaticParams = async () => {
   return [];
 };
 
-export default async function NeutralizedProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
+export default async function RedundantProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
   const { productId } = await params;
-  // This route is technically unreachable if Turbopack is happy, 
-  // but if it exists, it MUST use a different param name OR be static.
+  // Redirect to the consolidated [slug] route which handles both IDs and Slugs
   redirect(`/product/${productId}/`);
   return null;
 }

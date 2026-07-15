@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
@@ -26,19 +25,14 @@ export default function MonetizationManagement() {
   const { data: settings, loading } = useDoc<any>(settingsRef);
 
   const [formData, setFormData] = useState({
-    // Sponsored Ads
     adImageUrl: '',
     adLinkUrl: '',
     adTitle: '',
     adDescription: '',
     isAdEnabled: true,
-    
-    // AdSense Settings
     isAdSenseEnabled: true,
     adSensePublisherId: 'pub-3697085425178482',
     adSenseSlotId: '',
-    
-    // AdMob Settings
     isAdMobEnabled: false,
     adMobAppId: '',
     adMobBannerUnitId: '',
@@ -55,11 +49,9 @@ export default function MonetizationManagement() {
         adTitle: settings.adTitle || 'Upgrade Your Lifestyle',
         adDescription: settings.adDescription || 'Experience premium quality products delivered instantly.',
         isAdEnabled: settings.isAdEnabled !== false,
-        
         isAdSenseEnabled: settings.isAdSenseEnabled !== false,
         adSensePublisherId: settings.adSensePublisherId || 'pub-3697085425178482',
         adSenseSlotId: settings.adSenseSlotId || '',
-        
         isAdMobEnabled: settings.isAdMobEnabled || false,
         adMobAppId: settings.adMobAppId || '',
         adMobBannerUnitId: settings.adMobBannerUnitId || '',
@@ -71,13 +63,12 @@ export default function MonetizationManagement() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
       const compressed = await compressImage(base64, 600, 1066);
       setFormData(prev => ({ ...prev, adImageUrl: compressed }));
-      toast({ title: "Ad Image Loaded", description: "Save changes to make it live." });
+      toast({ title: "Ad Image Loaded" });
     };
     reader.readAsDataURL(file);
   };
@@ -110,7 +101,7 @@ export default function MonetizationManagement() {
             </div>
             <div>
               <h3 className="text-xl font-black italic uppercase tracking-tighter">Direct Sponsorship</h3>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Manual Banner Ads (Instant Cash)</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Manual Banner Ads</p>
             </div>
           </div>
           <div className="flex items-center gap-3 bg-muted/20 px-4 py-2 rounded-2xl border border-border/50">
@@ -124,7 +115,7 @@ export default function MonetizationManagement() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Ad Creative (Vertical Optimized)</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Ad Creative</label>
             <div 
               onClick={() => adInputRef.current?.click()}
               className="relative aspect-[9/16] w-full max-w-[240px] mx-auto border-2 border-dashed border-border rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-all group"
@@ -161,7 +152,7 @@ export default function MonetizationManagement() {
               <Textarea 
                 value={formData.adDescription}
                 onChange={(e) => setFormData({...formData, adDescription: e.target.value})}
-                placeholder="Details about the offer..." 
+                placeholder="Details..." 
                 className="rounded-xl bg-muted/10 border-none font-medium min-h-[100px] text-sm"
               />
             </div>
@@ -195,28 +186,20 @@ export default function MonetizationManagement() {
 
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Publisher ID (ca-pub-xxx)</label>
+              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Publisher ID</label>
               <Input 
                 value={formData.adSensePublisherId}
                 onChange={(e) => setFormData({...formData, adSensePublisherId: e.target.value})}
-                placeholder="pub-xxxxxxxxxxxxxxxx"
                 className="h-11 rounded-xl bg-muted/5 border-border font-bold text-sm"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Ad Slot ID</label>
+              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Slot ID</label>
               <Input 
                 value={formData.adSenseSlotId}
                 onChange={(e) => setFormData({...formData, adSenseSlotId: e.target.value})}
-                placeholder="xxxxxxxxxx"
                 className="h-11 rounded-xl bg-muted/5 border-border font-bold text-sm"
               />
-            </div>
-            <div className="bg-blue-50 p-4 rounded-2xl flex gap-3">
-              <Code className="h-4 w-4 text-blue-500 shrink-0" />
-              <p className="text-[9px] font-bold text-blue-800 uppercase leading-relaxed">
-                AdSense will only show ads once your domain is approved by Google.
-              </p>
             </div>
           </div>
         </div>
@@ -232,50 +215,16 @@ export default function MonetizationManagement() {
             <Switch 
               checked={formData.isAdMobEnabled}
               onCheckedChange={(val) => setFormData({...formData, isAdMobEnabled: val})}
-              className="data-[state=checked]:bg-primary"
             />
           </div>
-
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-gray-500 ml-1">AdMob App ID</label>
-              <Input 
-                value={formData.adMobAppId}
-                onChange={(e) => setFormData({...formData, adMobAppId: e.target.value})}
-                placeholder="ca-app-pub-xxx~yyy"
-                className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Banner Unit ID</label>
-              <Input 
-                value={formData.adMobBannerUnitId}
-                onChange={(e) => setFormData({...formData, adMobBannerUnitId: e.target.value})}
-                placeholder="ca-app-pub-xxx/zzz"
-                className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[9px] font-black uppercase text-gray-500 ml-1">Interstitial Unit ID</label>
-              <Input 
-                value={formData.adMobInterstitialUnitId}
-                onChange={(e) => setFormData({...formData, adMobInterstitialUnitId: e.target.value})}
-                placeholder="ca-app-pub-xxx/aaa"
-                className="h-11 rounded-xl bg-white/5 border-white/10 text-white font-bold text-sm"
-              />
-            </div>
-          </div>
+          <p className="text-[9px] font-bold text-gray-500 uppercase">Native Capacitor integration pending.</p>
         </div>
       </div>
 
       <div className="flex justify-center pt-10">
-        <Button 
-          onClick={handleSave} 
-          disabled={isSaving}
-          className="w-full md:w-auto px-16 h-16 rounded-[2.5rem] bg-primary hover:bg-primary/90 text-white font-black uppercase italic text-lg shadow-2xl shadow-primary/20 active:scale-[0.98] transition-all"
-        >
+        <Button onClick={handleSave} disabled={isSaving} className="w-full md:w-auto px-16 h-16 rounded-[2.5rem] bg-primary text-white font-black uppercase italic shadow-2xl active:scale-0.98 transition-all">
           {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Save className="h-6 w-6 mr-3" />}
-          PUBLISH ALL MONETIZATION
+          SAVE ALL SETTINGS
         </Button>
       </div>
     </div>
