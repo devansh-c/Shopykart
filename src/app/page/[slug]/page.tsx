@@ -5,7 +5,6 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Handles both Slugs and IDs to resolve routing conflicts.
  * Standardized dynamic segment to fix server startup errors.
  */
 

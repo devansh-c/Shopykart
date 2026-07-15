@@ -5,8 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview SEO Optimized Route for Legal and Policy Pages.
- * Fixed conflicting dynamic segments by using a unified [slug] parameter.
- * Handles both ID and Slug based lookups.
+ * Handles both ID and Slug based lookups in a single consolidated route.
  */
 
 export const generateStaticParams = async () => {
