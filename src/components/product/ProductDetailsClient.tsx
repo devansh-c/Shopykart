@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
@@ -12,6 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, limit, doc } from 'firebase/firestore';
 
+/**
+ * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs.
+ * Fixed routing conflict by merging logic into a single dynamic segment.
+ */
 export default function ProductDetailsClient() {
   const params = useParams();
   const slug = params?.slug as string;
@@ -20,23 +25,29 @@ export default function ProductDetailsClient() {
   const { addToCart } = useCart();
   
   const [instructions, setInstructions] = useState('');
-  const [userRating, setUserRating] = useState(0);
-  const [userReview, setUserReview] = useState('');
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
 
   const firestore = useFirestore();
 
-  // SEO Query: Find product by slug
-  const productQuery = useMemoFirebase(() => {
+  // 1. Try to find by SEO Slug
+  const slugQuery = useMemoFirebase(() => {
     if (!firestore || !slug) return null;
     return query(collection(firestore, 'products'), where('slug', '==', slug), limit(1));
   }, [firestore, slug]);
 
-  const { data: productResults, loading } = useCollection<any>(productQuery);
-  const product = productResults?.[0];
+  const { data: slugResults, loading: slugLoading } = useCollection<any>(slugQuery);
+  
+  // 2. Fallback: Try to find by Document ID (Legacy Support)
+  const idQuery = useMemoFirebase(() => {
+    if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
+    return query(collection(firestore, 'products'), where('__name__', '==', slug), limit(1));
+  }, [firestore, slug, slugResults]);
+
+  const { data: idResults, loading: idLoading } = useCollection<any>(idQuery);
+
+  const product = (slugResults && slugResults.length > 0) ? slugResults[0] : (idResults && idResults.length > 0 ? idResults[0] : null);
+  const loading = slugLoading || idLoading;
   
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;

@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -10,7 +11,7 @@ import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview PopularProducts with exported timing logic.
+ * @fileOverview PopularProducts with exported timing logic and real-time location sync.
  */
 
 // EXPORTED: Global store schedule checker
@@ -102,6 +103,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const firestore = useFirestore();
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateLoc = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateLoc();
+    window.addEventListener('user-address-updated', updateLoc);
+    return () => window.removeEventListener('user-address-updated', updateLoc);
+  }, []);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -132,7 +143,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsLoading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (productsLoading || !dbProducts || !vendors) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
     <div className="px-4 py-8">
@@ -140,7 +151,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">⚡ {activeMode.toUpperCase()} HUB</h2>
       </div>
       <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isPending && "opacity-50")}>
-        {productsToDisplay.map((product) => (
+        {productsToDisplay.length > 0 ? productsToDisplay.map((product) => (
           <ProductItem 
             key={product.id} 
             product={product} 
@@ -150,7 +161,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             onRemove={removeFromCart} 
             onNavigate={navigateToProduct} 
           />
-        ))}
+        )) : (
+          <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in this section</div>
+        )}
       </div>
     </div>
   );

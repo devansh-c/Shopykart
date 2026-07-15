@@ -9,6 +9,7 @@ import { doc } from "firebase/firestore";
 
 /**
  * @fileOverview Logo component adjusted for a stretched pill design.
+ * Includes a secret shortcut to Admin Dashboard.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);

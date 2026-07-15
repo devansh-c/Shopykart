@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Consolidated SEO Route: /page/[slug]
- * Handles all policy and information pages.
+ * Handles all policy and information pages. Supports both slugs and legacy IDs.
  */
 
 export const generateStaticParams = async () => {

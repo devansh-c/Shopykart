@@ -6,15 +6,15 @@ import { ChevronLeft, FileText, Loader2, Calendar } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * @fileOverview StaticPageView that intelligently handles both Slugs and IDs.
+ * Consolidated to fix dynamic segment conflicts.
  */
-export default function StaticPageView({ forcedId }: { forcedId?: string }) {
+export default function StaticPageView() {
   const params = useParams();
   const slug = params?.slug as string;
-  const idFromUrl = params?.id as string;
   const router = useRouter();
   const firestore = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
@@ -23,30 +23,23 @@ export default function StaticPageView({ forcedId }: { forcedId?: string }) {
     setIsMounted(true);
   }, []);
 
-  // Try to find by slug first, then by ID if forcedId is provided
-  const pageQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    
-    const targetSlug = slug || idFromUrl || forcedId;
-    if (!targetSlug) return null;
+  // 1. Try to find by SEO Slug
+  const slugQuery = useMemoFirebase(() => {
+    if (!firestore || !slug) return null;
+    return query(collection(firestore, 'pages'), where('slug', '==', slug), limit(1));
+  }, [firestore, slug]);
 
-    // Check if the parameter looks like a direct ID or a slug
-    return query(collection(firestore, 'pages'), where('slug', '==', targetSlug), limit(1));
-  }, [firestore, slug, idFromUrl, forcedId]);
-
-  const { data: pageResults, loading: slugLoading } = useCollection<any>(pageQuery);
+  const { data: slugResults, loading: slugLoading } = useCollection<any>(slugQuery);
   
-  // Fallback for direct ID access if slug query returns nothing
+  // 2. Fallback: Try to find by Document ID (Legacy Support)
   const idQuery = useMemoFirebase(() => {
-    if (!firestore || pageResults?.length) return null;
-    const targetId = forcedId || idFromUrl || slug;
-    if (!targetId) return null;
-    return query(collection(firestore, 'pages'), where('__name__', '==', targetId), limit(1));
-  }, [firestore, slug, idFromUrl, forcedId, pageResults]);
+    if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
+    return query(collection(firestore, 'pages'), where('__name__', '==', slug), limit(1));
+  }, [firestore, slug, slugResults]);
 
   const { data: idResults, loading: idLoading } = useCollection<any>(idQuery);
 
-  const page = pageResults?.[0] || idResults?.[0];
+  const page = (slugResults && slugResults.length > 0) ? slugResults[0] : (idResults && idResults.length > 0 ? idResults[0] : null);
   const loading = slugLoading || idLoading;
 
   if (loading && !page) {
