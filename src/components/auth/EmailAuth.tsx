@@ -204,7 +204,7 @@ export function EmailAuth() {
 
           {view === 'login' && (
             <div className="flex justify-end px-1">
-              <button onClick={() => setViewState('forgot-password')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">
+              <button onClick={() => setView('forgot-password')} className="text-[10px] font-black uppercase text-primary tracking-widest hover:underline underline-offset-4">
                 Forgot Password?
               </button>
             </div>
@@ -251,14 +251,14 @@ export function EmailAuth() {
               </div>
 
               <div className="flex flex-col items-center pt-4">
-                <button type="button" onClick={() => setViewState(view === 'login' ? 'signup' : 'login')} className="text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-full border border-white/10 text-gray-400 hover:text-white">
+                <button type="button" onClick={() => setView(view === 'login' ? 'signup' : 'login')} className="text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-full border border-white/10 text-gray-400 hover:text-white">
                   {view === 'login' ? "NEW HERE? JOIN" : "MEMBER? SIGN IN"}
                 </button>
               </div>
             </>
           ) : (
             <div className="flex flex-col items-center pt-4">
-              <button onClick={() => setViewState('login')} className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <button onClick={() => setView('login')} className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                 <ChevronLeft className="h-3 w-3" /> Back to Login
               </button>
             </div>
