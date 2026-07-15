@@ -1,18 +1,19 @@
 "use client"
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, FileText, Loader2, Calendar } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
 /**
  * @fileOverview StaticPageView that intelligently handles both Slugs and IDs defensively.
  */
-export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) {
+function StaticPageViewContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const rawSlug = forcedSlug || (params?.slug as string);
+  const searchParams = useSearchParams();
+  const rawSlug = forcedSlug || (params?.slug as string) || searchParams.get('id');
   const router = useRouter();
   const firestore = useFirestore();
   const [page, setPage] = useState<any>(null);
@@ -60,14 +61,19 @@ export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) 
 
   if (!page && !loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase">Page Not Found</h2><button onClick={() => router.push('/')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Go Back Home</button></div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <h2 className="text-xl font-black italic uppercase text-muted-foreground">Page Not Found</h2>
+        <button onClick={() => router.push('/')} className="mt-8 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs">Go Back Home</button>
+      </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-white pb-20">
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center border-b border-gray-100">
-        <button onClick={() => router.push('/')} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
+        <button onClick={() => router.push('/')} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors">
+          <ChevronLeft className="h-6 w-6 text-gray-700" />
+        </button>
         <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">{page?.title}</h1>
         <div className="w-10" />
       </div>
@@ -77,7 +83,9 @@ export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) 
            <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><FileText className="h-6 w-6" /></div>
            <div>
               <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">{page?.title}</h2>
-              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1"><Calendar className="h-3 w-3" /> Last Updated: {isMounted && page?.updatedAt?.seconds ? format(new Date(page.updatedAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}</div>
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">
+                <Calendar className="h-3 w-3" /> Last Updated: {isMounted && page?.updatedAt?.seconds ? format(new Date(page.updatedAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+              </div>
            </div>
         </div>
         <article className="prose prose-sm max-w-none">
@@ -85,5 +93,13 @@ export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) 
         </article>
       </div>
     </div>
+  );
+}
+
+export default function StaticPageView({ forcedSlug }: { forcedSlug?: string }) {
+  return (
+    <Suspense fallback={<div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+      <StaticPageViewContent forcedSlug={forcedSlug} />
+    </Suspense>
   );
 }
