@@ -97,7 +97,7 @@ export default function VendorDashboard() {
             localStorage.removeItem('shopykart_session_active');
             router.replace('/vendor/login');
           }
-        }, 3000);
+        }, 10000);
         return () => clearTimeout(failSafe);
       }
     }
@@ -108,7 +108,7 @@ export default function VendorDashboard() {
           localStorage.removeItem('shopykart_session_active');
           router.replace('/vendor/login');
         }
-      }, 1000);
+      }, 5000);
       return () => clearTimeout(finalCheck);
     }
   }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
