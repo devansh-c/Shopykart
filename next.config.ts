@@ -13,13 +13,6 @@ const nextConfig: NextConfig = {
   },
   trailingSlash: true,
   staticPageGenerationTimeout: 600,
-  experimental: {
-    turbo: {
-      rules: {
-        // Build optimizations
-      }
-    }
-  }
 };
 
 export default nextConfig;
