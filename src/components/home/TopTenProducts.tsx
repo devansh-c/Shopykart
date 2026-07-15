@@ -12,13 +12,17 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 const CARD_COLORS = [
-  "from-[#0056D2] to-[#003C91]", // Vibrant Blue
-  "from-[#6B8E23] to-[#4B6312]", // Olive Green
-  "from-[#7B1FA2] to-[#4A148C]", // Purple
-  "from-[#D35400] to-[#A04000]", // Burnt Orange
-  "from-[#C0392B] to-[#922B21]", // Red
+  "from-[#0056D2] to-[#003C91]",
+  "from-[#6B8E23] to-[#4B6312]",
+  "from-[#7B1FA2] to-[#4A148C]",
+  "from-[#D35400] to-[#A04000]",
+  "from-[#C0392B] to-[#922B21]",
 ];
 
+/**
+ * @fileOverview TopTenProducts with Strict Location Filtering.
+ * Ensures Ranipur and Mauranipur content never mixes.
+ */
 export function TopTenProducts() {
   const firestore = useFirestore();
   const router = useRouter();
@@ -68,9 +72,12 @@ export function TopTenProducts() {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      if (activeZoneId || targetCityNormalized) {
-        if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
-        if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
+      // STRICT LOCATION FILTERING
+      if (targetCityNormalized) {
+        const matchesCity = productTown === targetCityNormalized || productTown.includes(targetCityNormalized);
+        const matchesZone = activeZoneId && p.zoneId === activeZoneId;
+        
+        if (!matchesCity && !matchesZone) return false;
       }
       return true;
     }).slice(0, 10);
@@ -101,7 +108,7 @@ export function TopTenProducts() {
     <div className="py-6 overflow-hidden">
       <div className="px-6 mb-4 flex items-center justify-between">
         <h2 className="text-xl font-black italic uppercase tracking-tighter">
-          Flash <span className="text-primary">Loot</span> Deals
+          Flash <span className="text-primary">Loot</span> Deals {activeCity ? `in ${activeCity}` : ''}
         </h2>
         <div className="h-[2px] w-16 bg-primary/20 rounded-full" />
       </div>
@@ -111,7 +118,6 @@ export function TopTenProducts() {
           const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/600`;
           const vendor = vendors?.find(v => v.id === product.vendorId);
           
-          // SYNCED OFFLINE CHECK: Check Vendor Manual Toggle + Time Schedule
           const scheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
           const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
           
@@ -127,7 +133,6 @@ export function TopTenProducts() {
               )}
               onClick={() => !isOffline && navigateToProduct(product)}
             >
-              {/* Box 1: LOOT HEADER */}
               <div className="w-full flex items-center justify-center gap-1 mb-2 relative z-10">
                  <div className="bg-red-600 p-0.5 rounded-full"><Megaphone className="h-2 w-2 text-white" /></div>
                  <div className="flex flex-col items-center">
@@ -140,12 +145,10 @@ export function TopTenProducts() {
                  <div className="bg-red-600 p-0.5 rounded-full"><Megaphone className="h-2 w-2 text-white -scale-x-100" /></div>
               </div>
 
-              {/* Box 2: WHITE PRODUCT NAME BADGE */}
               <div className="bg-white w-full py-1.5 px-3 rounded-2xl shadow-lg flex items-center justify-center mb-2.5 relative z-10 border border-white/20">
                  <span className="text-[10px] font-black text-black uppercase truncate tracking-tight">{product.name}</span>
               </div>
 
-              {/* Box 3: FRAMED IMAGE */}
               <div className="flex-1 w-full relative bg-white rounded-[1.5rem] border-2 border-white/30 overflow-hidden mb-2.5 shadow-inner">
                 <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                 {isOffline && (
@@ -155,18 +158,13 @@ export function TopTenProducts() {
                     </span>
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
               </div>
 
-              {/* Box 4: DARK PRICE TAG */}
               <div className="w-full bg-[#1C1C1C] py-2.5 rounded-[1.25rem] border border-white/5 flex items-center justify-center relative z-10 shadow-lg">
                  <span className="text-[13px] font-black text-[#F1C40F] italic tracking-tight uppercase">
                     From ₹{product.price.toFixed(0)}
                  </span>
               </div>
-
-              {/* Glossy Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             </div>
           );
         })}

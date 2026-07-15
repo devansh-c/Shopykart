@@ -9,6 +9,10 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
+/**
+ * @fileOverview StoresPage with Strict Location Filtering.
+ * Ensures Ranipur and Mauranipur content never mixes.
+ */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -40,24 +44,21 @@ export default function StoresPage() {
 
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
+      const vZoneId = v.zoneId;
 
-      if (activeZoneId || targetCityNormalized) {
-        const matchesZone = activeZoneId && v.zoneId === activeZoneId;
-        const matchesTown = targetCityNormalized && (
-          vTown === targetCityNormalized || 
-          vTown.startsWith(targetCityNormalized) ||
-          targetCityNormalized.startsWith(vTown)
-        );
+      // STRICT LOCATION FILTERING
+      if (targetCityNormalized) {
+        // If city is specified, the vendor town MUST match or the zone must belong to that city
+        const matchesCity = vTown === targetCityNormalized || vTown.includes(targetCityNormalized);
+        const matchesZone = activeZoneId && vZoneId === activeZoneId;
         
-        if (targetCityNormalized === 'ranipur' && vTown === 'mauranipur') return false;
-        if (targetCityNormalized === 'mauranipur' && vTown === 'ranipur') return false;
-
-        if (!matchesZone && !matchesTown) return false;
+        if (!matchesCity && !matchesZone) return false;
       }
 
       const matchesSearch = !searchLower || 
         v.storeName?.toLowerCase().includes(searchLower) || 
         v.category?.toLowerCase().includes(searchLower);
+      
       const isApproved = v.status === 'approved' || !v.status;
       
       return matchesSearch && isApproved;
@@ -88,6 +89,13 @@ export default function StoresPage() {
             className="pl-12 h-14 bg-white border-none rounded-xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 font-bold"
           />
         </div>
+
+        {activeCity && (
+          <div className="flex items-center gap-2 px-1">
+            <MapPin className="h-3 w-3 text-primary" />
+            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Showing results for {activeCity}</span>
+          </div>
+        )}
       </div>
 
       <div className="px-6 space-y-6 content-visibility-auto">
@@ -150,7 +158,7 @@ export default function StoresPage() {
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-muted/50">
             <Store className="h-16 w-16 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm px-6">
-              {searchQuery ? `No stores matching "${searchQuery}"` : "No Stores Found in Your Area"}
+              {searchQuery ? `No stores matching "${searchQuery}"` : `No Stores Found in ${activeCity || 'Your Area'}`}
             </p>
           </div>
         )}

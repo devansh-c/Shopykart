@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -11,10 +10,10 @@ import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview PopularProducts with exported timing logic and real-time location sync.
+ * @fileOverview PopularProducts with Strict Location Filtering.
+ * Ensures Ranipur and Mauranipur content never mixes.
  */
 
-// EXPORTED: Global store schedule checker
 export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number | null) => {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
@@ -44,7 +43,6 @@ export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number
   if (start < end) {
     return currentMinutes >= start && currentMinutes <= end;
   } else {
-    // Overnight (e.g. 11 PM to 3 AM)
     return currentMinutes >= start || currentMinutes <= end;
   }
 };
@@ -104,10 +102,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeCity, setActiveCity] = useState<string | null>(null);
 
   useEffect(() => {
     const updateLoc = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveCity(localStorage.getItem('user_city'));
     };
     updateLoc();
     window.addEventListener('user-address-updated', updateLoc);
@@ -128,18 +128,33 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
+    
+    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+
     return dbProducts.filter(p => {
+      const vendor = vendors.find(v => v.id === p.vendorId);
+      const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
+      
+      // STRICT LOCATION FILTERING
+      if (targetCityNormalized) {
+        const matchesCity = productTown === targetCityNormalized || productTown.includes(targetCityNormalized);
+        const matchesZone = activeZoneId && p.zoneId === activeZoneId;
+        
+        if (!matchesCity && !matchesZone) return false;
+      }
+
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       const searchMatch = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const catMatch = category === 'all' || p.category?.toLowerCase() === category;
+      
       return modeMatch && searchMatch && catMatch;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, activeCity]);
 
   const navigateToProduct = (product: any) => {
     const slug = product.slug || slugify(product.name);
     startTransition(() => {
-      router.push(`/product/${slug}`);
+      router.push(`/product/${slug}-${product.id}`);
     });
   };
 
@@ -148,7 +163,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">⚡ {activeMode.toUpperCase()} HUB</h2>
+        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">⚡ {activeMode.toUpperCase()} HUB {activeCity ? `IN ${activeCity}` : ''}</h2>
       </div>
       <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isPending && "opacity-50")}>
         {productsToDisplay.length > 0 ? productsToDisplay.map((product) => (
@@ -162,7 +177,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             onNavigate={navigateToProduct} 
           />
         )) : (
-          <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in this section</div>
+          <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in {activeCity || 'this section'}</div>
         )}
       </div>
     </div>
