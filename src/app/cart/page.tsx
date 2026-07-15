@@ -39,7 +39,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs } from 'firebase/firestore';
-import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo, Suspense } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -56,7 +56,7 @@ const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), {
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
-export default function CartPage() {
+function CartContent() {
   const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
   const router = useRouter();
   const { user } = useUser();
@@ -93,10 +93,6 @@ export default function CartPage() {
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
   const sliderRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const currentXRef = useRef(0);
-
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -198,11 +194,6 @@ export default function CartPage() {
 
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + deliveryTip + (premiumPackaging ? 10 : 0) - coinDiscount - couponDiscount);
 
-  const upiId = "9450355709@axl";
-  const upiUri = useMemo(() => {
-    return `upi://pay?pa=${upiId}&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR&tn=Order_from_ShopyKart`;
-  }, [grandTotal]);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -224,108 +215,6 @@ export default function CartPage() {
       if (!isNaN(lat) && !isNaN(lng)) { setLatitude(lat); setLongitude(lng); }
     }
   }, [profile]);
-
-  const validateOrderReady = useCallback(() => {
-    if (chargesLoading || profileLoading) return "Syncing taxes...";
-    if (blockedVendorNames.length > 0) return `Store Closed: ${blockedVendorNames.join(', ')}`;
-    if (totalItems === 0) return "Bag is empty";
-    if (totalPrice < 40) return "Min items value ₹40 required";
-    if (!customerName.trim()) return "Enter Full Name";
-    if (customerPhone.length !== 10) return "Enter 10-digit Phone";
-    if (customerAddress.trim().length < 3) return "Enter House/Street Details";
-    if (customerPincode.length !== 6) return "Enter 6-digit Pincode";
-    return null;
-  }, [blockedVendorNames, totalPrice, totalItems, customerName, customerPhone, customerAddress, customerPincode, chargesLoading, profileLoading]);
-
-  const executeOrderPlacement = useCallback(() => {
-    if (!firestore || isPlacing || blockedVendorNames.length > 0) return;
-    
-    setIsPlacing(true);
-    setValidationError(null);
-
-    const orderId = Math.floor(10000 + Math.random() * 90000).toString();
-    const finalUid = user?.uid || 'guest_' + Date.now();
-    const coinsUsed = (useCoins && coinValue > 0) ? Math.ceil(coinDiscount / coinValue) : 0;
-    const fullFinalAddress = `${customerAddress}, ${customerCity} - ${customerPincode}`;
-    const allVendorIds = Array.from(new Set(cart.map(item => String(item.vendorId)).filter(id => id !== 'undefined' && id !== 'null')));
-
-    const finalCharges = [...dynamic_charges.map(c => ({ name: c.name, amount: c.calculatedAmount }))];
-    if (premiumPackaging) {
-      finalCharges.push({ name: 'Premium Packaging', amount: 10 });
-    }
-
-    const orderData = {
-      userId: finalUid,
-      customerName,
-      customerPhone,
-      orderDisplayId: orderId,
-      items: cart.map(item => ({ 
-        id: item.id, 
-        name: item.name, 
-        quantity: item.quantity, 
-        price: item.price, 
-        isCustom: !!item.isCustom, 
-        vendorId: item.vendorId || 'global',
-        restaurantName: item.restaurantName || 'ShopyKart Store',
-        instructions: item.instructions || ''
-      })),
-      subtotal: totalPrice,
-      charges: finalCharges,
-      total: grandTotal,
-      status: 'Placed',
-      paymentMethod,
-      premiumPackaging,
-      utrNumber: paymentMethod === 'online' ? utrNumber : null,
-      paymentStatus: paymentMethod === 'online' ? 'UTR_Pending_Verification' : 'Pending',
-      address: fullFinalAddress,
-      latitude: latitude || null,
-      longitude: longitude || null,
-      createdAt: serverTimestamp(),
-      vendorId: cart[0]?.vendorId || 'global',
-      vendorIds: allVendorIds, 
-      restaurantName: cart[0]?.restaurantName || 'ShopyKart Store',
-      coinsUsed,
-      coinDiscount,
-      couponDiscount,
-      deliveryTip,
-      couponCode: appliedCoupon?.code || null,
-      instructions,
-      isPremiumOrder: isPremium
-    };
-
-    try {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
-      audio.volume = 0.8;
-      audio.play().catch(() => {});
-    } catch (e) {}
-
-    setShowSuccessOverlay(true);
-
-    setDoc(doc(firestore, 'orders', orderId), orderData)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: `orders/${orderId}`,
-          operation: 'create',
-          requestResourceData: orderData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-
-    if (user) {
-      setDoc(doc(firestore, 'users', user.uid), {
-        fullName: customerName, phoneNumber: customerPhone, address: customerAddress, 
-        city: customerCity, pincode: customerPincode, latitude, longitude,
-        coins: increment(10 - coinsUsed), updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => {});
-    }
-
-    setTimeout(() => {
-      clearCart();
-      setIsPaymentDialogOpen(false);
-      router.replace(`/orders/track?id=${orderId}`);
-    }, 1600);
-    
-  }, [firestore, isPlacing, user, useCoins, coinValue, coinDiscount, premiumPackaging, customerAddress, customerCity, customerPincode, cart, customerName, customerPhone, totalPrice, dynamic_charges, grandTotal, paymentMethod, utrNumber, latitude, longitude, appliedCoupon, instructions, clearCart, router, deliveryTip, blockedVendorNames, isPremium]);
 
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -462,5 +351,13 @@ export default function CartPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <CartContent />
+    </Suspense>
   );
 }

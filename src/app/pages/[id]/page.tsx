@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Neutralized to resolve routing conflict ('id' !== 'slug').
- * Redirects to the unified [slug] route.
+ * @fileOverview Redirecting legacy ID-based route to unified [slug] route to resolve Next.js conflict.
  */
 export default async function RedirectLegacyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

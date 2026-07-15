@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Neutralized to resolve routing conflict ('storeId' !== 'slug').
- * Redirects to the unified [slug] route.
+ * @fileOverview Redirecting legacy ID-based route to unified [slug] route to resolve Next.js conflict.
  */
 export default async function RedirectLegacyStore({ params }: { params: Promise<{ storeId: string }> }) {
   const { storeId } = await params;
