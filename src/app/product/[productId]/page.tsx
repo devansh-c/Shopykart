@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Redundant dynamic segment neutralized to resolve Next.js 15 Turbopack conflict.
- * All /product/* logic is now handled by src/app/product/[slug]/page.tsx.
+ * @fileOverview Redirect segment neutralized to resolve Next.js dynamic routing conflict.
+ * Consolidates logic into the [slug] route.
  */
 
 export const generateStaticParams = async () => {
@@ -11,6 +11,7 @@ export const generateStaticParams = async () => {
 
 export default async function RedundantProductRedirect({ params }: { params: Promise<{ productId: string }> }) {
   const { productId } = await params;
+  // Redirect to the unified SEO route
   redirect(`/product/${productId}/`);
   return null;
 }

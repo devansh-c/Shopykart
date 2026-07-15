@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Neutralized to resolve dynamic route conflicts.
- * Redirects to the consolidated /page/[slug] route.
+ * @fileOverview Redirect segment neutralized to resolve Next.js dynamic routing conflict.
+ * Consolidates logic into the /page/[slug] route.
  */
 
 export const generateStaticParams = async () => {

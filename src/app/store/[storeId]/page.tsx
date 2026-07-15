@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
 /**
- * @fileOverview Redundant dynamic segment neutralized to resolve Next.js 15 Turbopack conflict.
- * All /store/* logic is now handled by src/app/store/[slug]/page.tsx.
+ * @fileOverview Redirect segment neutralized to resolve Next.js dynamic routing conflict.
+ * Consolidates logic into the [slug] route.
  */
 
 export const generateStaticParams = async () => {
