@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Lock, User, Phone, MessageCircle, Apple } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, Apple } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -15,19 +15,14 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Logo } from '@/components/shared/Logo';
-import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
 type AuthView = 'login' | 'signup';
 
-/**
- * @fileOverview Authentication Layer with Social Auth and Domain Error Handling.
- */
 export function EmailAuth() {
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
-  const [isFinishing, setIsFinishing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const auth = useAuth();
@@ -43,12 +38,6 @@ export function EmailAuth() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-
-  const handleForgotPassword = () => {
-    const adminPhone = "917992090977";
-    const message = `Hey ShopyKart Team, I forgot my password. My registered email is: ${email || "[Enter Email Here]"}. Please help me reset it.`;
-    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
-  };
 
   const handleSocialAuth = async (providerName: 'google' | 'apple') => {
     if (!auth || !firestore) return;
@@ -84,23 +73,21 @@ export function EmailAuth() {
       }
 
       localStorage.setItem('shopykart_session_active', 'true');
-      toast({ title: "Authenticated!", description: `Welcome, ${firebaseUser.displayName || 'User'}` });
+      toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
       setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
-      console.error("Social Auth Error:", err);
+      console.error("Auth Error:", err.code);
       
       if (err.code === 'auth/unauthorized-domain') {
         const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
         toast({ 
           variant: "destructive", 
           title: "Domain Restricted", 
-          description: `Please add "${currentDomain}" to Authorized Domains in Firebase Console.`,
-          duration: 10000
+          description: `Authorized Domains mein "${currentDomain}" add karein.`,
+          duration: 8000
         });
-      } else if (err.code === 'auth/popup-blocked') {
-        toast({ variant: "destructive", title: "Popup Blocked", description: "Please allow popups for this site." });
       } else {
-        toast({ variant: "destructive", title: "Auth Failed", description: "Try email login instead." });
+        toast({ variant: "destructive", title: "Auth Failed", description: "Please use Email Login." });
       }
     } finally {
       setSocialLoading(null);
@@ -108,8 +95,7 @@ export function EmailAuth() {
   };
 
   const handleAuth = async () => {
-    if (!auth || !firestore) return;
-    if (loading || isFinishing) return;
+    if (!auth || !firestore || loading) return;
 
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPass = password.trim();
@@ -119,23 +105,11 @@ export function EmailAuth() {
       return;
     }
 
-    if (view === 'signup') {
-      if (!fullName.trim() || phoneNumber.length !== 10) {
-        toast({ variant: "destructive", title: "Details Incomplete" });
-        return;
-      }
-      if (trimmedPass !== confirmPassword.trim()) {
-        toast({ variant: "destructive", title: "Passwords Mismatch" });
-        return;
-      }
-    }
-
     setLoading(true);
     try {
       if (view === 'signup') {
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         const firebaseUser = userCredential.user;
-        setIsFinishing(true);
         await updateProfile(firebaseUser, { displayName: fullName.toUpperCase() });
 
         await setDoc(doc(firestore, 'users', firebaseUser.uid), {
@@ -151,18 +125,15 @@ export function EmailAuth() {
 
         localStorage.setItem('shopykart_session_active', 'true');
         localStorage.setItem('show_welcome_bonus', 'true');
-        toast({ title: "Welcome! ✨" });
-        setTimeout(() => router.replace('/'), 100);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         localStorage.setItem('shopykart_session_active', 'true');
-        toast({ title: "Authenticated!" });
-        setTimeout(() => router.replace('/'), 100);
       }
+      toast({ title: "Authenticated!" });
+      setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
       setLoading(false);
-      setIsFinishing(false);
-      toast({ variant: "destructive", title: "Auth Error", description: "Incorrect details." });
+      toast({ variant: "destructive", title: "Auth Error", description: "Check credentials." });
     }
   };
 
@@ -172,15 +143,14 @@ export function EmailAuth() {
     <div className="fixed inset-0 z-[999999] bg-[#0B0B0B] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar pointer-events-auto">
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
          <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 blur-[120px] rounded-full" />
-         <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-primary/10 blur-[120px] rounded-full" />
       </div>
 
       <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu relative z-10 animate-in fade-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center text-center space-y-6">
           <Logo className="scale-110 mb-2" />
-          <div className="space-y-2">
+          <div className="space-y-1">
             <h1 className="text-4xl font-black italic tracking-tighter uppercase text-white leading-none">
-              {view === 'signup' ? 'Join ShopyKart' : 'Welcome Back'}
+              {view === 'signup' ? 'Join Now' : 'Welcome Back'}
             </h1>
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
               Premium Gourmet Delivery
@@ -212,22 +182,15 @@ export function EmailAuth() {
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary" />
               <input type="password" placeholder="PASSWORD" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black text-white focus:outline-none focus:border-primary/50 transition-all" />
             </div>
-
-            {view === 'signup' && (
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-primary" />
-                <input type="password" placeholder="CONFIRM PASSWORD" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black text-white focus:outline-none focus:border-primary/50 transition-all" />
-              </div>
-            )}
           </div>
 
-          <button onClick={() => handleAuth()} disabled={loading} className="w-full h-18 bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl mt-2 active:scale-95 transition-all py-5 flex items-center justify-center gap-3">
+          <button onClick={() => handleAuth()} disabled={loading} className="w-full h-18 bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl mt-2 active:scale-95 transition-all py-5 flex items-center justify-center">
             {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (view === 'signup' ? 'JOIN NOW' : 'SIGN IN')}
           </button>
 
           <div className="relative py-4">
              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-             <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-[#0B0B0B] px-3 text-gray-500">Fast Access</span></div>
+             <div className="relative flex justify-center text-[10px] font-bold uppercase"><span className="bg-[#0B0B0B] px-3 text-gray-500">Fast Connect</span></div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -255,9 +218,9 @@ export function EmailAuth() {
              </button>
           </div>
 
-          <div className="flex flex-col items-center gap-4 pt-4">
-            <button type="button" onClick={() => { setView(view === 'login' ? 'signup' : 'login'); }} className="text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-full border border-white/10 text-gray-400 hover:text-white">
-              {view === 'login' ? "NEW CUSTOMER? JOIN" : "ALREADY A MEMBER? SIGN IN"}
+          <div className="flex flex-col items-center pt-4">
+            <button type="button" onClick={() => setView(view === 'login' ? 'signup' : 'login')} className="text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-full border border-white/10 text-gray-400 hover:text-white">
+              {view === 'login' ? "NEW HERE? JOIN" : "MEMBER? SIGN IN"}
             </button>
           </div>
         </div>
