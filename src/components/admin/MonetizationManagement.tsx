@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
@@ -33,8 +34,8 @@ export default function MonetizationManagement() {
     isAdEnabled: true,
     
     // AdSense Settings
-    isAdSenseEnabled: false,
-    adSensePublisherId: '',
+    isAdSenseEnabled: true,
+    adSensePublisherId: 'pub-3697085425178482',
     adSenseSlotId: '',
     
     // AdMob Settings
@@ -55,8 +56,8 @@ export default function MonetizationManagement() {
         adDescription: settings.adDescription || 'Experience premium quality products delivered instantly.',
         isAdEnabled: settings.isAdEnabled !== false,
         
-        isAdSenseEnabled: settings.isAdSenseEnabled || false,
-        adSensePublisherId: settings.adSensePublisherId || '',
+        isAdSenseEnabled: settings.isAdSenseEnabled !== false,
+        adSensePublisherId: settings.adSensePublisherId || 'pub-3697085425178482',
         adSenseSlotId: settings.adSenseSlotId || '',
         
         isAdMobEnabled: settings.isAdMobEnabled || false,
@@ -74,7 +75,6 @@ export default function MonetizationManagement() {
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      // Optimized for mobile screen ads (approx 9:16)
       const compressed = await compressImage(base64, 600, 1066);
       setFormData(prev => ({ ...prev, adImageUrl: compressed }));
       toast({ title: "Ad Image Loaded", description: "Save changes to make it live." });
@@ -102,7 +102,6 @@ export default function MonetizationManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
-      {/* 1. Sponsored Banners (Current Revenue) */}
       <div className="space-y-6 bg-white p-8 rounded-[3rem] border border-border/50 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
           <div className="flex items-center gap-4">
@@ -180,7 +179,6 @@ export default function MonetizationManagement() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* 2. Google AdSense (Web) */}
         <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -223,7 +221,6 @@ export default function MonetizationManagement() {
           </div>
         </div>
 
-        {/* 3. Google AdMob (Mobile App) */}
         <div className="space-y-6 bg-[#0B0B0B] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
