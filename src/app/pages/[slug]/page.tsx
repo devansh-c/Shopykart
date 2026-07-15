@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview SEO Optimized Route for Legal and Policy Pages.
  * Fixed conflicting dynamic segments by using a unified [slug] parameter.
+ * Handles both ID and Slug based lookups.
  */
 
 export const generateStaticParams = async () => {
@@ -15,7 +16,8 @@ export const generateStaticParams = async () => {
 export const dynamicParams = true;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
@@ -26,7 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
 
   return (
     <Suspense fallback={
