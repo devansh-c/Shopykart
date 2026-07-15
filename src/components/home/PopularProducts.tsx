@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -9,11 +8,6 @@ import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
-
-/**
- * @fileOverview PopularProducts with Smart-Strict Location Filtering.
- * Checks both Product and Vendor town to prevent data disappearance.
- */
 
 export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number | null) => {
   if (!vendor) return true;
@@ -134,9 +128,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // SMART-STRICT: Only hide if location explicitly mismatches. 
-      // This ensures data without town field still shows up.
-      if (targetCity && targetCity !== 'local' && productTown) {
+      // HYBRID SMART FILTERING: 
+      // 1. If no location set by user, show everything.
+      // 2. If item has no town info, show it (fail-safe).
+      // 3. If item town is 'local', show it.
+      // 4. ONLY filter out if item town explicitly differs from user city.
+      if (targetCity && targetCity !== 'local' && productTown && productTown !== 'local') {
         if (productTown !== targetCity) return false;
       }
 

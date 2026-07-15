@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -20,9 +19,6 @@ const CARD_COLORS = [
   "from-[#C0392B] to-[#922B21]",
 ];
 
-/**
- * @fileOverview TopTenProducts with Smart Location Filtering.
- */
 export function TopTenProducts() {
   const firestore = useFirestore();
   const router = useRouter();
@@ -71,7 +67,8 @@ export function TopTenProducts() {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      if (targetCity && targetCity !== 'local' && productTown) {
+      // HYBRID SMART FILTERING:
+      if (targetCity && targetCity !== 'local' && productTown && productTown !== 'local') {
         if (productTown !== targetCity) return false;
       }
       return true;

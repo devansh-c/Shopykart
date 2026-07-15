@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
@@ -9,9 +8,6 @@ import React, { useMemo, useTransition, useState, useEffect } from "react"
 import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
-/**
- * @fileOverview StoreSection with Smart-Strict Location Filtering.
- */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
@@ -42,8 +38,8 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
 
-      // SMART-STRICT: Only hide if location explicitly mismatches.
-      if (targetCity && targetCity !== 'local' && vTown) {
+      // HYBRID SMART FILTERING:
+      if (targetCity && targetCity !== 'local' && vTown && vTown !== 'local') {
         if (vTown !== targetCity) return false;
       }
 
