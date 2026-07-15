@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
@@ -9,8 +10,7 @@ import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview StoreSection with NUCLEAR STRICT Location Filtering.
- * Ensures stores from Mauranipur don't appear in Ranipur and vice-versa.
+ * @fileOverview StoreSection with Smart-Strict Location Filtering.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -29,7 +29,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(20));
+    return query(collection(firestore, 'vendors'), limit(30));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -37,16 +37,14 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
-    // Normalize target city for strict matching
-    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const targetCity = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
 
-      // NUCLEAR STRICT LOCATION FILTERING
-      if (targetCityNormalized && targetCityNormalized !== 'local') {
-        const matchesCity = vTown === targetCityNormalized;
-        if (!matchesCity) return false;
+      // SMART-STRICT: Only hide if location explicitly mismatches.
+      if (targetCity && targetCity !== 'local' && vTown) {
+        if (vTown !== targetCity) return false;
       }
 
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -89,7 +87,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
               <div className="flex items-center gap-2 pt-0.5 text-[9px] font-bold text-gray-500 uppercase">
                  <div className="flex items-center gap-1"><Clock className="h-3 w-3" /><span>{store.deliveryTime || '20 MIN'}</span></div>
                  <div className="h-2.5 w-[1px] bg-gray-200" />
-                 <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{store.town}</span></div>
+                 <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{store.town || 'Local'}</span></div>
               </div>
             </div>
           </button>

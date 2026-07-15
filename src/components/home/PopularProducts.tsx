@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
@@ -10,8 +11,8 @@ import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 
 /**
- * @fileOverview PopularProducts with NUCLEAR STRICT Location Filtering.
- * Ensures Ranipur and Mauranipur content never mixes.
+ * @fileOverview PopularProducts with Smart-Strict Location Filtering.
+ * Checks both Product and Vendor town to prevent data disappearance.
  */
 
 export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number | null) => {
@@ -72,7 +73,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNaviga
         <div onClick={() => !isOffline && onNavigate(product)} className="block text-left w-full cursor-pointer">
           <h3 className="font-bold text-base text-[#1C1C1C] mb-1 italic tracking-tight line-clamp-2 uppercase leading-tight">{product.name}</h3>
           <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(0)}</div>
-          <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate mt-1">from {product.restaurantName}</p>
+          <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate mt-1">from {product.restaurantName || vendor?.storeName}</p>
         </div>
       </div>
       <div className="relative w-24 h-24 shrink-0">
@@ -101,12 +102,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const firestore = useFirestore();
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
 
   useEffect(() => {
     const updateLoc = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
       setActiveCity(localStorage.getItem('user_city'));
     };
     updateLoc();
@@ -129,17 +128,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
-    // Normalize target city for strict exact matching
-    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const targetCity = (activeCity || '').toLowerCase().trim();
 
     return dbProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // NUCLEAR STRICT LOCATION FILTERING
-      if (targetCityNormalized && targetCityNormalized !== 'local') {
-        const matchesCity = productTown === targetCityNormalized;
-        if (!matchesCity) return false;
+      // SMART-STRICT: Only hide if location explicitly mismatches. 
+      // This ensures data without town field still shows up.
+      if (targetCity && targetCity !== 'local' && productTown) {
+        if (productTown !== targetCity) return false;
       }
 
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,18 +11,15 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview StoresPage with Strict Location Filtering.
- * Ensures Ranipur and Mauranipur content never mixes.
+ * @fileOverview StoresPage with Smart Location Filtering.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const firestore = useFirestore();
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
       setActiveCity(localStorage.getItem('user_city'));
     };
     updateZone();
@@ -40,20 +38,14 @@ export default function StoresPage() {
     if (!dbVendors) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
-    
-    // Normalize target city for strict exact matching
-    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const targetCity = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
 
-      // ULTRA-STRICT LOCATION FILTERING
-      if (targetCityNormalized && targetCityNormalized !== 'local') {
-        // Must match exactly to the town name
-        const matchesCity = vTown === targetCityNormalized;
-        
-        // If it doesn't match the city, we hide it immediately
-        if (!matchesCity) return false;
+      // SMART-STRICT: Only hide if location explicitly mismatches.
+      if (targetCity && targetCity !== 'local' && vTown) {
+        if (vTown !== targetCity) return false;
       }
 
       const matchesSearch = !searchLower || 
@@ -148,7 +140,7 @@ export default function StoresPage() {
                      <div className="h-3 w-[1px] bg-gray-200" />
                      <div className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">{store.town || 'Nearby'}</span>
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">{store.town || 'Local'}</span>
                      </div>
                   </div>
                 </div>

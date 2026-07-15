@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -20,19 +21,16 @@ const CARD_COLORS = [
 ];
 
 /**
- * @fileOverview TopTenProducts with Strict Location Filtering.
- * Ensures Ranipur and Mauranipur content never mixes.
+ * @fileOverview TopTenProducts with Smart Location Filtering.
  */
 export function TopTenProducts() {
   const firestore = useFirestore();
   const router = useRouter();
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
       setActiveCity(localStorage.getItem('user_city'));
     };
     updateZone();
@@ -67,18 +65,14 @@ export function TopTenProducts() {
   const filteredTopProducts = useMemo(() => {
     if (!allTopProducts || !vendors) return [];
     
-    // Normalize target city for strict exact matching
-    const targetCityNormalized = (activeCity || '').toLowerCase().trim();
+    const targetCity = (activeCity || '').toLowerCase().trim();
 
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // ULTRA-STRICT LOCATION FILTERING
-      if (targetCityNormalized && targetCityNormalized !== 'local') {
-        // Must match exactly
-        const matchesCity = productTown === targetCityNormalized;
-        if (!matchesCity) return false;
+      if (targetCity && targetCity !== 'local' && productTown) {
+        if (productTown !== targetCity) return false;
       }
       return true;
     }).slice(0, 10);
