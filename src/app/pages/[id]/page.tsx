@@ -1,7 +1,6 @@
 /**
- * @fileOverview Route Neutralized.
- * This file is kept to resolve file-system dynamic segment conflicts in Next.js 15.
- * All logic has been migrated to src/app/page/[slug]/page.tsx.
+ * @fileOverview Neutralized to resolve dynamic route conflicts in Next.js 15.
+ * All page routing is now handled by src/app/page/[slug]/page.tsx.
  */
 import { redirect } from 'next/navigation';
 
