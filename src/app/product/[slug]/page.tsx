@@ -1,12 +1,11 @@
-
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
 
 /**
- * @fileOverview Consolidated SEO Route: /product/[slug]
- * Handles both legacy IDs and new SEO-friendly slugs.
+ * @fileOverview Unified SEO Route for Products.
+ * Handles both legacy alphanumeric IDs and new descriptive slugs.
  */
 
 export const generateStaticParams = async () => {
@@ -18,25 +17,29 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
+  const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
-    title: `${slug.replace(/-/g, ' ').toUpperCase()} | ShopyKart`,
-    description: 'Order premium gourmet food from ShopyKart. Professional delivery in your city.',
+    title: `${cleanTitle} | ShopyKart`,
+    description: 'Order premium gourmet food and essentials from ShopyKart.',
     openGraph: {
-      title: 'Premium Gourmet Product | ShopyKart',
+      title: `${cleanTitle} | ShopyKart Premium`,
       images: [`https://picsum.photos/seed/${slug}/800/600`],
     },
   };
 }
 
-export default function ProductPage() {
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     }>
-      <ProductDetailsClient />
+      <ProductDetailsClient forcedSlug={slug} />
     </Suspense>
   );
 }

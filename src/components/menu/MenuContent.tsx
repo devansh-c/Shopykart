@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Search, Plus, Minus, SlidersHorizontal, X, Clock, MapPin, Loader2 } from 'lucide-react';
+import { Search, X, Clock, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/components/cart/CartProvider';
@@ -15,15 +14,17 @@ import { collection, query, where, limit } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
-export default function MenuContent() {
+/**
+ * @fileOverview MenuContent with SEO Slug support and robust data fetching.
+ */
+export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const slug = params?.slug as string;
-  const storeId = params?.storeId as string;
+  const slug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const { cart, addToCart } = useCart();
+  const { addToCart } = useCart();
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
   
   const firestore = useFirestore();
@@ -38,7 +39,7 @@ export default function MenuContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // SEO Query: Find vendor by slug first, then by ID
+  // SEO Query: Find vendor by slug first, then by ID as fallback
   const vendorSlugQuery = useMemoFirebase(() => {
     if (!firestore || !slug) return null;
     return query(collection(firestore, 'vendors'), where('slug', '==', slug), limit(1));
@@ -47,15 +48,13 @@ export default function MenuContent() {
   const { data: slugResults, loading: slugLoading } = useCollection<any>(vendorSlugQuery);
 
   const vendorIdQuery = useMemoFirebase(() => {
-    if (!firestore || slugResults?.length) return null;
-    const targetId = storeId || slug;
-    if (!targetId) return null;
-    return query(collection(firestore, 'vendors'), where('__name__', '==', targetId), limit(1));
-  }, [firestore, slug, storeId, slugResults]);
+    if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
+    return query(collection(firestore, 'vendors'), where('__name__', '==', slug), limit(1));
+  }, [firestore, slug, slugResults]);
 
   const { data: idResults, loading: idLoading } = useCollection<any>(vendorIdQuery);
 
-  const vendorProfile = slugResults?.[0] || idResults?.[0];
+  const vendorProfile = (slugResults && slugResults.length > 0) ? slugResults[0] : (idResults && idResults.length > 0 ? idResults[0] : null);
   const vendorLoading = slugLoading || idLoading;
 
   const scheduleOpen = isStoreScheduleOpen(vendorProfile, currentMinutes);
@@ -76,7 +75,7 @@ export default function MenuContent() {
     });
   }, [searchQuery, activeCategory, dbProducts]);
 
-  if (vendorLoading) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (vendorLoading && !vendorProfile) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   if (!vendorProfile && !vendorLoading) return <div className="h-screen bg-white flex flex-col items-center justify-center p-8"><h2 className="text-xl font-black italic uppercase">Store Not Found</h2><Button onClick={() => router.push('/')} className="mt-8">Home</Button></div>;
 

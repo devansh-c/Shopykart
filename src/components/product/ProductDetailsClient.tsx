@@ -1,12 +1,10 @@
-
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
-import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle, FileText, Zap } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Share2, Loader2, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useMemo, useEffect } from 'react';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -15,16 +13,14 @@ import { collection, query, where, limit, doc } from 'firebase/firestore';
 
 /**
  * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs.
- * Fixed routing conflict by merging logic into a single dynamic segment.
  */
-export default function ProductDetailsClient() {
+export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
-  const slug = params?.slug as string;
+  const slug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart } = useCart();
   
-  const [instructions, setInstructions] = useState('');
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
 
@@ -41,6 +37,7 @@ export default function ProductDetailsClient() {
   // 2. Fallback: Try to find by Document ID (Legacy Support)
   const idQuery = useMemoFirebase(() => {
     if (!firestore || !slug || (slugResults && slugResults.length > 0)) return null;
+    // We check if slug itself is a valid ID pattern
     return query(collection(firestore, 'products'), where('__name__', '==', slug), limit(1));
   }, [firestore, slug, slugResults]);
 
@@ -63,10 +60,6 @@ export default function ProductDetailsClient() {
 
   const vendor = vendors?.find(v => v.id === product?.vendorId);
   const isOffline = (vendor?.isOnline === false) || (product?.isAvailable === false);
-
-  const isMedical = useMemo(() => {
-    return product?.serviceMode === 'Medical' || product?.category?.toLowerCase().includes('medic');
-  }, [product]);
 
   const isSaleActive = globalOffer?.isActive;
   const isClosedMode = isSaleActive && globalOffer?.isClosedAfterMilestone === true;
@@ -92,7 +85,7 @@ export default function ProductDetailsClient() {
   const handleAddToCart = () => {
     if (!product || isOffline) return;
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
-    addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption, price: currentPrice, instructions: isMedical ? '' : instructions });
+    addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption, price: currentPrice });
     toast({ title: "Added to Cart" });
   };
 

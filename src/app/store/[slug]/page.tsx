@@ -1,12 +1,10 @@
-
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 import type { Metadata } from 'next';
 
 /**
- * @fileOverview Consolidated SEO Route: /store/[slug]
- * Handles both legacy IDs and new SEO-friendly slugs.
+ * @fileOverview Unified SEO Route for Stores.
  */
 
 export const generateStaticParams = async () => {
@@ -18,22 +16,26 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
+  const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
-    title: `${slug.replace(/-/g, ' ').toUpperCase()} | ShopyKart Store`,
-    description: 'Explore menu and order live from our premium partners.',
+    title: `${cleanTitle} | ShopyKart Store`,
+    description: 'Explore our curated menu and order live from premium local partners.',
     robots: { index: true, follow: true }
   };
 }
 
-export default function StorePage() {
+export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     }>
-      <MenuContent />
+      <MenuContent forcedSlug={slug} />
     </Suspense>
   );
 }
