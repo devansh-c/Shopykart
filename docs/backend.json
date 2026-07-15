@@ -3,11 +3,12 @@
   "entities": {
     "Product": {
       "title": "Product",
-      "description": "A food item in the menu",
+      "description": "A food or medical item in the menu",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
         "price": { "type": "number" },
+        "mrp": { "type": "number" },
         "description": { "type": "string" },
         "category": { "type": "string" },
         "imageUrl": { "type": "string" },
@@ -16,24 +17,17 @@
         "zoneId": { "type": "string" },
         "restaurantName": { "type": "string" },
         "town": { "type": "string" },
-        "options": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": { "type": "string" },
-              "price": { "type": "number" }
-            }
-          },
-          "maxItems": 5
-        },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "isTopTen": { "type": "boolean" },
+        "isAvailable": { "type": "boolean" },
+        "serviceMode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price", "vendorId"]
     },
     "ServingZone": {
       "title": "Serving Zone",
-      "description": "Geographical delivery area",
+      "description": "Geographical delivery area defined by polygon or pincodes",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -42,12 +36,13 @@
         "isActive": { "type": "boolean" },
         "deliveryCharge": { "type": "number" },
         "minOrder": { "type": "number" },
+        "boundary": { "type": "array", "items": { "type": "object" } },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
     "Order": {
       "title": "Order",
-      "description": "Customer order details",
+      "description": "Customer order details and status",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
@@ -56,53 +51,72 @@
         "items": { "type": "array" },
         "total": { "type": "number" },
         "status": { "type": "string" },
-        "paymentMethod": { "type": "string", "enum": ["online", "cod"] },
+        "paymentMethod": { "type": "string" },
         "paymentStatus": { "type": "string" },
         "utrNumber": { "type": "string" },
         "address": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "coinsEarned": { "type": "number" },
-        "coinsUsed": { "type": "number" }
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "UserProfile": {
-      "title": "User Profile",
-      "description": "User profile data",
+    "Vendor": {
+      "title": "Vendor",
+      "description": "Store or Restaurant profile",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "storeId": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "category": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "zoneId": { "type": "string" },
+        "town": { "type": "string" }
+      }
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Promo codes and discounts",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "discount": { "type": "string" },
+        "minOrder": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      }
+    },
+    "TeamMember": {
+      "title": "Team Member",
+      "description": "Internal staff with specific permissions",
       "type": "object",
       "properties": {
         "fullName": { "type": "string" },
-        "email": { "type": "string" },
-        "phoneNumber": { "type": "string" },
-        "address": { "type": "string" },
-        "city": { "type": "string" },
-        "pincode": { "type": "string" },
-        "zoneId": { "type": "string" },
-        "coins": { "type": "number", "default": 0 },
-        "isPremium": { "type": "boolean", "default": false },
-        "premiumExpiry": { "type": "string", "format": "date-time" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "employeeId": { "type": "string" },
+        "permissions": { "type": "array", "items": { "type": "string" } }
       }
     },
     "Ticket": {
       "title": "Support Ticket",
-      "description": "Customer help request",
+      "description": "Customer complaint or query",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "customerName": { "type": "string" },
         "description": { "type": "string" },
-        "phone": { "type": "string" },
-        "status": { "type": "string", "enum": ["Pending", "Resolved"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "status": { "type": "string" }
       }
     }
   },
   "firestore": {
-    "/zones/{zoneId}": { "schema": "#/entities/ServingZone", "description": "Global delivery zones" },
-    "/vendors/{vendorId}": { "schema": "object", "description": "Store profiles" },
-    "/products/{productId}": { "schema": "#/entities/Product", "description": "Global products for search" },
-    "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Global orders" },
-    "/users/{userId}": { "schema": "#/entities/UserProfile", "description": "User profile information" },
-    "/tickets/{ticketId}": { "schema": "#/entities/Ticket", "description": "Support tickets" }
+    "/zones/{zoneId}": { "schema": "#/entities/ServingZone", "description": "Delivery zones" },
+    "/vendors/{vendorId}": { "schema": "#/entities/Vendor", "description": "Store profiles" },
+    "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
+    "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Customer orders" },
+    "/users/{userId}": { "schema": "object", "description": "Customer profiles" },
+    "/tickets/{ticketId}": { "schema": "#/entities/Ticket", "description": "Support tickets" },
+    "/coupons/{couponId}": { "schema": "#/entities/Coupon", "description": "Discount codes" },
+    "/banners/{bannerId}": { "schema": "object", "description": "App banners" },
+    "/team_members/{memberId}": { "schema": "#/entities/TeamMember", "description": "Staff access" },
+    "/premium_subscriptions/{subId}": { "schema": "object", "description": "Elite membership requests" },
+    "/app_settings/{settingId}": { "schema": "object", "description": "Global config" },
+    "/checkout_charges/{chargeId}": { "schema": "object", "description": "Taxes and fees" }
   }
 }

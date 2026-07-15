@@ -154,7 +154,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  // Performance Query: Significantly increased limit to avoid missing products
+  // Performance Query: Wait for BOTH products and vendors
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(1000));
@@ -165,7 +165,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(200));
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery);
 
   const offerRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -186,7 +186,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, [cart]);
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts) return null;
+    // CRITICAL: Ensure vendors are loaded before showing "0 Results"
+    if (!dbProducts || !vendors) return null;
+    
     const searchLower = searchQuery.toLowerCase().trim();
     const categoryLower = category.toLowerCase().trim();
     const targetCityNormalized = (activeCity || '').toLowerCase().trim();
@@ -195,19 +197,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return dbProducts.filter(product => {
       const vendor = vendorMap.get(product.vendorId);
       
-      // FLEXIBLE SERVICE MODE CHECK: Handle various case types and missing values
       const rawMode = (product.serviceMode || vendor?.category || 'Food').toLowerCase();
       const productMode = (rawMode === 'restaurant' || rawMode === 'food') ? 'food' : rawMode;
       if (productMode !== currentModeLower) return false;
 
-      // ULTRA-FLEXIBLE CITY CHECK: Show items from matching city OR marked as 'local' OR if no city selected
       const productTown = (product.town || vendor?.town || '').toLowerCase().trim();
       if (targetCityNormalized && productTown && productTown !== 'local' && productTown !== 'all') {
         if (targetCityNormalized === 'ranipur' && productTown === 'mauranipur') return false;
         if (targetCityNormalized === 'mauranipur' && productTown === 'ranipur') return false;
       }
 
-      // CATEGORY & SEARCH
       const matchesSearch = !searchLower || product.name?.toLowerCase().includes(searchLower);
       const matchesCategory = categoryLower === 'all' || product.category?.toLowerCase().trim() === categoryLower;
 
@@ -215,13 +214,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     }).sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
-      // Prioritize online stores, but don't hide products if vendor is still loading
       const onlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentMinutes) ? 1 : 0) : 1;
       const onlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentMinutes) ? 1 : 0) : 1;
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (vB?.rating || 0) - (vA?.rating || 0);
     });
-  }, [searchQuery, category, dbProducts, vendorMap, activeCity, activeMode, currentMinutes]);
+  }, [searchQuery, category, dbProducts, vendors, vendorMap, activeCity, activeMode, currentMinutes]);
 
   const navigateToProduct = (id: string) => {
     startTransition(() => {
@@ -229,7 +227,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   };
 
-  if (productsToDisplay === null || (productsLoading && !dbProducts)) return <SkeletonLoader />;
+  if (productsToDisplay === null || productsLoading || vendorsLoading) return <SkeletonLoader />;
 
   return (
     <div className="px-4 py-8 content-visibility-auto transform-gpu">
