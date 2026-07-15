@@ -34,7 +34,10 @@ export default async function GenericPage({ params }: { params: Promise<{ slug: 
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Retrieving Information...</p>
+        </div>
       </div>
     }>
       <StaticPageView forcedSlug={slug} />

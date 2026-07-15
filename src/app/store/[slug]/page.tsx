@@ -34,7 +34,10 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Opening Store Hub...</p>
+        </div>
       </div>
     }>
       <MenuContent forcedSlug={slug} />

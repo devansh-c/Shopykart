@@ -12,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ShopyKart | Premium Food & Gourmet Delivery',
-  description: 'Gourmet meals delivered to your doorstep. Best food in Ranipur and Mauranipur. Order Pizza, Burgers, and more.',
+  title: 'Shopykart 10 Min Veg Food Delivery|Mauranipur,Ranipur| Order Now',
+  description: 'Shopykart: Official 10-Min Veg Food Delivery! 🥗 Freshly Prepared | Best Prices | Open 10 AM - 8:15 PM. Verified Service by Shopykart.',
   manifest: '/manifest.json',
   metadataBase: new URL('https://shopykart.co.in'),
   alternates: {
@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ShopyKart | Premium Food Delivery',
-    description: 'Best gourmet meals in Ranipur and Mauranipur.',
+    title: 'Shopykart 10 Min Veg Food Delivery|Mauranipur,Ranipur| Order Now',
+    description: 'Shopykart: Official 10-Min Veg Food Delivery! 🥗 Freshly Prepared | Best Prices | Open 10 AM - 8:15 PM. Verified Service by Shopykart',
     images: ['https://picsum.photos/seed/shopy-twitter/1200/600'],
   },
   robots: {
