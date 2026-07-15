@@ -5,8 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Universal SEO Route for Stores.
- * Handles both legacy IDs and new descriptive slugs.
- * Updated for Next.js 15: params is now a Promise.
+ * Consolidates legacy [storeId] and [slug] to prevent route conflict.
  */
 
 export const generateStaticParams = async () => {

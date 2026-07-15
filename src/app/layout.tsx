@@ -1,6 +1,5 @@
 'use client';
 
-import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ClientLayout } from '@/components/layout/ClientLayout';
 import { Inter } from 'next/font/google';

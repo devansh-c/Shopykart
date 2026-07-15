@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * @fileOverview Dynamic route for order tracking.
- * Updated for Next.js 15: params is now a Promise.
+ * Updated for Next.js 15 async params.
  */
 
 export const generateStaticParams = async () => {
@@ -18,8 +18,7 @@ export default async function OrderPage({
 }: {
   params: Promise<{ orderId: string }>;
 }) {
-  const resolvedParams = await params;
-  const orderId = resolvedParams.orderId;
+  const { orderId } = await params;
 
   return (
     <Suspense fallback={

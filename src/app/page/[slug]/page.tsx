@@ -5,8 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Handles both legacy IDs and new descriptive slugs.
- * Updated for Next.js 15: params is now a Promise.
+ * Updated for Next.js 15 async params.
  */
 
 export const generateStaticParams = async () => {
@@ -28,8 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+  const { slug } = await params;
 
   return (
     <Suspense fallback={
