@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useParams } from 'next/navigation';
 import { Search, Plus, Minus, SlidersHorizontal, X, Clock, MapPin, Utensils } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cart/CartProvider';
-import { cn } from '@/lib/utils';
+import { cn, extractIdFromSlug, slugify } from '@/lib/utils';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -21,7 +21,15 @@ import {
 
 export default function MenuContent() {
   const searchParams = useSearchParams();
-  const vendorIdParam = searchParams.get('vendor');
+  const params = useParams();
+  
+  // SEO FIX: Extract ID from slug if it comes from /store/[storeId]
+  const rawVendorId = (params?.storeId as string) || searchParams.get('vendor');
+  const vendorIdParam = useMemo(() => {
+    if (!rawVendorId) return null;
+    if (rawVendorId.includes('-')) return extractIdFromSlug(rawVendorId);
+    return rawVendorId;
+  }, [rawVendorId]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -113,7 +121,7 @@ export default function MenuContent() {
             alt="Banner" 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-6">
-            <Link href="/menu" className="absolute top-6 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
+            <Link href="/" className="absolute top-6 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
               <X className="h-5 w-5" />
             </Link>
             
@@ -266,7 +274,7 @@ export default function MenuContent() {
             );
           })
         ) : (
-          <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-muted/50">
+          <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-muted-foreground/50">
             <Utensils className="h-12 w-12 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No items found</p>
           </div>

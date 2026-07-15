@@ -5,7 +5,7 @@ import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { isStoreScheduleOpen } from "./PopularProducts"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -69,9 +69,10 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
     });
   }, [dbVendors, activeMode, activeCity, currentMinutes]);
 
-  const handleStoreClick = (id: string) => {
+  const handleStoreClick = (store: any) => {
+    const slug = slugify(store.storeName);
     startTransition(() => {
-      router.push(`/menu?vendor=${id}`);
+      router.push(`/store/${slug}-${store.id}`);
     });
   };
 
@@ -125,7 +126,7 @@ export const StoreSection = memo(({ activeMode = 'Food' }: { activeMode?: string
           
           return (
             <button 
-              onClick={() => handleStoreClick(store.id)}
+              onClick={() => handleStoreClick(store)}
               key={store.id} 
               className={cn(
                 "block text-left min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border transition-all active:scale-[0.98] shrink-0 transform-gpu group",

@@ -1,27 +1,33 @@
-
 "use client"
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useCart } from '@/components/cart/CartProvider';
 import { ChevronLeft, Minus, Plus, Star, Share2, Loader2, CheckCircle2, ShieldCheck, Calendar, AlertCircle, FileText, Zap } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, extractIdFromSlug } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 
 export default function ProductDetailsClient({ forcedId }: { forcedId?: string }) {
   const searchParams = useSearchParams();
+  const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const { addToCart } = useCart();
   
-  // Use forcedId (from dynamic route) or search param 'id'
-  const productId = forcedId || searchParams.get('id');
+  // SEO FIX: Extract ID from slug if it comes from the dynamic route [productId]
+  const rawId = forcedId || (params?.productId as string) || searchParams.get('id');
+  const productId = useMemo(() => {
+    if (!rawId) return null;
+    // If it contains a hyphen and it's not a direct Firestore ID, try extracting
+    if (rawId.includes('-')) return extractIdFromSlug(rawId);
+    return rawId;
+  }, [rawId]);
   
   const [instructions, setInstructions] = useState('');
   const [userRating, setUserRating] = useState(0);
@@ -204,6 +210,7 @@ export default function ProductDetailsClient({ forcedId }: { forcedId?: string }
           fill 
           className="object-cover"
           priority
+          unoptimized
         />
         {isOffline && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

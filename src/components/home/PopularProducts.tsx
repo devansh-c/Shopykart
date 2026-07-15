@@ -1,10 +1,9 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
 import { Zap, Plus, Minus, Heart, Star, Clock, ShoppingBag, Loader2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase"
 import { collection, query, limit, doc, where } from "firebase/firestore"
@@ -73,7 +72,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNaviga
           <div className="h-3 w-3 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
           {isSaleActive && <Badge className="bg-primary text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full animate-pulse border-none">SALE LIVE</Badge>}
         </div>
-        <div onClick={() => !isOffline && onNavigate(product.id)} className="block text-left w-full cursor-pointer">
+        <div onClick={() => !isOffline && onNavigate(product)} className="block text-left w-full cursor-pointer">
           <h3 className="font-bold text-base text-[#1C1C1C] mb-1 italic tracking-tight line-clamp-2 uppercase leading-tight">{product.name}</h3>
           <div className="flex items-baseline gap-2 mb-1.5">
              <div className="text-xl font-black text-primary italic">₹{showoffPrice.toFixed(0)}</div>
@@ -85,7 +84,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNaviga
         </div>
       </div>
       <div className="relative w-24 h-24 shrink-0">
-        <div onClick={() => !isOffline && onNavigate(product.id)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner cursor-pointer transform-gpu">
+        <div onClick={() => !isOffline && onNavigate(product)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted shadow-inner cursor-pointer transform-gpu">
           <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
           {isOffline && <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-2 text-center animate-in fade-in duration-300"><span className="text-white font-black text-[9px] uppercase italic tracking-tighter border border-white/30 px-2 py-1 rounded backdrop-blur-sm">CLOSED</span></div>}
         </div>
@@ -221,9 +220,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   }, [searchQuery, category, dbProducts, vendors, vendorMap, activeCity, activeMode, currentMinutes]);
 
-  const navigateToProduct = (id: string) => {
+  const navigateToProduct = (product: any) => {
+    const slug = slugify(product.name);
     startTransition(() => {
-      router.push(`/product/view?id=${id}`);
+      router.push(`/product/${slug}-${product.id}`);
     });
   };
 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -7,7 +6,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/components/cart/CartProvider"
 import { Plus, Flame, Megaphone, Trophy, Sparkles, Zap, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { isStoreScheduleOpen } from "./PopularProducts"
@@ -77,6 +76,11 @@ export function TopTenProducts() {
     }).slice(0, 10);
   }, [allTopProducts, vendors, activeZoneId, activeCity]);
 
+  const navigateToProduct = (product: any) => {
+    const slug = slugify(product.name);
+    router.push(`/product/${slug}-${product.id}`);
+  };
+
   if (loading && !allTopProducts) {
     return (
       <div className="py-6 px-4 flex space-x-4 overflow-x-auto no-scrollbar">
@@ -121,7 +125,7 @@ export function TopTenProducts() {
                 colorClass,
                 isOffline && "grayscale opacity-80"
               )}
-              onClick={() => !isOffline && router.push(`/product/view?id=${product.id}`)}
+              onClick={() => !isOffline && navigateToProduct(product)}
             >
               {/* Box 1: LOOT HEADER */}
               <div className="w-full flex items-center justify-center gap-1 mb-2 relative z-10">

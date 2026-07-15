@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { Search, MapPin, Store, Star, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -103,10 +102,11 @@ export default function StoresPage() {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOffline = store.isOnline === false;
             const rating = store.rating || '0.0';
+            const slug = slugify(store.storeName);
 
             return (
               <Link 
-                href={`/menu?vendor=${store.id}`}
+                href={`/store/${slug}-${store.id}`}
                 key={store.id} 
                 className={cn(
                   "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
