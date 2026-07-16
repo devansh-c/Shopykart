@@ -1,13 +1,14 @@
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
-import { Zap, Plus, Minus, Loader2 } from "lucide-react"
+import { Zap, Plus, Minus, Loader2, Star, Clock } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { useRouter } from "next/navigation"
+import { ProductQuickView } from "@/components/product/ProductQuickView"
 
 export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number | null) => {
   if (!vendor) return true;
@@ -42,7 +43,7 @@ export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number
   }
 };
 
-const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNavigate, currentMinutes }: any) => {
+const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, currentMinutes }: any) => {
   const scheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
@@ -57,16 +58,20 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNaviga
           <div className="h-3 w-3 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
           {isOffline && <span className="text-[7px] font-black text-red-600 uppercase bg-red-50 px-1.5 py-0.5 rounded border border-red-100 italic">Store Closed</span>}
         </div>
-        <div onClick={() => !isOffline && onNavigate(product)} className="block text-left w-full cursor-pointer">
-          <h3 className="font-bold text-base text-[#1C1C1C] mb-1 italic tracking-tight line-clamp-2 uppercase leading-tight">{product.name}</h3>
-          <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(0)}</div>
-          <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate mt-1">from {product.restaurantName || vendor?.storeName}</p>
-        </div>
+        <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
+          <button className="block text-left w-full cursor-pointer">
+            <h3 className="font-bold text-base text-[#1C1C1C] mb-1 italic tracking-tight line-clamp-2 uppercase leading-tight">{product.name}</h3>
+            <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(0)}</div>
+            <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate mt-1">from {product.restaurantName || vendor?.storeName}</p>
+          </button>
+        </ProductQuickView>
       </div>
       <div className="relative w-24 h-24 shrink-0">
-        <div onClick={() => !isOffline && onNavigate(product)} className="relative w-full h-full rounded-2xl overflow-hidden bg-muted cursor-pointer">
-          <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
-        </div>
+        <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
+          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted cursor-pointer">
+            <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
+          </div>
+        </ProductQuickView>
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
           {quantity === 0 ? (
             <button onClick={() => !isOffline && onAdd({...product, quantity: 1, imageUrl})} className="w-full h-8 bg-white border-2 border-primary shadow-md font-black text-[9px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
@@ -87,7 +92,6 @@ ProductItem.displayName = "ProductItem";
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
@@ -147,28 +151,18 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
 
-      // Check Offline Status for both
       const isOffA = (vendorA?.isOnline === false) || !isStoreScheduleOpen(vendorA, currentMinutes);
       const isOffB = (vendorB?.isOnline === false) || !isStoreScheduleOpen(vendorB, currentMinutes);
 
-      // 1. OPEN STORES FIRST, CLOSED LAST
       if (isOffA !== isOffB) return isOffA ? 1 : -1;
 
-      // 2. HIGHEST RATING FIRST
       const ratingA = vendorA?.rating || 0;
       const ratingB = vendorB?.rating || 0;
       return ratingB - ratingA;
     });
   }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentMinutes]);
 
-  const navigateToProduct = (product: any) => {
-    const slug = product.slug || slugify(product.name);
-    startTransition(() => {
-      router.push(`/product/${slug}-${product.id}`);
-    });
-  };
-
-  if (productsLoading || !dbProducts || !vendors) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (productsLoading || !dbProducts || !vendors) return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="px-4 py-8">
@@ -186,7 +180,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             quantity={cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0} 
             onAdd={addToCart} 
             onRemove={removeFromCart} 
-            onNavigate={navigateToProduct}
             currentMinutes={currentMinutes}
           />
         )) : (
