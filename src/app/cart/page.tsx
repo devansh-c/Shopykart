@@ -17,31 +17,25 @@ import {
   Banknote, 
   ShoppingBasket, 
   Coins, 
-  Map as MapIcon, 
-  Tag, 
   Ticket, 
   X, 
-  ChevronUp, 
-  QrCode, 
-  Smartphone, 
-  ShieldCheck,
   CheckCircle2,
   Hash,
-  Heart,
   Package,
   MessageSquareQuote,
   AlertCircle,
-  Store,
   ArrowRight,
   Crown,
-  Sparkles,
-  Bike
+  Bike,
+  Camera,
+  ImageIcon,
+  Trash2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { useState, useEffect, useMemo, useRef, useCallback, memo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -49,19 +43,15 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
-import dynamic from 'next/dynamic';
-
-const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
-});
+import { compressImage } from '@/lib/image-utils';
 
 function CartContent() {
-  const { cart, addToCart, removeFromCart, totalPrice, totalItems, clearCart } = useCart();
+  const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isMounted, setIsMounted] = useState(false);
   const [instructions, setInstructions] = useState('');
@@ -71,6 +61,7 @@ function CartContent() {
   const [useCoins, setUseCoins] = useState(false);
   const [premiumPackaging, setPremiumPackaging] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
+  const [housePhoto, setHousePhoto] = useState<string | null>(null);
   
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -84,10 +75,6 @@ function CartContent() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState(''); 
   const [customerCity, setCustomerCity] = useState('');
-  const [customerPincode, setCustomerPincode] = useState('');
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
-  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
@@ -200,20 +187,24 @@ function CartContent() {
     const savedPhone = localStorage.getItem('user_phone') || localStorage.getItem('last_customer_phone');
     const savedAddress = localStorage.getItem('user_address_line') || localStorage.getItem('last_customer_address');
     const savedCity = localStorage.getItem('user_city');
-    const savedPincode = localStorage.getItem('user_pincode');
 
     setCustomerName(profile?.fullName || savedName || '');
     setCustomerPhone(profile?.phoneNumber || savedPhone || '');
     setCustomerAddress(profile?.address || savedAddress || '');
     setCustomerCity(profile?.city || savedCity || '');
-    setCustomerPincode(profile?.pincode || savedPincode || '');
-    
-    const savedPlusCode = localStorage.getItem('user_plus_code');
-    if (savedPlusCode) {
-      const [lat, lng] = savedPlusCode.split(',').map(Number);
-      if (!isNaN(lat) && !isNaN(lng)) { setLatitude(lat); setLongitude(lng); }
-    }
   }, [profile]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 800, 800);
+      setHousePhoto(compressed);
+      toast({ title: "Photo Ready!", description: "Rider can now see your location photo." });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleVerifyCoupon = async () => {
     if (!couponInput.trim() || !firestore) return;
@@ -261,7 +252,6 @@ function CartContent() {
       customerPhone,
       address: customerAddress.toUpperCase(),
       city: customerCity.toUpperCase(),
-      pincode: customerPincode,
       items: cart,
       subtotal: totalPrice,
       total: grandTotal,
@@ -270,10 +260,9 @@ function CartContent() {
       paymentMethod,
       paymentStatus: paymentMethod === 'online' ? 'UTR_Pending_Verification' : 'Pending',
       utrNumber: paymentMethod === 'online' ? utrNumber : null,
+      housePhotoUrl: housePhoto,
       status: 'Placed',
       isPremiumOrder: isPremium,
-      latitude,
-      longitude,
       deliveryTip,
       premiumPackaging,
       coinDiscount,
@@ -309,7 +298,6 @@ function CartContent() {
     }
   };
 
-  // Slider Handlers
   const handleTouchStart = () => { isDragging.current = true; };
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging.current || !sliderRef.current) return;
@@ -396,6 +384,39 @@ function CartContent() {
           </div>
         </div>
 
+        {/* HOUSE PHOTO UPLOAD SECTION */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-primary/40">
+           <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-primary">
+                 <Camera className="h-5 w-5" />
+                 <h2 className="text-sm font-black uppercase italic">Fast Delivery Hub</h2>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase">Optional</Badge>
+           </div>
+           
+           <div 
+             onClick={() => fileInputRef.current?.click()}
+             className={cn(
+               "relative h-32 w-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden",
+               housePhoto ? "bg-muted/10 border-primary/20" : "bg-gray-50 border-gray-200"
+             )}
+           >
+              {housePhoto ? (
+                <>
+                  <img src={housePhoto} className="w-full h-full object-cover" alt="House" />
+                  <button onClick={(e) => { e.stopPropagation(); setHousePhoto(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-lg text-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                </>
+              ) : (
+                <div className="text-center p-4">
+                   <ImageIcon className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Upload House/Gate Photo</p>
+                   <span className="text-[8px] font-medium text-gray-400 uppercase italic">Help rider reach you faster</span>
+                </div>
+              )}
+           </div>
+           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+        </div>
+
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
            <div className="flex items-center gap-2 mb-4"><Ticket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Coupons</h2></div>
            <div className="flex gap-2">
@@ -421,20 +442,10 @@ function CartContent() {
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
           <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
           <div className="space-y-4">
-              <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                <DialogTrigger asChild>
-                  <button className="w-full h-11 bg-black text-white rounded-xl flex items-center justify-center gap-2 font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all"><MapIcon className="h-4 w-4" /> PIN ON GOOGLE MAP</button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md p-0 h-[80vh] rounded-[2.5rem] overflow-hidden focus:outline-none">
-                  <MapPicker onConfirm={(lat, lng) => { setLatitude(lat); setLongitude(lng); setIsMapOpen(false); toast({title:"Location Pinned!"}); }} />
-                </DialogContent>
-              </Dialog>
-
               <div className="space-y-3">
                 <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value.toUpperCase())} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <div className="grid grid-cols-2 gap-3">
-                   <Input placeholder="PINCODE *" value={customerPincode} onChange={e => setCustomerPincode(e.target.value.replace(/\D/g,'').slice(0, 6))} className="h-12 rounded-xl bg-gray-50 border-none font-bold text-center" />
-                   <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60 text-center" />
+                <div className="grid grid-cols-1">
+                   <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60" />
                 </div>
                 <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <Textarea placeholder="FULL ADDRESS / LANDMARK *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="min-h-[100px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs" />
