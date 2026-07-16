@@ -96,11 +96,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const firestore = useFirestore();
-  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
 
   useEffect(() => {
     const updateLoc = () => {
-      setActiveCity(localStorage.getItem('user_city'));
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
     };
     updateLoc();
     window.addEventListener('user-address-updated', updateLoc);
@@ -109,7 +109,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(2000));
+    return query(collection(firestore, 'products'), limit(5000));
   }, [firestore]);
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
@@ -122,16 +122,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
-    const targetCity = (activeCity || '').toLowerCase().trim();
-
     return dbProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
-      const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // STRICT FILTERING: Only show if explicitly matched or local.
-      if (targetCity && targetCity !== 'local') {
-        if (productTown && productTown !== 'local' && !productTown.includes(targetCity)) {
-           return false;
+      // NUCLEAR STRICT ZONE ISOLATION:
+      // If user has selected a zone, ONLY show products that belong to this zone ID.
+      // We check both the product's zoneId and the vendor's zoneId to be safe.
+      if (activeZoneId) {
+        const pZone = p.zoneId;
+        const vZone = vendor?.zoneId;
+        if (pZone !== activeZoneId && vZone !== activeZoneId) {
+          return false;
         }
       }
 
@@ -141,7 +142,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       
       return modeMatch && searchMatch && catMatch;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeCity]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId]);
 
   const navigateToProduct = (product: any) => {
     const slug = product.slug || slugify(product.name);
@@ -155,7 +156,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">⚡ {activeMode.toUpperCase()} HUB {activeCity ? `IN ${activeCity}` : ''}</h2>
+        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">⚡ {activeMode.toUpperCase()} HUB</h2>
       </div>
       <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isPending && "opacity-50")}>
         {productsToDisplay.length > 0 ? productsToDisplay.map((product) => (
@@ -169,7 +170,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             onNavigate={navigateToProduct} 
           />
         )) : (
-          <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in {activeCity || 'this section'}</div>
+          <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in this zone</div>
         )}
       </div>
     </div>

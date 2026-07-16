@@ -10,16 +10,16 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview StoresPage with Strict Location Filtering.
+ * @fileOverview StoresPage with Strict Zone Isolation.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const firestore = useFirestore();
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveCity(localStorage.getItem('user_city'));
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -37,15 +37,12 @@ export default function StoresPage() {
     if (!dbVendors) return [];
     
     const searchLower = searchQuery.toLowerCase().trim();
-    const targetCity = (activeCity || '').toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      const vTown = (v.town || '').toLowerCase().trim();
-
-      // STRICT FILTERING: Hide if location explicitly mismatches.
-      if (targetCity && targetCity !== 'local') {
-        if (vTown && vTown !== 'local' && !vTown.includes(targetCity)) {
-           return false;
+      // NUCLEAR STRICT ZONE ISOLATION:
+      if (activeZoneId) {
+        if (v.zoneId !== activeZoneId) {
+          return false;
         }
       }
 
@@ -62,7 +59,7 @@ export default function StoresPage() {
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, activeCity, searchQuery]);
+  }, [dbVendors, activeZoneId, searchQuery]);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -83,13 +80,6 @@ export default function StoresPage() {
             className="pl-12 h-14 bg-white border-none rounded-xl text-lg shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 font-bold"
           />
         </div>
-
-        {activeCity && (
-          <div className="flex items-center gap-2 px-1">
-            <MapPin className="h-3 w-3 text-primary" />
-            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Showing results for {activeCity}</span>
-          </div>
-        )}
       </div>
 
       <div className="px-6 space-y-6 content-visibility-auto">
@@ -103,7 +93,7 @@ export default function StoresPage() {
           filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOffline = store.isOnline === false;
-            const rating = store.rating || '0.0';
+            const rating = store.rating || '4.0';
             const slug = slugify(store.storeName);
 
             return (
@@ -152,7 +142,7 @@ export default function StoresPage() {
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-muted/50">
             <Store className="h-16 w-16 mx-auto text-muted-foreground/10 mb-4" />
             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm px-6">
-              {searchQuery ? `No stores matching "${searchQuery}"` : `No Stores Found in ${activeCity || 'Your Area'}`}
+              No Stores Found in this zone
             </p>
           </div>
         )}

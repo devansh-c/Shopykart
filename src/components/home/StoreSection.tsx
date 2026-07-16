@@ -12,11 +12,11 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   const firestore = useFirestore();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
 
   useEffect(() => {
     const updateLoc = () => {
-      setActiveCity(localStorage.getItem('user_city'));
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
     };
     updateLoc();
     window.addEventListener('user-address-updated', updateLoc);
@@ -25,8 +25,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Increased limit to show "pure products and stores"
-    return query(collection(firestore, 'vendors'), limit(500));
+    return query(collection(firestore, 'vendors'), limit(1000));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -34,21 +33,18 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
     
-    const targetCity = (activeCity || '').toLowerCase().trim();
-
     return dbVendors.filter(v => {
-      const vTown = (v.town || '').toLowerCase().trim();
-
-      // SMART PERMISSIVE FILTERING:
-      if (targetCity && targetCity !== 'local' && vTown && vTown !== 'local') {
-        if (!vTown.includes(targetCity) && !targetCity.includes(vTown)) {
+      // NUCLEAR STRICT ZONE ISOLATION:
+      // If user has selected a zone, ONLY show stores with that zone ID.
+      if (activeZoneId) {
+        if (v.zoneId !== activeZoneId) {
           return false;
         }
       }
 
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     });
-  }, [dbVendors, activeMode, activeCity]);
+  }, [dbVendors, activeMode, activeZoneId]);
 
   const handleStoreClick = (store: any) => {
     const slug = store.slug || slugify(store.storeName);

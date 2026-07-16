@@ -22,12 +22,12 @@ const CARD_COLORS = [
 export function TopTenProducts() {
   const firestore = useFirestore();
   const router = useRouter();
-  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveCity(localStorage.getItem('user_city'));
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -47,7 +47,7 @@ export function TopTenProducts() {
 
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(100));
+    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(500));
   }, [firestore]);
 
   const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
@@ -61,21 +61,20 @@ export function TopTenProducts() {
   const filteredTopProducts = useMemo(() => {
     if (!allTopProducts || !vendors) return [];
     
-    const targetCity = (activeCity || '').toLowerCase().trim();
-
     return allTopProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
-      const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // PERMISSIVE HYBRID FILTERING:
-      if (targetCity && targetCity !== 'local' && productTown && productTown !== 'local') {
-        if (!productTown.includes(targetCity) && !targetCity.includes(productTown)) {
+      // NUCLEAR STRICT ZONE ISOLATION:
+      if (activeZoneId) {
+        const pZone = p.zoneId;
+        const vZone = vendor?.zoneId;
+        if (pZone !== activeZoneId && vZone !== activeZoneId) {
           return false;
         }
       }
       return true;
-    }).slice(0, 30); // Show more items if available
-  }, [allTopProducts, vendors, activeCity]);
+    }).slice(0, 30);
+  }, [allTopProducts, vendors, activeZoneId]);
 
   const navigateToProduct = (product: any) => {
     const slug = slugify(product.name);
@@ -102,7 +101,7 @@ export function TopTenProducts() {
     <div className="py-6 overflow-hidden">
       <div className="px-6 mb-4 flex items-center justify-between">
         <h2 className="text-xl font-black italic uppercase tracking-tighter">
-          Flash <span className="text-primary">Loot</span> Deals {activeCity ? `in ${activeCity}` : ''}
+          Flash <span className="text-primary">Loot</span> Deals
         </h2>
         <div className="h-[2px] w-16 bg-primary/20 rounded-full" />
       </div>
