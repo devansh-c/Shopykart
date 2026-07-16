@@ -112,23 +112,23 @@
   }
 }
 
-/* FAST ANIMATIONS */
+/* FAST ANIMATIONS - Accelerated for instant feel */
 @keyframes running-line {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
 
 .animate-running-line {
-  animation: running-line 1s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  animation: running-line 0.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes pulse-fast {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50% { opacity: 0.4; }
 }
 
 .animate-pulse {
-  animation: pulse-fast 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  animation: pulse-fast 0.6s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
 @keyframes shine {

@@ -41,7 +41,12 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
       }
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     }).sort((a, b) => {
-      // SORT BY RATING (HIGHEST FIRST)
+      // 1. ONLINE FIRST
+      const onlineA = a.isOnline !== false ? 1 : 0;
+      const onlineB = b.isOnline !== false ? 1 : 0;
+      if (onlineA !== onlineB) return onlineB - onlineA;
+
+      // 2. HIGHEST RATING FIRST
       const ratingA = a.rating || 0;
       const ratingB = b.rating || 0;
       return ratingB - ratingA;
@@ -76,7 +81,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
             <div className="p-4">
               <div className="flex justify-between items-center mb-1">
                 <h3 className="text-lg font-black text-gray-900 italic uppercase truncate flex-1 mr-2">{store.storeName}</h3>
-                <div className="bg-[#15803d] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm shrink-0">
+                <div className="bg-[#15803d] text-white px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-sm shrink-0">
                   <span className="text-[10px] font-black">{store.rating || '4.0'}</span>
                   <Star className="h-2.5 w-2.5 fill-white" />
                 </div>

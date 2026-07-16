@@ -42,14 +42,7 @@ export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number
   }
 };
 
-const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNavigate }: any) => {
-  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
-
-  useEffect(() => {
-    const now = new Date();
-    setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
-  }, []);
-
+const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, onNavigate, currentMinutes }: any) => {
   const scheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
@@ -97,6 +90,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     const updateLoc = () => {
@@ -104,7 +98,18 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
     updateLoc();
     window.addEventListener('user-address-updated', updateLoc);
-    return () => window.removeEventListener('user-address-updated', updateLoc);
+
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
+
+    return () => {
+      window.removeEventListener('user-address-updated', updateLoc);
+      clearInterval(interval);
+    };
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
@@ -139,14 +144,22 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       
       return modeMatch && searchMatch && catMatch;
     }).sort((a, b) => {
-      // SORT BY RATING (HIGHEST FIRST)
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
+
+      // Check Offline Status for both
+      const isOffA = (vendorA?.isOnline === false) || !isStoreScheduleOpen(vendorA, currentMinutes);
+      const isOffB = (vendorB?.isOnline === false) || !isStoreScheduleOpen(vendorB, currentMinutes);
+
+      // 1. OPEN STORES FIRST, CLOSED LAST
+      if (isOffA !== isOffB) return isOffA ? 1 : -1;
+
+      // 2. HIGHEST RATING FIRST
       const ratingA = vendorA?.rating || 0;
       const ratingB = vendorB?.rating || 0;
       return ratingB - ratingA;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentMinutes]);
 
   const navigateToProduct = (product: any) => {
     const slug = product.slug || slugify(product.name);
@@ -173,7 +186,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
             quantity={cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0} 
             onAdd={addToCart} 
             onRemove={removeFromCart} 
-            onNavigate={navigateToProduct} 
+            onNavigate={navigateToProduct}
+            currentMinutes={currentMinutes}
           />
         )) : (
           <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in this zone</div>
