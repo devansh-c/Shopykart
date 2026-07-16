@@ -47,8 +47,6 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import dynamic from 'next/dynamic';
 
@@ -92,6 +90,11 @@ function CartContent() {
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
+
+  // Slider State
+  const [sliderValue, setSliderValue] = useState(0);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -240,11 +243,13 @@ function CartContent() {
     if (!user || !firestore) return;
     if (!customerName || customerPhone.length < 10 || !customerAddress) {
       toast({ variant: "destructive", title: "Missing details", description: "Name, 10-digit Phone and Address are required." });
+      setSliderValue(0);
       return;
     }
     if (paymentMethod === 'online' && !utrNumber) {
       setPaymentStep('selection');
       setIsPaymentDialogOpen(true);
+      setSliderValue(0);
       return;
     }
 
@@ -297,8 +302,29 @@ function CartContent() {
       }, 1500);
     } catch (e) {
       toast({ variant: "destructive", title: "Checkout failed" });
+      setSliderValue(0);
     } finally {
       setIsPlacing(false);
+    }
+  };
+
+  // Slider Handlers
+  const handleTouchStart = () => { isDragging.current = true; };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || !sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const val = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderValue(val);
+  };
+  const handleTouchEnd = () => {
+    isDragging.current = false;
+    if (sliderValue >= 90) {
+      setSliderValue(100);
+      handlePlaceOrder();
+    } else {
+      setSliderValue(0);
     }
   };
 
@@ -413,6 +439,20 @@ function CartContent() {
                 <Textarea placeholder="FULL ADDRESS / LANDMARK *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="min-h-[100px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs" />
               </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
+           <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-rose-500">
+                 <Package className="h-5 w-5" />
+                 <h2 className="text-sm font-black uppercase italic">Premium Packing</h2>
+              </div>
+              <Switch checked={premiumPackaging} onCheckedChange={setPremiumPackaging} className="data-[state=checked]:bg-rose-500" />
+           </div>
+           <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 flex items-center justify-between">
+              <p className="text-[9px] font-bold text-rose-700 uppercase leading-relaxed italic">Double layered leak-proof packing for your gourmet safety.</p>
+              <span className="text-xs font-black text-rose-600 shrink-0">+₹10</span>
+           </div>
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
@@ -550,23 +590,60 @@ function CartContent() {
 
       <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white border-t border-gray-100 p-5 pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transform-gpu">
          <div className="max-w-lg mx-auto">
-            <button 
-              onClick={handlePlaceOrder}
-              disabled={isPlacing || totalItems === 0 || blockedVendorNames.length > 0}
-              className="w-full h-18 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 relative overflow-hidden group py-6"
+            {/* SLIDE TO ORDER UX */}
+            <div 
+              ref={sliderRef}
+              className="relative w-full h-20 bg-gray-100 rounded-[2.5rem] overflow-hidden flex items-center p-2 group select-none shadow-inner"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={() => { isDragging.current = true; }}
+              onMouseMove={(e) => {
+                if (!isDragging.current || !sliderRef.current) return;
+                const rect = sliderRef.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const val = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                setSliderValue(val);
+              }}
+              onMouseUp={handleTouchEnd}
+              onMouseLeave={handleTouchEnd}
             >
-               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-               {isPlacing ? <Loader2 className="h-8 w-8 animate-spin" /> : (
-                 <>
-                   <div className="flex flex-col items-start leading-none">
-                      <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">Final Step</span>
-                      <span className="text-2xl font-black italic tracking-tighter">PLACE ORDER</span>
-                   </div>
-                   <div className="h-10 w-[2px] bg-white/20" />
-                   <div className="text-3xl font-black italic tracking-tighter">₹{grandTotal.toFixed(0)}</div>
-                 </>
-               )}
-            </button>
+               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-[0.3em] transition-opacity duration-300",
+                    sliderValue > 20 ? "opacity-0" : "opacity-40 animate-pulse text-gray-500"
+                  )}>
+                    Slide to Place Order
+                  </span>
+               </div>
+
+               {/* Background Progress Fill */}
+               <div 
+                 className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-75"
+                 style={{ width: `${sliderValue}%` }}
+               />
+
+               {/* The Handle */}
+               <div 
+                 className="relative z-10 h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-xl cursor-grab active:cursor-grabbing transition-all duration-75"
+                 style={{ transform: `translateX(${sliderValue * 2.5}px)` }}
+               >
+                  {isPlacing ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : sliderValue > 90 ? (
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  ) : (
+                    <ArrowRight className="h-6 w-6 text-primary stroke-[3]" />
+                  )}
+               </div>
+
+               <div className="absolute right-6 pointer-events-none z-10 flex items-center gap-3">
+                  <span className="text-lg font-black italic tracking-tighter text-gray-900">₹{grandTotal.toFixed(0)}</span>
+                  <div className="h-8 w-8 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
+                     <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </div>
+               </div>
+            </div>
          </div>
       </div>
     </div>
