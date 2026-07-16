@@ -62,7 +62,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
 
   const vendor = vendors?.find(v => v.id === product.vendorId);
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
-  // CRITICAL FIX: Ignore product.isAvailable, only rely on Store Online + Timing
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
 
   const liked = isInWishlist(product.id);
@@ -159,18 +158,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                    <div>
                       <p className="text-[10px] font-black text-amber-700 uppercase tracking-tighter">STORE IS CLOSED</p>
                       <p className="text-[9px] font-bold text-amber-600 uppercase tracking-widest leading-relaxed mt-0.5">Schedule: {vendor.openingTime} - {vendor.closingTime}. Abhi orders nahi liye ja rahe.</p>
-                   </div>
-                </div>
-             </div>
-          )}
-
-          {isClosedMode && (
-             <div className="px-6 pb-2">
-                <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
-                   <div className="bg-red-500 p-2 rounded-lg"><AlertCircle className="h-4 w-4 text-white" /></div>
-                   <div>
-                      <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter">SALE IS CLOSED</p>
-                      <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest leading-relaxed mt-0.5">Our first 10 orders have been completed, so sale is closed.</p>
                    </div>
                 </div>
              </div>

@@ -47,6 +47,7 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, currentM
   const scheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
+  const hasOptions = product.options && product.options.length > 0;
   
   return (
     <div className={cn(
@@ -74,7 +75,13 @@ const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, currentM
         </ProductQuickView>
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
           {quantity === 0 ? (
-            <button onClick={() => !isOffline && onAdd({...product, quantity: 1, imageUrl})} className="w-full h-8 bg-white border-2 border-primary shadow-md font-black text-[9px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
+            hasOptions ? (
+              <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
+                <button className="w-full h-8 bg-white border-2 border-primary shadow-md font-black text-[9px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
+              </ProductQuickView>
+            ) : (
+              <button onClick={() => !isOffline && onAdd({...product, quantity: 1, imageUrl})} className="w-full h-8 bg-white border-2 border-primary shadow-md font-black text-[9px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
+            )
           ) : (
             <div className="flex items-center justify-between w-full h-8 bg-primary text-white rounded-xl shadow-lg">
               <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>

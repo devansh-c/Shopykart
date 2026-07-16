@@ -33,7 +33,8 @@ import {
   Store,
   ArrowRight,
   Crown,
-  Sparkles
+  Sparkles,
+  Bike
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -412,6 +413,34 @@ function CartContent() {
                 <Textarea placeholder="FULL ADDRESS / LANDMARK *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="min-h-[100px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs" />
               </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
+           <div className="flex items-center gap-2 mb-4"><Bike className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Tip</h2></div>
+           <div className="flex gap-2">
+              {[10, 20, 30].map(amt => (
+                <button 
+                  key={amt} 
+                  onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)}
+                  className={cn(
+                    "flex-1 h-12 rounded-xl border-2 font-black uppercase text-[10px] transition-all",
+                    deliveryTip === amt ? "bg-primary border-primary text-white shadow-lg shadow-primary/20" : "bg-white border-gray-100 text-gray-400"
+                  )}
+                >
+                  ₹{amt}
+                </button>
+              ))}
+              <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
+                 <DialogTrigger asChild>
+                    <button className={cn("flex-1 h-12 rounded-xl border-2 font-black uppercase text-[10px] transition-all", ![0, 10, 20, 30].includes(deliveryTip) ? "bg-primary border-primary text-white shadow-lg" : "bg-white border-gray-100 text-gray-400")}>CUSTOM</button>
+                 </DialogTrigger>
+                 <DialogContent className="max-w-xs rounded-3xl p-6">
+                    <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Add Custom Tip</DialogTitle></DialogHeader>
+                    <Input type="number" placeholder="Enter amount ₹" value={customTipInput} onChange={e => setCustomTipInput(e.target.value)} className="h-12 rounded-xl text-center font-black" />
+                    <Button onClick={() => { setDeliveryTip(Number(customTipInput)); setIsCustomTipOpen(false); }} className="w-full h-12 rounded-xl bg-black">APPLY TIP</Button>
+                 </DialogContent>
+              </Dialog>
+           </div>
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
