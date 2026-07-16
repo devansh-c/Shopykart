@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -33,8 +34,9 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!loading && isClient) {
-      // SEO BYPASS: If it's a crawler/bot, never show the auth overlay
-      const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent);
+      // SEO BYPASS: Critical fix to allow search engines to crawl without being blocked by Auth
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(userAgent);
       
       if (!user && !isBot && localStorage.getItem('shopykart_session_active') !== 'true') {
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 200);
