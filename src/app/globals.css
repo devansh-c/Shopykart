@@ -57,14 +57,14 @@
     overflow-x: hidden;
     overflow-y: auto !important;
     min-height: 100vh;
-    -webkit-overflow-scrolling: touch !important; /* Force smooth momentum scroll on iOS */
+    -webkit-overflow-scrolling: touch !important; 
   }
 
   input, textarea, [contenteditable] {
     user-select: text !important;
   }
   
-  /* NUCLEAR PERFORMANCE ENGINE v7 - Virtual Scroll & Hardware Acceleration */
+  /* ULTRA FAST PERFORMANCE ENGINE v8 */
   .content-visibility-auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px 180px;
@@ -88,7 +88,7 @@
     scrollbar-width: none;
   }
 
-  /* Smooth Premium Cards - Optimized Shadow for Performance */
+  /* Smooth Premium Cards */
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
     contain: content;
@@ -112,13 +112,23 @@
   }
 }
 
+/* FAST ANIMATIONS */
 @keyframes running-line {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
 
 .animate-running-line {
-  animation: running-line 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  animation: running-line 1s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-pulse {
+  animation: pulse-fast 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
 @keyframes shine {

@@ -125,9 +125,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return dbProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       
-      // NUCLEAR STRICT ZONE ISOLATION:
-      // If user has selected a zone, ONLY show products that belong to this zone ID.
-      // We check both the product's zoneId and the vendor's zoneId to be safe.
       if (activeZoneId) {
         const pZone = p.zoneId;
         const vZone = vendor?.zoneId;
@@ -141,6 +138,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const catMatch = category === 'all' || p.category?.toLowerCase() === category;
       
       return modeMatch && searchMatch && catMatch;
+    }).sort((a, b) => {
+      // SORT BY RATING (HIGHEST FIRST)
+      const vendorA = vendors.find(v => v.id === a.vendorId);
+      const vendorB = vendors.find(v => v.id === b.vendorId);
+      const ratingA = vendorA?.rating || 0;
+      const ratingB = vendorB?.rating || 0;
+      return ratingB - ratingA;
     });
   }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId]);
 
@@ -156,7 +160,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   return (
     <div className="px-4 py-8">
       <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">⚡ {activeMode.toUpperCase()} HUB</h2>
+        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
+          ⚡ {activeMode.toUpperCase()} HUB ({productsToDisplay.length})
+        </h2>
       </div>
       <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isPending && "opacity-50")}>
         {productsToDisplay.length > 0 ? productsToDisplay.map((product) => (

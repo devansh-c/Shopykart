@@ -34,15 +34,17 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     if (!dbVendors) return [];
     
     return dbVendors.filter(v => {
-      // NUCLEAR STRICT ZONE ISOLATION:
-      // If user has selected a zone, ONLY show stores with that zone ID.
       if (activeZoneId) {
         if (v.zoneId !== activeZoneId) {
           return false;
         }
       }
-
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
+    }).sort((a, b) => {
+      // SORT BY RATING (HIGHEST FIRST)
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+      return ratingB - ratingA;
     });
   }, [dbVendors, activeMode, activeZoneId]);
 
