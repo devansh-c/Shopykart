@@ -136,9 +136,15 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
               </ProductQuickView>
             </div>
             <div className="relative w-28 h-28 shrink-0">
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover rounded-2xl" unoptimized />
+              <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
+                <div className="relative w-full h-full cursor-pointer">
+                  <Image src={product.imageUrl} alt={product.name} fill className="object-cover rounded-2xl" unoptimized />
+                </div>
+              </ProductQuickView>
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
-                <button onClick={() => !isOffline && addToCart({...product, quantity: 1})} className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all">ADD</button>
+                <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
+                  <button className="w-full h-9 bg-white text-primary border-2 border-primary shadow-lg font-black text-[9px] uppercase rounded-xl active:scale-95 transition-all">ADD</button>
+                </ProductQuickView>
               </div>
             </div>
           </div>

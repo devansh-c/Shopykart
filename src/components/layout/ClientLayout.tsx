@@ -32,13 +32,16 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!loading) {
-      if (!user && localStorage.getItem('shopykart_session_active') !== 'true') {
+    if (!loading && isClient) {
+      // SEO BYPASS: If it's a crawler/bot, never show the auth overlay
+      const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent);
+      
+      if (!user && !isBot && localStorage.getItem('shopykart_session_active') !== 'true') {
         const authTimer = setTimeout(() => setShowAuthOverlay(true), 200);
         return () => clearTimeout(authTimer);
       }
     }
-  }, [user, loading]);
+  }, [user, loading, isClient]);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
