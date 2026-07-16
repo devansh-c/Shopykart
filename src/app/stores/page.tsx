@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview StoresPage with Smart Location Filtering.
+ * @fileOverview StoresPage with Strict Location Filtering.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,9 +42,11 @@ export default function StoresPage() {
     return dbVendors.filter(v => {
       const vTown = (v.town || '').toLowerCase().trim();
 
-      // SMART-STRICT: Only hide if location explicitly mismatches.
-      if (targetCity && targetCity !== 'local' && vTown) {
-        if (vTown !== targetCity) return false;
+      // STRICT FILTERING: Hide if location explicitly mismatches.
+      if (targetCity && targetCity !== 'local') {
+        if (vTown && vTown !== 'local' && !vTown.includes(targetCity)) {
+           return false;
+        }
       }
 
       const matchesSearch = !searchLower || 

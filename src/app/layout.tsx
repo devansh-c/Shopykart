@@ -23,9 +23,11 @@ export default function RootLayout({
         <title>Shopykart – 10 Min Veg Food Delivery|Mauranipur,Ranipur| Order Now</title>
         <meta name="description" content="Shopykart: Official 10-Min Veg Food Delivery! 🥗 Freshly Prepared | Best Prices | Open 10 AM - 8:15 PM. Verified Service by Shopykart" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="ShopyKart" />
+        
         {/* Google AdSense Integration */}
         <Script 
           async 

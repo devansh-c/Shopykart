@@ -5,7 +5,8 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview BrandingLoader dynamically updates SEO and Icons from Firestore.
+ * @fileOverview BrandingLoader dynamically updates SEO and Favicon from Firestore.
+ * Optimized with Cache-Busting for Favicons.
  */
 export default function BrandingLoader() {
   const firestore = useFirestore();
@@ -20,7 +21,7 @@ export default function BrandingLoader() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Default Metadata from user requirements
+    // Default Metadata
     const defaultTitle = "Shopykart – 10 Min Veg Food Delivery|Mauranipur,Ranipur| Order Now";
     const defaultDesc = "Shopykart: Official 10-Min Veg Food Delivery! 🥗 Freshly Prepared | Best Prices | Open 10 AM - 8:15 PM. Verified Service by Shopykart";
 
@@ -36,19 +37,23 @@ export default function BrandingLoader() {
     }
     metaDesc.setAttribute('content', branding?.siteDescription || defaultDesc);
 
-    // 3. Update Favicon
+    // 3. FORCE UPDATE FAVICON (Aggressive Mode)
     if (branding?.faviconUrl) {
-      const links = document.querySelectorAll("link[rel*='icon']");
-      if (links.length > 0) {
-        links.forEach(link => {
-          (link as HTMLLinkElement).href = branding.faviconUrl;
-        });
-      } else {
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.href = branding.faviconUrl;
-        document.head.appendChild(link);
-      }
+      const updateIcon = (rel: string) => {
+        let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        // Adding timestamp to bust browser cache
+        const cacheBuster = branding.faviconUrl.includes('?') ? '&' : '?';
+        link.href = `${branding.faviconUrl}${cacheBuster}v=${Date.now()}`;
+      };
+
+      updateIcon('icon');
+      updateIcon('shortcut icon');
+      updateIcon('apple-touch-icon');
     }
   }, [branding]);
 

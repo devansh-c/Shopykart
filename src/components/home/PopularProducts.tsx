@@ -109,8 +109,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Massive limit increase to ensure "sare products" are available for client-side city filtering
-    return query(collection(firestore, 'products'), limit(5000));
+    return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
 
@@ -129,11 +128,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendor = vendors.find(v => v.id === p.vendorId);
       const productTown = (p.town || vendor?.town || '').toLowerCase().trim();
       
-      // HYBRID SMART FILTERING:
-      // 1. If user city is set and product town is set, they must match.
-      // 2. If product town is missing or set to "local", show it everywhere.
-      if (targetCity && targetCity !== 'local' && productTown && productTown !== 'local') {
-        if (!productTown.includes(targetCity) && !targetCity.includes(productTown)) {
+      // STRICT FILTERING: Only show if explicitly matched or local.
+      if (targetCity && targetCity !== 'local') {
+        if (productTown && productTown !== 'local' && !productTown.includes(targetCity)) {
            return false;
         }
       }
