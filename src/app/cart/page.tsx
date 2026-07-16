@@ -29,7 +29,8 @@ import {
   Bike,
   Camera,
   ImageIcon,
-  Trash2
+  Trash2,
+  Smartphone
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -79,7 +80,6 @@ function CartContent() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
-  // Slider State
   const [sliderValue, setSliderValue] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -121,8 +121,10 @@ function CartContent() {
   const { data: dbCharges, loading: chargesLoading } = useCollection<any>(chargesQuery);
 
   const customSurchargeTotal = useMemo(() => {
+    // If premium, waive packaging surcharge too
+    if (isPremium) return 0;
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
-  }, [cart]);
+  }, [cart, isPremium]);
 
   const blockedVendorNames = useMemo(() => {
     if (!vendors || cart.length === 0) return [];
@@ -139,6 +141,7 @@ function CartContent() {
   const dynamic_charges = useMemo(() => {
     if (!dbCharges || profileLoading || chargesLoading) return [];
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+    
     const relevantCharges = dbCharges.filter(charge => {
       if (!charge.zoneId || charge.zoneId === 'global') return true;
       return charge.zoneId === activeZoneId;
@@ -147,14 +150,16 @@ function CartContent() {
     return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
-      const isWaived = isPremium;
-
-      if (isWaived) amount = 0;
-      else {
+      
+      // ELITE USER PRIVILEGE: Waive all taxes and delivery charges
+      if (isPremium) {
+        amount = 0;
+      } else {
         if (charge.type === 'fixed') amount = chargeVal;
         else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
       }
-      return { ...charge, calculatedAmount: amount, isWaived };
+      
+      return { ...charge, calculatedAmount: amount, isWaived: isPremium };
     });
   }, [dbCharges, totalPrice, isPremium, profileLoading, chargesLoading]);
 
@@ -179,7 +184,7 @@ function CartContent() {
     return Math.min(remainingTotal, availableCoins * coinValue);
   }, [useCoins, availableCoins, coinValue, totalPrice, couponDiscount]);
 
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + deliveryTip + (premiumPackaging ? 10 : 0) - coinDiscount - couponDiscount);
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + customSurchargeTotal + deliveryTip + (premiumPackaging && !isPremium ? 10 : 0) - coinDiscount - couponDiscount);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -264,7 +269,7 @@ function CartContent() {
       status: 'Placed',
       isPremiumOrder: isPremium,
       deliveryTip,
-      premiumPackaging,
+      premiumPackaging: isPremium ? false : premiumPackaging,
       coinDiscount,
       couponDiscount,
       orderDisplayId: Math.floor(1000 + Math.random() * 9000).toString(),
@@ -337,7 +342,7 @@ function CartContent() {
              </div>
              <div>
                 <h4 className="font-black italic uppercase text-amber-900 text-sm">Elite Privilege Active</h4>
-                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-relaxed">Unlimited Free Delivery & Taxes waived for you!</p>
+                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-relaxed">All Taxes & Fees Waived for you!</p>
              </div>
           </div>
         )}
@@ -384,7 +389,6 @@ function CartContent() {
           </div>
         </div>
 
-        {/* HOUSE PHOTO UPLOAD SECTION */}
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-primary/40">
            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-primary">
@@ -459,11 +463,15 @@ function CartContent() {
                  <Package className="h-5 w-5" />
                  <h2 className="text-sm font-black uppercase italic">Premium Packing</h2>
               </div>
-              <Switch checked={premiumPackaging} onCheckedChange={setPremiumPackaging} className="data-[state=checked]:bg-rose-500" />
+              <Switch checked={isPremium ? false : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} className="data-[state=checked]:bg-rose-500" />
            </div>
-           <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 flex items-center justify-between">
-              <p className="text-[9px] font-bold text-rose-700 uppercase leading-relaxed italic">Double layered leak-proof packing for your gourmet safety.</p>
-              <span className="text-xs font-black text-rose-600 shrink-0">+₹10</span>
+           <div className={cn("p-4 rounded-xl border flex items-center justify-between transition-colors", isPremium ? "bg-green-50 border-green-100" : "bg-rose-50 border-rose-100")}>
+              <p className={cn("text-[9px] font-bold uppercase leading-relaxed italic", isPremium ? "text-green-700" : "text-rose-700")}>
+                {isPremium ? "Elite member privilege: Double leak-proof packing is FREE for you." : "Double layered leak-proof packing for your gourmet safety."}
+              </p>
+              <span className={cn("text-xs font-black shrink-0", isPremium ? "text-green-600" : "text-rose-600")}>
+                {isPremium ? "FREE" : "+₹10"}
+              </span>
            </div>
         </div>
 
@@ -529,13 +537,13 @@ function CartContent() {
             {dynamic_charges.map((charge: any) => (
               <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest">
                 <span>{charge.name}</span>
-                {charge.isWaived ? <span className="text-green-600 font-black flex items-center gap-1"><ShieldCheck className="h-2.5 w-2.5" /> FREE (Elite)</span> : <span>₹{charge.calculatedAmount.toFixed(2)}</span>}
+                {charge.isWaived ? <span className="text-green-600 font-black flex items-center gap-1"><ShieldCheck className="h-2.5 w-2.5" /> ₹0.00 (Elite)</span> : <span>₹{charge.calculatedAmount.toFixed(2)}</span>}
               </div>
             ))}
             {appliedCoupon && <div className="flex justify-between font-bold text-[11px] text-green-600 uppercase tracking-widest"><span>Coupon Discount</span><span>-₹{couponDiscount.toFixed(2)}</span></div>}
             {useCoins && coinDiscount > 0 && <div className="flex justify-between font-bold text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>-₹{coinDiscount.toFixed(2)}</span></div>}
             {deliveryTip > 0 && <div className="flex justify-between font-bold text-[11px] text-blue-600 uppercase tracking-widest"><span>Rider Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
-            {premiumPackaging && <div className="flex justify-between font-bold text-[11px] text-rose-500 uppercase tracking-widest"><span>Premium Packing</span><span>₹10.00</span></div>}
+            {premiumPackaging && <div className="flex justify-between font-bold text-[11px] text-rose-500 uppercase tracking-widest"><span>Premium Packing</span><span>{isPremium ? "₹0.00" : "₹10.00"}</span></div>}
           </div>
           <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(0)}</span></div>
         </div>
@@ -602,7 +610,6 @@ function CartContent() {
 
       <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white border-t border-gray-100 p-5 pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transform-gpu">
          <div className="max-w-lg mx-auto">
-            {/* SLIDE TO ORDER UX */}
             <div 
               ref={sliderRef}
               className="relative w-full h-20 bg-gray-100 rounded-[2.5rem] overflow-hidden flex items-center p-2 group select-none shadow-inner"
@@ -629,13 +636,11 @@ function CartContent() {
                   </span>
                </div>
 
-               {/* Background Progress Fill */}
                <div 
                  className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-75"
                  style={{ width: `${sliderValue}%` }}
                />
 
-               {/* The Handle */}
                <div 
                  className="relative z-10 h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-xl cursor-grab active:cursor-grabbing transition-all duration-75"
                  style={{ transform: `translateX(${sliderValue * 2.5}px)` }}

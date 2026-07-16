@@ -1,3 +1,4 @@
+
 "use client"
 
 import { 
@@ -53,7 +54,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn, slugify } from '@/lib/utils';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 
 function ProfileContent() {
   const router = useRouter();
@@ -72,12 +73,6 @@ function ProfileContent() {
   const [ticketState, setTicketState] = useState<'form' | 'success'>('form');
   const [isRaising, setIsRaising] = useState(false);
 
-  // Premium State
-  const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false);
-  const [premiumStep, setPremiumStep] = useState<'info' | 'payment' | 'utr' | 'success' | 'pending' | 'failed'>('info');
-  const [premiumUtr, setPremiumUtr] = useState('');
-  const [isActivating, setIsActivating] = useState(false);
-  
   const [ticketData, setTicketData] = useState({
     description: '',
     phone: ''
@@ -100,38 +95,6 @@ function ProfileContent() {
     return expiry > Date.now();
   }, [profile]);
 
-  // Auto-open Premium Dialog if ?upgrade=true
-  useEffect(() => {
-    if (searchParams.get('upgrade') === 'true' && !isPremium) {
-      setPremiumStep('info');
-      setIsPremiumDialogOpen(true);
-    }
-  }, [searchParams, isPremium]);
-
-  const requestQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'premium_subscriptions'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'), limit(1));
-  }, [firestore, user]);
-  const { data: latestRequests } = useCollection<any>(requestQuery);
-  const activeRequest = latestRequests?.[0];
-
-  useEffect(() => {
-    if (activeRequest) {
-      if (activeRequest.status === 'pending') setPremiumStep('pending');
-      else if (activeRequest.status === 'failed') setPremiumStep('failed');
-      else if (activeRequest.status === 'verified' && isPremium) {
-        setPremiumStep('success');
-      }
-    }
-  }, [activeRequest, isPremium]);
-
-  const premiumPrice = 249;
-  const gstRate = 0.18;
-  const totalPremiumPrice = (premiumPrice * (1 + gstRate)).toFixed(2);
-  const upiId = "9450355709@axl";
-  const premiumUpiUri = `upi://pay?pa=${upiId}&pn=ShopyKart&am=${totalPremiumPrice}&cu=INR&tn=Premium_Membership_Upgrade`;
-  const premiumQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(premiumUpiUri)}`;
-
   const pagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'pages');
@@ -148,29 +111,6 @@ function ProfileContent() {
         title: "Coming Soon",
         description: `${label} section is being upgraded.`,
       });
-    }
-  };
-
-  const handleRequestPremium = async () => {
-    if (!firestore || !user || premiumUtr.length !== 12) return;
-    
-    setIsActivating(true);
-    try {
-      await addDoc(collection(firestore, 'premium_subscriptions'), {
-        userId: user.uid,
-        customerName: profile?.fullName || 'User',
-        utr: premiumUtr,
-        status: 'pending',
-        amount: parseFloat(totalPremiumPrice),
-        createdAt: serverTimestamp()
-      });
-
-      setPremiumStep('pending');
-      toast({ title: "Request Sent!", description: "Admin will verify your payment soon." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Action Failed" });
-    } finally {
-      setIsActivating(false);
     }
   };
 
@@ -292,7 +232,7 @@ function ProfileContent() {
            {isPremium ? (
              <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 flex items-center gap-1.5 animate-pulse">
                <Crown className="h-3 w-3 fill-amber-700" />
-               Premium User
+               Elite Member
              </Badge>
            ) : (
              <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1">Gold Member</Badge>
@@ -311,34 +251,18 @@ function ProfileContent() {
 
       <div className="px-4 mt-8 space-y-6">
         
-        {!isPremium && (
-          <button 
-            onClick={() => { setPremiumStep('info'); setIsPremiumDialogOpen(true); }}
-            className="w-full relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#1C1C1C] to-black p-8 text-left shadow-2xl border border-white/5 active:scale-[0.98] transition-all group"
-          >
-             <div className="absolute top-0 right-0 h-full w-32 bg-white/5 -skew-x-12 translate-x-12" />
-             <div className="relative z-10 flex items-center gap-5">
-                <div className="h-16 w-16 bg-amber-400 rounded-3xl flex items-center justify-center text-black shadow-xl shadow-amber-500/20 group-hover:rotate-6 transition-transform">
-                   <Crown className="h-8 w-8 fill-black" />
-                </div>
-                <div className="flex-1">
-                   <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white leading-none">Upgrade Premium</h3>
-                   <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mt-1">Get Free Delivery for 2 Months</p>
-                </div>
-                <ChevronRight className="h-6 w-6 text-white/30" />
-             </div>
-          </button>
-        )}
-
         {isPremium && isMounted && (
-          <div className="bg-green-50 border-2 border-dashed border-green-200 rounded-[2rem] p-6 flex flex-col gap-2">
+          <div className="bg-green-50 border-2 border-dashed border-green-200 rounded-[2rem] p-6 flex flex-col gap-2 shadow-sm animate-in zoom-in-95 duration-500">
              <div className="flex items-center gap-2 text-green-700">
                 <ShieldCheck className="h-5 w-5" />
-                <span className="text-xs font-black uppercase tracking-widest">Membership Active</span>
+                <span className="text-xs font-black uppercase tracking-widest">Elite Account Active</span>
              </div>
              <p className="text-[10px] font-bold text-green-600 uppercase">
-                Expires on: {profile.premiumExpiry ? format(new Date(profile.premiumExpiry), 'dd MMM yyyy') : 'N/A'}
+                Zero Taxes & Fees Enabled by Admin
              </p>
+             {profile.premiumExpiry && (
+               <p className="text-[8px] text-green-500 uppercase mt-1">Status Valid Until: {format(new Date(profile.premiumExpiry), 'dd MMM yyyy')}</p>
+             )}
           </div>
         )}
 
@@ -351,8 +275,8 @@ function ProfileContent() {
                 <Share2 className="h-6 w-6 text-white" />
              </div>
              <div className="text-left">
-                <h4 className="text-lg font-black italic uppercase tracking-tight">Share & Grow</h4>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Send invite to friends</p>
+                <h4 className="text-lg font-black italic uppercase tracking-tight">Invite Friends</h4>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Spread the gourmet love</p>
              </div>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-600 relative z-10" />
@@ -597,193 +521,6 @@ function ProfileContent() {
           <span className="text-sm font-bold">Sign Out</span>
         </button>
       </div>
-
-      <Dialog open={isPremiumDialogOpen} onOpenChange={setIsPremiumDialogOpen}>
-        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 max-h-[90vh] flex flex-col z-[11000]">
-          <DialogHeader className="sr-only"><DialogTitle>Premium Membership</DialogTitle></DialogHeader>
-          <div className="bg-amber-400 h-3 w-full shrink-0" />
-          
-          <div className="p-8 pb-24 space-y-6 overflow-y-auto no-scrollbar flex-1 pb-safe">
-            {premiumStep === 'info' && (
-              <div className="space-y-8">
-                 <div className="text-center space-y-4">
-                    <div className="h-20 w-20 bg-amber-50 rounded-[2rem] flex items-center justify-center text-amber-600 mx-auto shadow-inner border border-amber-100">
-                       <Crown className="h-10 w-10 fill-amber-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-black italic uppercase tracking-tighter">ShopyKart <span className="text-amber-600">Elite.</span></h2>
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">Unlock Ultimate Delivery Perks</p>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4">
-                       <div className="bg-green-500 p-2 rounded-xl text-white shadow-lg shadow-green-200"><ShieldCheck className="h-5 w-5" /></div>
-                       <div>
-                          <h4 className="text-xs font-black uppercase text-gray-800">FREE DELIVERY</h4>
-                          <p className="text-[9px] font-bold text-gray-500 uppercase">On all orders, no limit</p>
-                       </div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4">
-                       <div className="bg-blue-500 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><Sparkles className="h-5 w-5" /></div>
-                       <div>
-                          <h4 className="text-xs font-black uppercase text-gray-800">ELITE BADGE</h4>
-                          <p className="text-[9px] font-bold text-gray-500 uppercase">Priority support response</p>
-                       </div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-4">
-                       <div className="bg-purple-500 p-2 rounded-xl text-white shadow-lg shadow-purple-200"><Calendar className="h-5 w-5" /></div>
-                       <div>
-                          <h4 className="text-xs font-black uppercase text-gray-800">60 DAYS VALIDITY</h4>
-                          <p className="text-[9px] font-bold text-gray-500 uppercase">Full 2 months of premium</p>
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="bg-[#0B0B0B] p-6 rounded-[2.5rem] text-center space-y-1">
-                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Only for</span>
-                    <div className="text-3xl font-black text-white italic tracking-tighter">₹249 <span className="text-sm opacity-50">+ 18% GST</span></div>
-                    <p className="text-[8px] font-bold text-gray-500 uppercase">Total Payable: ₹{totalPremiumPrice}</p>
-                 </div>
-
-                 <Button 
-                   onClick={() => setPremiumStep('payment')}
-                   className="w-full h-18 bg-amber-500 hover:bg-amber-600 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all"
-                 >
-                   BUY MEMBERSHIP
-                 </Button>
-              </div>
-            )}
-
-            {premiumStep === 'payment' && (
-              <div className="space-y-8">
-                <div className="text-center space-y-2">
-                  <div className="h-14 w-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2"><Smartphone className="h-8 w-8" /></div>
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Upgrade Payment</h2>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Pay ₹{totalPremiumPrice} to activate Elite status.</p>
-                </div>
-
-                <div className="w-full space-y-4">
-                   <div className="bg-gray-50 p-8 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center gap-4">
-                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Premium Settlement</span>
-                     <div className="text-4xl font-black italic text-gray-900 tracking-tighter">₹{totalPremiumPrice}</div>
-                     <Badge className="bg-primary text-white border-none px-3 py-1 font-black text-[8px] uppercase">Gst Included</Badge>
-                   </div>
-
-                   <div className="bg-white p-6 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-4 shadow-sm">
-                      <div className="flex items-center gap-2 text-primary">
-                         <QrCode className="h-4 w-4" />
-                         <span className="text-[10px] font-black uppercase tracking-widest">Payment QR Code</span>
-                      </div>
-                      <div className="relative p-2 bg-white rounded-2xl border shadow-inner">
-                         <img src={premiumQrUrl} alt="Payment QR" className="w-48 h-48 object-contain" crossOrigin="anonymous" />
-                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
-                            <h4 className="text-4xl font-black italic -rotate-12">SHOPYKART</h4>
-                         </div>
-                      </div>
-                      <div className="text-center">
-                         <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Scan with any UPI App</p>
-                         <p className="text-[10px] font-black text-primary mt-1 italic tracking-tighter">9450355709@axl</p>
-                      </div>
-                   </div>
-                   
-                   <div className="w-full space-y-3">
-                      <Button onClick={() => { window.open(premiumUpiUri); setPremiumStep('utr'); }} className="w-full h-18 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all">PAY & PROCEED</Button>
-                      <button onClick={() => setPremiumStep('utr')} className="w-full text-[10px] font-black text-amber-600 uppercase tracking-widest underline text-center block">Already Paid via QR? Enter UTR</button>
-                      <button onClick={() => setPremiumStep('info')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline text-center block pt-2">Wait, I have questions</button>
-                   </div>
-                </div>
-              </div>
-            )}
-
-            {premiumStep === 'utr' && (
-              <div className="w-full space-y-6">
-                <div className="text-center space-y-2">
-                  <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mx-auto mb-2"><CheckCircle2 className="h-8 w-8" /></div>
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Identity Check</h2>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">Enter 12-digit UTR Number from your payment receipt.</p>
-                </div>
-
-                <div className="space-y-4">
-                   <div className="relative group">
-                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-amber-500" />
-                      <Input 
-                        placeholder="12 DIGIT UTR NO." 
-                        value={premiumUtr}
-                        onChange={e => setPremiumUtr(e.target.value.replace(/\D/g,'').slice(0, 12))}
-                        className="h-16 pl-12 rounded-2xl bg-gray-50 border-none font-black italic text-xl tracking-[0.2em] text-center"
-                      />
-                   </div>
-                   <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-start gap-3">
-                      <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                      <p className="text-[9px] font-bold text-amber-700 uppercase leading-relaxed">Admin aapke UTR ko verify karenge, uske baad hi membership active hogi.</p>
-                   </div>
-                   
-                   <Button 
-                    onClick={handleRequestPremium} 
-                    disabled={premiumUtr.length !== 12 || isActivating}
-                    className="w-full h-16 rounded-[2rem] bg-amber-500 hover:bg-amber-600 text-white font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all"
-                  >
-                    {isActivating ? <Loader2 className="h-6 w-6 animate-spin" /> : "SUBMIT FOR VERIFICATION"}
-                  </Button>
-                  <button onClick={() => setPremiumStep('payment')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center block">← Back to Payment</button>
-                </div>
-              </div>
-            )}
-
-            {premiumStep === 'pending' && (
-              <div className="text-center space-y-8 py-6">
-                  <div className="h-20 w-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-blue-500 mx-auto border border-blue-100">
-                     <Clock className="h-10 w-10 animate-spin-slow" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-black italic uppercase text-gray-900 leading-tight">Verification<br /><span className="text-blue-500">Pending.</span></h2>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-4">
-                      Aapka UTR submit ho gaya hai. Humara team ise verify kar raha hai. 1-2 ghante mein elite status active ho jayega.
-                    </p>
-                  </div>
-                  <Button onClick={() => setIsPremiumDialogOpen(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE</Button>
-              </div>
-            )}
-
-            {premiumStep === 'failed' && (
-              <div className="text-center space-y-8 py-6">
-                  <div className="h-20 w-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto border border-red-100">
-                     <AlertCircle className="h-10 w-10 animate-pulse" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-black italic uppercase text-gray-900 leading-tight">Verification<br /><span className="text-red-500">Failed.</span></h2>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-4">
-                      Admin ne aapka UTR reject kar diya hai. Shayad UTR number galat tha ya payment receive nahi hua.
-                    </p>
-                  </div>
-                  <Button onClick={() => setPremiumStep('payment')} className="w-full h-14 bg-red-600 text-white rounded-2xl font-black uppercase italic shadow-lg">TRY AGAIN</Button>
-              </div>
-            )}
-
-            {premiumStep === 'success' && (
-              <div className="text-center space-y-8 py-6">
-                  <div className="relative mx-auto w-24 h-24">
-                    <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-20" />
-                    <div className="relative bg-amber-500 h-24 w-24 rounded-[2rem] flex items-center justify-center shadow-xl shadow-amber-200">
-                        <Crown className="h-14 w-14 text-white fill-white/20" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-4xl font-black italic uppercase text-gray-900 leading-none">WELCOME<br /><span className="text-amber-500">ELITE!</span></h2>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed">Free delivery is now enabled for you.</p>
-                  </div>
-                  <Button 
-                    onClick={() => { setIsPremiumDialogOpen(false); router.replace('/'); }}
-                    className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-2xl"
-                  >
-                    START SHOPPING <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
