@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
@@ -57,10 +56,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => window.removeEventListener('user-address-updated', updateLoc);
   }, []);
 
-  // Increased limit to 200 for better visibility in production
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(200));
+    // Increased limit to ensure no products are missed in production
+    return query(collection(firestore, 'products'), limit(250));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 

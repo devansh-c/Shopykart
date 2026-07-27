@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -12,6 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import Autoplay from "embla-carousel-autoplay"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function OfferSlider() {
   const firestore = useFirestore();
@@ -89,12 +89,10 @@ export function OfferSlider() {
         {filteredBanners.map((_, i) => (
           <div key={i} className={cn(
             "h-1.5 transition-all duration-300 rounded-full",
-            current === i ? "w-6 bg-amber-400" : "w-1.5 bg-gray-200"
+            current === i ? "w-6 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" : "w-1.5 bg-gray-200"
           )} />
         ))}
       </div>
     </div>
   );
 }
-
-import { cn } from "@/lib/utils"

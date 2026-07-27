@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -16,7 +15,7 @@ import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview Slim Header - Matching user's design image.
+ * @fileOverview Slim Header - Matching design with h-12 search bar.
  */
 export function LocationHeader({
   searchValue,

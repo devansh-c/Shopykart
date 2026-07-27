@@ -1,18 +1,16 @@
-
 "use client"
 
-import { useState, useTransition, Suspense, useEffect, memo } from 'react';
+import { useState, useTransition, Suspense, useEffect } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { ShoppingBag, Rocket, Timer, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 import { useUser } from '@/firebase';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
- * Optimized with Dynamic Imports for robust publishing.
- * Added Auth-Listener to clear search on login/register.
+ * Optimized for speed and premium UI organization.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -39,8 +37,6 @@ export default function ShopyKartApp() {
     setIsMounted(true);
   }, []);
 
-  // CRITICAL FIX: Reset search bar whenever user logs in or registers
-  // This prevents browser autofill from breaking the results view
   useEffect(() => {
     if (user) {
       setSearchQuery('');
@@ -80,7 +76,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("space-y-2 transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
+      <main className={cn("transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -108,31 +104,26 @@ export default function ShopyKartApp() {
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
         ) : (
-          <div className="content-visibility-auto">
+          <div className="content-visibility-auto space-y-2">
             {!searchQuery && activeCategory === 'all' && (
-              <div className="px-4 py-4">
-                <div className="flex items-center justify-between mb-4 px-2">
-                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">New Services</h2>
-                  <span className="text-[9px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-widest border border-green-100 animate-pulse">Launched</span>
+              <>
+                <OfferSlider />
+                <ScrollReveal delay={50}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
+                <div className="px-4 py-2">
+                  <div className="flex items-center justify-between mb-4 px-2">
+                    <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">New Services</h2>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <BeautySalonSection onClick={() => handleModeChange('Beauty')} />
+                    <MedicalCareSection onClick={() => handleModeChange('Medical')} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <ScrollReveal delay={50}><BeautySalonSection onClick={() => handleModeChange('Beauty')} /></ScrollReveal>
-                  <ScrollReveal delay={100}><MedicalCareSection onClick={() => handleModeChange('Medical')} /></ScrollReveal>
-                </div>
-              </div>
+                <StoreSection activeMode={activeMode} />
+                <OffersSection />
+                <TopTenProducts />
+              </>
             )}
-            {!searchQuery && activeCategory === 'all' && (
-              <Suspense fallback={<div className="h-[160px] mx-4 bg-muted animate-pulse rounded-2xl" />}><OfferSlider /></Suspense>
-            )}
-            {!searchQuery && activeCategory === 'all' && (
-              <Suspense fallback={<div className="h-[200px] mx-4 bg-muted/10 animate-pulse rounded-2xl" />}><TopTenProducts /></Suspense>
-            )}
-            {!searchQuery && activeCategory === 'all' && (
-              <Suspense fallback={<div className="h-[240px] mx-4 bg-muted/5 animate-pulse rounded-2xl" />}><StoreSection activeMode={activeMode} /></Suspense>
-            )}
-            {!searchQuery && <Suspense fallback={null}><OffersSection /></Suspense>}
-            <ScrollReveal delay={350}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
-            <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
+            <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
           </div>
         )}
       </main>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -21,7 +20,6 @@ export function TopTenProducts() {
     return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
-  // Increased limit for Top Loot items
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(50));
@@ -47,7 +45,7 @@ export function TopTenProducts() {
   return (
     <div className="py-6 overflow-hidden">
       <div className="px-6 mb-5 flex items-center justify-between">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
           Flash <span className="text-primary">Loot</span>
         </h2>
         <Zap className="h-5 w-5 text-primary animate-pulse" />
