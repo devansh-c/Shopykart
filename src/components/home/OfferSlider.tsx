@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -9,16 +10,17 @@ import {
 } from "@/components/ui/carousel"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { Skeleton } from "@/components/ui/skeleton"
+import Autoplay from "embla-carousel-autoplay"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export function OfferSlider() {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+  const [api, setApi] = React.useState<any>();
+  const [current, setCurrent] = React.useState(0);
 
   React.useEffect(() => {
-    const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    };
+    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
     return () => window.removeEventListener('user-address-updated', updateZone);
@@ -29,62 +31,70 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners, loading } = useCollection<any>(bannersQuery);
+  const { data: dbBanners } = useCollection<any>(bannersQuery);
   
   const filteredBanners = React.useMemo(() => {
     if (!dbBanners) return [];
-    // If user has a zone selected, only show banners for that zone
     if (activeZoneId) {
-      return dbBanners.filter((b: any) => b.zoneId === activeZoneId);
+      return dbBanners.filter((b: any) => !b.zoneId || b.zoneId === activeZoneId);
     }
     return dbBanners;
   }, [dbBanners, activeZoneId]);
 
-  if (loading && (!dbBanners || dbBanners.length === 0)) {
-    return (
-      <div className="w-full px-4 py-2">
-        <Skeleton className="h-[160px] w-full rounded-2xl" />
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    if (!api) return;
+    setCurrent(api.selectedScrollSnap());
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+  }, [api]);
 
   if (!filteredBanners || filteredBanners.length === 0) return null;
 
   return (
-    <div className="w-full px-4">
-      <Carousel className="w-full" opts={{ loop: true }}>
-        <CarouselContent>
-          {filteredBanners.map((banner: any, index: number) => (
-            <CarouselItem key={banner.id}>
-              <div className="relative h-[160px] w-full overflow-hidden shadow-sm rounded-2xl bg-muted">
+    <div className="w-full py-4 relative group">
+      <Carousel 
+        setApi={setApi}
+        className="w-full" 
+        opts={{ loop: true, align: 'center' }}
+        plugins={[Autoplay({ delay: 3500, stopOnInteraction: false })]}
+      >
+        <CarouselContent className="-ml-2">
+          {filteredBanners.map((banner: any) => (
+            <CarouselItem key={banner.id} className="pl-2 basis-[88%]">
+              <div className="relative aspect-[18/9] w-full overflow-hidden shadow-xl rounded-2xl bg-muted border border-border/40 transform-gpu transition-transform duration-500 hover:scale-[1.02]">
                 <Image
                   src={banner.imageUrl}
-                  alt={banner.title || 'Offer'}
+                  alt="Special Offer"
                   fill
                   className="object-cover"
-                  priority={index === 0}
-                  sizes="(max-width: 768px) 100vw, 800px"
                   unoptimized
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-5">
-                  <h3 className="text-white text-2xl font-black italic tracking-tighter leading-none mb-1">
-                    {banner.title}
-                  </h3>
-                  <p className="text-primary font-black text-sm italic tracking-tight mb-2">
-                    {banner.subtitle}
-                  </p>
-                  <div className="flex items-center">
-                    <span className="bg-black/60 backdrop-blur-md text-[9px] text-white px-3 py-1 rounded-full border border-white/20 font-black flex items-center uppercase tracking-widest">
-                      <span className="mr-1.5 h-1 w-1 bg-primary rounded-full animate-pulse" />
-                      {banner.tag || 'Exclusive'}
-                    </span>
-                  </div>
-                </div>
               </div>
             </CarouselItem>
           ))}
         </CarouselContent>
       </Carousel>
+
+      {/* Navigation Arrows */}
+      <button onClick={() => api?.scrollPrev()} className="absolute left-6 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-black z-20 opacity-0 group-hover:opacity-100 transition-opacity active:scale-90">
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button onClick={() => api?.scrollNext()} className="absolute right-6 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-black z-20 opacity-0 group-hover:opacity-100 transition-opacity active:scale-90">
+        <ChevronRight className="h-5 w-5" />
+      </button>
+
+      {/* Pagination Dots */}
+      <div className="flex justify-center gap-1.5 mt-4">
+        {filteredBanners.map((_, i) => (
+          <div key={i} className={cn(
+            "h-1.5 transition-all duration-300 rounded-full",
+            current === i ? "w-6 bg-amber-400" : "w-1.5 bg-gray-200"
+          )} />
+        ))}
+      </div>
     </div>
   );
 }
+
+import { cn } from "@/lib/utils"

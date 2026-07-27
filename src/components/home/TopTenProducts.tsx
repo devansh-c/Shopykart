@@ -1,166 +1,82 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, where, limit } from "firebase/firestore"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useCart } from "@/components/cart/CartProvider"
-import { Plus, Flame, Megaphone, Trophy, Sparkles, Zap, ChevronRight } from "lucide-react"
+import { Plus, Zap, Star } from "lucide-react"
 import { cn, slugify } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
-import { Skeleton } from "@/components/ui/skeleton"
-import { isStoreScheduleOpen } from "./PopularProducts"
-
-const CARD_COLORS = [
-  "from-[#0056D2] to-[#003C91]",
-  "from-[#6B8E23] to-[#4B6312]",
-  "from-[#7B1FA2] to-[#4A148C]",
-  "from-[#D35400] to-[#A04000]",
-  "from-[#C0392B] to-[#922B21]",
-];
 
 export function TopTenProducts() {
   const firestore = useFirestore();
   const router = useRouter();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    };
+    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
-
-    const syncTime = () => {
-      const now = new Date();
-      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
-    };
-    syncTime();
-    const interval = setInterval(syncTime, 60000);
-
-    return () => {
-      window.removeEventListener('user-address-updated', updateZone);
-      clearInterval(interval);
-    }
+    return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
+  // Increased limit for Top Loot items
   const topTenQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(500));
+    return query(collection(firestore, 'products'), where('isTopTen', '==', true), limit(50));
   }, [firestore]);
 
   const { data: allTopProducts, loading } = useCollection<any>(topTenQuery);
-
-  const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'vendors');
-  }, [firestore]);
+  const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
   const filteredTopProducts = useMemo(() => {
     if (!allTopProducts || !vendors) return [];
-    
     return allTopProducts.filter(p => {
+      if (!activeZoneId) return true;
       const vendor = vendors.find(v => v.id === p.vendorId);
-      
-      // NUCLEAR STRICT ZONE ISOLATION:
-      if (activeZoneId) {
-        const pZone = p.zoneId;
-        const vZone = vendor?.zoneId;
-        if (pZone !== activeZoneId && vZone !== activeZoneId) {
-          return false;
-        }
-      }
-      return true;
-    }).slice(0, 30);
+      // Show if product zone matches OR product is global OR vendor is global
+      return !p.zoneId || p.zoneId === activeZoneId || (vendor && (!vendor.zoneId || vendor.zoneId === activeZoneId));
+    });
   }, [allTopProducts, vendors, activeZoneId]);
 
-  const navigateToProduct = (product: any) => {
-    const slug = slugify(product.name);
-    router.push(`/product/${slug}-${product.id}`);
-  };
-
-  if (loading && !allTopProducts) {
-    return (
-      <div className="py-6 px-4 flex space-x-4 overflow-x-auto no-scrollbar">
-         {[1, 2, 3].map(i => (
-           <div key={i} className="min-w-[160px] aspect-[2/3] bg-zinc-100 rounded-[2.5rem] p-4 flex flex-col justify-between shadow-sm">
-             <Skeleton className="h-6 w-full bg-zinc-200" />
-             <Skeleton className="flex-1 w-full my-4 rounded-2xl bg-zinc-200" />
-             <Skeleton className="h-10 w-full bg-zinc-300" />
-           </div>
-         ))}
-      </div>
-    );
-  }
-
+  if (loading && !allTopProducts) return null;
   if (filteredTopProducts.length === 0) return null;
 
   return (
     <div className="py-6 overflow-hidden">
-      <div className="px-6 mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-black italic uppercase tracking-tighter">
-          Flash <span className="text-primary">Loot</span> Deals
+      <div className="px-6 mb-5 flex items-center justify-between">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+          Flash <span className="text-primary">Loot</span>
         </h2>
-        <div className="h-[2px] w-16 bg-primary/20 rounded-full" />
+        <Zap className="h-5 w-5 text-primary animate-pulse" />
       </div>
 
-      <div className="flex overflow-x-auto space-x-3 px-4 no-scrollbar pb-6">
-        {filteredTopProducts.map((product, index) => {
-          const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/600`;
-          const vendor = vendors?.find(v => v.id === product.vendorId);
-          
-          const scheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
-          const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
-          
-          const colorClass = CARD_COLORS[index % CARD_COLORS.length];
-          
-          return (
-            <div 
-              key={product.id} 
-              className={cn(
-                "relative min-w-[165px] aspect-[2/3.3] rounded-[2rem] p-3 flex flex-col items-center bg-gradient-to-b shadow-xl active:scale-95 transition-all cursor-pointer overflow-hidden",
-                colorClass,
-                isOffline && "grayscale opacity-80"
-              )}
-              onClick={() => !isOffline && navigateToProduct(product)}
-            >
-              <div className="w-full flex items-center justify-center gap-1 mb-2 relative z-10">
-                 <div className="bg-red-600 p-0.5 rounded-full"><Megaphone className="h-2 w-2 text-white" /></div>
-                 <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-0.5">
-                       <Flame className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
-                       <span className="text-[7px] font-black text-white italic uppercase leading-none">SUPER</span>
-                    </div>
-                    <span className="text-[10px] font-black text-white italic uppercase leading-none tracking-tighter">LOOT DEALS</span>
-                 </div>
-                 <div className="bg-red-600 p-0.5 rounded-full"><Megaphone className="h-2 w-2 text-white -scale-x-100" /></div>
-              </div>
-
-              <div className="bg-white w-full py-1.5 px-3 rounded-2xl shadow-lg flex items-center justify-center mb-2.5 relative z-10 border border-white/20">
-                 <span className="text-[10px] font-black text-black uppercase truncate tracking-tight">{product.name}</span>
-              </div>
-
-              <div className="flex-1 w-full relative bg-white rounded-[1.5rem] border-2 border-white/30 overflow-hidden mb-2.5 shadow-inner">
-                <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-                {isOffline && (
-                  <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-2">
-                    <span className="text-white font-black text-[9px] uppercase border border-white/30 px-2 py-0.5 rounded-md">
-                      {vendor?.isOnline === false ? 'OFFLINE' : 'CLOSED'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full bg-[#1C1C1C] py-2.5 rounded-[1.25rem] border border-white/5 flex items-center justify-center relative z-10 shadow-lg">
-                 <span className="text-[13px] font-black text-[#F1C40F] italic tracking-tight uppercase">
-                    From ₹{product.price.toFixed(0)}
-                 </span>
+      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
+        {filteredTopProducts.map((p) => (
+          <div 
+            key={p.id} 
+            onClick={() => router.push(`/product/${p.slug || slugify(p.name)}-${p.id}`)}
+            className="relative min-w-[180px] aspect-[4/5] rounded-[2.5rem] bg-[#0B0B0B] p-5 flex flex-col justify-between shadow-2xl active:scale-95 transition-all cursor-pointer border border-white/5 overflow-hidden group transform-gpu"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Zap className="h-20 w-20 -rotate-12 text-white" /></div>
+            <div className="relative h-28 w-full rounded-2xl overflow-hidden bg-white/5 border border-white/10 shadow-inner">
+               <Image src={p.imageUrl} alt={p.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
+            </div>
+            <div className="space-y-1 relative z-10">
+              <h4 className="text-white font-black text-sm uppercase italic truncate tracking-tight">{p.name}</h4>
+              <div className="flex items-center gap-1.5">
+                 <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                 <span className="text-[10px] font-black text-white/40 uppercase">Top Choice</span>
               </div>
             </div>
-          );
-        })}
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-xl font-black text-primary italic tracking-tighter">₹{p.price}</span>
+              <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20"><Plus className="h-4 w-4 text-white stroke-[4]" /></div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

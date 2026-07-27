@@ -7,10 +7,14 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-/**
- * @fileOverview CategoryList with strict service isolation.
- * Ensures Medical, Grocery, and Food categories never mix.
- */
+const CATEGORY_COLORS = [
+  'bg-[#F3E8FF]', // Purple
+  'bg-[#FFF7ED]', // Orange
+  'bg-[#FEE2E2]', // Red
+  'bg-[#DCFCE7]', // Green
+  'bg-[#E0F2FE]', // Blue
+];
+
 export function CategoryList({ 
   activeCategory = 'all', 
   onCategoryChange,
@@ -21,7 +25,6 @@ export function CategoryList({
   serviceMode?: string
 }) {
   const firestore = useFirestore();
-
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
@@ -31,65 +34,41 @@ export function CategoryList({
 
   const filteredCategories = useMemo(() => {
     if (!dbCategories) return [];
-    // STRICT ISOLATION: Only show categories matching the exact current service mode
-    return dbCategories.filter(cat => {
-      // Normalizing types to handle legacy data if any
-      const catType = (cat.serviceType || 'Food').toLowerCase();
-      const targetType = serviceMode.toLowerCase();
-      return catType === targetType;
-    });
+    return dbCategories.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, serviceMode]);
 
-  if (loading || filteredCategories.length === 0) return null;
+  if (loading && !dbCategories) {
+    return (
+      <div className="flex space-x-3 px-4 py-4 overflow-x-auto no-scrollbar">
+        {[1, 2, 3, 4].map(i => <div key={i} className="min-w-[100px] h-32 rounded-[2rem] bg-muted/20 animate-pulse" />)}
+      </div>
+    );
+  }
+
+  if (filteredCategories.length === 0) return null;
 
   return (
-    <div className="py-4">
-      <div className="flex items-center justify-between px-6 mb-5">
-        <h2 className="text-2xl font-black italic tracking-tighter uppercase">
-          {serviceMode === 'Medical' ? 'Healthcare Menu' : `${serviceMode} Categories`}
-        </h2>
-      </div>
-      <div className="flex overflow-x-auto space-x-6 px-6 no-scrollbar">
-        <button 
-          onClick={() => onCategoryChange?.('all')}
-          className="flex flex-col items-center space-y-2 min-w-[70px] relative group"
-        >
-          <div className={cn(
-            "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300 flex items-center justify-center bg-white",
-            activeCategory === 'all' ? "border-primary ring-4 ring-primary/10" : "border-transparent bg-muted/30"
-          )}>
-            <span className="text-[10px] font-black">ALL</span>
-          </div>
-          <span className={cn("text-[10px] font-black uppercase", activeCategory === 'all' ? "text-primary" : "text-muted-foreground")}>
-            View All
-          </span>
-        </button>
-
-        {filteredCategories.map((cat) => {
+    <div className="py-4 px-4 overflow-hidden">
+      <div className="flex overflow-x-auto space-x-3 no-scrollbar pb-2">
+        {filteredCategories.map((cat, idx) => {
           const catId = cat.name.toLowerCase();
           const isActive = activeCategory === catId;
+          const bgColor = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
 
           return (
             <button 
               key={cat.id} 
               onClick={() => onCategoryChange?.(catId)}
-              className="flex flex-col items-center space-y-2 min-w-[70px] relative group"
+              className={cn(
+                "min-w-[100px] h-32 rounded-[2rem] flex flex-col items-center justify-center gap-3 transition-all border-2",
+                bgColor,
+                isActive ? "border-primary shadow-xl scale-105" : "border-transparent opacity-90"
+              )}
             >
-              <div className={cn(
-                "relative h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-300",
-                isActive ? "border-primary ring-4 ring-primary/10 scale-105" : "border-transparent bg-muted/30"
-              )}>
-                <Image
-                  src={cat.imageUrl}
-                  alt={cat.name}
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative h-12 w-12 transform group-hover:scale-110 transition-transform">
+                <Image src={cat.imageUrl} alt={cat.name} fill className="object-contain" unoptimized />
               </div>
-              <span className={cn(
-                "text-[10px] font-black transition-colors uppercase tracking-tight",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}>
+              <span className="text-[10px] font-black uppercase tracking-widest text-black/60 italic leading-none">
                 {cat.name}
               </span>
             </button>

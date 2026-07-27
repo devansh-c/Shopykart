@@ -1,29 +1,30 @@
+
 "use client"
 
-import React, { useMemo, useState, useEffect, memo, useTransition } from "react"
-import { Zap, Plus, Minus, Loader2, Star, Clock } from "lucide-react"
+import React, { useMemo, useState, useEffect } from "react"
+import { Plus, Minus, Loader2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
-import { cn, slugify } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
-import { useRouter } from "next/navigation"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 
-export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number | null) => {
+/**
+ * Utility to check if a store is currently open based on timing strings (e.g. "10:00 AM")
+ */
+export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
 
   const now = new Date();
-  const currentMinutes = (currentMinutesOverride !== undefined && currentMinutesOverride !== null) 
-    ? currentMinutesOverride 
+  const mins = currentMinutes !== undefined && currentMinutes !== null 
+    ? currentMinutes 
     : now.getHours() * 60 + now.getMinutes();
 
-  const parseTimeToMinutes = (timeStr: string) => {
+  const parseTime = (t: string) => {
     try {
-      const parts = timeStr.trim().split(' ');
-      if (parts.length < 2) return 0;
-      const [time, modifier] = parts;
+      const [time, modifier] = t.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
       if (modifier === 'PM' && hours < 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
@@ -33,96 +34,35 @@ export const isStoreScheduleOpen = (vendor: any, currentMinutesOverride?: number
     }
   };
 
-  const start = parseTimeToMinutes(vendor.openingTime);
-  const end = parseTimeToMinutes(vendor.closingTime);
+  const start = parseTime(vendor.openingTime);
+  const end = parseTime(vendor.closingTime);
 
   if (start < end) {
-    return currentMinutes >= start && currentMinutes <= end;
+    return mins >= start && mins <= end;
   } else {
-    return currentMinutes >= start || currentMinutes <= end;
+    // Handle overnight shifts
+    return mins >= start || mins <= end;
   }
-};
-
-const ProductItem = memo(({ product, vendor, quantity, onAdd, onRemove, currentMinutes }: any) => {
-  const scheduleOpen = isStoreScheduleOpen(vendor, currentMinutes);
-  const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
-  const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/400/300`;
-  
-  return (
-    <div className={cn(
-      "relative bg-white rounded-[2rem] p-5 flex justify-between items-start transition-all shadow-[0_4px_20px_-2px_rgba(197,160,33,0.12)] border border-[#C5A021]/20",
-      isOffline && "opacity-60 grayscale-[0.5]"
-    )}>
-      <div className="flex-1 pr-4 min-w-0">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-3 w-3 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
-          {isOffline && <span className="text-[7px] font-black text-red-600 uppercase bg-red-50 px-1.5 py-0.5 rounded border border-red-100 italic">Store Closed</span>}
-        </div>
-        <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-          <button className="block text-left w-full cursor-pointer">
-            <h3 className="font-bold text-base text-[#1C1C1C] mb-1 italic tracking-tight line-clamp-2 uppercase leading-tight">{product.name}</h3>
-            <div className="text-xl font-black text-primary italic">₹{(product.price || 0).toFixed(0)}</div>
-            <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest opacity-60 truncate mt-1">from {product.restaurantName || vendor?.storeName}</p>
-          </button>
-        </ProductQuickView>
-      </div>
-      <div className="relative w-24 h-24 shrink-0">
-        <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted cursor-pointer">
-            <Image src={imageUrl} alt={product.name} fill className="object-cover" unoptimized loading="lazy" />
-          </div>
-        </ProductQuickView>
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full px-1.5 z-20">
-          {quantity === 0 ? (
-            <ProductQuickView product={product} vendorScheduleOpen={scheduleOpen}>
-              <button className="w-full h-8 bg-white border-2 border-primary shadow-md font-black text-[9px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
-            </ProductQuickView>
-          ) : (
-            <div className="flex items-center justify-between w-full h-8 bg-primary text-white rounded-xl shadow-lg">
-              <button onClick={() => onRemove(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-3 w-3" /></button>
-              <span className="text-[10px] font-black">{quantity}</span>
-              <button onClick={() => onAdd({...product, quantity: 1, imageUrl})} className="flex-1 flex items-center justify-center h-full"><Plus className="h-3 w-3" /></button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
-ProductItem.displayName = "ProductItem";
+}
 
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
-  const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-  const [currentMinutes, setCurrentMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    const updateLoc = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    };
+    const updateLoc = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     updateLoc();
     window.addEventListener('user-address-updated', updateLoc);
-
-    const syncTime = () => {
-      const now = new Date();
-      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
-    };
-    syncTime();
-    const interval = setInterval(syncTime, 60000);
-
-    return () => {
-      window.removeEventListener('user-address-updated', updateLoc);
-      clearInterval(interval);
-    };
+    return () => window.removeEventListener('user-address-updated', updateLoc);
   }, []);
 
+  // Increased limit to 200 for better visibility in production
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(5000));
+    return query(collection(firestore, 'products'), limit(200));
   }, [firestore]);
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery);
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -136,10 +76,18 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return dbProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       
+      // SMART ZONE FILTERING: 
+      // Product dikhega agar: 
+      // 1. Zone ID match ho
+      // 2. Product Global ho (No zoneId)
+      // 3. Vendor Global ho (No zoneId)
       if (activeZoneId) {
         const pZone = p.zoneId;
         const vZone = vendor?.zoneId;
-        if (pZone !== activeZoneId && vZone !== activeZoneId) {
+        const matchesZone = (pZone === activeZoneId) || (vZone === activeZoneId);
+        const isGlobal = !pZone && (!vendor || !vZone);
+        
+        if (!matchesZone && !isGlobal) {
           return false;
         }
       }
@@ -152,41 +100,68 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     }).sort((a, b) => {
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
-
-      const isOffA = (vendorA?.isOnline === false) || !isStoreScheduleOpen(vendorA, currentMinutes);
-      const isOffB = (vendorB?.isOnline === false) || !isStoreScheduleOpen(vendorB, currentMinutes);
-
-      if (isOffA !== isOffB) return isOffA ? 1 : -1;
-
-      const ratingA = vendorA?.rating || 0;
-      const ratingB = vendorB?.rating || 0;
-      return ratingB - ratingA;
+      
+      // Online vendors first
+      const isOnlineA = vendorA?.isOnline !== false && isStoreScheduleOpen(vendorA);
+      const isOnlineB = vendorB?.isOnline !== false && isStoreScheduleOpen(vendorB);
+      
+      if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
+      return (vendorB?.rating || 0) - (vendorA?.rating || 0);
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentMinutes]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId]);
 
-  if (productsLoading || !dbProducts || !vendors) return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading && !dbProducts) {
+    return (
+      <div className="px-4 space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-32 w-full bg-muted/20 animate-pulse rounded-[2rem]" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 py-8">
+    <div className="px-4 py-6">
       <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-sm font-black tracking-tight text-[#1C1C1C] uppercase italic">
-          ⚡ {activeMode.toUpperCase()} HUB ({productsToDisplay.length})
+        <h2 className="text-sm font-black tracking-widest text-black/40 uppercase italic">
+          ⚡ ALL SELECTION ({productsToDisplay.length})
         </h2>
       </div>
-      <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isPending && "opacity-50")}>
-        {productsToDisplay.length > 0 ? productsToDisplay.map((product) => (
-          <ProductItem 
-            key={product.id} 
-            product={product} 
-            vendor={vendors?.find(v => v.id === product.vendorId)} 
-            quantity={cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0} 
-            onAdd={addToCart} 
-            onRemove={removeFromCart} 
-            currentMinutes={currentMinutes}
-          />
-        )) : (
-          <div className="text-center py-20 opacity-20 font-black uppercase text-xs italic">No items found in this zone</div>
-        )}
+      <div className="grid grid-cols-1 gap-6">
+        {productsToDisplay.map((product) => {
+          const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
+          return (
+            <div key={product.id} className="relative bg-white rounded-[2.5rem] p-6 flex justify-between items-center shadow-xl shadow-black/[0.03] border border-border/40 transition-all hover:shadow-2xl">
+              <div className="flex-1 pr-4 min-w-0">
+                <ProductQuickView product={product}>
+                  <button className="block text-left w-full cursor-pointer group">
+                    <h3 className="font-black text-lg text-gray-900 leading-tight italic uppercase tracking-tighter mb-1 truncate group-hover:text-primary transition-colors">{product.name}</h3>
+                    <div className="text-2xl font-black text-primary italic">₹{(product.price || 0).toFixed(0)}</div>
+                    <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest mt-1 opacity-60">from {product.restaurantName}</p>
+                  </button>
+                </ProductQuickView>
+              </div>
+              <div className="relative w-28 h-28 shrink-0">
+                <ProductQuickView product={product}>
+                   <div className="relative w-full h-full cursor-pointer">
+                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover rounded-[1.5rem] bg-muted shadow-md" unoptimized />
+                   </div>
+                </ProductQuickView>
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-full px-2 z-20">
+                  {quantity === 0 ? (
+                    <button onClick={() => addToCart({...product, quantity: 1})} className="w-full h-10 bg-white border-2 border-primary shadow-xl font-black text-[10px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
+                  ) : (
+                    <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-xl">
+                      <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-4 w-4" /></button>
+                      <span className="text-[11px] font-black">{quantity}</span>
+                      <button onClick={() => addToCart({...product, quantity: 1})} className="flex-1 flex items-center justify-center h-full"><Plus className="h-4 w-4" /></button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
