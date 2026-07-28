@@ -33,7 +33,8 @@ import {
   UserCheck,
   Wallet,
   Save,
-  Pencil
+  Pencil,
+  Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -61,7 +62,7 @@ function CartContent() {
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod' | 'wallet'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [useCoins, setUseCoins] = useState(false);
   const [premiumPackaging, setPremiumPackaging] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
@@ -91,12 +92,6 @@ function CartContent() {
     setIsMounted(true);
   }, []);
 
-  const vendorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'vendors');
-  }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
-
   const brandingRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'app_settings', 'branding');
@@ -110,7 +105,6 @@ function CartContent() {
   }, [firestore, user]);
   const { data: profile, loading: profileLoading } = useDoc<any>(profileRef);
   const availableCoins = profile?.coins || 0;
-  const walletBalance = profile?.walletBalance || 0;
 
   const isPremium = useMemo(() => {
     if (!profile?.isPremium || !profile?.premiumExpiry) return false;
@@ -128,18 +122,6 @@ function CartContent() {
     if (isPremium) return 0;
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
   }, [cart, isPremium]);
-
-  const blockedVendorNames = useMemo(() => {
-    if (!vendors || cart.length === 0) return [];
-    const offlineVendors = new Set<string>();
-    cart.forEach(item => {
-      const v = vendors.find(v => v.id === item.vendorId);
-      if (v && v.isOnline === false) {
-        offlineVendors.add(v.storeName || 'Store');
-      }
-    });
-    return Array.from(offlineVendors);
-  }, [cart, vendors]);
 
   const dynamic_charges = useMemo(() => {
     if (!dbCharges || profileLoading || chargesLoading) return [];
@@ -224,17 +206,6 @@ function CartContent() {
     }
     setIsEditingAddress(false);
     toast({ title: "Address Saved!" });
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 800, 800);
-      setHousePhoto(compressed);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleVerifyCoupon = async () => {
@@ -367,7 +338,25 @@ function CartContent() {
 
       <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-52">
         
-        {/* 1. GOURMET ADDRESS BAR */}
+        {/* 1. ADDED PRODUCTS SECTION */}
+        <div className="space-y-3">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">Your Selection</h3>
+           <div className="flex overflow-x-auto space-x-3 no-scrollbar pb-2 px-1">
+              {cart.map((item, i) => (
+                <div key={i} className="min-w-[120px] bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center gap-2">
+                   <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted">
+                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
+                   </div>
+                   <div className="min-w-0 w-full">
+                      <p className="text-[9px] font-black uppercase italic truncate leading-none mb-1">{item.name}</p>
+                      <p className="text-[8px] font-bold text-primary">QTY: {item.quantity}</p>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        {/* 2. GOURMET ADDRESS BAR */}
         <div className="bg-gradient-to-r from-[#4A4232] to-[#2D281E] rounded-2xl p-4 shadow-xl flex items-center justify-between border border-white/5">
            <div className="flex items-center gap-3 min-w-0">
               <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg shrink-0">
@@ -393,9 +382,45 @@ function CartContent() {
            )}
         </div>
 
-        {/* 2. ORDER SUMMARY & BILL DETAILS CARD */}
+        {/* 3. GOURMET ENHANCEMENTS BOX (Premium Packing & Wallet Points) */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-5">
+           <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Gourmet Enhancements</h3>
+           </div>
+
+           <div className="flex items-center justify-between group">
+              <div className="flex items-center gap-3">
+                 <div className="bg-rose-50 p-2.5 rounded-xl text-rose-500">
+                    <Package className="h-5 w-5" />
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-xs font-black uppercase italic leading-none">Premium Packing</span>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Extra layered protection • ₹10</span>
+                 </div>
+              </div>
+              <Switch checked={isPremium ? true : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} className="data-[state=checked]:bg-rose-500" />
+           </div>
+
+           <div className="h-[1px] w-full bg-gray-50" />
+
+           <div className="flex items-center justify-between group">
+              <div className="flex items-center gap-3">
+                 <div className="bg-amber-50 p-2.5 rounded-xl text-amber-600">
+                    <Coins className="h-5 w-5 fill-amber-500/20" />
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-xs font-black uppercase italic leading-none">Redeem Wallet Coins</span>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Available: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(0)})</span>
+                 </div>
+              </div>
+              <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
+           </div>
+        </div>
+
+        {/* 4. BILL DETAILS CARD */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
-           <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Order Summary</h2>
+           <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Bill Summary</h2>
            
            <div className="space-y-4 mb-8">
               {cart.map((item, i) => (
@@ -409,15 +434,33 @@ function CartContent() {
            <div className="h-[1px] w-full bg-[#D9C4A9]/10 mb-6" />
 
            <div className="space-y-4">
-              <h3 className="text-sm font-black italic uppercase tracking-widest opacity-80 mb-2">Bill Details:</h3>
+              <h3 className="text-sm font-black italic uppercase tracking-widest opacity-80 mb-2">Detailed Breakdown:</h3>
               <div className="flex justify-between items-center text-sm font-medium">
-                 <span>Item Total:</span>
-                 <span className="font-black italic">₹{totalPrice.toFixed(0)}</span>
+                 <span>Items Subtotal:</span>
+                 <span className="font-black italic text-white">₹{totalPrice.toFixed(0)}</span>
               </div>
               <div className="flex justify-between items-center text-sm font-medium">
-                 <span>Delivery Fee:</span>
-                 <span className="font-black italic">₹{chargesTotalSum.toFixed(0)}</span>
+                 <span>Delivery & Handling:</span>
+                 <span className="font-black italic text-white">₹{chargesTotalSum.toFixed(0)}</span>
               </div>
+              {premiumPackaging && !isPremium && (
+                <div className="flex justify-between items-center text-sm font-medium">
+                   <span>Premium Packing:</span>
+                   <span className="font-black italic text-white">₹10</span>
+                </div>
+              )}
+              {coinDiscount > 0 && (
+                <div className="flex justify-between items-center text-sm font-medium text-amber-400">
+                   <span>Coin Discount:</span>
+                   <span className="font-black italic">-₹{coinDiscount.toFixed(0)}</span>
+                </div>
+              )}
+              {couponDiscount > 0 && (
+                <div className="flex justify-between items-center text-sm font-medium text-green-400">
+                   <span>Promo Discount:</span>
+                   <span className="font-black italic">-₹{couponDiscount.toFixed(0)}</span>
+                </div>
+              )}
               
               <div className="pt-6 mt-6 border-t border-dashed border-[#D9C4A9]/20 flex justify-between items-center">
                  <span className="text-lg font-black italic uppercase tracking-tighter">Grand Total:</span>
@@ -426,31 +469,11 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 3. SELECT PAYMENT MODE CARD */}
+        {/* 5. SELECT PAYMENT MODE CARD */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
-           <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Select Payment Method:</h2>
+           <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Select Payment Mode:</h2>
            
            <div className="space-y-5">
-              <button 
-                onClick={() => setPaymentMethod('wallet')}
-                disabled={walletBalance < grandTotal}
-                className={cn(
-                  "w-full flex items-center gap-4 group active:scale-[0.98] transition-all",
-                  walletBalance < grandTotal && "opacity-30"
-                )}
-              >
-                 <div className={cn(
-                   "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
-                   paymentMethod === 'wallet' ? "border-amber-400 bg-amber-400" : "border-[#D9C4A9]/30"
-                 )}>
-                    {paymentMethod === 'wallet' && <div className="h-2 w-2 rounded-full bg-black" />}
-                 </div>
-                 <div className="text-left">
-                    <p className="text-sm font-black uppercase italic tracking-tight">My Wallet (Balance: ₹{walletBalance})</p>
-                    {walletBalance < grandTotal && <span className="text-[8px] font-bold text-red-400 uppercase tracking-widest">Insufficient Funds</span>}
-                 </div>
-              </button>
-
               <button 
                 onClick={() => { setPaymentMethod('online'); setPaymentStep('selection'); setIsPaymentDialogOpen(true); }}
                 className="w-full flex items-center gap-4 group active:scale-[0.98] transition-all"
@@ -463,6 +486,7 @@ function CartContent() {
                  </div>
                  <div className="text-left">
                     <p className="text-sm font-black uppercase italic tracking-tight">Pay with UPI / QR / App</p>
+                    <span className="text-[8px] font-bold text-[#D9C4A9]/50 uppercase tracking-widest">PhonePe, GPay, Paytm</span>
                  </div>
               </button>
 
@@ -478,29 +502,20 @@ function CartContent() {
                  </div>
                  <div className="text-left">
                     <p className="text-sm font-black uppercase italic tracking-tight">Cash on Delivery</p>
+                    <span className="text-[8px] font-bold text-[#D9C4A9]/50 uppercase tracking-widest">Pay at your doorstep</span>
                  </div>
               </button>
            </div>
         </div>
 
-        {/* 4. OTHER ACTIONS (COUPONS & VERIFICATION) */}
-        <div className="space-y-4 pt-2">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-               <div className="flex items-center gap-2 mb-4 text-primary"><Ticket className="h-4 w-4" /><h3 className="text-[10px] font-black uppercase tracking-widest">Add Coupon</h3></div>
-               <div className="flex gap-2">
-                  <Input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder="PROMO CODE" className="h-11 bg-gray-50 border-none font-bold uppercase text-[10px] tracking-widest" />
-                  <Button onClick={handleVerifyCoupon} disabled={isVerifyingCoupon} className="h-11 rounded-xl px-6 bg-black">{isVerifyingCoupon ? <Loader2 className="animate-spin h-4 w-4" /> : 'APPLY'}</Button>
-               </div>
-               {appliedCoupon && <div className="mt-3 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-100 text-green-700 text-[10px] font-black uppercase animate-in slide-in-from-top-2"><span>'{appliedCoupon.code}' Applied</span><button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5" /></button></div>}
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-               <div className="flex items-center justify-between mb-3 text-rose-500">
-                  <div className="flex items-center gap-2"><Package className="h-4 w-4" /><h3 className="text-[10px] font-black uppercase tracking-widest">Premium Packing</h3></div>
-                  <Switch checked={isPremium ? false : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} />
-               </div>
-               <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic">{isPremium ? "FREE for Elite Members." : "Double layered protection for just ₹10."}</p>
-            </div>
+        {/* 6. COUPON SECTION */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+           <div className="flex items-center gap-2 mb-4 text-primary"><Ticket className="h-4 w-4" /><h3 className="text-[10px] font-black uppercase tracking-widest">Add Coupon</h3></div>
+           <div className="flex gap-2">
+              <Input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder="PROMO CODE" className="h-11 bg-gray-50 border-none font-bold uppercase text-[10px] tracking-widest" />
+              <Button onClick={handleVerifyCoupon} disabled={isVerifyingCoupon} className="h-11 rounded-xl px-6 bg-black">{isVerifyingCoupon ? <Loader2 className="animate-spin h-4 w-4" /> : 'APPLY'}</Button>
+           </div>
+           {appliedCoupon && <div className="mt-3 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-100 text-green-700 text-[10px] font-black uppercase animate-in slide-in-from-top-2"><span>'{appliedCoupon.code}' Applied</span><button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5" /></button></div>}
         </div>
 
       </div>
@@ -546,7 +561,7 @@ function CartContent() {
          </DialogContent>
       </Dialog>
 
-      {/* 5. SMOOTH SLIDER TO ORDER */}
+      {/* 7. SMOOTH SLIDER TO ORDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white/80 backdrop-blur-xl border-t border-gray-100 p-5 pb-8 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] transform-gpu flex justify-center">
          <div className="max-w-md w-full">
             <div 
