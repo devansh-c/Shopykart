@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Query, 
   onSnapshot, 
@@ -12,13 +12,18 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview ULTRA-FAST hook to fetch collections.
- * Optimized to leverage local cache instantly and reduce synchronization noise.
+ * @fileOverview ULTRA-FAST Cache-First Hook.
+ * Uses sessionStorage to provide instant data while Firestore syncs in the background.
  */
-export function useCollection<T = DocumentData>(query: Query<T> | null) {
-  const [data, setData] = useState<T[] | null>(null);
-  const [loading, setLoading] = useState(!!query);
+export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string) {
+  const [data, setData] = useState<T[] | null>(() => {
+    if (typeof window === 'undefined' || !cacheKey) return null;
+    const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
+    return cached ? JSON.parse(cached) : null;
+  });
+  const [loading, setLoading] = useState(!data);
   const [error, setError] = useState<FirestoreError | null>(null);
+  const isInitialSync = useRef(true);
 
   useEffect(() => {
     if (!query) {
@@ -27,9 +32,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
       return;
     }
 
-    setLoading(true);
-    
-    // Performance: removed includeMetadataChanges to prevent unnecessary re-renders during background sync
+    // Performance: removed includeMetadataChanges for raw speed
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
@@ -41,6 +44,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setData(items as T[]);
         setLoading(false);
         setError(null);
+        
+        // Update Cache for next visit
+        if (cacheKey && typeof window !== 'undefined') {
+          sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
+        }
       },
       async (err: FirestoreError) => {
         const silentCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'internal', 'permission-denied'];
@@ -61,7 +69,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
     );
 
     return () => unsubscribe();
-  }, [query]);
+  }, [query, cacheKey]);
 
   return { data, loading, error };
 }

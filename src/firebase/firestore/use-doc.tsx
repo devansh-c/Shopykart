@@ -12,11 +12,15 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview High-speed hook to fetch a single document with optimized caching.
+ * @fileOverview High-speed hook to fetch a single document with Cache-First logic.
  */
-export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(!!ref);
+export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
+  const [data, setData] = useState<T | null>(() => {
+    if (typeof window === 'undefined' || !cacheKey) return null;
+    const cached = sessionStorage.getItem(`fire_doc_cache_${cacheKey}`);
+    return cached ? JSON.parse(cached) : null;
+  });
+  const [loading, setLoading] = useState(!data && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
@@ -26,14 +30,18 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
       return;
     }
 
-    setLoading(true);
-    // Performance: removed includeMetadataChanges for faster initial response
     const unsubscribe = onSnapshot(
       ref,
       (snapshot: DocumentSnapshot<T>) => {
-        setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null);
+        const docData = snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null;
+        setData(docData);
         setLoading(false);
         setError(null);
+
+        // Update Cache
+        if (cacheKey && typeof window !== 'undefined' && docData) {
+          sessionStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
+        }
       },
       async (err: FirestoreError) => {
         const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'permission-denied'];
@@ -56,7 +64,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
     );
 
     return () => unsubscribe();
-  }, [ref]);
+  }, [ref, cacheKey]);
 
   return { data, loading, error };
 }

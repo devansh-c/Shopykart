@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
@@ -57,17 +56,19 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => window.removeEventListener('user-address-updated', updateLoc);
   }, []);
 
+  // INCREASED LIMIT TO 1000 FOR FULL INVENTORY VIEW
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(250));
+    return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery);
+  
+  const { data: dbProducts, loading } = useCollection<any>(productsQuery, 'home_products_v2');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2');
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
@@ -114,7 +115,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }
 
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-6 content-visibility-auto">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-sm font-black tracking-widest text-black/40 uppercase italic">
           ⚡ SELECTION ({productsToDisplay.length})
@@ -132,13 +133,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               "relative bg-[#0B0B0B] rounded-[2rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu overflow-hidden group",
               isOffline && "opacity-60 grayscale"
             )}>
-              {/* Product Image Container */}
               <div className="relative aspect-square w-full mb-3">
                 <ProductQuickView product={product}>
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
                       <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      {/* Crown Overlay */}
                       <div className="absolute top-2 right-2 h-5 w-5 bg-black/40 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
                         <Crown className="h-3 w-3 text-[#C5A021] fill-[#C5A021]" />
                       </div>
@@ -146,7 +145,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                 </ProductQuickView>
               </div>
 
-              {/* Info Section */}
               <div className="flex-1 flex flex-col px-1">
                 <ProductQuickView product={product}>
                   <button className="text-left w-full group">
@@ -155,7 +153,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                   </button>
                 </ProductQuickView>
 
-                {/* Price & Add Section */}
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
                   

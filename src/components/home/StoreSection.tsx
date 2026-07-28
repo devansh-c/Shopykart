@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -15,8 +14,7 @@ import {
 } from "@/components/ui/carousel"
 
 /**
- * @fileOverview StoreSection redesigned to be compact and centered.
- * Reduced basis and image height for a sleeker look.
+ * @fileOverview StoreSection with Fast Caching and High Limit.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -35,10 +33,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(100));
+    return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_stores_v2');
 
   const filteredVendors = React.useMemo(() => {
     if (!dbVendors) return [];
@@ -65,10 +63,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     });
   };
 
-  if (loading || filteredVendors.length === 0) return null;
+  if (loading && !dbVendors) return null;
 
   return (
-    <div className="py-4 overflow-hidden bg-white">
+    <div className="py-4 overflow-hidden bg-white content-visibility-auto">
       <div className="flex items-center justify-between mb-3 px-6">
         <h2 className="text-lg font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
@@ -93,7 +91,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
                   isPending && "opacity-50"
                 )}
               >
-                {/* Metallic Gradient Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
                 
                 <div className="relative h-24 w-full overflow-hidden z-10">
@@ -127,7 +124,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
                   </div>
                 </div>
 
-                {/* Subtle Shine Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
               </button>
             </CarouselItem>
