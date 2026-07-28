@@ -10,9 +10,10 @@ import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
+import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Extreme Speed Shell.
+ * @fileOverview ShopyKart Main Entrance - Extreme Speed Shell with Broadcast System.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +46,9 @@ export default function ShopyKartApp() {
       )}
 
       <main className="transition-none">
+        {/* LIVE BROADCAST SECTION */}
+        {activeMode === 'Food' && !searchQuery && <AnnouncementBanner />}
+
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">

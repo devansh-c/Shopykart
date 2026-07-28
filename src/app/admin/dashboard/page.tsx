@@ -49,6 +49,7 @@ import ProductManagement from '@/components/admin/ProductManagement';
 import StoreManagement from '@/components/admin/StoreManagement';
 
 // DYNAMIC IMPORTS FOR SECONDARY PAGES
+const AnnouncementManagement = dynamic(() => import('@/components/admin/AnnouncementManagement'), { ssr: false });
 const GlobalOfferManagement = dynamic(() => import('@/components/admin/GlobalOfferManagement'), { ssr: false });
 const BannerManagement = dynamic(() => import('@/components/admin/BannerManagement'), { ssr: false });
 const ReviewManagement = dynamic(() => import('@/components/admin/ReviewManagement'), { ssr: false });
@@ -70,6 +71,7 @@ const PremiumUserManagement = dynamic(() => import('@/components/admin/PremiumUs
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'announcement', label: 'Broadcast Alert', icon: Megaphone },
   { id: 'premium_users', label: 'Premium Users', icon: Crown },
   { id: 'global_offer', label: 'Flash Sale (Store-wide)', icon: Zap },
   { id: 'receipt_gen', label: 'Receipt Generator', icon: FileSpreadsheet },
@@ -221,6 +223,7 @@ export default function AdminDashboard() {
 
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
+      case 'announcement': return <AnnouncementManagement />;
       case 'premium_users': return <PremiumUserManagement />;
       case 'global_offer': return <GlobalOfferManagement />;
       case 'receipt_gen': return <ReceiptGenerator />;
