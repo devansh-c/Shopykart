@@ -23,7 +23,11 @@ export default function BottomNav() {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
+    // Hidden on Admin, Vendor, Delivery and Checkout (Cart) pages
+    return p.startsWith('/admin') || 
+           p.startsWith('/vendor') || 
+           p.startsWith('/delivery') || 
+           p.startsWith('/cart');
   }, [pathname]);
 
   if (isExcludedPath) return null;
