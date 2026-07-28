@@ -50,14 +50,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v7_instant');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_instant');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v7_instant');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const productsToDisplay = useMemo(() => {
     const products = dbProducts || [];

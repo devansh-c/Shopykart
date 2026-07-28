@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -33,7 +32,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v6_instant');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const filteredVendors = React.useMemo(() => {
     const list = dbVendors || [];

@@ -108,7 +108,7 @@ function CartContent() {
     if (!firestore) return null;
     return collection(firestore, 'checkout_charges');
   }, [firestore]);
-  const { data: dbCharges, loading: chargesLoading } = useCollection<any>(chargesQuery);
+  const { data: dbCharges, loading: chargesLoading } = useCollection<any>(chargesQuery, 'checkout_charges_v4');
 
   const dynamic_charges = useMemo(() => {
     if (!dbCharges || profileLoading || chargesLoading) return [];

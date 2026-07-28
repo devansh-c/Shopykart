@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
@@ -14,7 +13,7 @@ export default function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v6_instant');
+  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {

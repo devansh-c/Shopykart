@@ -27,7 +27,7 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v7_instant');
+  const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v4_instant');
   
   const filteredBanners = React.useMemo(() => {
     if (!dbBanners) return [];
