@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -49,7 +48,7 @@ import { compressImage } from '@/lib/image-utils';
 function CartContent() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -237,7 +236,14 @@ function CartContent() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!user || !firestore) return;
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+      setSliderValue(0);
+      return;
+    }
+    
+    if (!firestore) return;
+    
     if (!customerName || customerPhone.length < 10 || !customerAddress) {
       toast({ variant: "destructive", title: "Missing details", description: "Name, 10-digit Phone and Address are required." });
       setSliderValue(0);

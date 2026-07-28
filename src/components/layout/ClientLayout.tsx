@@ -2,7 +2,7 @@
 
 import { CartProvider } from '@/components/cart/CartProvider';
 import { useUser } from '@/firebase';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { EmailAuth } from '@/components/auth/EmailAuth';
 import { Toaster } from '@/components/ui/toaster';
@@ -22,8 +22,9 @@ const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCa
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const pathname = usePathname();
+  const router = useRouter();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -38,6 +39,21 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     window.addEventListener('open-auth-overlay', handleOpenAuth);
     return () => window.removeEventListener('open-auth-overlay', handleOpenAuth);
   }, [user]);
+
+  // PROTECTED ROUTES LOGIC: Block converted paths for guests
+  const isProtectedRoute = useMemo(() => {
+    if (!pathname) return false;
+    const p = pathname.toLowerCase();
+    const protectedPaths = ['/cart', '/orders', '/rewards', '/profile', '/wishlist'];
+    return protectedPaths.some(path => p.startsWith(path));
+  }, [pathname]);
+
+  // If user hits a protected route and is not logged in, force auth overlay
+  useEffect(() => {
+    if (isProtectedRoute && !user && !loading && isClient) {
+      setShowAuthOverlay(true);
+    }
+  }, [isProtectedRoute, user, loading, isClient]);
 
   // Close overlay automatically if user logs in via any method
   useEffect(() => {
@@ -54,7 +70,11 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     <>
       {children}
       {!isExcludedPath && showAuthOverlay && !user && isClient && (
-        <EmailAuth onClose={() => setShowAuthOverlay(false)} />
+        <EmailAuth onClose={() => {
+          setShowAuthOverlay(false);
+          // If on a protected route, go back to home on close
+          if (isProtectedRoute) router.push('/');
+        }} />
       )}
     </>
   );
