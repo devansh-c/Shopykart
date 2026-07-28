@@ -1,21 +1,30 @@
 
 "use client"
 
-import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
+import * as React from "react"
+import { Star, Clock } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
-import React, { useMemo, useTransition, useState, useEffect } from "react"
 import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel"
 
+/**
+ * @fileOverview StoreSection redesigned as a centered sliding carousel.
+ * Matches the behavior of Banners with side peeking.
+ */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [isPending, startTransition] = React.useTransition();
+  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const updateLoc = () => {
       setActiveZoneId(localStorage.getItem('active_zone_id'));
     };
@@ -31,7 +40,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
-  const filteredVendors = useMemo(() => {
+  const filteredVendors = React.useMemo(() => {
     if (!dbVendors) return [];
     
     return dbVendors.filter(v => {
@@ -59,59 +68,72 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   if (loading || filteredVendors.length === 0) return null;
 
   return (
-    <div className="py-4">
+    <div className="py-6 overflow-hidden bg-white">
       <div className="flex items-center justify-between mb-4 px-6">
         <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
         </h2>
       </div>
 
-      <div className={cn("flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-2 transition-opacity", isPending && "opacity-50")}>
-        {filteredVendors.map((store: any) => (
-          <button 
-            onClick={() => handleStoreClick(store)}
-            key={store.id} 
-            className="block text-left min-w-[220px] max-w-[220px] rounded-[2rem] overflow-hidden shadow-xl shrink-0 transform-gpu group border border-white/10 relative"
-          >
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
-            
-            <div className="relative h-32 w-full overflow-hidden z-10">
-              <Image 
-                src={store.imageUrl} 
-                alt={store.storeName} 
-                fill 
-                className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                unoptimized 
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            </div>
-
-            <div className="p-4 relative z-20 text-white">
-              <h3 className="text-base font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
-                {store.storeName}
-              </h3>
-              <p className="text-[9px] font-bold text-white/80 uppercase tracking-widest mb-2 truncate italic">
-                {store.category || 'Premium Selection'}
-              </p>
-              
-              <div className="flex items-center justify-between">
-                <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
-                   <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                   <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
+      <Carousel 
+        className="w-full" 
+        opts={{ 
+          loop: true, 
+          align: 'center',
+          skipSnaps: false
+        }}
+      >
+        <CarouselContent className="-ml-2">
+          {filteredVendors.map((store: any) => (
+            <CarouselItem key={store.id} className="pl-2 basis-[82%] sm:basis-[70%]">
+              <button 
+                onClick={() => handleStoreClick(store)}
+                className={cn(
+                  "block text-left w-full rounded-[2.5rem] overflow-hidden shadow-xl transform-gpu group border border-white/10 relative transition-opacity duration-300",
+                  isPending && "opacity-50"
+                )}
+              >
+                {/* Metallic Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
+                
+                <div className="relative h-32 w-full overflow-hidden z-10">
+                  <Image 
+                    src={store.imageUrl} 
+                    alt={store.storeName} 
+                    fill 
+                    className="object-cover group-hover:scale-105 transition-transform duration-700" 
+                    unoptimized 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 </div>
-                <div className="flex items-center gap-1 text-[9px] font-black text-white/90 italic tracking-tight">
-                   <Clock className="h-3 w-3" />
-                   {store.deliveryTime || '25 mins'}
-                </div>
-              </div>
-            </div>
 
-            {/* Subtle Shine Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-          </button>
-        ))}
-      </div>
+                <div className="p-5 relative z-20 text-white">
+                  <h3 className="text-lg font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
+                    {store.storeName}
+                  </h3>
+                  <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-3 truncate italic">
+                    {store.category || 'Premium Selection'}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-xl flex items-center gap-1.5 border border-white/20 shadow-sm">
+                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                       <span className="text-[11px] font-black">{store.rating || '4.8'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-white/90 italic tracking-tight">
+                       <Clock className="h-3.5 w-3.5" />
+                       {store.deliveryTime || '25 mins'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subtle Shine Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+              </button>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   );
 });
