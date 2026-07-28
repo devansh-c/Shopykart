@@ -24,7 +24,8 @@ import {
   Camera,
   ImageIcon,
   XCircle,
-  Undo2
+  Undo2,
+  IndianRupee
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -597,7 +598,7 @@ function CartContent() {
                 </div>
               )}
 
-              {appliedCoupon && (
+              {couponDiscount > 0 && (
                 <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
                    <span className="text-sm font-bold uppercase italic tracking-tight text-green-400">Coupon Discount:</span>
                    <span className="font-black italic text-green-400">- ₹{couponDiscount.toFixed(0)}</span>

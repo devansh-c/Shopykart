@@ -13,7 +13,6 @@ import OffersSection from '@/components/home/OffersSection';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Extreme Speed Shell.
- * Stripped of all blocking logic for haal-ke-haal visibility.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');

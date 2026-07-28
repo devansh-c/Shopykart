@@ -1,8 +1,7 @@
-
 "use client"
 
 import React, { useMemo, useState } from "react"
-import { Plus, Minus, Share2 } from "lucide-react"
+import { Plus, Minus, Share2, Loader2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -41,7 +40,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
-  // ATOMIC SYNC LOCATION ACCESS
   const activeZoneId = React.useMemo(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
@@ -52,14 +50,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v6_instant');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v7_instant');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_instant');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v7_instant');
 
   const productsToDisplay = useMemo(() => {
     const products = dbProducts || [];
