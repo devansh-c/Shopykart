@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 /**
- * Utility to check if a store is currently open based on timing strings (e.g. "10:00 AM")
+ * Utility to check if a store is currently open based on timing strings.
  */
 export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null) {
   if (!vendor) return true;
@@ -42,11 +42,13 @@ export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null)
   if (start < end) {
     return mins >= start && mins <= end;
   } else {
-    // Handle overnight shifts
     return mins >= start || mins <= end;
   }
 }
 
+/**
+ * @fileOverview PopularProducts - Optimized for Instant Performance with Product & Vendor Caching.
+ */
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
@@ -66,19 +68,25 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return query(collection(firestore, 'products'), limit(1000));
   }, [firestore]);
   
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery, 'home_products_v2');
+  // TURBO CACHE for products
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v2');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2');
+  
+  // TURBO CACHE for vendors
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v2');
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts || !vendors) return [];
     
+    // Create a fast vendor map for O(1) lookups during filtering
+    const vendorMap = new Map(vendors.map(v => [v.id, v]));
+    
     return dbProducts.filter(p => {
-      const vendor = vendors.find(v => v.id === p.vendorId);
+      const vendor = vendorMap.get(p.vendorId);
       
       if (activeZoneId) {
         const pZone = p.zoneId;
@@ -97,8 +105,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       
       return modeMatch && searchMatch && catMatch;
     }).sort((a, b) => {
-      const vendorA = vendors.find(v => v.id === a.vendorId);
-      const vendorB = vendors.find(v => v.id === b.vendorId);
+      const vendorA = vendorMap.get(a.vendorId);
+      const vendorB = vendorMap.get(b.vendorId);
       
       const isOnlineA = vendorA?.isOnline !== false && isStoreScheduleOpen(vendorA);
       const isOnlineB = vendorB?.isOnline !== false && isStoreScheduleOpen(vendorB);
@@ -126,23 +134,22 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         await navigator.clipboard.writeText(shareUrl);
         toast({ title: "Link Copied! 🔗", description: "Product link saved to clipboard." });
       }
-    } catch (err) {
-      // Fail silently if user cancels share
-    }
+    } catch (err) {}
   };
 
-  if (loading && !dbProducts) {
+  // INSTANT SKELETON: Shows immediately if cache is empty
+  if ((productsLoading || vendorsLoading) && !dbProducts) {
     return (
       <div className="px-4 grid grid-cols-2 gap-4 py-6">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="aspect-[4/5] w-full bg-muted/20 animate-pulse rounded-[2.5rem]" />
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} className="aspect-[4/5] w-full bg-muted/20 animate-pulse rounded-[2rem] border-2 border-transparent" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6 content-visibility-auto">
+    <div className="px-4 py-6 content-visibility-auto animate-in fade-in duration-200">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-sm font-black tracking-widest text-black/40 uppercase italic">
           ⚡ SELECTION ({productsToDisplay.length})
@@ -169,7 +176,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                    </div>
                 </ProductQuickView>
                 
-                {/* SHARE BUTTON REPLACING CROWN ICON */}
                 <button 
                   onClick={(e) => handleShare(e, product)}
                   className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 transition-all z-30 group/share"

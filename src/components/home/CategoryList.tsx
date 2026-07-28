@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
+/**
+ * @fileOverview CategoryList - Optimized for Instant Paint with lightweight skeletons.
+ */
 export function CategoryList({ 
   activeCategory = 'all', 
   onCategoryChange,
@@ -22,7 +25,7 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  // Added cacheKey for near-instant rendering
+  // Using specific cacheKey for instant bootstrap from SessionStorage
   const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v2');
 
   const filteredCategories = useMemo(() => {
@@ -30,23 +33,26 @@ export function CategoryList({
     return dbCategories.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, serviceMode]);
 
+  // INSTANT SKELETON: No isMounted check to avoid layout flicker
   if (loading && !dbCategories) {
     return (
-      <div className="flex space-x-4 px-6 py-4 overflow-x-auto no-scrollbar">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-muted/20 animate-pulse" />
-            <div className="w-12 h-2.5 bg-muted/20 animate-pulse rounded" />
-          </div>
-        ))}
+      <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">
+        <div className="flex space-x-4 no-scrollbar px-2">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="flex flex-col items-center gap-2 shrink-0">
+              <div className="w-16 h-16 rounded-full bg-muted/20 animate-pulse border-2 border-transparent" />
+              <div className="w-12 h-2.5 bg-muted/10 animate-pulse rounded-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">
+    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50 animate-in fade-in duration-200">
       <div className="flex overflow-x-auto space-x-4 no-scrollbar px-2">
-        {/* VIEW ALL / ALL ITEM */}
+        {/* ALL ITEM */}
         <button 
           onClick={() => onCategoryChange?.('all')}
           className="flex flex-col items-center gap-2 shrink-0 group transition-all"

@@ -17,7 +17,6 @@ import OffersSection from '@/components/home/OffersSection';
 /**
  * @fileOverview ShopyKart Main Entrance - Ultra Fast Edition.
  * Optimized for instant visibility of all components on load.
- * Removed blocking isMounted checks to ensure near-zero latency feel.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,9 +87,9 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100")}>
+      <main className={cn("transition-opacity duration-150 will-change-transform", isPending ? "opacity-70" : "opacity-100")}>
         {activeMode === 'Grocery' ? (
-          <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
+          <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">
                 <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20" />
                 <div className="relative bg-white h-28 w-28 rounded-[2.5rem] flex items-center justify-center shadow-2xl border-2 border-green-50">
@@ -101,7 +100,7 @@ export default function ShopyKartApp() {
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-4 mb-10 max-w-[240px] leading-relaxed">WE ARE BRINGING FRESH ESSENTIALS TO YOUR DOORSTEP.</p>
           </div>
         ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
-          <div className="animate-in fade-in duration-700 content-visibility-auto">
+          <div className="animate-in fade-in duration-200 content-visibility-auto">
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
                   <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100"><ArrowLeft className="h-4 w-4" /></button>
