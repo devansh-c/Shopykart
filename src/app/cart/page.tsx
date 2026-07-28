@@ -376,45 +376,70 @@ function CartContent() {
               )}
            </div>
            {!isEditingAddress ? (
-             <button onClick={() => setIsEditingAddress(true)} className="bg-[#D9C4A9]/10 border border-[#D9C4A9]/20 text-[#D9C4A9] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all ml-3">Change</button>
+             <button onClick={() => setIsEditingAddress(true)} className="bg-[#D9C4A9]/10 border border-[#D9C4A9]/20 text-[#D9C4A9] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-[0.9] transition-all ml-3">Change</button>
            ) : (
-             <button onClick={handleSaveAddress} className="bg-amber-500 text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all ml-3 shadow-lg">Save</button>
+             <button onClick={handleSaveAddress} className="bg-amber-500 text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-[0.9] transition-all ml-3 shadow-lg">Save</button>
            )}
         </div>
 
-        {/* 3. GOURMET ENHANCEMENTS BOX (Premium Packing & Wallet Points) */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-5">
+        {/* 3. GOURMET ENHANCEMENTS & COUPON BOX (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-900">Gourmet Enhancements</h3>
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              <h3 className="text-[10px] font-black uppercase tracking-widest">Gourmet Enhancements</h3>
            </div>
 
            <div className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
-                 <div className="bg-rose-50 p-2.5 rounded-xl text-rose-500">
+                 <div className="bg-white/5 p-2.5 rounded-xl text-rose-400 border border-white/5">
                     <Package className="h-5 w-5" />
                  </div>
                  <div className="flex flex-col">
                     <span className="text-xs font-black uppercase italic leading-none">Premium Packing</span>
-                    <span className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Extra layered protection • ₹10</span>
+                    <span className="text-[8px] font-bold opacity-60 uppercase mt-1">Extra layered protection • ₹10</span>
                  </div>
               </div>
               <Switch checked={isPremium ? true : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} className="data-[state=checked]:bg-rose-500" />
            </div>
 
-           <div className="h-[1px] w-full bg-gray-50" />
+           <div className="h-[1px] w-full bg-white/10" />
 
            <div className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
-                 <div className="bg-amber-50 p-2.5 rounded-xl text-amber-600">
+                 <div className="bg-white/5 p-2.5 rounded-xl text-amber-500 border border-white/5">
                     <Coins className="h-5 w-5 fill-amber-500/20" />
                  </div>
                  <div className="flex flex-col">
                     <span className="text-xs font-black uppercase italic leading-none">Redeem Wallet Coins</span>
-                    <span className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Available: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(0)})</span>
+                    <span className="text-[8px] font-bold opacity-60 uppercase mt-1">Available: {availableCoins} Coins (₹{(availableCoins * coinValue).toFixed(0)})</span>
                  </div>
               </div>
               <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
+           </div>
+
+           <div className="h-[1px] w-full bg-white/10" />
+
+           {/* COUPON SECTION INSIDE DARK BOX */}
+           <div className="space-y-4">
+              <div className="flex items-center gap-2 text-amber-400">
+                <Ticket className="h-4 w-4" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest">Apply Promo Code</h3>
+              </div>
+              <div className="flex gap-2">
+                 <Input 
+                   value={couponInput} 
+                   onChange={e => setCouponInput(e.target.value)} 
+                   placeholder="ENTER CODE" 
+                   className="h-11 bg-white/5 border-white/10 text-white font-bold uppercase text-[10px] tracking-widest placeholder:text-gray-600 rounded-xl" 
+                 />
+                 <Button onClick={handleVerifyCoupon} disabled={isVerifyingCoupon} className="h-11 rounded-xl px-6 bg-[#D9C4A9] text-black font-black hover:bg-white">{isVerifyingCoupon ? <Loader2 className="animate-spin h-4 w-4" /> : 'APPLY'}</Button>
+              </div>
+              {appliedCoupon && (
+                <div className="flex items-center justify-between bg-green-500/10 p-3 rounded-xl border border-green-500/20 text-green-400 text-[10px] font-black uppercase animate-in slide-in-from-top-2">
+                  <span>'{appliedCoupon.code}' Applied Successfully</span>
+                  <button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
            </div>
         </div>
 
@@ -506,16 +531,6 @@ function CartContent() {
                  </div>
               </button>
            </div>
-        </div>
-
-        {/* 6. COUPON SECTION */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-           <div className="flex items-center gap-2 mb-4 text-primary"><Ticket className="h-4 w-4" /><h3 className="text-[10px] font-black uppercase tracking-widest">Add Coupon</h3></div>
-           <div className="flex gap-2">
-              <Input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder="PROMO CODE" className="h-11 bg-gray-50 border-none font-bold uppercase text-[10px] tracking-widest" />
-              <Button onClick={handleVerifyCoupon} disabled={isVerifyingCoupon} className="h-11 rounded-xl px-6 bg-black">{isVerifyingCoupon ? <Loader2 className="animate-spin h-4 w-4" /> : 'APPLY'}</Button>
-           </div>
-           {appliedCoupon && <div className="mt-3 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-100 text-green-700 text-[10px] font-black uppercase animate-in slide-in-from-top-2"><span>'{appliedCoupon.code}' Applied</span><button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5" /></button></div>}
         </div>
 
       </div>
