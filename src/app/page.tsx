@@ -11,7 +11,7 @@ import { useUser } from '@/firebase';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
- * Optimized for speed and premium UI organization.
+ * Reorganized: Banner -> New Services -> Flash Loot -> Categories -> Products.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -23,8 +23,7 @@ const OffersSection = dynamic(() => import('@/components/home/OffersSection'), {
   loading: () => <div className="h-32 w-full bg-muted/20 animate-pulse rounded-2xl mx-4" />
 });
 const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
-const BeautySalonSection = dynamic(() => import('@/components/home/BeautySalonSection').then(m => ({ default: m.BeautySalonSection })), { ssr: false });
-const MedicalCareSection = dynamic(() => import('@/components/home/MedicalCareSection').then(m => ({ default: m.MedicalCareSection })), { ssr: false });
+const NewServices = dynamic(() => import('@/components/home/NewServices').then(m => ({ default: m.NewServices })), { ssr: false });
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,7 +76,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-0")}>
+      <main className={cn("transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -109,24 +108,17 @@ export default function ShopyKartApp() {
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider />
-                <div className="space-y-2">
-                  <ScrollReveal delay={50}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
-                  <div className="px-4 py-2">
-                    <div className="flex items-center justify-between mb-4 px-2">
-                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">New Services</h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <BeautySalonSection onClick={() => handleModeChange('Beauty')} />
-                      <MedicalCareSection onClick={() => handleModeChange('Medical')} />
-                    </div>
-                  </div>
-                  <StoreSection activeMode={activeMode} />
-                  <OffersSection />
-                  <TopTenProducts />
-                </div>
+                <NewServices />
+                <TopTenProducts />
+                <StoreSection activeMode={activeMode} />
+                <OffersSection />
               </>
             )}
-            <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
+            
+            <div className="bg-white">
+              {!searchQuery && <ScrollReveal delay={50}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>}
+              <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
+            </div>
           </div>
         )}
       </main>
