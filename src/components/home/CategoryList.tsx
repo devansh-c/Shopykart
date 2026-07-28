@@ -6,6 +6,10 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
+/**
+ * @fileOverview CategoryList - Zero-Wait Component.
+ * Removed blocking loading gates to ensure instant presence.
+ */
 export function CategoryList({ 
   activeCategory = 'all', 
   onCategoryChange,
@@ -21,8 +25,7 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  // Using High-Speed Cache Key
-  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
+  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v5_instant');
 
   const filteredCategories = useMemo(() => {
     const list = dbCategories || [];

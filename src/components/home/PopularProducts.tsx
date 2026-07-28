@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useEffect } from "react"
+import React, { useMemo, useState } from "react"
 import { Plus, Minus, Share2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
@@ -11,11 +11,14 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
-export function isStoreScheduleOpen(vendor: any) {
+export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
+  
   const now = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
+  const mins = currentMins !== undefined && currentMins !== null 
+    ? currentMins 
+    : now.getHours() * 60 + now.getMinutes();
 
   const parseTime = (t: string) => {
     try {
@@ -37,25 +40,25 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
-  // IMMEDIATE LOCATION RECOGNITION
-  const [activeZoneId] = useState<string | null>(() => {
+  // Synchronous location access
+  const activeZoneId = React.useMemo(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
-  });
+  }, []);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_instant');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v5_instant');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v5_instant');
 
   const productsToDisplay = useMemo(() => {
     const products = dbProducts || [];
@@ -64,7 +67,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
-      // Fixed: changed 'v' to 'vendor' to fix ReferenceError
       if (activeZoneId && vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -96,12 +98,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       <div className="grid grid-cols-2 gap-4">
         {(!dbProducts && productsLoading) ? (
           [1, 2, 3, 4].map(i => (
-            <div key={i} className="aspect-[4/5] w-full bg-muted/10 animate-pulse rounded-[2rem]" />
+            <div key={i} className="aspect-[4/5] w-full bg-muted/10 animate-pulse rounded-[2rem] border-2 border-gray-50" />
           ))
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           return (
-            <div key={product.id} className="relative bg-[#0B0B0B] rounded-[2rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98]">
+            <div key={product.id} className="relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98]">
               <div className="relative aspect-square w-full mb-3">
                 <ProductQuickView product={product}>
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">

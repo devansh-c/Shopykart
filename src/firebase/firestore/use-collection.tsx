@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Query, 
   onSnapshot, 
@@ -13,10 +13,11 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-FAST Instant-Initialize Hook.
- * Initializes state directly from sessionStorage during first render to prevent hydration lag.
+ * Initializes state synchronously from sessionStorage to prevent initial null frames.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string) {
-  // ATOMIC INITIALIZATION: No useEffect wait
+  // ATOMIC SYNCHRONOUS INITIALIZATION: 
+  // We read from cache DURING state initialization, not in useEffect.
   const [data, setData] = useState<T[] | null>(() => {
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
@@ -27,7 +28,8 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     }
   });
   
-  const [loading, setLoading] = useState(!data);
+  // If we have cached data, we set loading to false immediately
+  const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {

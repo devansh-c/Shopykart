@@ -15,27 +15,29 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection - Zero-Wait Injection.
+ * @fileOverview StoreSection - Atomic Injection.
+ * Removed blocking gates for instant presence.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
   
-  const [activeZoneId] = React.useState<string | null>(() => {
+  // Synchronous location access
+  const activeZoneId = React.useMemo(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
-  });
+  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v5_instant');
 
   const filteredVendors = React.useMemo(() => {
-    if (!dbVendors) return [];
-    return dbVendors.filter(v => {
+    const list = dbVendors || [];
+    return list.filter(v => {
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     }).sort((a, b) => {
@@ -59,7 +61,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
           {(!dbVendors && loading) ? (
             [1, 2].map(i => (
               <CarouselItem key={i} className="pl-3 basis-[65%] sm:basis-[50%]">
-                 <div className="w-full aspect-[16/10] rounded-[2rem] bg-muted/20 animate-pulse" />
+                 <div className="w-full aspect-[16/10] rounded-[2rem] bg-muted/20 animate-pulse border-4 border-white" />
               </CarouselItem>
             ))
           ) : filteredVendors.map((store: any) => (

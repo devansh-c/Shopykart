@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
 
 import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
@@ -13,18 +12,13 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Zero Latency Atomic Shell.
- * Completely removed transitions and blocking logic for haal-ke-haal visibility.
+ * @fileOverview ShopyKart Main Entrance - Extreme Speed Shell.
+ * Stripped of all blocking logic for haal-ke-haal visibility.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
-  const { user } = useUser();
-
-  useEffect(() => {
-    if (user) { setSearchQuery(''); }
-  }, [user]);
 
   const handleBackToFood = () => {
     setActiveMode('Food');
