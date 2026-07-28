@@ -11,7 +11,7 @@ import { useUser } from '@/firebase';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
- * Reorganized: Banner -> Store Section (Redesigned) -> Flash Loot -> Offers -> Categories -> Products.
+ * Reorganized: Banner -> Store Section (Redesigned) -> Offers -> Categories -> Products.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -22,7 +22,6 @@ const OffersSection = dynamic(() => import('@/components/home/OffersSection'), {
   ssr: false,
   loading: () => <div className="h-32 w-full bg-muted/20 animate-pulse rounded-2xl mx-4" />
 });
-const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,7 +107,6 @@ export default function ShopyKartApp() {
               <>
                 <OfferSlider />
                 <StoreSection activeMode={activeMode} />
-                <TopTenProducts />
                 <OffersSection />
               </>
             )}

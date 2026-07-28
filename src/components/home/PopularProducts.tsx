@@ -138,7 +138,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
                       <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      {/* Crown Overlay (Matched to Screenshot) */}
+                      {/* Crown Overlay */}
                       <div className="absolute top-2 right-2 h-5 w-5 bg-black/40 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
                         <Crown className="h-3 w-3 text-[#C5A021] fill-[#C5A021]" />
                       </div>
@@ -160,12 +160,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
                   
                   {quantity === 0 ? (
-                    <button 
-                      onClick={() => !isOffline && addToCart({...product, quantity: 1})}
-                      className="bg-gradient-to-r from-[#8C7A63] via-[#D9C4A9] to-[#8C7A63] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-all border border-white/20"
-                    >
-                      ADD
-                    </button>
+                    <ProductQuickView product={product}>
+                      <button 
+                        className="bg-gradient-to-r from-[#8C7A63] via-[#D9C4A9] to-[#8C7A63] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-all border border-white/20"
+                      >
+                        ADD
+                      </button>
+                    </ProductQuickView>
                   ) : (
                     <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
                       <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center"><Minus className="h-3 w-3 stroke-[3]" /></button>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -192,6 +193,26 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddOption = () => {
+    setProductForm(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const handleRemoveOption = (idx: number) => {
+    setProductForm(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleUpdateOption = (idx: number, field: string, value: any) => {
+    const newOpts = [...productForm.options];
+    (newOpts[idx] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setProductForm(prev => ({ ...prev, options: newOpts }));
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
       toast({ variant: "destructive", title: "Missing Info" });
@@ -212,6 +233,8 @@ export default function VendorDashboard() {
       town: vendorProfile?.town || 'Local',
       isVeg: productForm.isVeg,
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/300/300',
+      options: productForm.options.filter(o => o.name.trim() !== ''),
+      isVarietyRequired: productForm.isVarietyRequired,
       isAvailable: true,
       updatedAt: serverTimestamp(),
     };
@@ -310,9 +333,9 @@ export default function VendorDashboard() {
                       <DialogTrigger asChild>
                         <Button className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
                       </DialogTrigger>
-                      <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                      <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                         <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingId ? 'Edit Product' : 'Add New Product'}</DialogTitle></DialogHeader>
-                        <div className="p-8 space-y-6">
+                        <div className="p-8 space-y-8">
                            <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                               {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                            </div>
@@ -346,9 +369,36 @@ export default function VendorDashboard() {
                                  <span className="text-xs font-black uppercase">Pure Veg?</span>
                                  <Switch checked={productForm.isVeg} onCheckedChange={v => setProductForm({...productForm, isVeg: v})} />
                               </div>
+
+                              {/* VARIETY / OPTIONS SECTION */}
+                              <div className="bg-primary/5 p-6 rounded-[2rem] border-2 border-dashed border-primary/20 space-y-5">
+                                 <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-black uppercase text-primary italic tracking-widest">Options Builder</h4>
+                                    <button type="button" onClick={handleAddOption} className="text-[9px] font-black bg-white border border-primary/20 text-primary px-3 py-1.5 rounded-lg active:scale-95 transition-all">+ ADD ROW</button>
+                                 </div>
+                                 
+                                 {productForm.options.length > 0 && (
+                                   <div className="space-y-3">
+                                      {productForm.options.map((opt, i) => (
+                                        <div key={i} className="flex gap-2">
+                                           <Input value={opt.name} onChange={e => handleUpdateOption(i, 'name', e.target.value)} placeholder="e.g. Full Plate" className="flex-1 h-10 rounded-xl bg-white border-none font-bold text-xs" />
+                                           <Input type="number" value={opt.price} onChange={e => handleUpdateOption(i, 'price', e.target.value)} placeholder="+ ₹" className="w-20 h-10 rounded-xl bg-white border-none font-black text-center" />
+                                           <button onClick={() => handleRemoveOption(i)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"><X className="h-4 w-4" /></button>
+                                        </div>
+                                      ))}
+                                      <div className="pt-4 border-t border-primary/10 flex items-center justify-between">
+                                         <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase">Selection Required?</span>
+                                            <span className="text-[7px] font-bold text-muted-foreground uppercase">Force user to pick one</span>
+                                         </div>
+                                         <Switch checked={productForm.isVarietyRequired} onCheckedChange={v => setProductForm({...productForm, isVarietyRequired: v})} />
+                                      </div>
+                                   </div>
+                                 )}
+                              </div>
                            </div>
-                           <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl">
-                             {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
+                           <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
+                             {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
                            </Button>
                         </div>
                       </DialogContent>
@@ -366,7 +416,7 @@ export default function VendorDashboard() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => { setEditingId(p.id); setProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
+                          <button onClick={() => { setEditingId(p.id); setProductForm({ ...p, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
                           <button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
