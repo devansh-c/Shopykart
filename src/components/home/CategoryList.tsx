@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo } from "react"
@@ -5,14 +6,6 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-
-const CATEGORY_COLORS = [
-  'bg-[#F3E8FF]', // Purple
-  'bg-[#FFF7ED]', // Orange
-  'bg-[#FEE2E2]', // Red
-  'bg-[#DCFCE7]', // Green
-  'bg-[#E0F2FE]', // Blue
-];
 
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -38,36 +31,71 @@ export function CategoryList({
 
   if (loading && !dbCategories) {
     return (
-      <div className="flex space-x-3 px-4 py-4 overflow-x-auto no-scrollbar">
-        {[1, 2, 3, 4].map(i => <div key={i} className="min-w-[100px] h-32 rounded-[2rem] bg-muted/20 animate-pulse" />)}
+      <div className="flex space-x-6 px-6 py-6 overflow-x-auto no-scrollbar">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="flex flex-col items-center gap-3">
+            <div className="w-24 h-24 rounded-full bg-muted/20 animate-pulse" />
+            <div className="w-16 h-3 bg-muted/20 animate-pulse rounded" />
+          </div>
+        ))}
       </div>
     );
   }
 
-  if (filteredCategories.length === 0) return null;
-
   return (
-    <div className="py-4 px-4 overflow-hidden">
-      <div className="flex overflow-x-auto space-x-3 no-scrollbar pb-2">
-        {filteredCategories.map((cat, idx) => {
+    <div className="py-6 px-4 overflow-hidden bg-white">
+      <div className="flex overflow-x-auto space-x-6 no-scrollbar px-2">
+        {/* VIEW ALL / ALL ITEM */}
+        <button 
+          onClick={() => onCategoryChange?.('all')}
+          className="flex flex-col items-center gap-3 shrink-0 group transition-all"
+        >
+          <div className={cn(
+            "w-24 h-24 rounded-full border-[3px] flex items-center justify-center bg-white transition-all shadow-sm",
+            activeCategory === 'all' ? "border-[#E11D48] scale-105 shadow-md" : "border-[#E5E7EB]"
+          )}>
+            <span className={cn(
+              "text-base font-black uppercase tracking-tighter transition-colors",
+              activeCategory === 'all' ? "text-[#111827]" : "text-[#9CA3AF]"
+            )}>
+              ALL
+            </span>
+          </div>
+          <span className={cn(
+            "text-[11px] font-black uppercase tracking-tighter",
+            activeCategory === 'all' ? "text-[#E11D48]" : "text-[#6B7280]"
+          )}>
+            VIEW ALL
+          </span>
+        </button>
+
+        {/* DYNAMIC CATEGORIES */}
+        {filteredCategories.map((cat) => {
           const catId = cat.name.toLowerCase();
           const isActive = activeCategory === catId;
-          const bgColor = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
 
           return (
             <button 
               key={cat.id} 
               onClick={() => onCategoryChange?.(catId)}
-              className={cn(
-                "min-w-[100px] h-32 rounded-[2rem] flex flex-col items-center justify-center gap-3 transition-all border-2",
-                bgColor,
-                isActive ? "border-primary shadow-xl scale-105" : "border-transparent opacity-90"
-              )}
+              className="flex flex-col items-center gap-3 shrink-0 group transition-all"
             >
-              <div className="relative h-12 w-12 transform group-hover:scale-110 transition-transform">
-                <Image src={cat.imageUrl} alt={cat.name} fill className="object-contain" unoptimized />
+              <div className={cn(
+                "relative w-24 h-24 rounded-full overflow-hidden border-[3px] transition-all bg-muted",
+                isActive ? "border-[#E11D48] scale-105 shadow-md" : "border-transparent"
+              )}>
+                <Image 
+                  src={cat.imageUrl} 
+                  alt={cat.name} 
+                  fill 
+                  className="object-cover" 
+                  unoptimized 
+                />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-black/60 italic leading-none">
+              <span className={cn(
+                "text-[11px] font-black uppercase tracking-tighter text-center max-w-[96px] truncate",
+                isActive ? "text-[#E11D48]" : "text-[#6B7280]"
+              )}>
                 {cat.name}
               </span>
             </button>
