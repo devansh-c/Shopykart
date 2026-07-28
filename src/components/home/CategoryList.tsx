@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo } from "react"
@@ -7,10 +6,6 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-/**
- * @fileOverview CategoryList - Zero-Wait Injection.
- * Synchronized with v3 cache key for maximum parallel speed.
- */
 export function CategoryList({ 
   activeCategory = 'all', 
   onCategoryChange,
@@ -26,8 +21,7 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  // Synchronized v3 cache key for haal-ke-haal visibility
-  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v3');
+  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
   const filteredCategories = useMemo(() => {
     if (!dbCategories) return [];
@@ -35,73 +29,29 @@ export function CategoryList({
   }, [dbCategories, serviceMode]);
 
   return (
-    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">
+    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50 min-h-[100px]">
       <div className="flex overflow-x-auto space-x-4 no-scrollbar px-2">
-        {/* Instant Rendering of "ALL" */}
-        <button 
-          onClick={() => onCategoryChange?.('all')}
-          className="flex flex-col items-center gap-2 shrink-0 group transition-all"
-        >
-          <div className={cn(
-            "w-16 h-16 rounded-full border-2 flex items-center justify-center bg-white transition-all shadow-sm",
-            activeCategory === 'all' ? "border-[#E11D48] scale-105" : "border-[#E5E7EB]"
-          )}>
-            <span className={cn(
-              "text-[12px] font-black uppercase tracking-tighter",
-              activeCategory === 'all' ? "text-[#111827]" : "text-[#9CA3AF]"
-            )}>
-              ALL
-            </span>
+        <button onClick={() => onCategoryChange?.('all')} className="flex flex-col items-center gap-2 shrink-0 transition-all">
+          <div className={cn("w-16 h-16 rounded-full border-2 flex items-center justify-center bg-white transition-all shadow-sm", activeCategory === 'all' ? "border-primary scale-105" : "border-gray-100")}>
+            <span className={cn("text-[12px] font-black uppercase tracking-tighter", activeCategory === 'all' ? "text-gray-900" : "text-gray-400")}>ALL</span>
           </div>
-          <span className={cn(
-            "text-[10px] font-black uppercase tracking-tighter",
-            activeCategory === 'all' ? "text-[#E11D48]" : "text-[#6B7280]"
-          )}>
-            EXPLORE
-          </span>
+          <span className={cn("text-[10px] font-black uppercase tracking-tighter", activeCategory === 'all' ? "text-primary" : "text-gray-500")}>EXPLORE</span>
         </button>
 
-        {filteredCategories.length > 0 ? (
-          filteredCategories.map((cat) => {
-            const catId = cat.name.toLowerCase();
-            const isActive = activeCategory === catId;
-
-            return (
-              <button 
-                key={cat.id} 
-                onClick={() => onCategoryChange?.(catId)}
-                className="flex flex-col items-center gap-2 shrink-0 group transition-all"
-              >
-                <div className={cn(
-                  "relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all bg-muted",
-                  isActive ? "border-[#E11D48] scale-105 shadow-md" : "border-transparent"
-                )}>
-                  <Image 
-                    src={cat.imageUrl} 
-                    alt={cat.name} 
-                    fill 
-                    className="object-cover" 
-                    unoptimized 
-                  />
-                </div>
-                <span className={cn(
-                  "text-[10px] font-black uppercase tracking-tighter text-center max-w-[64px] truncate",
-                  isActive ? "text-[#E11D48]" : "text-[#6B7280]"
-                )}>
-                  {cat.name}
-                </span>
-              </button>
-            );
-          })
-        ) : loading ? (
-          // Instant Skeletons if memory is empty
+        {(!dbCategories && loading) ? (
           [1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0">
               <div className="w-16 h-16 rounded-full bg-muted/20 animate-pulse border-2 border-gray-100" />
-              <div className="w-10 h-2 bg-muted/10 animate-pulse rounded-full" />
             </div>
           ))
-        ) : null}
+        ) : filteredCategories.map((cat) => (
+          <button key={cat.id} onClick={() => onCategoryChange?.(cat.name.toLowerCase())} className="flex flex-col items-center gap-2 shrink-0 transition-all">
+            <div className={cn("relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all bg-muted", activeCategory === cat.name.toLowerCase() ? "border-primary scale-105 shadow-md" : "border-transparent")}>
+              <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized />
+            </div>
+            <span className={cn("text-[10px] font-black uppercase tracking-tighter text-center max-w-[64px] truncate", activeCategory === cat.name.toLowerCase() ? "text-primary" : "text-gray-500")}>{cat.name}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

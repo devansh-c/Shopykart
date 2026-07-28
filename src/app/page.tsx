@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,14 +13,13 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Zero Latency Instant Render.
- * Removed all transitions and blocking states for "haal ke haal" visibility.
+ * @fileOverview ShopyKart Main Entrance - Zero Latency Atomic Shell.
+ * Completely removed transitions and blocking logic for haal-ke-haal visibility.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
-  const [, startTransition] = useTransition();
   const { user } = useUser();
 
   useEffect(() => {
@@ -29,23 +27,17 @@ export default function ShopyKartApp() {
   }, [user]);
 
   const handleBackToFood = () => {
-    startTransition(() => {
-      setActiveMode('Food');
-      setActiveCategory('all');
-    });
+    setActiveMode('Food');
+    setActiveCategory('all');
   };
 
   const handleModeChange = (mode: string) => {
-    startTransition(() => {
-      setActiveMode(mode);
-      setActiveCategory('all');
-    });
+    setActiveMode(mode);
+    setActiveCategory('all');
   };
 
   const handleCategoryChange = (cat: string) => {
-    startTransition(() => {
-      setActiveCategory(cat);
-    });
+    setActiveCategory(cat);
   };
 
   return (
@@ -53,13 +45,12 @@ export default function ShopyKartApp() {
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
-          onSearchChange={onSearchChange => setSearchQuery(onSearchChange)} 
+          onSearchChange={val => setSearchQuery(val)} 
           activeMode={activeMode}
           onModeChange={handleModeChange}
         />
       )}
 
-      {/* Main Container: No Opacity/Delay Transitions for instant feel */}
       <main className="transition-none">
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
