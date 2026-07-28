@@ -11,8 +11,7 @@ import { useUser } from '@/firebase';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
- * Reorganized: Banner -> Flash Loot -> Categories -> Products.
- * New Services section removed as per user request.
+ * Reorganized: Banner -> Store Section (Redesigned) -> Flash Loot -> Offers -> Categories -> Products.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -108,8 +107,8 @@ export default function ShopyKartApp() {
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider />
-                <TopTenProducts />
                 <StoreSection activeMode={activeMode} />
+                <TopTenProducts />
                 <OffersSection />
               </>
             )}

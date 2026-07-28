@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
@@ -25,7 +26,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(1000));
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
 
   const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
@@ -41,15 +42,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
       }
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     }).sort((a, b) => {
-      // 1. ONLINE FIRST
       const onlineA = a.isOnline !== false ? 1 : 0;
       const onlineB = b.isOnline !== false ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
-
-      // 2. HIGHEST RATING FIRST
-      const ratingA = a.rating || 0;
-      const ratingB = b.rating || 0;
-      return ratingB - ratingA;
+      return (b.rating || 0) - (a.rating || 0);
     });
   }, [dbVendors, activeMode, activeZoneId]);
 
@@ -65,7 +61,9 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   return (
     <div className="py-6">
       <div className="flex items-center justify-between mb-6 px-6">
-        <h2 className="text-2xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">Explore <span className="text-primary">Hub</span></h2>
+        <h2 className="text-2xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
+          Explore <span className="text-primary">Hub</span>
+        </h2>
       </div>
 
       <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
@@ -73,25 +71,43 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
           <button 
             onClick={() => handleStoreClick(store)}
             key={store.id} 
-            className="block text-left min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border shrink-0 transform-gpu group"
+            className="block text-left min-w-[240px] max-w-[240px] rounded-[2.5rem] overflow-hidden shadow-2xl shrink-0 transform-gpu group border border-white/10 relative"
           >
-            <div className="relative h-36 w-full bg-muted overflow-hidden">
-              <Image src={store.imageUrl} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
+            {/* Background Gradient matching the image */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
+            
+            <div className="relative h-40 w-full overflow-hidden z-10">
+              <Image 
+                src={store.imageUrl} 
+                alt={store.storeName} 
+                fill 
+                className="object-cover group-hover:scale-105 transition-transform duration-700" 
+                unoptimized 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             </div>
-            <div className="p-4">
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="text-lg font-black text-gray-900 italic uppercase truncate flex-1 mr-2">{store.storeName}</h3>
-                <div className="bg-[#15803d] text-white px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-sm shrink-0">
-                  <span className="text-[10px] font-black">{store.rating || '4.0'}</span>
-                  <Star className="h-2.5 w-2.5 fill-white" />
+
+            <div className="p-5 relative z-20 text-white">
+              <h3 className="text-lg font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
+                {store.storeName}
+              </h3>
+              <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-3 truncate italic">
+                {store.category || 'Premium Selection'} | Local Hub
+              </p>
+              
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm">
+                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                   <span className="text-[11px] font-black">{store.rating || '4.8'}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-black text-white/90 italic tracking-tight">
+                   {store.deliveryTime || '35 mins'}
                 </div>
               </div>
-              <div className="flex items-center gap-2 pt-0.5 text-[9px] font-bold text-gray-500 uppercase">
-                 <div className="flex items-center gap-1"><Clock className="h-3 w-3" /><span>{store.deliveryTime || '20 MIN'}</span></div>
-                 <div className="h-2.5 w-[1px] bg-gray-200" />
-                 <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{store.town || 'Local'}</span></div>
-              </div>
             </div>
+
+            {/* Subtle Shine Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
           </button>
         ))}
       </div>
