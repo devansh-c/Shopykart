@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/carousel"
 
 /**
- * @fileOverview StoreSection with Clean SEO Links (No IDs in URL).
+ * @fileOverview StoreSection with Robust Navigation Logic.
+ * Prioritizes Slug for SEO, falls back to ID for stability.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -58,10 +59,11 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   }, [dbVendors, activeMode, activeZoneId]);
 
   const handleStoreClick = (store: any) => {
-    // Prioritize Slug, Fallback to ID but keep it clean
-    const cleanSlug = store.slug || slugify(store.storeName) || store.id;
+    // SECURITY: Use slug if exists, else document ID. 
+    // Do NOT generate slugify on the fly for URL unless it exists in DB.
+    const pathSegment = store.slug || store.id;
     startTransition(() => {
-      router.push(`/store/${cleanSlug}`);
+      router.push(`/store/${pathSegment}`);
     });
   };
 

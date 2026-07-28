@@ -11,7 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview StoresPage with Clean SEO Slugs.
+ * @fileOverview StoresPage with Reliable Navigation Links.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
