@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -23,7 +22,9 @@ import {
   Bike,
   Sparkles,
   Camera,
-  ImageIcon
+  ImageIcon,
+  XCircle,
+  Undo2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -62,6 +63,8 @@ function CartContent() {
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
 
   const [deliveryTip, setDeliveryTip] = useState<number>(0);
+  const [showCustomTip, setShowCustomTip] = useState(false);
+  const [customTipValue, setCustomTipValue] = useState('');
   
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -319,6 +322,13 @@ function CartContent() {
     }
   };
 
+  const handleCustomTipChange = (val: string) => {
+    setCustomTipValue(val);
+    const num = parseFloat(val);
+    if (!isNaN(num)) setDeliveryTip(num);
+    else setDeliveryTip(0);
+  };
+
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
@@ -330,9 +340,9 @@ function CartContent() {
         <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
       </div>
 
-      <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-20">
+      <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-10">
         
-        {/* 1. ITEMS IN BAG (DARK OLIVE) */}
+        {/* 1. ITEMS IN BAG */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2.5rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-3">
               <ShoppingBasket className="h-5 w-5 text-amber-400" />
@@ -361,7 +371,7 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 2. INSTRUCTIONS & PHOTO BOX (DARK OLIVE) */}
+        {/* 2. INSTRUCTIONS & PHOTO BOX */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="space-y-4">
              <div className="flex items-center gap-3">
@@ -400,7 +410,7 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 3. ADDRESS BAR (DARK OLIVE) */}
+        {/* 3. ADDRESS BAR */}
         <div className="bg-gradient-to-r from-[#4A4232] to-[#2D281E] rounded-2xl p-4 shadow-xl flex items-center justify-between border border-white/5">
            <div className="flex items-center gap-3 min-w-0">
               <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg shrink-0">
@@ -426,7 +436,7 @@ function CartContent() {
            )}
         </div>
 
-        {/* 4. GOURMET ENHANCEMENTS BOX (DARK OLIVE) */}
+        {/* 4. GOURMET ENHANCEMENTS BOX */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
@@ -486,47 +496,79 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 5. DELIVERY TIP BOX (DARK OLIVE) */}
+        {/* 5. DELIVERY TIP BOX */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
-           <div className="flex items-center gap-3">
-              <div className="bg-white/5 p-2.5 rounded-xl text-blue-400 border border-white/5">
-                 <Bike className="h-5 w-5" />
+           <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/5 p-2.5 rounded-xl text-blue-400 border border-white/5">
+                   <Bike className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col">
+                   <h3 className="text-xs font-black uppercase italic leading-none">Appreciate Your Rider</h3>
+                   <span className="text-[8px] font-bold opacity-60 uppercase mt-1">100% tip goes to rider</span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                 <h3 className="text-xs font-black uppercase italic leading-none">Appreciate Your Rider</h3>
-                 <span className="text-[8px] font-bold opacity-60 uppercase mt-1">100% tip goes to rider</span>
-              </div>
+              {deliveryTip > 0 && (
+                <button 
+                  onClick={() => { setDeliveryTip(0); setShowCustomTip(false); setCustomTipValue(''); }}
+                  className="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <XCircle className="h-3 w-3" /> Remove Tip
+                </button>
+              )}
            </div>
 
-           <div className="grid grid-cols-4 gap-2">
-              {[10, 20, 40].map((amount) => (
+           {!showCustomTip ? (
+             <div className="grid grid-cols-4 gap-2">
+                {[10, 20, 40].map((amount) => (
+                  <button 
+                    key={amount}
+                    onClick={() => { setDeliveryTip(amount); setShowCustomTip(false); }}
+                    className={cn(
+                      "relative h-12 rounded-xl border-2 flex items-center justify-center transition-all active:scale-95",
+                      deliveryTip === amount ? "bg-amber-400 border-amber-400 text-black shadow-lg" : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                    )}
+                  >
+                     <span className="text-xs font-black">₹{amount}</span>
+                     {amount === 10 && (
+                       <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter whitespace-nowrap shadow-md">Most Tipped</span>
+                     )}
+                  </button>
+                ))}
                 <button 
-                  key={amount}
-                  onClick={() => setDeliveryTip(amount === deliveryTip ? 0 : amount)}
+                  onClick={() => setShowCustomTip(true)}
                   className={cn(
-                    "relative h-12 rounded-xl border-2 flex items-center justify-center transition-all active:scale-95",
-                    deliveryTip === amount ? "bg-amber-400 border-amber-400 text-black shadow-lg" : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                    "h-12 rounded-xl border-2 flex items-center justify-center transition-all active:scale-95",
+                    showCustomTip ? "bg-amber-400 border-amber-400 text-black shadow-lg" : "bg-white/5 border-white/10 text-white hover:bg-white/10"
                   )}
                 >
-                   <span className="text-xs font-black">₹{amount}</span>
-                   {amount === 10 && (
-                     <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter whitespace-nowrap shadow-md">Most Tipped</span>
-                   )}
+                   <span className="text-[8px] font-black uppercase">Other</span>
                 </button>
-              ))}
-              <button 
-                onClick={() => setDeliveryTip(0)}
-                className={cn(
-                  "h-12 rounded-xl border-2 flex items-center justify-center transition-all active:scale-95",
-                  deliveryTip > 0 && ![10, 20, 40].includes(deliveryTip) ? "bg-amber-400 border-amber-400 text-black shadow-lg" : "bg-white/5 border-white/10 text-white hover:bg-white/10"
-                )}
-              >
-                 <span className="text-[8px] font-black uppercase">Other</span>
-              </button>
-           </div>
+             </div>
+           ) : (
+             <div className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
+                <div className="relative flex-1">
+                   <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-400" />
+                   <Input 
+                    type="number"
+                    placeholder="Enter Custom Tip"
+                    value={customTipValue}
+                    onChange={(e) => handleCustomTipChange(e.target.value)}
+                    className="h-12 bg-white/5 border-white/20 text-white pl-10 font-bold"
+                    autoFocus
+                   />
+                </div>
+                <button 
+                  onClick={() => setShowCustomTip(false)}
+                  className="bg-white/10 text-white px-4 rounded-xl font-black text-[9px] uppercase"
+                >
+                  Back
+                </button>
+             </div>
+           )}
         </div>
 
-        {/* 6. BILL DETAILS CARD (DARK OLIVE) */}
+        {/* 6. BILL DETAILS CARD */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Bill Summary</h2>
            
@@ -555,7 +597,7 @@ function CartContent() {
                 </div>
               )}
 
-              {couponDiscount > 0 && (
+              {appliedCoupon && (
                 <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
                    <span className="text-sm font-bold uppercase italic tracking-tight text-green-400">Coupon Discount:</span>
                    <span className="font-black italic text-green-400">- ₹{couponDiscount.toFixed(0)}</span>
@@ -578,7 +620,7 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 7. SELECT PAYMENT MODE CARD (DARK OLIVE) */}
+        {/* 7. SELECT PAYMENT MODE CARD */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
            <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Select Payment Mode:</h2>
            
@@ -618,7 +660,7 @@ function CartContent() {
         </div>
 
         {/* 8. SLIDER TO ORDER */}
-        <div className="pt-10 flex justify-center pb-20">
+        <div className="pt-6 flex justify-center">
            <div className="max-w-md w-full">
               <div 
                 ref={sliderRef}
