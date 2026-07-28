@@ -31,7 +31,7 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setIsClient(true);
     
-    // Listen for manual auth trigger (e.g. from Add to Cart)
+    // Listen for manual auth trigger (e.g. from Add to Cart or View Cart)
     const handleOpenAuth = () => {
       if (!user) setShowAuthOverlay(true);
     };
@@ -40,22 +40,20 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener('open-auth-overlay', handleOpenAuth);
   }, [user]);
 
-  // PROTECTED ROUTES LOGIC: Block converted paths for guests
-  const isProtectedRoute = useMemo(() => {
+  // ONLY FORCE LOGIN ON THE CART PAGE FOR GUESTS
+  // All other pages like Orders, Profile, etc. will just show an empty/login state inside the page itself or trigger on action.
+  const isAuthRequiredRoute = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    const protectedPaths = ['/cart', '/orders', '/rewards', '/profile', '/wishlist'];
-    return protectedPaths.some(path => p.startsWith(path));
+    return p.startsWith('/cart');
   }, [pathname]);
 
-  // If user hits a protected route and is not logged in, force auth overlay
   useEffect(() => {
-    if (isProtectedRoute && !user && !loading && isClient) {
+    if (isAuthRequiredRoute && !user && !loading && isClient) {
       setShowAuthOverlay(true);
     }
-  }, [isProtectedRoute, user, loading, isClient]);
+  }, [isAuthRequiredRoute, user, loading, isClient]);
 
-  // Close overlay automatically if user logs in via any method
   useEffect(() => {
     if (user) setShowAuthOverlay(false);
   }, [user]);
@@ -72,8 +70,8 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
       {!isExcludedPath && showAuthOverlay && !user && isClient && (
         <EmailAuth onClose={() => {
           setShowAuthOverlay(false);
-          // If on a protected route, go back to home on close
-          if (isProtectedRoute) router.push('/');
+          // If the user was forced to login on a restricted route, take them home on cancel
+          if (isAuthRequiredRoute) router.push('/');
         }} />
       )}
     </>
