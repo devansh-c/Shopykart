@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useTransition, Suspense, useEffect } from 'react';
@@ -10,8 +9,7 @@ import dynamic from 'next/dynamic';
 import { useUser } from '@/firebase';
 
 /**
- * @fileOverview ShopyKart Main Entrance.
- * Reorganized: Banner -> Store Section (Redesigned) -> Offers -> Categories -> Products.
+ * @fileOverview ShopyKart Main Entrance with Rich Schema for Google sitelinks.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -63,8 +61,54 @@ export default function ShopyKartApp() {
 
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
+  // JSON-LD for Google Rich Results
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FoodEstablishment",
+    "name": "Shopykart",
+    "image": "https://shopykart.co.in/og-image.jpg",
+    "url": "https://shopykart.co.in",
+    "telephone": "7992090977",
+    "priceRange": "$$",
+    "servesCuisine": "Indian, Pizza, Burgers",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Main Road",
+      "addressLocality": "Mauranipur",
+      "addressRegion": "UP",
+      "postalCode": "284204",
+      "addressCountry": "IN"
+    },
+    "potentialAction": {
+      "@type": "OrderAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://shopykart.co.in/menu",
+        "inLanguage": "en-US",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/IOSPlatform",
+          "http://schema.org/AndroidPlatform"
+        ]
+      },
+      "deliveryMethod": ["http://purl.org/goodrelations/v1#DeliveryModeDirectOutbound"],
+      "priceSpecification": {
+        "@type": "DeliveryChargeSpecification",
+        "appliesToDeliveryMethod": "http://purl.org/goodrelations/v1#DeliveryModeDirectOutbound",
+        "price": 20,
+        "priceCurrency": "INR"
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white transform-gpu">
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
