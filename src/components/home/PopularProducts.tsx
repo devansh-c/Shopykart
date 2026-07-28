@@ -48,6 +48,7 @@ export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null)
 
 /**
  * @fileOverview PopularProducts - Optimized for Instant Performance with Product & Vendor Caching.
+ * Fixed: Now renders products instantly from cache without waiting for full vendor load.
  */
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
@@ -80,19 +81,21 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v2');
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts || !vendors) return [];
+    if (!dbProducts) return [];
     
-    // Create a fast vendor map for O(1) lookups during filtering
-    const vendorMap = new Map(vendors.map(v => [v.id, v]));
+    // Create a fast vendor map for O(1) lookups
+    const vendorMap = new Map((vendors || []).map(v => [v.id, v]));
     
     return dbProducts.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
-      if (activeZoneId) {
+      // If zone filter is active and vendor data is available, apply filter.
+      // If vendor data is NOT yet available, show cached products anyway for instant feel.
+      if (activeZoneId && vendor) {
         const pZone = p.zoneId;
-        const vZone = vendor?.zoneId;
+        const vZone = vendor.zoneId;
         const matchesZone = (pZone === activeZoneId) || (vZone === activeZoneId);
-        const isGlobal = !pZone && (!vendor || !vZone);
+        const isGlobal = !pZone && !vZone;
         
         if (!matchesZone && !isGlobal) {
           return false;
@@ -108,8 +111,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
       
-      const isOnlineA = vendorA?.isOnline !== false && isStoreScheduleOpen(vendorA);
-      const isOnlineB = vendorB?.isOnline !== false && isStoreScheduleOpen(vendorB);
+      const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA)) : true;
+      const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB)) : true;
       
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
       return (vendorB?.rating || 0) - (vendorA?.rating || 0);
@@ -137,8 +140,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     } catch (err) {}
   };
 
-  // INSTANT SKELETON: Shows immediately if cache is empty
-  if ((productsLoading || vendorsLoading) && !dbProducts) {
+  // INSTANT SKELETON: Shows immediately ONLY if cache is empty
+  if (productsLoading && !dbProducts) {
     return (
       <div className="px-4 grid grid-cols-2 gap-4 py-6">
         {[1, 2, 3, 4, 5, 6].map(i => (
@@ -160,7 +163,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         {productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const vendor = vendors?.find(v => v.id === product.vendorId);
-          const isOffline = (vendor?.isOnline === false) || !isStoreScheduleOpen(vendor);
+          const isOffline = vendor ? ((vendor.isOnline === false) || !isStoreScheduleOpen(vendor)) : false;
           const productSlug = product.slug || slugify(product.name) || product.id;
 
           return (
@@ -187,7 +190,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               <div className="flex-1 flex flex-col px-1">
                 <div onClick={() => router.push(`/product/${productSlug}`)} className="cursor-pointer">
                   <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
-                  <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">{product.restaurantName || 'Gourmet'}</p>
+                  <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">
+                    {product.restaurantName || (vendorsLoading ? 'Loading...' : 'Gourmet')}
+                  </p>
                 </div>
 
                 <div className="mt-auto flex items-center justify-between">

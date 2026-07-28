@@ -9,6 +9,7 @@ import { collection } from "firebase/firestore"
 
 /**
  * @fileOverview CategoryList - Optimized for Instant Paint with lightweight skeletons.
+ * Updated to bypass all hydration delays for "haal ke haal" rendering.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -33,7 +34,7 @@ export function CategoryList({
     return dbCategories.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, serviceMode]);
 
-  // INSTANT SKELETON: No isMounted check to avoid layout flicker
+  // INSTANT SKELETON: Renders on first frame if data is missing
   if (loading && !dbCategories) {
     return (
       <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">

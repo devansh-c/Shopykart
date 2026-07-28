@@ -87,7 +87,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("transition-opacity duration-150 will-change-transform", isPending ? "opacity-70" : "opacity-100")}>
+      <main className={cn("transition-opacity duration-150 will-change-transform", isPending ? "opacity-95" : "opacity-100")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">
