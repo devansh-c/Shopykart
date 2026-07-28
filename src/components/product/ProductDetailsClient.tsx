@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useParams, useRouter } from 'next/navigation';
@@ -6,14 +7,13 @@ import { ChevronLeft, Minus, Plus, Share2, Loader2, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
-import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 
 /**
- * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs defensively.
- * Added JSON-LD Product Schema for Google Search indexing.
+ * @fileOverview ProductDetailsClient with High-Performance Resolution logic.
  */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -35,20 +35,33 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
       if (!firestore || !rawSlug) return;
       setLoading(true);
       try {
-        const { getDocs } = await import('firebase/firestore');
-        
-        // 1. First, try finding by SEO Slug field
+        // 1. Try finding by 'slug' field in Firestore
         const slugQ = query(collection(firestore, 'products'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
 
         if (!slugSnap.empty) {
           setProduct({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
-        } else {
-          // 2. Fallback: Try finding by Document ID (Legacy Support)
-          const idRef = doc(firestore, 'products', rawSlug);
-          const idSnap = await getDoc(idRef);
-          if (idSnap.exists()) {
-            setProduct({ id: idSnap.id, ...idSnap.data() });
+          setLoading(false);
+          return;
+        }
+
+        // 2. Try finding by Document ID (Legacy/Direct)
+        const idRef = doc(firestore, 'products', rawSlug);
+        const idSnap = await getDoc(idRef);
+        if (idSnap.exists()) {
+          setProduct({ id: idSnap.id, ...idSnap.data() });
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fallback for legacy slug format (name-id)
+        const parts = rawSlug.split('-');
+        const possibleId = parts[parts.length - 1];
+        if (possibleId && possibleId.length > 10) {
+          const fallbackRef = doc(firestore, 'products', possibleId);
+          const fallbackSnap = await getDoc(fallbackRef);
+          if (fallbackSnap.exists()) {
+            setProduct({ id: fallbackSnap.id, ...fallbackSnap.data() });
           }
         }
       } catch (err) {
@@ -96,7 +109,6 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   const totalPrice = useMemo(() => currentPrice * localQuantity, [currentPrice, localQuantity]);
 
-  // JSON-LD Product Schema for Google Indexing
   const productSchema = useMemo(() => {
     if (!product) return null;
     return {
@@ -106,32 +118,24 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
       "image": [product.imageUrl],
       "description": product.description || `Fresh and delicious ${product.name} from ShopyKart.`,
       "sku": product.id,
-      "brand": {
-        "@type": "Brand",
-        "name": "ShopyKart"
-      },
+      "brand": { "@type": "Brand", "name": "ShopyKart" },
       "offers": {
         "@type": "Offer",
         "url": `https://shopykart.co.in/product/${product.slug || product.id}`,
         "priceCurrency": "INR",
         "price": currentPrice,
         "availability": isOffline ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
-        "seller": {
-          "@type": "Organization",
-          "name": product.restaurantName || "ShopyKart"
-        }
+        "seller": { "@type": "Organization", "name": product.restaurantName || "ShopyKart" }
       }
     };
   }, [product, currentPrice, isOffline]);
 
   const handleAddToCart = () => {
     if (!product || isOffline) return;
-    
     if (!user) {
       window.dispatchEvent(new CustomEvent('open-auth-overlay'));
       return;
     }
-
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
     addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption, price: currentPrice });
     toast({ title: "Added to Cart" });
@@ -142,12 +146,8 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   return (
     <div className="min-h-screen bg-white pb-40">
-      {/* Google Product Schema Injection */}
       {productSchema && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       )}
 
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center border-b border-border/50">

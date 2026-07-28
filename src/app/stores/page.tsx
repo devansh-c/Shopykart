@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview StoresPage with Strict Zone Isolation.
+ * @fileOverview StoresPage with Clean SEO Slugs.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +40,6 @@ export default function StoresPage() {
     const searchLower = searchQuery.toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      // NUCLEAR STRICT ZONE ISOLATION:
       if (activeZoneId) {
         if (v.zoneId !== activeZoneId) {
           return false;
@@ -94,11 +94,11 @@ export default function StoresPage() {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOffline = store.isOnline === false;
             const rating = store.rating || '4.0';
-            const slug = slugify(store.storeName);
+            const storePath = `/store/${store.slug || store.id}`;
 
             return (
               <Link 
-                href={`/store/${slug}-${store.id}`}
+                href={storePath}
                 key={store.id} 
                 className={cn(
                   "block bg-white rounded-3xl overflow-hidden shadow-sm border border-border/40 transition-all active:scale-[0.98] group",
@@ -116,7 +116,7 @@ export default function StoresPage() {
 
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter leading-none uppercase flex-1 truncate mr-2">{store.storeName}</h3>
+                    <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter leading-none flex-1 truncate mr-2">{store.storeName}</h3>
                     <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                        <span className="text-[10px] font-black">{rating}</span>
                        <Star className="h-3 w-3 fill-white" />

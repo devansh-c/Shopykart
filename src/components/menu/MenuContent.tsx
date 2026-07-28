@@ -11,12 +11,12 @@ import { cn, slugify } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview MenuContent with SEO Slug support and defensive resolution.
+ * @fileOverview MenuContent with Unified Slug/ID Resolution.
  */
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -42,28 +42,42 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  // SEO Resolution Logic: Slug -> ID
+  // SEO Resolution Logic: Slug Field Match First, then Document ID
   useEffect(() => {
     async function resolveVendor() {
       if (!firestore || !rawSlug) return;
       setVendorLoading(true);
       try {
-        const { getDocs } = await import('firebase/firestore');
-        
-        // 1. Try Slug
+        // 1. Try finding by 'slug' field in Firestore
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
 
         if (!slugSnap.empty) {
           setVendorProfile({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
-        } else {
-          // 2. Fallback: ID
-          const idRef = doc(firestore, 'vendors', rawSlug);
-          const idSnap = await getDoc(idRef);
-          if (idSnap.exists()) {
-            setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+          setVendorLoading(false);
+          return;
+        }
+
+        // 2. Try finding by Document ID (Direct Match)
+        const idRef = doc(firestore, 'vendors', rawSlug);
+        const idSnap = await getDoc(idRef);
+        if (idSnap.exists()) {
+          setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+          setVendorLoading(false);
+          return;
+        }
+        
+        // 3. Fallback: If slug contains an ID at the end (Legacy support)
+        const parts = rawSlug.split('-');
+        const possibleId = parts[parts.length - 1];
+        if (possibleId && possibleId.length > 10) {
+          const fallbackRef = doc(firestore, 'vendors', possibleId);
+          const fallbackSnap = await getDoc(fallbackRef);
+          if (fallbackSnap.exists()) {
+            setVendorProfile({ id: fallbackSnap.id, ...fallbackSnap.data() });
           }
         }
+
       } catch (err) {
         console.error("Vendor resolution error:", err);
       } finally {
@@ -93,7 +107,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
 
   if (vendorLoading && !vendorProfile) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
-  if (!vendorProfile && !vendorLoading) return <div className="h-screen bg-white flex flex-col items-center justify-center p-8"><h2 className="text-xl font-black italic uppercase text-muted-foreground">Store Not Found</h2><Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl">Back to Home</Button></div>;
+  if (!vendorProfile && !vendorLoading) return <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center"><h2 className="text-xl font-black italic uppercase text-muted-foreground">Store Not Found</h2><Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl">Back to Home</Button></div>;
 
   return (
     <div className="min-h-screen bg-white pb-40">

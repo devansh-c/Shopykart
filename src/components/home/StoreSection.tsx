@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/carousel"
 
 /**
- * @fileOverview StoreSection with Fast Caching and High Limit.
+ * @fileOverview StoreSection with Clean SEO Links (No IDs in URL).
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -57,9 +58,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   }, [dbVendors, activeMode, activeZoneId]);
 
   const handleStoreClick = (store: any) => {
-    const slug = store.slug || slugify(store.storeName);
+    // Prioritize Slug, Fallback to ID but keep it clean
+    const cleanSlug = store.slug || slugify(store.storeName) || store.id;
     startTransition(() => {
-      router.push(`/store/${slug}-${store.id}`);
+      router.push(`/store/${cleanSlug}`);
     });
   };
 

@@ -1,13 +1,15 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
 import { Plus, Minus, Loader2, Crown } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
+import { useRouter } from "next/navigation"
 
 /**
  * Utility to check if a store is currently open based on timing strings (e.g. "10:00 AM")
@@ -47,6 +49,7 @@ export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null)
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
+  const router = useRouter();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,7 +59,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => window.removeEventListener('user-address-updated', updateLoc);
   }, []);
 
-  // INCREASED LIMIT TO 1000 FOR FULL INVENTORY VIEW
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(1000));
@@ -127,6 +129,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const vendor = vendors?.find(v => v.id === product.vendorId);
           const isOffline = (vendor?.isOnline === false) || !isStoreScheduleOpen(vendor);
+          const productSlug = product.slug || slugify(product.name) || product.id;
 
           return (
             <div key={product.id} className={cn(
@@ -146,12 +149,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
-                <ProductQuickView product={product}>
-                  <button className="text-left w-full group">
-                    <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
-                    <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">{product.restaurantName || 'Gourmet'}</p>
-                  </button>
-                </ProductQuickView>
+                <div onClick={() => router.push(`/product/${productSlug}`)} className="cursor-pointer">
+                  <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
+                  <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">{product.restaurantName || 'Gourmet'}</p>
+                </div>
 
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
