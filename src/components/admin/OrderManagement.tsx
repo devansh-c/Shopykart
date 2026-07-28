@@ -31,7 +31,9 @@ import {
   CheckCircle2,
   MessageSquareQuote,
   Crown,
-  Bike
+  Bike,
+  Camera,
+  ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -231,6 +233,17 @@ export default function OrderManagement() {
         </div>
 
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>GRAND TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
+        
+        {orderData.verificationImage && (
+           <>
+            <div className="border-t border-dashed border-black my-3" />
+            <div className="text-center">
+               <p className="text-[7px] font-black tracking-widest mb-2">VERIFICATION PHOTO</p>
+               <img src={orderData.verificationImage} className="w-full h-auto rounded-lg grayscale border border-black/10" alt="Verification" />
+            </div>
+           </>
+        )}
+
         <div className="border-t border-dashed border-black my-3" />
         <div className="border border-dashed border-black p-3 text-center mb-3">
            <p className="text-[7px] font-black tracking-widest mb-1">PAYMENT QR</p>
@@ -313,6 +326,30 @@ export default function OrderManagement() {
                             <p className="text-xs font-bold text-amber-900 leading-tight italic mt-1">{order.instructions}</p>
                          </div>
                       </div>
+                    )}
+
+                    {order.verificationImage && (
+                       <div className="mb-4 space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
+                             <Camera className="h-4 w-4" /> Verification Photo
+                          </div>
+                          <Dialog>
+                             <DialogTrigger asChild>
+                                <div className="h-32 w-full max-w-[200px] rounded-2xl overflow-hidden cursor-pointer border border-border/50 shadow-sm relative group">
+                                   <img src={order.verificationImage} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Eye className="h-6 w-6 text-white" />
+                                   </div>
+                                </div>
+                             </DialogTrigger>
+                             <DialogContent className="rounded-[2.5rem] max-w-sm p-4 bg-white border-none shadow-2xl">
+                                <img src={order.verificationImage} className="w-full h-auto rounded-3xl" alt="Full Verification" />
+                                <div className="p-4 text-center">
+                                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Customer Location Proof</p>
+                                </div>
+                             </DialogContent>
+                          </Dialog>
+                       </div>
                     )}
 
                     {order.deliveryTip > 0 && (
