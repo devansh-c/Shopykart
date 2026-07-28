@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Search, X, Clock, MapPin, Loader2, Store } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/components/cart/CartProvider';
 import { cn, slugify } from '@/lib/utils';
 import Link from 'next/link';
