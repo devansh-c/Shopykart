@@ -13,12 +13,17 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-speed hook to fetch a single document with Cache-First logic.
+ * Added try-catch for storage quota protection.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
   const [data, setData] = useState<T | null>(() => {
     if (typeof window === 'undefined' || !cacheKey) return null;
-    const cached = sessionStorage.getItem(`fire_doc_cache_${cacheKey}`);
-    return cached ? JSON.parse(cached) : null;
+    try {
+      const cached = sessionStorage.getItem(`fire_doc_cache_${cacheKey}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
   });
   const [loading, setLoading] = useState(!data && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
@@ -38,9 +43,13 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         setLoading(false);
         setError(null);
 
-        // Update Cache
+        // Update Cache with Quota check
         if (cacheKey && typeof window !== 'undefined' && docData) {
-          sessionStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
+          try {
+            sessionStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
+          } catch (e) {
+            console.debug(`Quota exceeded for doc cache: ${cacheKey}`);
+          }
         }
       },
       async (err: FirestoreError) => {
