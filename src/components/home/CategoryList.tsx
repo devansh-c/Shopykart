@@ -8,7 +8,7 @@ import { collection } from "firebase/firestore"
 
 /**
  * @fileOverview CategoryList - Zero-Wait Component.
- * Removed blocking loading gates to ensure instant presence.
+ * Optimized for instant display from cache.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -46,6 +46,7 @@ export function CategoryList({
           [1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0">
               <div className="w-16 h-16 rounded-full bg-muted/10 animate-pulse border-2 border-gray-50" />
+              <div className="w-12 h-2 bg-muted/10 rounded-full animate-pulse" />
             </div>
           ))
         ) : filteredCategories.map((cat) => (

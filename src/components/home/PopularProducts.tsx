@@ -40,7 +40,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
-  // Synchronous location access
+  // Synchronous location access to prevent delay
   const activeZoneId = React.useMemo(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
@@ -72,7 +72,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       const searchMatch = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const catMatch = category === 'all' || p.category?.toLowerCase() === category;
-      return modeMatch && searchMatch && catMatch;
+      const isDeleted = p.isDeleted === true;
+      
+      return modeMatch && searchMatch && catMatch && !isDeleted;
     }).sort((a, b) => {
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
@@ -103,7 +105,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           return (
-            <div key={product.id} className="relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98]">
+            <div key={product.id} className="relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu">
               <div className="relative aspect-square w-full mb-3">
                 <ProductQuickView product={product}>
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
@@ -116,9 +118,15 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
+                {/* Store Name Header */}
+                <p className="text-[8px] font-black text-[#C5A021] uppercase tracking-widest italic truncate mb-0.5 opacity-80">
+                  {product.restaurantName || 'ShopyKart Select'}
+                </p>
+                
                 <div onClick={() => router.push(`/product/${product.slug || product.id}`)} className="cursor-pointer">
                   <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
                 </div>
+                
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
                   {quantity === 0 ? (

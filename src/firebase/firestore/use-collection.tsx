@@ -22,13 +22,17 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
-      return cached ? JSON.parse(cached) : null;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return Array.isArray(parsed) ? parsed : null;
+      }
+      return null;
     } catch (e) {
       return null;
     }
   });
   
-  // If we have cached data, we set loading to false immediately
+  // If we have cached data, we set loading to false immediately to trigger real render
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
 
