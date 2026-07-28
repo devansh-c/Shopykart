@@ -11,7 +11,8 @@ import { useUser } from '@/firebase';
 
 /**
  * @fileOverview ShopyKart Main Entrance.
- * Reorganized: Banner -> New Services -> Flash Loot -> Categories -> Products.
+ * Reorganized: Banner -> Flash Loot -> Categories -> Products.
+ * New Services section removed as per user request.
  */
 
 const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
@@ -23,7 +24,6 @@ const OffersSection = dynamic(() => import('@/components/home/OffersSection'), {
   loading: () => <div className="h-32 w-full bg-muted/20 animate-pulse rounded-2xl mx-4" />
 });
 const TopTenProducts = dynamic(() => import('@/components/home/TopTenProducts').then(m => ({ default: m.TopTenProducts })), { ssr: false });
-const NewServices = dynamic(() => import('@/components/home/NewServices').then(m => ({ default: m.NewServices })), { ssr: false });
 
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +70,7 @@ export default function ShopyKartApp() {
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
-          onSearchChange={setSearchQuery} 
+          onSearchChange={onSearchChange => setSearchQuery(onSearchChange)} 
           activeMode={activeMode}
           onModeChange={handleModeChange}
         />
@@ -108,7 +108,6 @@ export default function ShopyKartApp() {
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider />
-                <NewServices />
                 <TopTenProducts />
                 <StoreSection activeMode={activeMode} />
                 <OffersSection />
