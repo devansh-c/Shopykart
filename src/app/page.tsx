@@ -14,14 +14,14 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Zero Latency Edition.
- * Optimized for instant component injection without waiting for mounting states.
+ * @fileOverview ShopyKart Main Entrance - Zero Latency Instant Render.
+ * Removed all transitions and blocking states for "haal ke haal" visibility.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { user } = useUser();
 
   useEffect(() => {
@@ -59,8 +59,8 @@ export default function ShopyKartApp() {
         />
       )}
 
-      {/* Main Container: Transition optimized for instant feel */}
-      <main className={cn("transition-opacity duration-75", isPending ? "opacity-95" : "opacity-100")}>
+      {/* Main Container: No Opacity/Delay Transitions for instant feel */}
+      <main className="transition-none">
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">

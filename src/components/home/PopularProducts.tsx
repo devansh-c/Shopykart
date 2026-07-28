@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
-import { Plus, Minus, Loader2, Share2 } from "lucide-react"
+import { Plus, Minus, Share2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -35,8 +35,8 @@ export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null)
 }
 
 /**
- * @fileOverview PopularProducts - Optimized for Parallel Render.
- * Independent logic that displays products immediately from cache without waiting for vendor sync.
+ * @fileOverview PopularProducts - Atomic Synchronization.
+ * Independent logic that displays products immediately using synchronized v3 cache.
  */
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
@@ -44,22 +44,33 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
-  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+  // Instant Initial Value from localStorage to avoid Effect lag
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
+    return null;
+  });
+
+  useEffect(() => {
+    const updateLoc = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
+    window.addEventListener('user-address-updated', updateLoc);
+    return () => window.removeEventListener('user-address-updated', updateLoc);
+  }, []);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v3');
+  // Synchronized v3 cache key
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v3');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  // Shared cache key with StoreSection for instant sync
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v3');
+  // Shared cache key with StoreSection for haal-ke-haal sync
+  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v3');
 
   const productsToDisplay = useMemo(() => {
     const products = dbProducts || [];
@@ -69,8 +80,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
-      // Zero-Blocking Zone Filter: If vendor data isn't ready yet, we show the product 
-      // (Better to show and refresh later than to show a blank screen)
       if (activeZoneId && vendor) {
         const matchesZone = (p.zoneId === activeZoneId) || (vendor.zoneId === activeZoneId);
         if (!matchesZone && (p.zoneId || vendor.zoneId)) return false;
@@ -96,12 +105,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const productSlug = product.slug || slugify(product.name) || product.id;
     const shareUrl = `${window.location.origin}/product/${productSlug}`;
     try {
-      if (navigator.share) {
-        await navigator.share({ title: product.name, url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({ title: "Link Copied! 🔗" });
-      }
+      if (navigator.share) await navigator.share({ title: product.name, url: shareUrl });
+      else { await navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied! 🔗" }); }
     } catch (err) {}
   };
 
@@ -135,9 +140,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                 <div className="flex-1 flex flex-col px-1">
                   <div onClick={() => router.push(`/product/${productSlug}`)} className="cursor-pointer">
                     <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
-                    <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">
-                      {product.restaurantName || 'Gourmet Selection'}
-                    </p>
+                    <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">{product.restaurantName || 'Gourmet Selection'}</p>
                   </div>
                   <div className="mt-auto flex items-center justify-between">
                     <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
@@ -157,12 +160,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
             );
           })
-        ) : (
+        ) : (productsLoading || vendorsLoading) ? (
           // Instant Skeletons if no products are ready
           [1, 2, 3, 4].map(i => (
             <div key={i} className="aspect-[4/5] w-full bg-muted/10 animate-pulse rounded-[2.5rem] border-2 border-border/20" />
           ))
-        )}
+        ) : null}
       </div>
     </div>
   );

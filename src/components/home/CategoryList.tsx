@@ -8,8 +8,8 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
 /**
- * @fileOverview CategoryList - Instant Display Engine.
- * Decoupled from any mounting gates to ensure categories appear immediately from cache.
+ * @fileOverview CategoryList - Zero-Wait Injection.
+ * Synchronized with v3 cache key for maximum parallel speed.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -26,8 +26,8 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  // Use synchronized v3 cache key for parallel loading
-  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v3');
+  // Synchronized v3 cache key for haal-ke-haal visibility
+  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v3');
 
   const filteredCategories = useMemo(() => {
     if (!dbCategories) return [];
@@ -37,7 +37,7 @@ export function CategoryList({
   return (
     <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">
       <div className="flex overflow-x-auto space-x-4 no-scrollbar px-2">
-        {/* "ALL" Button is always rendered immediately */}
+        {/* Instant Rendering of "ALL" */}
         <button 
           onClick={() => onCategoryChange?.('all')}
           className="flex flex-col items-center gap-2 shrink-0 group transition-all"
@@ -93,15 +93,15 @@ export function CategoryList({
               </button>
             );
           })
-        ) : (
-          // Instant Skeleton placeholders if cache is empty
+        ) : loading ? (
+          // Instant Skeletons if memory is empty
           [1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0">
               <div className="w-16 h-16 rounded-full bg-muted/20 animate-pulse border-2 border-gray-100" />
               <div className="w-10 h-2 bg-muted/10 animate-pulse rounded-full" />
             </div>
           ))
-        )}
+        ) : null}
       </div>
     </div>
   );

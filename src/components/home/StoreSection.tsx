@@ -13,22 +13,25 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel"
+import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection - Turbo Rendering.
- * Uses synchronized v3 cache key for maximum parallel performance.
+ * @fileOverview StoreSection - Parallel Rendering.
+ * Synchronized with v3 cache key. Uses localStorage for zero-wait zone detection.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
-  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+  
+  // Instant Initial Value from localStorage to avoid Effect lag
+  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
+    return null;
+  });
 
   React.useEffect(() => {
-    const updateLoc = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    };
-    updateLoc();
+    const updateLoc = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     window.addEventListener('user-address-updated', updateLoc);
     return () => window.removeEventListener('user-address-updated', updateLoc);
   }, []);
@@ -38,22 +41,20 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  // Synchronized v3 cache key
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v3');
+  // Synchronized v3 cache key for haal-ke-haal visibility
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v3');
 
   const filteredVendors = React.useMemo(() => {
     if (!dbVendors) return [];
     
     return dbVendors.filter(v => {
       if (activeZoneId) {
-        if (v.zoneId !== activeZoneId) {
-          return false;
-        }
+        if (v.zoneId && v.zoneId !== activeZoneId) return false;
       }
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     }).sort((a, b) => {
-      const onlineA = a.isOnline !== false ? 1 : 0;
-      const onlineB = b.isOnline !== false ? 1 : 0;
+      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a) ? 1 : 0;
+      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
@@ -74,14 +75,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
         </h2>
       </div>
 
-      <Carousel 
-        className="w-full" 
-        opts={{ 
-          loop: true, 
-          align: 'center',
-          skipSnaps: false
-        }}
-      >
+      <Carousel className="w-full" opts={{ loop: true, align: 'center', skipSnaps: false }}>
         <CarouselContent className="-ml-3">
           {filteredVendors.length > 0 ? (
             filteredVendors.map((store: any) => (
@@ -94,50 +88,34 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
                   )}
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
-                  
                   <div className="relative h-24 w-full overflow-hidden z-10">
-                    <Image 
-                      src={store.imageUrl} 
-                      alt={store.storeName} 
-                      fill 
-                      className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                      unoptimized 
-                    />
+                    <Image src={store.imageUrl} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   </div>
-
                   <div className="p-4 relative z-20 text-white">
-                    <h3 className="text-sm font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
-                      {store.storeName}
-                    </h3>
-                    <p className="text-[8px] font-bold text-white/80 uppercase tracking-widest mb-2 truncate italic">
-                      {store.category || 'Premium Selection'}
-                    </p>
-                    
+                    <h3 className="text-sm font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">{store.storeName}</h3>
+                    <p className="text-[8px] font-bold text-white/80 uppercase tracking-widest mb-2 truncate italic">{store.category || 'Premium Selection'}</p>
                     <div className="flex items-center justify-between">
                       <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                          <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-[9px] font-black text-white/90 italic tracking-tight">
-                         <Clock className="h-3 w-3" />
-                         {store.deliveryTime || '25 min'}
+                         <Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}
                       </div>
                     </div>
                   </div>
-
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
                 </button>
               </CarouselItem>
             ))
-          ) : (
+          ) : loading ? (
             // Instant Skeletons
             [1, 2].map(i => (
               <CarouselItem key={i} className="pl-3 basis-[65%] sm:basis-[50%]">
                  <div className="w-full aspect-[16/10] rounded-[2rem] bg-muted/20 animate-pulse border border-border/50" />
               </CarouselItem>
             ))
-          )}
+          ) : null}
         </CarouselContent>
       </Carousel>
     </div>
