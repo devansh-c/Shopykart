@@ -14,8 +14,8 @@ import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Ultra Fast Edition.
- * Bypassed all mounting gates for instant components display.
+ * @fileOverview ShopyKart Main Entrance - Zero Latency Edition.
+ * Optimized for instant component injection without waiting for mounting states.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,7 +59,8 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className="transition-opacity duration-75">
+      {/* Main Container: Transition optimized for instant feel */}
+      <main className={cn("transition-opacity duration-75", isPending ? "opacity-95" : "opacity-100")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">
@@ -86,7 +87,7 @@ export default function ShopyKartApp() {
             <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
           </div>
         ) : (
-          <div className="content-visibility-auto space-y-0">
+          <div className="content-visibility-auto">
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider />

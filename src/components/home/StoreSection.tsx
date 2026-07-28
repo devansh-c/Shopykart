@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/carousel"
 
 /**
- * @fileOverview StoreSection with Robust Navigation Logic and Skeletons.
+ * @fileOverview StoreSection - Turbo Rendering.
+ * Uses synchronized v3 cache key for maximum parallel performance.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -37,7 +38,8 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_stores_v2');
+  // Synchronized v3 cache key
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v3');
 
   const filteredVendors = React.useMemo(() => {
     if (!dbVendors) return [];
@@ -64,19 +66,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     });
   };
 
-  // SKELETON RENDER FOR INSTANT FEEL
-  if (loading && !dbVendors) {
-    return (
-      <div className="py-4 px-6 overflow-hidden">
-        <div className="flex gap-4">
-           {[1, 2].map(i => (
-             <div key={i} className="min-w-[65%] aspect-video rounded-[2rem] bg-muted/20 animate-pulse border border-border/50 shadow-sm" />
-           ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="py-4 overflow-hidden bg-white content-visibility-auto">
       <div className="flex items-center justify-between mb-3 px-6">
@@ -94,52 +83,61 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
         }}
       >
         <CarouselContent className="-ml-3">
-          {filteredVendors.map((store: any) => (
-            <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
-              <button 
-                onClick={() => handleStoreClick(store)}
-                className={cn(
-                  "block text-left w-full rounded-[2rem] overflow-hidden shadow-lg transform-gpu group border border-white/10 relative transition-opacity duration-300",
-                  isPending && "opacity-50"
-                )}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
-                
-                <div className="relative h-24 w-full overflow-hidden z-10">
-                  <Image 
-                    src={store.imageUrl} 
-                    alt={store.storeName} 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                    unoptimized 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                </div>
-
-                <div className="p-4 relative z-20 text-white">
-                  <h3 className="text-sm font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
-                    {store.storeName}
-                  </h3>
-                  <p className="text-[8px] font-bold text-white/80 uppercase tracking-widest mb-2 truncate italic">
-                    {store.category || 'Premium Selection'}
-                  </p>
+          {filteredVendors.length > 0 ? (
+            filteredVendors.map((store: any) => (
+              <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
+                <button 
+                  onClick={() => handleStoreClick(store)}
+                  className={cn(
+                    "block text-left w-full rounded-[2rem] overflow-hidden shadow-lg transform-gpu group border border-white/10 relative transition-opacity duration-300",
+                    isPending && "opacity-50"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
                   
-                  <div className="flex items-center justify-between">
-                    <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
-                       <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                       <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[9px] font-black text-white/90 italic tracking-tight">
-                       <Clock className="h-3 w-3" />
-                       {store.deliveryTime || '25 min'}
+                  <div className="relative h-24 w-full overflow-hidden z-10">
+                    <Image 
+                      src={store.imageUrl} 
+                      alt={store.storeName} 
+                      fill 
+                      className="object-cover group-hover:scale-105 transition-transform duration-700" 
+                      unoptimized 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  </div>
+
+                  <div className="p-4 relative z-20 text-white">
+                    <h3 className="text-sm font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
+                      {store.storeName}
+                    </h3>
+                    <p className="text-[8px] font-bold text-white/80 uppercase tracking-widest mb-2 truncate italic">
+                      {store.category || 'Premium Selection'}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
+                         <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                         <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[9px] font-black text-white/90 italic tracking-tight">
+                         <Clock className="h-3 w-3" />
+                         {store.deliveryTime || '25 min'}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-              </button>
-            </CarouselItem>
-          ))}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+                </button>
+              </CarouselItem>
+            ))
+          ) : (
+            // Instant Skeletons
+            [1, 2].map(i => (
+              <CarouselItem key={i} className="pl-3 basis-[65%] sm:basis-[50%]">
+                 <div className="w-full aspect-[16/10] rounded-[2rem] bg-muted/20 animate-pulse border border-border/50" />
+              </CarouselItem>
+            ))
+          )}
         </CarouselContent>
       </Carousel>
     </div>
