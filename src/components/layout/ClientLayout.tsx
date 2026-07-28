@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -23,27 +22,27 @@ const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCa
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
-  const { user, loading } = useUser();
+  const { user } = useUser();
   const pathname = usePathname();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    
+    // Listen for manual auth trigger (e.g. from Add to Cart)
+    const handleOpenAuth = () => {
+      if (!user) setShowAuthOverlay(true);
+    };
+    
+    window.addEventListener('open-auth-overlay', handleOpenAuth);
+    return () => window.removeEventListener('open-auth-overlay', handleOpenAuth);
+  }, [user]);
 
+  // Close overlay automatically if user logs in via any method
   useEffect(() => {
-    if (!loading && isClient) {
-      // SEO BYPASS: Critical fix to allow search engines to crawl without being blocked by Auth
-      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-      const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(userAgent);
-      
-      if (!user && !isBot && localStorage.getItem('shopykart_session_active') !== 'true') {
-        const authTimer = setTimeout(() => setShowAuthOverlay(true), 200);
-        return () => clearTimeout(authTimer);
-      }
-    }
-  }, [user, loading, isClient]);
+    if (user) setShowAuthOverlay(false);
+  }, [user]);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
@@ -54,7 +53,9 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   return (
     <>
       {children}
-      {!isExcludedPath && showAuthOverlay && !user && isClient && <EmailAuth />}
+      {!isExcludedPath && showAuthOverlay && !user && isClient && (
+        <EmailAuth onClose={() => setShowAuthOverlay(false)} />
+      )}
     </>
   );
 });

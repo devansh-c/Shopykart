@@ -8,7 +8,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
@@ -20,7 +20,8 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
   const rawSlug = forcedSlug || (params?.slug as string);
   const router = useRouter();
   const { toast } = useToast();
-  const { addToCart } = useCart();
+  const { cart, addToCart } = useCart();
+  const { user } = useUser();
   
   const [localQuantity, setLocalQuantity] = useState(1);
   const [selectedOption, setSelectedOption] = useState<{ name: string; price: number } | null>(null);
@@ -125,6 +126,12 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   const handleAddToCart = () => {
     if (!product || isOffline) return;
+    
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+      return;
+    }
+
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
     addToCart({ ...product, imageUrl, quantity: localQuantity, selectedOption, price: currentPrice });
     toast({ title: "Added to Cart" });

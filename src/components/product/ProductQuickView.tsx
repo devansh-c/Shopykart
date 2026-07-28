@@ -25,7 +25,7 @@ import { useCart } from '@/components/cart/CartProvider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
@@ -40,6 +40,7 @@ interface ProductQuickViewProps {
 export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
+  const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(1);
@@ -87,6 +88,12 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   }, [product, selectedOption, isSaleActive, isClosedMode, globalOffer]);
 
   const handleAddToCart = () => {
+    if (!user) {
+      setIsOpen(false);
+      window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+      return;
+    }
+
     if (isOffline) return;
     if (product.isVarietyRequired && !selectedOption && hasOptions) {
       toast({ variant: "destructive", title: "Selection Required", description: "Please select a variety first." });
@@ -183,7 +190,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                   })}
                 </div>
               </div>
-            ) : (!isMedical && (<div className="space-y-3"><div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4></div><Textarea disabled={isOffline} placeholder="E.g. Don't add onion, make it extra spicy..." value={instructions} onChange={(e) => setInstructions(e.target.value)} className="rounded-[1.25rem] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 font-medium text-xs min-h-[100px] p-4" /></div>))}
+            ) : (!isMedical && (<div className="space-y-3"><div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-gray-800">Special Instructions</h4></div><Textarea disabled={isOffline} placeholder="E.G. Don't add onion, make it extra spicy..." value={instructions} onChange={(e) => setInstructions(e.target.value)} className="rounded-[1.25rem] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 font-medium text-xs min-h-[100px] p-4" /></div>))}
           </div>
 
           <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-10 z-[12000] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -193,7 +200,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                    <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
                    <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white transition-none"><Plus className="h-4 w-4" /></button>
                 </div>
-                <Button onClick={handleAddToCart} disabled={isOffline} className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none">
+                <Button onClick={handleAddToCart} className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-none disabled:bg-gray-300 disabled:shadow-none">
                   <ShoppingBag className="h-4 w-4 mr-2" />
                   {isOffline ? (scheduleOpen ? 'OFFLINE' : 'TIMING CLOSED') : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>

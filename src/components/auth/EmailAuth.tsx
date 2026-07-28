@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Lock, User, Phone, Apple, ChevronLeft, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, Apple, ChevronLeft, CheckCircle2, ShieldCheck, RefreshCw, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { 
@@ -24,7 +23,7 @@ import { generateWelcomeEmail } from '@/ai/flows/welcome-email-flow';
 
 type AuthView = 'login' | 'signup' | 'forgot-password';
 
-export function EmailAuth() {
+export function EmailAuth({ onClose }: { onClose?: () => void }) {
   const [view, setView] = useState<AuthView>('signup');
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
@@ -86,7 +85,8 @@ export function EmailAuth() {
       toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
       
       window.dispatchEvent(new CustomEvent('user-address-updated'));
-      setTimeout(() => router.replace('/'), 100);
+      if (onClose) onClose();
+      else setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
       if (err.code === 'auth/unauthorized-domain') {
         const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
@@ -150,14 +150,16 @@ export function EmailAuth() {
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Welcome!", description: "Account created successfully." });
         window.dispatchEvent(new CustomEvent('user-address-updated'));
-        setTimeout(() => router.replace('/'), 100);
+        if (onClose) onClose();
+        else setTimeout(() => router.replace('/'), 100);
       } else {
         await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Authenticated!" });
         window.dispatchEvent(new CustomEvent('user-address-updated'));
-        setTimeout(() => router.replace('/'), 100);
+        if (onClose) onClose();
+        else setTimeout(() => router.replace('/'), 100);
       }
     } catch (err: any) {
       setLoading(false);
@@ -192,6 +194,15 @@ export function EmailAuth() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
          <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 blur-[120px] rounded-full" />
       </div>
+
+      {onClose && (
+        <button 
+          onClick={onClose}
+          className="absolute top-8 right-8 z-[1000000] bg-white/10 hover:bg-white/20 p-3 rounded-full text-white backdrop-blur-md transition-all active:scale-90"
+        >
+          <X className="h-6 w-6" />
+        </button>
+      )}
 
       <div className="max-w-sm mx-auto w-full space-y-8 py-10 transform-gpu relative z-10 animate-in fade-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center text-center space-y-6">
