@@ -21,11 +21,12 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
+  // Using High-Speed Cache Key
   const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
   const filteredCategories = useMemo(() => {
-    if (!dbCategories) return [];
-    return dbCategories.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
+    const list = dbCategories || [];
+    return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, serviceMode]);
 
   return (
@@ -41,7 +42,7 @@ export function CategoryList({
         {(!dbCategories && loading) ? (
           [1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0">
-              <div className="w-16 h-16 rounded-full bg-muted/20 animate-pulse border-2 border-gray-100" />
+              <div className="w-16 h-16 rounded-full bg-muted/10 animate-pulse border-2 border-gray-50" />
             </div>
           ))
         ) : filteredCategories.map((cat) => (

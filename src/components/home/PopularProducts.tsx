@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState } from "react"
+import React, { useMemo, useState, useEffect } from "react"
 import { Plus, Minus, Share2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
@@ -37,6 +37,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
+  // IMMEDIATE LOCATION RECOGNITION
   const [activeZoneId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
@@ -54,7 +55,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const productsToDisplay = useMemo(() => {
     const products = dbProducts || [];
@@ -63,7 +64,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
-      if (activeZoneId && vendor && v.zoneId && v.zoneId !== activeZoneId) return false;
+      // Fixed: changed 'v' to 'vendor' to fix ReferenceError
+      if (activeZoneId && vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
+      
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       const searchMatch = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const catMatch = category === 'all' || p.category?.toLowerCase() === category;
