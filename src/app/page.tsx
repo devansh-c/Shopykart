@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useTransition, Suspense, useEffect } from 'react';
@@ -76,7 +77,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-2")}>
+      <main className={cn("transition-opacity duration-200 will-change-transform", isPending ? "opacity-70" : "opacity-100", (activeMode === 'Medical' || activeMode === 'Beauty') ? "mt-0" : "mt-0")}>
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
              <div className="relative mb-8">
@@ -104,23 +105,25 @@ export default function ShopyKartApp() {
             <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
           </div>
         ) : (
-          <div className="content-visibility-auto space-y-2">
+          <div className="content-visibility-auto space-y-0">
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider />
-                <ScrollReveal delay={50}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
-                <div className="px-4 py-2">
-                  <div className="flex items-center justify-between mb-4 px-2">
-                    <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">New Services</h2>
+                <div className="space-y-2">
+                  <ScrollReveal delay={50}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
+                  <div className="px-4 py-2">
+                    <div className="flex items-center justify-between mb-4 px-2">
+                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">New Services</h2>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <BeautySalonSection onClick={() => handleModeChange('Beauty')} />
+                      <MedicalCareSection onClick={() => handleModeChange('Medical')} />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <BeautySalonSection onClick={() => handleModeChange('Beauty')} />
-                    <MedicalCareSection onClick={() => handleModeChange('Medical')} />
-                  </div>
+                  <StoreSection activeMode={activeMode} />
+                  <OffersSection />
+                  <TopTenProducts />
                 </div>
-                <StoreSection activeMode={activeMode} />
-                <OffersSection />
-                <TopTenProducts />
               </>
             )}
             <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -52,7 +53,7 @@ export function OfferSlider() {
   if (!filteredBanners || filteredBanners.length === 0) return null;
 
   return (
-    <div className="w-full py-4 relative group">
+    <div className="w-full py-6 relative group overflow-hidden bg-white">
       <Carousel 
         setApi={setApi}
         className="w-full" 
@@ -61,8 +62,8 @@ export function OfferSlider() {
       >
         <CarouselContent className="-ml-2">
           {filteredBanners.map((banner: any) => (
-            <CarouselItem key={banner.id} className="pl-2 basis-[88%]">
-              <div className="relative aspect-[18/9] w-full overflow-hidden shadow-xl rounded-2xl bg-muted border border-border/40 transform-gpu transition-transform duration-500 hover:scale-[1.02]">
+            <CarouselItem key={banner.id} className="pl-2 basis-[90%] md:basis-[85%]">
+              <div className="relative aspect-[18/9] w-full overflow-hidden rounded-[2rem] bg-muted border-4 border-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] transform-gpu transition-all duration-500 hover:scale-[1.01] outline outline-1 outline-gray-100">
                 <Image
                   src={banner.imageUrl}
                   alt="Special Offer"
@@ -70,26 +71,34 @@ export function OfferSlider() {
                   className="object-cover"
                   unoptimized
                 />
+                {/* Subtle glass effect frame from the screenshot */}
+                <div className="absolute inset-0 border-[8px] border-white/10 pointer-events-none rounded-[1.8rem]" />
               </div>
             </CarouselItem>
           ))}
         </CarouselContent>
       </Carousel>
 
-      {/* Navigation Arrows */}
-      <button onClick={() => api?.scrollPrev()} className="absolute left-6 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-black z-20 opacity-0 group-hover:opacity-100 transition-opacity active:scale-90">
+      {/* Navigation Arrows positioned like the screenshot */}
+      <button 
+        onClick={() => api?.scrollPrev()} 
+        className="absolute left-6 top-1/2 -translate-y-1/2 h-9 w-9 bg-white shadow-xl rounded-full flex items-center justify-center text-gray-800 z-20 transition-all active:scale-75 hover:bg-gray-50 border border-gray-100"
+      >
         <ChevronLeft className="h-5 w-5" />
       </button>
-      <button onClick={() => api?.scrollNext()} className="absolute right-6 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-black z-20 opacity-0 group-hover:opacity-100 transition-opacity active:scale-90">
+      <button 
+        onClick={() => api?.scrollNext()} 
+        className="absolute right-6 top-1/2 -translate-y-1/2 h-9 w-9 bg-white shadow-xl rounded-full flex items-center justify-center text-gray-800 z-20 transition-all active:scale-75 hover:bg-gray-50 border border-gray-100"
+      >
         <ChevronRight className="h-5 w-5" />
       </button>
 
-      {/* Pagination Dots */}
-      <div className="flex justify-center gap-1.5 mt-4">
+      {/* Pagination Dots below the banner */}
+      <div className="flex justify-center gap-2 mt-5">
         {filteredBanners.map((_, i) => (
           <div key={i} className={cn(
-            "h-1.5 transition-all duration-300 rounded-full",
-            current === i ? "w-6 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" : "w-1.5 bg-gray-200"
+            "h-1.5 transition-all duration-500 rounded-full",
+            current === i ? "w-6 bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]" : "w-1.5 bg-gray-200"
           )} />
         ))}
       </div>
