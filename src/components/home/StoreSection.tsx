@@ -59,24 +59,24 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   if (loading || filteredVendors.length === 0) return null;
 
   return (
-    <div className="py-6">
-      <div className="flex items-center justify-between mb-6 px-6">
-        <h2 className="text-2xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
+    <div className="py-4">
+      <div className="flex items-center justify-between mb-4 px-6">
+        <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
         </h2>
       </div>
 
-      <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
+      <div className={cn("flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-2 transition-opacity", isPending && "opacity-50")}>
         {filteredVendors.map((store: any) => (
           <button 
             onClick={() => handleStoreClick(store)}
             key={store.id} 
-            className="block text-left min-w-[240px] max-w-[240px] rounded-[2.5rem] overflow-hidden shadow-2xl shrink-0 transform-gpu group border border-white/10 relative"
+            className="block text-left min-w-[220px] max-w-[220px] rounded-[2rem] overflow-hidden shadow-xl shrink-0 transform-gpu group border border-white/10 relative"
           >
-            {/* Background Gradient matching the image */}
+            {/* Background Gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9] z-0" />
             
-            <div className="relative h-40 w-full overflow-hidden z-10">
+            <div className="relative h-32 w-full overflow-hidden z-10">
               <Image 
                 src={store.imageUrl} 
                 alt={store.storeName} 
@@ -84,24 +84,25 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
                 className="object-cover group-hover:scale-105 transition-transform duration-700" 
                 unoptimized 
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             </div>
 
-            <div className="p-5 relative z-20 text-white">
-              <h3 className="text-lg font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
+            <div className="p-4 relative z-20 text-white">
+              <h3 className="text-base font-black italic uppercase leading-tight mb-1 truncate drop-shadow-sm">
                 {store.storeName}
               </h3>
-              <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-3 truncate italic">
-                {store.category || 'Premium Selection'} | Local Hub
+              <p className="text-[9px] font-bold text-white/80 uppercase tracking-widest mb-2 truncate italic">
+                {store.category || 'Premium Selection'}
               </p>
               
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/20 shadow-sm">
-                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                   <span className="text-[11px] font-black">{store.rating || '4.8'}</span>
+              <div className="flex items-center justify-between">
+                <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-sm">
+                   <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                   <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] font-black text-white/90 italic tracking-tight">
-                   {store.deliveryTime || '35 mins'}
+                <div className="flex items-center gap-1 text-[9px] font-black text-white/90 italic tracking-tight">
+                   <Clock className="h-3 w-3" />
+                   {store.deliveryTime || '25 mins'}
                 </div>
               </div>
             </div>
