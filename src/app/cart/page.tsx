@@ -147,7 +147,9 @@ function CartContent() {
     return Math.min(remainingTotal, availableCoins * coinValue);
   }, [useCoins, availableCoins, coinValue, totalPrice, couponDiscount]);
 
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + deliveryTip + (premiumPackaging && !isPremium ? 10 : 0) - coinDiscount - couponDiscount);
+  const premiumPackingPrice = (premiumPackaging && !isPremium) ? 10 : 0;
+
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum + deliveryTip + premiumPackingPrice - coinDiscount - couponDiscount);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -360,7 +362,7 @@ function CartContent() {
            <div className="space-y-4">
              <div className="flex items-center gap-3">
                 <div className="bg-white/10 p-2 rounded-xl text-amber-400"><MessageSquareQuote className="h-4 w-4" /></div>
-                <h3 className="text-[10px] font-black uppercase tracking-widest">Cooking & Delivery Instructions</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest">Instructions <span className="opacity-50">(Optional)</span></h3>
              </div>
              <Textarea 
                placeholder="E.g. Make it extra spicy, Leave at the gate..." 
@@ -373,7 +375,7 @@ function CartContent() {
            <div className="pt-4 border-t border-white/10 space-y-4">
               <div className="flex items-center gap-3">
                  <div className="bg-white/10 p-2 rounded-xl text-amber-400"><Camera className="h-4 w-4" /></div>
-                 <h3 className="text-[10px] font-black uppercase tracking-widest">Delivery Verification Photo</h3>
+                 <h3 className="text-[10px] font-black uppercase tracking-widest">Verification Photo <span className="opacity-50">(Optional)</span></h3>
               </div>
               <p className="text-[8px] font-bold opacity-60 uppercase leading-none">Upload House photo, Your Selfie, or Nearby Landmark</p>
               
@@ -437,7 +439,7 @@ function CartContent() {
                     <span className="text-[8px] font-bold opacity-60 uppercase mt-1">Extra protection • ₹10</span>
                  </div>
               </div>
-              <Switch checked={isPremium ? true : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} className="data-[state=checked]:bg-rose-500" />
+              <Switch checked={isPremium ? true : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} className="data-[state=checked]:bg-rose-50" />
            </div>
 
            <div className="h-[1px] w-full bg-white/10" />
@@ -452,7 +454,7 @@ function CartContent() {
                     <span className="text-[8px] font-bold opacity-60 uppercase mt-1">Value: ₹{(availableCoins * coinValue).toFixed(0)}</span>
                  </div>
               </div>
-              <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
+              <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-50" />
            </div>
 
            <div className="h-[1px] w-full bg-white/10" />
@@ -525,36 +527,50 @@ function CartContent() {
            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Bill Summary</h2>
            
            <div className="space-y-4 mb-8">
-              {cart.map((item, i) => (
-                <div key={i} className="flex justify-between items-center group">
-                   <span className="text-sm font-bold uppercase italic tracking-tight truncate flex-1 mr-4">{item.name}</span>
-                   <span className="text-xs font-black opacity-60">x {item.quantity}</span>
+              <div className="flex justify-between items-center group">
+                 <span className="text-sm font-bold uppercase italic tracking-tight">Items Subtotal:</span>
+                 <span className="font-black italic text-white">₹{totalPrice.toFixed(0)}</span>
+              </div>
+              
+              <div className="flex justify-between items-center group">
+                 <span className="text-sm font-bold uppercase italic tracking-tight">Delivery & Handling:</span>
+                 <span className="font-black italic text-white">₹{chargesTotalSum.toFixed(0)}</span>
+              </div>
+
+              {premiumPackingPrice > 0 && (
+                <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
+                   <span className="text-sm font-bold uppercase italic tracking-tight">Premium Packing:</span>
+                   <span className="font-black italic text-white">₹{premiumPackingPrice}</span>
                 </div>
-              ))}
+              )}
+
+              {deliveryTip > 0 && (
+                <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
+                   <span className="text-sm font-bold uppercase italic tracking-tight text-blue-400">Rider Tip:</span>
+                   <span className="font-black italic text-blue-300">₹{deliveryTip}</span>
+                </div>
+              )}
+
+              {couponDiscount > 0 && (
+                <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
+                   <span className="text-sm font-bold uppercase italic tracking-tight text-green-400">Coupon Discount:</span>
+                   <span className="font-black italic text-green-400">- ₹{couponDiscount.toFixed(0)}</span>
+                </div>
+              )}
+
+              {coinDiscount > 0 && (
+                <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
+                   <span className="text-sm font-bold uppercase italic tracking-tight text-amber-400">Coins Redeemed:</span>
+                   <span className="font-black italic text-amber-400">- ₹{coinDiscount.toFixed(0)}</span>
+                </div>
+              )}
            </div>
 
            <div className="h-[1px] w-full bg-[#D9C4A9]/10 mb-6" />
 
-           <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm font-medium">
-                 <span>Items Subtotal:</span>
-                 <span className="font-black italic text-white">₹{totalPrice.toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-medium">
-                 <span>Delivery & Handling:</span>
-                 <span className="font-black italic text-white">₹{chargesTotalSum.toFixed(0)}</span>
-              </div>
-              {deliveryTip > 0 && (
-                <div className="flex justify-between items-center text-sm font-medium">
-                   <span>Rider Tip:</span>
-                   <span className="font-black italic text-white">₹{deliveryTip}</span>
-                </div>
-              )}
-              
-              <div className="pt-6 mt-6 border-t border-dashed border-[#D9C4A9]/20 flex justify-between items-center">
-                 <span className="text-lg font-black italic uppercase tracking-tighter">Grand Total:</span>
-                 <span className="text-3xl font-black text-amber-400 italic tracking-tighter">₹{grandTotal.toFixed(0)}</span>
-              </div>
+           <div className="pt-2 flex justify-between items-center">
+              <span className="text-lg font-black italic uppercase tracking-tighter">Grand Total:</span>
+              <span className="text-3xl font-black text-amber-400 italic tracking-tighter">₹{grandTotal.toFixed(0)}</span>
            </div>
         </div>
 
