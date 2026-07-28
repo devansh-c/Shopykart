@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Universal SEO Route for Products.
  * Handles both Slugs and IDs to resolve routing conflicts.
- * Updated for Next.js 15 Async Params.
+ * Updated for Next.js 15 Async Params with Rich SEO.
  */
 
 export const generateStaticParams = async () => {
@@ -20,10 +20,31 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
-    title: `${cleanTitle} | ShopyKart`,
-    description: 'Order premium gourmet food and essentials from ShopyKart.',
+    title: `${cleanTitle} | Buy Online at ShopyKart`,
+    description: `Order ${cleanTitle} online from ShopyKart. Freshly prepared, premium quality, and delivered in 10 minutes. Best prices guaranteed in Mauranipur & Ranipur.`,
+    alternates: {
+      canonical: `https://shopykart.co.in/product/${slug}`,
+    },
     openGraph: {
-      title: `${cleanTitle} | ShopyKart Premium`,
+      title: `${cleanTitle} - ShopyKart Gourmet`,
+      description: `Get fresh ${cleanTitle} delivered to your doorstep in 10 minutes.`,
+      url: `https://shopykart.co.in/product/${slug}`,
+      siteName: 'ShopyKart',
+      images: [
+        {
+          url: `https://picsum.photos/seed/${slug}/800/600`, // Fallback SEO image
+          width: 800,
+          height: 600,
+          alt: cleanTitle,
+        },
+      ],
+      locale: 'en_IN',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: cleanTitle,
+      description: `Fastest delivery for ${cleanTitle} in town.`,
       images: [`https://picsum.photos/seed/${slug}/800/600`],
     },
   };

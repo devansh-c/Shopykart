@@ -13,6 +13,7 @@ import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore
 
 /**
  * @fileOverview ProductDetailsClient that handles both SEO Slugs and Document IDs defensively.
+ * Added JSON-LD Product Schema for Google Search indexing.
  */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -47,8 +48,6 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
           const idSnap = await getDoc(idRef);
           if (idSnap.exists()) {
             setProduct({ id: idSnap.id, ...idSnap.data() });
-          } else {
-            console.warn("Product not found by slug or ID:", rawSlug);
           }
         }
       } catch (err) {
@@ -96,6 +95,34 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   const totalPrice = useMemo(() => currentPrice * localQuantity, [currentPrice, localQuantity]);
 
+  // JSON-LD Product Schema for Google Indexing
+  const productSchema = useMemo(() => {
+    if (!product) return null;
+    return {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": [product.imageUrl],
+      "description": product.description || `Fresh and delicious ${product.name} from ShopyKart.`,
+      "sku": product.id,
+      "brand": {
+        "@type": "Brand",
+        "name": "ShopyKart"
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": `https://shopykart.co.in/product/${product.slug || product.id}`,
+        "priceCurrency": "INR",
+        "price": currentPrice,
+        "availability": isOffline ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": product.restaurantName || "ShopyKart"
+        }
+      }
+    };
+  }, [product, currentPrice, isOffline]);
+
   const handleAddToCart = () => {
     if (!product || isOffline) return;
     const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.id}/800/600`;
@@ -108,6 +135,14 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
   return (
     <div className="min-h-screen bg-white pb-40">
+      {/* Google Product Schema Injection */}
+      {productSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        />
+      )}
+
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center border-b border-border/50">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"><ChevronLeft className="h-6 w-6" /></button>
         <h1 className="flex-1 text-center text-lg font-black uppercase italic tracking-tight">Details</h1>
