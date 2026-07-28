@@ -30,7 +30,10 @@ import {
   ImageIcon,
   Trash2,
   Smartphone,
-  UserCheck
+  UserCheck,
+  Wallet,
+  Save,
+  Pencil
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -58,7 +61,7 @@ function CartContent() {
   const [instructions, setInstructions] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod' | 'wallet'>('online');
   const [useCoins, setUseCoins] = useState(false);
   const [premiumPackaging, setPremiumPackaging] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
@@ -69,9 +72,9 @@ function CartContent() {
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
 
   const [deliveryTip, setDeliveryTip] = useState<number>(0);
-  const [customTipInput, setCustomTipInput] = useState('');
-  const [isCustomTipOpen, setIsCustomTipOpen] = useState(false);
   
+  // ADDRESS EDITING STATE
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState(''); 
@@ -107,6 +110,7 @@ function CartContent() {
   }, [firestore, user]);
   const { data: profile, loading: profileLoading } = useDoc<any>(profileRef);
   const availableCoins = profile?.coins || 0;
+  const walletBalance = profile?.walletBalance || 0;
 
   const isPremium = useMemo(() => {
     if (!profile?.isPremium || !profile?.premiumExpiry) return false;
@@ -165,15 +169,11 @@ function CartContent() {
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    
-    // Check new dynamic fields first
     if (appliedCoupon.discountType === 'percentage') {
       return (totalPrice * (appliedCoupon.discountValue || 0)) / 100;
     } else if (appliedCoupon.discountType === 'fixed') {
       return appliedCoupon.discountValue || 0;
     }
-
-    // Fallback for legacy coupons
     const discountStr = appliedCoupon.discount || '0';
     if (discountStr.includes('%')) {
       const percentage = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
@@ -204,6 +204,28 @@ function CartContent() {
     setCustomerCity(profile?.city || savedCity || '');
   }, [profile]);
 
+  const handleSaveAddress = async () => {
+    if (!customerName || customerPhone.length < 10 || !customerAddress) {
+      toast({ variant: "destructive", title: "Missing details" });
+      return;
+    }
+    
+    if (user && firestore) {
+      try {
+        await setDoc(doc(firestore, 'users', user.uid), {
+          fullName: customerName.toUpperCase(),
+          phoneNumber: customerPhone,
+          address: customerAddress.toUpperCase(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        localStorage.setItem('user_name', customerName.toUpperCase());
+        localStorage.setItem('user_phone', customerPhone);
+      } catch (e) {}
+    }
+    setIsEditingAddress(false);
+    toast({ title: "Address Saved!" });
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -211,7 +233,6 @@ function CartContent() {
     reader.onloadend = async () => {
       const compressed = await compressImage(reader.result as string, 800, 800);
       setHousePhoto(compressed);
-      toast({ title: "Photo Ready!", description: "Rider can now see your verification photo." });
     };
     reader.readAsDataURL(file);
   };
@@ -225,12 +246,11 @@ function CartContent() {
       if (!snap.empty) {
         const cData = snap.docs[0].data();
         const minVal = cData.minOrderValue || parseFloat(cData.minOrder?.replace(/[^0-9.]/g, '')) || 0;
-        
         if (totalPrice < minVal) {
           toast({ variant: "destructive", title: "Coupon not valid", description: `Minimum order of ₹${minVal} required.` });
         } else {
           setAppliedCoupon(cData);
-          toast({ title: "Coupon Applied! ✨", description: `Discount of ₹${couponDiscount.toFixed(2)} added.` });
+          toast({ title: "Coupon Applied! ✨" });
         }
       } else {
         toast({ variant: "destructive", title: "Invalid Coupon" });
@@ -248,11 +268,10 @@ function CartContent() {
       setSliderValue(0);
       return;
     }
-    
     if (!firestore) return;
-    
     if (!customerName || customerPhone.length < 10 || !customerAddress) {
-      toast({ variant: "destructive", title: "Missing details", description: "Name, 10-digit Phone and Address are required." });
+      toast({ variant: "destructive", title: "Address Required" });
+      setIsEditingAddress(true);
       setSliderValue(0);
       return;
     }
@@ -338,7 +357,7 @@ function CartContent() {
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FDFBF7]">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
@@ -346,236 +365,144 @@ function CartContent() {
         <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
       </div>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu pb-52">
+      <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-52">
         
-        {isPremium && !profileLoading && (
-          <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-[2rem] p-6 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
-             <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                <Crown className="h-6 w-6 fill-white" />
-             </div>
-             <div>
-                <h4 className="font-black italic uppercase text-amber-900 text-sm">Elite Privilege Active</h4>
-                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-relaxed">All Taxes & Fees Waived for you!</p>
-             </div>
-          </div>
-        )}
-
-        {blockedVendorNames.length > 0 && (
-          <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[2rem] p-6 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-500">
-             <div className="flex items-center gap-3 text-red-600">
-                <AlertCircle className="h-6 w-6 animate-pulse" />
-                <h4 className="font-black italic uppercase text-sm">Store is Closed</h4>
-             </div>
-             <p className="text-[10px] font-bold text-red-700 uppercase leading-relaxed">Currently <b>{blockedVendorNames.join(', ')}</b> is not accepting orders. Please remove their products to proceed.</p>
-          </div>
-        )}
-
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-          <div className="flex items-center gap-2 mb-4"><ShoppingBasket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase tracking-widest italic">Items In Bag</h2></div>
-          <div className="space-y-4">
-            {cart.map((item) => {
-              const vendor = vendors?.find(v => v.id === item.vendorId);
-              const isItemOffline = vendor?.isOnline === false;
-              return (
-                <div key={item.id + (item.selectedOption?.name || '')} className={cn("flex gap-4 items-start transition-opacity", isItemOffline && "opacity-60")}>
-                  <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-gray-100 shadow-sm mt-1">
-                    <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
-                    {isItemOffline && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><X className="h-5 w-5 text-white" /></div>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                       <h3 className="font-bold text-xs text-gray-800 truncate uppercase">{item.name}</h3>
-                    </div>
-                    {item.selectedOption && <p className="text-[8px] font-black text-primary uppercase italic">{item.selectedOption.name}</p>}
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg h-7 px-1">
-                        <button onClick={() => removeFromCart(item.id)} className="w-6 h-full flex items-center justify-center font-bold text-gray-500">-</button>
-                        <span className="w-5 text-center text-[10px] font-black">{item.quantity}</span>
-                        <button onClick={() => !isItemOffline && addToCart(item)} disabled={isItemOffline} className={cn("w-6 h-full flex items-center justify-center font-bold text-gray-500", isItemOffline && "opacity-20 cursor-not-allowed")}>+</button>
-                      </div>
-                      <div className="text-sm font-black text-gray-900 italic">₹{(item.price * item.quantity).toFixed(0)}</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-primary/40">
-           <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-primary">
-                 <UserCheck className="h-5 w-5" />
-                 <h2 className="text-sm font-black uppercase italic">Identity Verification</h2>
+        {/* 1. GOURMET ADDRESS BAR */}
+        <div className="bg-gradient-to-r from-[#4A4232] to-[#2D281E] rounded-2xl p-4 shadow-xl flex items-center justify-between border border-white/5">
+           <div className="flex items-center gap-3 min-w-0">
+              <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg shrink-0">
+                 <MapPin className="h-5 w-5 fill-current" />
               </div>
-              <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase">Optional</Badge>
-           </div>
-           
-           <div 
-             onClick={() => fileInputRef.current?.click()}
-             className={cn(
-               "relative h-32 w-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden",
-               housePhoto ? "bg-muted/10 border-primary/20" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-             )}
-           >
-              {housePhoto ? (
-                <>
-                  <img src={housePhoto} className="w-full h-full object-cover" alt="House" />
-                  <button onClick={(e) => { e.stopPropagation(); setHousePhoto(null); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-lg text-white"><Trash2 className="h-3.5 w-3.5" /></button>
-                </>
+              {!isEditingAddress ? (
+                <div className="min-w-0">
+                   <p className="text-[11px] font-black text-[#D9C4A9] leading-tight truncate">Delivery to: {customerName || 'Set Recipient'}</p>
+                   <p className="text-[10px] font-bold text-[#D9C4A9]/70 truncate uppercase tracking-tighter">{customerAddress || 'Enter Full Address'}</p>
+                </div>
               ) : (
-                <div className="text-center p-4">
-                   <ImageIcon className="h-6 w-6 text-gray-300 mx-auto mb-2" />
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Upload Your Photo / House / Nearby</p>
-                   <span className="text-[8px] font-medium text-gray-400 uppercase italic mt-1.5 block">Helps our rider identify your spot easily</span>
+                <div className="flex-1 space-y-2 py-2">
+                   <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Recipient Name" className="h-9 bg-white/5 border-white/10 text-white text-xs font-bold rounded-lg placeholder:text-gray-500" />
+                   <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="10 Digit Phone" className="h-9 bg-white/5 border-white/10 text-white text-xs font-bold rounded-lg placeholder:text-gray-500" />
+                   <Textarea value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Full Address / Landmark" className="min-h-[60px] bg-white/5 border-white/10 text-white text-xs font-bold rounded-lg placeholder:text-gray-500" />
                 </div>
               )}
            </div>
-           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-           <div className="flex items-center gap-2 mb-4"><Ticket className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Coupons</h2></div>
-           <div className="flex gap-2">
-              <Input 
-                value={couponInput} 
-                onChange={e => setCouponInput(e.target.value)} 
-                placeholder="PROMO CODE" 
-                className="h-12 rounded-xl bg-gray-50 border-none font-black italic uppercase text-[10px] tracking-[0.2em]" 
-              />
-              <Button onClick={handleVerifyCoupon} disabled={isVerifyingCoupon || !couponInput.trim()} className="bg-black text-white h-12 rounded-xl px-6 font-black uppercase text-[10px]">{isVerifyingCoupon ? <Loader2 className="animate-spin h-4 w-4" /> : 'APPLY'}</Button>
-           </div>
-           {appliedCoupon && (
-             <div className="mt-3 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-100 animate-in slide-in-from-top-2">
-                <div className="flex items-center gap-2 text-green-700">
-                   <CheckCircle2 className="h-4 w-4" />
-                   <span className="text-[10px] font-black uppercase">'{appliedCoupon.code}' Applied</span>
-                </div>
-                <button onClick={() => setAppliedCoupon(null)} className="text-green-700"><X className="h-3.5 w-3.5" /></button>
-             </div>
+           {!isEditingAddress ? (
+             <button onClick={() => setIsEditingAddress(true)} className="bg-[#D9C4A9]/10 border border-[#D9C4A9]/20 text-[#D9C4A9] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all ml-3">Change</button>
+           ) : (
+             <button onClick={handleSaveAddress} className="bg-amber-500 text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all ml-3 shadow-lg">Save</button>
            )}
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-          <div className="flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Spot</h2></div>
-          <div className="space-y-4">
-              <div className="space-y-3">
-                <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value.toUpperCase())} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60" />
-                <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <Textarea placeholder="FULL ADDRESS / LANDMARK *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="min-h-[100px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs" />
-              </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-           <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-rose-500">
-                 <Package className="h-5 w-5" />
-                 <h2 className="text-sm font-black uppercase italic">Premium Packing</h2>
-              </div>
-              <Switch checked={isPremium ? false : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} className="data-[state=checked]:bg-rose-500" />
-           </div>
-           <div className={cn("p-4 rounded-xl border flex items-center justify-between transition-colors", isPremium ? "bg-green-50 border-green-100" : "bg-rose-50 border-rose-100")}>
-              <p className={cn("text-[9px] font-bold uppercase leading-relaxed italic", isPremium ? "text-green-700" : "text-rose-700")}>
-                {isPremium ? "Elite member privilege: Double leak-proof packing is FREE for you." : "Double layered leak-proof packing for your gourmet safety."}
-              </p>
-              <span className={cn("text-xs font-black shrink-0", isPremium ? "text-green-600" : "text-rose-600")}>
-                {isPremium ? "FREE" : "+₹10"}
-              </span>
-           </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-           <div className="flex items-center gap-2 mb-4"><Bike className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Delivery Tip</h2></div>
-           <div className="flex gap-2">
-              {[10, 20, 30].map(amt => (
-                <button 
-                  key={amt} 
-                  onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)}
-                  className={cn(
-                    "flex-1 h-12 rounded-xl border-2 font-black uppercase text-[10px] transition-all",
-                    deliveryTip === amt ? "bg-primary border-primary text-white shadow-lg" : "bg-white border-gray-100 text-gray-400"
-                  )}
-                >
-                  ₹{amt}
-                </button>
+        {/* 2. ORDER SUMMARY & BILL DETAILS CARD */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
+           <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Order Summary</h2>
+           
+           <div className="space-y-4 mb-8">
+              {cart.map((item, i) => (
+                <div key={i} className="flex justify-between items-center group">
+                   <span className="text-sm font-bold uppercase italic tracking-tight truncate flex-1 mr-4">{item.name}</span>
+                   <span className="text-xs font-black opacity-60">x {item.quantity}</span>
+                </div>
               ))}
-              <Dialog open={isCustomTipOpen} onOpenChange={setIsCustomTipOpen}>
-                 <DialogTrigger asChild>
-                    <button className={cn("flex-1 h-12 rounded-xl border-2 font-black uppercase text-[10px] transition-all", ![0, 10, 20, 30].includes(deliveryTip) ? "bg-primary border-primary text-white shadow-lg" : "bg-white border-gray-100 text-gray-400")}>CUSTOM</button>
-                 </DialogTrigger>
-                 <DialogContent className="max-w-xs rounded-3xl p-6">
-                    <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Add Custom Tip</DialogTitle></DialogHeader>
-                    <Input type="number" placeholder="Enter amount ₹" value={customTipInput} onChange={e => setCustomTipInput(e.target.value)} className="h-12 rounded-xl text-center font-black" />
-                    <Button onClick={() => { setDeliveryTip(Number(customTipInput)); setIsCustomTipOpen(false); }} className="w-full h-12 rounded-xl bg-black">APPLY TIP</Button>
-                 </DialogContent>
-              </Dialog>
+           </div>
+
+           <div className="h-[1px] w-full bg-[#D9C4A9]/10 mb-6" />
+
+           <div className="space-y-4">
+              <h3 className="text-sm font-black italic uppercase tracking-widest opacity-80 mb-2">Bill Details:</h3>
+              <div className="flex justify-between items-center text-sm font-medium">
+                 <span>Item Total:</span>
+                 <span className="font-black italic">₹{totalPrice.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm font-medium">
+                 <span>Delivery Fee:</span>
+                 <span className="font-black italic">₹{chargesTotalSum.toFixed(0)}</span>
+              </div>
+              
+              <div className="pt-6 mt-6 border-t border-dashed border-[#D9C4A9]/20 flex justify-between items-center">
+                 <span className="text-lg font-black italic uppercase tracking-tighter">Grand Total:</span>
+                 <span className="text-3xl font-black text-amber-400 italic tracking-tighter">₹{grandTotal.toFixed(0)}</span>
+              </div>
            </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-           <div className="flex items-center gap-2 mb-4"><MessageSquareQuote className="h-5 w-5 text-[#C5A021]" /><h2 className="text-sm font-black text-gray-800 uppercase italic">Cooking Instructions</h2></div>
-           <Textarea 
-            placeholder="E.G. Don't add onion, make it extra spicy..." 
-            value={instructions} 
-            onChange={e => setInstructions(e.target.value)} 
-            className="min-h-[80px] rounded-xl bg-gray-50 border-none font-medium p-4 text-[10px]" 
-           />
-        </div>
+        {/* 3. SELECT PAYMENT MODE CARD */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
+           <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Select Payment Method:</h2>
+           
+           <div className="space-y-5">
+              <button 
+                onClick={() => setPaymentMethod('wallet')}
+                disabled={walletBalance < grandTotal}
+                className={cn(
+                  "w-full flex items-center gap-4 group active:scale-[0.98] transition-all",
+                  walletBalance < grandTotal && "opacity-30"
+                )}
+              >
+                 <div className={cn(
+                   "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+                   paymentMethod === 'wallet' ? "border-amber-400 bg-amber-400" : "border-[#D9C4A9]/30"
+                 )}>
+                    {paymentMethod === 'wallet' && <div className="h-2 w-2 rounded-full bg-black" />}
+                 </div>
+                 <div className="text-left">
+                    <p className="text-sm font-black uppercase italic tracking-tight">My Wallet (Balance: ₹{walletBalance})</p>
+                    {walletBalance < grandTotal && <span className="text-[8px] font-bold text-red-400 uppercase tracking-widest">Insufficient Funds</span>}
+                 </div>
+              </button>
 
-        <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40">
-           <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-amber-600">
-                 <Coins className="h-5 w-5" />
-                 <h2 className="text-sm font-black uppercase italic">Redeem Coins</h2>
-              </div>
-              <Switch checked={useCoins} onCheckedChange={setUseCoins} disabled={availableCoins <= 0} className="data-[state=checked]:bg-amber-500" />
-           </div>
-           <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-center justify-between">
-              <div className="flex flex-col">
-                 <span className="text-[10px] font-black text-amber-700 uppercase">Current Balance</span>
-                 <span className="text-lg font-black text-amber-600 italic tracking-tighter">{availableCoins} Coins</span>
-              </div>
-              <span className="text-[9px] font-bold text-amber-700 uppercase italic">Worth ₹{(availableCoins * coinValue).toFixed(0)}</span>
-           </div>
-        </div>
+              <button 
+                onClick={() => { setPaymentMethod('online'); setPaymentStep('selection'); setIsPaymentDialogOpen(true); }}
+                className="w-full flex items-center gap-4 group active:scale-[0.98] transition-all"
+              >
+                 <div className={cn(
+                   "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+                   paymentMethod === 'online' ? "border-amber-400 bg-amber-400" : "border-[#D9C4A9]/30"
+                 )}>
+                    {paymentMethod === 'online' && <div className="h-2 w-2 rounded-full bg-black" />}
+                 </div>
+                 <div className="text-left">
+                    <p className="text-sm font-black uppercase italic tracking-tight">Pay with UPI / QR / App</p>
+                 </div>
+              </button>
 
-        <div className="bg-white rounded-[2rem] p-7 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-[#C5A021]/40 space-y-4">
-          <h3 className="text-sm font-black text-gray-800 uppercase italic">Billing Summary</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between font-bold text-[11px] text-gray-500 uppercase tracking-widest"><span>Item Total</span><span>₹{totalPrice.toFixed(2)}</span></div>
-            {dynamic_charges.map((charge: any) => (
-              <div key={charge.id} className="flex justify-between font-bold text-[11px] text-gray-400 uppercase tracking-widest">
-                <span>{charge.name}</span>
-                {charge.isWaived ? <span className="text-green-600 font-black flex items-center gap-1"><ShieldCheck className="h-2.5 w-2.5" /> ₹0.00 (Elite)</span> : <span>₹{charge.calculatedAmount.toFixed(2)}</span>}
-              </div>
-            ))}
-            {appliedCoupon && <div className="flex justify-between font-bold text-[11px] text-green-600 uppercase tracking-widest"><span>Coupon Discount</span><span>-₹{couponDiscount.toFixed(2)}</span></div>}
-            {useCoins && coinDiscount > 0 && <div className="flex justify-between font-bold text-[11px] text-amber-600 uppercase tracking-widest"><span>Coins Redeemed</span><span>-₹{coinDiscount.toFixed(2)}</span></div>}
-            {deliveryTip > 0 && <div className="flex justify-between font-bold text-[11px] text-blue-600 uppercase tracking-widest"><span>Rider Tip</span><span>₹{deliveryTip.toFixed(2)}</span></div>}
-            {premiumPackaging && <div className="flex justify-between font-bold text-[11px] text-rose-500 uppercase tracking-widest"><span>Premium Packing</span><span>{isPremium ? "₹0.00" : "₹10.00"}</span></div>}
-          </div>
-          <div className="pt-5 border-t border-dashed border-gray-100 flex justify-between items-center"><span className="text-base font-black text-gray-800 uppercase italic tracking-tighter">Total Payable</span><span className="text-3xl font-black text-primary italic tracking-tighter">₹{grandTotal.toFixed(0)}</span></div>
-        </div>
-
-        <div className="bg-[#0B0B0B] rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden text-white">
-           <div className="flex flex-col items-center text-center gap-6 relative z-10">
-              <div className="h-16 w-16 bg-white/10 rounded-3xl flex items-center justify-center text-primary border border-white/10"><Smartphone className="h-8 w-8" /></div>
-              <div className="space-y-1">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Payment Mode</h2>
-                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select how you want to pay</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4 w-full">
-                 <button onClick={() => { setPaymentMethod('online'); setPaymentStep('selection'); setIsPaymentDialogOpen(true); }} className={cn("h-20 rounded-[1.5rem] border-2 transition-all flex flex-col items-center justify-center gap-2", paymentMethod === 'online' ? "bg-primary border-primary shadow-lg shadow-primary/20" : "bg-white/5 border-white/10 opacity-50")}>
-                    <CreditCard className="h-6 w-6" /><span className="text-[9px] font-black uppercase">Online UPI</span>
-                 </button>
-                 <button onClick={() => setPaymentMethod('cod')} className={cn("h-20 rounded-[1.5rem] border-2 transition-all flex flex-col items-center justify-center gap-2", paymentMethod === 'cod' ? "bg-primary border-primary shadow-lg shadow-primary/20" : "bg-white/5 border-white/10 opacity-50")}>
-                    <Banknote className="h-6 w-6" /><span className="text-[9px] font-black uppercase">CASH (COD)</span>
-                 </button>
-              </div>
+              <button 
+                onClick={() => setPaymentMethod('cod')}
+                className="w-full flex items-center gap-4 group active:scale-[0.98] transition-all"
+              >
+                 <div className={cn(
+                   "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+                   paymentMethod === 'cod' ? "border-amber-400 bg-amber-400" : "border-[#D9C4A9]/30"
+                 )}>
+                    {paymentMethod === 'cod' && <div className="h-2 w-2 rounded-full bg-black" />}
+                 </div>
+                 <div className="text-left">
+                    <p className="text-sm font-black uppercase italic tracking-tight">Cash on Delivery</p>
+                 </div>
+              </button>
            </div>
         </div>
+
+        {/* 4. OTHER ACTIONS (COUPONS & VERIFICATION) */}
+        <div className="space-y-4 pt-2">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+               <div className="flex items-center gap-2 mb-4 text-primary"><Ticket className="h-4 w-4" /><h3 className="text-[10px] font-black uppercase tracking-widest">Add Coupon</h3></div>
+               <div className="flex gap-2">
+                  <Input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder="PROMO CODE" className="h-11 bg-gray-50 border-none font-bold uppercase text-[10px] tracking-widest" />
+                  <Button onClick={handleVerifyCoupon} disabled={isVerifyingCoupon} className="h-11 rounded-xl px-6 bg-black">{isVerifyingCoupon ? <Loader2 className="animate-spin h-4 w-4" /> : 'APPLY'}</Button>
+               </div>
+               {appliedCoupon && <div className="mt-3 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-100 text-green-700 text-[10px] font-black uppercase animate-in slide-in-from-top-2"><span>'{appliedCoupon.code}' Applied</span><button onClick={() => setAppliedCoupon(null)}><X className="h-3.5 w-3.5" /></button></div>}
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+               <div className="flex items-center justify-between mb-3 text-rose-500">
+                  <div className="flex items-center gap-2"><Package className="h-4 w-4" /><h3 className="text-[10px] font-black uppercase tracking-widest">Premium Packing</h3></div>
+                  <Switch checked={isPremium ? false : premiumPackaging} onCheckedChange={setPremiumPackaging} disabled={isPremium} />
+               </div>
+               <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed italic">{isPremium ? "FREE for Elite Members." : "Double layered protection for just ₹10."}</p>
+            </div>
+        </div>
+
       </div>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
@@ -619,6 +546,7 @@ function CartContent() {
          </DialogContent>
       </Dialog>
 
+      {/* 5. SMOOTH SLIDER TO ORDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white/80 backdrop-blur-xl border-t border-gray-100 p-5 pb-8 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] transform-gpu flex justify-center">
          <div className="max-w-md w-full">
             <div 
