@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo } from "react"
@@ -7,8 +8,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
 /**
- * @fileOverview CategoryList - Zero-Wait Component.
- * Optimized for instant display from cache.
+ * @fileOverview CategoryList - Synchronous Speed Component.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -25,7 +25,7 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v5_instant');
+  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v6_instant');
 
   const filteredCategories = useMemo(() => {
     const list = dbCategories || [];

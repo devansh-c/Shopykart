@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -15,14 +16,13 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection - Atomic Injection.
- * Removed blocking gates for instant presence.
+ * @fileOverview StoreSection - Lightning Rendering.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
   
-  // Synchronous location access
+  // ATOMIC SYNC LOCATION ACCESS
   const activeZoneId = React.useMemo(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
@@ -33,7 +33,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v5_instant');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v6_instant');
 
   const filteredVendors = React.useMemo(() => {
     const list = dbVendors || [];

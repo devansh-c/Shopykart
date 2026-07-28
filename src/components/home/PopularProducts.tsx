@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState } from "react"
@@ -40,7 +41,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
-  // Synchronous location access to prevent delay
+  // ATOMIC SYNC LOCATION ACCESS
   const activeZoneId = React.useMemo(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
@@ -51,14 +52,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v5_instant');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v6_instant');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v5_instant');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_instant');
 
   const productsToDisplay = useMemo(() => {
     const products = dbProducts || [];
@@ -96,7 +97,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   };
 
   return (
-    <div className="px-4 py-6 min-h-[400px]">
+    <div className="px-4 py-6 min-h-[400px] transition-all">
       <div className="grid grid-cols-2 gap-4">
         {(!dbProducts && productsLoading) ? (
           [1, 2, 3, 4].map(i => (
@@ -118,8 +119,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
-                {/* Store Name Header */}
-                <p className="text-[8px] font-black text-[#C5A021] uppercase tracking-widest italic truncate mb-0.5 opacity-80">
+                {/* PROMINENT STORE NAME ON BLACK PORTION */}
+                <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>
                 

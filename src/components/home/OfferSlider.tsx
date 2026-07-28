@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils"
 
 export function OfferSlider() {
   const firestore = useFirestore();
-  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(() => {
+  const [activeZoneId] = React.useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
     return null;
   });
@@ -27,7 +28,7 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v4_instant');
+  const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v6_instant');
   
   const filteredBanners = React.useMemo(() => {
     if (!dbBanners) return [];
