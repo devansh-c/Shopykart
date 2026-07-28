@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -14,8 +15,7 @@ import {
 } from "@/components/ui/carousel"
 
 /**
- * @fileOverview StoreSection with Robust Navigation Logic.
- * Prioritizes Slug for SEO based on store name.
+ * @fileOverview StoreSection with Robust Navigation Logic and Skeletons.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -58,14 +58,24 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   }, [dbVendors, activeMode, activeZoneId]);
 
   const handleStoreClick = (store: any) => {
-    // Aggressively use Slug for SEO. If missing, generate from name.
     const pathSegment = store.slug || slugify(store.storeName) || store.id;
     startTransition(() => {
       router.push(`/store/${pathSegment}`);
     });
   };
 
-  if (loading && !dbVendors) return null;
+  // SKELETON RENDER FOR INSTANT FEEL
+  if (loading && !dbVendors) {
+    return (
+      <div className="py-4 px-6 overflow-hidden">
+        <div className="flex gap-4">
+           {[1, 2].map(i => (
+             <div key={i} className="min-w-[65%] aspect-video rounded-[2rem] bg-muted/20 animate-pulse border border-border/50 shadow-sm" />
+           ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-4 overflow-hidden bg-white content-visibility-auto">

@@ -3,7 +3,6 @@
 
 import { useState, useTransition, Suspense, useEffect } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
@@ -18,18 +17,14 @@ import OffersSection from '@/components/home/OffersSection';
 /**
  * @fileOverview ShopyKart Main Entrance - Ultra Fast Edition.
  * Optimized for instant visibility of all components on load.
+ * Removed blocking isMounted checks to ensure near-zero latency feel.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
   const [isPending, startTransition] = useTransition();
-  const [isMounted, setIsMounted] = useState(false);
   const { user } = useUser();
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -56,8 +51,6 @@ export default function ShopyKartApp() {
       setActiveCategory(cat);
     });
   };
-
-  if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   // JSON-LD for Google Rich Results
   const jsonLd = {
@@ -119,7 +112,7 @@ export default function ShopyKartApp() {
                </div>
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
-            <ScrollReveal delay={100}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
+            <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />
             <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
           </div>
         ) : (
@@ -133,7 +126,7 @@ export default function ShopyKartApp() {
             )}
             
             <div className="bg-white">
-              {!searchQuery && <ScrollReveal delay={50}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>}
+              {!searchQuery && <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />}
               <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
             </div>
           </div>

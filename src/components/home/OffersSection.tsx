@@ -8,7 +8,7 @@ import { collection } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Offers & Coupons Section - Optimized for Speed.
+ * @fileOverview Offers & Coupons Section - Optimized for Speed with Skeletons.
  */
 export default function OffersSection() {
   const { toast } = useToast();
@@ -52,7 +52,19 @@ export default function OffersSection() {
     }
   };
 
-  if (loading && !dbCoupons) return null;
+  // SKELETON RENDER FOR INSTANT FEEL
+  if (loading && !dbCoupons) {
+    return (
+      <div className="py-6 px-6 overflow-hidden">
+        <div className="flex gap-4">
+           {[1, 2].map(i => (
+             <div key={i} className="min-w-[280px] h-24 rounded-2xl bg-muted/10 animate-pulse border-2 border-dashed" />
+           ))}
+        </div>
+      </div>
+    );
+  }
+
   if (!dbCoupons || dbCoupons.length === 0) return null;
 
   return (

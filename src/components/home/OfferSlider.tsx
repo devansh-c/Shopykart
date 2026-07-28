@@ -11,7 +11,6 @@ import {
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import Autoplay from "embla-carousel-autoplay"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function OfferSlider() {
@@ -33,7 +32,7 @@ export function OfferSlider() {
   }, [firestore]);
 
   // Added cacheKey for instant load from sessionStorage
-  const { data: dbBanners } = useCollection<any>(bannersQuery, 'home_banners_v2');
+  const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v2');
   
   const filteredBanners = React.useMemo(() => {
     if (!dbBanners) return [];
@@ -50,6 +49,15 @@ export function OfferSlider() {
       setCurrent(api.selectedScrollSnap());
     });
   }, [api]);
+
+  // SKELETON RENDER FOR INSTANT FEEL
+  if (loading && !dbBanners) {
+    return (
+      <div className="w-full py-4 px-6">
+        <div className="aspect-[18/9] w-full rounded-[2rem] bg-muted/20 animate-pulse border-4 border-white shadow-sm" />
+      </div>
+    );
+  }
 
   if (!filteredBanners || filteredBanners.length === 0) return null;
 
