@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -31,7 +30,8 @@ import {
   ShieldAlert,
   CheckCircle2,
   MessageSquareQuote,
-  Crown
+  Crown,
+  Bike
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -193,6 +193,16 @@ export default function OrderManagement() {
            <p className="text-[9px] leading-tight opacity-80">{orderData.address}</p>
         </div>
 
+        {orderData.instructions && (
+           <>
+            <div className="border-t border-dashed border-black my-2" />
+            <div className="space-y-1 mb-2">
+               <span className="font-black block">INSTRUCTIONS:</span>
+               <p className="text-[9px] leading-tight text-primary italic font-black">{orderData.instructions}</p>
+            </div>
+           </>
+        )}
+
         <div className="border-t border-dashed border-black my-2" />
 
         <table className="w-full text-[9px]">
@@ -217,7 +227,7 @@ export default function OrderManagement() {
            ))}
            {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
            {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
-           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>RIDER TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
         </div>
 
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>GRAND TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
@@ -301,6 +311,16 @@ export default function OrderManagement() {
                          <div>
                             <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Customer Note:</span>
                             <p className="text-xs font-bold text-amber-900 leading-tight italic mt-1">{order.instructions}</p>
+                         </div>
+                      </div>
+                    )}
+
+                    {order.deliveryTip > 0 && (
+                      <div className="mb-4 bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-3">
+                         <div className="bg-blue-100 p-2 rounded-xl text-blue-600"><Bike className="h-4 w-4" /></div>
+                         <div>
+                            <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Rider Tip:</span>
+                            <p className="text-sm font-black text-blue-900 leading-none mt-1">₹{order.deliveryTip}</p>
                          </div>
                       </div>
                     )}

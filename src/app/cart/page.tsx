@@ -34,7 +34,9 @@ import {
   Wallet,
   Save,
   Pencil,
-  Sparkles
+  Sparkles,
+  Utensils,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -73,6 +75,7 @@ function CartContent() {
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
 
   const [deliveryTip, setDeliveryTip] = useState<number>(0);
+  const [customTip, setCustomTip] = useState('');
   
   // ADDRESS EDITING STATE
   const [isEditingAddress, setIsEditingAddress] = useState(false);
@@ -338,25 +341,50 @@ function CartContent() {
 
       <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-52">
         
-        {/* 1. ADDED PRODUCTS SECTION */}
-        <div className="space-y-3">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">Your Selection</h3>
-           <div className="flex overflow-x-auto space-x-3 no-scrollbar pb-2 px-1">
+        {/* 1. ITEMS IN BAG (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2.5rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+           <div className="flex items-center gap-3">
+              <ShoppingBasket className="h-5 w-5 text-amber-400" />
+              <h3 className="text-sm font-black uppercase tracking-widest italic">Items In Bag</h3>
+           </div>
+           
+           <div className="space-y-6">
               {cart.map((item, i) => (
-                <div key={i} className="min-w-[120px] bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center gap-2">
-                   <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted">
+                <div key={i} className="flex items-center gap-4">
+                   <div className="relative h-16 w-16 rounded-2xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
                       <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
                    </div>
-                   <div className="min-w-0 w-full">
-                      <p className="text-[9px] font-black uppercase italic truncate leading-none mb-1">{item.name}</p>
-                      <p className="text-[8px] font-bold text-primary">QTY: {item.quantity}</p>
+                   <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-black uppercase italic truncate text-white">{item.name}</h4>
+                      <div className="flex items-center bg-white/5 rounded-xl h-8 w-24 px-1 mt-2 border border-white/5">
+                        <button onClick={() => removeFromCart(item.id)} className="flex-1 flex items-center justify-center text-amber-400 hover:text-white transition-colors"><Minus className="h-3 w-3 stroke-[3]" /></button>
+                        <span className="w-8 text-center text-[10px] font-black text-white">{item.quantity}</span>
+                        <button onClick={() => addToCart({...item, quantity: 1})} className="flex-1 flex items-center justify-center text-amber-400 hover:text-white transition-colors"><Plus className="h-3 w-3 stroke-[3]" /></button>
+                      </div>
+                   </div>
+                   <div className="text-right shrink-0">
+                      <span className="text-sm font-black text-white italic">₹{(item.price * item.quantity).toFixed(0)}</span>
                    </div>
                 </div>
               ))}
            </div>
         </div>
 
-        {/* 2. GOURMET ADDRESS BAR */}
+        {/* 2. INSTRUCTIONS BOX */}
+        <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-4">
+           <div className="flex items-center gap-3">
+              <div className="bg-amber-50 p-2 rounded-xl text-amber-600"><MessageSquareQuote className="h-4 w-4" /></div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cooking & Delivery Instructions</h3>
+           </div>
+           <Textarea 
+             placeholder="E.g. Make it extra spicy, Leave at the gate, Don't ring the bell..." 
+             value={instructions}
+             onChange={e => setInstructions(e.target.value)}
+             className="min-h-[80px] rounded-xl bg-gray-50 border-none font-bold text-xs p-4 focus-visible:ring-1 focus-visible:ring-amber-500/20"
+           />
+        </div>
+
+        {/* 3. GOURMET ADDRESS BAR */}
         <div className="bg-gradient-to-r from-[#4A4232] to-[#2D281E] rounded-2xl p-4 shadow-xl flex items-center justify-between border border-white/5">
            <div className="flex items-center gap-3 min-w-0">
               <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg shrink-0">
@@ -382,7 +410,7 @@ function CartContent() {
            )}
         </div>
 
-        {/* 3. GOURMET ENHANCEMENTS & COUPON BOX (DARK OLIVE) */}
+        {/* 4. GOURMET ENHANCEMENTS BOX */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
@@ -419,7 +447,6 @@ function CartContent() {
 
            <div className="h-[1px] w-full bg-white/10" />
 
-           {/* COUPON SECTION INSIDE DARK BOX */}
            <div className="space-y-4">
               <div className="flex items-center gap-2 text-amber-400">
                 <Ticket className="h-4 w-4" />
@@ -443,7 +470,49 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 4. BILL DETAILS CARD */}
+        {/* 5. DELIVERY TIP BOX (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+           <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                 <div className="bg-white/5 p-2.5 rounded-xl text-blue-400 border border-white/5">
+                    <Bike className="h-5 w-5" />
+                 </div>
+                 <div className="flex flex-col">
+                    <h3 className="text-xs font-black uppercase italic leading-none">Appreciate Your Rider</h3>
+                    <span className="text-[8px] font-bold opacity-60 uppercase mt-1">100% of the tip goes to the rider</span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-4 gap-2">
+              {[10, 20, 40].map((amount) => (
+                <button 
+                  key={amount}
+                  onClick={() => { setDeliveryTip(amount === deliveryTip ? 0 : amount); setCustomTip(''); }}
+                  className={cn(
+                    "relative h-12 rounded-xl border-2 flex items-center justify-center transition-all active:scale-95",
+                    deliveryTip === amount ? "bg-amber-400 border-amber-400 text-black shadow-lg" : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                  )}
+                >
+                   <span className="text-xs font-black">₹{amount}</span>
+                   {amount === 10 && (
+                     <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter whitespace-nowrap shadow-md">Most Tipped</span>
+                   )}
+                </button>
+              ))}
+              <button 
+                onClick={() => setDeliveryTip(0)}
+                className={cn(
+                  "h-12 rounded-xl border-2 flex items-center justify-center transition-all active:scale-95",
+                  deliveryTip > 0 && ![10, 20, 40].includes(deliveryTip) ? "bg-amber-400 border-amber-400 text-black shadow-lg" : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                )}
+              >
+                 <span className="text-[8px] font-black uppercase">Other</span>
+              </button>
+           </div>
+        </div>
+
+        {/* 6. BILL DETAILS CARD */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Bill Summary</h2>
            
@@ -468,6 +537,12 @@ function CartContent() {
                  <span>Delivery & Handling:</span>
                  <span className="font-black italic text-white">₹{chargesTotalSum.toFixed(0)}</span>
               </div>
+              {deliveryTip > 0 && (
+                <div className="flex justify-between items-center text-sm font-medium">
+                   <span>Rider Tip:</span>
+                   <span className="font-black italic text-white">₹{deliveryTip}</span>
+                </div>
+              )}
               {premiumPackaging && !isPremium && (
                 <div className="flex justify-between items-center text-sm font-medium">
                    <span>Premium Packing:</span>
@@ -494,7 +569,7 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 5. SELECT PAYMENT MODE CARD */}
+        {/* 7. SELECT PAYMENT MODE CARD */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
            <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Select Payment Mode:</h2>
            
@@ -576,7 +651,7 @@ function CartContent() {
          </DialogContent>
       </Dialog>
 
-      {/* 7. SMOOTH SLIDER TO ORDER */}
+      {/* 8. SMOOTH SLIDER TO ORDER */}
       <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white/80 backdrop-blur-xl border-t border-gray-100 p-5 pb-8 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] transform-gpu flex justify-center">
          <div className="max-w-md w-full">
             <div 
