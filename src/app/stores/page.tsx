@@ -8,9 +8,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview StoresPage with Reliable Navigation Links using Name-based Slugs.
+ * @fileOverview StoresPage with Rating-based Sorting and Offline Logic.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,7 +32,7 @@ export default function StoresPage() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
@@ -39,10 +40,8 @@ export default function StoresPage() {
     const searchLower = searchQuery.toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      if (activeZoneId) {
-        if (v.zoneId !== activeZoneId) {
-          return false;
-        }
+      if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) {
+        return false;
       }
 
       const matchesSearch = !searchLower || 
@@ -53,10 +52,16 @@ export default function StoresPage() {
       
       return matchesSearch && isApproved;
     }).sort((a, b) => {
-      const onlineA = a.isOnline !== false ? 1 : 0;
-      const onlineB = b.isOnline !== false ? 1 : 0;
-      if (onlineA !== onlineB) return onlineB - onlineA;
-      return (b.rating || 0) - (a.rating || 0);
+      const isOnlineA = a.isOnline !== false && isStoreScheduleOpen(a);
+      const isOnlineB = b.isOnline !== false && isStoreScheduleOpen(b);
+
+      // 1. Move Online stores to top
+      if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
+
+      // 2. Sort by Rating (High to Low)
+      const ratingA = Number(a.rating) || 0;
+      const ratingB = Number(b.rating) || 0;
+      return ratingB - ratingA;
     });
   }, [dbVendors, activeZoneId, searchQuery]);
 
@@ -91,10 +96,9 @@ export default function StoresPage() {
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-            const isOffline = store.isOnline === false;
+            const isOffline = store.isOnline === false || !isStoreScheduleOpen(store);
             const rating = store.rating || '4.0';
             
-            // Prioritize slug for Clean URLs based on name
             const storePath = `/store/${store.slug || slugify(store.storeName) || store.id}`;
 
             return (
