@@ -1,7 +1,8 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
-import { Plus, Minus, Loader2 } from "lucide-react"
+import { Plus, Minus, Loader2, Crown } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -58,7 +59,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Increased limit to ensure no products are missed in production
     return query(collection(firestore, 'products'), limit(250));
   }, [firestore]);
   const { data: dbProducts, loading } = useCollection<any>(productsQuery);
@@ -75,11 +75,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return dbProducts.filter(p => {
       const vendor = vendors.find(v => v.id === p.vendorId);
       
-      // SMART ZONE FILTERING: 
-      // Product dikhega agar: 
-      // 1. Zone ID match ho
-      // 2. Product Global ho (No zoneId)
-      // 3. Vendor Global ho (No zoneId)
       if (activeZoneId) {
         const pZone = p.zoneId;
         const vZone = vendor?.zoneId;
@@ -100,7 +95,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendorA = vendors.find(v => v.id === a.vendorId);
       const vendorB = vendors.find(v => v.id === b.vendorId);
       
-      // Online vendors first
       const isOnlineA = vendorA?.isOnline !== false && isStoreScheduleOpen(vendorA);
       const isOnlineB = vendorB?.isOnline !== false && isStoreScheduleOpen(vendorB);
       
@@ -111,9 +105,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   if (loading && !dbProducts) {
     return (
-      <div className="px-4 space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-32 w-full bg-muted/20 animate-pulse rounded-[2rem]" />
+      <div className="px-4 grid grid-cols-2 gap-4 py-6">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="aspect-[4/5] w-full bg-muted/20 animate-pulse rounded-[2.5rem]" />
         ))}
       </div>
     );
@@ -123,37 +117,60 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     <div className="px-4 py-6">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-sm font-black tracking-widest text-black/40 uppercase italic">
-          ⚡ ALL SELECTION ({productsToDisplay.length})
+          ⚡ SELECTION ({productsToDisplay.length})
         </h2>
       </div>
-      <div className="grid grid-cols-1 gap-6">
+      
+      <div className="grid grid-cols-2 gap-4">
         {productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
+          const vendor = vendors?.find(v => v.id === product.vendorId);
+          const isOffline = (vendor?.isOnline === false) || !isStoreScheduleOpen(vendor);
+
           return (
-            <div key={product.id} className="relative bg-white rounded-[2.5rem] p-6 flex justify-between items-center shadow-xl shadow-black/[0.03] border border-border/40 transition-all hover:shadow-2xl">
-              <div className="flex-1 pr-4 min-w-0">
+            <div key={product.id} className={cn(
+              "relative bg-[#0B0B0B] rounded-[2rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu overflow-hidden group",
+              isOffline && "opacity-60 grayscale"
+            )}>
+              {/* Product Image Container */}
+              <div className="relative aspect-square w-full mb-3">
                 <ProductQuickView product={product}>
-                  <button className="block text-left w-full cursor-pointer group">
-                    <h3 className="font-black text-lg text-gray-900 leading-tight italic uppercase tracking-tighter mb-1 truncate group-hover:text-primary transition-colors">{product.name}</h3>
-                    <div className="text-2xl font-black text-primary italic">₹{(product.price || 0).toFixed(0)}</div>
-                    <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest mt-1 opacity-60">from {product.restaurantName}</p>
-                  </button>
-                </ProductQuickView>
-              </div>
-              <div className="relative w-28 h-28 shrink-0">
-                <ProductQuickView product={product}>
-                   <div className="relative w-full h-full cursor-pointer">
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover rounded-[1.5rem] bg-muted shadow-md" unoptimized />
+                   <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      {/* Crown Overlay (Matched to Screenshot) */}
+                      <div className="absolute top-2 right-2 h-5 w-5 bg-black/40 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
+                        <Crown className="h-3 w-3 text-[#C5A021] fill-[#C5A021]" />
+                      </div>
                    </div>
                 </ProductQuickView>
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-full px-2 z-20">
+              </div>
+
+              {/* Info Section */}
+              <div className="flex-1 flex flex-col px-1">
+                <ProductQuickView product={product}>
+                  <button className="text-left w-full group">
+                    <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
+                    <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">{product.restaurantName || 'Gourmet'}</p>
+                  </button>
+                </ProductQuickView>
+
+                {/* Price & Add Section */}
+                <div className="mt-auto flex items-center justify-between">
+                  <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
+                  
                   {quantity === 0 ? (
-                    <button onClick={() => addToCart({...product, quantity: 1})} className="w-full h-10 bg-white border-2 border-primary shadow-xl font-black text-[10px] uppercase rounded-xl text-primary active:scale-95 transition-all">ADD</button>
+                    <button 
+                      onClick={() => !isOffline && addToCart({...product, quantity: 1})}
+                      className="bg-gradient-to-r from-[#8C7A63] via-[#D9C4A9] to-[#8C7A63] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-all border border-white/20"
+                    >
+                      ADD
+                    </button>
                   ) : (
-                    <div className="flex items-center justify-between w-full h-10 bg-primary text-white rounded-xl shadow-xl">
-                      <button onClick={() => removeFromCart(product.id)} className="flex-1 flex items-center justify-center h-full"><Minus className="h-4 w-4" /></button>
-                      <span className="text-[11px] font-black">{quantity}</span>
-                      <button onClick={() => addToCart({...product, quantity: 1})} className="flex-1 flex items-center justify-center h-full"><Plus className="h-4 w-4" /></button>
+                    <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
+                      <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center"><Minus className="h-3 w-3 stroke-[3]" /></button>
+                      <span className="text-[10px] font-black w-4 text-center">{quantity}</span>
+                      <button onClick={() => addToCart({...product, quantity: 1})} className="w-6 h-full flex items-center justify-center"><Plus className="h-3 w-3 stroke-[3]" /></button>
                     </div>
                   )}
                 </div>
