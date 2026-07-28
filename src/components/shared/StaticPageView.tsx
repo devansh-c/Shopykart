@@ -1,17 +1,16 @@
-
 "use client"
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, FileText, Loader2, Calendar } from 'lucide-react';
 import { useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useEffect, useState, Suspense } from 'react';
 import { extractIdFromSlug, slugify } from '@/lib/utils';
 
 /**
- * @fileOverview StaticPageView that intelligently handles both Slugs and IDs defensively.
- * Fixed: Added ID extraction to prevent 404 when ID is appended to slug.
+ * @fileOverview StaticPageView that handles Clean Slugs (without IDs).
+ * Prioritizes Slug field search for modern SEO URLs.
  */
 function StaticPageViewContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -29,30 +28,32 @@ function StaticPageViewContent({ forcedSlug }: { forcedSlug?: string }) {
       if (!firestore || !rawSlug) return;
       setLoading(true);
       try {
-        const { getDocs } = await import('firebase/firestore');
-
-        // 1. Try SEO Slug Exact Match
+        // 1. Try SEO Slug Exact Match (Prioritized for Clean Links)
         const slugQ = query(collection(firestore, 'pages'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
 
         if (!slugSnap.empty) {
           setPage({ id: slugSnap.docs[0].id, ...slugSnap.docs[0].data() });
-        } else {
-          // 2. Try Document ID Match
-          const idRef = doc(firestore, 'pages', rawSlug);
-          const idSnap = await getDoc(idRef);
-          if (idSnap.exists()) {
-            setPage({ id: idSnap.id, ...idSnap.data() });
-          } else {
-            // 3. Fallback: Extract ID from end of slug (slug-id format)
-            const possibleId = extractIdFromSlug(rawSlug);
-            if (possibleId && possibleId !== rawSlug) {
-              const fallbackRef = doc(firestore, 'pages', possibleId);
-              const fallbackSnap = await getDoc(fallbackRef);
-              if (fallbackSnap.exists()) {
-                setPage({ id: fallbackSnap.id, ...fallbackSnap.data() });
-              }
-            }
+          setLoading(false);
+          return;
+        }
+
+        // 2. Try Document ID Match (For Direct Access or Internal links)
+        const idRef = doc(firestore, 'pages', rawSlug);
+        const idSnap = await getDoc(idRef);
+        if (idSnap.exists()) {
+          setPage({ id: idSnap.id, ...idSnap.data() });
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fallback: Search for title slug if not found (Legacy Support)
+        const possibleId = extractIdFromSlug(rawSlug);
+        if (possibleId && possibleId !== rawSlug) {
+          const fallbackRef = doc(firestore, 'pages', possibleId);
+          const fallbackSnap = await getDoc(fallbackRef);
+          if (fallbackSnap.exists()) {
+            setPage({ id: fallbackSnap.id, ...fallbackSnap.data() });
           }
         }
       } catch (err) {

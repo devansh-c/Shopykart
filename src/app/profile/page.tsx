@@ -1,4 +1,3 @@
-
 "use client"
 
 import { 
@@ -311,11 +310,12 @@ function ProfileContent() {
             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Information & Legal</h3>
             {pages.map((page: any) => {
               const Icon = getPageIcon(page.title);
-              const seoSlug = page.slug || slugify(page.title);
+              // Clean SEO Slug without ID
+              const cleanPath = `/page/${page.slug || slugify(page.title)}`;
               return (
                 <button 
                   key={page.id}
-                  onClick={() => handleAction(`/pages/${seoSlug}-${page.id}`, page.title)}
+                  onClick={() => handleAction(cleanPath, page.title)}
                   className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all"
                 >
                   <div className="flex items-center space-x-4">

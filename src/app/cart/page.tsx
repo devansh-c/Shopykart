@@ -29,7 +29,8 @@ import {
   Camera,
   ImageIcon,
   Trash2,
-  Smartphone
+  Smartphone,
+  UserCheck
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -120,7 +121,6 @@ function CartContent() {
   const { data: dbCharges, loading: chargesLoading } = useCollection<any>(chargesQuery);
 
   const customSurchargeTotal = useMemo(() => {
-    // If premium, waive packaging surcharge too
     if (isPremium) return 0;
     return cart.reduce((acc, item) => acc + (Number(item.customSurcharge) || 0), 0);
   }, [cart, isPremium]);
@@ -149,15 +149,12 @@ function CartContent() {
     return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
-      
-      // ELITE USER PRIVILEGE: Waive all taxes and delivery charges
       if (isPremium) {
         amount = 0;
       } else {
         if (charge.type === 'fixed') amount = chargeVal;
         else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
       }
-      
       return { ...charge, calculatedAmount: amount, isWaived: isPremium };
     });
   }, [dbCharges, totalPrice, isPremium, profileLoading, chargesLoading]);
@@ -205,7 +202,7 @@ function CartContent() {
     reader.onloadend = async () => {
       const compressed = await compressImage(reader.result as string, 800, 800);
       setHousePhoto(compressed);
-      toast({ title: "Photo Ready!", description: "Rider can now see your location photo." });
+      toast({ title: "Photo Ready!", description: "Rider can now see your verification photo." });
     };
     reader.readAsDataURL(file);
   };
@@ -309,7 +306,6 @@ function CartContent() {
     }
   };
 
-  const handleTouchStart = () => { isDragging.current = true; };
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging.current || !sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
@@ -318,6 +314,7 @@ function CartContent() {
     const val = Math.max(0, Math.min(100, (x / rect.width) * 100));
     setSliderValue(val);
   };
+  
   const handleTouchEnd = () => {
     isDragging.current = false;
     if (sliderValue >= 90) {
@@ -335,11 +332,11 @@ function CartContent() {
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b border-gray-100 shadow-sm">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
         <h1 className="text-lg font-bold text-gray-800 italic uppercase tracking-tighter">Secure Checkout</h1>
       </div>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu pb-44">
+      <div className="p-4 space-y-4 max-w-lg mx-auto transform-gpu pb-52">
         
         {isPremium && !profileLoading && (
           <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-[2rem] p-6 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-500">
@@ -398,8 +395,8 @@ function CartContent() {
         <div className="bg-white rounded-[2rem] p-6 shadow-[0_0_15px_rgba(197,160,33,0.05)] border-2 border-primary/40">
            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-primary">
-                 <Camera className="h-5 w-5" />
-                 <h2 className="text-sm font-black uppercase italic">Fast Delivery Hub</h2>
+                 <UserCheck className="h-5 w-5" />
+                 <h2 className="text-sm font-black uppercase italic">Identity Verification</h2>
               </div>
               <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase">Optional</Badge>
            </div>
@@ -408,7 +405,7 @@ function CartContent() {
              onClick={() => fileInputRef.current?.click()}
              className={cn(
                "relative h-32 w-full border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden",
-               housePhoto ? "bg-muted/10 border-primary/20" : "bg-gray-50 border-gray-200"
+               housePhoto ? "bg-muted/10 border-primary/20" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
              )}
            >
               {housePhoto ? (
@@ -419,8 +416,8 @@ function CartContent() {
               ) : (
                 <div className="text-center p-4">
                    <ImageIcon className="h-6 w-6 text-gray-300 mx-auto mb-2" />
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Upload House/Gate Photo</p>
-                   <span className="text-[8px] font-medium text-gray-400 uppercase italic">Help rider reach you faster</span>
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Upload Your Photo / House / Nearby</p>
+                   <span className="text-[8px] font-medium text-gray-400 uppercase italic mt-1.5 block">Helps our rider identify your spot easily</span>
                 </div>
               )}
            </div>
@@ -454,9 +451,7 @@ function CartContent() {
           <div className="space-y-4">
               <div className="space-y-3">
                 <Input placeholder="FULL NAME *" value={customerName} onChange={e => setCustomerName(e.target.value.toUpperCase())} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                <div className="grid grid-cols-1">
-                   <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60" />
-                </div>
+                <Input placeholder="CITY *" value={customerCity} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold opacity-60" />
                 <Input placeholder="10 DIGIT PHONE NUMBER *" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/\D/g,'').slice(0, 10))} className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                 <Textarea placeholder="FULL ADDRESS / LANDMARK *" value={customerAddress} onChange={e => setCustomerAddress(e.target.value.toUpperCase())} className="min-h-[100px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs" />
               </div>
@@ -490,7 +485,7 @@ function CartContent() {
                   onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)}
                   className={cn(
                     "flex-1 h-12 rounded-xl border-2 font-black uppercase text-[10px] transition-all",
-                    deliveryTip === amt ? "bg-primary border-primary text-white shadow-lg shadow-primary/20" : "bg-white border-gray-100 text-gray-400"
+                    deliveryTip === amt ? "bg-primary border-primary text-white shadow-lg" : "bg-white border-gray-100 text-gray-400"
                   )}
                 >
                   ₹{amt}
@@ -614,12 +609,12 @@ function CartContent() {
          </DialogContent>
       </Dialog>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white border-t border-gray-100 p-5 pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transform-gpu">
-         <div className="max-w-lg mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 z-[5000] bg-white/80 backdrop-blur-xl border-t border-gray-100 p-5 pb-8 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] transform-gpu flex justify-center">
+         <div className="max-w-md w-full">
             <div 
               ref={sliderRef}
-              className="relative w-full h-20 bg-gray-100 rounded-[2.5rem] overflow-hidden flex items-center p-2 group select-none shadow-inner"
-              onTouchStart={handleTouchStart}
+              className="relative w-full h-20 bg-gray-100/50 rounded-[2.5rem] overflow-hidden flex items-center p-2 group select-none shadow-inner border border-gray-200/50"
+              onTouchStart={() => { isDragging.current = true; }}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onMouseDown={() => { isDragging.current = true; }}
@@ -635,34 +630,34 @@ function CartContent() {
             >
                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className={cn(
-                    "text-[10px] font-black uppercase tracking-[0.3em] transition-opacity duration-300",
-                    sliderValue > 20 ? "opacity-0" : "opacity-40 animate-pulse text-gray-500"
+                    "text-[10px] font-black uppercase tracking-[0.4em] transition-opacity duration-300",
+                    sliderValue > 15 ? "opacity-0" : "opacity-30 animate-pulse text-gray-600"
                   )}>
-                    Slide to Place Order
+                    Slide to Order
                   </span>
                </div>
 
                <div 
-                 className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-75"
+                 className="absolute left-0 top-0 bottom-0 bg-primary transition-[width] duration-75 ease-out"
                  style={{ width: `${sliderValue}%` }}
                />
 
                <div 
-                 className="relative z-10 h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-xl cursor-grab active:cursor-grabbing transition-all duration-75"
-                 style={{ transform: `translateX(${sliderValue * 2.5}px)` }}
+                 className="relative z-10 h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing transition-[transform] duration-75 ease-out flex-shrink-0"
+                 style={{ transform: `translateX(${sliderValue * 0.01 * ((sliderRef.current?.clientWidth || 0) - 80)}px)` }}
                >
                   {isPlacing ? (
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   ) : sliderValue > 90 ? (
                     <CheckCircle2 className="h-8 w-8 text-green-500" />
                   ) : (
-                    <ArrowRight className="h-6 w-6 text-primary stroke-[3]" />
+                    <ArrowRight className="h-7 w-7 text-primary stroke-[3]" />
                   )}
                </div>
 
                <div className="absolute right-6 pointer-events-none z-10 flex items-center gap-3">
-                  <span className="text-lg font-black italic tracking-tighter text-gray-900">₹{grandTotal.toFixed(0)}</span>
-                  <div className="h-8 w-8 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
+                  <span className="text-xl font-black italic tracking-tighter text-gray-900">₹{grandTotal.toFixed(0)}</span>
+                  <div className="h-7 w-7 rounded-full bg-black/5 flex items-center justify-center">
                      <ChevronRight className="h-4 w-4 text-gray-400" />
                   </div>
                </div>
