@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -16,7 +15,7 @@ import {
 
 /**
  * @fileOverview StoreSection with Robust Navigation Logic.
- * Prioritizes Slug for SEO, falls back to ID for stability.
+ * Prioritizes Slug for SEO based on store name.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -59,9 +58,8 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   }, [dbVendors, activeMode, activeZoneId]);
 
   const handleStoreClick = (store: any) => {
-    // SECURITY: Use slug if exists, else document ID. 
-    // Do NOT generate slugify on the fly for URL unless it exists in DB.
-    const pathSegment = store.slug || store.id;
+    // Aggressively use Slug for SEO. If missing, generate from name.
+    const pathSegment = store.slug || slugify(store.storeName) || store.id;
     startTransition(() => {
       router.push(`/store/${pathSegment}`);
     });

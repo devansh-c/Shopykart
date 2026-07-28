@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, Suspense } from 'react';
@@ -29,7 +28,7 @@ import {
 import { useFirestore, useAuth, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -125,7 +124,7 @@ function RegistrationContent() {
         return;
       }
 
-      // 2. Generate Virtual Email for Firebase Auth (Clean & Robust)
+      // 2. Generate Virtual Email for Firebase Auth
       const virtualEmail = `${cleanStoreId}@vendors.shopykart.com`;
 
       // 3. Create Auth User
@@ -141,6 +140,7 @@ function RegistrationContent() {
         id: user.uid,
         storeId: cleanStoreId,
         storeName: formData.storeName,
+        slug: slugify(formData.storeName), // Generate slug from name
         category: isMedicalFlow ? 'Medical' : isBeautyFlow ? 'Beauty' : 'Food', 
         town: selectedZone?.name || 'Local',
         city: selectedZone?.city || 'Ranipur',
@@ -154,7 +154,7 @@ function RegistrationContent() {
         status: 'approved',
         isOnline: true,
         walletBalance: 0,
-        rating: 4.0, // Default rating for new stores
+        rating: 4.0,
         imageUrl: storePhoto || (isMedicalFlow ? 'https://picsum.photos/seed/medical/400/400' : isBeautyFlow ? 'https://picsum.photos/seed/beauty/400/400' : 'https://picsum.photos/seed/food/400/400'),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -286,7 +286,7 @@ function RegistrationContent() {
                       placeholder="••••••••" 
                       value={formData.password} 
                       onChange={e => updateFormData('password', e.target.value)} 
-                      className="h-12 rounded-xl bg-muted/20 border-none font-bold text-center" 
+                      className="h-12 rounded-xl font-bold bg-muted/20 border-none text-center" 
                     />
                   </div>
                   <div className="space-y-1">
@@ -296,7 +296,7 @@ function RegistrationContent() {
                       placeholder="••••••••" 
                       value={formData.confirmPassword} 
                       onChange={e => updateFormData('confirmPassword', e.target.value)} 
-                      className="h-12 rounded-xl bg-muted/20 border-none font-bold text-center" 
+                      className="h-12 rounded-xl font-bold bg-muted/20 border-none text-center" 
                     />
                   </div>
                 </div>

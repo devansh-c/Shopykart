@@ -17,6 +17,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview MenuContent with Universal Resolution & High-Speed Product Fetching.
+ * Optimized to handle name-based slugs even if not present in DB field.
  */
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -41,7 +42,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  // RESOLUTION ENGINE: Find store by slug field OR document ID
+  // RESOLUTION ENGINE: Find store by slug field, custom ID, or name match
   useEffect(() => {
     async function resolveVendor() {
       if (!firestore || !rawSlug) return;
@@ -57,11 +58,34 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           return;
         }
 
-        // 2. Try finding by direct Document ID
+        // 2. Try finding by custom 'storeId' (A human-readable unique key)
+        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug), limit(1));
+        const storeIdSnap = await getDocs(storeIdQ);
+        
+        if (!storeIdSnap.empty) {
+          setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
+          setVendorLoading(false);
+          return;
+        }
+
+        // 3. Try finding by direct Document ID
         const idRef = doc(firestore, 'vendors', rawSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
           setVendorProfile({ id: idSnap.id, ...idSnap.data() });
+          setVendorLoading(false);
+          return;
+        }
+
+        // 4. Final Fallback: Search all vendors and match by slugified name (Slow but exhaustive)
+        const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
+        const matchedVendor = allVendorsSnap.docs.find(d => {
+          const data = d.data();
+          return slugify(data.storeName || '') === rawSlug;
+        });
+
+        if (matchedVendor) {
+          setVendorProfile({ id: matchedVendor.id, ...matchedVendor.data() });
           setVendorLoading(false);
           return;
         }
@@ -81,7 +105,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     return query(collection(firestore, 'products'), where('vendorId', '==', vendorProfile.id));
   }, [firestore, vendorProfile]);
   
-  // Use aggressive caching for menu items
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `store_menu_${vendorProfile?.id}`);
 
   const filteredProducts = useMemo(() => {
@@ -120,7 +143,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
 
   return (
     <div className="min-h-screen bg-white pb-40">
-      {/* Header Banner */}
       <div className="relative h-64 w-full">
         <img src={vendorProfile?.bannerUrl || vendorProfile?.imageUrl} className="w-full h-full object-cover" alt="Banner" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-6">

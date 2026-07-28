@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
 /**
- * @fileOverview StoresPage with Reliable Navigation Links.
+ * @fileOverview StoresPage with Reliable Navigation Links using Name-based Slugs.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +93,9 @@ export default function StoresPage() {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
             const isOffline = store.isOnline === false;
             const rating = store.rating || '4.0';
-            const storePath = `/store/${store.slug || store.id}`;
+            
+            // Prioritize slug for Clean URLs based on name
+            const storePath = `/store/${store.slug || slugify(store.storeName) || store.id}`;
 
             return (
               <Link 
@@ -118,8 +119,8 @@ export default function StoresPage() {
                   <div className="flex justify-between items-center mb-1">
                     <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter leading-none flex-1 truncate mr-2">{store.storeName}</h3>
                     <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                       <span className="text-[10px] font-black">{rating}</span>
                        <Star className="h-3 w-3 fill-white" />
+                       <span className="text-[10px] font-black">{rating}</span>
                     </div>
                   </div>
 
