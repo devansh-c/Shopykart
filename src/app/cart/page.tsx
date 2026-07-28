@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -133,10 +134,13 @@ function CartContent() {
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.discountType === 'percentage') {
-      return (totalPrice * (appliedCoupon.discountValue || 0)) / 100;
-    } else if (appliedCoupon.discountType === 'fixed') {
-      return appliedCoupon.discountValue || 0;
+    const val = Number(appliedCoupon.discountValue) || 0;
+    const type = appliedCoupon.discountType || 'percentage';
+    
+    if (type === 'percentage') {
+      return (totalPrice * val) / 100;
+    } else if (type === 'fixed') {
+      return val;
     }
     return 0;
   }, [appliedCoupon, totalPrice]);
@@ -328,8 +332,8 @@ function CartContent() {
 
       <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-20">
         
-        {/* 1. ITEMS IN BAG (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#211C14] to-[#0D0B09] rounded-[2.5rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+        {/* 1. ITEMS IN BAG (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2.5rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-3">
               <ShoppingBasket className="h-5 w-5 text-amber-400" />
               <h3 className="text-sm font-black uppercase tracking-widest italic">Items In Bag</h3>
@@ -357,8 +361,8 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 2. INSTRUCTIONS & PHOTO BOX (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#211C14] to-[#0D0B09] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+        {/* 2. INSTRUCTIONS & PHOTO BOX (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="space-y-4">
              <div className="flex items-center gap-3">
                 <div className="bg-white/10 p-2 rounded-xl text-amber-400"><MessageSquareQuote className="h-4 w-4" /></div>
@@ -396,8 +400,8 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 3. GOURMET ADDRESS BAR (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-r from-[#211C14] to-[#0D0B09] rounded-2xl p-4 shadow-xl flex items-center justify-between border border-white/5">
+        {/* 3. ADDRESS BAR (DARK OLIVE) */}
+        <div className="bg-gradient-to-r from-[#4A4232] to-[#2D281E] rounded-2xl p-4 shadow-xl flex items-center justify-between border border-white/5">
            <div className="flex items-center gap-3 min-w-0">
               <div className="bg-amber-400 p-2 rounded-xl text-black shadow-lg shrink-0">
                  <MapPin className="h-5 w-5 fill-current" />
@@ -422,8 +426,8 @@ function CartContent() {
            )}
         </div>
 
-        {/* 4. GOURMET ENHANCEMENTS BOX (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#211C14] to-[#0D0B09] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+        {/* 4. GOURMET ENHANCEMENTS BOX (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
               <h3 className="text-[10px] font-black uppercase tracking-widest">Gourmet Enhancements</h3>
@@ -482,8 +486,8 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 5. DELIVERY TIP BOX (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#211C14] to-[#0D0B09] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+        {/* 5. DELIVERY TIP BOX (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-3">
               <div className="bg-white/5 p-2.5 rounded-xl text-blue-400 border border-white/5">
                  <Bike className="h-5 w-5" />
@@ -522,8 +526,8 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 6. BILL DETAILS CARD (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#211C14] to-[#0D0B09] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
+        {/* 6. BILL DETAILS CARD (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Bill Summary</h2>
            
            <div className="space-y-4 mb-8">
@@ -574,8 +578,8 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 7. SELECT PAYMENT MODE CARD (DEEP DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#211C14] to-[#0D0B09] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
+        {/* 7. SELECT PAYMENT MODE CARD (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-8 shadow-2xl border border-white/5 text-[#D9C4A9]">
            <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Select Payment Mode:</h2>
            
            <div className="space-y-5">
@@ -618,7 +622,7 @@ function CartContent() {
            <div className="max-w-md w-full">
               <div 
                 ref={sliderRef}
-                className="relative w-full h-20 bg-[#0D0B09] rounded-[2.5rem] overflow-hidden flex items-center p-2 group select-none shadow-2xl border border-white/5"
+                className="relative w-full h-20 bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2.5rem] overflow-hidden flex items-center p-2 group select-none shadow-2xl border border-white/5"
                 onTouchStart={() => { isDragging.current = true; }}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
