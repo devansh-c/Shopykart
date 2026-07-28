@@ -5,17 +5,17 @@ import {
   Camera,
   Mic,
   MapPin,
-  ChevronDown,
-  Crown
+  ChevronDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview Slim Header - Matching design with h-12 search bar.
+ * @fileOverview Premium Header Component
+ * Matches the requested design with a metallic champagne search bar and subtle pattern background.
  */
 export function LocationHeader({
   searchValue,
@@ -47,47 +47,49 @@ export function LocationHeader({
   }, []);
 
   return (
-    <div className="w-full bg-[#0B0B0B] pb-6 pt-4 px-4 space-y-5 rounded-b-[3rem] shadow-2xl relative z-50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}>
-          <div className="h-10 w-10 bg-white/5 rounded-full flex items-center justify-center text-primary border border-white/10">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span className="text-white text-sm font-black italic uppercase tracking-tight">{currentAddress}</span>
-              <ChevronDown className="h-3 w-3 text-white/40" />
-            </div>
+    <div className="w-full bg-white pb-6 pt-4 px-4 space-y-5 rounded-b-[3rem] shadow-sm relative z-50 overflow-hidden">
+      {/* Subtle Food Pattern Background */}
+      <div 
+        className="absolute inset-0 opacity-[0.04] pointer-events-none" 
+        style={{ 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23 47c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5z' fill='%23000000' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+          backgroundSize: '120px'
+        }} 
+      />
+
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}>
+          <MapPin className="h-5 w-5 text-black stroke-[2.5]" />
+          <div className="flex items-center gap-1">
+            <span className="text-black text-lg font-black tracking-tight">{currentAddress}</span>
+            <ChevronDown className="h-4 w-4 text-black/60" />
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 shadow-lg">
-            <Crown className="h-5 w-5 text-amber-400 fill-amber-400" />
-          </div>
-          <Avatar className="h-10 w-10 border-2 border-white/10 shadow-xl">
-            <AvatarImage src={profile?.profileImageUrl} />
-            <AvatarFallback className="bg-white/5 text-white font-black text-xs">{(profile?.fullName || 'U').charAt(0)}</AvatarFallback>
-          </Avatar>
-        </div>
+        <Avatar className="h-11 w-11 border-2 border-white shadow-lg">
+          <AvatarImage src={profile?.profileImageUrl || "https://picsum.photos/seed/user/100/100"} />
+          <AvatarFallback className="bg-gray-100 text-black font-black text-xs uppercase">{(profile?.fullName || 'U').charAt(0)}</AvatarFallback>
+        </Avatar>
       </div>
 
-      <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
-        <div className="relative h-12 w-full bg-white border border-gray-100 rounded-full overflow-hidden shadow-2xl shadow-black/20">
+      {/* Pill Search Bar with Metallic Champagne Gradient */}
+      <div className="relative group relative z-10">
+        <div className="relative h-14 w-full bg-gradient-to-r from-[#D9C4A9] via-[#F1E4D1] to-[#D9C4A9] rounded-full overflow-hidden shadow-lg border border-[#B8A38B]/30 flex items-center px-5">
+          <Search className="h-6 w-6 text-[#5C4D3C] shrink-0" />
+          
           <Input
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search Pizza, Burger..."
-            className="h-full w-full bg-transparent border-none pl-11 pr-24 text-black font-bold placeholder:text-gray-300 focus-visible:ring-0 text-sm"
+            placeholder="Search for Food Junction or Groceries"
+            className="h-full w-full bg-transparent border-none pl-3 pr-20 text-[#2D2418] font-bold placeholder:text-[#8C7A63] focus-visible:ring-0 text-sm tracking-tight"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-             <button className="p-2 text-gray-400 active:scale-90 transition-all">
-                <Camera className="h-4 w-4" />
+          
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-4 text-[#2D2418]">
+             <button className="active:scale-90 transition-all">
+                <Camera className="h-6 w-6 stroke-[2.5]" />
              </button>
-             <div className="h-4 w-[1px] bg-gray-200 mx-1" />
-             <button className="p-2 text-gray-400 active:scale-90 transition-all">
-                <Mic className="h-4 w-4" />
+             <button className="active:scale-90 transition-all">
+                <Mic className="h-6 w-6 stroke-[2.5]" />
              </button>
           </div>
         </div>
