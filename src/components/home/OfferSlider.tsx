@@ -32,7 +32,8 @@ export function OfferSlider() {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners } = useCollection<any>(bannersQuery);
+  // Added cacheKey for instant load from sessionStorage
+  const { data: dbBanners } = useCollection<any>(bannersQuery, 'home_banners_v2');
   
   const filteredBanners = React.useMemo(() => {
     if (!dbBanners) return [];
@@ -81,20 +82,6 @@ export function OfferSlider() {
           ))}
         </CarouselContent>
       </Carousel>
-
-      {/* Navigation Arrows */}
-      <button 
-        onClick={() => api?.scrollPrev()} 
-        className="absolute left-6 top-1/2 -translate-y-1/2 h-9 w-9 bg-white shadow-xl rounded-full flex items-center justify-center text-gray-800 z-20 transition-all active:scale-75 hover:bg-gray-50 border border-gray-100 opacity-0 group-hover:opacity-100"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button 
-        onClick={() => api?.scrollNext()} 
-        className="absolute right-6 top-1/2 -translate-y-1/2 h-9 w-9 bg-white shadow-xl rounded-full flex items-center justify-center text-gray-800 z-20 transition-all active:scale-75 hover:bg-gray-50 border border-gray-100 opacity-0 group-hover:opacity-100"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
 
       {/* Pagination Dots */}
       <div className="flex justify-center gap-1.5 mt-4">

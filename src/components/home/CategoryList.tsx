@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo } from "react"
@@ -21,7 +22,8 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery);
+  // Added cacheKey for near-instant rendering
+  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v2');
 
   const filteredCategories = useMemo(() => {
     if (!dbCategories) return [];

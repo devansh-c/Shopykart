@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useTransition, Suspense, useEffect } from 'react';
@@ -5,22 +6,19 @@ import { LocationHeader } from '@/components/home/LocationHeader';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import dynamic from 'next/dynamic';
 import { useUser } from '@/firebase';
 
+// IMPORTING DIRECTLY FOR INSTANT RENDERING (NO DYNAMIC DELAY)
+import { OfferSlider } from '@/components/home/OfferSlider';
+import { CategoryList } from '@/components/home/CategoryList';
+import { StoreSection } from '@/components/home/StoreSection';
+import { PopularProducts } from '@/components/home/PopularProducts';
+import OffersSection from '@/components/home/OffersSection';
+
 /**
- * @fileOverview ShopyKart Main Entrance with Rich Schema for Google sitelinks.
+ * @fileOverview ShopyKart Main Entrance - Ultra Fast Edition.
+ * Optimized for instant visibility of all components on load.
  */
-
-const OfferSlider = dynamic(() => import('@/components/home/OfferSlider').then(m => ({ default: m.OfferSlider })), { ssr: false });
-const CategoryList = dynamic(() => import('@/components/home/CategoryList').then(m => ({ default: m.CategoryList })), { ssr: false });
-const StoreSection = dynamic(() => import('@/components/home/StoreSection').then(m => ({ default: m.StoreSection })), { ssr: false });
-const PopularProducts = dynamic(() => import('@/components/home/PopularProducts').then(m => ({ default: m.PopularProducts })), { ssr: false });
-const OffersSection = dynamic(() => import('@/components/home/OffersSection'), { 
-  ssr: false,
-  loading: () => <div className="h-32 w-full bg-muted/20 animate-pulse rounded-2xl mx-4" />
-});
-
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -78,32 +76,11 @@ export default function ShopyKartApp() {
       "addressRegion": "UP",
       "postalCode": "284204",
       "addressCountry": "IN"
-    },
-    "potentialAction": {
-      "@type": "OrderAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://shopykart.co.in/menu",
-        "inLanguage": "en-US",
-        "actionPlatform": [
-          "http://schema.org/DesktopWebPlatform",
-          "http://schema.org/IOSPlatform",
-          "http://schema.org/AndroidPlatform"
-        ]
-      },
-      "deliveryMethod": ["http://purl.org/goodrelations/v1#DeliveryModeDirectOutbound"],
-      "priceSpecification": {
-        "@type": "DeliveryChargeSpecification",
-        "appliesToDeliveryMethod": "http://purl.org/goodrelations/v1#DeliveryModeDirectOutbound",
-        "price": 20,
-        "priceCurrency": "INR"
-      }
     }
   };
 
   return (
     <div className="min-h-screen bg-white transform-gpu">
-      {/* Structured Data for SEO */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -143,7 +120,7 @@ export default function ShopyKartApp() {
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
             <ScrollReveal delay={100}><CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} /></ScrollReveal>
-            <Suspense fallback={<div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}><PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} /></Suspense>
+            <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
           </div>
         ) : (
           <div className="content-visibility-auto space-y-0">

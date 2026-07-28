@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Copy, Crown } from 'lucide-react';
@@ -7,8 +8,7 @@ import { collection } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Offers & Coupons Section.
- * Redesigned to match the requested ticket-style UI with crown icon.
+ * @fileOverview Offers & Coupons Section - Optimized for Speed.
  */
 export default function OffersSection() {
   const { toast } = useToast();
@@ -18,7 +18,8 @@ export default function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery);
+  // Added cacheKey for instant load
+  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v2');
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {
@@ -51,7 +52,8 @@ export default function OffersSection() {
     }
   };
 
-  if (loading || !dbCoupons || dbCoupons.length === 0) return null;
+  if (loading && !dbCoupons) return null;
+  if (!dbCoupons || dbCoupons.length === 0) return null;
 
   return (
     <div className="py-6">
@@ -62,7 +64,7 @@ export default function OffersSection() {
         {dbCoupons.map((coupon: any) => {
           const displayValue = coupon.discountType === 'percentage' 
             ? `${coupon.discountValue}%` 
-            : `Rs, ${coupon.discountValue}`;
+            : `Rs. ${coupon.discountValue}`;
 
           return (
             <div 
