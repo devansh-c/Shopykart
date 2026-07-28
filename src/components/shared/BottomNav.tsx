@@ -1,3 +1,4 @@
+
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -27,8 +28,16 @@ export default function BottomNav() {
 
   if (isExcludedPath) return null;
 
+  // COLORS MATCHED FROM SCREENSHOT
+  const ACTIVE_COLOR = "#D4A017"; // Mustard Golden
+  const INACTIVE_COLOR = "#4A4A4A"; // Charcoal Grey
+  const BG_COLOR = "#FDFDFD"; // Soft Off-White
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] h-20 safe-area-bottom transform-gpu">
+    <nav 
+      style={{ backgroundColor: BG_COLOR }}
+      className="fixed bottom-0 left-0 right-0 z-[10000] border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] h-20 safe-area-bottom transform-gpu"
+    >
       <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
@@ -38,31 +47,32 @@ export default function BottomNav() {
             <button
               key={item.label}
               onClick={() => router.push(item.href)}
-              className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90",
-                isActive ? "text-amber-500" : "text-gray-400"
-              )}
+              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90"
+              style={{ color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR }}
             >
-              {/* Top Active Indicator */}
+              {/* Top Active Indicator Line */}
               {isActive && (
-                <div className="absolute top-0 w-12 h-1 bg-amber-500 rounded-b-full shadow-[0_2px_10px_rgba(245,158,11,0.3)] animate-in fade-in slide-in-from-top-1 duration-300" />
+                <div 
+                  style={{ backgroundColor: ACTIVE_COLOR }}
+                  className="absolute top-0 w-12 h-1 rounded-b-full shadow-sm animate-in fade-in slide-in-from-top-1 duration-300" 
+                />
               )}
               
               <div className="relative mb-1">
-                <Icon className={cn("h-6 w-6 transition-all duration-300", isActive && "scale-110")} />
+                <Icon 
+                  strokeWidth={2.5}
+                  className={cn("h-6 w-6 transition-transform duration-300", isActive && "scale-105")} 
+                />
                 
-                {/* Orders Notification Badge */}
+                {/* Orders Notification Badge (Red Circle from Screenshot) */}
                 {item.label === 'Orders' && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-[#EF4444] text-white text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-2 bg-[#FF3B30] text-white text-[8px] font-black h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-md animate-in zoom-in duration-300">
                     {totalItems}
                   </span>
                 )}
               </div>
               
-              <span className={cn(
-                "text-[10px] font-bold tracking-tight transition-all",
-                isActive ? "text-amber-600" : "text-gray-500"
-              )}>
+              <span className="text-[10px] font-black uppercase tracking-tight leading-none mt-0.5">
                 {item.label}
               </span>
             </button>
