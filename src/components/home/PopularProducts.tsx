@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
-import { Plus, Minus, Loader2, Crown } from "lucide-react"
+import { Plus, Minus, Loader2, Share2 } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -10,6 +10,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 /**
  * Utility to check if a store is currently open based on timing strings (e.g. "10:00 AM")
@@ -50,6 +51,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,6 +108,29 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     });
   }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId]);
 
+  const handleShare = async (e: React.MouseEvent, product: any) => {
+    e.stopPropagation();
+    const productSlug = product.slug || slugify(product.name) || product.id;
+    const shareUrl = `${window.location.origin}/product/${productSlug}`;
+    
+    const shareData = {
+      title: product.name,
+      text: `Delicious ${product.name} from ${product.restaurantName || 'ShopyKart'}. Order now!`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({ title: "Link Copied! 🔗", description: "Product link saved to clipboard." });
+      }
+    } catch (err) {
+      // Fail silently if user cancels share
+    }
+  };
+
   if (loading && !dbProducts) {
     return (
       <div className="px-4 grid grid-cols-2 gap-4 py-6">
@@ -141,11 +166,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
                       <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      <div className="absolute top-2 right-2 h-5 w-5 bg-black/40 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
-                        <Crown className="h-3 w-3 text-[#C5A021] fill-[#C5A021]" />
-                      </div>
                    </div>
                 </ProductQuickView>
+                
+                {/* SHARE BUTTON REPLACING CROWN ICON */}
+                <button 
+                  onClick={(e) => handleShare(e, product)}
+                  className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 transition-all z-30 group/share"
+                >
+                  <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
+                </button>
               </div>
 
               <div className="flex-1 flex flex-col px-1">
