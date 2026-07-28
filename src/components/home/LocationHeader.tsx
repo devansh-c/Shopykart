@@ -5,16 +5,17 @@ import {
   Camera,
   Mic,
   MapPin,
-  ChevronDown
+  ChevronDown,
+  Menu
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 /**
- * @fileOverview Compact Premium Header Component
+ * @fileOverview Compact Premium Header Component with Hamburger Menu.
  */
 export function LocationHeader({
   searchValue,
@@ -27,6 +28,7 @@ export function LocationHeader({
 }) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const [currentAddress, setCurrentAddress] = useState('Ranipur');
 
   const profileRef = useMemoFirebase(() => {
@@ -65,10 +67,13 @@ export function LocationHeader({
           </div>
         </div>
 
-        <Avatar className="h-9 w-9 border-2 border-white shadow-md">
-          <AvatarImage src={profile?.profileImageUrl || "https://picsum.photos/seed/user/100/100"} />
-          <AvatarFallback className="bg-gray-100 text-black font-black text-[10px] uppercase">{(profile?.fullName || 'U').charAt(0)}</AvatarFallback>
-        </Avatar>
+        <button 
+          onClick={() => router.push('/profile')}
+          className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 shadow-sm active:scale-90 transition-all hover:bg-gray-100"
+          aria-label="Open Profile Menu"
+        >
+          <Menu className="h-6 w-6 text-black" />
+        </button>
       </div>
 
       {/* Compact Pill Search Bar */}
