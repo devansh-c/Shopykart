@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -21,11 +20,13 @@ import {
   MessageSquareQuote,
   ArrowRight,
   Bike,
-  Sparkles
+  Sparkles,
+  Camera,
+  ImageIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase, useDoc, useCollection } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, increment, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
+import { compressImage } from '@/lib/image-utils';
 
 function CartContent() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -42,9 +44,11 @@ function CartContent() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isMounted, setIsMounted] = useState(false);
   const [instructions, setInstructions] = useState('');
+  const [verificationImage, setVerificationImage] = useState<string | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
@@ -58,7 +62,6 @@ function CartContent() {
 
   const [deliveryTip, setDeliveryTip] = useState<number>(0);
   
-  // ADDRESS EDITING STATE
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -159,6 +162,18 @@ function CartContent() {
     setCustomerCity(profile?.city || savedCity || '');
   }, [profile]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setVerificationImage(compressed);
+      toast({ title: "Photo Added! 📸" });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveAddress = async () => {
     if (!customerName || customerPhone.length < 10 || !customerAddress) {
       toast({ variant: "destructive", title: "Missing details" });
@@ -238,6 +253,7 @@ function CartContent() {
       total: grandTotal,
       charges: dynamic_charges.map(c => ({ name: c.name, amount: c.calculatedAmount })),
       instructions: instructions.trim(),
+      verificationImage,
       paymentMethod,
       paymentStatus: paymentMethod === 'online' ? 'UTR_Pending_Verification' : 'Pending',
       utrNumber: paymentMethod === 'online' ? utrNumber : null,
@@ -339,18 +355,43 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 2. INSTRUCTIONS BOX (DARK OLIVE) */}
-        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-4 text-[#D9C4A9]">
-           <div className="flex items-center gap-3">
-              <div className="bg-white/10 p-2 rounded-xl text-amber-400"><MessageSquareQuote className="h-4 w-4" /></div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest">Cooking & Delivery Instructions</h3>
+        {/* 2. INSTRUCTIONS & PHOTO BOX (DARK OLIVE) */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
+           <div className="space-y-4">
+             <div className="flex items-center gap-3">
+                <div className="bg-white/10 p-2 rounded-xl text-amber-400"><MessageSquareQuote className="h-4 w-4" /></div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest">Cooking & Delivery Instructions</h3>
+             </div>
+             <Textarea 
+               placeholder="E.g. Make it extra spicy, Leave at the gate..." 
+               value={instructions}
+               onChange={e => setInstructions(e.target.value)}
+               className="min-h-[80px] rounded-xl bg-white/5 border-white/10 font-bold text-xs p-4 focus-visible:ring-1 focus-visible:ring-amber-500/20 text-white placeholder:text-gray-500"
+             />
            </div>
-           <Textarea 
-             placeholder="E.g. Make it extra spicy, Leave at the gate..." 
-             value={instructions}
-             onChange={e => setInstructions(e.target.value)}
-             className="min-h-[80px] rounded-xl bg-white/5 border-white/10 font-bold text-xs p-4 focus-visible:ring-1 focus-visible:ring-amber-500/20 text-white placeholder:text-gray-500"
-           />
+
+           <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center gap-3">
+                 <div className="bg-white/10 p-2 rounded-xl text-amber-400"><Camera className="h-4 w-4" /></div>
+                 <h3 className="text-[10px] font-black uppercase tracking-widest">Delivery Verification Photo</h3>
+              </div>
+              <p className="text-[8px] font-bold opacity-60 uppercase leading-none">Upload House photo, Your Selfie, or Nearby Landmark</p>
+              
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="relative h-28 w-full border-2 border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center bg-white/5 cursor-pointer overflow-hidden transition-all hover:bg-white/10"
+              >
+                 {verificationImage ? (
+                   <img src={verificationImage} className="h-full w-full object-cover" alt="Verification" />
+                 ) : (
+                   <>
+                     <ImageIcon className="h-6 w-6 opacity-20 mb-1" />
+                     <span className="text-[8px] font-black uppercase opacity-40">Tap to Upload Photo</span>
+                   </>
+                 )}
+              </div>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+           </div>
         </div>
 
         {/* 3. GOURMET ADDRESS BAR */}
@@ -556,7 +597,7 @@ function CartContent() {
            </div>
         </div>
 
-        {/* 8. SLIDER TO ORDER - Moved from fixed to flow at the bottom */}
+        {/* 8. SLIDER TO ORDER */}
         <div className="pt-10 flex justify-center pb-20">
            <div className="max-w-md w-full">
               <div 
