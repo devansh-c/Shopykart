@@ -12,13 +12,9 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
-/**
- * Utility to check if a store is currently open based on timing strings.
- */
 export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
-
   const now = new Date();
   const mins = currentMinutes !== undefined && currentMinutes !== null 
     ? currentMinutes 
@@ -31,75 +27,53 @@ export function isStoreScheduleOpen(vendor: any, currentMinutes?: number | null)
       if (modifier === 'PM' && hours < 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
       return hours * 60 + (minutes || 0);
-    } catch (e) {
-      return 0;
-    }
+    } catch (e) { return 0; }
   };
-
   const start = parseTime(vendor.openingTime);
   const end = parseTime(vendor.closingTime);
-
-  if (start < end) {
-    return mins >= start && mins <= end;
-  } else {
-    return mins >= start || mins <= end;
-  }
+  return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
 }
 
 /**
- * @fileOverview PopularProducts - Optimized for Instant Performance with Product & Vendor Caching.
- * Fixed: Now renders products instantly from cache without waiting for full vendor load.
+ * @fileOverview PopularProducts - Optimized for Instant Paint.
+ * Decoupled from Vendor loading to ensure products appear immediately from cache.
  */
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const updateLoc = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
-    updateLoc();
-    window.addEventListener('user-address-updated', updateLoc);
-    return () => window.removeEventListener('user-address-updated', updateLoc);
-  }, []);
+  
+  // Use local storage values directly for initial render to avoid flicker
+  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(1000));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  // TURBO CACHE for products
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v2');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v3');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  // TURBO CACHE for vendors
-  const { data: vendors, loading: vendorsLoading } = useCollection<any>(vendorsQuery, 'home_vendors_v2');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v3');
 
   const productsToDisplay = useMemo(() => {
     if (!dbProducts) return [];
     
-    // Create a fast vendor map for O(1) lookups
     const vendorMap = new Map((vendors || []).map(v => [v.id, v]));
     
     return dbProducts.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
-      // If zone filter is active and vendor data is available, apply filter.
-      // If vendor data is NOT yet available, show cached products anyway for instant feel.
+      // Decoupled Zone Filter: If vendor data is not yet in cache/sync, 
+      // we show the product anyway to keep the "Instant" feel.
       if (activeZoneId && vendor) {
-        const pZone = p.zoneId;
-        const vZone = vendor.zoneId;
-        const matchesZone = (pZone === activeZoneId) || (vZone === activeZoneId);
-        const isGlobal = !pZone && !vZone;
-        
-        if (!matchesZone && !isGlobal) {
-          return false;
-        }
+        const matchesZone = (p.zoneId === activeZoneId) || (vendor.zoneId === activeZoneId);
+        if (!matchesZone && p.zoneId && vendor.zoneId) return false;
       }
 
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -110,10 +84,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     }).sort((a, b) => {
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
-      
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB)) : true;
-      
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
       return (vendorB?.rating || 0) - (vendorA?.rating || 0);
     });
@@ -123,42 +95,28 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     e.stopPropagation();
     const productSlug = product.slug || slugify(product.name) || product.id;
     const shareUrl = `${window.location.origin}/product/${productSlug}`;
-    
-    const shareData = {
-      title: product.name,
-      text: `Delicious ${product.name} from ${product.restaurantName || 'ShopyKart'}. Order now!`,
-      url: shareUrl,
-    };
-
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share({ title: product.name, url: shareUrl });
       } else {
         await navigator.clipboard.writeText(shareUrl);
-        toast({ title: "Link Copied! 🔗", description: "Product link saved to clipboard." });
+        toast({ title: "Link Copied! 🔗" });
       }
     } catch (err) {}
   };
 
-  // INSTANT SKELETON: Shows immediately ONLY if cache is empty
-  if (productsLoading && !dbProducts) {
+  if (!dbProducts && productsLoading) {
     return (
       <div className="px-4 grid grid-cols-2 gap-4 py-6">
         {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="aspect-[4/5] w-full bg-muted/20 animate-pulse rounded-[2rem] border-2 border-transparent" />
+          <div key={i} className="aspect-[4/5] w-full bg-muted/10 animate-pulse rounded-[2rem]" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6 content-visibility-auto animate-in fade-in duration-200">
-      <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-sm font-black tracking-widest text-black/40 uppercase italic">
-          ⚡ SELECTION ({productsToDisplay.length})
-        </h2>
-      </div>
-      
+    <div className="px-4 py-6 content-visibility-auto">
       <div className="grid grid-cols-2 gap-4">
         {productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
@@ -168,21 +126,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
           return (
             <div key={product.id} className={cn(
-              "relative bg-[#0B0B0B] rounded-[2rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu overflow-hidden group",
+              "relative bg-[#0B0B0B] rounded-[2rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu overflow-hidden",
               isOffline && "opacity-60 grayscale"
             )}>
               <div className="relative aspect-square w-full mb-3">
                 <ProductQuickView product={product}>
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
-                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                    </div>
                 </ProductQuickView>
-                
-                <button 
-                  onClick={(e) => handleShare(e, product)}
-                  className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 transition-all z-30 group/share"
-                >
+                <button onClick={(e) => handleShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 transition-all z-30">
                   <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
                 </button>
               </div>
@@ -191,20 +145,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                 <div onClick={() => router.push(`/product/${productSlug}`)} className="cursor-pointer">
                   <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
                   <p className="text-[9px] text-white/40 uppercase font-black tracking-widest truncate mb-2">
-                    {product.restaurantName || (vendorsLoading ? 'Loading...' : 'Gourmet')}
+                    {product.restaurantName || 'Gourmet Selection'}
                   </p>
                 </div>
-
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
-                  
                   {quantity === 0 ? (
                     <ProductQuickView product={product}>
-                      <button 
-                        className="bg-gradient-to-r from-[#8C7A63] via-[#D9C4A9] to-[#8C7A63] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-all border border-white/20"
-                      >
-                        ADD
-                      </button>
+                      <button className="bg-gradient-to-r from-[#8C7A63] via-[#D9C4A9] to-[#8C7A63] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-all border border-white/20">ADD</button>
                     </ProductQuickView>
                   ) : (
                     <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">

@@ -1,13 +1,12 @@
 
 "use client"
 
-import { useState, useTransition, Suspense, useEffect } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
-import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 
-// IMPORTING DIRECTLY FOR INSTANT RENDERING (NO DYNAMIC DELAY)
 import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
 import { StoreSection } from '@/components/home/StoreSection';
@@ -16,7 +15,7 @@ import OffersSection from '@/components/home/OffersSection';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Ultra Fast Edition.
- * Optimized for instant visibility of all components on load.
+ * Bypassed all mounting gates for instant components display.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,9 +25,7 @@ export default function ShopyKartApp() {
   const { user } = useUser();
 
   useEffect(() => {
-    if (user) {
-      setSearchQuery('');
-    }
+    if (user) { setSearchQuery(''); }
   }, [user]);
 
   const handleBackToFood = () => {
@@ -51,33 +48,8 @@ export default function ShopyKartApp() {
     });
   };
 
-  // JSON-LD for Google Rich Results
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FoodEstablishment",
-    "name": "Shopykart",
-    "image": "https://shopykart.co.in/og-image.jpg",
-    "url": "https://shopykart.co.in",
-    "telephone": "7992090977",
-    "priceRange": "$$",
-    "servesCuisine": "Indian, Pizza, Burgers",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Main Road",
-      "addressLocality": "Mauranipur",
-      "addressRegion": "UP",
-      "postalCode": "284204",
-      "addressCountry": "IN"
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white transform-gpu">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -87,7 +59,7 @@ export default function ShopyKartApp() {
         />
       )}
 
-      <main className={cn("transition-opacity duration-150 will-change-transform", isPending ? "opacity-95" : "opacity-100")}>
+      <main className="transition-opacity duration-75">
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">
@@ -97,13 +69,12 @@ export default function ShopyKartApp() {
                 </div>
              </div>
              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-800 leading-none">GROCERY HUB<br /><span className="text-green-600">LAUNCHING SOON</span></h2>
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-4 mb-10 max-w-[240px] leading-relaxed">WE ARE BRINGING FRESH ESSENTIALS TO YOUR DOORSTEP.</p>
           </div>
         ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
-          <div className="animate-in fade-in duration-200 content-visibility-auto">
+          <div className="content-visibility-auto">
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
-                  <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100"><ArrowLeft className="h-4 w-4" /></button>
+                  <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100"><ArrowLeft className="h-4 w-4" /></button>
                   <div className="flex flex-col">
                     <span className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">{activeMode === 'Medical' ? 'Medical Hub' : 'Beauty & Cosmetics'}</span>
                     <span className="text-[8px] font-bold text-green-600 uppercase tracking-widest mt-0.5">10 Mins Delivery</span>
@@ -123,7 +94,6 @@ export default function ShopyKartApp() {
                 <OffersSection />
               </>
             )}
-            
             <div className="bg-white">
               {!searchQuery && <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />}
               <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
