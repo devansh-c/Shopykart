@@ -1,14 +1,14 @@
-
 "use client"
 
-import { Copy, Tag } from 'lucide-react';
+import { Copy, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Offers & Coupons Section.
- * Converted to default export for better Next.js dynamic chunk loading.
+ * Redesigned to match the requested ticket-style UI with crown icon.
  */
 export default function OffersSection() {
   const { toast } = useToast();
@@ -22,7 +22,6 @@ export default function OffersSection() {
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {
-      // Robust fallback for clipboard focus issues
       const textArea = document.createElement("textarea");
       textArea.value = code;
       textArea.style.position = "fixed";
@@ -37,7 +36,7 @@ export default function OffersSection() {
         if (successful) {
           toast({
             title: "Coupon Copied!",
-            description: `${code} has been copied to your clipboard.`,
+            description: `${code} is ready to use!`,
           });
         }
       } catch (err) {
@@ -46,7 +45,6 @@ export default function OffersSection() {
       
       document.body.removeChild(textArea);
 
-      // Attempt modern API as well (swallow errors)
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(code).catch(() => {});
       }
@@ -56,43 +54,50 @@ export default function OffersSection() {
   if (loading || !dbCoupons || dbCoupons.length === 0) return null;
 
   return (
-    <div className="py-4">
-      <div className="flex items-center px-6 mb-4">
-        <span className="text-xl mr-2">🏷️</span>
-        <h2 className="text-2xl font-black tracking-tight">Offers & Coupons</h2>
+    <div className="py-6">
+      <div className="flex items-center px-6 mb-5">
+        <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">Exclusive <span className="text-primary">Deals</span></h2>
       </div>
-      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-4">
-        {dbCoupons.map((coupon: any) => (
-          <div 
-            key={coupon.id}
-            className={`min-w-[280px] h-32 rounded-2xl bg-gradient-to-r ${coupon.gradient || 'from-primary to-accent'} p-5 flex text-white shadow-md relative overflow-hidden`}
-          >
-            <div className="flex-1 flex flex-col justify-between relative z-10">
-              <div>
-                <h3 className="text-3xl font-black leading-none italic tracking-tighter">{coupon.discount}</h3>
-                <p className="text-[10px] font-bold opacity-80 mt-1.5 uppercase tracking-wider">{coupon.minOrder}</p>
+      <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6 scroll-smooth">
+        {dbCoupons.map((coupon: any) => {
+          const displayValue = coupon.discountType === 'percentage' 
+            ? `${coupon.discountValue}%` 
+            : `Rs, ${coupon.discountValue}`;
+
+          return (
+            <div 
+              key={coupon.id}
+              onClick={() => handleCopy(coupon.code)}
+              className="relative min-w-[280px] h-24 rounded-2xl bg-[#FDF2D0] flex shadow-lg cursor-pointer active:scale-95 transition-all transform-gpu border border-[#E8D9A8]/40"
+            >
+              {/* Ticket Left Scalloped Edge */}
+              <div className="absolute left-[-8px] top-1/2 -translate-y-1/2 h-6 w-4 bg-white rounded-full z-10" />
+
+              <div className="flex-1 p-4 flex flex-col justify-center relative z-20 pl-6">
+                <h3 className="text-sm font-black text-[#5C4D3C] uppercase leading-tight tracking-tight">
+                  Get <span className="text-[#8C7A63]">{displayValue} OFF</span> - Use
+                </h3>
+                <p className="text-sm font-black text-[#5C4D3C] uppercase mt-0.5">
+                  code: <span className="text-[#8C7A63]">{coupon.code}</span>
+                </p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm self-start px-3 py-1 rounded-full border border-white/10">
-                <span className="text-[10px] font-black uppercase tracking-widest">{coupon.type || 'PROMO'}</span>
+              
+              {/* Dashed Divider */}
+              <div className="w-[2px] h-full border-l-2 border-dashed border-[#E8D9A8] my-4" />
+              
+              {/* Right Section with Crown */}
+              <div className="w-16 flex items-center justify-center bg-white/20 relative rounded-r-2xl overflow-hidden">
+                <Crown className="h-8 w-8 text-[#C5A021] fill-[#C5A021]/10 opacity-60 transform rotate-12" />
+                
+                {/* Ticket Right Scalloped Edge */}
+                <div className="absolute right-[-8px] top-1/2 -translate-y-1/2 h-6 w-4 bg-white rounded-full z-10" />
               </div>
+
+              {/* Subtle texture or shine */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
             </div>
-            
-            <div className="w-[1px] bg-white/30 mx-3 border-dashed border-l" />
-            
-            <div className="w-20 flex flex-col items-center justify-center relative z-10">
-              <div className="border-2 border-dashed border-white/40 p-2 rounded-xl mb-2 w-full text-center">
-                <span className="text-xs font-black tracking-widest">{coupon.code}</span>
-              </div>
-              <button 
-                onClick={() => handleCopy(coupon.code)}
-                className="flex items-center text-[8px] font-black bg-white/20 backdrop-blur-md text-white px-2 py-1.5 rounded-lg active:scale-95 transition-all border border-white/20"
-              >
-                <Copy className="h-2.5 w-2.5 mr-1" />
-                Copy
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

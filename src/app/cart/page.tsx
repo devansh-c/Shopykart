@@ -18,7 +18,7 @@ import {
   Coins, 
   Ticket, 
   X, 
-  CheckCircle2,
+  CheckCircle2, 
   Hash,
   Package,
   MessageSquareQuote,
@@ -165,6 +165,15 @@ function CartContent() {
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
+    
+    // Check new dynamic fields first
+    if (appliedCoupon.discountType === 'percentage') {
+      return (totalPrice * (appliedCoupon.discountValue || 0)) / 100;
+    } else if (appliedCoupon.discountType === 'fixed') {
+      return appliedCoupon.discountValue || 0;
+    }
+
+    // Fallback for legacy coupons
     const discountStr = appliedCoupon.discount || '0';
     if (discountStr.includes('%')) {
       const percentage = parseFloat(discountStr.replace(/[^0-9.]/g, ''));
@@ -215,12 +224,13 @@ function CartContent() {
       const snap = await getDocs(q);
       if (!snap.empty) {
         const cData = snap.docs[0].data();
-        const minVal = parseFloat(cData.minOrder?.replace(/[^0-9.]/g, '')) || 0;
+        const minVal = cData.minOrderValue || parseFloat(cData.minOrder?.replace(/[^0-9.]/g, '')) || 0;
+        
         if (totalPrice < minVal) {
           toast({ variant: "destructive", title: "Coupon not valid", description: `Minimum order of ₹${minVal} required.` });
         } else {
           setAppliedCoupon(cData);
-          toast({ title: "Coupon Applied! ✨", description: `You saved ₹${couponDiscount.toFixed(2)}` });
+          toast({ title: "Coupon Applied! ✨", description: `Discount of ₹${couponDiscount.toFixed(2)} added.` });
         }
       } else {
         toast({ variant: "destructive", title: "Invalid Coupon" });
