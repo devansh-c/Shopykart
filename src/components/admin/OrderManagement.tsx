@@ -33,9 +33,14 @@ import {
   Crown, 
   Bike, 
   Camera, 
-  ImageIcon 
+  ImageIcon,
+  Edit3,
+  Trash2,
+  FileText,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -51,6 +56,10 @@ export default function OrderManagement() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Vendor Receipt State
+  const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
+  const [editingVendorOrder, setEditingVendorOrder] = useState<any>(null);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -78,17 +87,29 @@ export default function OrderManagement() {
     window.open(url, '_blank');
   };
 
-  const handleCopyUTR = (utr: string) => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(utr);
-      toast({ title: "UTR Copied! ✅", description: "Ready to verify in bank app." });
-    }
+  const openVendorReceipt = (order: any) => {
+    setEditingVendorOrder({
+      ...order,
+      items: order.items.map((item: any) => ({ ...item }))
+    });
+    setIsVendorDialogOpen(true);
   };
 
-  const handleDownload = async (order: any) => {
-    const element = document.getElementById(`receipt-content-${order.id}`);
+  const updateVendorItem = (index: number, field: string, value: any) => {
+    const newItems = [...editingVendorOrder.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setEditingVendorOrder({ ...editingVendorOrder, items: newItems });
+  };
+
+  const removeVendorItem = (index: number) => {
+    const newItems = editingVendorOrder.items.filter((_: any, i: number) => i !== index);
+    setEditingVendorOrder({ ...editingVendorOrder, items: newItems });
+  };
+
+  const handleDownload = async (id: string, type: 'customer' | 'vendor') => {
+    const element = document.getElementById(`receipt-content-${type}-${id}`);
     if (!element) return;
-    setDownloadingId(order.id);
+    setDownloadingId(id);
     try {
       const { toBlob } = await import('html-to-image');
       const FileSaver = await import('file-saver');
@@ -101,21 +122,18 @@ export default function OrderManagement() {
       });
       
       if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `ShopyKart_Admin_Bill_${order.orderDisplayId || order.id.slice(-5)}.jpg`);
-        toast({ title: "Saved!" });
-      } else {
-        throw new Error("Blob generation failed");
+        saveAs(blob, `ShopyKart_${type === 'vendor' ? 'Vendor' : 'Admin'}_Bill_${id.slice(-5)}.jpg`);
+        toast({ title: "Receipt Saved!" });
       }
     } catch (err) {
-      console.error("Download Error:", err);
-      toast({ variant: "destructive", title: "Download Failed", description: "Could not generate image." });
+      toast({ variant: "destructive", title: "Download Failed" });
     } finally {
       setDownloadingId(null);
     }
   };
 
-  const handlePrint = (orderId: string) => {
-    const element = document.getElementById(`receipt-content-${orderId}`);
+  const handlePrint = (id: string, type: 'customer' | 'vendor') => {
+    const element = document.getElementById(`receipt-content-${type}-${id}`);
     if (!element) return;
 
     const iframe = document.createElement('iframe');
@@ -135,7 +153,7 @@ export default function OrderManagement() {
         <head>
           <style>
             @page { margin: 0; size: 80mm auto; }
-            body { margin: 0; padding: 0; display: flex; justify-content: center; }
+            body { margin: 0; padding: 0; display: flex; justify-content: center; font-family: monospace; }
             * { -webkit-print-color-adjust: exact; }
           </style>
         </head>
@@ -153,22 +171,78 @@ export default function OrderManagement() {
     }, 500);
   };
 
-  const generateReceiptDOM = (orderData: any) => {
-    const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total.toFixed(2)}&cu=INR`;
+  // VENDOR RECEIPT DOM (NO QR, NO TAX)
+  const generateVendorReceiptDOM = (orderData: any) => {
+    const subtotal = orderData.items?.reduce((acc: any, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0) || 0;
+    const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : format(new Date(), 'dd/MM/yy HH:mm');
+    
+    return (
+      <div id={`receipt-content-vendor-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100">
+        <div className="text-center mb-4">
+          <h2 className="text-xl font-black italic tracking-tighter leading-none">VENDOR COPY</h2>
+          <p className="text-[7px] font-bold opacity-60 mb-2">SHOPYKART PARTNER NETWORK</p>
+        </div>
+
+        <div className="border-t border-dashed border-black my-2" />
+
+        <div className="space-y-1">
+          <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
+          <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
+          <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0,18)}</span></div>
+        </div>
+
+        <div className="border-t border-dashed border-black my-2" />
+
+        <table className="w-full text-[9px]">
+          <thead>
+            <tr className="border-b border-dashed border-black">
+              <th className="text-left py-1" width="60%">ITEM</th>
+              <th className="text-center py-1" width="15%">QTY</th>
+              <th className="text-right py-1" width="25%">AMT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orderData.items?.map((item: any, i: number) => (
+              <tr key={i}>
+                <td className="py-2 pr-1 font-black leading-tight">
+                  {item.name}
+                  {item.selectedOption && <span className="block text-[7px] font-bold opacity-60">[{item.selectedOption.name}]</span>}
+                  {item.instructions && <span className="block text-[7px] text-primary italic lowercase">Note: {item.instructions}</span>}
+                </td>
+                <td className="text-center">X{item.quantity}</td>
+                <td className="text-right">{(item.price * item.quantity).toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        
+        <div className="border-t border-dashed border-black my-2 pt-2">
+           <div className="flex justify-between font-black text-xs"><span>ITEMS TOTAL</span><span>₹{subtotal.toFixed(2)}</span></div>
+        </div>
+
+        <div className="border-t border-dashed border-black my-3" />
+        
+        {orderData.instructions && (
+           <div className="bg-gray-50 p-2 rounded border border-dashed border-black/10 mb-2">
+              <span className="font-black block text-[8px]">PREPARATION NOTE:</span>
+              <p className="text-[9px] leading-tight italic font-black">{orderData.instructions}</p>
+           </div>
+        )}
+
+        <div className="text-center text-[7px] font-black tracking-widest opacity-60 mt-4">POWERED BY SHOPYKART FOR VENDORS</div>
+      </div>
+    );
+  };
+
+  // CUSTOMER/ADMIN RECEIPT DOM (WITH QR & TAX)
+  const generateCustomerReceiptDOM = (orderData: any) => {
+    const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total?.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
     const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
     
     return (
-      <div id={`receipt-content-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100">
-        {orderData.isPremiumOrder && (
-          <div className="text-center mb-2">
-             <div className="bg-black text-white py-1 px-2 rounded-sm font-black text-[7px] tracking-[0.2em] inline-block mb-2 border border-amber-500">
-               ★ PREMIUM ELITE CUSTOMER ★
-             </div>
-          </div>
-        )}
-        
+      <div id={`receipt-content-customer-${orderData.id}`} className="bg-white text-black p-5 font-mono text-[10px] uppercase leading-tight w-[280px] mx-auto border border-gray-100">
         <div className="text-center mb-4">
           <h2 className="text-xl font-black italic tracking-tighter leading-none">SHOPYKART</h2>
           <p className="text-[7px] font-bold opacity-60 mb-2">PREMIUM DELIVERY NETWORK</p>
@@ -181,29 +255,11 @@ export default function OrderManagement() {
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
-          <div className="flex justify-between"><span>PHONE:</span><span>{orderData.customerPhone || '--'}</span></div>
           <div className="flex justify-between border-t border-dashed border-black/10 pt-1 mt-1">
             <span className="shrink-0">PAYMENT:</span>
             <span className="font-black text-right">{orderData.paymentMethod === 'online' ? 'PREPAID ONLINE' : 'CASH ON DELIVERY'}</span>
           </div>
         </div>
-
-        <div className="border-t border-dashed border-black my-2" />
-        
-        <div className="space-y-1 mb-2">
-           <span className="font-black block">DELIVERY ADDRESS:</span>
-           <p className="text-[9px] leading-tight opacity-80">{orderData.address}</p>
-        </div>
-
-        {orderData.instructions && (
-           <>
-            <div className="border-t border-dashed border-black my-2" />
-            <div className="space-y-1 mb-2">
-               <span className="font-black block">GLOBAL NOTE:</span>
-               <p className="text-[9px] leading-tight text-primary italic font-black">{orderData.instructions}</p>
-            </div>
-           </>
-        )}
 
         <div className="border-t border-dashed border-black my-2" />
 
@@ -242,21 +298,10 @@ export default function OrderManagement() {
 
         <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>GRAND TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
         
-        {orderData.verificationImage && (
-           <>
-            <div className="border-t border-dashed border-black my-3" />
-            <div className="text-center">
-               <p className="text-[7px] font-black tracking-widest mb-2">VERIFICATION PHOTO</p>
-               <img src={orderData.verificationImage} className="w-full h-auto rounded-lg grayscale border border-black/10" alt="Verification" />
-            </div>
-           </>
-        )}
-
         <div className="border-t border-dashed border-black my-3" />
         <div className="border border-dashed border-black p-3 text-center mb-3">
            <p className="text-[7px] font-black tracking-widest mb-1">PAYMENT QR</p>
            <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" crossOrigin="anonymous" />
-           <p className="text-[8px] font-black mt-1">PAYABLE: ₹{orderData.total?.toFixed(2)}</p>
         </div>
         <div className="text-center text-[7px] font-black tracking-widest opacity-60">POWERED BY SHOPYKART POS</div>
       </div>
@@ -273,13 +318,6 @@ export default function OrderManagement() {
       <div className="grid grid-cols-1 gap-6 pb-20">
         {orders?.map((order: any) => {
           const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName).filter(Boolean)));
-          if (storeNames.length === 0 && order.restaurantName) {
-            storeNames.push(order.restaurantName);
-          }
-          if (storeNames.length === 0) storeNames.push('ShopyKart Select');
-
-          const isPrepaid = order.paymentMethod === 'online';
-          const needsVerification = isPrepaid && order.paymentStatus === 'UTR_Pending_Verification';
           const isElite = order.isPremiumOrder === true;
 
           return (
@@ -287,10 +325,6 @@ export default function OrderManagement() {
               "bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden",
               isElite && "border-amber-200 shadow-lg shadow-amber-50"
             )}>
-              {isElite && (
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-amber-600 to-amber-400" />
-              )}
-              
               <div className="flex flex-col lg:flex-row justify-between gap-6">
                 <div className="flex-1 flex items-start space-x-5">
                   <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0", order.status === 'Delivered' ? 'bg-green-50 text-green-600' : isElite ? 'bg-amber-50 text-amber-600' : 'bg-primary/5 text-primary')}>
@@ -299,116 +333,24 @@ export default function OrderManagement() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center flex-wrap gap-2 mb-2">
                       <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
-                      {isElite && (
-                        <Badge className="bg-[#0B0B0B] text-amber-400 border-none px-3 py-1 font-black text-[8px] uppercase tracking-widest flex items-center gap-1.5 animate-in zoom-in duration-500">
-                           <Crown className="h-3 w-3 fill-amber-400" />
-                           PREMIUM ELITE ORDER
-                        </Badge>
-                      )}
                       <Badge className={cn("text-[8px] font-black uppercase rounded-full border-none px-2", order.status === 'Delivered' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary")}>{order.status}</Badge>
-                      <Badge className={cn(
-                        "text-[8px] font-black uppercase rounded-full px-2 py-1 flex items-center gap-1",
-                        isPrepaid ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-amber-50 text-amber-700 border border-amber-100"
-                      )}>
-                        {isPrepaid ? <CreditCard className="h-2 w-2" /> : <Banknote className="h-2 w-2" />}
-                        {isPrepaid ? "PREPAID" : "CASH ON DELIVERY"}
-                      </Badge>
-                      {order.premiumPackaging && (
-                        <Badge className="bg-rose-50 text-rose-600 border border-rose-100 text-[8px] font-black uppercase px-2">
-                          <Sparkles className="h-2 w-2 mr-1" /> PREMIUM PACKAGING
-                        </Badge>
-                      )}
-                      {needsVerification && (
-                        <Badge className="bg-red-50 text-red-600 border border-red-100 text-[8px] font-black uppercase px-2 animate-pulse">
-                          <ShieldAlert className="h-2 w-2 mr-1" /> UTR PENDING
-                        </Badge>
-                      )}
+                      <Badge className="bg-blue-50 text-blue-600 border border-blue-100 text-[8px] font-black uppercase px-2">{order.paymentMethod === 'online' ? 'PREPAID' : 'CASH'}</Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-bold uppercase tracking-widest mb-4"><Clock className="h-3 w-3" />{isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Now'}</div>
                     
-                    {order.instructions && (
-                      <div className="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
-                         <MessageSquareQuote className="h-5 w-5 text-amber-600 shrink-0" />
-                         <div>
-                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Global Note:</span>
-                            <p className="text-xs font-bold text-amber-900 leading-tight italic mt-1">{order.instructions}</p>
-                         </div>
-                      </div>
-                    )}
-
-                    {order.verificationImage && (
-                       <div className="mb-4 space-y-2">
-                          <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
-                             <Camera className="h-4 w-4" /> Verification Photo
-                          </div>
-                          <Dialog>
-                             <DialogTrigger asChild>
-                                <div className="h-32 w-full max-w-[200px] rounded-2xl overflow-hidden cursor-pointer border border-border/50 shadow-sm relative group">
-                                   <img src={order.verificationImage} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Eye className="h-6 w-6 text-white" />
-                                   </div>
-                                </div>
-                             </DialogTrigger>
-                             <DialogContent className="rounded-[2.5rem] max-w-sm p-4 bg-white border-none shadow-2xl">
-                                <img src={order.verificationImage} className="w-full h-auto rounded-3xl" alt="Full Verification" />
-                                <div className="p-4 text-center">
-                                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Customer Location Proof</p>
-                                </div>
-                             </DialogContent>
-                          </Dialog>
-                       </div>
-                    )}
-
                     <div className="bg-muted/20 rounded-2xl p-4 space-y-3 mb-4 border border-border/30">
                        <div className="flex items-center justify-between text-xs font-bold text-gray-700 border-b border-white pb-2 mb-1">
                           <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
-                          <div className="flex gap-2">
-                             <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
-                             {order.latitude && order.longitude && (
-                                <button 
-                                  onClick={() => handleOpenGoogleMaps(Number(order.latitude), Number(order.longitude))} 
-                                  className="p-2.5 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-200 active:scale-90 transition-all flex items-center gap-2"
-                                  title="Open in Google Maps"
-                                >
-                                  <Navigation className="h-3.5 w-3.5" />
-                                  <span className="text-[8px] font-black uppercase">Open Maps</span>
-                                </button>
-                             )}
-                          </div>
+                          <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2 bg-green-500 text-white rounded-xl shadow-md active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
                        </div>
-                       
-                       <div className="pt-1 space-y-3">
-                          <div className="flex flex-wrap gap-1.5">
-                             {storeNames.map((name: any, idx) => (
-                               <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary text-[7px] font-black border-primary/10 uppercase tracking-widest">
-                                  <Store className="h-2 w-2 mr-1" /> {name}
-                                </Badge>
-                             ))}
-                          </div>
-                          <div className="space-y-1 bg-white/50 p-2 rounded-xl border border-white">
-                             {order.items?.map((item: any, i: number) => (
-                               <div key={i} className="flex flex-col border-b border-white last:border-none pb-2 last:pb-0 mb-2 last:mb-0">
-                                  <div className="flex justify-between text-[10px] font-bold text-gray-600 italic leading-tight">
-                                     <span className="flex-1 truncate mr-2">
-                                        {item.quantity}x {item.name} 
-                                        {item.selectedOption && (
-                                          <span className="ml-1 text-primary font-black uppercase text-[8px]">({item.selectedOption.name})</span>
-                                        )}
-                                     </span>
-                                     <span className="shrink-0 text-primary">₹{item.price * item.quantity}</span>
-                                  </div>
-                                  {item.instructions && (
-                                    <span className="text-[8px] font-black text-primary mt-1 flex items-center gap-1 italic">
-                                       <MessageSquareQuote className="h-2.5 w-2.5" /> {item.instructions}
-                                    </span>
-                                  )}
-                               </div>
-                             ))}
-                          </div>
+                       <div className="pt-1 space-y-1">
+                          {order.items?.map((item: any, i: number) => (
+                            <div key={i} className="flex justify-between text-[10px] font-bold text-gray-600 italic">
+                               <span>{item.quantity}x {item.name} {item.selectedOption && <span className="text-primary font-black uppercase text-[8px]">({item.selectedOption.name})</span>}</span>
+                               <span className="text-primary">₹{item.price * item.quantity}</span>
+                            </div>
+                          ))}
                        </div>
-
-                       <div className="flex items-start gap-2 text-[10px] text-gray-500 pt-2 border-t border-white"><MapPin className="h-3.5 w-3.5 text-primary shrink-0" /><span className="truncate">{order.address}</span></div>
                     </div>
                   </div>
                 </div>
@@ -418,30 +360,31 @@ export default function OrderManagement() {
                     <SelectTrigger className="w-[180px] rounded-xl font-black text-[10px] uppercase h-11 bg-muted/30 border-none shadow-none"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-2xl border-none shadow-2xl">{statusOptions.map(s => <SelectItem key={s} value={s} className="font-bold text-xs">{s}</SelectItem>)}</SelectContent>
                   </Select>
-                  <div className="flex gap-2">
+                  
+                  <div className="grid grid-cols-2 gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
-                        <button className="flex-1 bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase active:scale-95 transition-all flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View Bill</button>
+                        <button className="bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Customer Bill</button>
                       </DialogTrigger>
                       <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
-                         <DialogHeader className="sr-only">
-                           <DialogTitle>Order Bill View</DialogTitle>
-                         </DialogHeader>
                          <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
                             <div className="w-full scale-[1.05] origin-top mb-4">
-                              {generateReceiptDOM(order)}
+                              {generateCustomerReceiptDOM(order)}
                             </div>
                          </div>
                          <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
-                            <Button onClick={() => handlePrint(order.id)} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                              <Printer className="h-4 w-4 mr-2" /> PRINT
-                            </Button>
-                            <Button onClick={() => handleDownload(order)} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                              {downloadingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} SAVE
-                            </Button>
+                            <Button onClick={() => handlePrint(order.id, 'customer')} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px]">PRINT</Button>
+                            <Button onClick={() => handleDownload(order.id, 'customer')} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px]">SAVE</Button>
                          </div>
                       </DialogContent>
                     </Dialog>
+
+                    <button 
+                      onClick={() => openVendorReceipt(order)}
+                      className="bg-black text-white h-11 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-lg"
+                    >
+                      <Store className="h-3.5 w-3.5 text-primary" /> Vendor Receipt
+                    </button>
                   </div>
                 </div>
               </div>
@@ -449,6 +392,94 @@ export default function OrderManagement() {
           );
         })}
       </div>
+
+      {/* VENDOR RECEIPT DIALOG - EDITABLE PORTAL */}
+      <Dialog open={isVendorDialogOpen} onOpenChange={setIsVendorDialogOpen}>
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-4xl p-0 overflow-hidden border-none shadow-2xl bg-[#F9FAFB] flex flex-col h-[90vh] z-[12000] focus:outline-none">
+          <DialogHeader className="p-6 bg-white border-b shrink-0">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="bg-black p-2.5 rounded-xl text-primary"><Edit3 className="h-5 w-5" /></div>
+                   <DialogTitle className="font-black italic uppercase text-xl">Vendor Bill Portal</DialogTitle>
+                </div>
+                <button onClick={() => setIsVendorDialogOpen(false)} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400"><X className="h-5 w-5" /></button>
+             </div>
+          </DialogHeader>
+
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+             {/* LEFT: EDITING PANEL */}
+             <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
+                <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
+                   <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Order Summary</h4>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                         <label className="text-[8px] font-black uppercase text-gray-400">Order ID</label>
+                         <Input value={editingVendorOrder?.orderDisplayId} onChange={e => setEditingVendorOrder({...editingVendorOrder, orderDisplayId: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[8px] font-black uppercase text-gray-400">Customer</label>
+                         <Input value={editingVendorOrder?.customerName} onChange={e => setEditingVendorOrder({...editingVendorOrder, customerName: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" />
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[8px] font-black uppercase text-gray-400">Vendor Instructions</label>
+                      <Input value={editingVendorOrder?.instructions} onChange={e => setEditingVendorOrder({...editingVendorOrder, instructions: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" placeholder="Chef instructions..." />
+                   </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
+                   <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Items to Cook</h4>
+                      <Button variant="ghost" onClick={() => {
+                        const newItems = [...editingVendorOrder.items, { name: 'New Item', quantity: 1, price: 0 }];
+                        setEditingVendorOrder({...editingVendorOrder, items: newItems});
+                      }} className="h-8 text-[9px] font-black text-primary hover:bg-primary/5 rounded-full"><Plus className="h-3 w-3 mr-1" /> ADD ITEM</Button>
+                   </div>
+                   
+                   <div className="space-y-3">
+                      {editingVendorOrder?.items.map((item: any, idx: number) => (
+                        <div key={idx} className="flex gap-2 bg-gray-50 p-3 rounded-2xl border border-border group animate-in slide-in-from-right-2">
+                           <div className="flex-1">
+                              <Input value={item.name} onChange={e => updateVendorItem(idx, 'name', e.target.value)} className="h-9 rounded-lg bg-white border-none font-bold text-[11px]" />
+                           </div>
+                           <div className="w-16">
+                              <Input type="number" value={item.quantity} onChange={e => updateVendorItem(idx, 'quantity', e.target.value)} className="h-9 rounded-lg bg-white border-none font-black text-center text-xs" />
+                           </div>
+                           <div className="w-20">
+                              <Input type="number" value={item.price} onChange={e => updateVendorItem(idx, 'price', e.target.value)} className="h-9 rounded-lg bg-white border-none font-black text-center text-xs text-primary" />
+                           </div>
+                           <button onClick={() => removeVendorItem(idx)} className="h-9 w-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+             </div>
+
+             {/* RIGHT: LIVE PREVIEW */}
+             <div className="w-full lg:w-[360px] bg-white border-l border-border p-6 flex flex-col items-center">
+                <div className="bg-primary/10 px-4 py-1.5 rounded-full mb-6 border border-primary/20">
+                   <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2"><Eye className="h-3 w-3" /> Live Vendor Preview</span>
+                </div>
+                
+                <div className="scale-[0.95] origin-top transform-gpu shadow-2xl">
+                   {editingVendorOrder && generateVendorReceiptDOM(editingVendorOrder)}
+                </div>
+
+                <div className="w-full mt-auto space-y-3 pt-10">
+                   <div className="grid grid-cols-2 gap-3">
+                      <Button onClick={() => handlePrint(editingVendorOrder.id, 'vendor')} className="h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">
+                        <Printer className="h-4 w-4 mr-2" /> PRINT
+                      </Button>
+                      <Button onClick={() => handleDownload(editingVendorOrder.id, 'vendor')} disabled={downloadingId === editingVendorOrder.id} className="h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
+                        {downloadingId === editingVendorOrder.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />} SAVE
+                      </Button>
+                   </div>
+                   <p className="text-center text-[7px] font-black text-muted-foreground uppercase tracking-[0.4em]">Optimized for Thermal Print</p>
+                </div>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
