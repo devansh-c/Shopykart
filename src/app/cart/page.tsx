@@ -244,6 +244,18 @@ function CartContent() {
       setSliderValue(0);
       return;
     }
+
+    // VALIDATION: Minimum order quantity check
+    if (totalPrice < 40) {
+      toast({ 
+        variant: "destructive", 
+        title: "Minimum Order Quantity", 
+        description: "Minimum order quantity ₹40 required to proceed." 
+      });
+      setSliderValue(0);
+      return;
+    }
+
     if (paymentMethod === 'online' && !utrNumber) {
       setPaymentStep('selection');
       setIsPaymentDialogOpen(true);
@@ -379,12 +391,14 @@ function CartContent() {
                 <div className="bg-white/10 p-2 rounded-xl text-amber-400"><MessageSquareQuote className="h-4 w-4" /></div>
                 <h3 className="text-[10px] font-black uppercase tracking-widest">Instructions <span className="opacity-50">(Optional)</span></h3>
              </div>
-             <Textarea 
-               placeholder="E.g. Make it extra spicy, Leave at the gate..." 
-               value={instructions}
-               onChange={e => setInstructions(e.target.value)}
-               className="min-h-[80px] rounded-xl bg-white/5 border-white/10 font-bold text-xs p-4 focus-visible:ring-1 focus-visible:ring-amber-500/20 text-white placeholder:text-gray-500"
-             />
+             <div className="space-y-2">
+                <Textarea 
+                  placeholder="E.g. Make it extra spicy, Leave at the gate..." 
+                  value={instructions}
+                  onChange={e => setInstructions(e.target.value)}
+                  className="min-h-[80px] rounded-xl bg-white/5 border-white/10 font-bold text-xs p-4 focus-visible:ring-1 focus-visible:ring-amber-500/20 text-white placeholder:text-gray-500"
+                />
+             </div>
            </div>
 
            <div className="pt-4 border-t border-white/10 space-y-4">
@@ -685,7 +699,7 @@ function CartContent() {
                       "text-[10px] font-black uppercase tracking-[0.4em] transition-opacity duration-300",
                       sliderValue > 15 ? "opacity-0" : "opacity-30 animate-pulse text-amber-100"
                     )}>
-                      Slide to Order
+                      {totalPrice < 40 ? 'Min. Order ₹40' : 'Slide to Order'}
                     </span>
                  </div>
 
