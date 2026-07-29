@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback, useEffect } from 'react';
@@ -12,6 +11,7 @@ export type CartItem = {
   isCustom?: boolean;
   vendorId?: string;
   selectedOption?: { name: string; price: number } | null;
+  instructions?: string;
   restaurantName?: string;
   customSurcharge?: number;
 };

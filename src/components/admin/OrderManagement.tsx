@@ -25,15 +25,15 @@ import {
   Loader2, 
   ListPlus, 
   CreditCard, 
-  Banknote,
-  Copy,
-  ShieldAlert,
-  CheckCircle2,
-  MessageSquareQuote,
-  Crown,
-  Bike,
-  Camera,
-  ImageIcon
+  Banknote, 
+  Copy, 
+  ShieldAlert, 
+  CheckCircle2, 
+  MessageSquareQuote, 
+  Crown, 
+  Bike, 
+  Camera, 
+  ImageIcon 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -199,7 +199,7 @@ export default function OrderManagement() {
            <>
             <div className="border-t border-dashed border-black my-2" />
             <div className="space-y-1 mb-2">
-               <span className="font-black block">INSTRUCTIONS:</span>
+               <span className="font-black block">GLOBAL NOTE:</span>
                <p className="text-[9px] leading-tight text-primary italic font-black">{orderData.instructions}</p>
             </div>
            </>
@@ -217,7 +217,15 @@ export default function OrderManagement() {
           </thead>
           <tbody>
             {orderData.items?.map((item: any, i: number) => (
-              <tr key={i}><td className="py-2 pr-1 font-black leading-tight">{item.name}</td><td className="text-center">X{item.quantity}</td><td className="text-right">{(item.price * item.quantity).toFixed(2)}</td></tr>
+              <tr key={i}>
+                <td className="py-2 pr-1 font-black leading-tight">
+                  {item.name}
+                  {item.selectedOption && <span className="block text-[7px] font-bold opacity-60">[{item.selectedOption.name}]</span>}
+                  {item.instructions && <span className="block text-[7px] text-primary italic lowercase">Note: {item.instructions}</span>}
+                </td>
+                <td className="text-center">X{item.quantity}</td>
+                <td className="text-right">{(item.price * item.quantity).toFixed(2)}</td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -322,7 +330,7 @@ export default function OrderManagement() {
                       <div className="mb-4 bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
                          <MessageSquareQuote className="h-5 w-5 text-amber-600 shrink-0" />
                          <div>
-                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Customer Note:</span>
+                            <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Global Note:</span>
                             <p className="text-xs font-bold text-amber-900 leading-tight italic mt-1">{order.instructions}</p>
                          </div>
                       </div>
@@ -350,32 +358,6 @@ export default function OrderManagement() {
                              </DialogContent>
                           </Dialog>
                        </div>
-                    )}
-
-                    {order.deliveryTip > 0 && (
-                      <div className="mb-4 bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-3">
-                         <div className="bg-blue-100 p-2 rounded-xl text-blue-600"><Bike className="h-4 w-4" /></div>
-                         <div>
-                            <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Rider Tip:</span>
-                            <p className="text-sm font-black text-blue-900 leading-none mt-1">₹{order.deliveryTip}</p>
-                         </div>
-                      </div>
-                    )}
-
-                    {isPrepaid && order.utrNumber && (
-                      <div className="mb-4 bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between group/utr hover:bg-blue-50 transition-colors">
-                        <div className="flex flex-col">
-                          <span className="text-[7px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Transaction ID (UTR)</span>
-                          <span className="text-sm font-black text-blue-800 tracking-[0.15em] italic">{order.utrNumber}</span>
-                        </div>
-                        <button 
-                          onClick={() => handleCopyUTR(order.utrNumber)}
-                          className="h-10 w-10 bg-white border border-blue-200 rounded-xl flex items-center justify-center text-blue-600 shadow-sm active:scale-90 transition-all hover:bg-blue-600 hover:text-white"
-                          title="Copy UTR"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                      </div>
                     )}
 
                     <div className="bg-muted/20 rounded-2xl p-4 space-y-3 mb-4 border border-border/30">
@@ -408,12 +390,17 @@ export default function OrderManagement() {
                              {order.items?.map((item: any, i: number) => (
                                <div key={i} className="flex flex-col border-b border-white last:border-none pb-2 last:pb-0 mb-2 last:mb-0">
                                   <div className="flex justify-between text-[10px] font-bold text-gray-600 italic leading-tight">
-                                     <span className="flex-1 truncate mr-2">{item.quantity}x {item.name}</span>
+                                     <span className="flex-1 truncate mr-2">
+                                        {item.quantity}x {item.name} 
+                                        {item.selectedOption && (
+                                          <span className="ml-1 text-primary font-black uppercase text-[8px]">({item.selectedOption.name})</span>
+                                        )}
+                                     </span>
                                      <span className="shrink-0 text-primary">₹{item.price * item.quantity}</span>
                                   </div>
                                   {item.instructions && (
-                                    <span className="text-[8px] font-black text-primary mt-1 flex items-center gap-1">
-                                       <MessageSquareQuote className="h-2 w-2" /> {item.instructions}
+                                    <span className="text-[8px] font-black text-primary mt-1 flex items-center gap-1 italic">
+                                       <MessageSquareQuote className="h-2.5 w-2.5" /> {item.instructions}
                                     </span>
                                   )}
                                </div>

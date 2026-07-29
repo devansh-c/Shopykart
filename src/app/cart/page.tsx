@@ -370,6 +370,15 @@ function CartContent() {
                    </div>
                    <div className="flex-1 min-w-0">
                       <h4 className="text-xs font-black uppercase italic truncate text-white">{item.name}</h4>
+                      {item.selectedOption && (
+                        <p className="text-[9px] font-black text-amber-400 uppercase italic mt-1 leading-none">Variation: {item.selectedOption.name}</p>
+                      )}
+                      {item.instructions && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                           <MessageSquareQuote className="h-2.5 w-2.5 text-gray-500" />
+                           <p className="text-[8px] font-bold text-gray-400 uppercase truncate italic">Note: {item.instructions}</p>
+                        </div>
+                      )}
                       <div className="flex items-center bg-white/5 rounded-xl h-8 w-24 px-1 mt-2 border border-white/5">
                         <button onClick={() => removeFromCart(item.id)} className="flex-1 flex items-center justify-center text-amber-400 hover:text-white transition-colors"><Minus className="h-3 w-3 stroke-[3]" /></button>
                         <span className="w-8 text-center text-[10px] font-black text-white">{item.quantity}</span>
@@ -389,7 +398,7 @@ function CartContent() {
            <div className="space-y-4">
              <div className="flex items-center gap-3">
                 <div className="bg-white/10 p-2 rounded-xl text-amber-400"><MessageSquareQuote className="h-4 w-4" /></div>
-                <h3 className="text-[10px] font-black uppercase tracking-widest">Instructions <span className="opacity-50">(Optional)</span></h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest">Global Instructions <span className="opacity-50">(Optional)</span></h3>
              </div>
              <div className="space-y-2">
                 <Textarea 
