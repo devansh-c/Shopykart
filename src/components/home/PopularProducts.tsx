@@ -55,7 +55,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Increased limit to 2000 to ensure all products are scanned for the selected zone
+    // Massive limit to ensure Ranipur or any zone never misses products even in huge catalogs
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
@@ -76,11 +76,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
-      // Strict Location Filter: Hide if mismatch exists
+      // Strict Location Filter
       if (activeZoneId) {
-        // If vendor belongs to a specific zone and it's not current, hide
         if (vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
-        // If product belongs to a specific zone and it's not current, hide
         if (p.zoneId && p.zoneId !== activeZoneId) return false;
       }
       
@@ -97,8 +95,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB)) : true;
       
+      // 1. Online stores first
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
       
+      // 2. Rating high to low
       const ratingA = Number(vendorA?.rating) || 0;
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
