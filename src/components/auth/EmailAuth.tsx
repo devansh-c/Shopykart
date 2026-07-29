@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -42,6 +43,13 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
     setMounted(true);
   }, []);
 
+  const triggerLocationIfMissing = () => {
+    const isLocationSet = localStorage.getItem('user_location_set') === 'true';
+    if (!isLocationSet) {
+      window.dispatchEvent(new CustomEvent('open-location-picker'));
+    }
+  };
+
   const handleSocialAuth = async (providerName: 'google' | 'apple') => {
     if (!auth || !firestore) return;
     setSocialLoading(providerName);
@@ -74,7 +82,6 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
         await setDoc(userDocRef, userData);
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        // TRIGGER WELCOME EMAIL AI
         await generateWelcomeEmail({ 
           userName: firebaseUser.displayName || 'Customer', 
           email: firebaseUser.email || '' 
@@ -85,6 +92,10 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
       toast({ title: "Welcome!", description: `Hello, ${firebaseUser.displayName || 'User'}` });
       
       window.dispatchEvent(new CustomEvent('user-address-updated'));
+      
+      // SUCCESS: Trigger location picker if not set
+      triggerLocationIfMissing();
+
       if (onClose) onClose();
       else setTimeout(() => router.replace('/'), 100);
     } catch (err: any) {
@@ -141,7 +152,6 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
 
         localStorage.setItem('show_welcome_bonus', 'true');
         
-        // TRIGGER WELCOME EMAIL AI
         await generateWelcomeEmail({ 
           userName: fullName.toUpperCase(), 
           email: trimmedEmail 
@@ -150,6 +160,10 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Welcome!", description: "Account created successfully." });
         window.dispatchEvent(new CustomEvent('user-address-updated'));
+        
+        // SUCCESS: Trigger location picker if not set
+        triggerLocationIfMissing();
+
         if (onClose) onClose();
         else setTimeout(() => router.replace('/'), 100);
       } else {
@@ -158,6 +172,10 @@ export function EmailAuth({ onClose }: { onClose?: () => void }) {
         localStorage.setItem('shopykart_session_active', 'true');
         toast({ title: "Authenticated!" });
         window.dispatchEvent(new CustomEvent('user-address-updated'));
+        
+        // SUCCESS: Trigger location picker if not set
+        triggerLocationIfMissing();
+
         if (onClose) onClose();
         else setTimeout(() => router.replace('/'), 100);
       }

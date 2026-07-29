@@ -10,7 +10,7 @@ import { MapPin, ChevronRight, Store } from 'lucide-react';
 
 /**
  * @fileOverview Ultra-Fast Location Picker.
- * Updated: Added Aggressive Crawler/Bot bypass to ensure Googlebot can index the site.
+ * Updated: Auto-popup on mount removed. Now only triggers via events.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,10 +27,6 @@ export default function LocationRequest() {
   const { data: activeZones } = useCollection<any>(zonesQuery);
 
   useEffect(() => {
-    // AGGRESSIVE CRAWLER BYPASS: Prevent popup for all known bots and headless scrapers
-    const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|inspect/i.test(navigator.userAgent);
-    if (isBot) return;
-
     const handleOpen = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpen);
     
@@ -39,16 +35,7 @@ export default function LocationRequest() {
       try { setDisplayZones(JSON.parse(cached)); } catch (e) {}
     }
 
-    const isLocationSet = localStorage.getItem('user_location_set') === 'true';
-    if (!isLocationSet) {
-      // Delay popup slightly for humans, but bots are already excluded
-      const timer = setTimeout(() => setIsOpen(true), 1500);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('open-location-picker', handleOpen);
-      };
-    }
-
+    // AUTO-POPUP REMOVED: User only sees this after login or manual trigger
     return () => { window.removeEventListener('open-location-picker', handleOpen); };
   }, []);
 

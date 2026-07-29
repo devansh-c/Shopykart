@@ -12,6 +12,7 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -75,11 +76,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
-      // ZONE FILTERING: If zone is selected, only show products from that zone or global
       if (activeZoneId) {
-        // If vendor has a zone assigned and it doesn't match selected zone, hide it
         if (vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
-        // If product has a zone assigned and it doesn't match, hide it
         if (p.zoneId && p.zoneId !== activeZoneId) return false;
       }
       
@@ -96,10 +94,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB)) : true;
       
-      // 1. Move Online stores to top
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
       
-      // 2. Sort by Rating (High to Low)
       const ratingA = Number(vendorA?.rating) || 0;
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
@@ -118,6 +114,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   return (
     <div className="px-4 py-6 min-h-[400px] transition-all">
+      {/* Dynamic Heading with Count */}
+      <div className="flex items-center justify-between mb-6 px-2 animate-in fade-in duration-500">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
+          All <span className="text-primary">Products</span>
+        </h2>
+        <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg shadow-primary/20">
+          {productsToDisplay.length} ITEMS
+        </Badge>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         {(!dbProducts && productsLoading) ? (
           [1, 2, 3, 4, 5, 6].map(i => (
