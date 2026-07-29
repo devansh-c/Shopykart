@@ -47,9 +47,6 @@ export default function ShopyKartApp() {
       )}
 
       <main className="transition-none">
-        {/* LIVE BROADCAST SECTION */}
-        {activeMode === 'Food' && !searchQuery && <AnnouncementBanner />}
-
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">
@@ -82,6 +79,10 @@ export default function ShopyKartApp() {
               <>
                 <OfferSlider />
                 <StoreSection activeMode={activeMode} />
+                
+                {/* LIVE BROADCAST SECTION MOVED BELOW STORES */}
+                {activeMode === 'Food' && <AnnouncementBanner />}
+                
                 <OffersSection />
               </>
             )}

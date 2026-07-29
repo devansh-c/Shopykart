@@ -15,6 +15,11 @@ export default function OffersSection() {
 
   const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
+  // HIDE SECTION COMPLETELY IF NO COUPONS OR LOADING
+  if (!loading && (!dbCoupons || dbCoupons.length === 0)) {
+    return null;
+  }
+
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(code);
@@ -23,12 +28,12 @@ export default function OffersSection() {
   };
 
   return (
-    <div className="py-6 min-h-[100px]">
+    <div className="py-6 min-h-[100px] animate-in fade-in duration-500">
       <div className="flex items-center px-6 mb-5">
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">Exclusive <span className="text-primary">Deals</span></h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
-        {(!dbCoupons && loading) ? (
+        {loading ? (
           <div className="min-w-[280px] h-24 rounded-2xl bg-muted/10 animate-pulse border-2 border-dashed" />
         ) : dbCoupons?.map((coupon: any) => (
           <div 
