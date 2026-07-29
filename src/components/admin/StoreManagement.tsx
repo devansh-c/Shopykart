@@ -1,85 +1,298 @@
+
 "use client"
 
-import { useState, useRef, useMemo } from 'react';
-import { Store, Edit, Trash2, Search, Loader2, Globe, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  Store, 
+  Edit, 
+  Trash2, 
+  Search, 
+  Loader2, 
+  Globe, 
+  Plus, 
+  Clock, 
+  Star, 
+  Phone, 
+  KeyRound, 
+  Fingerprint, 
+  Power, 
+  ShieldCheck,
+  MapPin,
+  Save,
+  X
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { cn, slugify } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export default function StoreManagement() {
+const TIME_SLOTS = [
+  "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
+  "08:00 PM", "08:15 PM", "08:30 PM", "09:00 PM", "10:00 PM", "11:00 PM", "12:00 AM"
+];
+
+export default function StoreManagement({ categoryFilter }: { categoryFilter?: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [editingStore, setEditingStore] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
+
   const { data: vendors, loading } = useCollection<any>(vendorsQuery);
+
+  const filteredVendors = useMemo(() => {
+    if (!vendors) return [];
+    return vendors.filter(v => {
+      const matchesSearch = v.storeName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           v.storeId?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !categoryFilter || v.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    }).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }, [vendors, searchQuery, categoryFilter]);
 
   const handleUpdateStore = async () => {
     if (!firestore || !editingStore) return;
-    const finalSlug = editingStore.slug?.trim().toLowerCase().replace(/\s+/g, '-') || slugify(editingStore.storeName);
-    
+    setIsProcessing(true);
+
     try {
+      const finalSlug = slugify(editingStore.storeName);
       await updateDoc(doc(firestore, 'vendors', editingStore.id), {
-        storeName: editingStore.storeName || '',
+        storeName: editingStore.storeName,
         slug: finalSlug,
+        phone: editingStore.phone || '',
+        rating: parseFloat(editingStore.rating) || 4.0,
+        openingTime: editingStore.openingTime || '10:00 AM',
+        closingTime: editingStore.closingTime || '08:15 PM',
+        isOnline: editingStore.isOnline !== false,
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Store SEO Updated" });
-    } catch (err) { toast({ variant: "destructive", title: "Update Failed" }); }
+      toast({ title: "Store Configuration Updated", description: "Slug was automatically regenerated." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleToggleOnline = async (id: string, currentStatus: boolean) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'vendors', id), {
+        isOnline: !currentStatus,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: !currentStatus ? "Store is now LIVE 🟢" : "Store Closed 🔴" });
+    } catch (e) {}
+  };
+
+  const handleDeleteStore = async (id: string) => {
+    if (!firestore) return;
+    if (confirm("Khatarnak Alert: Kya aap wakayi is store ko delete karna chahte hain? Iska saara data khatam ho jayega.")) {
+      await deleteDoc(doc(firestore, 'vendors', id));
+      toast({ title: "Store Deleted Permanently" });
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-[#0B0B0B] p-6 rounded-[2.5rem] text-white">
-        <div>
-           <h2 className="text-2xl font-black italic uppercase tracking-tighter">Store Hub SEO</h2>
-           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Managing slugs for {vendors?.length || 0} partners</p>
+      <div className="bg-[#0B0B0B] p-8 rounded-[3rem] text-white relative overflow-hidden shadow-2xl">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+             <h2 className="text-3xl font-black italic uppercase tracking-tighter">Partner Control</h2>
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Managing {filteredVendors.length} active terminals</p>
+          </div>
+          <div className="relative w-full md:w-80">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+             <Input 
+              placeholder="Search by ID or Name..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="pl-12 h-14 bg-white/5 border-white/10 text-white rounded-2xl font-bold placeholder:text-gray-600" 
+             />
+          </div>
         </div>
-        <div className="relative w-64">
-           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-           <Input placeholder="Filter..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 h-10 bg-white/5 border-white/10 text-white rounded-xl" />
-        </div>
+        <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {vendors?.map((store: any) => (
-          <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border shadow-sm hover:shadow-xl transition-all">
-            <div className="flex items-center gap-4 mb-4">
-              <img src={store.imageUrl} className="h-14 w-14 rounded-2xl object-cover" />
-              <div className="min-w-0">
-                <h3 className="font-black text-lg italic uppercase truncate">{store.storeName}</h3>
-                <p className="text-[9px] font-black text-primary italic leading-none truncate">/store/{store.slug || slugify(store.storeName)}</p>
-              </div>
+        {loading && !vendors ? (
+          <div className="col-span-full flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
+        ) : filteredVendors.map((store: any) => (
+          <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
+            <div className="flex items-start justify-between mb-6">
+               <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner">
+                     <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
+                  </div>
+                  <div className="min-w-0">
+                     <h3 className="font-black text-xl italic uppercase tracking-tighter truncate leading-none mb-1">{store.storeName}</h3>
+                     <div className="flex items-center gap-2">
+                        <Badge className="bg-primary/5 text-primary border-none text-[7px] font-black uppercase px-2">{store.category || 'Food'}</Badge>
+                        <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
+                           <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                           <span className="text-[10px] font-black text-amber-700">{store.rating || '4.0'}</span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <Switch 
+                checked={store.isOnline !== false} 
+                onCheckedChange={() => handleToggleOnline(store.id, store.isOnline !== false)}
+                className="data-[state=checked]:bg-green-500 scale-90"
+               />
             </div>
-            <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore(store); }}>
-              <DialogTrigger asChild>
-                <Button className="w-full bg-gray-50 text-gray-900 h-11 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-100"><Edit className="h-3.5 w-3.5 mr-2" /> CONFIGURE SLUG</Button>
-              </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] max-w-sm">
-                 <DialogHeader><DialogTitle className="font-black italic uppercase text-center">Store SEO Settings</DialogTitle></DialogHeader>
-                 <div className="p-4 space-y-5">
-                    <div className="space-y-1">
-                       <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Name</label>
-                       <Input value={editingStore?.storeName} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-12 rounded-xl font-bold bg-muted/20" />
-                    </div>
-                    <div className="space-y-1">
-                       <label className="text-[10px] font-black uppercase text-primary ml-1 flex items-center gap-1.5"><Globe className="h-3 w-3" /> Unique URL Path</label>
-                       <Input value={editingStore?.slug} onChange={e => setEditingStore({...editingStore, slug: e.target.value})} placeholder="city-sweets" className="h-12 rounded-xl bg-primary/5 border-primary/10 font-black italic text-primary" />
-                    </div>
-                    <Button onClick={handleUpdateStore} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SAVE SEO CHANGES</Button>
-                 </div>
-              </DialogContent>
-            </Dialog>
+
+            <div className="bg-muted/30 rounded-[2rem] p-5 space-y-4 mb-6 border border-border/40 flex-1">
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Login ID</span>
+                     <div className="flex items-center gap-2 text-gray-800">
+                        <Fingerprint className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-black uppercase tracking-tight">{store.storeId}</span>
+                     </div>
+                  </div>
+                  <div className="space-y-1">
+                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Access Key</span>
+                     <div className="flex items-center gap-2 text-gray-800">
+                        <KeyRound className="h-3.5 w-3.5 text-blue-500" />
+                        <span className="text-xs font-black tracking-widest">{store.password || '••••••'}</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="pt-3 border-t border-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <Phone className="h-3.5 w-3.5 text-green-500" />
+                     <span className="text-xs font-bold text-gray-700">{store.phone || 'No Phone'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <Clock className="h-3.5 w-3.5 text-amber-500" />
+                     <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">{store.openingTime} - {store.closingTime}</span>
+                  </div>
+               </div>
+
+               <div className="flex items-center gap-2 pt-2 text-[9px] font-black text-primary uppercase italic opacity-60">
+                  <Globe className="h-3 w-3" /> /store/{store.slug || slugify(store.storeName)}
+               </div>
+            </div>
+
+            <div className="flex gap-2">
+               <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore({...store}); }}>
+                  <DialogTrigger asChild>
+                     <Button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all">
+                        <Edit className="h-3.5 w-3.5 mr-2" /> MODIFY SETTINGS
+                     </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+                     <DialogHeader className="p-8 pb-4">
+                        <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Store Configuration</DialogTitle>
+                        <p className="text-center text-[10px] font-black text-muted-foreground uppercase tracking-widest">ID: {editingStore?.storeId}</p>
+                     </DialogHeader>
+                     
+                     <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
+                        <div className="space-y-4">
+                           <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name (Slug will auto-update)</label>
+                              <Input 
+                                value={editingStore?.storeName} 
+                                onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} 
+                                className="h-14 rounded-2xl bg-muted/20 border-none font-bold text-lg" 
+                              />
+                           </div>
+
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Phone</label>
+                                 <Input 
+                                    value={editingStore?.phone} 
+                                    onChange={e => setEditingStore({...editingStore, phone: e.target.value.replace(/\D/g, '').slice(0, 10)})} 
+                                    className="h-12 rounded-xl bg-muted/20 border-none font-bold" 
+                                 />
+                              </div>
+                              <div className="space-y-1">
+                                 <label className="text-[9px] font-black uppercase text-primary ml-1">Rating (1.0 - 5.0)</label>
+                                 <Input 
+                                    type="number" 
+                                    step="0.1" 
+                                    max="5" 
+                                    min="1" 
+                                    value={editingStore?.rating} 
+                                    onChange={e => setEditingStore({...editingStore, rating: e.target.value})} 
+                                    className="h-12 rounded-xl bg-primary/5 border-none font-black text-center text-primary" 
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Opening Time</label>
+                                 <Select value={editingStore?.openingTime} onValueChange={(val) => setEditingStore({...editingStore, openingTime: val})}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                       <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                       {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                                    </SelectContent>
+                                 </Select>
+                              </div>
+                              <div className="space-y-1">
+                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Closing Time</label>
+                                 <Select value={editingStore?.closingTime} onValueChange={(val) => setEditingStore({...editingStore, closingTime: val})}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                       <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                       {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                                    </SelectContent>
+                                 </Select>
+                              </div>
+                           </div>
+
+                           <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
+                              <div className="flex flex-col">
+                                 <span className="text-xs font-black uppercase tracking-tight italic">Accepting Orders?</span>
+                                 <span className="text-[8px] font-bold text-muted-foreground uppercase">Manual Override Status</span>
+                              </div>
+                              <Switch 
+                                 checked={editingStore?.isOnline !== false} 
+                                 onCheckedChange={(val) => setEditingStore({...editingStore, isOnline: val})} 
+                              />
+                           </div>
+                        </div>
+
+                        <div className="bg-amber-50 p-4 rounded-2xl flex gap-3 border border-amber-100">
+                           <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                           <p className="text-[9px] font-bold text-amber-800 uppercase leading-relaxed">
+                              Saving will automatically generate a clean SEO slug. URL change ho sakta hai, toh purane links expire ho jayenge.
+                           </p>
+                        </div>
+                     </div>
+
+                     <div className="p-8 bg-muted/5 border-t">
+                        <Button onClick={handleUpdateStore} disabled={isProcessing} className="w-full h-18 bg-primary hover:bg-black text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all">
+                           {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "SAVE ALL CHANGES"}
+                        </Button>
+                     </div>
+                  </DialogContent>
+               </Dialog>
+               <Button onClick={() => handleDeleteStore(store.id)} variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                  <Trash2 className="h-4.5 w-4.5" />
+               </Button>
+            </div>
           </div>
         ))}
       </div>
