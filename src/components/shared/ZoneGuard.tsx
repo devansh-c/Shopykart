@@ -60,8 +60,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     
-    // CRAWLER BYPASS: Detect if search engine
-    const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent);
+    // AGGRESSIVE CRAWLER BYPASS: Detect if search engine or headless browser
+    const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
     setIsCrawler(isBot);
 
     const updateLocation = () => {
@@ -107,7 +107,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   if (!mounted) return null;
   
-  // If it's a crawler, let it through always
+  // If it's a crawler, let it through always to ensure full indexing
   if (isCrawler) return <>{children}</>;
 
   if (zonesLoading || userLoading) return <>{children}</>;
