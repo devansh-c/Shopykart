@@ -3,17 +3,16 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * @fileOverview Custom AdSense Ad Unit component for ShopyKart.
- * Fixed: Added status check to prevent "Already have ads" push error during React re-renders.
+ * @fileOverview Custom AdSense Ad Unit component (Ghi Unit).
+ * Verified from screenshot: slot 7496080702, pub-3697085425178482.
  */
 export default function AdSenseUnit() {
   const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
-    // Ensuring code only runs on client and once per mount
     if (typeof window !== 'undefined' && adRef.current) {
       try {
-        // Check if AdSense has already processed this tag to prevent duplicate push errors
+        // Prevent double-pushing ads into the same element
         const isProcessed = adRef.current.getAttribute('data-adsbygoogle-status');
         
         if (!isProcessed) {
@@ -26,9 +25,9 @@ export default function AdSenseUnit() {
   }, []);
 
   return (
-    <div className="w-full px-4 py-4 flex justify-center overflow-hidden min-h-[100px]">
-      <div className="w-full max-w-lg bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200 flex flex-col items-center">
-        <span className="text-[7px] font-black text-gray-300 uppercase tracking-[0.5em] mt-2 mb-1">Sponsored Content</span>
+    <div className="w-full px-4 py-6 flex justify-center overflow-hidden min-h-[120px]">
+      <div className="w-full max-w-lg bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200 flex flex-col items-center">
+        <span className="text-[7px] font-black text-gray-300 uppercase tracking-[0.5em] mt-3 mb-2">Sponsored Content</span>
         <ins ref={adRef}
              className="adsbygoogle"
              style={{ display: 'block', width: '100%', minHeight: '90px' }}

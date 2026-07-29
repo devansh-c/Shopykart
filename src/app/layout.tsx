@@ -1,4 +1,3 @@
-
 'use client';
 
 import './globals.css';
@@ -15,7 +14,7 @@ const inter = Inter({
 
 /**
  * @fileOverview Root Layout with Optimized Metadata for Google Indexing.
- * Ensure maximum visibility for Search Console.
+ * Publisher ID ca-pub-3697085425178482 verified from screenshot.
  */
 export default function RootLayout({
   children,
@@ -54,7 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="ShopyKart" />
         
-        {/* Google AdSense Integration */}
+        {/* Google AdSense Integration (ca-pub-3697085425178482) */}
         <Script 
           async 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3697085425178482" 
