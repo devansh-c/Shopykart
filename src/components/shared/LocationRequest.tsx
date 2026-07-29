@@ -10,6 +10,7 @@ import { MapPin, ChevronRight, Store } from 'lucide-react';
 
 /**
  * @fileOverview Ultra-Fast Location Picker.
+ * Updated: Added Crawler/Bot bypass to ensure Googlebot can index the site.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,9 +24,13 @@ export default function LocationRequest() {
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
   
-  const { data: activeZones, loading } = useCollection<any>(zonesQuery);
+  const { data: activeZones } = useCollection<any>(zonesQuery);
 
   useEffect(() => {
+    // 1. CRAWLER BYPASS: Don't show popup to bots
+    const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent);
+    if (isBot) return;
+
     const handleOpen = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpen);
     
@@ -36,7 +41,8 @@ export default function LocationRequest() {
 
     const isLocationSet = localStorage.getItem('user_location_set') === 'true';
     if (!isLocationSet) {
-      const timer = setTimeout(() => setIsOpen(true), 500);
+      // Delay popup slightly for better user experience, but keep it snappy
+      const timer = setTimeout(() => setIsOpen(true), 1200);
       return () => {
         clearTimeout(timer);
         window.removeEventListener('open-location-picker', handleOpen);

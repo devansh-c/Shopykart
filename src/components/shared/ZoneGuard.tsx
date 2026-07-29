@@ -49,6 +49,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [currentPincode, setCurrentPincode] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isCrawler, setIsCrawler] = useState(false);
 
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -58,6 +59,11 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    
+    // CRAWLER BYPASS: Detect if search engine
+    const isBot = /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent);
+    setIsCrawler(isBot);
+
     const updateLocation = () => {
       const pin = localStorage.getItem('user_pincode');
       const plusCode = localStorage.getItem('user_plus_code');
@@ -100,6 +106,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, [activeZones, currentPincode, currentCoords]);
 
   if (!mounted) return null;
+  
+  // If it's a crawler, let it through always
+  if (isCrawler) return <>{children}</>;
+
   if (zonesLoading || userLoading) return <>{children}</>;
 
   const hasLocation = !!localStorage.getItem('user_location_set');

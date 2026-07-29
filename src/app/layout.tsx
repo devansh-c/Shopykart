@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -14,6 +15,7 @@ const inter = Inter({
 
 /**
  * @fileOverview Root Layout with Optimized Metadata for Google Indexing.
+ * Ensure maximum visibility for Search Console.
  */
 export default function RootLayout({
   children,
@@ -30,6 +32,10 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="canonical" href={siteUrl} />
+        
+        {/* Aggressive Indexing Tags */}
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow" />
         
         {/* OpenGraph for Social Media */}
         <meta property="og:type" content="website" />
