@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 const TIME_SLOTS = [
   "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
@@ -44,13 +45,24 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
   const [editingStore, setEditingStore] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
+
+  useEffect(() => {
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: vendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: vendors, loading } = useCollection<any>(vendorsQuery, 'admin_vendors_list');
 
   const filteredVendors = useMemo(() => {
     if (!vendors) return [];
@@ -65,7 +77,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
   const handleUpdateStore = async () => {
     if (!firestore || !editingStore) return;
     setIsProcessing(true);
-
     try {
       const finalSlug = slugify(editingStore.storeName);
       await updateDoc(doc(firestore, 'vendors', editingStore.id), {
@@ -79,28 +90,22 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         updatedAt: serverTimestamp()
       });
       setIsEditOpen(false);
-      toast({ title: "Store Configuration Updated", description: "Slug was automatically regenerated." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Update Failed" });
-    } finally {
-      setIsProcessing(false);
-    }
+      toast({ title: "Store Updated", description: "Schedule is now strictly automated." });
+    } catch (err) { toast({ variant: "destructive", title: "Update Failed" }); }
+    finally { setIsProcessing(false); }
   };
 
   const handleToggleOnline = async (id: string, currentStatus: boolean) => {
     if (!firestore) return;
     try {
-      await updateDoc(doc(firestore, 'vendors', id), {
-        isOnline: !currentStatus,
-        updatedAt: serverTimestamp()
-      });
-      toast({ title: !currentStatus ? "Store is now LIVE 🟢" : "Store Closed 🔴" });
+      await updateDoc(doc(firestore, 'vendors', id), { isOnline: !currentStatus, updatedAt: serverTimestamp() });
+      toast({ title: !currentStatus ? "Manual Override: ON 🟢" : "Manual Override: OFF 🔴" });
     } catch (e) {}
   };
 
   const handleDeleteStore = async (id: string) => {
     if (!firestore) return;
-    if (confirm("Khatarnak Alert: Kya aap wakayi is store ko delete karna chahte hain? Iska saara data khatam ho jayega.")) {
+    if (confirm("Khatarnak Alert: Kya aap wakayi is store ko delete karna chahte hain?")) {
       await deleteDoc(doc(firestore, 'vendors', id));
       toast({ title: "Store Deleted Permanently" });
     }
@@ -112,16 +117,11 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Partner Control</h2>
-             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Managing {filteredVendors.length} active terminals</p>
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Automatic timing sync enabled</p>
           </div>
           <div className="relative w-full md:w-80">
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-             <Input 
-              placeholder="Search by ID or Name..." 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              className="pl-12 h-14 bg-white/5 border-white/10 text-white rounded-2xl font-bold placeholder:text-gray-600" 
-             />
+             <Input placeholder="Search ID or Name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-12 h-14 bg-white/5 border-white/10 text-white rounded-2xl font-bold" />
           </div>
         </div>
         <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
@@ -130,170 +130,103 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading && !vendors ? (
           <div className="col-span-full flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
-        ) : filteredVendors.map((store: any) => (
-          <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
-            <div className="flex items-start justify-between mb-6">
-               <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner">
-                     <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
-                  </div>
-                  <div className="min-w-0">
-                     <h3 className="font-black text-xl italic uppercase tracking-tighter truncate leading-none mb-1">{store.storeName}</h3>
-                     <div className="flex items-center gap-2">
-                        <Badge className="bg-primary/5 text-primary border-none text-[7px] font-black uppercase px-2">{store.category || 'Food'}</Badge>
-                        <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
-                           <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                           <span className="text-[10px] font-black text-amber-700">{store.rating || '4.0'}</span>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-               <Switch 
-                checked={store.isOnline !== false} 
-                onCheckedChange={() => handleToggleOnline(store.id, store.isOnline !== false)}
-                className="data-[state=checked]:bg-green-500 scale-90"
-               />
+        ) : filteredVendors.map((store: any) => {
+          const isOpenByTime = isStoreScheduleOpen(store, currentTimeMins);
+          const isEffectivelyOpen = store.isOnline !== false && isOpenByTime;
+
+          return (
+            <div key={store.id} className="bg-white rounded-[2.5rem] p-6 border border-border/50 shadow-sm hover:shadow-xl transition-all group flex flex-col relative overflow-hidden">
+              <div className="flex items-start justify-between mb-6">
+                 <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted shrink-0 shadow-inner">
+                       <img src={store.imageUrl} className="h-full w-full object-cover" alt="" />
+                    </div>
+                    <div className="min-w-0">
+                       <h3 className="font-black text-xl italic uppercase tracking-tighter truncate leading-none mb-1">{store.storeName}</h3>
+                       <div className="flex items-center gap-2">
+                          <Badge className={cn("border-none text-[7px] font-black uppercase px-2", isEffectivelyOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+                            {isEffectivelyOpen ? 'LIVE' : 'CLOSED'}
+                          </Badge>
+                          <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
+                             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                             <span className="text-[10px] font-black text-amber-700">{store.rating || '4.0'}</span>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+                 <div className="flex flex-col items-center gap-1">
+                    <span className="text-[6px] font-black text-gray-400 uppercase">Override</span>
+                    <Switch checked={store.isOnline !== false} onCheckedChange={() => handleToggleOnline(store.id, store.isOnline !== false)} className="data-[state=checked]:bg-green-500 scale-90" />
+                 </div>
+              </div>
+
+              <div className="bg-muted/30 rounded-[2rem] p-5 space-y-4 mb-6 border border-border/40 flex-1">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Login ID</span>
+                       <div className="flex items-center gap-2 text-gray-800"><Fingerprint className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase tracking-tight">{store.storeId}</span></div>
+                    </div>
+                    <div className="space-y-1">
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Access Key</span>
+                       <div className="flex items-center gap-2 text-gray-800"><KeyRound className="h-3.5 w-3.5 text-blue-500" /><span className="text-xs font-black tracking-widest">{store.password || '••••••'}</span></div>
+                    </div>
+                 </div>
+
+                 <div className="pt-3 border-t border-white flex items-center justify-between">
+                    <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-green-500" /><span className="text-xs font-bold text-gray-700">{store.phone || 'No Phone'}</span></div>
+                    <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-amber-500" /><span className="text-[9px] font-black text-gray-600 uppercase tracking-tighter">{store.openingTime} - {store.closingTime}</span></div>
+                 </div>
+              </div>
+
+              <div className="flex gap-2">
+                 <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore({...store}); }}>
+                    <DialogTrigger asChild>
+                       <Button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all"><Edit className="h-3.5 w-3.5 mr-2" /> MODIFY SETTINGS</Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
+                       <DialogHeader className="p-8 pb-4">
+                          <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Schedule Sync</DialogTitle>
+                       </DialogHeader>
+                       <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
+                          <div className="space-y-4">
+                             <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name</label>
+                                <Input value={editingStore?.storeName} onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} className="h-14 rounded-2xl bg-muted/20 border-none font-bold text-lg" />
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Opening Time</label>
+                                   <Select value={editingStore?.openingTime} onValueChange={(val) => setEditingStore({...editingStore, openingTime: val})}>
+                                      <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
+                                      <SelectContent className="rounded-2xl">{TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}</SelectContent>
+                                   </Select>
+                                </div>
+                                <div className="space-y-1">
+                                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Closing Time</label>
+                                   <Select value={editingStore?.closingTime} onValueChange={(val) => setEditingStore({...editingStore, closingTime: val})}>
+                                      <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold"><SelectValue /></SelectTrigger>
+                                      <SelectContent className="rounded-2xl">{TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}</SelectContent>
+                                   </Select>
+                                </div>
+                             </div>
+                             <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
+                                <span className="text-xs font-black uppercase">Enable Manual Overide?</span>
+                                <Switch checked={editingStore?.isOnline !== false} onCheckedChange={(val) => setEditingStore({...editingStore, isOnline: val})} />
+                             </div>
+                          </div>
+                       </div>
+                       <div className="p-8 bg-muted/5 border-t">
+                          <Button onClick={handleUpdateStore} disabled={isProcessing} className="w-full h-18 bg-primary hover:bg-black text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all">
+                             {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "SAVE CONFIGURATION"}
+                          </Button>
+                       </div>
+                    </DialogContent>
+                 </Dialog>
+                 <Button onClick={() => handleDeleteStore(store.id)} variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"><Trash2 className="h-4.5 w-4.5" /></Button>
+              </div>
             </div>
-
-            <div className="bg-muted/30 rounded-[2rem] p-5 space-y-4 mb-6 border border-border/40 flex-1">
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Login ID</span>
-                     <div className="flex items-center gap-2 text-gray-800">
-                        <Fingerprint className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-xs font-black uppercase tracking-tight">{store.storeId}</span>
-                     </div>
-                  </div>
-                  <div className="space-y-1">
-                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Access Key</span>
-                     <div className="flex items-center gap-2 text-gray-800">
-                        <KeyRound className="h-3.5 w-3.5 text-blue-500" />
-                        <span className="text-xs font-black tracking-widest">{store.password || '••••••'}</span>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="pt-3 border-t border-white flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                     <Phone className="h-3.5 w-3.5 text-green-500" />
-                     <span className="text-xs font-bold text-gray-700">{store.phone || 'No Phone'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                     <Clock className="h-3.5 w-3.5 text-amber-500" />
-                     <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">{store.openingTime} - {store.closingTime}</span>
-                  </div>
-               </div>
-
-               <div className="flex items-center gap-2 pt-2 text-[9px] font-black text-primary uppercase italic opacity-60">
-                  <Globe className="h-3 w-3" /> /store/{store.slug || slugify(store.storeName)}
-               </div>
-            </div>
-
-            <div className="flex gap-2">
-               <Dialog open={isEditOpen && editingStore?.id === store.id} onOpenChange={(val) => { setIsEditOpen(val); if(val) setEditingStore({...store}); }}>
-                  <DialogTrigger asChild>
-                     <Button className="flex-1 h-12 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl transition-all">
-                        <Edit className="h-3.5 w-3.5 mr-2" /> MODIFY SETTINGS
-                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="rounded-[2.5rem] max-w-md p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[90vh]">
-                     <DialogHeader className="p-8 pb-4">
-                        <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Store Configuration</DialogTitle>
-                        <p className="text-center text-[10px] font-black text-muted-foreground uppercase tracking-widest">ID: {editingStore?.storeId}</p>
-                     </DialogHeader>
-                     
-                     <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-0 space-y-6">
-                        <div className="space-y-4">
-                           <div className="space-y-1">
-                              <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Business Name (Slug will auto-update)</label>
-                              <Input 
-                                value={editingStore?.storeName} 
-                                onChange={e => setEditingStore({...editingStore, storeName: e.target.value})} 
-                                className="h-14 rounded-2xl bg-muted/20 border-none font-bold text-lg" 
-                              />
-                           </div>
-
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Store Phone</label>
-                                 <Input 
-                                    value={editingStore?.phone} 
-                                    onChange={e => setEditingStore({...editingStore, phone: e.target.value.replace(/\D/g, '').slice(0, 10)})} 
-                                    className="h-12 rounded-xl bg-muted/20 border-none font-bold" 
-                                 />
-                              </div>
-                              <div className="space-y-1">
-                                 <label className="text-[9px] font-black uppercase text-primary ml-1">Rating (1.0 - 5.0)</label>
-                                 <Input 
-                                    type="number" 
-                                    step="0.1" 
-                                    max="5" 
-                                    min="1" 
-                                    value={editingStore?.rating} 
-                                    onChange={e => setEditingStore({...editingStore, rating: e.target.value})} 
-                                    className="h-12 rounded-xl bg-primary/5 border-none font-black text-center text-primary" 
-                                 />
-                              </div>
-                           </div>
-
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Opening Time</label>
-                                 <Select value={editingStore?.openingTime} onValueChange={(val) => setEditingStore({...editingStore, openingTime: val})}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                                       <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl">
-                                       {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
-                                    </SelectContent>
-                                 </Select>
-                              </div>
-                              <div className="space-y-1">
-                                 <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Closing Time</label>
-                                 <Select value={editingStore?.closingTime} onValueChange={(val) => setEditingStore({...editingStore, closingTime: val})}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                                       <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl">
-                                       {TIME_SLOTS.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
-                                    </SelectContent>
-                                 </Select>
-                              </div>
-                           </div>
-
-                           <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
-                              <div className="flex flex-col">
-                                 <span className="text-xs font-black uppercase tracking-tight italic">Accepting Orders?</span>
-                                 <span className="text-[8px] font-bold text-muted-foreground uppercase">Manual Override Status</span>
-                              </div>
-                              <Switch 
-                                 checked={editingStore?.isOnline !== false} 
-                                 onCheckedChange={(val) => setEditingStore({...editingStore, isOnline: val})} 
-                              />
-                           </div>
-                        </div>
-
-                        <div className="bg-amber-50 p-4 rounded-2xl flex gap-3 border border-amber-100">
-                           <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                           <p className="text-[9px] font-bold text-amber-800 uppercase leading-relaxed">
-                              Saving will automatically generate a clean SEO slug. URL change ho sakta hai, toh purane links expire ho jayenge.
-                           </p>
-                        </div>
-                     </div>
-
-                     <div className="p-8 bg-muted/5 border-t">
-                        <Button onClick={handleUpdateStore} disabled={isProcessing} className="w-full h-18 bg-primary hover:bg-black text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl transition-all">
-                           {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "SAVE ALL CHANGES"}
-                        </Button>
-                     </div>
-                  </DialogContent>
-               </Dialog>
-               <Button onClick={() => handleDeleteStore(store.id)} variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                  <Trash2 className="h-4.5 w-4.5" />
-               </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

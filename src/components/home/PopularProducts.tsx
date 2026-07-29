@@ -13,27 +13,39 @@ import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
+/**
+ * HELPER: Checks if store is currently within scheduled hours.
+ */
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
+  // If no timing is set, assume 24/7 or manual only
   if (!vendor.openingTime || !vendor.closingTime) return true;
   
   const now = new Date();
-  const mins = currentMins !== undefined && currentMins !== null 
+  // We use provided mins or current time
+  const mins = (currentMins !== undefined && currentMins !== null) 
     ? currentMins 
     : now.getHours() * 60 + now.getMinutes();
 
   const parseTime = (t: string) => {
     try {
-      const [time, modifier] = t.split(' ');
+      const [time, modifier] = t.trim().split(' ');
       let [hours, minutes] = time.split(':').map(Number);
       if (modifier === 'PM' && hours < 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
       return hours * 60 + (minutes || 0);
     } catch (e) { return 0; }
   };
+
   const start = parseTime(vendor.openingTime);
   const end = parseTime(vendor.closingTime);
-  return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
+
+  // Handle overnight schedules (e.g. 10 PM to 4 AM)
+  if (start < end) {
+    return mins >= start && mins <= end;
+  } else {
+    return mins >= start || mins <= end;
+  }
 }
 
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
@@ -43,23 +55,34 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { toast } = useToast();
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
-    };
+    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
-    return () => window.removeEventListener('user-address-updated', updateZone);
+
+    // Sync time every minute for automatic open/close
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
+
+    return () => {
+      window.removeEventListener('user-address-updated', updateZone);
+      clearInterval(interval);
+    };
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Massive limit to ensure Ranipur or any zone never misses products even in huge catalogs
+    // EXTENDED LIMIT TO 2000 FOR FULL CATALOG ACCESS (Ranipur Fix)
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_instant');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_heavy');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -78,8 +101,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       
       // Strict Location Filter
       if (activeZoneId) {
-        if (vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
-        if (p.zoneId && p.zoneId !== activeZoneId) return false;
+        const pZone = p.zoneId;
+        const vZone = vendor?.zoneId;
+        if (vZone && vZone !== activeZoneId) return false;
+        if (pZone && pZone !== activeZoneId) return false;
       }
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -92,18 +117,17 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
       
-      const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA)) : true;
-      const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB)) : true;
+      // EFFECTIVE STATUS: Manual Toggle AND Time Schedule
+      const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA, currentTimeMinutes)) : true;
+      const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB, currentTimeMinutes)) : true;
       
-      // 1. Online stores first
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
       
-      // 2. Rating high to low
       const ratingA = Number(vendorA?.rating) || 0;
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
   const handleShare = async (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -134,7 +158,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const vendor = vendors?.find(v => v.id === product.vendorId);
-          const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor)) : false;
+          const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
           return (
             <div key={product.id} className={cn(
@@ -142,7 +166,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               isOffline && "opacity-80"
             )}>
               <div className="relative aspect-square w-full mb-3">
-                <ProductQuickView product={product}>
+                <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
                       <Image src={product.imageUrl} alt={product.name} fill className={cn("object-cover", isOffline && "grayscale")} unoptimized />
                       {isOffline && (
@@ -159,6 +183,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
+                {/* PRESERVED: Mustard Gold Store Name */}
                 <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>
@@ -171,7 +196,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
                   {!isOffline ? (
                     quantity === 0 ? (
-                      <ProductQuickView product={product}>
+                      <ProductQuickView product={product} vendorScheduleOpen={true}>
                         <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20">ADD</button>
                       </ProductQuickView>
                     ) : (

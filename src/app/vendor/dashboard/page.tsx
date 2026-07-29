@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -57,6 +56,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { compressImage } from '@/lib/image-utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -73,48 +73,39 @@ export default function VendorDashboard() {
   const [isPending, startTransition] = useTransition();
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
+  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
 
-  useEffect(() => { setIsMounted(true); }, []);
+  useEffect(() => { 
+    setIsMounted(true); 
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Vendor Profile Hook
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTH GUARD: Bulletproof session recovery
+  // AUTOMATIC STATUS CHECK
+  const isCurrentlyOpenByTime = useMemo(() => {
+    return isStoreScheduleOpen(vendorProfile, currentTimeMins);
+  }, [vendorProfile, currentTimeMins]);
+
+  // AUTH GUARD
   useEffect(() => {
     if (!isMounted || authLoading) return;
-
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-
     if (!user && !authLoading) {
-      if (!sessionActive) {
-        router.replace('/vendor/login');
-      } else {
-        const failSafe = setTimeout(() => {
-          if (!user) {
-            localStorage.removeItem('shopykart_session_active');
-            router.replace('/vendor/login');
-          }
-        }, 10000);
-        return () => clearTimeout(failSafe);
-      }
+      if (!sessionActive) router.replace('/vendor/login');
     }
+  }, [user, authLoading, router, isMounted]);
 
-    if (user && !profileLoading && vendorProfile === null) {
-      const finalCheck = setTimeout(() => {
-        if (!vendorProfile) {
-          localStorage.removeItem('shopykart_session_active');
-          router.replace('/vendor/login');
-        }
-      }, 5000);
-      return () => clearTimeout(finalCheck);
-    }
-  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
-
-  // Fetch Categories
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
@@ -178,7 +169,7 @@ export default function VendorDashboard() {
         });
       }
       await batch.commit();
-      toast({ title: online ? "Store Open! 🟢" : "Store Closed 🔴" });
+      toast({ title: online ? "Manual Switch: ON 🟢" : "Manual Switch: OFF 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
@@ -193,56 +184,30 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
-  const handleAddOption = () => {
-    setProductForm(prev => ({
-      ...prev,
-      options: [...prev.options, { name: '', price: 0 }]
-    }));
-  };
-
-  const handleRemoveOption = (idx: number) => {
-    setProductForm(prev => ({
-      ...prev,
-      options: prev.options.filter((_, i) => i !== idx)
-    }));
-  };
-
-  const handleUpdateOption = (idx: number, field: string, value: any) => {
-    const newOpts = [...productForm.options];
-    (newOpts[idx] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
-    setProductForm(prev => ({ ...prev, options: newOpts }));
-  };
-
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
       toast({ variant: "destructive", title: "Missing Info" });
       return;
     }
-
     setIsSavingProduct(true);
     const productData = {
       name: productForm.name.trim(),
       mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
       price: parseFloat(productForm.price),
       description: productForm.description.trim(),
-      category: productForm.category.toLowerCase().trim() || 'general',
-      serviceMode: vendorProfile?.category || 'Food',
+      category: productForm.category.toLowerCase().trim(),
       vendorId: user.uid,
       restaurantName: vendorProfile?.storeName || 'My Store',
-      zoneId: vendorProfile?.zoneId || null,
-      town: vendorProfile?.town || 'Local',
       isVeg: productForm.isVeg,
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/300/300',
       options: productForm.options.filter(o => o.name.trim() !== ''),
       isVarietyRequired: productForm.isVarietyRequired,
-      isAvailable: true,
+      isAvailable: vendorProfile?.isOnline !== false,
       updatedAt: serverTimestamp(),
     };
-
     try {
       if (editingId) {
-        const pRef = doc(firestore, 'products', editingId);
-        await setDoc(pRef, productData, { merge: true });
+        await setDoc(doc(firestore, 'products', editingId), productData, { merge: true });
         await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingId), productData, { merge: true });
       } else {
         const newRef = doc(collection(firestore, 'products'));
@@ -251,22 +216,10 @@ export default function VendorDashboard() {
       }
       setIsProductModalOpen(false);
       setEditingId(null);
-      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] });
       toast({ title: "Product Saved!" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Save Failed" });
-    } finally {
-      setIsSavingProduct(false);
-    }
+    } catch (e) { toast({ variant: "destructive", title: "Save Failed" }); }
+    finally { setIsSavingProduct(false); }
   };
-
-  const filteredOrders = useMemo(() => {
-    return orders?.filter(o => {
-      const status = (o.status || '').toUpperCase();
-      if(orderFilter === 'NEW ORDERS') return !['DELIVERED', 'CANCELLED'].includes(status);
-      return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
-    });
-  }, [orders, orderFilter]);
 
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
     return (
@@ -277,8 +230,6 @@ export default function VendorDashboard() {
     );
   }
 
-  if (!vendorProfile) return null;
-
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b shrink-0 z-50">
@@ -287,17 +238,44 @@ export default function VendorDashboard() {
               {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Utensils className="h-5 w-5" />}
             </div>
             <div>
-              <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName || 'Business Portal'}</h1>
-              <div className="flex items-center gap-1.5 mt-1"><div className={cn("h-1.5 w-1.5 rounded-full", vendorProfile?.isOnline !== false ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-bold text-muted-foreground uppercase">{vendorProfile?.isOnline !== false ? 'Accepting' : 'Closed'}</p></div>
+              <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName}</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className={cn("h-1.5 w-1.5 rounded-full", (vendorProfile?.isOnline !== false && isCurrentlyOpenByTime) ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                <p className="text-[8px] font-bold text-muted-foreground uppercase">
+                  {(vendorProfile?.isOnline !== false && isCurrentlyOpenByTime) ? 'Accepting Orders' : 'Store Closed'}
+                </p>
+              </div>
             </div>
          </div>
-         <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={handleToggleStore} className="scale-75 data-[state=checked]:bg-green-500" />
+         <div className="flex items-center gap-3">
+            <span className="text-[7px] font-black uppercase text-muted-foreground">Master Switch</span>
+            <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={handleToggleStore} className="scale-75 data-[state=checked]:bg-green-500" />
+         </div>
       </header>
 
       <main className={cn("flex-1 overflow-y-auto no-scrollbar transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
          <div className="pb-32">
+            <div className="p-4">
+               {/* TIMING INFO BANNER */}
+               <div className={cn(
+                 "p-4 rounded-2xl border-2 mb-6 flex items-center justify-between",
+                 isCurrentlyOpenByTime ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700"
+               )}>
+                  <div className="flex items-center gap-3">
+                     <Clock className="h-5 w-5" />
+                     <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest">Automatic Schedule</span>
+                        <span className="text-xs font-bold italic uppercase">{vendorProfile?.openingTime} - {vendorProfile?.closingTime}</span>
+                     </div>
+                  </div>
+                  <Badge className={cn("border-none text-[8px] font-black", isCurrentlyOpenByTime ? "bg-green-600 text-white" : "bg-red-600 text-white")}>
+                    {isCurrentlyOpenByTime ? 'LIVE NOW' : 'OFFLINE'}
+                  </Badge>
+               </div>
+            </div>
+
             {activeMainTab === 'orders' && (
-              <div className="p-4 space-y-4 animate-in fade-in duration-500">
+              <div className="p-4 pt-0 space-y-4 animate-in fade-in duration-500">
                   <div className="flex bg-white rounded-2xl p-1 shadow-sm mb-4 border border-border/50">
                     {['NEW ORDERS', 'DELIVERED', 'CANCELLED'].map(f => (
                       <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-black text-white" : "text-gray-400")}>{f}</button>
@@ -326,7 +304,7 @@ export default function VendorDashboard() {
             )}
 
             {activeMainTab === 'catalog' && (
-              <div className="p-4 space-y-4 animate-in fade-in duration-500">
+              <div className="p-4 pt-0 space-y-4 animate-in fade-in duration-500">
                   <div className="flex items-center justify-between mb-2">
                     <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2>
                     <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) { setEditingId(null); setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); } }}>
@@ -369,33 +347,6 @@ export default function VendorDashboard() {
                                  <span className="text-xs font-black uppercase">Pure Veg?</span>
                                  <Switch checked={productForm.isVeg} onCheckedChange={v => setProductForm({...productForm, isVeg: v})} />
                               </div>
-
-                              {/* VARIETY / OPTIONS SECTION */}
-                              <div className="bg-primary/5 p-6 rounded-[2rem] border-2 border-dashed border-primary/20 space-y-5">
-                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-black uppercase text-primary italic tracking-widest">Options Builder</h4>
-                                    <button type="button" onClick={handleAddOption} className="text-[9px] font-black bg-white border border-primary/20 text-primary px-3 py-1.5 rounded-lg active:scale-95 transition-all">+ ADD ROW</button>
-                                 </div>
-                                 
-                                 {productForm.options.length > 0 && (
-                                   <div className="space-y-3">
-                                      {productForm.options.map((opt, i) => (
-                                        <div key={i} className="flex gap-2">
-                                           <Input value={opt.name} onChange={e => handleUpdateOption(i, 'name', e.target.value)} placeholder="e.g. Full Plate" className="flex-1 h-10 rounded-xl bg-white border-none font-bold text-xs" />
-                                           <Input type="number" value={opt.price} onChange={e => handleUpdateOption(i, 'price', e.target.value)} placeholder="+ ₹" className="w-20 h-10 rounded-xl bg-white border-none font-black text-center" />
-                                           <button onClick={() => handleRemoveOption(i)} className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"><X className="h-4 w-4" /></button>
-                                        </div>
-                                      ))}
-                                      <div className="pt-4 border-t border-primary/10 flex items-center justify-between">
-                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black uppercase">Selection Required?</span>
-                                            <span className="text-[7px] font-bold text-muted-foreground uppercase">Force user to pick one</span>
-                                         </div>
-                                         <Switch checked={productForm.isVarietyRequired} onCheckedChange={v => setProductForm({...productForm, isVarietyRequired: v})} />
-                                      </div>
-                                   </div>
-                                 )}
-                              </div>
                            </div>
                            <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
                              {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
@@ -421,18 +372,12 @@ export default function VendorDashboard() {
                         </div>
                       </div>
                     ))}
-                    {(!myProducts || myProducts.length === 0) && (
-                       <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                          <Package className="h-16 w-16 mb-4" />
-                          <p className="font-black italic uppercase text-xs">Inventory is empty</p>
-                       </div>
-                    )}
                   </div>
               </div>
             )}
 
             {activeMainTab === 'account' && (
-              <div className="p-4 space-y-6 animate-in fade-in duration-500">
+              <div className="p-4 pt-0 space-y-6 animate-in fade-in duration-500">
                   <div className="flex flex-col items-center py-8">
                     <div className="relative group"><div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted">{vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Store className="h-12 w-12 m-auto text-gray-300" />}</div><button className="absolute bottom-[-10px] right-[-10px] bg-white p-3 rounded-2xl shadow-xl border border-border text-primary"><Camera className="h-5 w-5" /></button></div>
                     <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
