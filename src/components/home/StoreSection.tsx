@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -22,10 +23,15 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   const firestore = useFirestore();
   const router = useRouter();
   
-  // ATOMIC SYNC LOCATION ACCESS
-  const activeZoneId = React.useMemo(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
-    return null;
+  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {

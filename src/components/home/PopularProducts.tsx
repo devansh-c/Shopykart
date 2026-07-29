@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useState } from "react"
+import React, { useMemo, useState, useEffect } from "react"
 import { Plus, Minus, Share2, Loader2, Store } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
@@ -42,9 +42,15 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const router = useRouter();
   const { toast } = useToast();
   
-  const activeZoneId = React.useMemo(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
-    return null;
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
   }, []);
 
   const productsQuery = useMemoFirebase(() => {
@@ -68,7 +74,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
-      if (activeZoneId && vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
+      
+      // ZONE FILTERING: If zone is selected, only show products from that zone or global
+      if (activeZoneId) {
+        // If vendor has a zone assigned and it doesn't match selected zone, hide it
+        if (vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
+        // If product has a zone assigned and it doesn't match, hide it
+        if (p.zoneId && p.zoneId !== activeZoneId) return false;
+      }
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       const searchMatch = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase());

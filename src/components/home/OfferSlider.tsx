@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -15,10 +16,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function OfferSlider() {
   const firestore = useFirestore();
-  const [activeZoneId] = React.useState<string | null>(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
-    return null;
-  });
+  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const updateZone = () => {
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
+    };
+    updateZone();
+    window.addEventListener('user-address-updated', updateZone);
+    return () => window.removeEventListener('user-address-updated', updateZone);
+  }, []);
 
   const [api, setApi] = React.useState<any>();
   const [current, setCurrent] = React.useState(0);
