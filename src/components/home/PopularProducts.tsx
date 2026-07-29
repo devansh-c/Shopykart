@@ -55,7 +55,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(500));
+    // Increased limit to 2000 to ensure all products are scanned for the selected zone
+    return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_instant');
@@ -75,8 +76,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
+      // Strict Location Filter: Hide if mismatch exists
       if (activeZoneId) {
+        // If vendor belongs to a specific zone and it's not current, hide
         if (vendor && vendor.zoneId && vendor.zoneId !== activeZoneId) return false;
+        // If product belongs to a specific zone and it's not current, hide
         if (p.zoneId && p.zoneId !== activeZoneId) return false;
       }
       
