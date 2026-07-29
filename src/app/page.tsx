@@ -11,9 +11,10 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
+import AdSenseUnit from '@/components/shared/AdSenseUnit';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Extreme Speed Shell with Broadcast System.
+ * @fileOverview ShopyKart Main Entrance - Optimized for AdSense Integration.
  */
 export default function ShopyKartApp() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +73,7 @@ export default function ShopyKartApp() {
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
             <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />
+            <AdSenseUnit />
             <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
           </div>
         ) : (
@@ -85,6 +87,10 @@ export default function ShopyKartApp() {
             )}
             <div className="bg-white">
               {!searchQuery && <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />}
+              
+              {/* ADSENSE BLOCK FOR MONETIZATION */}
+              {!searchQuery && <AdSenseUnit />}
+              
               <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
             </div>
           </div>
