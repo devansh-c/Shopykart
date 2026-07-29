@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
@@ -114,7 +113,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   return (
     <div className="px-4 py-6 min-h-[400px] transition-all">
-      {/* Dynamic Heading with Count */}
+      {/* Heading with Counting */}
       <div className="flex items-center justify-between mb-6 px-2 animate-in fade-in duration-500">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
@@ -157,6 +156,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
+                {/* Store Name in Mustard Gold */}
                 <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>
