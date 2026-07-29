@@ -96,12 +96,14 @@ export default function OrderManagement() {
   };
 
   const updateVendorItem = (index: number, field: string, value: any) => {
+    if (!editingVendorOrder) return;
     const newItems = [...editingVendorOrder.items];
     newItems[index] = { ...newItems[index], [field]: value };
     setEditingVendorOrder({ ...editingVendorOrder, items: newItems });
   };
 
   const removeVendorItem = (index: number) => {
+    if (!editingVendorOrder) return;
     const newItems = editingVendorOrder.items.filter((_: any, i: number) => i !== index);
     setEditingVendorOrder({ ...editingVendorOrder, items: newItems });
   };
@@ -173,6 +175,7 @@ export default function OrderManagement() {
 
   // VENDOR RECEIPT DOM (NO QR, NO TAX)
   const generateVendorReceiptDOM = (orderData: any) => {
+    if (!orderData) return null;
     const subtotal = orderData.items?.reduce((acc: any, it: any) => acc + (Number(it.price) * Number(it.quantity)), 0) || 0;
     const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : format(new Date(), 'dd/MM/yy HH:mm');
     
@@ -236,6 +239,7 @@ export default function OrderManagement() {
 
   // CUSTOMER/ADMIN RECEIPT DOM (WITH QR & TAX)
   const generateCustomerReceiptDOM = (orderData: any) => {
+    if (!orderData) return null;
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total?.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
@@ -317,7 +321,6 @@ export default function OrderManagement() {
 
       <div className="grid grid-cols-1 gap-6 pb-20">
         {orders?.map((order: any) => {
-          const storeNames = Array.from(new Set(order.items?.map((i: any) => i.restaurantName).filter(Boolean)));
           const isElite = order.isPremiumOrder === true;
 
           return (
@@ -345,9 +348,16 @@ export default function OrderManagement() {
                        </div>
                        <div className="pt-1 space-y-1">
                           {order.items?.map((item: any, i: number) => (
-                            <div key={i} className="flex justify-between text-[10px] font-bold text-gray-600 italic">
-                               <span>{item.quantity}x {item.name} {item.selectedOption && <span className="text-primary font-black uppercase text-[8px]">({item.selectedOption.name})</span>}</span>
-                               <span className="text-primary">₹{item.price * item.quantity}</span>
+                            <div key={i} className="flex flex-col text-[10px] font-bold text-gray-600 italic mb-1.5">
+                               <div className="flex justify-between">
+                                  <span>{item.quantity}x {item.name} {item.selectedOption && <span className="text-primary font-black uppercase text-[8px]">({item.selectedOption.name})</span>}</span>
+                                  <span className="text-primary">₹{item.price * item.quantity}</span>
+                               </div>
+                               {item.instructions && (
+                                 <div className="flex items-center gap-1 mt-0.5 text-[8px] text-red-500 lowercase font-black">
+                                    <MessageSquareQuote className="h-2 w-2" /> Note: {item.instructions}
+                                 </div>
+                               )}
                             </div>
                           ))}
                        </div>
@@ -409,50 +419,54 @@ export default function OrderManagement() {
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
              {/* LEFT: EDITING PANEL */}
              <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
-                <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
-                   <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Order Summary</h4>
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                         <label className="text-[8px] font-black uppercase text-gray-400">Order ID</label>
-                         <Input value={editingVendorOrder?.orderDisplayId} onChange={e => setEditingVendorOrder({...editingVendorOrder, orderDisplayId: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" />
-                      </div>
-                      <div className="space-y-1">
-                         <label className="text-[8px] font-black uppercase text-gray-400">Customer</label>
-                         <Input value={editingVendorOrder?.customerName} onChange={e => setEditingVendorOrder({...editingVendorOrder, customerName: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" />
-                      </div>
-                   </div>
-                   <div className="space-y-1">
-                      <label className="text-[8px] font-black uppercase text-gray-400">Vendor Instructions</label>
-                      <Input value={editingVendorOrder?.instructions} onChange={e => setEditingVendorOrder({...editingVendorOrder, instructions: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" placeholder="Chef instructions..." />
-                   </div>
-                </div>
+                {editingVendorOrder && (
+                  <>
+                    <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
+                       <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Order Summary</h4>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                             <label className="text-[8px] font-black uppercase text-gray-400">Order ID</label>
+                             <Input value={editingVendorOrder.orderDisplayId} onChange={e => setEditingVendorOrder({...editingVendorOrder, orderDisplayId: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" />
+                          </div>
+                          <div className="space-y-1">
+                             <label className="text-[8px] font-black uppercase text-gray-400">Customer</label>
+                             <Input value={editingVendorOrder.customerName} onChange={e => setEditingVendorOrder({...editingVendorOrder, customerName: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" />
+                          </div>
+                       </div>
+                       <div className="space-y-1">
+                          <label className="text-[8px] font-black uppercase text-gray-400">Vendor Instructions</label>
+                          <Input value={editingVendorOrder.instructions} onChange={e => setEditingVendorOrder({...editingVendorOrder, instructions: e.target.value})} className="h-10 rounded-xl bg-gray-50 border-none font-bold" placeholder="Chef instructions..." />
+                       </div>
+                    </div>
 
-                <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
-                   <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Items to Cook</h4>
-                      <Button variant="ghost" onClick={() => {
-                        const newItems = [...editingVendorOrder.items, { name: 'New Item', quantity: 1, price: 0 }];
-                        setEditingVendorOrder({...editingVendorOrder, items: newItems});
-                      }} className="h-8 text-[9px] font-black text-primary hover:bg-primary/5 rounded-full"><Plus className="h-3 w-3 mr-1" /> ADD ITEM</Button>
-                   </div>
-                   
-                   <div className="space-y-3">
-                      {editingVendorOrder?.items.map((item: any, idx: number) => (
-                        <div key={idx} className="flex gap-2 bg-gray-50 p-3 rounded-2xl border border-border group animate-in slide-in-from-right-2">
-                           <div className="flex-1">
-                              <Input value={item.name} onChange={e => updateVendorItem(idx, 'name', e.target.value)} className="h-9 rounded-lg bg-white border-none font-bold text-[11px]" />
-                           </div>
-                           <div className="w-16">
-                              <Input type="number" value={item.quantity} onChange={e => updateVendorItem(idx, 'quantity', e.target.value)} className="h-9 rounded-lg bg-white border-none font-black text-center text-xs" />
-                           </div>
-                           <div className="w-20">
-                              <Input type="number" value={item.price} onChange={e => updateVendorItem(idx, 'price', e.target.value)} className="h-9 rounded-lg bg-white border-none font-black text-center text-xs text-primary" />
-                           </div>
-                           <button onClick={() => removeVendorItem(idx)} className="h-9 w-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></button>
-                        </div>
-                      ))}
-                   </div>
-                </div>
+                    <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm space-y-4">
+                       <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Items to Cook</h4>
+                          <Button variant="ghost" onClick={() => {
+                            const newItems = [...editingVendorOrder.items, { name: 'New Item', quantity: 1, price: 0 }];
+                            setEditingVendorOrder({...editingVendorOrder, items: newItems});
+                          }} className="h-8 text-[9px] font-black text-primary hover:bg-primary/5 rounded-full"><Plus className="h-3 w-3 mr-1" /> ADD ITEM</Button>
+                       </div>
+                       
+                       <div className="space-y-3">
+                          {editingVendorOrder.items.map((item: any, idx: number) => (
+                            <div key={idx} className="flex gap-2 bg-gray-50 p-3 rounded-2xl border border-border group animate-in slide-in-from-right-2">
+                               <div className="flex-1">
+                                  <Input value={item.name} onChange={e => updateVendorItem(idx, 'name', e.target.value)} className="h-9 rounded-lg bg-white border-none font-bold text-[11px]" />
+                               </div>
+                               <div className="w-16">
+                                  <Input type="number" value={item.quantity} onChange={e => updateVendorItem(idx, 'quantity', e.target.value)} className="h-9 rounded-lg bg-white border-none font-black text-center text-xs" />
+                               </div>
+                               <div className="w-20">
+                                  <Input type="number" value={item.price} onChange={e => updateVendorItem(idx, 'price', e.target.value)} className="h-9 rounded-lg bg-white border-none font-black text-center text-xs text-primary" />
+                               </div>
+                               <button onClick={() => removeVendorItem(idx)} className="h-9 w-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  </>
+                )}
              </div>
 
              {/* RIGHT: LIVE PREVIEW */}
@@ -466,14 +480,16 @@ export default function OrderManagement() {
                 </div>
 
                 <div className="w-full mt-auto space-y-3 pt-10">
-                   <div className="grid grid-cols-2 gap-3">
+                   {editingVendorOrder && (
+                    <div className="grid grid-cols-2 gap-3">
                       <Button onClick={() => handlePrint(editingVendorOrder.id, 'vendor')} className="h-14 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">
                         <Printer className="h-4 w-4 mr-2" /> PRINT
                       </Button>
                       <Button onClick={() => handleDownload(editingVendorOrder.id, 'vendor')} disabled={downloadingId === editingVendorOrder.id} className="h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
                         {downloadingId === editingVendorOrder.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />} SAVE
                       </Button>
-                   </div>
+                    </div>
+                   )}
                    <p className="text-center text-[7px] font-black text-muted-foreground uppercase tracking-[0.4em]">Optimized for Thermal Print</p>
                 </div>
              </div>
