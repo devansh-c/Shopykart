@@ -1,4 +1,3 @@
-
 import type {Config} from 'tailwind-merge';
 
 const config: Config = {
@@ -94,6 +93,9 @@ const config: Config = {
           to: {
             height: '0',
           },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
         },
         shine: {
           '0%': { transform: 'translateX(-100%) translateY(-100%) rotate(-45deg)' },

@@ -5,9 +5,10 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
+import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview CategoryList - Synchronous Speed Component.
+ * @fileOverview CategoryList - Synchronous Speed Component with Shimmer.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -44,8 +45,8 @@ export function CategoryList({
         {(!dbCategories && loading) ? (
           [1, 2, 3, 4, 5].map(i => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0">
-              <div className="w-16 h-16 rounded-full bg-muted/10 animate-pulse border-2 border-gray-50" />
-              <div className="w-12 h-2 bg-muted/10 rounded-full animate-pulse" />
+              <Skeleton className="w-16 h-16 rounded-full" />
+              <Skeleton className="w-12 h-2 rounded-full" />
             </div>
           ))
         ) : filteredCategories.map((cat) => (

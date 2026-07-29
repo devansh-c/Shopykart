@@ -13,9 +13,10 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel"
 import { isStoreScheduleOpen } from "./PopularProducts"
+import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview StoreSection - Lightning Rendering.
+ * @fileOverview StoreSection - Lightning Rendering with Shimmer.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -60,14 +61,14 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
           {(!dbVendors && loading) ? (
             [1, 2].map(i => (
               <CarouselItem key={i} className="pl-3 basis-[65%] sm:basis-[50%]">
-                 <div className="w-full aspect-[16/10] rounded-[2rem] bg-muted/20 animate-pulse border-4 border-white" />
+                 <Skeleton className="w-full aspect-[16/10] rounded-[2.5rem]" />
               </CarouselItem>
             ))
           ) : filteredVendors.map((store: any) => (
             <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
               <button 
                 onClick={() => router.push(`/store/${store.slug || slugify(store.storeName) || store.id}`)}
-                className="block text-left w-full rounded-[2rem] overflow-hidden shadow-lg group border border-white/10 relative"
+                className="block text-left w-full rounded-[2.5rem] overflow-hidden shadow-lg group border border-white/10 relative"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
                 <div className="relative h-24 w-full overflow-hidden z-10">

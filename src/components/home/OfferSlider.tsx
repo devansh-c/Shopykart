@@ -11,6 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import Autoplay from "embla-carousel-autoplay"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function OfferSlider() {
   const firestore = useFirestore();
@@ -47,9 +48,9 @@ export function OfferSlider() {
 
   return (
     <div className="w-full py-4 relative group overflow-hidden bg-white min-h-[160px]">
-      {!dbBanners && loading ? (
+      {(!dbBanners && loading) ? (
         <div className="px-6">
-           <div className="aspect-[18/9] w-full rounded-[2rem] bg-muted/20 animate-pulse border-4 border-white shadow-sm" />
+           <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem]" />
         </div>
       ) : (filteredBanners.length > 0) ? (
         <>
@@ -62,7 +63,7 @@ export function OfferSlider() {
             <CarouselContent className="-ml-1">
               {filteredBanners.map((banner: any) => (
                 <CarouselItem key={banner.id} className="pl-1 basis-[88%] sm:basis-[85%] flex justify-center">
-                  <div className="relative aspect-[18/9] w-full overflow-hidden rounded-[2rem] bg-muted border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] transform-gpu transition-all duration-500">
+                  <div className="relative aspect-[18/9] w-full overflow-hidden rounded-[2.5rem] bg-muted border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] transform-gpu transition-all duration-500">
                     <Image src={banner.imageUrl} alt="Offer" fill className="object-cover" unoptimized />
                   </div>
                 </CarouselItem>

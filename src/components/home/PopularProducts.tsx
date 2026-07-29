@@ -10,6 +10,7 @@ import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -105,8 +106,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     <div className="px-4 py-6 min-h-[400px] transition-all">
       <div className="grid grid-cols-2 gap-4">
         {(!dbProducts && productsLoading) ? (
-          [1, 2, 3, 4].map(i => (
-            <div key={i} className="aspect-[4/5] w-full bg-muted/10 animate-pulse rounded-[2rem] border-2 border-gray-50" />
+          [1, 2, 3, 4, 5, 6].map(i => (
+            <Skeleton key={i} className="aspect-[4/5] w-full rounded-[2rem]" />
           ))
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
