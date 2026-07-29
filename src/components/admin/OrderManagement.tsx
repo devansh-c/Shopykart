@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   ShoppingBag, 
   ChevronRight, 
@@ -48,7 +48,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 
 const statusOptions = ["Placed", "Accepted", "Preparing", "Ready for Pickup", "Picked Up", "Out for Delivery", "Delivered", "Cancelled"];
 
@@ -318,9 +318,17 @@ export default function OrderManagement() {
                   {order.verificationImage && (
                     <div className="mb-4">
                        <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-1"><Camera className="h-2 w-2" /> Verification Photo</p>
-                       <div className="h-24 w-24 rounded-xl overflow-hidden border-2 border-primary/10 shadow-sm">
-                          <img src={order.verificationImage} className="h-full w-full object-cover cursor-zoom-in" onClick={() => window.open(order.verificationImage)} alt="Verification" />
-                       </div>
+                       <Dialog>
+                         <DialogTrigger asChild>
+                           <div className="h-24 w-24 rounded-xl overflow-hidden border-2 border-primary/10 shadow-sm cursor-zoom-in group/img">
+                              <img src={order.verificationImage} className="h-full w-full object-cover group-hover/img:scale-110 transition-transform" alt="Verification" />
+                           </div>
+                         </DialogTrigger>
+                         <DialogContent className="max-w-md rounded-[2rem] p-0 overflow-hidden border-none">
+                            <DialogHeader className="sr-only"><DialogTitle>Verification Photo</DialogTitle></DialogHeader>
+                            <img src={order.verificationImage} className="w-full h-auto" alt="Full Verification" />
+                         </DialogContent>
+                       </Dialog>
                     </div>
                   )}
 
@@ -360,6 +368,10 @@ export default function OrderManagement() {
                       <button className="bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Admin Bill</button>
                     </DialogTrigger>
                     <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
+                       <DialogHeader className="sr-only">
+                         <DialogTitle>Admin Receipt Preview</DialogTitle>
+                         <DialogDescription>Internal administrative copy of the order bill.</DialogDescription>
+                       </DialogHeader>
                        <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
                           {generateCustomerReceiptDOM(order)}
                        </div>
@@ -389,7 +401,7 @@ export default function OrderManagement() {
           <DialogHeader className="p-6 bg-white border-b shrink-0 flex flex-row items-center justify-between">
              <div className="flex items-center gap-3">
                 <div className="bg-black p-2.5 rounded-xl text-primary"><Edit3 className="h-5 w-5" /></div>
-                <DialogTitle className="font-black italic uppercase text-xl">Vendor Bill Portal</DialogTitle>
+                <DialogTitle className="font-black italic uppercase text-xl text-black">Vendor Bill Portal</DialogTitle>
              </div>
              <button onClick={() => setIsVendorDialogOpen(false)} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
           </DialogHeader>
@@ -407,7 +419,7 @@ export default function OrderManagement() {
                              <Input 
                               value={editingVendorOrder.customerName || ''} 
                               onChange={e => setEditingVendorOrder({...editingVendorOrder, customerName: e.target.value})} 
-                              className="h-14 rounded-2xl bg-gray-50 border-none font-bold text-lg uppercase" 
+                              className="h-14 rounded-2xl bg-gray-50 border-none font-bold text-lg uppercase focus-visible:ring-1 focus-visible:ring-primary/20" 
                              />
                           </div>
                           <div className="space-y-1.5">
@@ -415,7 +427,7 @@ export default function OrderManagement() {
                              <Input 
                               value={editingVendorOrder.instructions || ''} 
                               onChange={e => setEditingVendorOrder({...editingVendorOrder, instructions: e.target.value})} 
-                              className="h-14 rounded-2xl bg-gray-50 border-none font-bold italic" 
+                              className="h-14 rounded-2xl bg-gray-50 border-none font-bold italic focus-visible:ring-1 focus-visible:ring-primary/20" 
                               placeholder="Kitchen instructions..." 
                              />
                           </div>
