@@ -81,6 +81,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
+  // CACHE KEY: 'home_products_v4_heavy' ensures instant restore on next visit
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_heavy');
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -194,7 +195,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
-                {/* MUSTARD GOLD STORE NAME */}
                 <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>
