@@ -22,7 +22,7 @@ interface HomeClientProps {
 
 /**
  * @fileOverview HomeClient - Receives authentic server-side data and coordinates instant rendering.
- * Strict No-Mock-Data Policy enforced. Now includes initialProducts for zero-latency paint.
+ * Strict No-Mock-Data Policy enforced. Now includes initialProducts and initialStores for zero-latency paint.
  */
 export default function HomeClient({ 
   initialBanners, 
@@ -94,6 +94,7 @@ export default function HomeClient({
               category={activeCategory} 
               activeMode={activeMode} 
               initialData={initialProducts}
+              initialStores={initialStores}
             />
           </div>
         ) : (
@@ -125,6 +126,7 @@ export default function HomeClient({
                 category={activeCategory} 
                 activeMode={activeMode} 
                 initialData={initialProducts}
+                initialStores={initialStores}
               />
             </div>
           </div>

@@ -52,12 +52,14 @@ export function PopularProducts({
   searchQuery = '', 
   category = 'all', 
   activeMode = 'Food',
-  initialData = []
+  initialData = [],
+  initialStores = []
 }: { 
   searchQuery?: string, 
   category?: string, 
   activeMode?: string,
-  initialData?: any[]
+  initialData?: any[],
+  initialStores?: any[]
 }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
@@ -87,7 +89,7 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(300));
+    return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced');
@@ -102,7 +104,9 @@ export function PopularProducts({
   const productsToDisplay = useMemo(() => {
     // Priority: Real-time DB data -> Pre-fetched SSR data -> Empty
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
-    const vendorList = vendors || [];
+    
+    // BUILD VENDOR MAP: Use real-time vendors if available, else use pre-fetched ones
+    const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
     
     return products.filter(p => {
@@ -134,7 +138,7 @@ export function PopularProducts({
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
     });
-  }, [dbProducts, initialData, vendors, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
+  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
   const handleShare = async (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -174,7 +178,7 @@ export function PopularProducts({
           ))
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const vendor = vendors?.find(v => v.id === product.vendorId);
+          const vendor = vendors?.find(v => v.id === product.vendorId) || initialStores.find(v => v.id === product.vendorId);
           const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
           return (

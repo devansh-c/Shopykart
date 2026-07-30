@@ -48,11 +48,11 @@ async function getInitialData() {
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
   try {
-    const bannersSnap = await getDocs(query(collection(firestore, 'banners'), limit(5)));
-    const categoriesSnap = await getDocs(query(collection(firestore, 'categories'), limit(12)));
-    const storesSnap = await getDocs(query(collection(firestore, 'vendors'), limit(10)));
-    // PRE-FETCHING PRODUCTS: Limit 300 to cover all Ranipur/Mauranipur items while staying quota-safe
-    const productsSnap = await getDocs(query(collection(firestore, 'products'), limit(300)));
+    const bannersSnap = await getDocs(query(collection(firestore, 'banners'), limit(10)));
+    const categoriesSnap = await getDocs(query(collection(firestore, 'categories'), limit(20)));
+    const storesSnap = await getDocs(query(collection(firestore, 'vendors'), limit(100)));
+    // PRE-FETCHING PRODUCTS: Increased to 2000 to ensure full catalog visibility instantly
+    const productsSnap = await getDocs(query(collection(firestore, 'products'), limit(2000)));
 
     return {
       banners: bannersSnap.docs.map(sanitizeDoc),
