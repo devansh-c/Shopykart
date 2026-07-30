@@ -5,15 +5,9 @@ import { collection } from "firebase/firestore"
 import { Crown, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// INSTANT FALLBACK DEALS
-const fallbackCoupons = [
-  { id: 'd1', code: 'FIRST50', discountValue: 50, discountType: 'percentage' },
-  { id: 'd2', code: 'WEEKEND20', discountValue: 20, discountType: 'percentage' },
-  { id: 'd3', code: 'PARTY30', discountValue: 30, discountType: 'percentage' },
-];
-
 /**
- * @fileOverview OffersSection with Instant-Load Fallback.
+ * @fileOverview OffersSection with Authentic-Only Data.
+ * Mock coupons removed. Displays live deals from Firestore only.
  */
 export default function OffersSection() {
   const { toast } = useToast();
@@ -32,7 +26,7 @@ export default function OffersSection() {
     }
   };
 
-  const displayCoupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : fallbackCoupons;
+  if (!dbCoupons || dbCoupons.length === 0) return null;
 
   return (
     <div className="py-6 animate-in fade-in duration-500">
@@ -43,7 +37,7 @@ export default function OffersSection() {
         </h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
-        {displayCoupons.map((coupon: any) => (
+        {dbCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
             onClick={() => handleCopy(coupon.code)}

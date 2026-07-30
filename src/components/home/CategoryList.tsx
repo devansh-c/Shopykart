@@ -6,28 +6,20 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-// INSTANT FALLBACK CATEGORIES
-const fallbackCategories = [
-  { id: 'c1', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100', serviceType: 'Food' },
-  { id: 'c2', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100', serviceType: 'Food' },
-  { id: 'c3', name: 'Burger', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100', serviceType: 'Food' },
-  { id: 'c4', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100', serviceType: 'Food' },
-  { id: 'c5', name: 'Fries', imageUrl: 'https://picsum.photos/seed/shopy-fries/100/100', serviceType: 'Food' },
-  { id: 'c6', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100', serviceType: 'Food' },
-];
-
 /**
- * @fileOverview CategoryList with Instant-Load Fallback.
- * Completely removes grey boxes by using a local mock list during hydration.
+ * @fileOverview CategoryList with Authentic-Only Data.
+ * Renders server-side pre-fetched categories instantly.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
   onCategoryChange,
-  serviceMode = 'Food' 
+  serviceMode = 'Food',
+  initialData = []
 }: { 
   activeCategory?: string, 
   onCategoryChange?: (id: string) => void,
-  serviceMode?: string
+  serviceMode?: string,
+  initialData?: any[]
 }) {
   const firestore = useFirestore();
   const categoriesQuery = useMemoFirebase(() => {
@@ -38,9 +30,11 @@ export function CategoryList({
   const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
   const filteredCategories = useMemo(() => {
-    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : fallbackCategories;
+    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : initialData;
     return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
-  }, [dbCategories, serviceMode]);
+  }, [dbCategories, initialData, serviceMode]);
+
+  if (filteredCategories.length === 0 && activeCategory === 'all') return null;
 
   return (
     <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">
