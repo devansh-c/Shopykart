@@ -13,10 +13,12 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview StoresPage with Rating-based Sorting and Offline Logic.
+ * Now includes "Closed Now" overlay for timed-out stores.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -25,7 +27,19 @@ export default function StoresPage() {
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
-    return () => window.removeEventListener('user-address-updated', updateZone);
+
+    // Sync time for accurate Closed status
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
+
+    return () => {
+      window.removeEventListener('user-address-updated', updateZone);
+      clearInterval(interval);
+    };
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -53,8 +67,8 @@ export default function StoresPage() {
       
       return matchesSearch && isApproved;
     }).sort((a, b) => {
-      const isOnlineA = a.isOnline !== false && isStoreScheduleOpen(a);
-      const isOnlineB = b.isOnline !== false && isStoreScheduleOpen(b);
+      const isOnlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
+      const isOnlineB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
 
       // 1. Move Online stores to top
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
@@ -64,7 +78,7 @@ export default function StoresPage() {
       const ratingB = Number(b.rating) || 0;
       return ratingB - ratingA;
     });
-  }, [dbVendors, activeZoneId, searchQuery]);
+  }, [dbVendors, activeZoneId, searchQuery, currentTimeMins]);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -97,7 +111,8 @@ export default function StoresPage() {
         ) : filteredVendors.length > 0 ? (
           filteredVendors.map((store: any) => {
             const displayImage = store.bannerUrl || store.imageUrl || `https://picsum.photos/seed/${store.id}/800/400`;
-            const isOffline = store.isOnline === false || !isStoreScheduleOpen(store);
+            const isOpen = isStoreScheduleOpen(store, currentTimeMins);
+            const isOffline = store.isOnline === false || !isOpen;
             const rating = store.rating || '4.0';
             
             const storePath = `/store/${store.slug || slugify(store.storeName) || store.id}`;
@@ -111,16 +126,25 @@ export default function StoresPage() {
                   isOffline && "opacity-80 grayscale-[0.2]"
                 )}
               >
-                <div className="relative h-36 w-full bg-muted overflow-hidden">
+                <div className="relative h-44 w-full bg-muted overflow-hidden">
                   <Image src={displayImage} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" unoptimized />
                   {isOffline && (
-                    <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center">
-                      <span className="text-white font-black text-2xl uppercase italic tracking-tighter border-2 border-white/30 px-6 py-2 rounded-xl backdrop-blur-md">Closed Now</span>
+                    <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-white font-black text-2xl uppercase italic tracking-tighter border-2 border-white/30 px-6 py-2 rounded-2xl backdrop-blur-md shadow-2xl">
+                          Closed Now
+                        </span>
+                        {!isOpen && store.openingTime && (
+                           <span className="text-[10px] font-black text-white/70 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full border border-white/10">
+                              Opens at {store.openingTime}
+                           </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                <div className="p-4">
+                <div className="p-5">
                   <div className="flex justify-between items-center mb-1">
                     <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter leading-none flex-1 truncate mr-2">{store.storeName}</h3>
                     <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
