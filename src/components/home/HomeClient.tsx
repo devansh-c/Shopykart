@@ -17,13 +17,19 @@ interface HomeClientProps {
   initialBanners?: any[];
   initialCategories?: any[];
   initialStores?: any[];
+  initialProducts?: any[];
 }
 
 /**
  * @fileOverview HomeClient - Receives authentic server-side data and coordinates instant rendering.
- * Strict No-Mock-Data Policy enforced.
+ * Strict No-Mock-Data Policy enforced. Now includes initialProducts for zero-latency paint.
  */
-export default function HomeClient({ initialBanners, initialCategories, initialStores }: HomeClientProps) {
+export default function HomeClient({ 
+  initialBanners, 
+  initialCategories, 
+  initialStores, 
+  initialProducts 
+}: HomeClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
@@ -83,7 +89,12 @@ export default function HomeClient({ initialBanners, initialCategories, initialS
               initialData={initialCategories}
             />
             <AdSenseUnit />
-            <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
+            <PopularProducts 
+              searchQuery={searchQuery} 
+              category={activeCategory} 
+              activeMode={activeMode} 
+              initialData={initialProducts}
+            />
           </div>
         ) : (
           <div className="content-visibility-auto">
@@ -109,7 +120,12 @@ export default function HomeClient({ initialBanners, initialCategories, initialS
               
               {!searchQuery && <AdSenseUnit />}
               
-              <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
+              <PopularProducts 
+                searchQuery={searchQuery} 
+                category={activeCategory} 
+                activeMode={activeMode} 
+                initialData={initialProducts}
+              />
             </div>
           </div>
         )}

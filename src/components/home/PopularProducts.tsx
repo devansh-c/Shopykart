@@ -46,9 +46,19 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts with Skeleton Loaders and Quota-Safe Limit.
+ * @fileOverview PopularProducts with Zero-Delay Initial Render via SSR data.
  */
-export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
+export function PopularProducts({ 
+  searchQuery = '', 
+  category = 'all', 
+  activeMode = 'Food',
+  initialData = []
+}: { 
+  searchQuery?: string, 
+  category?: string, 
+  activeMode?: string,
+  initialData?: any[]
+}) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
   const router = useRouter();
@@ -75,14 +85,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  // OPTIMIZED QUOTA LIMIT: Reduced to 300.
-  // 300 covers all current products in Mauranipur/Ranipur while saving huge daily quota.
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(300));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading, error: productsError } = useCollection<any>(productsQuery, 'home_products_v4_balanced');
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -92,7 +100,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const productsToDisplay = useMemo(() => {
-    const products = dbProducts || [];
+    // Priority: Real-time DB data -> Pre-fetched SSR data -> Empty
+    const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = vendors || [];
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
     
@@ -125,7 +134,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
+  }, [dbProducts, initialData, vendors, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
   const handleShare = async (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -143,17 +152,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
         </h2>
-        {(!dbProducts && productsLoading) ? (
-          <Skeleton className="h-6 w-20 rounded-full" />
-        ) : (
-          <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg shadow-primary/20">
-            {productsToDisplay.length} ITEMS
-          </Badge>
-        )}
+        <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg shadow-primary/20">
+          {productsToDisplay.length} ITEMS
+        </Badge>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {(!dbProducts && productsLoading) ? (
+        {productsToDisplay.length === 0 && productsLoading ? (
           [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">
                <Skeleton className="aspect-square w-full rounded-[1.5rem]" />

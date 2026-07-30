@@ -6,7 +6,7 @@ import { collection, getDocs, query, limit } from 'firebase/firestore';
 /**
  * @fileOverview ShopyKart Main Entrance - Optimized for Zero-Latency Real Data.
  * Performs Server-Side Pre-fetching to eliminate initial render delays and mock data.
- * Sanity Check: Converts complex Firestore objects into plain serializable JSON.
+ * All core data (Banners, Categories, Stores, and Products) fetched on server.
  */
 
 export const metadata: Metadata = {
@@ -31,10 +31,8 @@ function sanitizeDoc(doc: any) {
   const data = doc.data();
   const id = doc.id;
   
-  // Create a plain object and convert complex types (like Timestamps) to simple values
   const plain: any = { id, ...data };
   
-  // Recursively handle timestamps or just convert top-level common ones
   if (plain.createdAt && typeof plain.createdAt.toMillis === 'function') {
     plain.createdAt = { seconds: plain.createdAt.seconds, nanoseconds: plain.createdAt.nanoseconds };
   }
@@ -42,27 +40,29 @@ function sanitizeDoc(doc: any) {
     plain.updatedAt = { seconds: plain.updatedAt.seconds, nanoseconds: plain.updatedAt.nanoseconds };
   }
   
-  // Ensuring everything is a plain value by doing a JSON round-trip for safety
   return JSON.parse(JSON.stringify(plain));
 }
 
 async function getInitialData() {
   const { firestore } = initializeFirebase();
-  if (!firestore) return { banners: [], categories: [], stores: [] };
+  if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
   try {
     const bannersSnap = await getDocs(query(collection(firestore, 'banners'), limit(5)));
     const categoriesSnap = await getDocs(query(collection(firestore, 'categories'), limit(12)));
     const storesSnap = await getDocs(query(collection(firestore, 'vendors'), limit(10)));
+    // PRE-FETCHING PRODUCTS: Limit 300 to cover all Ranipur/Mauranipur items while staying quota-safe
+    const productsSnap = await getDocs(query(collection(firestore, 'products'), limit(300)));
 
     return {
       banners: bannersSnap.docs.map(sanitizeDoc),
       categories: categoriesSnap.docs.map(sanitizeDoc),
       stores: storesSnap.docs.map(sanitizeDoc),
+      products: productsSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
     console.error("SSR Fetch failed:", e);
-    return { banners: [], categories: [], stores: [] };
+    return { banners: [], categories: [], stores: [], products: [] };
   }
 }
 
@@ -74,6 +74,7 @@ export default async function ShopyKartApp() {
       initialBanners={initialData.banners}
       initialCategories={initialData.categories}
       initialStores={initialData.stores}
+      initialProducts={initialData.products}
     />
   );
 }
