@@ -14,7 +14,7 @@ import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 import AdSenseUnit from '@/components/shared/AdSenseUnit';
 
 /**
- * @fileOverview HomeClient - Optimized with initialData from SSR.
+ * @fileOverview HomeClient - Receives pre-fetched SSR data for instant rendering.
  */
 export default function HomeClient({ initialBanners, initialCategories }: { initialBanners?: any[], initialCategories?: any[] }) {
   const [searchQuery, setSearchQuery] = useState('');

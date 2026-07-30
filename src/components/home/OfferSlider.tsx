@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview OfferSlider with Server-Side Initial Data and Priority Loading.
+ * @fileOverview OfferSlider with Server-Side Initial Data to eliminate blank frames.
  */
 export function OfferSlider({ initialData }: { initialData?: any[] }) {
   const firestore = useFirestore();
@@ -39,6 +39,7 @@ export function OfferSlider({ initialData }: { initialData?: any[] }) {
 
   const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v4_instant');
   
+  // Combine SSR data with real-time Firestore sync
   const displayBanners = React.useMemo(() => {
     const list = dbBanners || initialData || [];
     if (activeZoneId) {

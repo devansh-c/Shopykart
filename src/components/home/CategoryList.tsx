@@ -8,7 +8,7 @@ import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview CategoryList - Optimized with SSR Initial Data.
+ * @fileOverview CategoryList - Uses SSR data for immediate rendering without blank boxes.
  */
 export function CategoryList({ 
   initialData,
@@ -29,6 +29,7 @@ export function CategoryList({
 
   const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
+  // Combine SSR data with client-side sync
   const filteredCategories = useMemo(() => {
     const list = dbCategories || initialData || [];
     return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());

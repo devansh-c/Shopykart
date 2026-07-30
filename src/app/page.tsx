@@ -7,7 +7,7 @@ import { firebaseConfig } from '@/firebase/config';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Optimized Server Component for SEO and SSR.
- * Fetches critical initial data on the server to prevent blank frames.
+ * Fetches critical initial data on the server to prevent blank frames and loading delays.
  */
 
 export const metadata: Metadata = {
@@ -24,8 +24,13 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Server-side data fetcher for Firestore.
+ * Ensures initial HTML is populated with real content.
+ */
 async function getInitialHomeData() {
   try {
+    // Initialize Firebase on server
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     const db = getFirestore(app);
 
@@ -40,12 +45,13 @@ async function getInitialHomeData() {
       initialCategories: categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
     };
   } catch (e) {
-    console.error("SSR Fetch failed:", e);
+    console.error("SSR Data Fetch failed, falling back to empty:", e);
     return { initialBanners: [], initialCategories: [] };
   }
 }
 
 export default async function ShopyKartApp() {
+  // Fetch data BEFORE rendering anything
   const initialData = await getInitialHomeData();
   
   return (
