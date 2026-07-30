@@ -1,5 +1,3 @@
-'use client';
-
 // Export everything from a single barrel file without circular loops
 export * from './provider';
 export * from './client-provider';

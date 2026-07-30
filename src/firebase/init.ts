@@ -1,5 +1,3 @@
-'use client';
-
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
 import { getFirestore, Firestore } from 'firebase/firestore';
@@ -14,35 +12,29 @@ let authInstance: Auth | null = null;
 
 /**
  * Robust Firebase initialization singleton for Next.js.
- * Ensures instances are created once and reused consistently across the client.
+ * Environment-aware: Works on both Server (SSR) and Client.
  */
 export function initializeFirebase() {
-  if (typeof window === 'undefined') {
-    return { firebaseApp: null, firestore: null, auth: null };
+  // 1. Initialize App
+  if (getApps().length === 0) {
+    appInstance = initializeApp(firebaseConfig);
+  } else {
+    appInstance = getApp();
   }
 
-  try {
-    // Check if an app is already initialized
-    if (getApps().length === 0) {
-      appInstance = initializeApp(firebaseConfig);
-    } else {
-      appInstance = getApp();
-    }
+  // 2. Initialize Firestore
+  if (!firestoreInstance) {
+    firestoreInstance = getFirestore(appInstance);
+  }
 
-    if (appInstance) {
-      // Lazy initialize services only if they don't exist
-      if (!authInstance) {
-        authInstance = getAuth(appInstance);
-        // Set persistence to local to handle page refreshes seamlessly
-        setPersistence(authInstance, browserLocalPersistence).catch(() => {});
-      }
-
-      if (!firestoreInstance) {
-        firestoreInstance = getFirestore(appInstance);
-      }
+  // 3. Initialize Auth (Persistence only on client)
+  if (!authInstance) {
+    authInstance = getAuth(appInstance);
+    
+    // Only set browser persistence if we are in a browser environment
+    if (typeof window !== 'undefined') {
+      setPersistence(authInstance, browserLocalPersistence).catch(() => {});
     }
-  } catch (error) {
-    console.error("Firebase initialization failed:", error);
   }
 
   return { 
