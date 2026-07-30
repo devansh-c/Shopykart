@@ -75,6 +75,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
+  // AGGRESSIVE FETCH LIMIT: Fetch up to 2000 products to ensure Ranipur coverage
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), limit(2000));
@@ -193,6 +194,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
+                {/* MUSTARD GOLD STORE NAME */}
                 <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>

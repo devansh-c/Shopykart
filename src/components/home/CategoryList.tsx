@@ -5,11 +5,17 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
-import { Skeleton } from "@/components/ui/skeleton"
 
-/**
- * @fileOverview CategoryList - Uses SSR data for immediate rendering without blank boxes.
- */
+// INSTANT-LOAD FALLBACK CATEGORIES
+const fallbackCategories = [
+  { id: 'fc1', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100', serviceType: 'Food' },
+  { id: 'fc2', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100', serviceType: 'Food' },
+  { id: 'fc3', name: 'Burger', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100', serviceType: 'Food' },
+  { id: 'fc4', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100', serviceType: 'Food' },
+  { id: 'fc5', name: 'Fries', imageUrl: 'https://picsum.photos/seed/shopy-fries/100/100', serviceType: 'Food' },
+  { id: 'fc6', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100', serviceType: 'Food' },
+];
+
 export function CategoryList({ 
   initialData,
   activeCategory = 'all', 
@@ -27,11 +33,11 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories, loading } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
+  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
-  // Combine SSR data with client-side sync
+  // LOGIC: Use real data background-synced, else SSR, else mock
   const filteredCategories = useMemo(() => {
-    const list = dbCategories || initialData || [];
+    const list = dbCategories || initialData || fallbackCategories;
     return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, initialData, serviceMode]);
 
@@ -45,14 +51,7 @@ export function CategoryList({
           <span className={cn("text-[10px] font-black uppercase tracking-tighter", activeCategory === 'all' ? "text-primary" : "text-gray-500")}>EXPLORE</span>
         </button>
 
-        {(filteredCategories.length === 0 && loading) ? (
-          [1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="flex flex-col items-center gap-2 shrink-0">
-              <Skeleton className="w-16 h-16 rounded-full" />
-              <Skeleton className="w-10 h-2 rounded-full" />
-            </div>
-          ))
-        ) : filteredCategories.map((cat) => (
+        {filteredCategories.map((cat) => (
           <button key={cat.id} onClick={() => onCategoryChange?.(cat.name.toLowerCase())} className="flex flex-col items-center gap-2 shrink-0 transition-all">
             <div className={cn("relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all bg-muted", activeCategory === cat.name.toLowerCase() ? "border-primary scale-105 shadow-md" : "border-transparent")}>
               <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized />

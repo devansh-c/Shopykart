@@ -4,11 +4,13 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from "@/components/ui/skeleton";
 
-/**
- * @fileOverview OffersSection with Skeletons and CLS safety.
- */
+// INSTANT-LOAD FALLBACK DEALS
+const fallbackCoupons = [
+  { id: 'fc1', code: 'FIRST50', discountValue: 50, discountType: 'percentage' },
+  { id: 'fc2', code: 'WEEKEND20', discountValue: 20, discountType: 'percentage' }
+];
+
 export default function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -17,12 +19,9 @@ export default function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
+  const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
-  // HIDE SECTION COMPLETELY IF NO COUPONS AFTER LOADING
-  if (!loading && (!dbCoupons || dbCoupons.length === 0)) {
-    return null;
-  }
+  const displayCoupons = dbCoupons || fallbackCoupons;
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {
@@ -37,11 +36,7 @@ export default function OffersSection() {
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">Exclusive <span className="text-primary">Deals</span></h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
-        {loading ? (
-          [1, 2].map(i => (
-            <Skeleton key={i} className="min-w-[280px] h-24 rounded-2xl shadow-sm border border-border/40" />
-          ))
-        ) : dbCoupons?.map((coupon: any) => (
+        {displayCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
             onClick={() => handleCopy(coupon.code)}
