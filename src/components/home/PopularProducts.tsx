@@ -46,7 +46,8 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts with Zero-Delay Initial Render via SSR data.
+ * @fileOverview PopularProducts with Synchronous Paint.
+ * Logic: If initialData exists, RENDER IMMEDIATELY. Do not wait for loading state.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -101,11 +102,9 @@ export function PopularProducts({
   
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
+  // SYNCHRONOUS FILTERING: Use initialData instantly on first render
   const productsToDisplay = useMemo(() => {
-    // Priority: Real-time DB data -> Pre-fetched SSR data -> Empty
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
-    
-    // BUILD VENDOR MAP: Use real-time vendors if available, else use pre-fetched ones
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
     
@@ -128,12 +127,9 @@ export function PopularProducts({
     }).sort((a, b) => {
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
-      
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA, currentTimeMinutes)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB, currentTimeMinutes)) : true;
-      
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
-      
       const ratingA = Number(vendorA?.rating) || 0;
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
@@ -152,7 +148,7 @@ export function PopularProducts({
 
   return (
     <div className="px-4 py-6 min-h-[600px] transition-all">
-      <div className="flex items-center justify-between mb-6 px-2 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
         </h2>
@@ -162,6 +158,7 @@ export function PopularProducts({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
+        {/* CRITICAL FIX: Only show loading if we have ABSOLUTELY NO DATA (props or state) */}
         {productsToDisplay.length === 0 && productsLoading ? (
           [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">

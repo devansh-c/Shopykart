@@ -21,8 +21,8 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview HomeClient - Receives authentic server-side data and coordinates instant rendering.
- * Strict No-Mock-Data Policy enforced. Now includes initialProducts and initialStores for zero-latency paint.
+ * @fileOverview HomeClient - Receives authentic server-side data and renders it IMMEDIATELY.
+ * Optimized for Zero-Delay paint by removing all async blocking UI.
  */
 export default function HomeClient({ 
   initialBanners, 
@@ -49,7 +49,7 @@ export default function HomeClient({
   };
 
   return (
-    <div className="min-h-screen bg-white transform-gpu">
+    <div className="min-h-screen bg-white">
       {activeMode !== 'Medical' && activeMode !== 'Beauty' && (
         <LocationHeader 
           searchValue={searchQuery} 
@@ -71,7 +71,7 @@ export default function HomeClient({
              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-800 leading-none">GROCERY HUB<br /><span className="text-green-600">LAUNCHING SOON</span></h2>
           </div>
         ) : (activeMode === 'Medical' || activeMode === 'Beauty') ? (
-          <div className="content-visibility-auto">
+          <div>
             <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                <div className="flex items-center gap-3">
                   <button onClick={handleBackToFood} className="h-9 w-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-800 border border-gray-100"><ArrowLeft className="h-4 w-4" /></button>
@@ -98,7 +98,7 @@ export default function HomeClient({
             />
           </div>
         ) : (
-          <div className="content-visibility-auto">
+          <div className="animate-in fade-in duration-300">
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider initialData={initialBanners} />
