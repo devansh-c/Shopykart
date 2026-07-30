@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-speed hook to fetch a single document with Cache-First logic.
- * Added try-catch for storage quota protection.
+ * Improved to handle 'resource-exhausted' (Quota) errors gracefully.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
   const [data, setData] = useState<T | null>(() => {
@@ -43,7 +43,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         setLoading(false);
         setError(null);
 
-        // Update Cache with Quota check
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
             sessionStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
@@ -53,22 +52,25 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         }
       },
       async (err: FirestoreError) => {
-        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled', 'resource-exhausted', 'permission-denied'];
+        // Handle Quota/Permission issues silently if possible
+        if (err.code === 'resource-exhausted') {
+          console.debug("Firestore Doc Quota Exceeded.");
+          setLoading(false);
+          return;
+        }
 
         if (err.code === 'permission-denied') {
-          const permissionError = new FirestorePermissionError({
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: ref.path,
             operation: 'get',
-          });
-          errorEmitter.emit('permission-error', permissionError);
+          }));
         }
         
+        const quietCodes = ['unavailable', 'failed-precondition', 'deadline-exceeded', 'cancelled'];
         if (!quietCodes.includes(err.code)) {
           setError(err);
-          setLoading(false);
-        } else {
-          setLoading(false);
         }
+        setLoading(false);
       }
     );
 

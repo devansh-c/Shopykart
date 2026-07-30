@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
-import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Optimized Server Component for SEO and SSR.
- * Fetches critical initial data on the server to prevent blank frames and loading delays.
+ * Improved with high-reliability data pre-fetching and quota-safety.
  */
 
 export const metadata: Metadata = {
@@ -26,7 +26,8 @@ export const metadata: Metadata = {
 
 /**
  * Server-side data fetcher for Firestore.
- * Ensures initial HTML is populated with real content from the database.
+ * Ensures initial HTML is populated with real content.
+ * Safe fallback added for quota exceeded scenarios.
  */
 async function getInitialHomeData() {
   try {
@@ -34,11 +35,11 @@ async function getInitialHomeData() {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     const db = getFirestore(app);
 
-    // Fetch essential datasets for immediate rendering
+    // Fetch essential datasets with safe limits
     const [bannersSnap, categoriesSnap, vendorsSnap] = await Promise.all([
-      getDocs(query(collection(db, 'banners'), limit(10))),
-      getDocs(query(collection(db, 'categories'), limit(20))),
-      getDocs(query(collection(db, 'vendors'), limit(30)))
+      getDocs(query(collection(db, 'banners'), limit(6))),
+      getDocs(query(collection(db, 'categories'), limit(15))),
+      getDocs(query(collection(db, 'vendors'), limit(20)))
     ]);
 
     return {
@@ -46,8 +47,9 @@ async function getInitialHomeData() {
       initialCategories: categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
       initialVendors: vendorsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
     };
-  } catch (e) {
-    console.error("SSR Data Fetch failed, falling back to empty:", e);
+  } catch (e: any) {
+    // SILENT FAIL: If quota exceeded on server, return empty to let client cache take over
+    console.warn("SSR Data Fetch Status: Quota or connection unavailable.");
     return { initialBanners: [], initialCategories: [], initialVendors: [] };
   }
 }

@@ -12,12 +12,13 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview ULTRA-FAST Instant-Initialize Hook.
+ * @fileOverview ULTRA-FAST Instant-Initialize Hook with Quota Protection.
  * Initializes state synchronously from sessionStorage to prevent initial null frames.
+ * Gracefully handles 'resource-exhausted' (Quota Exceeded) errors.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string) {
   // ATOMIC SYNCHRONOUS INITIALIZATION: 
-  // We read from cache DURING state initialization, not in useEffect.
+  // We read from cache DURING state initialization to prevent blank states.
   const [data, setData] = useState<T[] | null>(() => {
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
@@ -32,7 +33,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     }
   });
   
-  // If we have cached data, we set loading to false immediately to trigger real render
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
 
@@ -58,10 +58,21 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         if (cacheKey && typeof window !== 'undefined') {
           try {
             sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e) {}
+          } catch (e) {
+            console.debug(`Quota exceeded for session storage: ${cacheKey}`);
+          }
         }
       },
       async (err: FirestoreError) => {
+        // QUOTA PROTECTION: Handle 'resource-exhausted' silently if we have cached data
+        if (err.code === 'resource-exhausted') {
+          console.warn("Firestore Quota Exceeded. Serving from local cache.");
+          setLoading(false);
+          // If we have data from cache, don't show an error
+          if (!data) setError(err);
+          return;
+        }
+
         if (err.code === 'permission-denied') {
           const segments = (query as any)._query?.path?.segments;
           errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -69,12 +80,14 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
             operation: 'list',
           }));
         }
+        
         setLoading(false);
+        setError(err);
       }
     );
 
     return () => unsubscribe();
-  }, [query, cacheKey]);
+  }, [query, cacheKey, data]);
 
   return { data, loading, error };
 }

@@ -46,7 +46,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts with Skeleton Loaders and 2000 Fetch Limit.
+ * @fileOverview PopularProducts with Skeleton Loaders and Quota-Safe Limit.
  */
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
@@ -75,14 +75,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  // AGGRESSIVE FETCH LIMIT: Fetch up to 2000 products to ensure Ranipur coverage
+  // OPTIMIZED FETCH LIMIT: Reduced from 2000 to 500 to prevent 'resource-exhausted' Quota errors.
+  // 500 is plenty for Mauranipur/Ranipur inventory while saving 75% on daily read costs.
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(2000));
+    return query(collection(firestore, 'products'), limit(500));
   }, [firestore]);
   
-  // CACHE KEY: 'home_products_v4_heavy' ensures instant restore on next visit
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_heavy');
+  const { data: dbProducts, loading: productsLoading, error: productsError } = useCollection<any>(productsQuery, 'home_products_v4_balanced');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -136,6 +136,14 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       else { await navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
     } catch (err) {}
   };
+
+  if (productsError && !dbProducts) {
+    return (
+      <div className="px-6 py-10 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
+         <p className="text-xs font-black text-gray-400 uppercase tracking-widest italic">Temporary Connection Issue. Please Refresh.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-6 min-h-[600px] transition-all">
