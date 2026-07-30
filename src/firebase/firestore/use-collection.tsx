@@ -12,12 +12,14 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview ULTRA-FAST Instant-Initialize Hook with Quota & Backoff Protection.
- * Silently handles 'resource-exhausted' to prevent Next.js error overlays.
- * FIXED: Removed 'data' from dependencies to prevent infinite update loop.
+ * @fileOverview ULTRA-FAST Instant-Initialize Hook with SSR Support.
+ * Optimized to prevent hydration flicker by accepting initialData.
  */
-export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string) {
+export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
+  // Initialize state with SSR data or cache immediately
   const [data, setData] = useState<T[] | null>(() => {
+    if (initialData && initialData.length > 0) return initialData;
+    
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
@@ -31,13 +33,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     }
   });
   
+  // If we have data (from props or cache), loading should be false from start
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
     if (!query) {
       setLoading(false);
-      setData(null);
       return;
     }
 
@@ -56,15 +58,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         if (cacheKey && typeof window !== 'undefined') {
           try {
             sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e) {
-            // Silently ignore storage quota
-          }
+          } catch (e) {}
         }
       },
       async (err: FirestoreError) => {
-        // AGGRESSIVE QUOTA SUPPRESSION
         if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
-          console.debug("Firestore Status: Quota or Connection limit hit. Serving from local cache.");
           setLoading(false);
           return;
         }
@@ -83,7 +81,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [query, cacheKey]); // FIXED: Removed 'data' dependency
+  }, [query, cacheKey]); 
 
   return { data, loading, error };
 }

@@ -13,9 +13,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
-/**
- * HELPER: Checks if store is currently within scheduled hours.
- */
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
@@ -46,8 +43,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts with Synchronous Paint.
- * Logic: If initialData exists, RENDER IMMEDIATELY. Do not wait for loading state.
+ * @fileOverview PopularProducts with Synchronous SSR-to-Client transition.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -93,16 +89,16 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced');
+  // CRITICAL: Initialize hook with initialData from SSR props
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialStores);
 
-  // SYNCHRONOUS FILTERING: Use initialData instantly on first render
   const productsToDisplay = useMemo(() => {
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
@@ -147,7 +143,7 @@ export function PopularProducts({
   };
 
   return (
-    <div className="px-4 py-6 min-h-[600px] transition-all">
+    <div className="px-4 py-6 min-h-[400px] transition-all">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
@@ -158,18 +154,13 @@ export function PopularProducts({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* CRITICAL FIX: Only show loading if we have ABSOLUTELY NO DATA (props or state) */}
         {productsToDisplay.length === 0 && productsLoading ? (
-          [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+          [1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">
                <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
                <div className="space-y-2 px-1">
                   <Skeleton className="h-2 w-2/3 rounded-full" />
                   <Skeleton className="h-3 w-full rounded-full" />
-                  <div className="flex justify-between items-center pt-2">
-                     <Skeleton className="h-4 w-10 rounded-full" />
-                     <Skeleton className="h-8 w-16 rounded-full" />
-                  </div>
                </div>
             </div>
           ))
@@ -180,7 +171,7 @@ export function PopularProducts({
 
           return (
             <div key={product.id} className={cn(
-              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu",
+              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu animate-in fade-in duration-300",
               isOffline && "opacity-80"
             )}>
               <div className="relative aspect-square w-full mb-3">
