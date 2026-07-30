@@ -32,14 +32,14 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="canonical" href={siteUrl} />
         
-        {/* Aggressive Indexing Tags */}
+        {/* Aggressive Indexing Tags for Search Console Success */}
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
         <meta name="googlebot" content="index, follow" />
         
         {/* AdSense Verification Meta Tag - CRITICAL FOR APPROVAL */}
         <meta name="google-adsense-account" content="ca-pub-3697085425178482" />
         
-        {/* OpenGraph for Social Media */}
+        {/* OpenGraph for Social Media Visibility */}
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Shopykart – Premium 10-Min Food Delivery" />
         <meta property="og:description" content="Official 10-Min Veg Food Delivery in Mauranipur & Ranipur. Freshly Prepared | Best Prices." />
@@ -56,7 +56,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="ShopyKart" />
         
-        {/* Google AdSense Script Integration */}
+        {/* Google AdSense Script Integration - Loaded after interactive for better performance */}
         <Script 
           async 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3697085425178482" 

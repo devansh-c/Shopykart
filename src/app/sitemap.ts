@@ -1,14 +1,13 @@
 import { MetadataRoute } from 'next';
 
 /**
- * @fileOverview Next.js Dynamic Sitemap Generator.
- * Helps Google discover and index all public routes and products.
- * Optimized for full visibility and rapid discovery.
+ * @fileOverview Next.js Dynamic Sitemap Generator for Googlebot discovery.
+ * Ensures full visibility of all content types with proper prioritization.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://shopykart.co.in';
 
-  // Core static routes
+  // Core static routes with high priority
   const staticRoutes = [
     '',
     '/menu',
@@ -18,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/profile',
     '/wishlist',
     '/cart',
+    '/services/coming-soon',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
@@ -25,8 +25,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1 : 0.8,
   }));
 
+  // Business Portals (Less priority for indexing)
+  const businessRoutes = [
+    '/admin/login',
+    '/vendor/login',
+    '/delivery/login',
+    '/vendor/register',
+    '/delivery/register',
+  ].map((route) => ({
+    url: `${baseUrl}${route}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.1,
+  }));
+
   // SEO Optimized Category-based dynamic patterns
-  // These help crawlers understand the structure even before dynamic fetch
+  // These help crawlers discover content structures before full dynamic fetch.
   const dynamicPatterns = [
     'product',
     'store',
@@ -40,6 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticRoutes,
+    ...businessRoutes,
     ...dynamicPatterns,
   ];
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,8 +8,8 @@ import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase
 import { MapPin, ChevronRight, Store } from 'lucide-react';
 
 /**
- * @fileOverview Ultra-Fast Location Picker.
- * Updated: Auto-popup on mount removed. Now only triggers via events.
+ * @fileOverview Ultra-Fast Location Picker with Crawler Bypass.
+ * Optimized for rapid UX. Hidden automatically for search engines.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +26,10 @@ export default function LocationRequest() {
   const { data: activeZones } = useCollection<any>(zonesQuery);
 
   useEffect(() => {
+    // CRAWLER BYPASS: Do not show location picker to Googlebot/Search Engines
+    const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
+    if (isBot) return;
+
     const handleOpen = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpen);
     
@@ -35,7 +38,6 @@ export default function LocationRequest() {
       try { setDisplayZones(JSON.parse(cached)); } catch (e) {}
     }
 
-    // AUTO-POPUP REMOVED: User only sees this after login or manual trigger
     return () => { window.removeEventListener('open-location-picker', handleOpen); };
   }, []);
 
