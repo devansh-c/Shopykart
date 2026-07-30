@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
-import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Optimized for Zero-Latency Real Data.
  * Performs Server-Side Pre-fetching to eliminate initial render delays and mock data.
+ * Sanity Check: Converts complex Firestore objects into plain serializable JSON.
  */
 
 export const metadata: Metadata = {
@@ -22,7 +23,29 @@ export const metadata: Metadata = {
   },
 };
 
-// Data fetching occurs on the server to ensure Zero-Delay HTML
+/**
+ * Helper to convert Firestore snapshots into plain, serializable objects.
+ * This removes non-serializable methods like toJSON() which cause Next.js errors.
+ */
+function sanitizeDoc(doc: any) {
+  const data = doc.data();
+  const id = doc.id;
+  
+  // Create a plain object and convert complex types (like Timestamps) to simple values
+  const plain: any = { id, ...data };
+  
+  // Recursively handle timestamps or just convert top-level common ones
+  if (plain.createdAt && typeof plain.createdAt.toMillis === 'function') {
+    plain.createdAt = { seconds: plain.createdAt.seconds, nanoseconds: plain.createdAt.nanoseconds };
+  }
+  if (plain.updatedAt && typeof plain.updatedAt.toMillis === 'function') {
+    plain.updatedAt = { seconds: plain.updatedAt.seconds, nanoseconds: plain.updatedAt.nanoseconds };
+  }
+  
+  // Ensuring everything is a plain value by doing a JSON round-trip for safety
+  return JSON.parse(JSON.stringify(plain));
+}
+
 async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [] };
@@ -33,9 +56,9 @@ async function getInitialData() {
     const storesSnap = await getDocs(query(collection(firestore, 'vendors'), limit(10)));
 
     return {
-      banners: bannersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-      categories: categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-      stores: storesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      banners: bannersSnap.docs.map(sanitizeDoc),
+      categories: categoriesSnap.docs.map(sanitizeDoc),
+      stores: storesSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
     console.error("SSR Fetch failed:", e);
