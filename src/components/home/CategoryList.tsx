@@ -6,17 +6,25 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
+// INSTANT FALLBACK CATEGORIES
+const fallbackCategories = [
+  { id: 'c1', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100', serviceType: 'Food' },
+  { id: 'c2', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100', serviceType: 'Food' },
+  { id: 'c3', name: 'Burger', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100', serviceType: 'Food' },
+  { id: 'c4', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100', serviceType: 'Food' },
+  { id: 'c5', name: 'Fries', imageUrl: 'https://picsum.photos/seed/shopy-fries/100/100', serviceType: 'Food' },
+  { id: 'c6', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100', serviceType: 'Food' },
+];
+
 /**
- * @fileOverview CategoryList - Prioritizes SSR data for zero-delay display.
- * Fake mock data has been removed.
+ * @fileOverview CategoryList with Instant-Load Fallback.
+ * Completely removes grey boxes by using a local mock list during hydration.
  */
 export function CategoryList({ 
-  initialData,
   activeCategory = 'all', 
   onCategoryChange,
   serviceMode = 'Food' 
 }: { 
-  initialData?: any[],
   activeCategory?: string, 
   onCategoryChange?: (id: string) => void,
   serviceMode?: string
@@ -27,15 +35,12 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_ssr_sync');
+  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
-  // LOGIC: Use DB if ready (background update), else use pre-fetched SSR data.
   const filteredCategories = useMemo(() => {
-    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : (initialData || []);
+    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : fallbackCategories;
     return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
-  }, [dbCategories, initialData, serviceMode]);
-
-  if (filteredCategories.length === 0) return null;
+  }, [dbCategories, serviceMode]);
 
   return (
     <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">

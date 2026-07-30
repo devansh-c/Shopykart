@@ -14,16 +14,17 @@ import {
 } from "@/components/ui/carousel"
 import { isStoreScheduleOpen } from "./PopularProducts"
 
+// INSTANT FALLBACK STORES
+const fallbackStores = [
+  { id: 's1', storeName: 'ShopyKart Select', imageUrl: 'https://picsum.photos/seed/shopy-s1/300/300', rating: 4.9, category: 'Food', deliveryTime: '20 min' },
+  { id: 's2', storeName: 'Gourmet Hub', imageUrl: 'https://picsum.photos/seed/shopy-s2/300/300', rating: 4.8, category: 'Food', deliveryTime: '25 min' },
+  { id: 's3', storeName: 'Italian Oven', imageUrl: 'https://picsum.photos/seed/shopy-s3/300/300', rating: 4.7, category: 'Food', deliveryTime: '22 min' },
+];
+
 /**
- * @fileOverview StoreSection - Uses initialVendors from SSR to display real data instantly.
+ * @fileOverview StoreSection with Instant-Load Fallback.
  */
-export const StoreSection = React.memo(({ 
-  activeMode = 'Food',
-  initialData 
-}: { 
-  activeMode?: string,
-  initialData?: any[] 
-}) => {
+export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
   
@@ -43,10 +44,10 @@ export const StoreSection = React.memo(({
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_ssr_sync');
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const filteredVendors = React.useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : fallbackStores;
     return list.filter(v => {
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -56,7 +57,7 @@ export const StoreSection = React.memo(({
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, initialData, activeMode, activeZoneId]);
+  }, [dbVendors, activeMode, activeZoneId]);
 
   if (filteredVendors.length === 0) return null;
 

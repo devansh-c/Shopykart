@@ -5,8 +5,15 @@ import { collection } from "firebase/firestore"
 import { Crown, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+// INSTANT FALLBACK DEALS
+const fallbackCoupons = [
+  { id: 'd1', code: 'FIRST50', discountValue: 50, discountType: 'percentage' },
+  { id: 'd2', code: 'WEEKEND20', discountValue: 20, discountType: 'percentage' },
+  { id: 'd3', code: 'PARTY30', discountValue: 30, discountType: 'percentage' },
+];
+
 /**
- * @fileOverview OffersSection - Real coupons with background sync.
+ * @fileOverview OffersSection with Instant-Load Fallback.
  */
 export default function OffersSection() {
   const { toast } = useToast();
@@ -16,7 +23,7 @@ export default function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v4_ssr_sync');
+  const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {
@@ -25,8 +32,7 @@ export default function OffersSection() {
     }
   };
 
-  if (loading && !dbCoupons) return null;
-  if (!dbCoupons || dbCoupons.length === 0) return null;
+  const displayCoupons = (dbCoupons && dbCoupons.length > 0) ? dbCoupons : fallbackCoupons;
 
   return (
     <div className="py-6 animate-in fade-in duration-500">
@@ -37,7 +43,7 @@ export default function OffersSection() {
         </h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
-        {dbCoupons.map((coupon: any) => (
+        {displayCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
             onClick={() => handleCopy(coupon.code)}
