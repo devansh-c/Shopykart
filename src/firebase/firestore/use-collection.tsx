@@ -14,6 +14,7 @@ import { FirestorePermissionError } from '../errors';
 /**
  * @fileOverview ULTRA-FAST Instant-Initialize Hook with Quota & Backoff Protection.
  * Silently handles 'resource-exhausted' to prevent Next.js error overlays.
+ * FIXED: Removed 'data' from dependencies to prevent infinite update loop.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string) {
   const [data, setData] = useState<T[] | null>(() => {
@@ -65,8 +66,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
           console.debug("Firestore Status: Quota or Connection limit hit. Serving from local cache.");
           setLoading(false);
-          // Only set error if we literally have NO data to show
-          if (!data) setError(err);
           return;
         }
 
@@ -84,7 +83,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [query, cacheKey, data]);
+  }, [query, cacheKey]); // FIXED: Removed 'data' dependency
 
   return { data, loading, error };
 }
