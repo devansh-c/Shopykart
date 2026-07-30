@@ -14,9 +14,9 @@ import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 import AdSenseUnit from '@/components/shared/AdSenseUnit';
 
 /**
- * @fileOverview HomeClient - Extracted Client Logic for Search and Mode Switching.
+ * @fileOverview HomeClient - Optimized with initialData from SSR.
  */
-export default function HomeClient() {
+export default function HomeClient({ initialBanners, initialCategories }: { initialBanners?: any[], initialCategories?: any[] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
@@ -69,7 +69,7 @@ export default function HomeClient() {
                </div>
                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center border", activeMode === 'Medical' ? "bg-teal-50 text-teal-600 border-teal-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{activeMode === 'Medical' ? <HeartPulse className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</div>
             </div>
-            <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />
+            <CategoryList initialData={initialCategories} activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />
             <AdSenseUnit />
             <PopularProducts searchQuery={searchQuery} category={activeCategory} activeMode={activeMode} />
           </div>
@@ -77,7 +77,7 @@ export default function HomeClient() {
           <div className="content-visibility-auto">
             {!searchQuery && activeCategory === 'all' && (
               <>
-                <OfferSlider />
+                <OfferSlider initialData={initialBanners} />
                 <StoreSection activeMode={activeMode} />
                 
                 {activeMode === 'Food' && <AnnouncementBanner />}
@@ -86,7 +86,7 @@ export default function HomeClient() {
               </>
             )}
             <div className="bg-white">
-              {!searchQuery && <CategoryList activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />}
+              {!searchQuery && <CategoryList initialData={initialCategories} activeCategory={activeCategory} onCategoryChange={handleCategoryChange} serviceMode={activeMode} />}
               
               {!searchQuery && <AdSenseUnit />}
               

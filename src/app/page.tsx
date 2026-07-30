@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
+import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Optimized Server Component for SEO.
- * This ensures Googlebot reads the main content structure before hydration.
+ * @fileOverview ShopyKart Main Entrance - Optimized Server Component for SEO and SSR.
+ * Fetches critical initial data on the server to prevent blank frames.
  */
 
 export const metadata: Metadata = {
@@ -20,6 +24,34 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ShopyKartApp() {
-  return <HomeClient />;
+async function getInitialHomeData() {
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    const db = getFirestore(app);
+
+    // Fetch initial banners and categories for SSR
+    const [bannersSnap, categoriesSnap] = await Promise.all([
+      getDocs(query(collection(db, 'banners'), limit(5))),
+      getDocs(query(collection(db, 'categories'), limit(15)))
+    ]);
+
+    return {
+      initialBanners: bannersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      initialCategories: categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+    };
+  } catch (e) {
+    console.error("SSR Fetch failed:", e);
+    return { initialBanners: [], initialCategories: [] };
+  }
+}
+
+export default async function ShopyKartApp() {
+  const initialData = await getInitialHomeData();
+  
+  return (
+    <HomeClient 
+      initialBanners={initialData.initialBanners} 
+      initialCategories={initialData.initialCategories} 
+    />
+  );
 }

@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview OfferSlider with Skeleton Loaders for CLS prevention.
+ * @fileOverview OfferSlider with Server-Side Initial Data and Priority Loading.
  */
-export function OfferSlider() {
+export function OfferSlider({ initialData }: { initialData?: any[] }) {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
 
@@ -39,13 +39,13 @@ export function OfferSlider() {
 
   const { data: dbBanners, loading } = useCollection<any>(bannersQuery, 'home_banners_v4_instant');
   
-  const filteredBanners = React.useMemo(() => {
-    if (!dbBanners) return [];
+  const displayBanners = React.useMemo(() => {
+    const list = dbBanners || initialData || [];
     if (activeZoneId) {
-      return dbBanners.filter((b: any) => !b.zoneId || b.zoneId === activeZoneId);
+      return list.filter((b: any) => !b.zoneId || b.zoneId === activeZoneId);
     }
-    return dbBanners;
-  }, [dbBanners, activeZoneId]);
+    return list;
+  }, [dbBanners, initialData, activeZoneId]);
 
   React.useEffect(() => {
     if (!api) return;
@@ -57,11 +57,11 @@ export function OfferSlider() {
 
   return (
     <div className="w-full py-4 relative group overflow-hidden bg-white min-h-[180px]">
-      {(!dbBanners && loading) ? (
+      {(displayBanners.length === 0 && loading) ? (
         <div className="px-6">
            <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem] shadow-sm" />
         </div>
-      ) : (filteredBanners.length > 0) ? (
+      ) : (displayBanners.length > 0) ? (
         <>
           <Carousel 
             setApi={setApi}
@@ -70,17 +70,24 @@ export function OfferSlider() {
             plugins={[Autoplay({ delay: 3500, stopOnInteraction: false })]}
           >
             <CarouselContent className="-ml-1">
-              {filteredBanners.map((banner: any) => (
+              {displayBanners.map((banner: any, idx: number) => (
                 <CarouselItem key={banner.id} className="pl-1 basis-[88%] sm:basis-[85%] flex justify-center">
                   <div className="relative aspect-[18/9] w-full overflow-hidden rounded-[2.5rem] bg-muted border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] transform-gpu transition-all duration-500">
-                    <Image src={banner.imageUrl} alt="Offer" fill className="object-cover" unoptimized />
+                    <Image 
+                      src={banner.imageUrl} 
+                      alt="Offer" 
+                      fill 
+                      className="object-cover" 
+                      priority={idx === 0}
+                      unoptimized 
+                    />
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
           </Carousel>
           <div className="flex justify-center gap-1.5 mt-4">
-            {filteredBanners.map((_, i) => (
+            {displayBanners.map((_, i) => (
               <div key={i} className={cn("h-1 transition-all rounded-full", current === i ? "w-5 bg-amber-400" : "w-1 bg-gray-200")} />
             ))}
           </div>
