@@ -13,8 +13,8 @@ const inter = Inter({
 });
 
 /**
- * @fileOverview Root Layout with Optimized Metadata for Google Indexing.
- * Publisher ID ca-pub-3697085425178482 verified from screenshot.
+ * @fileOverview Root Layout with Optimized Metadata for Google Indexing and AdSense.
+ * Publisher ID ca-pub-3697085425178482 verified from official data.
  */
 export default function RootLayout({
   children,
@@ -36,6 +36,9 @@ export default function RootLayout({
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
         <meta name="googlebot" content="index, follow" />
         
+        {/* AdSense Verification Meta Tag - CRITICAL FOR APPROVAL */}
+        <meta name="google-adsense-account" content="ca-pub-3697085425178482" />
+        
         {/* OpenGraph for Social Media */}
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Shopykart – Premium 10-Min Food Delivery" />
@@ -53,7 +56,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="ShopyKart" />
         
-        {/* Google AdSense Integration (ca-pub-3697085425178482) */}
+        {/* Google AdSense Script Integration */}
         <Script 
           async 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3697085425178482" 

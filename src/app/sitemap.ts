@@ -1,8 +1,7 @@
-
 import { MetadataRoute } from 'next';
 
 /**
- * @fileOverview Next.js Sitemap Generator.
+ * @fileOverview Next.js Dynamic Sitemap Generator.
  * Helps Google discover and index all public routes and products.
  * Optimized for full visibility and rapid discovery.
  */
@@ -19,8 +18,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/profile',
     '/wishlist',
     '/cart',
-    '/delivery/login',
-    '/vendor/login',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
@@ -28,8 +25,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1 : 0.8,
   }));
 
-  // Pattern-based dynamic structures to guide crawlers even before dynamic fetch
-  const dynamicCategories = [
+  // SEO Optimized Category-based dynamic patterns
+  // These help crawlers understand the structure even before dynamic fetch
+  const dynamicPatterns = [
     'product',
     'store',
     'page'
@@ -42,6 +40,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticRoutes,
-    ...dynamicCategories,
+    ...dynamicPatterns,
   ];
 }

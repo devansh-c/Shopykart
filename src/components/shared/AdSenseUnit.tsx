@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 
 /**
  * @fileOverview Custom AdSense Ad Unit component (Ghi Unit).
- * Verified from screenshot: slot 7496080702, pub-3697085425178482.
- * Fix: Added explicit status check to prevent "already have ads" TagError.
+ * Verified Slot: 7496080702, pub-3697085425178482.
+ * High-reliability rendering with duplicate-push prevention.
  */
 export default function AdSenseUnit() {
   const adRef = useRef<HTMLModElement>(null);
@@ -15,19 +15,19 @@ export default function AdSenseUnit() {
 
     const loadAd = () => {
       try {
-        // Only push if the element exists and hasn't been processed by Google yet
+        // Only push if the element exists and hasn't been initialized by Google Ads script yet
         if (adRef.current && !adRef.current.hasAttribute('data-adsbygoogle-status')) {
           const adsbygoogle = (window as any).adsbygoogle || [];
           adsbygoogle.push({});
         }
       } catch (e) {
-        // Silent catch for AdSense double-push warnings
-        console.debug('AdSense Unit Status: Handled or Pending');
+        // Silently handle AdSense errors to prevent red screen crash
+        console.debug('AdSense Status: Unit handled or already active');
       }
     };
 
-    // Small delay to ensure DOM is fully ready
-    const timer = setTimeout(loadAd, 300);
+    // Delay to ensure Next.js has finished mounting the DOM properly
+    const timer = setTimeout(loadAd, 500);
     return () => clearTimeout(timer);
   }, []);
 
