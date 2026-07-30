@@ -6,16 +6,10 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-// INSTANT-LOAD DATA: Renders without waiting for network
-const instantCategories = [
-  { id: 'i-c1', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100', serviceType: 'Food' },
-  { id: 'i-c2', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100', serviceType: 'Food' },
-  { id: 'i-c3', name: 'Burger', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100', serviceType: 'Food' },
-  { id: 'i-c4', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100', serviceType: 'Food' },
-  { id: 'i-c5', name: 'Fries', imageUrl: 'https://picsum.photos/seed/shopy-fries/100/100', serviceType: 'Food' },
-  { id: 'i-c6', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100', serviceType: 'Food' },
-];
-
+/**
+ * @fileOverview CategoryList - Prioritizes SSR data for zero-delay display.
+ * Fake mock data has been removed.
+ */
 export function CategoryList({ 
   initialData,
   activeCategory = 'all', 
@@ -33,13 +27,15 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
+  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_ssr_sync');
 
-  // LOGIC: Use real data background-synced, else SSR, else instant mock
+  // LOGIC: Use DB if ready (background update), else use pre-fetched SSR data.
   const filteredCategories = useMemo(() => {
-    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : (initialData && initialData.length > 0 ? initialData : instantCategories);
+    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : (initialData || []);
     return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, initialData, serviceMode]);
+
+  if (filteredCategories.length === 0) return null;
 
   return (
     <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">

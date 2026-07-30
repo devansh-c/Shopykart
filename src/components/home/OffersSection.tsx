@@ -5,13 +5,9 @@ import { collection } from "firebase/firestore"
 import { Crown, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// INSTANT DEALS: Ensure section is never empty on load
-const instantCoupons = [
-  { id: 'i-c1', code: 'FIRST50', discountValue: 50, discountType: 'percentage' },
-  { id: 'i-c2', code: 'WEEKEND20', discountValue: 20, discountType: 'percentage' },
-  { id: 'i-c3', code: 'PARTY30', discountValue: 30, discountType: 'percentage' }
-];
-
+/**
+ * @fileOverview OffersSection - Real coupons with background sync.
+ */
 export default function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -20,9 +16,7 @@ export default function OffersSection() {
     return collection(firestore, 'coupons');
   }, [firestore]);
 
-  const { data: dbCoupons } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
-
-  const displayCoupons = dbCoupons && dbCoupons.length > 0 ? dbCoupons : instantCoupons;
+  const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v4_ssr_sync');
 
   const handleCopy = (code: string) => {
     if (typeof window !== 'undefined') {
@@ -30,6 +24,9 @@ export default function OffersSection() {
       toast({ title: "Coupon Copied! ✨", description: `${code} is ready!` });
     }
   };
+
+  if (loading && !dbCoupons) return null;
+  if (!dbCoupons || dbCoupons.length === 0) return null;
 
   return (
     <div className="py-6 animate-in fade-in duration-500">
@@ -40,7 +37,7 @@ export default function OffersSection() {
         </h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
-        {displayCoupons.map((coupon: any) => (
+        {dbCoupons.map((coupon: any) => (
           <div 
             key={coupon.id}
             onClick={() => handleCopy(coupon.code)}

@@ -16,7 +16,15 @@ import AdSenseUnit from '@/components/shared/AdSenseUnit';
 /**
  * @fileOverview HomeClient - Receives pre-fetched SSR data for instant rendering.
  */
-export default function HomeClient({ initialBanners, initialCategories }: { initialBanners?: any[], initialCategories?: any[] }) {
+export default function HomeClient({ 
+  initialBanners, 
+  initialCategories,
+  initialVendors 
+}: { 
+  initialBanners?: any[], 
+  initialCategories?: any[],
+  initialVendors?: any[]
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeMode, setActiveMode] = useState('Food');
@@ -78,7 +86,7 @@ export default function HomeClient({ initialBanners, initialCategories }: { init
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider initialData={initialBanners} />
-                <StoreSection activeMode={activeMode} />
+                <StoreSection activeMode={activeMode} initialData={initialVendors} />
                 
                 {activeMode === 'Food' && <AnnouncementBanner />}
                 

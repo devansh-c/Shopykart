@@ -26,38 +26,41 @@ export const metadata: Metadata = {
 
 /**
  * Server-side data fetcher for Firestore.
- * Ensures initial HTML is populated with real content.
+ * Ensures initial HTML is populated with real content from the database.
  */
 async function getInitialHomeData() {
   try {
-    // Initialize Firebase on server
+    // Initialize Firebase on server for SSR
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     const db = getFirestore(app);
 
-    // Fetch initial banners and categories for SSR
-    const [bannersSnap, categoriesSnap] = await Promise.all([
-      getDocs(query(collection(db, 'banners'), limit(5))),
-      getDocs(query(collection(db, 'categories'), limit(15)))
+    // Fetch essential datasets for immediate rendering
+    const [bannersSnap, categoriesSnap, vendorsSnap] = await Promise.all([
+      getDocs(query(collection(db, 'banners'), limit(10))),
+      getDocs(query(collection(db, 'categories'), limit(20))),
+      getDocs(query(collection(db, 'vendors'), limit(30)))
     ]);
 
     return {
       initialBanners: bannersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-      initialCategories: categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      initialCategories: categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      initialVendors: vendorsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
     };
   } catch (e) {
     console.error("SSR Data Fetch failed, falling back to empty:", e);
-    return { initialBanners: [], initialCategories: [] };
+    return { initialBanners: [], initialCategories: [], initialVendors: [] };
   }
 }
 
 export default async function ShopyKartApp() {
-  // Fetch data BEFORE rendering anything
+  // Fetch real data BEFORE rendering anything
   const initialData = await getInitialHomeData();
   
   return (
     <HomeClient 
       initialBanners={initialData.initialBanners} 
-      initialCategories={initialData.initialCategories} 
+      initialCategories={initialData.initialCategories}
+      initialVendors={initialData.initialVendors}
     />
   );
 }

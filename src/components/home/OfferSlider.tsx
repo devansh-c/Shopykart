@@ -12,13 +12,10 @@ import { collection } from "firebase/firestore"
 import Autoplay from "embla-carousel-autoplay"
 import { cn } from "@/lib/utils"
 
-// INSTANT-LOAD DATA: Renders in 0ms without Firestore delay
-const instantBanners = [
-  { id: 'i1', imageUrl: 'https://picsum.photos/seed/shopy-hero1/800/400', title: '50% OFF FIRST ORDER' },
-  { id: 'i2', imageUrl: 'https://picsum.photos/seed/shopy-hero2/800/400', title: 'PREMIUM GOURMET DELIVERY' },
-  { id: 'i3', imageUrl: 'https://picsum.photos/seed/shopy-hero3/800/400', title: 'FASTEST 10-MIN SERVICE' }
-];
-
+/**
+ * @fileOverview OfferSlider with Initial SSR Data priority.
+ * Completely removed fake mocks to ensure only real data is shown.
+ */
 export function OfferSlider({ initialData }: { initialData?: any[] }) {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
@@ -39,15 +36,16 @@ export function OfferSlider({ initialData }: { initialData?: any[] }) {
     return collection(firestore, 'banners');
   }, [firestore]);
 
-  const { data: dbBanners } = useCollection<any>(bannersQuery, 'home_banners_v4_instant');
+  const { data: dbBanners } = useCollection<any>(bannersQuery, 'home_banners_v4_ssr_sync');
   
-  // LOGIC: Use DB if ready, else use local data instantly
+  // LOGIC: SSR Data is the absolute source of truth on load.
+  // DB Banners will gracefully update if there's a difference in background.
   const displayBanners = React.useMemo(() => {
-    let list = dbBanners && dbBanners.length > 0 ? dbBanners : (initialData && initialData.length > 0 ? initialData : instantBanners);
+    const list = (dbBanners && dbBanners.length > 0) ? dbBanners : (initialData || []);
     
-    if (activeZoneId && dbBanners && dbBanners.length > 0) {
+    if (activeZoneId && list.length > 0) {
       const filtered = list.filter((b: any) => !b.zoneId || b.zoneId === activeZoneId);
-      return filtered.length > 0 ? filtered : instantBanners;
+      return filtered.length > 0 ? filtered : list;
     }
     return list;
   }, [dbBanners, initialData, activeZoneId]);
@@ -60,6 +58,8 @@ export function OfferSlider({ initialData }: { initialData?: any[] }) {
     });
   }, [api]);
 
+  if (displayBanners.length === 0) return null;
+
   return (
     <div className="w-full py-4 relative group overflow-hidden bg-white">
       <Carousel 
@@ -70,11 +70,11 @@ export function OfferSlider({ initialData }: { initialData?: any[] }) {
       >
         <CarouselContent className="-ml-1">
           {displayBanners.map((banner: any, idx: number) => (
-            <CarouselItem key={banner.id} className="pl-1 basis-[88%] sm:basis-[85%] flex justify-center">
+            <CarouselItem key={banner.id || idx} className="pl-1 basis-[88%] sm:basis-[85%] flex justify-center">
               <div className="relative aspect-[18/9] w-full overflow-hidden rounded-[2.5rem] bg-muted border-4 border-white shadow-xl transform-gpu transition-all duration-500">
                 <Image 
                   src={banner.imageUrl} 
-                  alt="Offer" 
+                  alt={banner.title || "Offer"} 
                   fill 
                   className="object-cover" 
                   priority={idx === 0}

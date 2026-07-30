@@ -14,13 +14,16 @@ import {
 } from "@/components/ui/carousel"
 import { isStoreScheduleOpen } from "./PopularProducts"
 
-// INSTANT DATA: Prevent empty hub
-const instantStores = [
-  { id: 'i-s1', storeName: 'ShopyKart Select', imageUrl: 'https://picsum.photos/seed/st1/400/300', rating: '4.8', deliveryTime: '20 min', category: 'Food' },
-  { id: 'i-s2', storeName: 'Gourmet Kitchen', imageUrl: 'https://picsum.photos/seed/st2/400/300', rating: '4.9', deliveryTime: '25 min', category: 'Food' }
-];
-
-export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
+/**
+ * @fileOverview StoreSection - Uses initialVendors from SSR to display real data instantly.
+ */
+export const StoreSection = React.memo(({ 
+  activeMode = 'Food',
+  initialData 
+}: { 
+  activeMode?: string,
+  initialData?: any[] 
+}) => {
   const firestore = useFirestore();
   const router = useRouter();
   
@@ -40,10 +43,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_ssr_sync');
 
   const filteredVendors = React.useMemo(() => {
-    const list = dbVendors && dbVendors.length > 0 ? dbVendors : instantStores;
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
     return list.filter(v => {
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -53,7 +56,9 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, activeMode, activeZoneId]);
+  }, [dbVendors, initialData, activeMode, activeZoneId]);
+
+  if (filteredVendors.length === 0) return null;
 
   return (
     <div className="py-4 overflow-hidden bg-white">
