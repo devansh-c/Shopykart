@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 
-// INSTANT-LOAD FALLBACK CATEGORIES
-const fallbackCategories = [
-  { id: 'fc1', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100', serviceType: 'Food' },
-  { id: 'fc2', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100', serviceType: 'Food' },
-  { id: 'fc3', name: 'Burger', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100', serviceType: 'Food' },
-  { id: 'fc4', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100', serviceType: 'Food' },
-  { id: 'fc5', name: 'Fries', imageUrl: 'https://picsum.photos/seed/shopy-fries/100/100', serviceType: 'Food' },
-  { id: 'fc6', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100', serviceType: 'Food' },
+// INSTANT-LOAD DATA: Renders without waiting for network
+const instantCategories = [
+  { id: 'i-c1', name: 'Snacks', imageUrl: 'https://picsum.photos/seed/snacks-cat/100/100', serviceType: 'Food' },
+  { id: 'i-c2', name: 'Pizza', imageUrl: 'https://picsum.photos/seed/shopy-piz/100/100', serviceType: 'Food' },
+  { id: 'i-c3', name: 'Burger', imageUrl: 'https://picsum.photos/seed/shopy-burg/100/100', serviceType: 'Food' },
+  { id: 'i-c4', name: 'Pasta', imageUrl: 'https://picsum.photos/seed/shopy-pasta/100/100', serviceType: 'Food' },
+  { id: 'i-c5', name: 'Fries', imageUrl: 'https://picsum.photos/seed/shopy-fries/100/100', serviceType: 'Food' },
+  { id: 'i-c6', name: 'Drinks', imageUrl: 'https://picsum.photos/seed/shopy-drink/100/100', serviceType: 'Food' },
 ];
 
 export function CategoryList({ 
@@ -35,20 +35,20 @@ export function CategoryList({
 
   const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
 
-  // LOGIC: Use real data background-synced, else SSR, else mock
+  // LOGIC: Use real data background-synced, else SSR, else instant mock
   const filteredCategories = useMemo(() => {
-    const list = dbCategories || initialData || fallbackCategories;
+    const list = (dbCategories && dbCategories.length > 0) ? dbCategories : (initialData && initialData.length > 0 ? initialData : instantCategories);
     return list.filter(cat => (cat.serviceType || 'Food').toLowerCase() === serviceMode.toLowerCase());
   }, [dbCategories, initialData, serviceMode]);
 
   return (
-    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50 min-h-[110px]">
+    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50">
       <div className="flex overflow-x-auto space-x-4 no-scrollbar px-2">
         <button onClick={() => onCategoryChange?.('all')} className="flex flex-col items-center gap-2 shrink-0 transition-all">
           <div className={cn("w-16 h-16 rounded-full border-2 flex items-center justify-center bg-white transition-all shadow-sm", activeCategory === 'all' ? "border-primary scale-105" : "border-gray-100")}>
             <span className={cn("text-[12px] font-black uppercase tracking-tighter", activeCategory === 'all' ? "text-gray-900" : "text-gray-400")}>ALL</span>
           </div>
-          <span className={cn("text-[10px] font-black uppercase tracking-tighter", activeCategory === 'all' ? "text-primary" : "text-gray-500")}>EXPLORE</span>
+          <span className={cn("text-[10px] font-black uppercase tracking-widest", activeCategory === 'all' ? "text-primary" : "text-gray-500")}>EXPLORE</span>
         </button>
 
         {filteredCategories.map((cat) => (

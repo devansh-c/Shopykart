@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Star, Clock } from "lucide-react"
+import { Star, Clock, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
@@ -13,11 +13,13 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel"
 import { isStoreScheduleOpen } from "./PopularProducts"
-import { Skeleton } from "@/components/ui/skeleton"
 
-/**
- * @fileOverview StoreSection - Lightning Rendering with Shimmer Skeletons.
- */
+// INSTANT DATA: Prevent empty hub
+const instantStores = [
+  { id: 'i-s1', storeName: 'ShopyKart Select', imageUrl: 'https://picsum.photos/seed/st1/400/300', rating: '4.8', deliveryTime: '20 min', category: 'Food' },
+  { id: 'i-s2', storeName: 'Gourmet Kitchen', imageUrl: 'https://picsum.photos/seed/st2/400/300', rating: '4.9', deliveryTime: '25 min', category: 'Food' }
+];
+
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
@@ -38,10 +40,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
     return query(collection(firestore, 'vendors'), limit(150));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
 
   const filteredVendors = React.useMemo(() => {
-    const list = dbVendors || [];
+    const list = dbVendors && dbVendors.length > 0 ? dbVendors : instantStores;
     return list.filter(v => {
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -54,39 +56,34 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   }, [dbVendors, activeMode, activeZoneId]);
 
   return (
-    <div className="py-4 overflow-hidden bg-white min-h-[160px]">
-      <div className="flex items-center justify-between mb-3 px-6">
-        <h2 className="text-lg font-black tracking-tighter uppercase italic text-gray-900 leading-none">
+    <div className="py-4 overflow-hidden bg-white">
+      <div className="flex items-center justify-between mb-4 px-6">
+        <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
         </h2>
+        <button onClick={() => router.push('/stores')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
       </div>
 
       <Carousel className="w-full" opts={{ loop: true, align: 'center' }}>
         <CarouselContent className="-ml-3">
-          {(!dbVendors && loading) ? (
-            [1, 2].map(i => (
-              <CarouselItem key={i} className="pl-3 basis-[65%] sm:basis-[50%]">
-                 <Skeleton className="w-full aspect-[16/10] rounded-[2.5rem] shadow-sm" />
-              </CarouselItem>
-            ))
-          ) : filteredVendors.map((store: any) => (
+          {filteredVendors.map((store: any) => (
             <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
               <button 
                 onClick={() => router.push(`/store/${store.slug || slugify(store.storeName) || store.id}`)}
-                className="block text-left w-full rounded-[2.5rem] overflow-hidden shadow-lg group border border-white/10 relative"
+                className="block text-left w-full rounded-[2.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
-                <div className="relative h-24 w-full overflow-hidden z-10">
+                <div className="relative h-28 w-full overflow-hidden z-10">
                   <Image src={store.imageUrl} alt={store.storeName} fill className="object-cover" unoptimized />
                 </div>
                 <div className="p-4 relative z-20 text-white">
-                  <h3 className="text-sm font-black italic uppercase leading-tight mb-1 truncate">{store.storeName}</h3>
+                  <h3 className="text-sm font-black italic uppercase leading-tight mb-2 truncate">{store.storeName}</h3>
                   <div className="flex items-center justify-between">
-                    <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20">
+                    <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-lg">
                        <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                        <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[9px] font-black text-white/90">
+                    <div className="flex items-center gap-1 text-[9px] font-black text-white/90 uppercase tracking-widest italic">
                        <Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}
                     </div>
                   </div>
