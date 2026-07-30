@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -14,6 +13,9 @@ import Autoplay from "embla-carousel-autoplay"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
+/**
+ * @fileOverview OfferSlider with Skeleton Loaders for CLS prevention.
+ */
 export function OfferSlider() {
   const firestore = useFirestore();
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
@@ -54,10 +56,10 @@ export function OfferSlider() {
   }, [api]);
 
   return (
-    <div className="w-full py-4 relative group overflow-hidden bg-white min-h-[160px]">
+    <div className="w-full py-4 relative group overflow-hidden bg-white min-h-[180px]">
       {(!dbBanners && loading) ? (
         <div className="px-6">
-           <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem]" />
+           <Skeleton className="aspect-[18/9] w-full rounded-[2.5rem] shadow-sm" />
         </div>
       ) : (filteredBanners.length > 0) ? (
         <>

@@ -8,7 +8,7 @@ import { collection } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview CategoryList - Synchronous Speed Component with Shimmer.
+ * @fileOverview CategoryList - Synchronous Speed Component with Shimmer Skeletons.
  */
 export function CategoryList({ 
   activeCategory = 'all', 
@@ -33,7 +33,7 @@ export function CategoryList({
   }, [dbCategories, serviceMode]);
 
   return (
-    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50 min-h-[100px]">
+    <div className="py-4 px-4 overflow-hidden bg-white border-b border-gray-50 min-h-[110px]">
       <div className="flex overflow-x-auto space-x-4 no-scrollbar px-2">
         <button onClick={() => onCategoryChange?.('all')} className="flex flex-col items-center gap-2 shrink-0 transition-all">
           <div className={cn("w-16 h-16 rounded-full border-2 flex items-center justify-center bg-white transition-all shadow-sm", activeCategory === 'all' ? "border-primary scale-105" : "border-gray-100")}>
@@ -43,10 +43,10 @@ export function CategoryList({
         </button>
 
         {(!dbCategories && loading) ? (
-          [1, 2, 3, 4, 5].map(i => (
+          [1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0">
               <Skeleton className="w-16 h-16 rounded-full" />
-              <Skeleton className="w-12 h-2 rounded-full" />
+              <Skeleton className="w-10 h-2 rounded-full" />
             </div>
           ))
         ) : filteredCategories.map((cat) => (

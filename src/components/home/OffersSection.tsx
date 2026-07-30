@@ -4,7 +4,11 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection } from "firebase/firestore"
 import { Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * @fileOverview OffersSection with Skeletons and CLS safety.
+ */
 export default function OffersSection() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -15,7 +19,7 @@ export default function OffersSection() {
 
   const { data: dbCoupons, loading } = useCollection<any>(couponsQuery, 'home_coupons_v4_instant');
 
-  // HIDE SECTION COMPLETELY IF NO COUPONS OR LOADING
+  // HIDE SECTION COMPLETELY IF NO COUPONS AFTER LOADING
   if (!loading && (!dbCoupons || dbCoupons.length === 0)) {
     return null;
   }
@@ -28,18 +32,20 @@ export default function OffersSection() {
   };
 
   return (
-    <div className="py-6 min-h-[100px] animate-in fade-in duration-500">
+    <div className="py-6 min-h-[140px] animate-in fade-in duration-500">
       <div className="flex items-center px-6 mb-5">
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">Exclusive <span className="text-primary">Deals</span></h2>
       </div>
       <div className="flex overflow-x-auto space-x-4 px-6 no-scrollbar pb-6">
         {loading ? (
-          <div className="min-w-[280px] h-24 rounded-2xl bg-muted/10 animate-pulse border-2 border-dashed" />
+          [1, 2].map(i => (
+            <Skeleton key={i} className="min-w-[280px] h-24 rounded-2xl shadow-sm border border-border/40" />
+          ))
         ) : dbCoupons?.map((coupon: any) => (
           <div 
             key={coupon.id}
             onClick={() => handleCopy(coupon.code)}
-            className="relative min-w-[280px] h-24 rounded-2xl bg-[#FDF2D0] flex shadow-lg cursor-pointer active:scale-95 transition-all border border-[#E8D9A8]/40"
+            className="relative min-w-[280px] h-24 rounded-2xl bg-[#FDF2D0] flex shadow-lg cursor-pointer active:scale-95 transition-all border border-[#E8D9A8]/40 overflow-hidden"
           >
             <div className="flex-1 p-4 flex flex-col justify-center pl-6">
               <h3 className="text-sm font-black text-[#5C4D3C] uppercase leading-tight">Get {coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : '₹'} OFF</h3>

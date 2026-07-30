@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -17,7 +16,7 @@ import { isStoreScheduleOpen } from "./PopularProducts"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * @fileOverview StoreSection - Lightning Rendering with Shimmer.
+ * @fileOverview StoreSection - Lightning Rendering with Shimmer Skeletons.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
@@ -55,7 +54,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
   }, [dbVendors, activeMode, activeZoneId]);
 
   return (
-    <div className="py-4 overflow-hidden bg-white min-h-[140px]">
+    <div className="py-4 overflow-hidden bg-white min-h-[160px]">
       <div className="flex items-center justify-between mb-3 px-6">
         <h2 className="text-lg font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
@@ -67,7 +66,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
           {(!dbVendors && loading) ? (
             [1, 2].map(i => (
               <CarouselItem key={i} className="pl-3 basis-[65%] sm:basis-[50%]">
-                 <Skeleton className="w-full aspect-[16/10] rounded-[2.5rem]" />
+                 <Skeleton className="w-full aspect-[16/10] rounded-[2.5rem] shadow-sm" />
               </CarouselItem>
             ))
           ) : filteredVendors.map((store: any) => (

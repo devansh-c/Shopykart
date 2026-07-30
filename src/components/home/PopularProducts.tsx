@@ -18,11 +18,9 @@ import { Badge } from "@/components/ui/badge"
  */
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
-  // If no timing is set, assume 24/7 or manual only
   if (!vendor.openingTime || !vendor.closingTime) return true;
   
   const now = new Date();
-  // We use provided mins or current time
   const mins = (currentMins !== undefined && currentMins !== null) 
     ? currentMins 
     : now.getHours() * 60 + now.getMinutes();
@@ -40,7 +38,6 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   const start = parseTime(vendor.openingTime);
   const end = parseTime(vendor.closingTime);
 
-  // Handle overnight schedules (e.g. 10 PM to 4 AM)
   if (start < end) {
     return mins >= start && mins <= end;
   } else {
@@ -48,6 +45,9 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   }
 }
 
+/**
+ * @fileOverview PopularProducts with Skeleton Loaders and 2000 Fetch Limit.
+ */
 export function PopularProducts({ searchQuery = '', category = 'all', activeMode = 'Food' }: { searchQuery?: string, category?: string, activeMode?: string }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
@@ -62,7 +62,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
 
-    // Sync time every minute for automatic open/close
     const syncTime = () => {
       const now = new Date();
       setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
@@ -78,7 +77,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // EXTENDED LIMIT TO 2000 FOR FULL CATALOG ACCESS (Ranipur Fix)
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
@@ -99,7 +97,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
-      // Strict Location Filter
       if (activeZoneId) {
         const pZone = p.zoneId;
         const vZone = vendor?.zoneId;
@@ -117,7 +114,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
       
-      // EFFECTIVE STATUS: Manual Toggle AND Time Schedule
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA, currentTimeMinutes)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB, currentTimeMinutes)) : true;
       
@@ -140,20 +136,34 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   };
 
   return (
-    <div className="px-4 py-6 min-h-[400px] transition-all">
+    <div className="px-4 py-6 min-h-[600px] transition-all">
       <div className="flex items-center justify-between mb-6 px-2 animate-in fade-in duration-500">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
         </h2>
-        <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg shadow-primary/20">
-          {productsToDisplay.length} ITEMS
-        </Badge>
+        {(!dbProducts && productsLoading) ? (
+          <Skeleton className="h-6 w-20 rounded-full" />
+        ) : (
+          <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg shadow-primary/20">
+            {productsToDisplay.length} ITEMS
+          </Badge>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {(!dbProducts && productsLoading) ? (
-          [1, 2, 3, 4, 5, 6].map(i => (
-            <Skeleton key={i} className="aspect-[4/5] w-full rounded-[2rem]" />
+          [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">
+               <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
+               <div className="space-y-2 px-1">
+                  <Skeleton className="h-2 w-2/3 rounded-full" />
+                  <Skeleton className="h-3 w-full rounded-full" />
+                  <div className="flex justify-between items-center pt-2">
+                     <Skeleton className="h-4 w-10 rounded-full" />
+                     <Skeleton className="h-8 w-16 rounded-full" />
+                  </div>
+               </div>
+            </div>
           ))
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
@@ -183,7 +193,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
               </div>
 
               <div className="flex-1 flex flex-col px-1">
-                {/* PRESERVED: Mustard Gold Store Name */}
                 <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>
