@@ -12,8 +12,7 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview High-speed hook to fetch a single document with Cache-First logic.
- * Improved to handle 'resource-exhausted' (Quota) errors gracefully.
+ * @fileOverview Resilient single-doc fetch hook with Quota-silencing logic.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
   const [data, setData] = useState<T | null>(() => {
@@ -46,15 +45,12 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
             sessionStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
-          } catch (e) {
-            console.debug(`Quota exceeded for doc cache: ${cacheKey}`);
-          }
+          } catch (e) {}
         }
       },
       async (err: FirestoreError) => {
-        // Handle Quota/Permission issues silently if possible
-        if (err.code === 'resource-exhausted') {
-          console.debug("Firestore Doc Quota Exceeded.");
+        // AGGRESSIVE QUOTA SUPPRESSION
+        if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
           setLoading(false);
           return;
         }

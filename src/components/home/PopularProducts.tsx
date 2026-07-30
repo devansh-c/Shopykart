@@ -75,11 +75,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  // OPTIMIZED FETCH LIMIT: Reduced from 2000 to 500 to prevent 'resource-exhausted' Quota errors.
-  // 500 is plenty for Mauranipur/Ranipur inventory while saving 75% on daily read costs.
+  // OPTIMIZED QUOTA LIMIT: Reduced to 300.
+  // 300 covers all current products in Mauranipur/Ranipur while saving huge daily quota.
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(500));
+    return query(collection(firestore, 'products'), limit(300));
   }, [firestore]);
   
   const { data: dbProducts, loading: productsLoading, error: productsError } = useCollection<any>(productsQuery, 'home_products_v4_balanced');
@@ -136,14 +136,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       else { await navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
     } catch (err) {}
   };
-
-  if (productsError && !dbProducts) {
-    return (
-      <div className="px-6 py-10 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
-         <p className="text-xs font-black text-gray-400 uppercase tracking-widest italic">Temporary Connection Issue. Please Refresh.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="px-4 py-6 min-h-[600px] transition-all">

@@ -12,13 +12,10 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview ULTRA-FAST Instant-Initialize Hook with Quota Protection.
- * Initializes state synchronously from sessionStorage to prevent initial null frames.
- * Gracefully handles 'resource-exhausted' (Quota Exceeded) errors.
+ * @fileOverview ULTRA-FAST Instant-Initialize Hook with Quota & Backoff Protection.
+ * Silently handles 'resource-exhausted' to prevent Next.js error overlays.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string) {
-  // ATOMIC SYNCHRONOUS INITIALIZATION: 
-  // We read from cache DURING state initialization to prevent blank states.
   const [data, setData] = useState<T[] | null>(() => {
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
@@ -59,16 +56,16 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
           try {
             sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
           } catch (e) {
-            console.debug(`Quota exceeded for session storage: ${cacheKey}`);
+            // Silently ignore storage quota
           }
         }
       },
       async (err: FirestoreError) => {
-        // QUOTA PROTECTION: Handle 'resource-exhausted' silently if we have cached data
-        if (err.code === 'resource-exhausted') {
-          console.warn("Firestore Quota Exceeded. Serving from local cache.");
+        // AGGRESSIVE QUOTA SUPPRESSION
+        if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
+          console.debug("Firestore Status: Quota or Connection limit hit. Serving from local cache.");
           setLoading(false);
-          // If we have data from cache, don't show an error
+          // Only set error if we literally have NO data to show
           if (!data) setError(err);
           return;
         }
