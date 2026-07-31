@@ -2,22 +2,14 @@
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, ClipboardList, Store, Gift, User } from 'lucide-react';
+import { Map, Package, Menu, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
 import React, { useMemo } from 'react';
 
-const navItems = [
-  { label: 'Today', icon: Home, href: '/' },
-  { label: 'Stores', icon: Store, href: '/stores' },
-  { label: 'Orders', icon: ClipboardList, href: '/orders' },
-  { label: 'Rewards', icon: Gift, href: '/rewards' },
-  { label: 'Account', icon: User, href: '/profile' },
-];
-
 /**
- * @fileOverview Apple News+ Styled Floating Water-Glass Navigation.
- * Optimized for high-end glassmorphism and smooth silver aesthetics.
+ * @fileOverview Exactly matches the user provided screenshot.
+ * Features 4 items: Track, Auro (Custom Brand Icon), Orders, Menu.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -34,15 +26,21 @@ export default function BottomNav() {
            p.startsWith('/cart');
   }, [pathname]);
 
+  const navItems = [
+    { label: 'Track', icon: Map, href: '/orders' },
+    { label: 'Auro', icon: null, href: '/' }, // Custom Brand Icon
+    { label: 'Orders', icon: Package, href: '/cart' },
+    { label: 'Menu', icon: Menu, href: '/profile' },
+  ];
+
   if (isExcludedPath) return null;
 
   return (
-    <div className="fixed bottom-8 left-0 right-0 z-[10000] px-6 flex justify-center pointer-events-none transform-gpu">
+    <div className="fixed bottom-8 left-0 right-0 z-[10000] px-4 flex justify-center pointer-events-none transform-gpu">
       <nav 
         className={cn(
-          "w-full max-w-md h-[72px] rounded-full flex items-center justify-around px-4 pointer-events-auto transition-all duration-500",
-          "bg-white/70 backdrop-blur-[30px] border border-white/60 shadow-[0_20px_40px_rgba(0,0,0,0.08)]",
-          "ring-1 ring-black/[0.03]"
+          "w-full max-w-[95%] h-[85px] rounded-[2.5rem] flex items-center justify-around px-2 pointer-events-auto transition-all duration-500",
+          "bg-white border border-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)]",
         )}
       >
         {navItems.map((item) => {
@@ -53,28 +51,39 @@ export default function BottomNav() {
             <button
               key={item.label}
               onClick={() => router.push(item.href)}
-              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90 group"
+              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90 group pt-1"
             >
-              <div className="relative">
-                <Icon 
-                  strokeWidth={isActive ? 2.8 : 2}
-                  className={cn(
-                    "h-[22px] w-[22px] transition-all duration-300", 
-                    isActive ? "text-black scale-110" : "text-black/40 group-hover:text-black/60"
-                  )} 
-                />
+              <div className="relative mb-1">
+                {item.label === 'Auro' ? (
+                  /* THE CUSTOM AURO PILL FROM SCREENSHOT */
+                  <div className="relative flex items-center justify-center w-14 h-7 bg-black rounded-full border-2 border-[#EF4444] shadow-md group-hover:scale-105 transition-transform">
+                    <div className="flex gap-2">
+                       <div className="w-2 h-2 bg-[#F5F5F0] rounded-full" />
+                       <div className="w-2 h-2 bg-[#F5F5F0] rounded-full" />
+                    </div>
+                  </div>
+                ) : (
+                  Icon && (
+                    <Icon 
+                      strokeWidth={isActive ? 2.5 : 2}
+                      className={cn(
+                        "h-[26px] w-[22px] transition-all duration-300", 
+                        isActive ? "text-[#111827]" : "text-[#111827]"
+                      )} 
+                    />
+                  )
+                )}
                 
                 {/* Notification Badge for Orders */}
                 {item.label === 'Orders' && totalItems > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-primary text-white text-[7px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-in zoom-in duration-300">
+                  <span className="absolute -top-1 -right-2 bg-primary text-white text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                     {totalItems}
                   </span>
                 )}
               </div>
               
               <span className={cn(
-                "text-[9px] font-black uppercase tracking-tight leading-none mt-1.5 transition-colors duration-300",
-                isActive ? "text-black" : "text-black/40 group-hover:text-black/60"
+                "text-[12px] font-bold text-[#111827] tracking-tight leading-none mt-1",
               )}>
                 {item.label}
               </span>
