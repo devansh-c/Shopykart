@@ -5,7 +5,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
  * @fileOverview ShopyKart High-Performance Entry.
- * Optimized with Split-Payload SSR for instant authentic paint.
+ * Optimized with Full-Payload SSR for instant authentic paint of the entire catalog.
  */
 
 export const metadata: Metadata = {
@@ -47,18 +47,18 @@ async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
-  // TURBO SSR GUARD: 2.5s Strict Timeout
+  // TURBO SSR GUARD: 3.5s Timeout for Full Catalog
   const fetchTimeout = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('SSR_TIMEOUT')), 2500)
+    setTimeout(() => reject(new Error('SSR_TIMEOUT')), 3500)
   );
 
   try {
     const fetchPromise = Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(10))),
-      getDocs(query(collection(firestore, 'categories'), limit(50))),
-      getDocs(query(collection(firestore, 'vendors'), limit(100))),
-      // SSR Limit reduced to 150 for instant HTML delivery, Client will fetch rest
-      getDocs(query(collection(firestore, 'products'), limit(150))) 
+      getDocs(query(collection(firestore, 'banners'), limit(20))),
+      getDocs(query(collection(firestore, 'categories'), limit(100))),
+      getDocs(query(collection(firestore, 'vendors'), limit(500))),
+      // Fetching all products (limit 2000) so user sees the full menu instantly
+      getDocs(query(collection(firestore, 'products'), limit(2000))) 
     ]);
 
     const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.race([
@@ -73,6 +73,7 @@ async function getInitialData() {
       products: productsSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
+    console.warn("SSR Data Fetch Timeout/Error. Returning partial or empty sets.");
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }
