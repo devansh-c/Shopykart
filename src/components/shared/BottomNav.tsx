@@ -15,6 +15,10 @@ const navItems = [
   { label: 'Profile', icon: User, href: '/profile' },
 ];
 
+/**
+ * @fileOverview Floating Glass Navigation - Matched to Apple News+ style reference.
+ * Features: Deep backdrop blur, pill shape, and floating elevation.
+ */
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -32,17 +36,11 @@ export default function BottomNav() {
 
   if (isExcludedPath) return null;
 
-  // COLORS MATCHED FROM SCREENSHOT
-  const ACTIVE_COLOR = "#D4A017"; // Mustard Golden
-  const INACTIVE_COLOR = "#4A4A4A"; // Charcoal Grey
-  const BG_COLOR = "#FDFDFD"; // Soft Off-White
-
   return (
-    <nav 
-      style={{ backgroundColor: BG_COLOR }}
-      className="fixed bottom-0 left-0 right-0 z-[10000] border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] h-20 safe-area-bottom transform-gpu"
-    >
-      <div className="flex justify-around items-center h-full max-w-lg mx-auto px-2">
+    <div className="fixed bottom-6 left-0 right-0 z-[10000] px-4 flex justify-center pointer-events-none transform-gpu">
+      <nav 
+        className="w-full max-w-md bg-white/80 backdrop-blur-2xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/40 h-20 flex items-center justify-around px-4 pointer-events-auto ring-1 ring-black/5"
+      >
         {navItems.map((item) => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
           const Icon = item.icon;
@@ -51,38 +49,35 @@ export default function BottomNav() {
             <button
               key={item.label}
               onClick={() => router.push(item.href)}
-              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90"
-              style={{ color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR }}
+              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90 group"
             >
-              {/* Top Active Indicator Line */}
-              {isActive && (
-                <div 
-                  style={{ backgroundColor: ACTIVE_COLOR }}
-                  className="absolute top-0 w-12 h-1 rounded-b-full shadow-sm animate-in fade-in slide-in-from-top-1 duration-300" 
-                />
-              )}
-              
-              <div className="relative mb-1">
+              <div className="relative">
                 <Icon 
-                  strokeWidth={2.5}
-                  className={cn("h-6 w-6 transition-transform duration-300", isActive && "scale-105")} 
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={cn(
+                    "h-6 w-6 transition-all duration-300", 
+                    isActive ? "text-black scale-110" : "text-gray-400 group-hover:text-gray-600"
+                  )} 
                 />
                 
-                {/* Orders Notification Badge (Red Circle from Screenshot) */}
+                {/* Notification Badge for Orders */}
                 {item.label === 'Orders' && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-[#FF3B30] text-white text-[8px] font-black h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-md animate-in zoom-in duration-300">
+                  <span className="absolute -top-1.5 -right-2 bg-primary text-white text-[8px] font-black h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-md animate-in zoom-in duration-300">
                     {totalItems}
                   </span>
                 )}
               </div>
               
-              <span className="text-[10px] font-black uppercase tracking-tight leading-none mt-0.5">
+              <span className={cn(
+                "text-[10px] font-black uppercase tracking-tight leading-none mt-1 transition-colors duration-300",
+                isActive ? "text-black" : "text-gray-400 group-hover:text-gray-600"
+              )}>
                 {item.label}
               </span>
             </button>
           );
         })}
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }
