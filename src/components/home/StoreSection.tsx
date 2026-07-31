@@ -74,7 +74,13 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
                 <div className="relative h-28 w-full overflow-hidden z-10">
-                  <Image src={store.imageUrl} alt={store.storeName} fill className="object-cover" unoptimized />
+                  <Image 
+                    src={store.imageUrl || "https://picsum.photos/seed/store/400/300"} 
+                    alt={store.storeName || "ShopyKart Store"} 
+                    fill 
+                    className="object-cover" 
+                    unoptimized 
+                  />
                 </div>
                 <div className="p-4 relative z-20 text-white">
                   <h3 className="text-sm font-black italic uppercase leading-tight mb-2 truncate">{store.storeName}</h3>
