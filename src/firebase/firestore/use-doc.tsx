@@ -12,13 +12,13 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient single-doc fetch hook with Quota-silencing logic.
+ * @fileOverview Resilient single-doc fetch hook with LocalStorage caching.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
   const [data, setData] = useState<T | null>(() => {
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
-      const cached = sessionStorage.getItem(`fire_doc_cache_${cacheKey}`);
+      const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
       return cached ? JSON.parse(cached) : null;
     } catch (e) {
       return null;
@@ -44,12 +44,11 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
 
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
-            sessionStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
+            localStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
           } catch (e) {}
         }
       },
       async (err: FirestoreError) => {
-        // AGGRESSIVE QUOTA SUPPRESSION
         if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
           setLoading(false);
           return;

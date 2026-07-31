@@ -12,20 +12,20 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook v3.
- * Optimized for zero-latency paint by initializing state synchronously from Props.
- * Eliminates all hydration blinks and loading states for authentic data.
+ * @fileOverview OMNI-INSTANT Hook v4.
+ * Optimized for 0-second loading using LocalStorage Caching.
+ * Synchronously initializes state from Cache/Props to eliminate all render blinks.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Synchronous Initialization: State is populated BEFORE the first render cycle
+  // 1. Synchronous Initialization: Read from SSR Props OR LocalStorage IMMEDIATELY
   const [data, setData] = useState<T[] | null>(() => {
-    // Priority 1: Authentic SSR Data (Full Payload passed from page.tsx)
+    // Priority 1: Authentic SSR Data (Fresh from Server)
     if (initialData && initialData.length > 0) return initialData;
     
-    // Priority 2: Authentic Session Cache (For fast sub-navigation)
+    // Priority 2: Persistent LocalStorage Cache (For 0-second startup)
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
-      const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
+      const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
       if (cached) {
         const parsed = JSON.parse(cached);
         return Array.isArray(parsed) ? parsed : null;
@@ -36,7 +36,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
-  // CRITICAL: Loading is FALSE immediately if we have any authentic data from the server
+  // CRITICAL: Loading is FALSE immediately if we have any data (cached or SSR)
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
@@ -48,6 +48,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
+    // 2. Background Sync: Fetch live data silently and update state/cache
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
@@ -60,14 +61,17 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
+        // Update LocalStorage for next app open
         if (cacheKey && typeof window !== 'undefined') {
           try {
-            sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e) {}
+            localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
+          } catch (e) {
+            console.warn("Storage quota exceeded, caching skipped.");
+          }
         }
       },
       async (err: FirestoreError) => {
-        // Silent Fail: Don't block the UI if the backend is slow or throttled
+        // Silent Fail for connectivity issues to keep showing cached data
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
         if (silentCodes.includes(err.code)) {
           setLoading(false);
