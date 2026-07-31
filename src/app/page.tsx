@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
-import { collection, getDocs, query, limit } from 'firebase/firestore';
+import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Optimized for Instant Paint.
- * Added SSR Timeout Guard to prevent 10-second hangs on slow connectivity.
+ * @fileOverview ShopyKart High-Performance Entry.
+ * Optimized with Split-Payload SSR for instant authentic paint.
  */
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 function sanitizeDoc(doc: any) {
   const data = doc.data();
   const id = doc.id;
-  const plain: any = { 
+  return { 
     id, 
     name: data.name || '',
     price: data.price || 0,
@@ -41,15 +41,13 @@ function sanitizeDoc(doc: any) {
     town: data.town || 'Local',
     slug: data.slug || ''
   };
-  return plain;
 }
 
 async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
-  // TURBO SSR GUARD: Do not wait more than 2.5s for Firestore. 
-  // If slow, return empty and let the client-side cache take over instantly.
+  // TURBO SSR GUARD: 2.5s Strict Timeout
   const fetchTimeout = new Promise((_, reject) => 
     setTimeout(() => reject(new Error('SSR_TIMEOUT')), 2500)
   );
@@ -59,7 +57,8 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'banners'), limit(10))),
       getDocs(query(collection(firestore, 'categories'), limit(50))),
       getDocs(query(collection(firestore, 'vendors'), limit(100))),
-      getDocs(query(collection(firestore, 'products'), limit(2000))) 
+      // SSR Limit reduced to 150 for instant HTML delivery, Client will fetch rest
+      getDocs(query(collection(firestore, 'products'), limit(150))) 
     ]);
 
     const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.race([
@@ -74,7 +73,6 @@ async function getInitialData() {
       products: productsSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
-    // Return empty results on timeout or error to allow immediate client paint
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }

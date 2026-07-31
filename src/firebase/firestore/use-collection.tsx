@@ -12,16 +12,17 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview ULTRA-FAST Instant-Initialize Hook with SSR Support.
- * Optimized for zero-latency paint by initializing state synchronously and suppressing connectivity errors.
+ * @fileOverview OMNI-INSTANT Hook.
+ * Optimized for zero-latency paint by initializing state synchronously.
+ * Strictly uses authentic data from SSR props or sessionStorage cache.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Initial State Resolution (Synchronous)
+  // 1. Synchronous Initialization
   const [data, setData] = useState<T[] | null>(() => {
-    // Priority 1: SSR Data (Immediate Visibility)
+    // Priority 1: Authentic SSR Data (Instant Paint)
     if (initialData && initialData.length > 0) return initialData;
     
-    // Priority 2: Session Cache (Bypasses Network on refresh)
+    // Priority 2: Authentic Session Cache (Instant Recovery)
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
@@ -35,11 +36,10 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
-  // CRITICAL: Loading must be false if we have ANY data (SSR or Cache) to prevent skeletons
+  // CRITICAL: Loading is FALSE immediately if we have any authentic data
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
-  // Memoize query to prevent redundant effect triggers
   const queryStr = query ? JSON.stringify((query as any)._query || {}) : '';
 
   useEffect(() => {
@@ -67,10 +67,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         }
       },
       async (err: FirestoreError) => {
-        // AGGRESSIVE ERROR SUPPRESSION: Connectivity and Quota errors should be silent
-        // to prevent Error Boundaries from triggering on slow internet.
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
-        
         if (silentCodes.includes(err.code)) {
           setLoading(false);
           return;

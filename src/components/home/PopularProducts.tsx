@@ -10,17 +10,16 @@ import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
   
-  const now = new Date();
+  // If we don't have currentMins, we do a raw check (unsafe for hydration, but good for local)
   const mins = (currentMins !== undefined && currentMins !== null) 
     ? currentMins 
-    : now.getHours() * 60 + now.getMinutes();
+    : (new Date().getHours() * 60 + new Date().getMinutes());
 
   const parseTime = (t: string) => {
     try {
@@ -43,7 +42,8 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts - Optimized for instant first-paint of the FULL catalog.
+ * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint.
+ * Authenticity strictly maintained. Zero skeletons if initial data exists.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -63,20 +63,24 @@ export function PopularProducts({
   const router = useRouter();
   const { toast } = useToast();
   
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
+    return null;
+  });
+  
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
-    updateZone();
     window.addEventListener('user-address-updated', updateZone);
 
-    const syncTime = () => {
-      const now = new Date();
-      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
-    };
-    syncTime();
-    const interval = setInterval(syncTime, 60000);
+    const now = new Date();
+    setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    
+    const interval = setInterval(() => {
+      const d = new Date();
+      setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes());
+    }, 60000);
 
     return () => {
       window.removeEventListener('user-address-updated', updateZone);
@@ -99,19 +103,19 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
 
   const productsToDisplay = useMemo(() => {
-    // PRIORITY 1: REAL-TIME DB, PRIORITY 2: FULL SSR CATALOG
+    // SYNC DATA SELECTION: Real-time > SSR Cache
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
     
+    if (!products) return [];
+
     return products.filter(p => {
       const vendor = vendorMap.get(p.vendorId);
       
       if (activeZoneId) {
-        const pZone = p.zoneId;
-        const vZone = vendor?.zoneId;
-        if (vZone && vZone !== activeZoneId) return false;
-        if (pZone && pZone !== activeZoneId) return false;
+        if (vendor?.zoneId && vendor.zoneId !== activeZoneId) return false;
+        if (p.zoneId && p.zoneId !== activeZoneId) return false;
       }
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -144,32 +148,31 @@ export function PopularProducts({
     } catch (err) {}
   };
 
-  // Only show skeletons if we have ABSOLUTELY zero data (SSR failed and no real-time yet)
-  const isActuallyEmpty = productsToDisplay.length === 0 && productsLoading;
+  // Skeletons strictly disabled if any authentic data is available
+  if (productsToDisplay.length === 0 && !productsLoading) {
+    return (
+      <div className="text-center py-20 opacity-30 flex flex-col items-center">
+        <Store className="h-16 w-16 mb-4" />
+        <p className="font-black italic uppercase text-xs">No authentic products found in this area</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 py-6 min-h-[400px]">
+    <div className="px-4 py-6">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
         </h2>
-        <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg shadow-primary/20">
-          {productsToDisplay.length} ITEMS
-        </Badge>
+        {productsToDisplay.length > 0 && (
+          <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg">
+            {productsToDisplay.length} ITEMS
+          </Badge>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
-        {isActuallyEmpty ? (
-          [1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">
-               <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
-               <div className="space-y-2 px-1">
-                  <Skeleton className="h-2 w-2/3 rounded-full" />
-                  <Skeleton className="h-3 w-full rounded-full" />
-               </div>
-            </div>
-          ))
-        ) : productsToDisplay.map((product) => {
+        {productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
           const vendor = vendorList.find(v => v.id === product.vendorId);
@@ -177,13 +180,13 @@ export function PopularProducts({
 
           return (
             <div key={product.id} className={cn(
-              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu",
-              isOffline && "opacity-80"
+              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-none transform-gpu",
+              isOffline && "opacity-80 grayscale-[0.3]"
             )}>
               <div className="relative aspect-square w-full mb-3">
                 <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
                    <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
-                      <Image src={product.imageUrl} alt={product.name} fill className={cn("object-cover", isOffline && "grayscale")} unoptimized />
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
                       {isOffline && (
                         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center z-10">
                           <Store className="h-5 w-5 text-white/70 mb-1" />
@@ -192,7 +195,7 @@ export function PopularProducts({
                       )}
                    </div>
                 </ProductQuickView>
-                <button onClick={(e) => handleShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 transition-all z-30">
+                <button onClick={(e) => handleShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
                   <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
                 </button>
               </div>
@@ -201,17 +204,14 @@ export function PopularProducts({
                 <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
                   {product.restaurantName || 'ShopyKart Select'}
                 </p>
-                
-                <div onClick={() => router.push(`/product/${product.slug || product.id}`)} className="cursor-pointer">
-                  <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
-                </div>
+                <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
                 
                 <div className="mt-auto flex items-center justify-between">
                   <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
                   {!isOffline ? (
                     quantity === 0 ? (
                       <ProductQuickView product={product} vendorScheduleOpen={true}>
-                        <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20">ADD</button>
+                        <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20 active:scale-95 transition-all">ADD</button>
                       </ProductQuickView>
                     ) : (
                       <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
