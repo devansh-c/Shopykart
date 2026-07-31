@@ -5,7 +5,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Optimized for Instant Paint.
- * Fetches critical "above-the-fold" data on server for sub-100ms response.
+ * Fetches the ENTIRE catalog on server for zero-latency initial view.
  */
 
 export const metadata: Metadata = {
@@ -25,14 +25,24 @@ export const metadata: Metadata = {
 function sanitizeDoc(doc: any) {
   const data = doc.data();
   const id = doc.id;
-  const plain: any = { id, ...data };
-  if (plain.createdAt && typeof plain.createdAt.toMillis === 'function') {
-    plain.createdAt = { seconds: plain.createdAt.seconds, nanoseconds: plain.createdAt.nanoseconds };
-  }
-  if (plain.updatedAt && typeof plain.updatedAt.toMillis === 'function') {
-    plain.updatedAt = { seconds: plain.updatedAt.seconds, nanoseconds: plain.updatedAt.nanoseconds };
-  }
-  return JSON.parse(JSON.stringify(plain));
+  // We only send essential fields to reduce SSR payload size
+  const plain: any = { 
+    id, 
+    name: data.name || '',
+    price: data.price || 0,
+    imageUrl: data.imageUrl || '',
+    category: data.category || '',
+    vendorId: data.vendorId || '',
+    restaurantName: data.restaurantName || '',
+    serviceMode: data.serviceMode || 'Food',
+    isVeg: data.isVeg !== false,
+    isTopTen: data.isTopTen || false,
+    isAvailable: data.isAvailable !== false,
+    zoneId: data.zoneId || null,
+    town: data.town || 'Local',
+    slug: data.slug || ''
+  };
+  return plain;
 }
 
 async function getInitialData() {
@@ -40,13 +50,12 @@ async function getInitialData() {
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
   try {
-    // LIGHTWEIGHT SSR ENGINE: Fetch only enough for first screen view
-    // Reduced product limit to 60 for near-instant HTML delivery
+    // FULL CATALOG FETCH: 2000 items to ensure "Pure Products" are there haal-ke-haal
     const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(6))),
-      getDocs(query(collection(firestore, 'categories'), limit(20))),
-      getDocs(query(collection(firestore, 'vendors'), limit(30))),
-      getDocs(query(collection(firestore, 'products'), limit(60))) 
+      getDocs(query(collection(firestore, 'banners'), limit(10))),
+      getDocs(query(collection(firestore, 'categories'), limit(50))),
+      getDocs(query(collection(firestore, 'vendors'), limit(100))),
+      getDocs(query(collection(firestore, 'products'), limit(2000))) 
     ]);
 
     return {
@@ -56,7 +65,7 @@ async function getInitialData() {
       products: productsSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
-    console.error("SSR Speed Fetch failed:", e);
+    console.error("SSR Full-Catalog Fetch failed:", e);
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }

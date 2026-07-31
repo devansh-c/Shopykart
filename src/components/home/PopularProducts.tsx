@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
@@ -44,8 +43,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts with Synchronous Paint logic.
- * Optimized for GPU-accelerated rendering and instant state hydration.
+ * @fileOverview PopularProducts - Optimized for instant first-paint of the FULL catalog.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -91,16 +89,17 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced', initialData);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
 
   const productsToDisplay = useMemo(() => {
+    // PRIORITY 1: REAL-TIME DB, PRIORITY 2: FULL SSR CATALOG
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
@@ -126,7 +125,9 @@ export function PopularProducts({
       const vendorB = vendorMap.get(b.vendorId);
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA, currentTimeMinutes)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB, currentTimeMinutes)) : true;
+      
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
+      
       const ratingA = Number(vendorA?.rating) || 0;
       const ratingB = Number(vendorB?.rating) || 0;
       return ratingB - ratingA;
@@ -143,7 +144,8 @@ export function PopularProducts({
     } catch (err) {}
   };
 
-  const showSkeleton = productsToDisplay.length === 0 && productsLoading;
+  // Only show skeletons if we have ABSOLUTELY zero data (SSR failed and no real-time yet)
+  const isActuallyEmpty = productsToDisplay.length === 0 && productsLoading;
 
   return (
     <div className="px-4 py-6 min-h-[400px]">
@@ -157,7 +159,7 @@ export function PopularProducts({
       </div>
 
       <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
-        {showSkeleton ? (
+        {isActuallyEmpty ? (
           [1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">
                <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
@@ -169,7 +171,8 @@ export function PopularProducts({
           ))
         ) : productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const vendor = vendors?.find(v => v.id === product.vendorId) || initialStores.find(v => v.id === product.vendorId);
+          const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
+          const vendor = vendorList.find(v => v.id === product.vendorId);
           const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
           return (

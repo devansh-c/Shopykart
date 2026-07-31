@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -14,15 +13,15 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-FAST Instant-Initialize Hook with SSR Support.
- * Optimized for zero-latency paint by initializing state synchronously.
+ * Optimized for zero-latency paint by initializing state synchronously and suppressing loading state if data exists.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. Initial State Resolution (Synchronous)
   const [data, setData] = useState<T[] | null>(() => {
-    // Priority 1: SSR Data
+    // Priority 1: SSR Data (Immediate Visibility)
     if (initialData && initialData.length > 0) return initialData;
     
-    // Priority 2: Session Cache
+    // Priority 2: Session Cache (Bypasses Network on refresh)
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
@@ -36,11 +35,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
-  // CRITICAL: Loading must be false if we have ANY data (SSR or Cache)
+  // CRITICAL: Loading must be false if we have ANY data (SSR or Cache) to prevent skeletons
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
-  // Track query ref to prevent redundant effects
+  // Memoize query to prevent redundant effect triggers
   const queryStr = query ? JSON.stringify((query as any)._query || {}) : '';
 
   useEffect(() => {
@@ -61,6 +60,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
+        // Background cache update
         if (cacheKey && typeof window !== 'undefined') {
           try {
             sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
@@ -87,7 +87,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [queryStr, cacheKey]);
+  }, [queryStr, cacheKey]); // Removed 'data' from dependencies to fix infinite loop
 
   return { data, loading, error };
 }
