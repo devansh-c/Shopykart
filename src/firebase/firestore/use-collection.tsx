@@ -12,31 +12,33 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook v4.
- * Optimized for 0-second loading using LocalStorage Caching.
- * Synchronously initializes state from Cache/Props to eliminate all render blinks.
+ * @fileOverview OMNI-INSTANT Hook v5.
+ * Optimized for TRUE 0-second loading using Synchronous LocalStorage Initializer.
+ * Strictly plain-objects only for Next.js compatibility.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Synchronous Initialization: Read from SSR Props OR LocalStorage IMMEDIATELY
+  // 1. Synchronous Initialization: Immediate read from Cache or Props
+  // This executes during the very first render cycle.
   const [data, setData] = useState<T[] | null>(() => {
-    // Priority 1: Authentic SSR Data (Fresh from Server)
+    // Priority 1: SSR Props (Authentic & Fresh)
     if (initialData && initialData.length > 0) return initialData;
     
-    // Priority 2: Persistent LocalStorage Cache (For 0-second startup)
-    if (typeof window === 'undefined' || !cacheKey) return null;
-    try {
-      const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        return Array.isArray(parsed) ? parsed : null;
+    // Priority 2: LocalStorage Cache (Instant)
+    if (typeof window !== 'undefined' && cacheKey) {
+      try {
+        const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          return Array.isArray(parsed) ? parsed : null;
+        }
+      } catch (e) {
+        return null;
       }
-    } catch (e) {
-      return null;
     }
     return null;
   });
   
-  // CRITICAL: Loading is FALSE immediately if we have any data (cached or SSR)
+  // loading is false if we have any source of truth available synchronously
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
@@ -48,30 +50,33 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
-    // 2. Background Sync: Fetch live data silently and update state/cache
+    // 2. Background Sync: Silent update from Firestore
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
-        const items = snapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id,
-        }));
+        // Plain object conversion
+        const items = snapshot.docs.map(doc => {
+          const rawData = doc.data();
+          const cleanData = JSON.parse(JSON.stringify(rawData));
+          return {
+            ...cleanData,
+            id: doc.id,
+          };
+        });
         
         setData(items as T[]);
         setLoading(false);
         setError(null);
         
-        // Update LocalStorage for next app open
+        // Persistent Cache update
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e) {
-            console.warn("Storage quota exceeded, caching skipped.");
-          }
+          } catch (e) {}
         }
       },
       async (err: FirestoreError) => {
-        // Silent Fail for connectivity issues to keep showing cached data
+        // Silent Fail: Keep showing cached/SSR data on network issues
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
         if (silentCodes.includes(err.code)) {
           setLoading(false);
