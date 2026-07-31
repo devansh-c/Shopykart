@@ -41,8 +41,8 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v4.
- * Uses Server-Side Pre-Sorted data to eliminate initial sort delays for 2000 items.
+ * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v5.
+ * Uses Synchronous Hydration from LocalStorage and SSR to eliminate white screens.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -62,14 +62,11 @@ export function PopularProducts({
   const router = useRouter();
   const { toast } = useToast();
   
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('active_zone_id');
-    return null;
-  });
-  
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
 
   useEffect(() => {
+    setActiveZoneId(localStorage.getItem('active_zone_id'));
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     window.addEventListener('user-address-updated', updateZone);
 
@@ -92,6 +89,7 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
+  // High-Speed Hook: Loads from initialData (SSR) or LocalStorage instantly
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -102,19 +100,14 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
 
   const productsToDisplay = useMemo(() => {
-    const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
-    const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
+    const products = dbProducts || initialData;
+    const vendorList = vendors || initialStores;
     
     if (!products || products.length === 0) return [];
 
-    // Filter Logic First (O(n))
     const filtered = products.filter(p => {
       const vendorMatch = vendorList.find(v => v.id === p.vendorId);
-      
-      if (activeZoneId) {
-        if (vendorMatch?.zoneId && vendorMatch.zoneId !== activeZoneId) return false;
-        if (p.zoneId && p.zoneId !== activeZoneId) return false;
-      }
+      if (activeZoneId && vendorMatch?.zoneId && vendorMatch.zoneId !== activeZoneId) return false;
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       const searchMatch = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -124,26 +117,16 @@ export function PopularProducts({
       return modeMatch && searchMatch && catMatch && !isDeleted;
     });
 
-    // LEAN SORTING ENGINE
-    // If no search/filter is active, data is already pre-sorted by rating on server
-    if (!searchQuery && category === 'all') {
-      return filtered;
-    }
+    if (!searchQuery && category === 'all') return filtered;
 
-    // Dynamic sort for filtered/searched results
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
     return filtered.sort((a, b) => {
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
-      
       const isOnlineA = vendorA ? (vendorA.isOnline !== false && isStoreScheduleOpen(vendorA, currentTimeMinutes)) : true;
       const isOnlineB = vendorB ? (vendorB.isOnline !== false && isStoreScheduleOpen(vendorB, currentTimeMinutes)) : true;
-      
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
-      
-      const ratingA = Number(vendorA?.rating) || 0;
-      const ratingB = Number(vendorB?.rating) || 0;
-      return ratingB - ratingA;
+      return (Number(vendorB?.rating) || 0) - (Number(vendorA?.rating) || 0);
     });
   }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
@@ -157,7 +140,18 @@ export function PopularProducts({
     } catch (err) {}
   };
 
-  const showLoading = productsLoading && productsToDisplay.length === 0;
+  // Only show central loader if we have NO data from any source
+  if (productsLoading && productsToDisplay.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Catalog...</p>
+      </div>
+    );
+  }
+
+  // Prevent showing empty header if list is being built
+  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
 
   return (
     <div className="px-4 py-6">
@@ -170,69 +164,69 @@ export function PopularProducts({
         </Badge>
       </div>
 
-      {showLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Catalog...</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
-          {productsToDisplay.map((product) => {
-            const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-            const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
-            const vendor = vendorList.find(v => v.id === product.vendorId);
-            const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
+      <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
+        {productsToDisplay.map((product) => {
+          const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
+          const vendorList = vendors || initialStores;
+          const vendor = vendorList.find(v => v.id === product.vendorId);
+          const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
-            return (
-              <div key={product.id} className={cn(
-                "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-none transform-gpu",
-                isOffline && "opacity-80 grayscale-[0.3]"
-              )}>
-                <div className="relative aspect-square w-full mb-3">
-                  <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-                     <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
-                        <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-                        {isOffline && (
-                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center z-10">
-                            <Store className="h-5 w-5 text-white/70 mb-1" />
-                            <span className="text-white font-black text-[9px] uppercase italic border border-white/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">Closed Now</span>
-                          </div>
-                        )}
-                     </div>
-                  </ProductQuickView>
-                  <button onClick={(e) => handleShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
-                    <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
-                  </button>
-                </div>
-
-                <div className="flex-1 flex flex-col px-1">
-                  <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
-                    {product.restaurantName || 'ShopyKart Select'}
-                  </p>
-                  <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
-                  
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
-                    {!isOffline ? (
-                      quantity === 0 ? (
-                        <ProductQuickView product={product} vendorScheduleOpen={true}>
-                          <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20 active:scale-95 transition-all">ADD</button>
-                        </ProductQuickView>
-                      ) : (
-                        <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
-                          <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center"><Minus className="h-3 w-3 stroke-[3]" /></button>
-                          <span className="text-[10px] font-black w-4 text-center">{quantity}</span>
-                          <button onClick={() => addToCart({...product, quantity: 1})} className="w-6 h-full flex items-center justify-center"><Plus className="h-3 w-3 stroke-[3]" /></button>
+          return (
+            <div key={product.id} className={cn(
+              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-none transform-gpu",
+              isOffline && "opacity-80 grayscale-[0.3]"
+            )}>
+              <div className="relative aspect-square w-full mb-3">
+                <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
+                   <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
+                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+                      {isOffline && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center z-10">
+                          <Store className="h-5 w-5 text-white/70 mb-1" />
+                          <span className="text-white font-black text-[9px] uppercase italic border border-white/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">Closed Now</span>
                         </div>
-                      )
+                      )}
+                   </div>
+                </ProductQuickView>
+                <button onClick={(e) => handleShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
+                  <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
+                </button>
+              </div>
+
+              <div className="flex-1 flex flex-col px-1">
+                <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
+                  {product.restaurantName || 'ShopyKart Select'}
+                </p>
+                <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
+                
+                <div className="mt-auto flex items-center justify-between">
+                  <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
+                  {!isOffline ? (
+                    quantity === 0 ? (
+                      <ProductQuickView product={product} vendorScheduleOpen={true}>
+                        <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20 active:scale-95 transition-all">ADD</button>
+                      </ProductQuickView>
                     ) : (
-                      <div className="bg-gray-800 text-gray-500 h-8 px-3 rounded-full font-black text-[8px] uppercase flex items-center">OFFLINE</div>
-                    )}
-                  </div>
+                      <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
+                        <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center"><Minus className="h-3 w-3 stroke-[3]" /></button>
+                        <span className="text-[10px] font-black w-4 text-center">{quantity}</span>
+                        <button onClick={() => addToCart({...product, quantity: 1})} className="w-6 h-full flex items-center justify-center"><Plus className="h-3 w-3 stroke-[3]" /></button>
+                      </div>
+                    )
+                  ) : (
+                    <div className="bg-gray-800 text-gray-500 h-8 px-3 rounded-full font-black text-[8px] uppercase flex items-center">OFFLINE</div>
+                  )}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Red loading spinner at the bottom when background sync is active */}
+      {productsLoading && productsToDisplay.length > 0 && (
+        <div className="flex justify-center py-10">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>

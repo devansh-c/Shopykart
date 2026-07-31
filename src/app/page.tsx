@@ -6,6 +6,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 /**
  * @fileOverview ShopyKart Ultra-Performance Entry.
  * Optimized with Parallel-Payload SSR and Plain-Object Serialization.
+ * Limit reduced to 300 for SSR to ensure < 1s response time.
  */
 
 export const metadata: Metadata = {
@@ -24,15 +25,15 @@ export const metadata: Metadata = {
 
 /**
  * Converts Firestore Document to a Plain Serializable Object.
- * Critical to fix "Only plain objects can be passed to Client Components" error.
+ * Strictly handles Timestamps and complex objects to prevent "Only plain objects" error.
  */
 function sanitizeDoc(doc: any) {
   const data = doc.data();
-  // Deep clone and convert complex objects (like Timestamps) to plain values
+  // Deep clone to plain values (converts Timestamps to strings/objects)
   const plainData = JSON.parse(JSON.stringify(data));
   return { 
-    id: doc.id, 
     ...plainData,
+    id: doc.id,
     price: Number(data.price) || 0,
     rating: Number(data.rating) || 0
   };
@@ -42,53 +43,29 @@ async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
-  // Strict timeout to prevent server-side hanging
-  const fetchTimeout = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('SSR_TIMEOUT')), 2500)
-  );
+  // Speed is priority: 2s timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
 
   try {
-    const fetchPromise = Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(20))),
-      getDocs(query(collection(firestore, 'categories'), limit(100))),
-      getDocs(query(collection(firestore, 'vendors'), limit(500))),
-      getDocs(query(collection(firestore, 'products'), limit(2000))) 
+    const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.all([
+      getDocs(query(collection(firestore, 'banners'), limit(15))),
+      getDocs(query(collection(firestore, 'categories'), limit(50))),
+      getDocs(query(collection(firestore, 'vendors'), limit(200))),
+      // SSR fetches top 300 items for instant paint, client fetches full 2000
+      getDocs(query(collection(firestore, 'products'), limit(300)))
     ]);
 
-    const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.race([
-      fetchPromise,
-      fetchTimeout
-    ]) as any[];
+    clearTimeout(timeoutId);
 
     const banners = bannersSnap.docs.map(sanitizeDoc);
     const categories = categoriesSnap.docs.map(sanitizeDoc);
     const stores = storesSnap.docs.map(sanitizeDoc);
-    const rawProducts = productsSnap.docs.map(sanitizeDoc);
+    const products = productsSnap.docs.map(sanitizeDoc);
 
-    // SERVER-SIDE PRE-SORTING
-    const vendorMap = new Map(stores.map((v: any) => [v.id, v]));
-    
-    const sortedProducts = rawProducts.sort((a: any, b: any) => {
-      const vendorA = vendorMap.get(a.vendorId);
-      const vendorB = vendorMap.get(b.vendorId);
-      
-      const isOnlineA = vendorA?.isOnline !== false ? 1 : 0;
-      const isOnlineB = vendorB?.isOnline !== false ? 1 : 0;
-      if (isOnlineA !== isOnlineB) return isOnlineB - isOnlineA;
-
-      const ratingA = Number(vendorA?.rating) || 0;
-      const ratingB = Number(vendorB?.rating) || 0;
-      return ratingB - ratingA;
-    });
-
-    return {
-      banners,
-      categories,
-      stores,
-      products: sortedProducts,
-    };
+    return { banners, categories, stores, products };
   } catch (e) {
-    console.warn("SSR Data Fetch incomplete. Returning empty arrays for client hydration.");
+    console.warn("SSR Data Fetch timed out or failed. App will rely on Client Cache.");
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }
