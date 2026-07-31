@@ -1,14 +1,15 @@
+
 "use client"
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Map, ShoppingCart, User, Home } from 'lucide-react';
+import { Map, ShoppingCart, User, Home, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
 import React, { useMemo } from 'react';
 
 /**
- * @fileOverview Compact Bottom Navigation.
- * Height reduced from 85px to 68px for a sleeker look.
+ * @fileOverview Compact Bottom Navigation with Rewards section.
+ * Height maintained at 68px for a sleek look with 5 items.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -27,6 +28,7 @@ export default function BottomNav() {
 
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },
+    { label: 'Rewards', icon: Gift, href: '/rewards' },
     { label: 'Track', icon: Map, href: '/orders' },
     { label: 'Cart', icon: ShoppingCart, href: '/cart' },
     { label: 'Profile', icon: User, href: '/profile' },
@@ -72,7 +74,7 @@ export default function BottomNav() {
               </div>
               
               <span className={cn(
-                "text-[10px] font-bold tracking-tight leading-none mt-1 uppercase",
+                "text-[9px] font-bold tracking-tight leading-none mt-1 uppercase",
                 isActive ? "text-primary" : "text-gray-900"
               )}>
                 {item.label}
