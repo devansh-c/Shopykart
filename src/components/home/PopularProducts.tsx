@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react"
@@ -44,6 +45,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
 /**
  * @fileOverview PopularProducts with Synchronous Paint logic.
+ * Optimized for GPU-accelerated rendering and instant state hydration.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -89,7 +91,6 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // Use initialData immediately
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -100,7 +101,6 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialStores);
 
   const productsToDisplay = useMemo(() => {
-    // If we have products, use them. Don't wait for loading: false.
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
@@ -143,7 +143,6 @@ export function PopularProducts({
     } catch (err) {}
   };
 
-  // If we have products to display, never show loader.
   const showSkeleton = productsToDisplay.length === 0 && productsLoading;
 
   return (
@@ -157,7 +156,7 @@ export function PopularProducts({
         </Badge>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
         {showSkeleton ? (
           [1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">

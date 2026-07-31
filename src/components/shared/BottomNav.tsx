@@ -5,17 +5,43 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Map, ShoppingCart, User, Home, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 
 /**
  * @fileOverview Compact Bottom Navigation with Rewards section.
- * Height maintained at 68px for a sleek look with 5 items.
+ * Height maintained at 68px.
+ * Features: Hide on Scroll Down, Show on Scroll Up.
  */
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems } = useCart();
   
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Minimum scroll threshold to avoid flickering
+      if (Math.abs(currentScrollY - lastScrollY.current) < 10) return;
+
+      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+        // Scrolling down - hide
+        setIsVisible(false);
+      } else {
+        // Scrolling up - show
+        setIsVisible(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
@@ -37,11 +63,16 @@ export default function BottomNav() {
   if (isExcludedPath) return null;
 
   return (
-    <div className="fixed bottom-6 left-0 right-0 z-[10000] px-5 flex justify-center pointer-events-none transform-gpu">
+    <div 
+      className={cn(
+        "fixed bottom-6 left-0 right-0 z-[10000] px-5 flex justify-center pointer-events-none transform-gpu transition-transform duration-500 ease-premium",
+        isVisible ? "translate-y-0" : "translate-y-[150%]"
+      )}
+    >
       <nav 
         className={cn(
-          "w-full max-w-md h-[68px] rounded-full flex items-center justify-around px-2 pointer-events-auto transition-all duration-500",
-          "bg-white border border-gray-100 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)]",
+          "w-full max-w-md h-[68px] rounded-full flex items-center justify-around px-2 pointer-events-auto",
+          "bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)]",
         )}
       >
         {navItems.map((item) => {

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Query, 
   onSnapshot, 
@@ -13,13 +14,15 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-FAST Instant-Initialize Hook with SSR Support.
- * Strictly avoids loading states when initialData is present.
+ * Optimized for zero-latency paint by initializing state synchronously.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // Initialize state with SSR data or cache immediately
+  // 1. Initial State Resolution (Synchronous)
   const [data, setData] = useState<T[] | null>(() => {
+    // Priority 1: SSR Data
     if (initialData && initialData.length > 0) return initialData;
     
+    // Priority 2: Session Cache
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
@@ -27,15 +30,18 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         const parsed = JSON.parse(cached);
         return Array.isArray(parsed) ? parsed : null;
       }
-      return null;
     } catch (e) {
       return null;
     }
+    return null;
   });
   
   // CRITICAL: Loading must be false if we have ANY data (SSR or Cache)
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
+  
+  // Track query ref to prevent redundant effects
+  const queryStr = query ? JSON.stringify((query as any)._query || {}) : '';
 
   useEffect(() => {
     if (!query) {
@@ -81,7 +87,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [query, cacheKey]); // Removed data from dependencies to prevent re-renders
+  }, [queryStr, cacheKey]);
 
   return { data, loading, error };
 }
