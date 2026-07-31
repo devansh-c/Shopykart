@@ -12,17 +12,17 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook v6.
- * Optimized for TRUE 0-second loading using Synchronous LocalStorage Initializer.
- * Prevents "deer mein dikhna" by injecting data before the first render completes.
+ * @fileOverview OMNI-INSTANT Hook v7.
+ * Optimized for TRUE 0-second loading using Aggressive Synchronous Initializer.
+ * Prevents flashing and skeletons by prioritizing LocalStorage Cache.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Synchronous Initialization: Pre-render data injection
+  // 1. Synchronous Initialization: Immediate state injection
   const [data, setData] = useState<T[] | null>(() => {
-    // A. Priority 1: SSR Props (If available and not empty)
+    // A. Priority 1: SSR Props (If available)
     if (initialData && initialData.length > 0) return initialData;
     
-    // B. Priority 2: Persistent LocalStorage Cache (Instant fallback)
+    // B. Priority 2: Persistent LocalStorage Cache
     if (typeof window !== 'undefined' && cacheKey) {
       try {
         const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
@@ -35,6 +35,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
+  // Loading is only true if we have ABSOLUTELY no data to show
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
@@ -47,14 +48,20 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
-    // 2. Real-time Background Sync
+    // 2. Real-time Background Sync - Silently updates the UI
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => {
           const rawData = doc.data();
-          // Ensure plain objects only
-          const cleanData = JSON.parse(JSON.stringify(rawData));
+          // Convert to plain objects and strip timestamps for stability
+          const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
+            if (value && typeof value === 'object' && value.seconds !== undefined) {
+              return new Date(value.seconds * 1000).toISOString();
+            }
+            return value;
+          }));
+          
           return {
             ...cleanData,
             id: doc.id,
@@ -65,7 +72,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
-        // Update Cache silently
+        // Update LocalStorage silently for next visit
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
@@ -74,6 +81,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         isFirstSync.current = false;
       },
       async (err: FirestoreError) => {
+        // Silently handle transient errors to keep the cached data visible
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
         if (silentCodes.includes(err.code)) {
           setLoading(false);

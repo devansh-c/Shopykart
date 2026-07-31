@@ -5,8 +5,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
  * @fileOverview ShopyKart Ultra-Performance Entry.
- * Optimized with Parallel-Payload SSR and Plain-Object Serialization.
- * Limit reduced to 300 for SSR to ensure < 1s response time.
+ * Optimized with Parallel-Payload SSR and Strict Serialization.
  */
 
 export const metadata: Metadata = {
@@ -24,13 +23,32 @@ export const metadata: Metadata = {
 };
 
 /**
- * Converts Firestore Document to a Plain Serializable Object.
- * Strictly handles Timestamps and complex objects to prevent "Only plain objects" error.
+ * Converts Firestore Document to a STRICT Plain Serializable Object.
+ * Handles Timestamps by converting them to ISO strings to satisfy Next.js 15 requirements.
  */
 function sanitizeDoc(doc: any) {
   const data = doc.data();
-  // Deep clone to plain values (converts Timestamps to strings/objects)
-  const plainData = JSON.parse(JSON.stringify(data));
+  const plainData: any = {};
+
+  // Manually iterate to ensure no complex objects leak through
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    
+    if (value && typeof value === 'object' && value.seconds !== undefined) {
+      // Firestore Timestamp detected - Convert to ISO string
+      plainData[key] = new Date(value.seconds * 1000).toISOString();
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      // Nested Object - Stringify and parse to strip class prototypes
+      try {
+        plainData[key] = JSON.parse(JSON.stringify(value));
+      } catch (e) {
+        plainData[key] = null;
+      }
+    } else {
+      plainData[key] = value;
+    }
+  });
+
   return { 
     ...plainData,
     id: doc.id,
@@ -43,27 +61,27 @@ async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
-  // Speed is priority: 2s timeout
+  // Speed is priority: 2.5s timeout for initial paint
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
 
   try {
     const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.all([
       getDocs(query(collection(firestore, 'banners'), limit(15))),
       getDocs(query(collection(firestore, 'categories'), limit(50))),
       getDocs(query(collection(firestore, 'vendors'), limit(200))),
-      // SSR fetches top 300 items for instant paint, client fetches full 2000
+      // SSR fetches top 300 items for instant paint, client fetches full 2000 in background
       getDocs(query(collection(firestore, 'products'), limit(300)))
     ]);
 
     clearTimeout(timeoutId);
 
-    const banners = bannersSnap.docs.map(sanitizeDoc);
-    const categories = categoriesSnap.docs.map(sanitizeDoc);
-    const stores = storesSnap.docs.map(sanitizeDoc);
-    const products = productsSnap.docs.map(sanitizeDoc);
-
-    return { banners, categories, stores, products };
+    return { 
+      banners: bannersSnap.docs.map(sanitizeDoc), 
+      categories: categoriesSnap.docs.map(sanitizeDoc), 
+      stores: storesSnap.docs.map(sanitizeDoc), 
+      products: productsSnap.docs.map(sanitizeDoc) 
+    };
   } catch (e) {
     console.warn("SSR Data Fetch timed out or failed. App will rely on Client Cache.");
     return { banners: [], categories: [], stores: [], products: [] };

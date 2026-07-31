@@ -41,8 +41,8 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v5.
- * Uses Synchronous Hydration from LocalStorage and SSR to eliminate white screens.
+ * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v6.
+ * Zero-Delay UI: Prioritizes initialData and Cache to eliminate skeletons completely.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -89,7 +89,7 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // High-Speed Hook: Loads from initialData (SSR) or LocalStorage instantly
+  // Omni-Instant Fetch: Loads from Cache or SSR instantly
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -100,8 +100,9 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
 
   const productsToDisplay = useMemo(() => {
-    const products = dbProducts || initialData;
-    const vendorList = vendors || initialStores;
+    // Priority: Database/Cache > SSR Props
+    const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
+    const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     
     if (!products || products.length === 0) return [];
 
@@ -140,7 +141,7 @@ export function PopularProducts({
     } catch (err) {}
   };
 
-  // Only show central loader if we have NO data from any source
+  // SKELETON SUPPRESSION: Only show loader if we have ABSOLUTELY NO data from any source
   if (productsLoading && productsToDisplay.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -150,7 +151,6 @@ export function PopularProducts({
     );
   }
 
-  // Prevent showing empty header if list is being built
   if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
 
   return (
@@ -159,15 +159,17 @@ export function PopularProducts({
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
         </h2>
-        <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg">
-          {productsToDisplay.length} ITEMS
-        </Badge>
+        {productsToDisplay.length > 0 && (
+          <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 py-1 rounded-full shadow-lg">
+            {productsToDisplay.length} ITEMS
+          </Badge>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
         {productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const vendorList = vendors || initialStores;
+          const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
           const vendor = vendorList.find(v => v.id === product.vendorId);
           const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
@@ -223,7 +225,7 @@ export function PopularProducts({
         })}
       </div>
       
-      {/* Red loading spinner at the bottom when background sync is active */}
+      {/* Red loading spinner at the bottom ONLY during active background sync */}
       {productsLoading && productsToDisplay.length > 0 && (
         <div className="flex justify-center py-10">
           <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
