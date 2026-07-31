@@ -12,17 +12,17 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook.
- * Optimized for zero-latency paint by initializing state synchronously.
- * Strictly uses authentic data from SSR props or sessionStorage cache.
+ * @fileOverview OMNI-INSTANT Hook v3.
+ * Optimized for zero-latency paint by initializing state synchronously from Props.
+ * Eliminates all hydration blinks and loading states for authentic data.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Synchronous Initialization
+  // 1. Synchronous Initialization: State is populated BEFORE the first render cycle
   const [data, setData] = useState<T[] | null>(() => {
-    // Priority 1: Authentic SSR Data (Instant Paint)
+    // Priority 1: Authentic SSR Data (Full Payload passed from page.tsx)
     if (initialData && initialData.length > 0) return initialData;
     
-    // Priority 2: Authentic Session Cache (Instant Recovery)
+    // Priority 2: Authentic Session Cache (For fast sub-navigation)
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = sessionStorage.getItem(`fire_cache_${cacheKey}`);
@@ -36,7 +36,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
-  // CRITICAL: Loading is FALSE immediately if we have any authentic data
+  // CRITICAL: Loading is FALSE immediately if we have any authentic data from the server
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
@@ -67,6 +67,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         }
       },
       async (err: FirestoreError) => {
+        // Silent Fail: Don't block the UI if the backend is slow or throttled
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
         if (silentCodes.includes(err.code)) {
           setLoading(false);
