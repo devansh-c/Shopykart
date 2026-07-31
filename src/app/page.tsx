@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
-import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 
 /**
  * @fileOverview ShopyKart Main Entrance - Optimized for Instant Paint.
- * Fetches the ENTIRE catalog on server for zero-latency initial view.
+ * Added SSR Timeout Guard to prevent 10-second hangs on slow connectivity.
  */
 
 export const metadata: Metadata = {
@@ -25,7 +25,6 @@ export const metadata: Metadata = {
 function sanitizeDoc(doc: any) {
   const data = doc.data();
   const id = doc.id;
-  // We only send essential fields to reduce SSR payload size
   const plain: any = { 
     id, 
     name: data.name || '',
@@ -49,14 +48,24 @@ async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
+  // TURBO SSR GUARD: Do not wait more than 2.5s for Firestore. 
+  // If slow, return empty and let the client-side cache take over instantly.
+  const fetchTimeout = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('SSR_TIMEOUT')), 2500)
+  );
+
   try {
-    // FULL CATALOG FETCH: 2000 items to ensure "Pure Products" are there haal-ke-haal
-    const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.all([
+    const fetchPromise = Promise.all([
       getDocs(query(collection(firestore, 'banners'), limit(10))),
       getDocs(query(collection(firestore, 'categories'), limit(50))),
       getDocs(query(collection(firestore, 'vendors'), limit(100))),
       getDocs(query(collection(firestore, 'products'), limit(2000))) 
     ]);
+
+    const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.race([
+      fetchPromise,
+      fetchTimeout
+    ]) as any[];
 
     return {
       banners: bannersSnap.docs.map(sanitizeDoc),
@@ -65,7 +74,7 @@ async function getInitialData() {
       products: productsSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
-    console.error("SSR Full-Catalog Fetch failed:", e);
+    // Return empty results on timeout or error to allow immediate client paint
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }

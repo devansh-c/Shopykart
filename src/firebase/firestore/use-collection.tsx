@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Query, 
   onSnapshot, 
@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-FAST Instant-Initialize Hook with SSR Support.
- * Optimized for zero-latency paint by initializing state synchronously and suppressing loading state if data exists.
+ * Optimized for zero-latency paint by initializing state synchronously and suppressing connectivity errors.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. Initial State Resolution (Synchronous)
@@ -60,7 +60,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
-        // Background cache update
         if (cacheKey && typeof window !== 'undefined') {
           try {
             sessionStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
@@ -68,7 +67,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         }
       },
       async (err: FirestoreError) => {
-        if (err.code === 'resource-exhausted' || err.code === 'unavailable') {
+        // AGGRESSIVE ERROR SUPPRESSION: Connectivity and Quota errors should be silent
+        // to prevent Error Boundaries from triggering on slow internet.
+        const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
+        
+        if (silentCodes.includes(err.code)) {
           setLoading(false);
           return;
         }
@@ -87,7 +90,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [queryStr, cacheKey]); // Removed 'data' from dependencies to fix infinite loop
+  }, [queryStr, cacheKey]);
 
   return { data, loading, error };
 }
