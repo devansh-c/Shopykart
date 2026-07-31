@@ -5,7 +5,7 @@ import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
  * @fileOverview ShopyKart Ultra-Performance Entry.
- * Optimized with Parallel-Payload SSR for instant authentic paint of the full catalog (2000 items).
+ * Optimized with Parallel-Payload SSR and Server-Side Pre-Sorting by Rating.
  */
 
 export const metadata: Metadata = {
@@ -25,23 +25,12 @@ export const metadata: Metadata = {
 function sanitizeDoc(doc: any) {
   const data = doc.data();
   const id = doc.id;
-  // Keep payload minimal for high-speed transmission of 2000 items
   return { 
     id, 
-    name: data.name || '',
-    price: data.price || 0,
-    imageUrl: data.imageUrl || '',
-    category: data.category || '',
-    vendorId: data.vendorId || '',
-    restaurantName: data.restaurantName || '',
-    serviceMode: data.serviceMode || 'Food',
-    isVeg: data.isVeg !== false,
-    isTopTen: data.isTopTen || false,
-    isAvailable: data.isAvailable !== false,
-    zoneId: data.zoneId || null,
-    town: data.town || 'Local',
-    slug: data.slug || '',
-    options: data.options || []
+    ...data,
+    // Ensure numeric values for sorting safety
+    price: Number(data.price) || 0,
+    rating: Number(data.rating) || 0
   };
 }
 
@@ -49,7 +38,6 @@ async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
-  // TURBO SSR GUARD: 4s Timeout to ensure full 2000 items are fetched
   const fetchTimeout = new Promise((_, reject) => 
     setTimeout(() => reject(new Error('SSR_TIMEOUT')), 4000)
   );
@@ -59,7 +47,6 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'banners'), limit(20))),
       getDocs(query(collection(firestore, 'categories'), limit(100))),
       getDocs(query(collection(firestore, 'vendors'), limit(500))),
-      // Fetching all 2000 products PARALLEL for instant full-catalog paint
       getDocs(query(collection(firestore, 'products'), limit(2000))) 
     ]);
 
@@ -68,11 +55,35 @@ async function getInitialData() {
       fetchTimeout
     ]) as any[];
 
+    const banners = bannersSnap.docs.map(sanitizeDoc);
+    const categories = categoriesSnap.docs.map(sanitizeDoc);
+    const stores = storesSnap.docs.map(sanitizeDoc);
+    const rawProducts = productsSnap.docs.map(sanitizeDoc);
+
+    // SERVER-SIDE PRE-SORTING BY RATING & STATUS
+    // Pre-calculate a vendor rating map for high-speed product sorting
+    const vendorMap = new Map(stores.map((v: any) => [v.id, v]));
+    
+    const sortedProducts = rawProducts.sort((a: any, b: any) => {
+      const vendorA = vendorMap.get(a.vendorId);
+      const vendorB = vendorMap.get(b.vendorId);
+      
+      // 1. Online stores first
+      const isOnlineA = vendorA?.isOnline !== false ? 1 : 0;
+      const isOnlineB = vendorB?.isOnline !== false ? 1 : 0;
+      if (isOnlineA !== isOnlineB) return isOnlineB - isOnlineA;
+
+      // 2. Rating (High to Low)
+      const ratingA = Number(vendorA?.rating) || 0;
+      const ratingB = Number(vendorB?.rating) || 0;
+      return ratingB - ratingA;
+    });
+
     return {
-      banners: bannersSnap.docs.map(sanitizeDoc),
-      categories: categoriesSnap.docs.map(sanitizeDoc),
-      stores: storesSnap.docs.map(sanitizeDoc),
-      products: productsSnap.docs.map(sanitizeDoc),
+      banners,
+      categories,
+      stores,
+      products: sortedProducts,
     };
   } catch (e) {
     console.warn("SSR Data Fetch Timeout or Error. Returning partial results.");
