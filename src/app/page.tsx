@@ -4,8 +4,7 @@ import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Main Entrance - Optimized for Turbo-Hydration.
- * Fetches essential data on server, full catalog follows on client.
+ * @fileOverview ShopyKart Main Entrance - Optimized with Parallel SSR Fetching.
  */
 
 export const metadata: Metadata = {
@@ -40,13 +39,13 @@ async function getInitialData() {
   if (!firestore) return { banners: [], categories: [], stores: [], products: [] };
 
   try {
-    const bannersSnap = await getDocs(query(collection(firestore, 'banners'), limit(10)));
-    const categoriesSnap = await getDocs(query(collection(firestore, 'categories'), limit(20)));
-    const storesSnap = await getDocs(query(collection(firestore, 'vendors'), limit(100)));
-    
-    // FETCH LIMIT REDUCED TO 500 FOR SSR SPEED: This ensures the initial HTML arrives in < 500ms
-    // The client hook will then seamlessly load the full 2000 items in background.
-    const productsSnap = await getDocs(query(collection(firestore, 'products'), limit(500)));
+    // PARALLEL FETCH ENGINE: Fetch all essential collections at once
+    const [bannersSnap, categoriesSnap, storesSnap, productsSnap] = await Promise.all([
+      getDocs(query(collection(firestore, 'banners'), limit(10))),
+      getDocs(query(collection(firestore, 'categories'), limit(25))),
+      getDocs(query(collection(firestore, 'vendors'), limit(100))),
+      getDocs(query(collection(firestore, 'products'), limit(300))) // Balanced limit for fastest HTML arrival
+    ]);
 
     return {
       banners: bannersSnap.docs.map(sanitizeDoc),
@@ -55,7 +54,7 @@ async function getInitialData() {
       products: productsSnap.docs.map(sanitizeDoc),
     };
   } catch (e) {
-    console.error("SSR Fetch failed:", e);
+    console.error("SSR Parallel Fetch failed:", e);
     return { banners: [], categories: [], stores: [], products: [] };
   }
 }

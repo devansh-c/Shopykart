@@ -43,7 +43,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts with Synchronous SSR-to-Client transition.
+ * @fileOverview PopularProducts with Synchronous Paint logic.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -89,7 +89,7 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // CRITICAL: Initialize hook with initialData from SSR props
+  // Use initialData immediately
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_balanced', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -100,6 +100,7 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialStores);
 
   const productsToDisplay = useMemo(() => {
+    // If we have products, use them. Don't wait for loading: false.
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(vendorList.map(v => [v.id, v]));
@@ -142,8 +143,11 @@ export function PopularProducts({
     } catch (err) {}
   };
 
+  // If we have products to display, never show loader.
+  const showSkeleton = productsToDisplay.length === 0 && productsLoading;
+
   return (
-    <div className="px-4 py-6 min-h-[400px] transition-all">
+    <div className="px-4 py-6 min-h-[400px]">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
@@ -154,7 +158,7 @@ export function PopularProducts({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {productsToDisplay.length === 0 && productsLoading ? (
+        {showSkeleton ? (
           [1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white rounded-[2.5rem] p-3 border border-border/40 shadow-sm space-y-4">
                <Skeleton className="aspect-square w-full rounded-[1.5rem]" />
@@ -171,7 +175,7 @@ export function PopularProducts({
 
           return (
             <div key={product.id} className={cn(
-              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu animate-in fade-in duration-300",
+              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all active:scale-[0.98] transform-gpu",
               isOffline && "opacity-80"
             )}>
               <div className="relative aspect-square w-full mb-3">

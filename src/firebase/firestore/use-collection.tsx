@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview ULTRA-FAST Instant-Initialize Hook with SSR Support.
- * Optimized to prevent hydration flicker by accepting initialData.
+ * Strictly avoids loading states when initialData is present.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // Initialize state with SSR data or cache immediately
@@ -33,7 +33,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     }
   });
   
-  // If we have data (from props or cache), loading should be false from start
+  // CRITICAL: Loading must be false if we have ANY data (SSR or Cache)
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
 
@@ -81,7 +81,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     );
 
     return () => unsubscribe();
-  }, [query, cacheKey]); 
+  }, [query, cacheKey]); // Removed data from dependencies to prevent re-renders
 
   return { data, loading, error };
 }
