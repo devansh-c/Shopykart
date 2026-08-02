@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -97,7 +96,7 @@ export default function OrderManagement() {
       });
       
       if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `ShopyKart_${type === 'vendor' ? 'Vendor' : 'Admin'}_Bill_${id.slice(-5)}.jpg`);
+        saveAs(blob, `ShopyKart_Bill_${id.slice(-5)}.jpg`);
         toast({ title: "Receipt Saved!" });
       }
     } catch (err) {
@@ -127,7 +126,7 @@ export default function OrderManagement() {
       <html>
         <head>
           <style>
-            @page { margin: 0; size: 80mm auto; }
+            @page { margin: 0; size: 100mm auto; }
             body { margin: 0; padding: 0; display: flex; justify-content: center; font-family: monospace; }
             * { -webkit-print-color-adjust: exact; }
           </style>
@@ -150,41 +149,47 @@ export default function OrderManagement() {
     if (!orderData) return null;
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total?.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
+    
+    // Extract Unique Store Names
+    const storeNames = Array.from(new Set(orderData.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
+    
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
     const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
     
     return (
-      <div id={`receipt-content-customer-${orderData.id}`} className="bg-white text-black p-6 font-mono text-[10px] uppercase leading-tight w-[300px] border border-gray-100 shadow-xl">
-        <div className="text-center mb-4">
-          <h2 className="text-xl font-black italic tracking-tighter leading-none mb-1">SHOPYKART</h2>
-          <p className="text-[8px] whitespace-pre-line leading-tight">{settings?.receiptHeader || 'MAURANIPUR, UP'}</p>
+      <div id={`receipt-content-customer-${orderData.id}`} className="bg-white text-black p-8 font-mono text-[10px] uppercase leading-tight w-[380px] border border-gray-100 shadow-xl">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-black italic tracking-tighter leading-none mb-1">SHOPYKART</h2>
+          <p className="text-[7px] font-bold opacity-70 mb-3 tracking-widest">PREMIUM DELIVERY NETWORK</p>
+          <p className="text-[8px] whitespace-pre-line leading-tight opacity-80">{settings?.receiptHeader || 'MAURANIPUR, UP'}</p>
         </div>
 
-        <div className="border-t border-dashed border-black my-2" />
+        <div className="border-t border-dashed border-black my-3" />
 
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
-          <div className="flex justify-between"><span>STORE:</span><span className="font-black text-right max-w-[120px]">{orderData.restaurantName || 'Gourmet Store'}</span></div>
-          <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
-          <div className="flex justify-between"><span>ADDRESS:</span><span className="font-black text-right max-w-[120px]">{orderData.address}</span></div>
-          <div className="flex justify-between"><span>PAYMENT:</span><span className="font-black">{orderData.paymentMethod === 'online' ? 'ONLINE' : 'CASH'}</span></div>
+          <div className="flex justify-between"><span>STORES:</span><span className="font-black text-right max-w-[180px] break-words">{storeNames}</span></div>
+          <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0,25)}</span></div>
+          <div className="flex justify-between"><span>PHONE:</span><span className="font-black">{orderData.customerPhone}</span></div>
+          <div className="flex justify-between items-start"><span>ADDRESS:</span><span className="font-black text-right max-w-[180px] leading-tight break-words">{orderData.address}</span></div>
+          <div className="flex justify-between"><span>PAYMENT:</span><span className="font-black">{orderData.paymentMethod === 'online' ? 'ONLINE PREPAID' : 'CASH ON DELIVERY'}</span></div>
         </div>
 
-        <div className="border-t border-dashed border-black my-2" />
+        <div className="border-t border-dashed border-black my-4" />
 
-        <table className="w-full text-[9px]">
+        <table className="w-full text-[9.5px]">
           <thead>
             <tr className="border-b border-dashed border-black">
-              <th className="text-left py-1" width="60%">ITEM</th>
-              <th className="text-center py-1" width="15%">QTY</th>
-              <th className="text-right py-1" width="25%">PRICE</th>
+              <th className="text-left py-2" width="60%">ITEM DESCRIPTION</th>
+              <th className="text-center py-2" width="15%">QTY</th>
+              <th className="text-right py-2" width="25%">PRICE</th>
             </tr>
           </thead>
           <tbody>
             {orderData.items?.map((item: any, i: number) => (
-              <tr key={i}>
-                <td className="py-2 pr-1 font-black leading-tight">{item.name} {item.selectedOption && `[${item.selectedOption.name}]`}</td>
+              <tr key={i} className="border-b border-dashed border-black/5">
+                <td className="py-2.5 pr-2 font-black leading-tight">{item.name} {item.selectedOption && `[${item.selectedOption.name}]`}</td>
                 <td className="text-center">X{item.quantity}</td>
                 <td className="text-right">{(item.price * item.quantity).toFixed(2)}</td>
               </tr>
@@ -192,29 +197,52 @@ export default function OrderManagement() {
           </tbody>
         </table>
         
-        <div className="border-t border-dashed border-black my-2 pt-2 space-y-1">
-           <div className="flex justify-between"><span>SUBTOTAL:</span><span className="font-black">₹{subtotal.toFixed(2)}</span></div>
-           {orderData.premiumPackaging && <div className="flex justify-between"><span>PREMIUM PACKING:</span><span className="font-black">₹10.00</span></div>}
-           {orderData.deliveryTip > 0 && <div className="flex justify-between"><span>RIDER TIP:</span><span className="font-black">₹{orderData.deliveryTip.toFixed(2)}</span></div>}
-           {orderData.couponDiscount > 0 && <div className="flex justify-between"><span>COUPON:</span><span className="font-black">-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
-           {orderData.coinDiscount > 0 && <div className="flex justify-between"><span>COINS:</span><span className="font-black">-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
+        <div className="border-t border-dashed border-black my-3 pt-3 space-y-1.5">
+           <div className="flex justify-between font-bold"><span>ITEMS SUBTOTAL:</span><span>₹{subtotal.toFixed(2)}</span></div>
+           
+           {/* Dynamic Tax & Charges */}
+           {orderData.charges?.map((c: any, idx: number) => (
+             <div key={idx} className="flex justify-between opacity-80 italic">
+               <span>{c.name?.toUpperCase()}:</span>
+               <span>₹{Number(c.amount || 0).toFixed(2)}</span>
+             </div>
+           ))}
+
+           {orderData.premiumPackaging && <div className="flex justify-between opacity-80 italic"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>}
+           {orderData.deliveryTip > 0 && <div className="flex justify-between opacity-80 italic"><span>RIDER TIP:</span><span>₹{orderData.deliveryTip.toFixed(2)}</span></div>}
+           {orderData.couponDiscount > 0 && <div className="flex justify-between text-green-700 font-bold"><span>COUPON DISCOUNT:</span><span>-₹{orderData.couponDiscount.toFixed(2)}</span></div>}
+           {orderData.coinDiscount > 0 && <div className="flex justify-between text-amber-700 font-bold"><span>COINS REDEEMED:</span><span>-₹{orderData.coinDiscount.toFixed(2)}</span></div>}
         </div>
 
-        <div className="border-t-2 border-black mt-2 pt-2 flex justify-between font-black text-sm italic"><span>TOTAL</span><span>₹{orderData.total?.toFixed(2)}</span></div>
+        <div className="border-t-2 border-black mt-4 pt-3 flex justify-between font-black text-lg italic tracking-tighter">
+          <span>GRAND TOTAL</span>
+          <span>₹{orderData.total?.toFixed(2)}</span>
+        </div>
         
-        <div className="border-t border-dashed border-black my-3" />
+        <div className="border-t border-dashed border-black my-4" />
         
         {orderData.instructions && (
-           <div className="mb-4">
-              <span className="font-black block text-[8px]">CUSTOMER NOTE:</span>
-              <p className="text-[9px] leading-tight italic">{orderData.instructions}</p>
+           <div className="mb-5 p-2 bg-gray-50 border border-black/10">
+              <span className="font-black block text-[8px] mb-1">CUSTOMER SPECIAL NOTE:</span>
+              <p className="text-[10px] leading-tight italic lowercase">{orderData.instructions}</p>
            </div>
         )}
 
-        <div className="border border-dashed border-black p-3 text-center mb-3">
-           <img src={qrUrl} className="w-24 h-24 mx-auto grayscale" alt="QR" crossOrigin="anonymous" />
+        <div className="text-center space-y-4">
+           <div className="border border-dashed border-black p-4 inline-block mx-auto">
+              <img src={qrUrl} className="w-32 h-32 mx-auto grayscale" alt="QR" crossOrigin="anonymous" />
+              <p className="text-[7px] font-black mt-2 tracking-widest">SCAN TO PAY</p>
+           </div>
+           
+           <div className="space-y-1">
+             <p className="font-black text-xs italic">{settings?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
+             <p className="text-[7px] opacity-60 leading-relaxed px-4 break-words">{settings?.receiptFooter || 'THIS IS A COMPUTER GENERATED INVOICE. NO SIGNATURE REQUIRED.'}</p>
+           </div>
+           
+           <div className="pt-2">
+             <span className="text-[7px] font-black tracking-[0.4em] border border-black px-3 py-1">POWERED BY SHOPYKART</span>
+           </div>
         </div>
-        <div className="text-center text-[7px] font-black tracking-widest opacity-60">POWERED BY SHOPYKART</div>
       </div>
     );
   };
@@ -235,6 +263,9 @@ export default function OrderManagement() {
         {orders?.map((order: any) => {
           const isCancelled = order.status === 'Cancelled';
           const isDelivered = order.status === 'Delivered';
+          
+          // Compute unique stores for the card
+          const uniqueStores = Array.from(new Set(order.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
 
           return (
             <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/40 shadow-sm transition-all hover:shadow-xl group transform-gpu">
@@ -288,7 +319,7 @@ export default function OrderManagement() {
                  <div className="space-y-4 pt-1">
                     <div className="bg-white/60 p-1.5 rounded-full inline-flex items-center gap-2 border border-white pr-4">
                        <div className="bg-red-50 p-1.5 rounded-full text-red-500"><Store className="h-3.5 w-3.5" /></div>
-                       <span className="text-[10px] font-black uppercase text-red-800 tracking-tight">{order.restaurantName || 'Gourmet Store'}</span>
+                       <span className="text-[10px] font-black uppercase text-red-800 tracking-tight">{uniqueStores}</span>
                     </div>
 
                     <div className="space-y-2.5 px-1">
@@ -372,12 +403,12 @@ export default function OrderManagement() {
                       <Eye className="h-4 w-4" /> VIEW BILL
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000] border-none">
+                  <DialogContent className="max-w-[420px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000] border-none">
                      <DialogHeader className="sr-only">
                        <DialogTitle>Receipt Preview</DialogTitle>
                        <DialogDescription>Administrative copy of the order bill.</DialogDescription>
                      </DialogHeader>
-                     <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                     <div className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col items-center">
                         {generateCustomerReceiptDOM(order)}
                      </div>
                      <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
