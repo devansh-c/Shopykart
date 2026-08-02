@@ -21,7 +21,7 @@ import { addDays, format } from 'date-fns';
 
 /**
  * @fileOverview CEO Dashboard Stats.
- * Fixed: Verified Lucide icons and date-fns functions.
+ * Fixed: Robust date parsing for Chart data and improved bar visibility.
  */
 export default function AdminOverview() {
   const firestore = useFirestore();
@@ -112,6 +112,8 @@ export default function AdminOverview() {
 
   const chartData = useMemo(() => {
     if (!orders) return [];
+    
+    // Create baseline for last 7 days
     const last7Days = Array.from({ length: 7 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -122,18 +124,29 @@ export default function AdminOverview() {
       };
     });
 
+    // Populate data with robust parsing
     orders.forEach(order => {
+      let orderDate: string | null = null;
+      
+      // Handle both Timestamp objects and ISO strings from our Turbo Engine
       if (order.createdAt?.seconds) {
-        const orderDate = new Date(order.createdAt.seconds * 1000).toDateString();
+        orderDate = new Date(order.createdAt.seconds * 1000).toDateString();
+      } else if (typeof order.createdAt === 'string') {
+        orderDate = new Date(order.createdAt).toDateString();
+      }
+
+      if (orderDate) {
         const dayMatch = last7Days.find(d => d.fullDate === orderDate);
         if (dayMatch) {
-          dayMatch.amount += (order.total || 0);
+          dayMatch.amount += (Number(order.total) || 0);
         }
       }
     });
 
     return last7Days;
   }, [orders]);
+
+  const hasData = useMemo(() => chartData.some(d => d.amount > 0), [chartData]);
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-700">
@@ -148,47 +161,56 @@ export default function AdminOverview() {
                   <Badge className="bg-primary text-white font-black text-[10px]">REAL_TIME</Badge>
                </div>
             </div>
-            <CardContent className="p-8 h-[300px]">
+            <CardContent className="p-8 h-[320px] relative">
                {isMounted && orders ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <XAxis 
-                        dataKey="date" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        fontSize={10} 
-                        fontWeight="bold"
-                        tick={{ fill: '#94a3b8' }}
-                      />
-                      <YAxis hide />
-                      <ReChartsTooltip 
-                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-black text-white p-3 rounded-2xl shadow-2xl border border-white/10">
-                                <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{payload[0].payload.fullDate}</p>
-                                <p className="text-lg font-black italic">₹{payload[0].value}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar dataKey="amount" radius={[10, 10, 10, 10]} barSize={40}>
-                        {chartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={index === 6 ? '#EF4444' : '#f1f5f9'} 
-                            className="transition-all hover:opacity-80"
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  hasData ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <XAxis 
+                          dataKey="date" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          fontSize={10} 
+                          fontWeight="black"
+                          tick={{ fill: '#64748b' }}
+                        />
+                        <YAxis hide />
+                        <ReChartsTooltip 
+                          cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-black text-white p-3 rounded-2xl shadow-2xl border border-white/10">
+                                  <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{payload[0].payload.fullDate}</p>
+                                  <p className="text-lg font-black italic">₹{payload[0].value}</p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar dataKey="amount" radius={[12, 12, 12, 12]} barSize={35}>
+                          {chartData.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={index === 6 ? '#EF4444' : '#E2E8F0'} 
+                              className="transition-all hover:opacity-80"
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full w-full flex flex-col items-center justify-center text-center opacity-30">
+                       <TrendingUp className="h-12 w-12 mb-2" />
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                          No sales data found<br/>for the last 7 days.
+                       </p>
+                    </div>
+                  )
                ) : (
                  <div className="h-full w-full flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/20" />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary/20" />
                  </div>
                )}
             </CardContent>
