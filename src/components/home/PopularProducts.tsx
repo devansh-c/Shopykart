@@ -21,7 +21,9 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
   const parseTime = (t: string) => {
     try {
-      const [time, modifier] = t.trim().split(' ');
+      const parts = t.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
       let [hours, minutes] = time.split(':').map(Number);
       if (modifier === 'PM' && hours < 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
@@ -136,7 +138,6 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // Use SSR + Cache for zero delay
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -150,6 +151,7 @@ export function PopularProducts({
     const list = dbProducts || [];
     if (list.length === 0) return [];
 
+    // Filter based on Zone, Mode, Search and Category
     const filtered = list.filter(p => {
       const vendorMatch = vendors?.find(v => v.id === p.vendorId);
       if (activeZoneId && vendorMatch?.zoneId && vendorMatch.zoneId !== activeZoneId) return false;
@@ -161,6 +163,12 @@ export function PopularProducts({
       
       return modeMatch && searchMatch && catMatch && !isDeleted;
     });
+
+    // PERFORMANCE: If we have searchQuery or specific category, we re-sort on client.
+    // Otherwise, we keep the order provided by the SERVER (Pre-Sorted by Rating).
+    if (!searchQuery && category === 'all') {
+      return filtered;
+    }
 
     const vendorMap = new Map(vendors?.map(v => [v.id, v]) || []);
     return filtered.sort((a, b) => {
@@ -181,7 +189,6 @@ export function PopularProducts({
     else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
   };
 
-  // Synchronous Rendering Policy: If we have data (from cache or SSR), show it immediately.
   if (productsToDisplay.length === 0 && !productsLoading) return null;
 
   return (
@@ -215,7 +222,6 @@ export function PopularProducts({
             />
           );
         })}
-        {/* Only show skeletons if we have absolutely 0 data (even cached or SSR) */}
         {productsToDisplay.length === 0 && productsLoading && [1, 2].map(i => (
           <div key={i} className="bg-gray-100 animate-pulse h-60 rounded-[2.5rem]" />
         ))}

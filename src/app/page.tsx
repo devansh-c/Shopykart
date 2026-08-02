@@ -4,9 +4,9 @@ import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Ultra-Performance Entry v13.
- * Optimized for Google Crawler and Incognito: Fetches ALL critical UI data on server
- * so the initial HTML is fully populated and renders instantly.
+ * @fileOverview ShopyKart Ultra-Performance Entry v14.
+ * Optimized for Google Crawler and Incognito: Fetches and PRE-SORTS all critical data on server.
+ * Ensures the Correct Rating Order is rendered in the initial HTML for 0-second loading.
  */
 
 export const metadata: Metadata = {
@@ -24,8 +24,36 @@ export const metadata: Metadata = {
 };
 
 /**
+ * Helper to check store status on server during pre-sorting.
+ */
+function isStoreOpenOnServer(vendor: any) {
+  if (!vendor) return true;
+  if (!vendor.openingTime || !vendor.closingTime) return true;
+  
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (t: string) => {
+    try {
+      const parts = t.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
+      let [hours, minutes] = time.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    } catch (e) { return 0; }
+  };
+
+  const start = parseTime(vendor.openingTime);
+  const end = parseTime(vendor.closingTime);
+
+  return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
+}
+
+/**
  * Converts Firestore Document to a STRICT Plain Serializable Object.
- * Prevents "Only plain objects can be passed to Client Components" error.
+ * Converts Timestamps to ISO Strings to prevent Next.js serialization errors.
  */
 function sanitizeDoc(doc: any) {
   const data = doc.data();
@@ -34,11 +62,9 @@ function sanitizeDoc(doc: any) {
   Object.keys(data).forEach(key => {
     const value = data[key];
     if (value && typeof value === 'object' && value.seconds !== undefined) {
-      // Convert Timestamp to ISO String
       plainData[key] = new Date(value.seconds * 1000).toISOString();
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       try {
-        // Deep clone to remove class methods/hidden props
         plainData[key] = JSON.parse(JSON.stringify(value));
       } catch (e) {
         plainData[key] = null;
@@ -70,12 +96,32 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'products'), limit(200)))
     ]);
 
+    const vendors = vendorsSnap.docs.map(sanitizeDoc);
+    const vendorMap = new Map(vendors.map(v => [v.id, v]));
+
+    // SERVER-SIDE PRE-SORT: Sort products by Store Status and Rating before sending to browser
+    // This eliminates the client-side sorting lag (bakchodi khatam).
+    const sortedProducts = productsSnap.docs
+      .map(sanitizeDoc)
+      .sort((a, b) => {
+        const vA = vendorMap.get(a.vendorId);
+        const vB = vendorMap.get(b.vendorId);
+        
+        const openA = vA ? (vA.isOnline !== false && isStoreOpenOnServer(vA)) : true;
+        const openB = vB ? (vB.isOnline !== false && isStoreOpenOnServer(vB)) : true;
+        
+        // 1. Online stores first
+        if (openA !== openB) return openA ? -1 : 1;
+        // 2. High rating first
+        return (Number(vB?.rating) || 0) - (Number(vA?.rating) || 0);
+      });
+
     return { 
       banners: bannersSnap.docs.map(sanitizeDoc), 
       categories: categoriesSnap.docs.map(sanitizeDoc),
       announcement: announcementSnap.exists() ? { ...sanitizeDoc(announcementSnap), id: announcementSnap.id } : null,
-      vendors: vendorsSnap.docs.map(sanitizeDoc),
-      products: productsSnap.docs.map(sanitizeDoc)
+      vendors: vendors,
+      products: sortedProducts
     };
   } catch (e) {
     console.error("SSR Data Fetch Error:", e);
