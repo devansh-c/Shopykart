@@ -132,6 +132,7 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
+  // Cache Key ensured for Synchronous Loading
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full');
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -142,9 +143,10 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full');
 
   const productsToDisplay = useMemo(() => {
-    if (!dbProducts || dbProducts.length === 0) return [];
+    const list = dbProducts || [];
+    if (list.length === 0) return [];
 
-    const filtered = dbProducts.filter(p => {
+    const filtered = list.filter(p => {
       const vendorMatch = vendors?.find(v => v.id === p.vendorId);
       if (activeZoneId && vendorMatch?.zoneId && vendorMatch.zoneId !== activeZoneId) return false;
       
@@ -175,7 +177,9 @@ export function PopularProducts({
     else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
   };
 
-  if (productsToDisplay.length === 0 && !searchQuery && category === 'all' && !productsLoading) return null;
+  // If we have any products (cached or real), show them immediately.
+  // Don't wait for productsLoading to be false.
+  if (productsToDisplay.length === 0 && !productsLoading) return null;
 
   return (
     <div className="px-4 py-6 transform-gpu min-h-[400px]">
@@ -190,33 +194,29 @@ export function PopularProducts({
         )}
       </div>
 
-      {productsToDisplay.length === 0 && productsLoading ? (
-         <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-gray-100 animate-pulse h-60 rounded-[2.5rem]" />
-            ))}
-         </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {productsToDisplay.map((product) => {
-            const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-            const vendor = vendors?.find(v => v.id === product.vendorId);
-            const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
+      <div className="grid grid-cols-2 gap-4">
+        {productsToDisplay.map((product) => {
+          const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
+          const vendor = vendors?.find(v => v.id === product.vendorId);
+          const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
-            return (
-              <ProductItem 
-                key={product.id} 
-                product={product} 
-                quantity={quantity} 
-                isOffline={isOffline} 
-                onShare={handleShare}
-                onAdd={addToCart}
-                onRemove={removeFromCart}
-              />
-            );
-          })}
-        </div>
-      )}
+          return (
+            <ProductItem 
+              key={product.id} 
+              product={product} 
+              quantity={quantity} 
+              isOffline={isOffline} 
+              onShare={handleShare}
+              onAdd={addToCart}
+              onRemove={removeFromCart}
+            />
+          );
+        })}
+        {/* Only show skeletons if we have absolutely 0 products to show yet */}
+        {productsToDisplay.length === 0 && productsLoading && [1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-gray-100 animate-pulse h-60 rounded-[2.5rem]" />
+        ))}
+      </div>
     </div>
   );
 }

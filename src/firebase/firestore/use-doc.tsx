@@ -13,8 +13,10 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview Resilient single-doc fetch hook with LocalStorage caching.
+ * Optimized for 0-second loading by reading from cache during state initialization.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
+  // Synchronous Cache Initialization
   const [data, setData] = useState<T | null>(() => {
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
@@ -24,6 +26,8 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
       return null;
     }
   });
+
+  // Only true if we have no cache and no ref
   const [loading, setLoading] = useState(!data && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
 
@@ -42,6 +46,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         setLoading(false);
         setError(null);
 
+        // Update cache silently
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
             localStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
@@ -70,7 +75,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
     );
 
     return () => unsubscribe();
-  }, [ref, cacheKey]);
+  }, [ref?.path, cacheKey]);
 
   return { data, loading, error };
 }

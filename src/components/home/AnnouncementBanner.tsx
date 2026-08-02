@@ -1,14 +1,14 @@
-
 "use client"
 
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Megaphone, Info, AlertTriangle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Info, AlertTriangle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
 /**
  * @fileOverview Persistent Announcement Banner for Customers.
+ * Optimized with Synchronous Cache to eliminate display delay.
  */
 export default function AnnouncementBanner() {
   const firestore = useFirestore();
@@ -21,9 +21,12 @@ export default function AnnouncementBanner() {
     return doc(firestore, 'app_settings', 'announcement');
   }, [firestore]);
 
-  const { data: announcement } = useDoc<any>(announcementRef);
+  // Using specific cache key for instant retrieval
+  const { data: announcement } = useDoc<any>(announcementRef, 'global_announcement_v1');
 
-  if (!mounted || !announcement || !announcement.isActive || !announcement.message) return null;
+  // If no announcement or not active, hide. 
+  // Cache check happens inside useDoc instantly.
+  if (!announcement || !announcement.isActive || !announcement.message) return null;
 
   const type = announcement.type || 'info';
   
@@ -54,7 +57,7 @@ export default function AnnouncementBanner() {
   const Icon = style.icon;
 
   return (
-    <div className="px-4 py-3 animate-in slide-in-from-top-4 duration-700">
+    <div className="px-4 py-3 animate-in fade-in duration-300">
       <div className={cn(
         "rounded-[1.75rem] border-2 p-5 shadow-xl relative overflow-hidden flex items-start gap-4 transition-all duration-500 transform-gpu",
         style.container
@@ -79,8 +82,6 @@ export default function AnnouncementBanner() {
             {announcement.message}
           </p>
         </div>
-
-        {/* Persistent Alert: No close button as requested by Admin */}
       </div>
     </div>
   );
