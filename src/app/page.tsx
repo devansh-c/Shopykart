@@ -1,10 +1,11 @@
+
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Ultra-Performance Entry v15.
+ * @fileOverview ShopyKart Ultra-Performance Entry v17.
  * Strictly sorts all products by Store Status then Rating on the Server.
  */
 
@@ -99,8 +100,10 @@ async function getInitialData() {
         const openA = vA ? (vA.isOnline !== false && isStoreOpenOnServer(vA)) : true;
         const openB = vB ? (vB.isOnline !== false && isStoreOpenOnServer(vB)) : true;
         
+        // 1. Open Status First
         if (openA !== openB) return openA ? -1 : 1;
         
+        // 2. Rating High to Low
         const ratingA = Number(a.rating) || Number(vA?.rating) || 0;
         const ratingB = Number(b.rating) || Number(vB?.rating) || 0;
         return ratingB - ratingA;
