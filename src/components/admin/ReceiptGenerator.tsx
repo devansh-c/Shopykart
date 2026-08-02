@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -10,11 +9,8 @@ import {
   User, 
   Phone, 
   MapPin, 
-  CreditCard, 
-  Banknote, 
   Receipt as ReceiptIcon, 
   Loader2,
-  Package,
   PlusCircle,
   IndianRupee,
   RefreshCw,
@@ -24,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -60,12 +55,9 @@ export default function ReceiptGenerator() {
   }, [firestore]);
   const { data: settings } = useDoc<any>(brandingRef);
 
-  const subtotal = useMemo(() => {
+  const total = useMemo(() => {
     return items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   }, [items]);
-
-  const gst = useMemo(() => subtotal * 0.05, [subtotal]);
-  const total = useMemo(() => subtotal + gst, [subtotal, gst]);
 
   const handleAddItem = () => {
     setItems([...items, { id: Date.now().toString(), name: '', quantity: 1, price: 0 }]);
@@ -165,7 +157,7 @@ export default function ReceiptGenerator() {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-black italic tracking-tighter leading-none mb-1">SHOPYKART</h2>
         <p className="text-[7px] font-bold opacity-60">PREMIUM DELIVERY NETWORK</p>
-        <p className="text-[8px] whitespace-pre-line leading-tight mt-3">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR\nGSTIN: 09ABCDE1234F1Z5'}</p>
+        <p className="text-[8px] whitespace-pre-line leading-tight mt-3">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
       </div>
 
       <div className="border-t border-dashed border-black my-3" />
@@ -202,12 +194,7 @@ export default function ReceiptGenerator() {
         </tbody>
       </table>
       
-      <div className="border-t border-dashed border-black my-3 pt-3 space-y-1.5">
-         <div className="flex justify-between"><span>SUBTOTAL:</span><span className="font-black">₹{subtotal.toFixed(2)}</span></div>
-         <div className="flex justify-between"><span>TAX (GST 5%):</span><span className="font-black">₹{gst.toFixed(2)}</span></div>
-      </div>
-
-      <div className="border-t-2 border-black mt-3 pt-3 flex justify-between items-center text-base font-black italic">
+      <div className="border-t-2 border-black mt-4 pt-3 flex justify-between items-center text-base font-black italic">
         <span>GRAND TOTAL</span>
         <span>₹{total.toFixed(2)}</span>
       </div>
@@ -310,12 +297,12 @@ export default function ReceiptGenerator() {
            </div>
 
            <div className="relative z-10 w-full grid grid-cols-2 gap-4">
-              <Button onClick={handlePrint} className="h-16 rounded-2xl bg-white text-black hover:bg-gray-100 font-black uppercase italic shadow-xl">
+              <button onClick={handlePrint} className="h-16 rounded-2xl bg-white text-black hover:bg-gray-100 font-black uppercase italic shadow-xl flex items-center justify-center">
                  <Printer className="h-5 w-5 mr-3" /> PRINT
-              </Button>
-              <Button onClick={handleDownload} disabled={isDownloading} className="h-16 rounded-2xl bg-primary text-white hover:bg-primary/90 font-black uppercase italic shadow-xl">
+              </button>
+              <button onClick={handleDownload} disabled={isDownloading} className="h-16 rounded-2xl bg-primary text-white hover:bg-primary/90 font-black uppercase italic shadow-xl flex items-center justify-center">
                  {isDownloading ? <Loader2 className="h-5 w-5 animate-spin mr-3" /> : <Download className="h-5 w-5 mr-3" />} SAVE
-              </Button>
+              </button>
            </div>
            
            <p className="mt-8 text-[8px] font-black text-gray-500 uppercase tracking-[0.5em] relative z-10">ShopyKart Enterprise POS</p>
@@ -326,7 +313,7 @@ export default function ReceiptGenerator() {
            <div>
               <h4 className="font-black italic uppercase text-blue-900 text-sm">Pro Tip</h4>
               <p className="text-[10px] font-bold text-blue-700/70 uppercase leading-relaxed mt-1">
-                Aap ye receipts download karke WhatsApp par customers ko bhej sakte hain. Ye bills Firestore mein save nahi honge, ye sirf instant manual generation ke liye hain.
+                Ye manual bills hain jo sirf instant generation ke liye hain. Inmein koi tax ya extra fee add nahi ki gayi hai.
               </p>
            </div>
         </div>
