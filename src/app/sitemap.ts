@@ -39,8 +39,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.1,
   }));
 
-  // SEO Optimized Category-based dynamic patterns
-  // These help crawlers discover content structures before full dynamic fetch.
+  // SEO Optimized Dynamic segments (Base patterns for discovery)
   const dynamicPatterns = [
     'product',
     'store',
