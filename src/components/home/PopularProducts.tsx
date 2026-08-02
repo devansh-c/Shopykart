@@ -8,7 +8,6 @@ import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
@@ -40,9 +39,6 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   }
 }
 
-/**
- * @fileOverview Individual Product Card - Memoized for 0-lag scrolling.
- */
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   return (
     <div className={cn(
@@ -56,7 +52,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               {isOffline && (
                 <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center z-10">
                   <Store className="h-5 w-5 text-white/70 mb-1" />
-                  <span className="text-white font-black text-[9px] uppercase italic border border-white/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">Closed Now</span>
+                  <span className="text-white font-black text-[9px] uppercase italic border border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed Now</span>
                 </div>
               )}
            </div>
@@ -96,22 +92,14 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
 });
 ProductItem.displayName = "ProductItem";
 
-/**
- * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v8.
- * Lag is eliminated using GPU acceleration and memoized grid items.
- */
 export function PopularProducts({ 
   searchQuery = '', 
   category = 'all', 
-  activeMode = 'Food',
-  initialData = [],
-  initialStores = []
+  activeMode = 'Food'
 }: { 
   searchQuery?: string, 
   category?: string, 
-  activeMode?: string,
-  initialData?: any[],
-  initialStores?: any[]
+  activeMode?: string
 }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
@@ -144,23 +132,20 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full');
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full');
 
   const productsToDisplay = useMemo(() => {
-    const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
-    const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
-    
-    if (!products || products.length === 0) return [];
+    if (!dbProducts || dbProducts.length === 0) return [];
 
-    const filtered = products.filter(p => {
-      const vendorMatch = vendorList.find(v => v.id === p.vendorId);
+    const filtered = dbProducts.filter(p => {
+      const vendorMatch = vendors?.find(v => v.id === p.vendorId);
       if (activeZoneId && vendorMatch?.zoneId && vendorMatch.zoneId !== activeZoneId) return false;
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -171,9 +156,7 @@ export function PopularProducts({
       return modeMatch && searchMatch && catMatch && !isDeleted;
     });
 
-    if (!searchQuery && category === 'all') return filtered;
-
-    const vendorMap = new Map(vendorList.map(v => [v.id, v]));
+    const vendorMap = new Map(vendors?.map(v => [v.id, v]) || []);
     return filtered.sort((a, b) => {
       const vendorA = vendorMap.get(a.vendorId);
       const vendorB = vendorMap.get(b.vendorId);
@@ -182,7 +165,7 @@ export function PopularProducts({
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
       return (Number(vendorB?.rating) || 0) - (Number(vendorA?.rating) || 0);
     });
-  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
+  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
   const handleShare = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -192,19 +175,10 @@ export function PopularProducts({
     else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
   };
 
-  if (productsLoading && productsToDisplay.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Menu...</p>
-      </div>
-    );
-  }
-
-  if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
+  if (productsToDisplay.length === 0 && !searchQuery && category === 'all' && !productsLoading) return null;
 
   return (
-    <div className="px-4 py-6 transform-gpu">
+    <div className="px-4 py-6 transform-gpu min-h-[400px]">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
@@ -216,30 +190,31 @@ export function PopularProducts({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {productsToDisplay.map((product) => {
-          const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
-          const vendor = vendorList.find(v => v.id === product.vendorId);
-          const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
+      {productsToDisplay.length === 0 && productsLoading ? (
+         <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-gray-100 animate-pulse h-60 rounded-[2.5rem]" />
+            ))}
+         </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          {productsToDisplay.map((product) => {
+            const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
+            const vendor = vendors?.find(v => v.id === product.vendorId);
+            const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
-          return (
-            <ProductItem 
-              key={product.id} 
-              product={product} 
-              quantity={quantity} 
-              isOffline={isOffline} 
-              onShare={handleShare}
-              onAdd={addToCart}
-              onRemove={removeFromCart}
-            />
-          );
-        })}
-      </div>
-      
-      {productsLoading && productsToDisplay.length > 0 && (
-        <div className="flex justify-center py-10">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            return (
+              <ProductItem 
+                key={product.id} 
+                product={product} 
+                quantity={quantity} 
+                isOffline={isOffline} 
+                onShare={handleShare}
+                onAdd={addToCart}
+                onRemove={removeFromCart}
+              />
+            );
+          })}
         </div>
       )}
     </div>
