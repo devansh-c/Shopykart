@@ -8,9 +8,9 @@ import { useState, useEffect } from 'react';
 
 /**
  * @fileOverview Persistent Announcement Banner for Customers.
- * Optimized with Synchronous Cache to eliminate any display delay.
+ * Optimized with Synchronous Cache and SSR Support to eliminate any display delay.
  */
-export default function AnnouncementBanner() {
+export default function AnnouncementBanner({ initialData }: { initialData?: any }) {
   const firestore = useFirestore();
   const [mounted, setMounted] = useState(false);
 
@@ -21,8 +21,8 @@ export default function AnnouncementBanner() {
     return doc(firestore, 'app_settings', 'announcement');
   }, [firestore]);
 
-  // Using specific cache key for instant synchronous retrieval from useDoc
-  const { data: announcement } = useDoc<any>(announcementRef, 'global_announcement_v1');
+  // Using SSR data > cache key for instant synchronous retrieval
+  const { data: announcement } = useDoc<any>(announcementRef, 'global_announcement_v1', initialData);
 
   // If no announcement or not active, hide. 
   if (!announcement || !announcement.isActive || !announcement.message) return null;

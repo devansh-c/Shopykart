@@ -95,11 +95,15 @@ ProductItem.displayName = "ProductItem";
 export function PopularProducts({ 
   searchQuery = '', 
   category = 'all', 
-  activeMode = 'Food'
+  activeMode = 'Food',
+  initialData = [],
+  initialStores = []
 }: { 
   searchQuery?: string, 
   category?: string, 
-  activeMode?: string
+  activeMode?: string,
+  initialData?: any[],
+  initialStores?: any[]
 }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
@@ -132,15 +136,15 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // Cache Key ensured for Synchronous Loading from useCollection
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full');
+  // Use SSR + Cache for zero delay
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full');
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = dbProducts || [];
@@ -177,7 +181,7 @@ export function PopularProducts({
     else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
   };
 
-  // Synchronous Rendering Policy: If we have data (from cache), show it immediately.
+  // Synchronous Rendering Policy: If we have data (from cache or SSR), show it immediately.
   if (productsToDisplay.length === 0 && !productsLoading) return null;
 
   return (
@@ -211,7 +215,7 @@ export function PopularProducts({
             />
           );
         })}
-        {/* Only show skeletons if we have absolutely 0 data (even cached) */}
+        {/* Only show skeletons if we have absolutely 0 data (even cached or SSR) */}
         {productsToDisplay.length === 0 && productsLoading && [1, 2].map(i => (
           <div key={i} className="bg-gray-100 animate-pulse h-60 rounded-[2.5rem]" />
         ))}

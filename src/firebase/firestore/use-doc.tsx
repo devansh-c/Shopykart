@@ -12,12 +12,13 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient single-doc fetch hook with Synchronous LocalStorage caching.
- * Optimized for 0-second loading by reading from cache during state initialization.
+ * @fileOverview Resilient single-doc fetch hook with Synchronous LocalStorage caching and SSR Support.
+ * Optimized for 0-second loading by reading from initialData or cache during state initialization.
  */
-export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string) {
-  // 1. Aggressive Synchronous Initialization
+export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
+  // 1. Aggressive Synchronous Initialization: SSR Data > Cache > Null
   const [data, setData] = useState<T | null>(() => {
+    if (initialData) return initialData;
     if (typeof window === 'undefined' || !cacheKey) return null;
     try {
       const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);

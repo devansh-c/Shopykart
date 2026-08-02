@@ -18,17 +18,19 @@ interface HomeClientProps {
   initialCategories?: any[];
   initialStores?: any[];
   initialProducts?: any[];
+  initialAnnouncement?: any;
 }
 
 /**
  * @fileOverview HomeClient - Receives authentic server-side data and renders it IMMEDIATELY.
- * Optimized for Zero-Delay paint by removing all async blocking UI.
+ * Optimized for Zero-Delay paint by passing SSR data to child components.
  */
 export default function HomeClient({ 
   initialBanners, 
   initialCategories, 
   initialStores, 
-  initialProducts 
+  initialProducts,
+  initialAnnouncement
 }: HomeClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -104,7 +106,9 @@ export default function HomeClient({
                 <OfferSlider initialData={initialBanners} />
                 <StoreSection activeMode={activeMode} initialData={initialStores} />
                 
-                {activeMode === 'Food' && <AnnouncementBanner />}
+                {activeMode === 'Food' && (
+                  <AnnouncementBanner initialData={initialAnnouncement} />
+                )}
                 
                 <OffersSection />
               </>
