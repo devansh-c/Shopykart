@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useEffect } from "react"
+import React, { useMemo, useState, useEffect, memo } from "react"
 import { Plus, Minus, Share2, Loader2, Store } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
@@ -41,8 +41,64 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 /**
- * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v6.
- * Zero-Delay UI: Prioritizes initialData and Cache to eliminate skeletons completely.
+ * @fileOverview Individual Product Card - Memoized for 0-lag scrolling.
+ */
+const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
+  return (
+    <div className={cn(
+      "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-none transform-gpu content-visibility-auto",
+      isOffline && "opacity-80 grayscale-[0.3]"
+    )}>
+      <div className="relative aspect-square w-full mb-3">
+        <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
+           <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+              {isOffline && (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center z-10">
+                  <Store className="h-5 w-5 text-white/70 mb-1" />
+                  <span className="text-white font-black text-[9px] uppercase italic border border-white/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">Closed Now</span>
+                </div>
+              )}
+           </div>
+        </ProductQuickView>
+        <button onClick={(e) => onShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
+          <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col px-1">
+        <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
+          {product.restaurantName || 'ShopyKart Select'}
+        </p>
+        <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
+        
+        <div className="mt-auto flex items-center justify-between">
+          <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
+          {!isOffline ? (
+            quantity === 0 ? (
+              <ProductQuickView product={product} vendorScheduleOpen={true}>
+                <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20 active:scale-95 transition-all">ADD</button>
+              </ProductQuickView>
+            ) : (
+              <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
+                <button onClick={() => onRemove(product.id)} className="w-6 h-full flex items-center justify-center"><Minus className="h-3 w-3 stroke-[3]" /></button>
+                <span className="text-[10px] font-black w-4 text-center">{quantity}</span>
+                <button onClick={() => onAdd({...product, quantity: 1})} className="w-6 h-full flex items-center justify-center"><Plus className="h-3 w-3 stroke-[3]" /></button>
+              </div>
+            )
+          ) : (
+            <div className="bg-gray-800 text-gray-500 h-8 px-3 rounded-full font-black text-[8px] uppercase flex items-center">OFFLINE</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+ProductItem.displayName = "ProductItem";
+
+/**
+ * @fileOverview PopularProducts - Optimized for OMNI-INSTANT Paint v8.
+ * Lag is eliminated using GPU acceleration and memoized grid items.
  */
 export function PopularProducts({ 
   searchQuery = '', 
@@ -59,7 +115,6 @@ export function PopularProducts({
 }) {
   const { cart, addToCart, removeFromCart } = useCart();
   const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
@@ -89,7 +144,6 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // Omni-Instant Fetch: Loads from Cache or SSR instantly
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -100,7 +154,6 @@ export function PopularProducts({
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_full', initialStores);
 
   const productsToDisplay = useMemo(() => {
-    // Priority: Database/Cache > SSR Props
     const products = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
     
@@ -131,22 +184,19 @@ export function PopularProducts({
     });
   }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
-  const handleShare = async (e: React.MouseEvent, product: any) => {
+  const handleShare = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
     const productSlug = product.slug || slugify(product.name) || product.id;
     const shareUrl = `${window.location.origin}/product/${productSlug}`;
-    try {
-      if (navigator.share) await navigator.share({ title: product.name, url: shareUrl });
-      else { await navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
-    } catch (err) {}
+    if (navigator.share) navigator.share({ title: product.name, url: shareUrl }).catch(() => {});
+    else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
   };
 
-  // SKELETON SUPPRESSION: Only show loader if we have ABSOLUTELY NO data from any source
   if (productsLoading && productsToDisplay.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Catalog...</p>
+         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Menu...</p>
       </div>
     );
   }
@@ -154,7 +204,7 @@ export function PopularProducts({
   if (productsToDisplay.length === 0 && !searchQuery && category === 'all') return null;
 
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-6 transform-gpu">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">
           All <span className="text-primary">Products</span>
@@ -166,7 +216,7 @@ export function PopularProducts({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 content-visibility-auto transform-gpu">
+      <div className="grid grid-cols-2 gap-4">
         {productsToDisplay.map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const vendorList = (vendors && vendors.length > 0) ? vendors : initialStores;
@@ -174,58 +224,19 @@ export function PopularProducts({
           const isOffline = vendor ? (vendor.isOnline === false || !isStoreScheduleOpen(vendor, currentTimeMinutes)) : false;
 
           return (
-            <div key={product.id} className={cn(
-              "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-none transform-gpu",
-              isOffline && "opacity-80 grayscale-[0.3]"
-            )}>
-              <div className="relative aspect-square w-full mb-3">
-                <ProductQuickView product={product} vendorScheduleOpen={!isOffline}>
-                   <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
-                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-                      {isOffline && (
-                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2 text-center z-10">
-                          <Store className="h-5 w-5 text-white/70 mb-1" />
-                          <span className="text-white font-black text-[9px] uppercase italic border border-white/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">Closed Now</span>
-                        </div>
-                      )}
-                   </div>
-                </ProductQuickView>
-                <button onClick={(e) => handleShare(e, product)} className="absolute top-2 right-2 h-7 w-7 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
-                  <Share2 className="h-3.5 w-3.5 text-[#C5A021]" />
-                </button>
-              </div>
-
-              <div className="flex-1 flex flex-col px-1">
-                <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
-                  {product.restaurantName || 'ShopyKart Select'}
-                </p>
-                <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
-                
-                <div className="mt-auto flex items-center justify-between">
-                  <span className="text-lg font-black text-white italic tracking-tighter">₹{product.price}</span>
-                  {!isOffline ? (
-                    quantity === 0 ? (
-                      <ProductQuickView product={product} vendorScheduleOpen={true}>
-                        <button className="bg-[#D9C4A9] text-[#451A03] h-8 px-5 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20 active:scale-95 transition-all">ADD</button>
-                      </ProductQuickView>
-                    ) : (
-                      <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-8 px-1 shadow-lg">
-                        <button onClick={() => removeFromCart(product.id)} className="w-6 h-full flex items-center justify-center"><Minus className="h-3 w-3 stroke-[3]" /></button>
-                        <span className="text-[10px] font-black w-4 text-center">{quantity}</span>
-                        <button onClick={() => addToCart({...product, quantity: 1})} className="w-6 h-full flex items-center justify-center"><Plus className="h-3 w-3 stroke-[3]" /></button>
-                      </div>
-                    )
-                  ) : (
-                    <div className="bg-gray-800 text-gray-500 h-8 px-3 rounded-full font-black text-[8px] uppercase flex items-center">OFFLINE</div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <ProductItem 
+              key={product.id} 
+              product={product} 
+              quantity={quantity} 
+              isOffline={isOffline} 
+              onShare={handleShare}
+              onAdd={addToCart}
+              onRemove={removeFromCart}
+            />
           );
         })}
       </div>
       
-      {/* Red loading spinner at the bottom ONLY during active background sync */}
       {productsLoading && productsToDisplay.length > 0 && (
         <div className="flex justify-center py-10">
           <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
