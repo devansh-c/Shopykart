@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -90,7 +91,6 @@ export default function ReceiptGenerator() {
     try {
       const { toBlob } = await import('html-to-image');
       const FileSaver = await import('file-saver');
-      // Handle potential default export or named export
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
       
       const blob = await toBlob(element, { 
@@ -175,17 +175,9 @@ export default function ReceiptGenerator() {
         <div className="flex justify-between"><span>DATE:</span><span>{format(new Date(), 'dd/MM/yy HH:mm')}</span></div>
         <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black truncate max-w-[150px]">{customerName || 'Walk-in Guest'}</span></div>
         <div className="flex justify-between"><span>PHONE:</span><span className="font-black">{customerPhone || '--'}</span></div>
+        <div className="flex justify-between"><span>ADDRESS:</span><span className="font-black text-right max-w-[120px]">{customerAddress || '--'}</span></div>
         <div className="flex justify-between"><span>PAYMENT:</span><span className="font-black">{paymentMethod === 'online' ? 'PREPAID UPI' : 'CASH ON DELIVERY'}</span></div>
       </div>
-
-      <div className="border-t border-dashed border-black my-3" />
-      
-      {customerAddress && (
-        <div className="space-y-1 mb-3">
-           <span className="font-black block">ADDRESS:</span>
-           <p className="text-[9px] leading-tight opacity-80">{customerAddress}</p>
-        </div>
-      )}
 
       <div className="border-t border-dashed border-black my-3" />
 

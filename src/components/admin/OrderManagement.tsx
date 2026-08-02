@@ -187,6 +187,7 @@ export default function OrderManagement() {
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0,18)}</span></div>
+          <div className="flex justify-between"><span>ADDRESS:</span><span className="font-black text-right max-w-[120px]">{orderData.address}</span></div>
         </div>
 
         <div className="border-t border-dashed border-black my-2" />
@@ -251,6 +252,7 @@ export default function OrderManagement() {
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
           <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span>{orderData.customerName?.slice(0,18)}</span></div>
+          <div className="flex justify-between"><span>ADDRESS:</span><span className="font-black text-right max-w-[120px]">{orderData.address}</span></div>
           <div className="flex justify-between"><span>PAYMENT:</span><span className="font-black">{orderData.paymentMethod === 'online' ? 'ONLINE' : 'CASH'}</span></div>
         </div>
 
@@ -295,104 +297,123 @@ export default function OrderManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black italic uppercase">Order Operations</h2>
-        <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-[10px] px-3">{orders?.length || 0} TOTAL</Badge>
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black italic uppercase tracking-tighter">ORDER OPERATIONS</h2>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Real-time order dashboard</p>
+        </div>
+        <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-xs px-4 py-1.5 shadow-sm">
+          {orders?.length || 0} TOTAL
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 pb-20">
-        {orders?.map((order: any) => (
-          <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-border/50 hover:shadow-xl transition-all group relative overflow-hidden">
-            <div className="flex flex-col lg:flex-row justify-between gap-6">
-              <div className="flex-1 flex items-start space-x-5">
-                <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                  <Package className="h-7 w-7" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center flex-wrap gap-2 mb-2">
-                    <h3 className="font-black text-lg italic uppercase">#{order.orderDisplayId || order.id.slice(-5)}</h3>
-                    <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-none px-2">{order.status}</Badge>
-                    <Badge className="bg-blue-50 text-blue-600 border border-blue-100 text-[8px] font-black uppercase px-2">{order.paymentMethod === 'online' ? 'PREPAID' : 'CASH'}</Badge>
-                  </div>
-                  
-                  {/* VERIFICATION PHOTO DISPLAY */}
-                  {order.verificationImage && (
-                    <div className="mb-4">
-                       <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-1"><Camera className="h-2 w-2" /> Verification Photo</p>
-                       <Dialog>
-                         <DialogTrigger asChild>
-                           <div className="h-24 w-24 rounded-xl overflow-hidden border-2 border-primary/10 shadow-sm cursor-zoom-in group/img">
-                              <img src={order.verificationImage} className="h-full w-full object-cover group-hover/img:scale-110 transition-transform" alt="Verification" />
-                           </div>
-                         </DialogTrigger>
-                         <DialogContent className="max-w-md rounded-[2rem] p-0 overflow-hidden border-none">
-                            <DialogHeader className="sr-only"><DialogTitle>Verification Photo</DialogTitle></DialogHeader>
-                            <img src={order.verificationImage} className="w-full h-auto" alt="Full Verification" />
-                         </DialogContent>
-                       </Dialog>
-                    </div>
-                  )}
+      <div className="grid grid-cols-1 gap-8 pb-32">
+        {orders?.map((order: any) => {
+          const isCancelled = order.status === 'Cancelled';
+          const isDelivered = order.status === 'Delivered';
 
-                  <div className="bg-muted/20 rounded-2xl p-4 space-y-3 mb-4 border border-border/30">
-                     <div className="flex items-center justify-between text-xs font-bold text-gray-700 border-b border-white pb-2 mb-1">
-                        <span className="flex items-center gap-2 uppercase italic"><User className="h-3.5 w-3.5 text-primary" />{order.customerName}</span>
-                        <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="p-2 bg-green-500 text-white rounded-xl shadow-md active:scale-90 transition-all"><PhoneCall className="h-3.5 w-3.5" /></button>
-                     </div>
-                     <div className="pt-1 space-y-1">
-                        {order.items?.map((item: any, i: number) => (
-                          <div key={i} className="flex flex-col text-[10px] font-bold text-gray-600 italic mb-1.5">
-                             <div className="flex justify-between">
-                                <span>{item.quantity}x {item.name} {item.selectedOption && <span className="text-primary font-black uppercase text-[8px]">({item.selectedOption.name})</span>}</span>
-                                <span className="text-primary">₹{item.price * item.quantity}</span>
-                             </div>
-                             {item.instructions && (
-                               <div className="flex items-center gap-1 mt-0.5 text-[8px] text-red-500 lowercase font-black">
-                                  <MessageSquareQuote className="h-2 w-2" /> Note: {item.instructions}
-                               </div>
-                             )}
-                          </div>
-                        ))}
-                     </div>
+          return (
+            <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/40 shadow-sm transition-all hover:shadow-xl group transform-gpu">
+              <div className="flex items-start justify-between mb-8">
+                <div className="flex items-center gap-6">
+                  <div className={cn(
+                    "h-20 w-20 rounded-[1.75rem] flex items-center justify-center border-2 shrink-0 transition-colors",
+                    isCancelled ? "bg-red-50 border-red-100 text-red-600" : isDelivered ? "bg-green-50 border-green-100 text-green-600" : "bg-primary/5 border-primary/10 text-primary"
+                  )}>
+                    <Package className="h-10 w-10" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                       <h3 className="font-black text-3xl italic uppercase tracking-tighter">#{order.orderDisplayId || order.id.slice(-4)}</h3>
+                       <Badge className={cn(
+                         "border-none text-[8px] font-black uppercase px-2.5 py-1 rounded-full",
+                         isCancelled ? "bg-red-100 text-red-600" : isDelivered ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
+                       )}>{order.status.toUpperCase()}</Badge>
+                    </div>
+                    <div className="flex items-center gap-4">
+                       <div className="bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 flex items-center gap-1.5">
+                          <Banknote className="h-3.5 w-3.5 text-amber-700" />
+                          <span className="text-[10px] font-black text-amber-800 uppercase tracking-tight">{order.paymentMethod === 'online' ? 'PREPAID ONLINE' : 'CASH ON DELIVERY'}</span>
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase mt-3 tracking-widest italic">
+                       <Clock className="h-3.5 w-3.5" />
+                       {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Recently'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 shrink-0">
+              {/* DETAILS BOX */}
+              <div className="bg-[#F9FAFB] rounded-[2rem] p-6 mb-8 border border-border/50 shadow-inner">
+                 <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-4">
+                       <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm">
+                          <User className="h-5 w-5" />
+                       </div>
+                       <span className="font-black text-lg italic uppercase tracking-tight text-gray-800">{order.customerName}</span>
+                    </div>
+                    <button 
+                      onClick={() => window.open(`tel:${order.customerPhone}`)}
+                      className="h-12 w-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-100 active:scale-90 transition-all"
+                    >
+                       <PhoneCall className="h-6 w-6" />
+                    </button>
+                 </div>
+
+                 <div className="space-y-4 pt-1">
+                    <div className="bg-white/60 p-1.5 rounded-full inline-flex items-center gap-2 border border-white pr-4">
+                       <div className="bg-red-50 p-1.5 rounded-full text-red-500"><Store className="h-3.5 w-3.5" /></div>
+                       <span className="text-[10px] font-black uppercase text-red-800 tracking-tight">{order.restaurantName || 'Gourmet Store'}</span>
+                    </div>
+
+                    <div className="space-y-2.5 px-1">
+                       {order.items?.map((item: any, i: number) => (
+                         <div key={i} className="flex justify-between items-center text-sm font-bold italic">
+                            <span className="text-gray-600">{item.quantity}x <span className="uppercase">{item.name}</span> {item.selectedOption && <span className="text-[10px] font-black text-primary">({item.selectedOption.name})</span>}</span>
+                            <span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(0)}</span>
+                         </div>
+                       ))}
+                    </div>
+
+                    <div className="pt-4 mt-2 border-t border-dashed border-gray-200 flex items-center gap-3">
+                       <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center text-primary shadow-sm shrink-0">
+                          <MapPin className="h-4 w-4" />
+                       </div>
+                       <p className="text-[10px] font-black text-gray-500 uppercase leading-relaxed tracking-tight">{order.address}</p>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
                 <Select defaultValue={order.status} onValueChange={(val) => handleStatusUpdate(order.id, val)}>
-                  <SelectTrigger className="w-[180px] rounded-xl font-black text-[10px] uppercase h-11 bg-muted/30 border-none shadow-none"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-2xl border-none shadow-2xl">{statusOptions.map(s => <SelectItem key={s} value={s} className="font-bold text-xs">{s}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="w-full h-14 rounded-2xl font-black text-xs uppercase bg-gray-50 border-none shadow-none text-gray-900"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-[1.5rem] border-none shadow-2xl">{statusOptions.map(s => <SelectItem key={s} value={s} className="font-bold text-xs py-3 uppercase">{s}</SelectItem>)}</SelectContent>
                 </Select>
                 
-                <div className="grid grid-cols-2 gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <button className="bg-white border-2 border-primary/20 text-primary h-11 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Admin Bill</button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000]">
-                       <DialogHeader className="sr-only">
-                         <DialogTitle>Admin Receipt Preview</DialogTitle>
-                         <DialogDescription>Internal administrative copy of the order bill.</DialogDescription>
-                       </DialogHeader>
-                       <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
-                          {generateCustomerReceiptDOM(order)}
-                       </div>
-                       <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
-                          <Button onClick={() => handlePrint(order.id, 'customer')} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px]">PRINT</Button>
-                          <Button onClick={() => handleDownload(order.id, 'customer')} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px]">SAVE</Button>
-                       </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <button 
-                    onClick={() => openVendorReceipt(order)}
-                    className="bg-black text-white h-11 rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-lg"
-                  >
-                    <Store className="h-3.5 w-3.5 text-primary" /> Vendor Bill
-                  </button>
-                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button className="w-full bg-white border-2 border-primary/20 text-primary h-14 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                      <Eye className="h-4 w-4" /> VIEW BILL
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[340px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000] border-none">
+                     <DialogHeader className="sr-only">
+                       <DialogTitle>Receipt Preview</DialogTitle>
+                       <DialogDescription>Administrative copy of the order bill.</DialogDescription>
+                     </DialogHeader>
+                     <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col items-center">
+                        {generateCustomerReceiptDOM(order)}
+                     </div>
+                     <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
+                        <Button onClick={() => handlePrint(order.id, 'customer')} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px]">PRINT</Button>
+                        <Button onClick={() => handleDownload(order.id, 'customer')} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px]">SAVE</Button>
+                     </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* VENDOR RECEIPT DIALOG - FULL SCREEN MODE */}
@@ -423,12 +444,11 @@ export default function OrderManagement() {
                              />
                           </div>
                           <div className="space-y-1.5">
-                             <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Vendor Note</label>
+                             <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Delivery Address</label>
                              <Input 
-                              value={editingVendorOrder.instructions || ''} 
-                              onChange={e => setEditingVendorOrder({...editingVendorOrder, instructions: e.target.value})} 
-                              className="h-14 rounded-2xl bg-gray-50 border-none font-bold italic focus-visible:ring-1 focus-visible:ring-primary/20" 
-                              placeholder="Kitchen instructions..." 
+                              value={editingVendorOrder.address || ''} 
+                              onChange={e => setEditingVendorOrder({...editingVendorOrder, address: e.target.value})} 
+                              className="h-14 rounded-2xl bg-gray-50 border-none font-bold text-sm uppercase focus-visible:ring-1 focus-visible:ring-primary/20" 
                              />
                           </div>
                        </div>
