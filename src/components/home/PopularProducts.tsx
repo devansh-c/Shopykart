@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect, memo } from "react"
-import { Plus, Minus, Share2, Loader2, Store } from "lucide-react"
+import { Plus, Minus, Share2, Loader2, Store, Star } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -119,7 +119,7 @@ export function PopularProducts({
   
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
-  const [visibleCount, setVisibleCount] = useState(40); // CHUNKING: Start with 40
+  const [visibleCount, setVisibleCount] = useState(40); 
 
   useEffect(() => {
     setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -134,7 +134,6 @@ export function PopularProducts({
       setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    // Increase visible count on scroll
     const handleScroll = () => {
        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
           setVisibleCount(prev => prev + 40);
@@ -181,7 +180,6 @@ export function PopularProducts({
       return modeMatch && searchMatch && catMatch && !isDeleted;
     });
 
-    // STRICT RATING SORT
     return filtered.sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
@@ -189,10 +187,8 @@ export function PopularProducts({
       const isOnlineA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
       const isOnlineB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
 
-      // 1. Online Stores First
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
 
-      // 2. Rating High to Low
       const ratingA = Number(a.rating) || Number(vA?.rating) || 0;
       const ratingB = Number(b.rating) || Number(vB?.rating) || 0;
       return ratingB - ratingA;
