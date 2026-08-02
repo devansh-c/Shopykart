@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Query, 
   onSnapshot, 
@@ -12,14 +12,14 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook v11.
+ * @fileOverview OMNI-INSTANT Hook v13.
  * Optimized for TRUE 0-second loading using Aggressive Synchronous Initializer.
- * Prioritizes LocalStorage Cache to eliminate any visual delay.
+ * Prioritizes SSR Data > LocalStorage Cache to eliminate any visual delay for Crawlers and Incognito.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Synchronous Initialization: Immediate state injection
+  // 1. Synchronous Initialization: Immediate state injection from SSR or Cache
   const [data, setData] = useState<T[] | null>(() => {
-    // A. Priority 1: SSR Props
+    // A. Priority 1: SSR Props (Critical for Googlebot and Incognito)
     if (initialData && initialData.length > 0) return initialData;
     
     // B. Priority 2: Persistent LocalStorage Cache
@@ -35,7 +35,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
-  // Loading is strictly false if data is already present in cache
+  // Loading is strictly false if data is already present from SSR or cache
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   

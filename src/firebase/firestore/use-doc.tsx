@@ -12,23 +12,28 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient single-doc fetch hook with Synchronous LocalStorage caching and SSR Support.
- * Optimized for 0-second loading by reading from initialData or cache during state initialization.
+ * @fileOverview Resilient single-doc fetch hook with Aggressive Synchronous initialization.
+ * Optimized for 0-second loading by prioritizing initialData (SSR) during state initialization.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
   // 1. Aggressive Synchronous Initialization: SSR Data > Cache > Null
   const [data, setData] = useState<T | null>(() => {
+    // Priority 1: Use Server-Side Data immediately (Important for Googlebot/Incognito)
     if (initialData) return initialData;
-    if (typeof window === 'undefined' || !cacheKey) return null;
-    try {
-      const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
-      return cached ? JSON.parse(cached) : null;
-    } catch (e) {
-      return null;
+    
+    // Priority 2: Use Cache
+    if (typeof window !== 'undefined' && cacheKey) {
+      try {
+        const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
+        return cached ? JSON.parse(cached) : null;
+      } catch (e) {
+        return null;
+      }
     }
+    return null;
   });
 
-  // Loading is only true if we have ABSOLUTELY no data (cached or otherwise)
+  // Loading is only true if we have ABSOLUTELY no data (cached or SSR)
   const [loading, setLoading] = useState(() => !data && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
 

@@ -4,9 +4,9 @@ import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Ultra-Performance Entry v12.
- * Optimized for 0-second loading by fetching Banners, Categories, Announcement, 
- * Vendors and Products on server.
+ * @fileOverview ShopyKart Ultra-Performance Entry v13.
+ * Optimized for Google Crawler and Incognito: Fetches ALL critical UI data on server
+ * so the initial HTML is fully populated and renders instantly.
  */
 
 export const metadata: Metadata = {
@@ -25,6 +25,7 @@ export const metadata: Metadata = {
 
 /**
  * Converts Firestore Document to a STRICT Plain Serializable Object.
+ * Prevents "Only plain objects can be passed to Client Components" error.
  */
 function sanitizeDoc(doc: any) {
   const data = doc.data();
@@ -33,9 +34,11 @@ function sanitizeDoc(doc: any) {
   Object.keys(data).forEach(key => {
     const value = data[key];
     if (value && typeof value === 'object' && value.seconds !== undefined) {
+      // Convert Timestamp to ISO String
       plainData[key] = new Date(value.seconds * 1000).toISOString();
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       try {
+        // Deep clone to remove class methods/hidden props
         plainData[key] = JSON.parse(JSON.stringify(value));
       } catch (e) {
         plainData[key] = null;
@@ -57,19 +60,15 @@ async function getInitialData() {
   const { firestore } = initializeFirebase();
   if (!firestore) return { banners: [], categories: [], announcement: null, vendors: [], products: [] };
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
-
   try {
+    // Fetch ALL critical content in parallel on the server
     const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(10))),
-      getDocs(query(collection(firestore, 'categories'), limit(30))),
+      getDocs(query(collection(firestore, 'banners'), limit(15))),
+      getDocs(query(collection(firestore, 'categories'), limit(40))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
-      getDocs(query(collection(firestore, 'vendors'), limit(50))),
-      getDocs(query(collection(firestore, 'products'), limit(150)))
+      getDocs(query(collection(firestore, 'vendors'), limit(60))),
+      getDocs(query(collection(firestore, 'products'), limit(200)))
     ]);
-
-    clearTimeout(timeoutId);
 
     return { 
       banners: bannersSnap.docs.map(sanitizeDoc), 
@@ -79,7 +78,7 @@ async function getInitialData() {
       products: productsSnap.docs.map(sanitizeDoc)
     };
   } catch (e) {
-    console.warn("SSR Data Fetch partial timeout. Relying on Client Cache.");
+    console.error("SSR Data Fetch Error:", e);
     return { banners: [], categories: [], announcement: null, vendors: [], products: [] };
   }
 }
