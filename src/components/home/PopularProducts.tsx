@@ -132,7 +132,7 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(2000));
   }, [firestore]);
   
-  // Cache Key ensured for Synchronous Loading
+  // Cache Key ensured for Synchronous Loading from useCollection
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v4_full');
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -177,8 +177,7 @@ export function PopularProducts({
     else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
   };
 
-  // If we have any products (cached or real), show them immediately.
-  // Don't wait for productsLoading to be false.
+  // Synchronous Rendering Policy: If we have data (from cache), show it immediately.
   if (productsToDisplay.length === 0 && !productsLoading) return null;
 
   return (
@@ -212,8 +211,8 @@ export function PopularProducts({
             />
           );
         })}
-        {/* Only show skeletons if we have absolutely 0 products to show yet */}
-        {productsToDisplay.length === 0 && productsLoading && [1, 2, 3, 4].map(i => (
+        {/* Only show skeletons if we have absolutely 0 data (even cached) */}
+        {productsToDisplay.length === 0 && productsLoading && [1, 2].map(i => (
           <div key={i} className="bg-gray-100 animate-pulse h-60 rounded-[2.5rem]" />
         ))}
       </div>

@@ -12,14 +12,14 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook v7.
+ * @fileOverview OMNI-INSTANT Hook v11.
  * Optimized for TRUE 0-second loading using Aggressive Synchronous Initializer.
- * Prevents flashing and skeletons by prioritizing LocalStorage Cache.
+ * Prioritizes LocalStorage Cache to eliminate any visual delay.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. Synchronous Initialization: Immediate state injection
   const [data, setData] = useState<T[] | null>(() => {
-    // A. Priority 1: SSR Props (If available)
+    // A. Priority 1: SSR Props
     if (initialData && initialData.length > 0) return initialData;
     
     // B. Priority 2: Persistent LocalStorage Cache
@@ -35,12 +35,11 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
     return null;
   });
   
-  // Loading is only true if we have ABSOLUTELY no data to show
+  // Loading is strictly false if data is already present in cache
   const [loading, setLoading] = useState(() => !data);
   const [error, setError] = useState<FirestoreError | null>(null);
   
   const queryStr = query ? JSON.stringify((query as any)._query || {}) : '';
-  const isFirstSync = useRef(true);
 
   useEffect(() => {
     if (!query) {
@@ -48,13 +47,12 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
       return;
     }
 
-    // 2. Real-time Background Sync - Silently updates the UI
+    // 2. Real-time Background Sync
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
         const items = snapshot.docs.map(doc => {
           const rawData = doc.data();
-          // Convert to plain objects and strip timestamps for stability
           const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
             if (value && typeof value === 'object' && value.seconds !== undefined) {
               return new Date(value.seconds * 1000).toISOString();
@@ -78,10 +76,8 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
           } catch (e) {}
         }
-        isFirstSync.current = false;
       },
       async (err: FirestoreError) => {
-        // Silently handle transient errors to keep the cached data visible
         const silentCodes = ['resource-exhausted', 'unavailable', 'deadline-exceeded', 'cancelled'];
         if (silentCodes.includes(err.code)) {
           setLoading(false);
