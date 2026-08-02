@@ -15,7 +15,8 @@ import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 /**
- * @fileOverview Compact Premium Header Component with Hamburger Menu.
+ * @fileOverview Compact Premium Header.
+ * Fixed for Hydration Safety: LocalStorage access deferred until mount.
  */
 export function LocationHeader({
   searchValue,
@@ -30,22 +31,24 @@ export function LocationHeader({
   const firestore = useFirestore();
   const router = useRouter();
   const [currentAddress, setCurrentAddress] = useState('Ranipur');
-
-  const profileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: profile } = useDoc<any>(profileRef);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const updateAddress = () => {
-      const saved = localStorage.getItem('user_address');
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('user_address') : null;
       if (saved) setCurrentAddress(saved);
     };
     updateAddress();
     window.addEventListener('user-address-updated', updateAddress);
     return () => window.removeEventListener('user-address-updated', updateAddress);
   }, []);
+
+  const profileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: profile } = useDoc<any>(profileRef);
 
   return (
     <div className="w-full bg-white pb-4 pt-3 px-4 space-y-3 rounded-b-[2.5rem] shadow-sm relative z-50 overflow-hidden">
@@ -62,7 +65,7 @@ export function LocationHeader({
         <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}>
           <MapPin className="h-4.5 w-4.5 text-black stroke-[2.5]" />
           <div className="flex items-center gap-1">
-            <span className="text-black text-base font-black tracking-tight">{currentAddress}</span>
+            <span className="text-black text-base font-black tracking-tight">{isMounted ? currentAddress : 'Loading...'}</span>
             <ChevronDown className="h-3.5 w-3.5 text-black/60" />
           </div>
         </div>
@@ -76,7 +79,6 @@ export function LocationHeader({
         </button>
       </div>
 
-      {/* Compact Pill Search Bar */}
       <div className="relative group relative z-10">
         <div className="relative h-12 w-full bg-gradient-to-r from-[#D9C4A9] via-[#F1E4D1] to-[#D9C4A9] rounded-full overflow-hidden shadow-md border border-[#B8A38B]/20 flex items-center px-4">
           <Search className="h-5 w-5 text-[#5C4D3C] shrink-0" />

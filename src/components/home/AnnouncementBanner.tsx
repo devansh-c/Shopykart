@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
 /**
- * @fileOverview Persistent Announcement Banner for Customers.
- * Optimized with Synchronous Cache and SSR Support to eliminate any display delay.
+ * @fileOverview Persistent Announcement Banner.
+ * Robust synchronous data fetching to eliminate lags.
  */
 export default function AnnouncementBanner({ initialData }: { initialData?: any }) {
   const firestore = useFirestore();
@@ -21,10 +21,8 @@ export default function AnnouncementBanner({ initialData }: { initialData?: any 
     return doc(firestore, 'app_settings', 'announcement');
   }, [firestore]);
 
-  // Using SSR data > cache key for instant synchronous retrieval
   const { data: announcement } = useDoc<any>(announcementRef, 'global_announcement_v1', initialData);
 
-  // If no announcement or not active, hide. 
   if (!announcement || !announcement.isActive || !announcement.message) return null;
 
   const type = announcement.type || 'info';
@@ -61,7 +59,6 @@ export default function AnnouncementBanner({ initialData }: { initialData?: any 
         "rounded-[1.75rem] border-2 p-5 shadow-xl relative overflow-hidden flex items-start gap-4 transition-all duration-500 transform-gpu",
         style.container
       )}>
-        {/* Subtle motion background */}
         <div className="absolute top-0 right-0 h-full w-24 bg-white/10 -skew-x-12 translate-x-12 pointer-events-none" />
 
         <div className={cn(

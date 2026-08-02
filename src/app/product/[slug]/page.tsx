@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 /**
  * @fileOverview Universal SEO Route for Products.
  * Handles both Slugs and IDs to resolve routing conflicts.
- * Updated for Next.js 15 Async Params with Rich SEO.
+ * Fixed for Next.js 15 Async Params to prevent 500 errors.
  */
 
 export const generateStaticParams = async () => {
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: `${cleanTitle} | Buy Online at ShopyKart`,
-    description: `Order ${cleanTitle} online from ShopyKart. Freshly prepared, premium quality, and delivered in 10 minutes. Best prices guaranteed in Mauranipur & Ranipur.`,
+    description: `Order ${cleanTitle} online from ShopyKart. Freshly prepared, premium quality, and delivered in 10 minutes.`,
     alternates: {
       canonical: `https://shopykart.co.in/product/${slug}`,
     },
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       siteName: 'ShopyKart',
       images: [
         {
-          url: `https://picsum.photos/seed/${slug}/800/600`, // Fallback SEO image
+          url: `https://picsum.photos/seed/${slug}/800/600`,
           width: 800,
           height: 600,
           alt: cleanTitle,
@@ -40,12 +40,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ],
       locale: 'en_IN',
       type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: cleanTitle,
-      description: `Fastest delivery for ${cleanTitle} in town.`,
-      images: [`https://picsum.photos/seed/${slug}/800/600`],
     },
   };
 }

@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Super 1000 Order Sale Countdown.
- * Updated: Added Golden Border and Shining background animation.
+ * Fixed for Hydration Safety: Date calculations deferred until mount.
  */
 export function SaleCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
-  const [isExpired, setIsExpired] = useState(false);
+  const [isExpired, setIsExpired] = useState(true); // Default to expired for SSR
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -65,21 +65,21 @@ export function SaleCountdown() {
               <span className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none">
                 {String(timeLeft.hours).padStart(2, '0')}
               </span>
-              <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mt-4">HOURS</span>
+              <span className="text-[9px] font-black text-white/50 uppercase tracking-widest mt-4">HOURS</span>
            </div>
            <div className="h-16 w-[1.5px] bg-[#C5A021]/30" />
            <div className="flex-1 flex flex-col items-center">
               <span className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none">
                 {String(timeLeft.minutes).padStart(2, '0')}
               </span>
-              <span className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mt-4">MINUTES</span>
+              <span className="text-[9px] font-black text-white/50 uppercase tracking-widest mt-4">MINUTES</span>
            </div>
            <div className="h-16 w-[1.5px] bg-[#C5A021]/30" />
            <div className="flex-1 flex flex-col items-center">
               <span className="text-6xl font-black italic tracking-tighter text-white tabular-nums leading-none">
                 {String(timeLeft.seconds).padStart(2, '0')}
               </span>
-              <span className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.3em] mt-4">SECONDS</span>
+              <span className="text-[9px] font-black text-[#C5A021] uppercase tracking-widest mt-4">SECONDS</span>
            </div>
         </div>
 

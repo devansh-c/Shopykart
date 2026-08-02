@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Universal SEO Route for Stores.
- * Handles both Slugs and IDs to resolve routing conflicts.
+ * Handles Next.js 15 Async Params to eliminate 500 errors.
  */
 
 export const generateStaticParams = async () => {

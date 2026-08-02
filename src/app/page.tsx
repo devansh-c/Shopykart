@@ -1,12 +1,11 @@
-
 import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Ultra-Performance Entry v17.
- * Strictly sorts all products by Store Status then Rating on the Server.
+ * @fileOverview ShopyKart High-Performance Entry.
+ * Stable SSR data fetching with strict serialization to prevent 500 errors.
  */
 
 export const metadata: Metadata = {
@@ -32,6 +31,7 @@ function isStoreOpenOnServer(vendor: any) {
 
   const parseTime = (t: string) => {
     try {
+      if (!t) return 0;
       const parts = t.trim().split(' ');
       if (parts.length < 2) return 0;
       const [time, modifier] = parts;
@@ -49,6 +49,7 @@ function isStoreOpenOnServer(vendor: any) {
 }
 
 function sanitizeDoc(doc: any) {
+  if (!doc || !doc.exists()) return null;
   const data = doc.data();
   const plainData: any = {};
 
@@ -85,14 +86,15 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'categories'), limit(40))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
       getDocs(query(collection(firestore, 'vendors'), limit(100))),
-      getDocs(query(collection(firestore, 'products'), limit(500)))
+      getDocs(query(collection(firestore, 'products'), limit(300))) // Limited for performance
     ]);
 
-    const vendors = vendorsSnap.docs.map(sanitizeDoc);
+    const vendors = vendorsSnap.docs.map(sanitizeDoc).filter(Boolean);
     const vendorMap = new Map(vendors.map(v => [v.id, v]));
 
     const sortedProducts = productsSnap.docs
       .map(sanitizeDoc)
+      .filter(Boolean)
       .sort((a, b) => {
         const vA = vendorMap.get(a.vendorId);
         const vB = vendorMap.get(b.vendorId);
@@ -100,19 +102,17 @@ async function getInitialData() {
         const openA = vA ? (vA.isOnline !== false && isStoreOpenOnServer(vA)) : true;
         const openB = vB ? (vB.isOnline !== false && isStoreOpenOnServer(vB)) : true;
         
-        // 1. Open Status First
         if (openA !== openB) return openA ? -1 : 1;
         
-        // 2. Rating High to Low
         const ratingA = Number(a.rating) || Number(vA?.rating) || 0;
         const ratingB = Number(b.rating) || Number(vB?.rating) || 0;
         return ratingB - ratingA;
       });
 
     return { 
-      banners: bannersSnap.docs.map(sanitizeDoc), 
-      categories: categoriesSnap.docs.map(sanitizeDoc),
-      announcement: announcementSnap.exists() ? { ...sanitizeDoc(announcementSnap), id: announcementSnap.id } : null,
+      banners: bannersSnap.docs.map(sanitizeDoc).filter(Boolean), 
+      categories: categoriesSnap.docs.map(sanitizeDoc).filter(Boolean),
+      announcement: sanitizeDoc(announcementSnap),
       vendors: vendors,
       products: sortedProducts
     };
