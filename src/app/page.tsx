@@ -4,9 +4,8 @@ import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 
 /**
- * @fileOverview ShopyKart Ultra-Performance Entry v14.
- * Optimized for Google Crawler and Incognito: Fetches and PRE-SORTS all critical data on server.
- * Ensures the Correct Rating Order is rendered in the initial HTML for 0-second loading.
+ * @fileOverview ShopyKart Ultra-Performance Entry v15.
+ * Strictly sorts all products by Store Status then Rating on the Server.
  */
 
 export const metadata: Metadata = {
@@ -23,9 +22,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Helper to check store status on server during pre-sorting.
- */
 function isStoreOpenOnServer(vendor: any) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
@@ -51,10 +47,6 @@ function isStoreOpenOnServer(vendor: any) {
   return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
 }
 
-/**
- * Converts Firestore Document to a STRICT Plain Serializable Object.
- * Converts Timestamps to ISO Strings to prevent Next.js serialization errors.
- */
 function sanitizeDoc(doc: any) {
   const data = doc.data();
   const plainData: any = {};
@@ -87,20 +79,17 @@ async function getInitialData() {
   if (!firestore) return { banners: [], categories: [], announcement: null, vendors: [], products: [] };
 
   try {
-    // Fetch ALL critical content in parallel on the server
     const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
       getDocs(query(collection(firestore, 'banners'), limit(15))),
       getDocs(query(collection(firestore, 'categories'), limit(40))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
-      getDocs(query(collection(firestore, 'vendors'), limit(60))),
-      getDocs(query(collection(firestore, 'products'), limit(200)))
+      getDocs(query(collection(firestore, 'vendors'), limit(100))),
+      getDocs(query(collection(firestore, 'products'), limit(500)))
     ]);
 
     const vendors = vendorsSnap.docs.map(sanitizeDoc);
     const vendorMap = new Map(vendors.map(v => [v.id, v]));
 
-    // SERVER-SIDE PRE-SORT: Sort products by Store Status and Rating before sending to browser
-    // This eliminates the client-side sorting lag (bakchodi khatam).
     const sortedProducts = productsSnap.docs
       .map(sanitizeDoc)
       .sort((a, b) => {
@@ -110,10 +99,11 @@ async function getInitialData() {
         const openA = vA ? (vA.isOnline !== false && isStoreOpenOnServer(vA)) : true;
         const openB = vB ? (vB.isOnline !== false && isStoreOpenOnServer(vB)) : true;
         
-        // 1. Online stores first
         if (openA !== openB) return openA ? -1 : 1;
-        // 2. High rating first
-        return (Number(vB?.rating) || 0) - (Number(vA?.rating) || 0);
+        
+        const ratingA = Number(a.rating) || Number(vA?.rating) || 0;
+        const ratingB = Number(b.rating) || Number(vB?.rating) || 0;
+        return ratingB - ratingA;
       });
 
     return { 
