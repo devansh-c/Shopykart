@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo } from "react"
@@ -66,9 +67,11 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
 
       <div className="flex-1 flex flex-col px-1">
         <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
-          {product.restaurantName || 'ShopyKart Select'}
+          {product.restaurantName || product.vendorName || 'ShopyKart Select'}
         </p>
-        <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-1 mb-1">{product.name}</h3>
+        <h3 className="font-black text-[13px] text-white leading-tight italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2rem]">
+          {product.name}
+        </h3>
         
         <div className="mt-auto flex items-center justify-between">
           <div className="flex flex-col">
