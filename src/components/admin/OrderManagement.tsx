@@ -200,15 +200,15 @@ export default function OrderManagement() {
            <div className="flex justify-between font-bold"><span>ITEMS SUBTOTAL:</span><span>₹{subtotal.toFixed(2)}</span></div>
            
            {orderData.charges?.map((c: any, idx: number) => {
-             const isDelivery = (c.name || '').toLowerCase().includes('delivery');
-             const isFree = Number(c.amount) === 0 && isDelivery;
+             const amountNum = Number(c.amount || 0);
+             // Logic to show "FREE" if amount is 0 (due to waiver)
              return (
               <div key={idx} className="flex justify-between opacity-80 italic">
                 <span>{c.name?.toUpperCase()}:</span>
-                {isFree ? (
+                {amountNum === 0 ? (
                   <span className="font-black text-green-700">FREE</span>
                 ) : (
-                  <span>₹{Number(c.amount || 0).toFixed(2)}</span>
+                  <span>₹{amountNum.toFixed(2)}</span>
                 )}
               </div>
              );
@@ -336,11 +336,10 @@ export default function OrderManagement() {
 
                     <div className="pt-4 border-t border-white grid grid-cols-1 md:grid-cols-2 gap-4">
                        {order.charges?.map((c: any, idx: number) => {
-                          const isDelivery = (c.name || '').toLowerCase().includes('delivery');
-                          const isFree = Number(c.amount) === 0 && isDelivery;
+                          const isFree = Number(c.amount) === 0;
                           return (
                             <div key={idx} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
-                               {isDelivery ? <Truck className="h-3.5 w-3.5 text-blue-500" /> : <Tag className="h-3.5 w-3.5 text-gray-400" />}
+                               {(c.name || '').toLowerCase().includes('delivery') ? <Truck className="h-3.5 w-3.5 text-blue-500" /> : <Tag className="h-3.5 w-3.5 text-gray-400" />}
                                <span className="text-[9px] font-black text-gray-700 uppercase">{c.name}: {isFree ? <span className="text-green-600">FREE</span> : `₹${c.amount}`}</span>
                             </div>
                           );

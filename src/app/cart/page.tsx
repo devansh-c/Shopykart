@@ -116,6 +116,8 @@ function CartContent() {
   }, [firestore]);
   const { data: dbCharges, loading: chargesLoading } = useCollection<any>(chargesQuery, 'checkout_charges_v4');
 
+  const isFreeDeliveryEligible = totalPrice >= FREE_DELIVERY_THRESHOLD;
+
   const dynamic_charges = useMemo(() => {
     if (!dbCharges || profileLoading || chargesLoading) return [];
     const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
@@ -129,11 +131,14 @@ function CartContent() {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
       
-      // FREE DELIVERY LOGIC: Waive if it's a delivery charge and total is above threshold
-      const isDeliveryCharge = (charge.name || '').toLowerCase().includes('delivery');
-      const isFreeDeliveryEligible = totalPrice >= FREE_DELIVERY_THRESHOLD;
+      // IMPROVED WAIVER LOGIC: Broaden the detection to include "Handling", "Fee", "Shipping"
+      const lowerName = (charge.name || '').toLowerCase();
+      const isWaivableType = lowerName.includes('delivery') || 
+                             lowerName.includes('handling') || 
+                             lowerName.includes('shipping') || 
+                             lowerName.includes('fee');
       
-      const shouldWaive = isPremium || (isDeliveryCharge && isFreeDeliveryEligible);
+      const shouldWaive = isPremium || (isWaivableType && isFreeDeliveryEligible);
 
       if (shouldWaive) {
         amount = 0;
@@ -143,7 +148,7 @@ function CartContent() {
       }
       return { ...charge, calculatedAmount: amount, isWaived: shouldWaive };
     });
-  }, [dbCharges, totalPrice, isPremium, profileLoading, chargesLoading]);
+  }, [dbCharges, totalPrice, isPremium, profileLoading, chargesLoading, isFreeDeliveryEligible]);
 
   const chargesTotalSum = useMemo(() => {
     return dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0);
@@ -170,6 +175,7 @@ function CartContent() {
 
   const premiumPackingPrice = (premiumPackaging && !isPremium) ? 10 : 0;
 
+  // GRAND TOTAL: Corrected to use the potentially waived chargesTotalSum
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + deliveryTip + premiumPackingPrice - coinDiscount - couponDiscount);
 
   useEffect(() => {
@@ -258,7 +264,6 @@ function CartContent() {
       return;
     }
 
-    // VALIDATION: Minimum order quantity check
     if (totalPrice < 40) {
       toast({ 
         variant: "destructive", 
@@ -357,7 +362,6 @@ function CartContent() {
 
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
-  const isFreeDelivery = totalPrice >= FREE_DELIVERY_THRESHOLD;
   const progressPercent = Math.min(100, (totalPrice / FREE_DELIVERY_THRESHOLD) * 100);
   const amountNeeded = Math.max(0, FREE_DELIVERY_THRESHOLD - totalPrice);
 
@@ -377,19 +381,19 @@ function CartContent() {
            <div className="flex items-center gap-3">
               <div className={cn(
                 "p-2 rounded-xl transition-all duration-500",
-                isFreeDelivery ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
+                isFreeDeliveryEligible ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
               )}>
                  <Truck className="h-4 w-4" />
               </div>
               <div className="flex flex-col">
                  <h3 className={cn(
                    "text-[10px] font-black uppercase tracking-widest italic leading-none transition-colors",
-                   isFreeDelivery ? "text-green-400" : "text-[#D9C4A9]"
+                   isFreeDeliveryEligible ? "text-green-400" : "text-[#D9C4A9]"
                  )}>
-                   {isFreeDelivery ? "FREE DELIVERY UNLOCKED!" : "Free Delivery Target"}
+                   {isFreeDeliveryEligible ? "FREE DELIVERY UNLOCKED!" : "Free Delivery Target"}
                  </h3>
                  <p className="text-[11px] font-bold opacity-70 uppercase mt-1">
-                   {isFreeDelivery ? "Enjoy zero delivery fees on this order" : `Add ₹${amountNeeded.toFixed(0)} more for free delivery`}
+                   {isFreeDeliveryEligible ? "Enjoy zero delivery fees on this order" : `Add ₹${amountNeeded.toFixed(0)} more for free delivery`}
                  </p>
               </div>
            </div>
@@ -399,7 +403,7 @@ function CartContent() {
                  <div 
                    className={cn(
                      "h-full transition-all duration-1000",
-                     isFreeDelivery ? "bg-green-500" : "bg-amber-400"
+                     isFreeDeliveryEligible ? "bg-green-500" : "bg-amber-400"
                    )}
                    style={{ width: `${progressPercent}%` }}
                  />
@@ -661,11 +665,11 @@ function CartContent() {
               <div className="flex justify-between items-center group">
                  <div className="flex items-center gap-2">
                     <span className="text-sm font-bold uppercase italic tracking-tight">Delivery & Handling:</span>
-                    {isFreeDelivery && (
+                    {isFreeDeliveryEligible && (
                       <Badge className="bg-green-500/20 text-green-400 border-none text-[7px] font-black uppercase px-2 py-0.5">FREE</Badge>
                     )}
                  </div>
-                 <span className={cn("font-black italic", isFreeDelivery ? "text-green-400 line-through opacity-50" : "text-white")}>
+                 <span className={cn("font-black italic", isFreeDeliveryEligible ? "text-green-400 line-through opacity-50" : "text-white")}>
                    ₹{chargesTotalSum.toFixed(0)}
                  </span>
               </div>
@@ -673,7 +677,7 @@ function CartContent() {
               {premiumPackingPrice > 0 && (
                 <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
                    <span className="text-sm font-bold uppercase italic tracking-tight">Premium Packing:</span>
-                   <span className="font-black italic text-white">₹{premiumPackaging}</span>
+                   <span className="font-black italic text-white">₹{premiumPackingPrice}</span>
                 </div>
               )}
 
