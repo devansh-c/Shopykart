@@ -12,32 +12,32 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview Resilient single-doc fetch hook with Aggressive Synchronous initialization.
- * Optimized for 0-second loading by prioritizing initialData (SSR) during state initialization.
+ * @fileOverview Hydration-Safe useDoc Hook.
+ * Defers localStorage access to useEffect to prevent Next.js client-side exceptions.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
-  // 1. Aggressive Synchronous Initialization: SSR Data > Cache > Null
-  const [data, setData] = useState<T | null>(() => {
-    // Priority 1: Use Server-Side Data immediately (Important for Googlebot/Incognito)
-    if (initialData) return initialData;
-    
-    // Priority 2: Use Cache
-    if (typeof window !== 'undefined' && cacheKey) {
-      try {
-        const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
-        return cached ? JSON.parse(cached) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
-
-  // Loading is only true if we have ABSOLUTELY no data (cached or SSR)
-  const [loading, setLoading] = useState(() => !data && !!ref);
+  // 1. Initialize strictly with SSR data to match server render
+  const [data, setData] = useState<T | null>(initialData || null);
+  const [loading, setLoading] = useState(() => !initialData && !!ref);
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
+    // 2. Client-only: Load from cache if SSR data is missing
+    if (!data && cacheKey && typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(`fire_doc_cache_${cacheKey}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed) {
+            setData(parsed);
+            setLoading(false);
+          }
+        }
+      } catch (e) {
+        console.debug("Doc cache read failed:", e);
+      }
+    }
+
     if (!ref) {
       setLoading(false);
       setData(null);
@@ -52,7 +52,6 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         setLoading(false);
         setError(null);
 
-        // Update cache silently in background
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
             localStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));

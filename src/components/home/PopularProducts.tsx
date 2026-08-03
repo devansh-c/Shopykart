@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo } from "react"
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * Utility to check if a store is currently open based on its schedule.
+ * Defensive against invalid data types to prevent exceptions.
  */
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -23,32 +23,33 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
     ? currentMins 
     : (new Date().getHours() * 60 + new Date().getMinutes());
 
-  const parseTime = (t: string) => {
+  const parseTimeToMinutes = (t: any) => {
     try {
+      if (typeof t !== 'string') return 0;
       const parts = t.trim().split(' ');
       if (parts.length < 2) return 0;
       const [time, modifier] = parts;
       let [hours, minutes] = time.split(':').map(Number);
+      if (isNaN(hours)) return 0;
       if (modifier === 'PM' && hours < 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
       return hours * 60 + (isNaN(minutes) ? 0 : minutes);
-    } catch (e) { return 0; }
+    } catch (e) { 
+      return 0; 
+    }
   };
 
-  const start = parseTime(vendor.openingTime);
-  const end = parseTime(vendor.closingTime);
+  const start = parseTimeToMinutes(vendor.openingTime);
+  const end = parseTimeToMinutes(vendor.closingTime);
 
   if (start < end) {
     return mins >= start && mins <= end;
-  } else {
-    // Handles ranges crossing midnight (e.g., 10 PM to 2 AM)
+  } else if (start > end) {
     return mins >= start || mins <= end;
   }
+  return true;
 }
 
-/**
- * Memoized individual product card to prevent heavy re-renders during scroll.
- */
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   return (
     <div className={cn(
@@ -148,20 +149,20 @@ export function PopularProducts({
   const [visibleCount, setVisibleCount] = useState(40); 
 
   useEffect(() => {
-    setActiveZoneId(localStorage.getItem('active_zone_id'));
+    const zoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+    setActiveZoneId(zoneId);
+    
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     window.addEventListener('user-address-updated', updateZone);
 
     const now = new Date();
     setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
     
-    // Sync time every minute for automatic status updates
     const interval = setInterval(() => {
       const d = new Date();
       setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes());
     }, 60000);
 
-    // Infinite Scroll Logic
     const handleScroll = () => {
        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
           setVisibleCount(prev => prev + 40);
@@ -190,12 +191,6 @@ export function PopularProducts({
   
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v5_full', initialStores);
 
-  /**
-   * HIGH-PERFORMANCE DATA ENGINE
-   * 1. Maps vendors for O(1) lookup.
-   * 2. Filters by active mode, search, and zone.
-   * 3. Sorts by: Status (Open > Closed) -> Rating (High > Low).
-   */
   const productsToDisplay = useMemo(() => {
     const list = dbProducts || [];
     if (list.length === 0) return [];
@@ -206,39 +201,23 @@ export function PopularProducts({
 
     const filtered = list.filter(p => {
       const v = vendorMap.get(p.vendorId);
-      
-      // 1. Zone Check
       if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) return false;
-      
-      // 2. Mode Check
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       if (!modeMatch) return false;
-
-      // 3. Search Check
       const searchMatch = !q || p.name?.toLowerCase().includes(q) || v?.storeName?.toLowerCase().includes(q);
       if (!searchMatch) return false;
-
-      // 4. Category Check
       const catMatch = c === 'all' || p.category?.toLowerCase() === c;
       if (!catMatch) return false;
-
-      // 5. Deletion Check
       if (p.isDeleted) return false;
-      
       return true;
     });
 
     return filtered.sort((a, b) => {
       const vA = vendorMap.get(a.vendorId);
       const vB = vendorMap.get(b.vendorId);
-      
       const isOpenA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
       const isOpenB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
-
-      // PRIORITY 1: Open stores first
       if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
-
-      // PRIORITY 2: Rating (5.0 first)
       const rA = Number(a.rating) || Number(vA?.rating) || 0;
       const rB = Number(b.rating) || Number(vB?.rating) || 0;
       return rB - rA;

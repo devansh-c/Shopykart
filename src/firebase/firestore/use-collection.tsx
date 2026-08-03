@@ -12,42 +12,40 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview OMNI-INSTANT Hook v13.
- * Optimized for TRUE 0-second loading using Aggressive Synchronous Initializer.
- * Prioritizes SSR Data > LocalStorage Cache to eliminate any visual delay for Crawlers and Incognito.
+ * @fileOverview Hydration-Safe useCollection Hook.
+ * Prevents client-side exceptions by deferring cache loading until after mount.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
-  // 1. Synchronous Initialization: Immediate state injection from SSR or Cache
-  const [data, setData] = useState<T[] | null>(() => {
-    // A. Priority 1: SSR Props (Critical for Googlebot and Incognito)
-    if (initialData && initialData.length > 0) return initialData;
-    
-    // B. Priority 2: Persistent LocalStorage Cache
-    if (typeof window !== 'undefined' && cacheKey) {
-      try {
-        const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch (e) {}
-    }
-    return null;
-  });
-  
-  // Loading is strictly false if data is already present from SSR or cache
-  const [loading, setLoading] = useState(() => !data);
+  // 1. Initialize strictly with SSR data to match server render
+  const [data, setData] = useState<T[] | null>(initialData || null);
+  const [loading, setLoading] = useState(() => !initialData);
   const [error, setError] = useState<FirestoreError | null>(null);
   
   const queryStr = query ? JSON.stringify((query as any)._query || {}) : '';
 
   useEffect(() => {
+    // 2. Client-only: Load from cache if SSR data is missing
+    if (!data && cacheKey && typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(`fire_cache_${cacheKey}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setData(parsed);
+            setLoading(false);
+          }
+        }
+      } catch (e) {
+        console.debug("Cache read failed:", e);
+      }
+    }
+
     if (!query) {
       setLoading(false);
       return;
     }
 
-    // 2. Real-time Background Sync
+    // 3. Real-time Background Sync
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
@@ -70,7 +68,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
-        // Update LocalStorage silently for next visit
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));

@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * @fileOverview Compact Premium Header.
- * Fixed for Hydration Safety: LocalStorage access deferred until mount.
+ * Fixed hydration safety and destructuring of props.
  */
 export function LocationHeader({
   searchValue,
@@ -52,7 +52,6 @@ export function LocationHeader({
 
   return (
     <div className="w-full bg-white pb-4 pt-3 px-4 space-y-3 rounded-b-[2.5rem] shadow-sm relative z-50 overflow-hidden">
-      {/* Subtle Food Pattern Background */}
       <div 
         className="absolute inset-0 opacity-[0.03] pointer-events-none" 
         style={{ 
@@ -79,7 +78,7 @@ export function LocationHeader({
         </button>
       </div>
 
-      <div className="relative group relative z-10">
+      <div className="relative group z-10">
         <div className="relative h-12 w-full bg-gradient-to-r from-[#D9C4A9] via-[#F1E4D1] to-[#D9C4A9] rounded-full overflow-hidden shadow-md border border-[#B8A38B]/20 flex items-center px-4">
           <Search className="h-5 w-5 text-[#5C4D3C] shrink-0" />
           
