@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { compressImage } from '@/lib/image-utils';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 const FREE_DELIVERY_THRESHOLD = 400;
 
@@ -397,7 +398,7 @@ function CartContent() {
               <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                  <div 
                    className={cn(
-                     "h-full transition-all duration-1000 ease-premium",
+                     "h-full transition-all duration-1000",
                      isFreeDelivery ? "bg-green-500" : "bg-amber-400"
                    )}
                    style={{ width: `${progressPercent}%` }}
@@ -672,7 +673,7 @@ function CartContent() {
               {premiumPackingPrice > 0 && (
                 <div className="flex justify-between items-center group animate-in slide-in-from-right-2">
                    <span className="text-sm font-bold uppercase italic tracking-tight">Premium Packing:</span>
-                   <span className="font-black italic text-white">₹{premiumPackingPrice}</span>
+                   <span className="font-black italic text-white">₹{premiumPackaging}</span>
                 </div>
               )}
 
