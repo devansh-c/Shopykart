@@ -25,7 +25,9 @@ import {
   ImageIcon,
   XCircle,
   Undo2,
-  IndianRupee
+  IndianRupee,
+  Percent,
+  Truck
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -40,6 +42,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { compressImage } from '@/lib/image-utils';
+import { Progress } from '@/components/ui/progress';
+
+const FREE_DELIVERY_THRESHOLD = 400;
 
 function CartContent() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -122,13 +127,20 @@ function CartContent() {
     return relevantCharges.map(charge => {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
-      if (isPremium) {
+      
+      // FREE DELIVERY LOGIC: Waive if it's a delivery charge and total is above threshold
+      const isDeliveryCharge = (charge.name || '').toLowerCase().includes('delivery');
+      const isFreeDeliveryEligible = totalPrice >= FREE_DELIVERY_THRESHOLD;
+      
+      const shouldWaive = isPremium || (isDeliveryCharge && isFreeDeliveryEligible);
+
+      if (shouldWaive) {
         amount = 0;
       } else {
         if (charge.type === 'fixed') amount = chargeVal;
         else if (charge.type === 'percentage') amount = (totalPrice * chargeVal) / 100;
       }
-      return { ...charge, calculatedAmount: amount, isWaived: isPremium };
+      return { ...charge, calculatedAmount: amount, isWaived: shouldWaive };
     });
   }, [dbCharges, totalPrice, isPremium, profileLoading, chargesLoading]);
 
@@ -344,6 +356,10 @@ function CartContent() {
 
   if (!isMounted) return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
+  const isFreeDelivery = totalPrice >= FREE_DELIVERY_THRESHOLD;
+  const progressPercent = Math.min(100, (totalPrice / FREE_DELIVERY_THRESHOLD) * 100);
+  const amountNeeded = Math.max(0, FREE_DELIVERY_THRESHOLD - totalPrice);
+
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
@@ -355,6 +371,45 @@ function CartContent() {
 
       <div className="p-4 space-y-5 max-w-lg mx-auto transform-gpu pb-10">
         
+        {/* FREE DELIVERY PROGRESS */}
+        <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2.5rem] p-6 shadow-2xl border border-white/5 space-y-4 text-[#D9C4A9]">
+           <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-xl transition-all duration-500",
+                isFreeDelivery ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-amber-400 text-black shadow-lg shadow-amber-400/20"
+              )}>
+                 <Truck className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                 <h3 className={cn(
+                   "text-[10px] font-black uppercase tracking-widest italic leading-none transition-colors",
+                   isFreeDelivery ? "text-green-400" : "text-[#D9C4A9]"
+                 )}>
+                   {isFreeDelivery ? "FREE DELIVERY UNLOCKED!" : "Free Delivery Target"}
+                 </h3>
+                 <p className="text-[11px] font-bold opacity-70 uppercase mt-1">
+                   {isFreeDelivery ? "Enjoy zero delivery fees on this order" : `Add ₹${amountNeeded.toFixed(0)} more for free delivery`}
+                 </p>
+              </div>
+           </div>
+           
+           <div className="space-y-2">
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                 <div 
+                   className={cn(
+                     "h-full transition-all duration-1000 ease-premium",
+                     isFreeDelivery ? "bg-green-500" : "bg-amber-400"
+                   )}
+                   style={{ width: `${progressPercent}%` }}
+                 />
+              </div>
+              <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-[#D9C4A9]/40 italic">
+                 <span>Subtotal: ₹{totalPrice.toFixed(0)}</span>
+                 <span>Target: ₹{FREE_DELIVERY_THRESHOLD}</span>
+              </div>
+           </div>
+        </div>
+
         {/* 1. ITEMS IN BAG */}
         <div className="bg-gradient-to-b from-[#4A4232] to-[#2D281E] rounded-[2.5rem] p-6 shadow-2xl border border-white/5 space-y-6 text-[#D9C4A9]">
            <div className="flex items-center gap-3">
@@ -603,8 +658,15 @@ function CartContent() {
               </div>
               
               <div className="flex justify-between items-center group">
-                 <span className="text-sm font-bold uppercase italic tracking-tight">Delivery & Handling:</span>
-                 <span className="font-black italic text-white">₹{chargesTotalSum.toFixed(0)}</span>
+                 <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold uppercase italic tracking-tight">Delivery & Handling:</span>
+                    {isFreeDelivery && (
+                      <Badge className="bg-green-500/20 text-green-400 border-none text-[7px] font-black uppercase px-2 py-0.5">FREE</Badge>
+                    )}
+                 </div>
+                 <span className={cn("font-black italic", isFreeDelivery ? "text-green-400 line-through opacity-50" : "text-white")}>
+                   ₹{chargesTotalSum.toFixed(0)}
+                 </span>
               </div>
 
               {premiumPackingPrice > 0 && (
