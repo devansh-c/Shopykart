@@ -1,7 +1,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   ShoppingBag, 
   ChevronRight, 
@@ -39,7 +39,8 @@ import {
   FileText,
   Plus,
   Coins,
-  Tag
+  Tag,
+  Truck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,7 +103,7 @@ export default function OrderManagement() {
     } catch (err) {
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
-      setDownloadingId(null);
+      downloadingId === id && setDownloadingId(null);
     }
   };
 
@@ -150,9 +151,7 @@ export default function OrderManagement() {
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total?.toFixed(2)}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
     
-    // Extract Unique Store Names
     const storeNames = Array.from(new Set(orderData.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
-    
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
     const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
     
@@ -200,13 +199,20 @@ export default function OrderManagement() {
         <div className="border-t border-dashed border-black my-3 pt-3 space-y-1.5">
            <div className="flex justify-between font-bold"><span>ITEMS SUBTOTAL:</span><span>₹{subtotal.toFixed(2)}</span></div>
            
-           {/* Dynamic Tax & Charges */}
-           {orderData.charges?.map((c: any, idx: number) => (
-             <div key={idx} className="flex justify-between opacity-80 italic">
-               <span>{c.name?.toUpperCase()}:</span>
-               <span>₹{Number(c.amount || 0).toFixed(2)}</span>
-             </div>
-           ))}
+           {orderData.charges?.map((c: any, idx: number) => {
+             const isDelivery = (c.name || '').toLowerCase().includes('delivery');
+             const isFree = Number(c.amount) === 0 && isDelivery;
+             return (
+              <div key={idx} className="flex justify-between opacity-80 italic">
+                <span>{c.name?.toUpperCase()}:</span>
+                {isFree ? (
+                  <span className="font-black text-green-700">FREE</span>
+                ) : (
+                  <span>₹{Number(c.amount || 0).toFixed(2)}</span>
+                )}
+              </div>
+             );
+           })}
 
            {orderData.premiumPackaging && <div className="flex justify-between opacity-80 italic"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>}
            {orderData.deliveryTip > 0 && <div className="flex justify-between opacity-80 italic"><span>RIDER TIP:</span><span>₹{orderData.deliveryTip.toFixed(2)}</span></div>}
@@ -263,8 +269,6 @@ export default function OrderManagement() {
         {orders?.map((order: any) => {
           const isCancelled = order.status === 'Cancelled';
           const isDelivered = order.status === 'Delivered';
-          
-          // Compute unique stores for the card
           const uniqueStores = Array.from(new Set(order.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
 
           return (
@@ -299,7 +303,6 @@ export default function OrderManagement() {
                 </div>
               </div>
 
-              {/* DETAILS BOX */}
               <div className="bg-[#F9FAFB] rounded-[2rem] p-6 mb-8 border border-border/50 shadow-inner">
                  <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-4">
@@ -331,15 +334,17 @@ export default function OrderManagement() {
                        ))}
                     </div>
 
-                    <div className="pt-4 mt-2 border-t border-dashed border-gray-200 flex items-center gap-3">
-                       <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center text-primary shadow-sm shrink-0">
-                          <MapPin className="h-4 w-4" />
-                       </div>
-                       <p className="text-[10px] font-black text-gray-500 uppercase leading-relaxed tracking-tight">{order.address}</p>
-                    </div>
-
-                    {/* ENHANCEMENTS & INSTRUCTIONS */}
                     <div className="pt-4 border-t border-white grid grid-cols-1 md:grid-cols-2 gap-4">
+                       {order.charges?.map((c: any, idx: number) => {
+                          const isDelivery = (c.name || '').toLowerCase().includes('delivery');
+                          const isFree = Number(c.amount) === 0 && isDelivery;
+                          return (
+                            <div key={idx} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                               {isDelivery ? <Truck className="h-3.5 w-3.5 text-blue-500" /> : <Tag className="h-3.5 w-3.5 text-gray-400" />}
+                               <span className="text-[9px] font-black text-gray-700 uppercase">{c.name}: {isFree ? <span className="text-green-600">FREE</span> : `₹${c.amount}`}</span>
+                            </div>
+                          );
+                       })}
                        {order.premiumPackaging && (
                          <div className="flex items-center gap-2 bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">
                             <Package className="h-3.5 w-3.5 text-rose-500" />
@@ -358,12 +363,13 @@ export default function OrderManagement() {
                             <span className="text-[9px] font-black text-amber-700 uppercase">Coins Used: -₹{order.coinDiscount.toFixed(0)}</span>
                        </div>
                        )}
-                       {order.couponDiscount > 0 && (
-                         <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
-                            <Tag className="h-3.5 w-3.5 text-green-500" />
-                            <span className="text-[9px] font-black text-green-700 uppercase">Coupon Applied: -₹{order.couponDiscount.toFixed(0)}</span>
-                         </div>
-                       )}
+                    </div>
+
+                    <div className="pt-4 mt-2 border-t border-dashed border-gray-200 flex items-center gap-3">
+                       <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center text-primary shadow-sm shrink-0">
+                          <MapPin className="h-4 w-4" />
+                       </div>
+                       <p className="text-[10px] font-black text-gray-500 uppercase leading-relaxed tracking-tight">{order.address}</p>
                     </div>
 
                     {order.instructions && (
@@ -373,19 +379,6 @@ export default function OrderManagement() {
                             <span className="text-[9px] font-black uppercase">Customer Note</span>
                          </div>
                          <p className="text-xs font-bold text-gray-700 italic leading-relaxed">"{order.instructions}"</p>
-                      </div>
-                    )}
-
-                    {order.verificationImage && (
-                      <div className="pt-4 border-t border-dashed border-gray-200">
-                         <div className="flex items-center gap-2 mb-2 text-blue-600">
-                            <Camera className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase">House Verification Photo</span>
-                         </div>
-                         <div className="relative h-40 w-full rounded-2xl overflow-hidden bg-white border border-border/50">
-                            <img src={order.verificationImage} className="h-full w-full object-cover" alt="Verification" />
-                            <button onClick={() => window.open(order.verificationImage, '_blank')} className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md p-2 rounded-xl text-white active:scale-90"><ExternalLink className="h-4 w-4" /></button>
-                         </div>
                       </div>
                     )}
                  </div>
