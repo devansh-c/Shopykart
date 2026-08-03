@@ -60,24 +60,18 @@
     -webkit-overflow-scrolling: touch !important; 
   }
 
-  input, textarea, [contenteditable] {
-    user-select: text !important;
-  }
-  
-  /* ULTRA FAST PERFORMANCE ENGINE v8 */
-  .content-visibility-auto {
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 180px;
-    contain: layout style paint;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-  }
-
+  /* HARDWARE ACCELERATION ENGINE */
   .transform-gpu {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     perspective: 1000px;
     will-change: transform, opacity;
+  }
+
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 180px;
+    contain: layout style paint;
   }
 
   .no-scrollbar::-webkit-scrollbar {

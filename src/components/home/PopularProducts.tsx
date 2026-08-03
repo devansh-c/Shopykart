@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useEffect, memo } from "react"
+import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
 import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * Utility to check if a store is currently open based on its schedule.
- * Defensive against invalid data types to prevent exceptions.
  */
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
@@ -53,7 +52,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
   return (
     <div className={cn(
-      "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all duration-300 transform-gpu content-visibility-auto",
+      "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all duration-300 transform-gpu",
       isOffline && "opacity-75 grayscale-[0.5]"
     )}>
       <div className="relative aspect-square w-full mb-3">
@@ -97,7 +96,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
             <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{product.price}</span>
             <div className="flex items-center gap-1 mt-1">
                <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-               <span className="text-[8px] font-black text-gray-400">{(Number(product.rating) || 4.5).toFixed(1)}</span>
+               <span className="text-[8px] font-bold text-gray-400">{(Number(product.rating) || 4.5).toFixed(1)}</span>
             </div>
           </div>
 
@@ -155,16 +154,15 @@ export function PopularProducts({
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
     window.addEventListener('user-address-updated', updateZone);
 
-    const now = new Date();
-    setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
-    
-    const interval = setInterval(() => {
+    const syncTime = () => {
       const d = new Date();
       setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes());
-    }, 60000);
+    };
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
 
     const handleScroll = () => {
-       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
+       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000) {
           setVisibleCount(prev => prev + 40);
        }
     };
@@ -182,60 +180,80 @@ export function PopularProducts({
     return query(collection(firestore, 'products'), limit(1500));
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v5_full', initialData);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v6_turbo', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v5_full', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_turbo', initialStores);
 
+  // PRE-CALCULATED DATA FOR HYPER PERFORMANCE
   const productsToDisplay = useMemo(() => {
-    const list = dbProducts || [];
-    if (list.length === 0) return [];
+    const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
+    if (!list || list.length === 0) return [];
 
-    const vendorMap = new Map(vendors?.map(v => [v.id, v]) || []);
+    const storeList = (vendors && vendors.length > 0) ? vendors : initialStores;
+    const vendorMap = new Map(storeList.map(v => [v.id, v]));
+
+    // Cache open status per vendor for current minute to avoid thousands of recalcs
+    const vendorStatusMap = new Map();
+    storeList.forEach(v => {
+      vendorStatusMap.set(v.id, v.isOnline !== false && isStoreScheduleOpen(v, currentTimeMinutes));
+    });
+    
     const q = searchQuery.toLowerCase().trim();
     const c = category.toLowerCase();
 
     const filtered = list.filter(p => {
       const v = vendorMap.get(p.vendorId);
       if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) return false;
+      
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       if (!modeMatch) return false;
+
       const searchMatch = !q || p.name?.toLowerCase().includes(q) || v?.storeName?.toLowerCase().includes(q);
       if (!searchMatch) return false;
+
       const catMatch = c === 'all' || p.category?.toLowerCase() === c;
       if (!catMatch) return false;
-      if (p.isDeleted) return false;
-      return true;
+
+      return !p.isDeleted;
     });
 
     return filtered.sort((a, b) => {
-      const vA = vendorMap.get(a.vendorId);
-      const vB = vendorMap.get(b.vendorId);
-      const isOpenA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
-      const isOpenB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
+      const isOpenA = vendorStatusMap.get(a.vendorId) ?? true;
+      const isOpenB = vendorStatusMap.get(b.vendorId) ?? true;
+
       if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
-      const rA = Number(a.rating) || Number(vA?.rating) || 0;
-      const rB = Number(b.rating) || Number(vB?.rating) || 0;
+
+      const rA = Number(a.rating) || Number(vendorMap.get(a.vendorId)?.rating) || 0;
+      const rB = Number(b.rating) || Number(vendorMap.get(b.vendorId)?.rating) || 0;
+      
       return rB - rA;
     });
-  }, [dbProducts, vendors, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
+  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
 
-  const handleShare = (e: React.MouseEvent, product: any) => {
+  const handleShare = useCallback((e: React.MouseEvent, product: any) => {
     e.stopPropagation();
     const productSlug = product.slug || slugify(product.name) || product.id;
     const shareUrl = `${window.location.origin}/product/${productSlug}`;
     if (navigator.share) navigator.share({ title: product.name, url: shareUrl }).catch(() => {});
-    else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied!" }); }
-  };
+    else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied! 🔗" }); }
+  }, [toast]);
 
-  if (productsToDisplay.length === 0 && !productsLoading) return null;
+  if (productsToDisplay.length === 0 && !productsLoading) {
+    return (
+      <div className="px-4 py-20 text-center opacity-30 transform-gpu">
+         <Store className="h-16 w-16 mx-auto mb-4" />
+         <p className="text-sm font-black uppercase tracking-widest italic">No items found in this zone</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 py-6 transform-gpu min-h-[600px]">
+    <div className="px-4 py-6 transform-gpu min-h-[600px] bg-white">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
           All <span className="text-primary">Products</span>
@@ -250,13 +268,13 @@ export function PopularProducts({
       <div className="grid grid-cols-2 gap-4">
         {productsToDisplay.slice(0, visibleCount).map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const v = vendors?.find(store => store.id === product.vendorId);
+          const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(store => store.id === product.vendorId);
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
 
           return (
             <ProductItem 
               key={product.id} 
-              product={product} 
+              product={{...product, restaurantName: v?.storeName}} 
               quantity={quantity} 
               isOffline={isOffline} 
               onShare={handleShare}
@@ -267,10 +285,10 @@ export function PopularProducts({
         })}
       </div>
       
-      {productsLoading && productsToDisplay.length === 0 && (
+      {(productsLoading && productsToDisplay.length === 0) && (
         <div className="grid grid-cols-2 gap-4">
            {[1, 2, 3, 4, 5, 6].map(i => (
-             <div key={i} className="bg-gray-100 animate-pulse h-64 rounded-[2.5rem] border-2 border-gray-50" />
+             <div key={i} className="bg-gray-50 animate-pulse h-64 rounded-[2.5rem] border-2 border-gray-100" />
            ))}
         </div>
       )}
