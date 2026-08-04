@@ -37,7 +37,8 @@ import {
   Clock,
   AlertCircle,
   Calendar,
-  QrCode
+  QrCode,
+  Utensils
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -310,7 +311,6 @@ function ProfileContent() {
             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Information & Legal</h3>
             {pages.map((page: any) => {
               const Icon = getPageIcon(page.title);
-              // Clean SEO Slug without ID
               const cleanPath = `/page/${page.slug || slugify(page.title)}`;
               return (
                 <button 
@@ -334,8 +334,9 @@ function ProfileContent() {
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Business & Portals</h3>
           {[
-            { label: 'Join as Beauty & Cosmetics', icon: Sparkles, path: '/Beauty/store', description: 'Sell luxury skincare & makeup', highlight: true, accent: 'rose' },
-            { label: 'Join as Medical Store', icon: HeartPulse, path: '/Medical/store', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
+            { label: 'Join as Food Vendor', icon: Utensils, path: '/vendor/register', description: 'Sell your gourmet dishes', highlight: true, accent: 'black' },
+            { label: 'Join as Beauty & Cosmetics', icon: Sparkles, path: '/vendor/register?type=Beauty', description: 'Sell luxury skincare & makeup', highlight: true, accent: 'rose' },
+            { label: 'Join as Medical Store', icon: HeartPulse, path: '/vendor/register?type=Medical', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
             { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
             { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard', description: 'View and accept delivery tasks' },
             { label: 'Join as Team Member', icon: ShieldAlert, path: '/admin/login?mode=team', description: 'Access assigned staff portals' },
@@ -347,6 +348,7 @@ function ProfileContent() {
                 "w-full rounded-2xl p-4 flex items-center justify-between border shadow-sm active:scale-[0.97] transition-all group",
                 item.highlight && item.accent === 'rose' ? "bg-rose-50 border-rose-100" :
                 item.highlight && item.accent === 'teal' ? "bg-teal-50 border-teal-100" : 
+                item.highlight && item.accent === 'black' ? "bg-gray-50 border-gray-200" : 
                 "bg-white border-primary/10"
               )}
             >
@@ -355,6 +357,7 @@ function ProfileContent() {
                   "p-2.5 rounded-xl",
                   item.highlight && item.accent === 'rose' ? "bg-rose-100 text-rose-600" :
                   item.highlight && item.accent === 'teal' ? "bg-teal-100 text-teal-600" :
+                  item.highlight && item.accent === 'black' ? "bg-black text-white" :
                   "bg-primary/10 text-primary"
                 )}>
                   <item.icon className="h-5 w-5" />
@@ -368,6 +371,7 @@ function ProfileContent() {
                 "h-4 w-4", 
                 item.highlight && item.accent === 'rose' ? "text-rose-400" :
                 item.highlight && item.accent === 'teal' ? "text-teal-400" :
+                item.highlight && item.accent === 'black' ? "text-black" :
                 "text-primary"
               )} />
             </button>
