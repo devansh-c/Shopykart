@@ -158,6 +158,14 @@ export default function VendorDashboard() {
     });
   }, [rawOrders, user]);
 
+  const filteredOrders = useMemo(() => {
+    return orders?.filter(o => {
+      const status = (o.status || '').toUpperCase();
+      if(orderFilter === 'NEW ORDERS') return !['DELIVERED', 'CANCELLED'].includes(status);
+      return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
+    });
+  }, [orders, orderFilter]);
+
   const handleToggleStore = async (online: boolean) => {
     if (!firestore || !user) return;
     try {
