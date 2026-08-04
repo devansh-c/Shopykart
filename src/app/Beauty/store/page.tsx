@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -86,7 +85,6 @@ export default function BeautyDashboard() {
 
   // Product Form State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [productForm, setProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: ''
@@ -192,17 +190,14 @@ export default function BeautyDashboard() {
     };
 
     try {
-      if (editingId) {
-        await setDoc(doc(firestore, 'products', editingId), pData, { merge: true });
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingId), pData, { merge: true });
-      } else {
-        const newRef = doc(collection(firestore, 'products'));
-        await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
-      }
+      // ONLY ALLOW ADD NEW
+      const newRef = doc(collection(firestore, 'products'));
+      await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      
       setIsProductModalOpen(false);
       resetForm();
-      toast({ title: "Product Saved!" });
+      toast({ title: "Product Added!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Save Failed" });
     } finally {
@@ -211,7 +206,6 @@ export default function BeautyDashboard() {
   };
 
   const resetForm = () => {
-    setEditingId(null);
     setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '' });
   };
 
@@ -284,7 +278,7 @@ export default function BeautyDashboard() {
                          <Button className="bg-rose-600 rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
                        </DialogTrigger>
                        <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                          <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingId ? 'Edit Product' : 'New Beauty item'}</DialogTitle></DialogHeader>
+                          <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">New Beauty item</DialogTitle></DialogHeader>
                           <div className="p-8 space-y-6">
                              <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                                 {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
@@ -316,7 +310,7 @@ export default function BeautyDashboard() {
                                 </div>
                              </div>
                              <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-rose-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl">
-                               {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
+                               {isSavingProduct ? <Loader2 className="h-5 w-5 animate-spin" /> : 'PUBLISH ITEM'}
                              </Button>
                           </div>
                        </DialogContent>
@@ -331,10 +325,6 @@ export default function BeautyDashboard() {
                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
                             <p className="text-xs font-black text-rose-600 italic">₹{p.price}</p>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setEditingId(p.id); setProductForm({ ...p }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
-                          <button onClick={() => { if(confirm("Delete item?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     ))}

@@ -92,12 +92,10 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
 
-  // AUTOMATIC STATUS CHECK
   const isCurrentlyOpenByTime = useMemo(() => {
     return isStoreScheduleOpen(vendorProfile, currentTimeMins);
   }, [vendorProfile, currentTimeMins]);
 
-  // AUTH GUARD
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
@@ -119,7 +117,6 @@ export default function VendorDashboard() {
   }, [allCategories, vendorProfile]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] as any[]
   });
@@ -235,17 +232,14 @@ export default function VendorDashboard() {
       isDeleted: false,
     };
     try {
-      if (editingId) {
-        await setDoc(doc(firestore, 'products', editingId), productData, { merge: true });
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', editingId), productData, { merge: true });
-      } else {
-        const newRef = doc(collection(firestore, 'products'));
-        await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });
-        await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
-      }
+      // STRICTLY ONLY ALLOWING ADD NEW IN VENDOR DASHBOARD
+      const newRef = doc(collection(firestore, 'products'));
+      await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });
+      await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
+      
       setIsProductModalOpen(false);
-      setEditingId(null);
-      toast({ title: "Product Saved!" });
+      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] });
+      toast({ title: "Product Added Successfully!" });
     } catch (e) { toast({ variant: "destructive", title: "Save Failed" }); }
     finally { setIsSavingProduct(false); }
   };
@@ -287,7 +281,6 @@ export default function VendorDashboard() {
       <main className={cn("flex-1 overflow-y-auto no-scrollbar transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
          <div className="pb-32">
             <div className="p-4">
-               {/* TIMING INFO BANNER */}
                <div className={cn(
                  "p-4 rounded-2xl border-2 mb-6 flex items-center justify-between",
                  isCurrentlyOpenByTime ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700"
@@ -338,12 +331,12 @@ export default function VendorDashboard() {
               <div className="p-4 pt-0 space-y-4 animate-in fade-in duration-500">
                   <div className="flex items-center justify-between mb-2">
                     <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2>
-                    <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) { setEditingId(null); setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); } }}>
+                    <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) { setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); } }}>
                       <DialogTrigger asChild>
                         <Button className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
                       </DialogTrigger>
                       <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                        <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">{editingId ? 'Edit Product' : 'Add New Product'}</DialogTitle></DialogHeader>
+                        <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Add New Product</DialogTitle></DialogHeader>
                         <div className="p-8 space-y-8">
                            <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                               {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
@@ -380,7 +373,6 @@ export default function VendorDashboard() {
                               </div>
                            </div>
 
-                           {/* VARIETY / OPTIONS BUILDER */}
                            <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 space-y-6">
                               <div className="flex items-center justify-between">
                                  <div className="flex items-center gap-3">
@@ -415,7 +407,7 @@ export default function VendorDashboard() {
                            </div>
 
                            <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
-                             {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
+                             {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : 'PUBLISH ITEM'}
                            </Button>
                         </div>
                       </DialogContent>
@@ -438,10 +430,6 @@ export default function VendorDashboard() {
                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
                             <p className="text-xs font-black text-primary italic">₹{p.price}</p>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setEditingId(p.id); setProductForm({ ...p, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
-                          <button onClick={async () => { if(confirm("Delete item?")) { await setDoc(doc(firestore!, 'products', p.id), { isDeleted: true }, { merge: true }); toast({title: 'Deleted'}); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     ))}
