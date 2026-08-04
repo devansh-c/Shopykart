@@ -192,6 +192,26 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddOption = () => {
+    setProductForm(prev => ({
+      ...prev,
+      options: [...prev.options, { name: '', price: 0 }]
+    }));
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setProductForm(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...productForm.options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setProductForm(prev => ({ ...prev, options: newOptions }));
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
       toast({ variant: "destructive", title: "Missing Info" });
@@ -212,6 +232,7 @@ export default function VendorDashboard() {
       isVarietyRequired: productForm.isVarietyRequired,
       isAvailable: vendorProfile?.isOnline !== false,
       updatedAt: serverTimestamp(),
+      isDeleted: false,
     };
     try {
       if (editingId) {
@@ -237,6 +258,8 @@ export default function VendorDashboard() {
       </div>
     );
   }
+
+  const myActiveProducts = myProducts?.filter(p => !p.isDeleted) || [];
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
@@ -356,6 +379,41 @@ export default function VendorDashboard() {
                                  <Switch checked={productForm.isVeg} onCheckedChange={v => setProductForm({...productForm, isVeg: v})} />
                               </div>
                            </div>
+
+                           {/* VARIETY / OPTIONS BUILDER */}
+                           <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 space-y-6">
+                              <div className="flex items-center justify-between">
+                                 <div className="flex items-center gap-3">
+                                    <div className="bg-primary/10 p-2 rounded-xl text-primary"><ListPlus className="h-5 w-5" /></div>
+                                    <h3 className="text-sm font-black uppercase tracking-tight">Varieties / Options</h3>
+                                 </div>
+                                 <Button type="button" onClick={handleAddOption} className="bg-white border-2 border-gray-100 text-gray-800 h-9 rounded-xl font-black uppercase text-[9px] hover:bg-gray-50"><Plus className="h-3 w-3 mr-1" /> ADD OPTION</Button>
+                              </div>
+
+                              {productForm.options.length > 0 && (
+                                <div className="space-y-3">
+                                   {productForm.options.map((opt, idx) => (
+                                     <div key={idx} className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
+                                        <Input value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} placeholder="e.g. Regular Size" className="flex-1 h-11 rounded-xl bg-white border-none font-bold text-xs" />
+                                        <Input type="number" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} placeholder="+ ₹" className="w-24 h-11 rounded-xl bg-white border-none font-black text-center text-primary" />
+                                        <button onClick={() => handleRemoveOption(idx)} className="h-11 w-11 rounded-xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><X className="h-4 w-4" /></button>
+                                     </div>
+                                   ))}
+
+                                   <div className="pt-4 border-t border-dashed flex items-center justify-between">
+                                      <div className="flex flex-col">
+                                         <span className="text-xs font-black uppercase">Selection Required?</span>
+                                         <span className="text-[8px] font-bold text-muted-foreground uppercase">Customer must pick one to checkout</span>
+                                      </div>
+                                      <Switch checked={productForm.isVarietyRequired} onCheckedChange={v => setProductForm({...productForm, isVarietyRequired: v})} />
+                                   </div>
+                                </div>
+                              )}
+                              {productForm.options.length === 0 && (
+                                <p className="text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest italic opacity-50">No varieties defined yet.</p>
+                              )}
+                           </div>
+
                            <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
                              {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH ITEM'}
                            </Button>
@@ -365,10 +423,17 @@ export default function VendorDashboard() {
                   </div>
                   
                   <div className="grid grid-cols-1 gap-4">
-                    {myProducts?.map(p => (
-                      <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm">
+                    {myActiveProducts?.map(p => (
+                      <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm relative overflow-hidden group">
                         <div className="flex items-center gap-4">
-                          <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
+                          <div className="relative">
+                            <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
+                            {p.options?.length > 0 && (
+                              <div className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white">
+                                <ListPlus className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
                           <div>
                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
                             <p className="text-xs font-black text-primary italic">₹{p.price}</p>
@@ -376,7 +441,7 @@ export default function VendorDashboard() {
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => { setEditingId(p.id); setProductForm({ ...p, options: p.options || [] }); setIsProductModalOpen(true); }} className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center text-blue-600"><Edit className="h-4 w-4" /></button>
-                          <button onClick={() => { if(confirm("Delete?")) { deleteDoc(doc(firestore!, 'products', p.id)); deleteDoc(doc(firestore!, 'vendors', p.vendorId, 'products', p.id)); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={async () => { if(confirm("Delete item?")) { await setDoc(doc(firestore!, 'products', p.id), { isDeleted: true }, { merge: true }); toast({title: 'Deleted'}); } }} className="h-10 w-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     ))}
