@@ -9,6 +9,9 @@ import { collection } from 'firebase/firestore';
 import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview WishlistPage updated to filter out deleted products globally.
+ */
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useCart();
   const router = useRouter();
@@ -27,10 +30,15 @@ export default function WishlistPage() {
   }, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery);
 
-  const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id)) || [];
+  // STRICT FILTER: Check if product ID is in wishlist AND is not marked as deleted
+  const favoriteProducts = dbProducts?.filter(p => wishlist.includes(p.id) && !p.isDeleted) || [];
 
   if (loading && !dbProducts) {
-    return <div className="min-h-screen bg-white" />;
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (favoriteProducts.length === 0 && !loading) {
@@ -77,7 +85,7 @@ export default function WishlistPage() {
                   <button className="relative w-full h-full">
                     <Image src={imageUrl} alt={product.name} fill className={cn("object-cover group-hover:scale-105 transition-transform", isOffline && "grayscale")} unoptimized />
                     {isOffline && (
-                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center z-10">
                         <Store className="h-6 w-6 text-white/80 mb-2" />
                         <span className="text-white font-black text-[10px] uppercase italic border border-white/30 px-2 py-1 rounded-lg backdrop-blur-sm">Closed Now</span>
                       </div>
@@ -86,7 +94,7 @@ export default function WishlistPage() {
                 </ProductQuickView>
                 <button 
                   onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm text-primary"
+                  className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm text-primary z-20"
                 >
                   <Heart className="h-4 w-4 fill-primary" />
                 </button>

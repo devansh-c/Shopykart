@@ -17,7 +17,7 @@ import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
  * @fileOverview MenuContent with Universal Resolution & High-Speed Product Fetching.
- * Optimized to handle name-based slugs even if not present in DB field.
+ * Strictly filters out deleted products.
  */
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -110,6 +110,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const filteredProducts = useMemo(() => {
     if (!dbProducts) return [];
     return dbProducts.filter((product: any) => {
+      if (product.isDeleted) return false; // STRICT FILTER FOR DELETED PRODUCTS
       const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category?.toLowerCase() === activeCategory;
       return matchesSearch && matchesCategory;

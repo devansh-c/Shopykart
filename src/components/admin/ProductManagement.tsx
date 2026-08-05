@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
@@ -95,6 +94,7 @@ export default function ProductManagement() {
       options: options.filter(opt => opt.name.trim() !== ''),
       isVarietyRequired: isVarietyRequired,
       updatedAt: serverTimestamp(),
+      isDeleted: false,
     };
 
     try {
@@ -140,10 +140,15 @@ export default function ProductManagement() {
     setIsAddOpen(true);
   };
 
-  const filteredProducts = products?.filter(p => 
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.restaurantName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    return products.filter(p => {
+      if (p.isDeleted) return false; // HIDE DELETED PRODUCTS FROM ADMIN LIST
+      const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          p.restaurantName?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+  }, [products, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -244,9 +249,9 @@ export default function ProductManagement() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading && !products ? (
           <div className="col-span-full flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-        ) : filteredProducts && filteredProducts.length > 0 ? (
+        ) : filteredProducts.length > 0 ? (
           filteredProducts.map(p => (
-            <div key={p.id} className="bg-white p-5 rounded-[2.5rem] border border-border/50 flex flex-col group shadow-sm hover:shadow-2xl transition-all relative overflow-hidden transform-gpu">
+            <div key={p.id} className="bg-white p-5 rounded-[2.5rem] border border-border/50 flex flex-col group shadow-sm hover:shadow-xl transition-all relative overflow-hidden transform-gpu">
                <div className="relative h-40 w-full rounded-2xl overflow-hidden bg-muted mb-4 border border-border/50">
                  <img src={p.imageUrl} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
                  <Badge className="absolute top-3 left-3 bg-white/80 backdrop-blur-md text-black border-none font-black text-[8px] uppercase">₹{p.price}</Badge>
@@ -260,7 +265,7 @@ export default function ProductManagement() {
 
                <div className="mt-auto pt-4 border-t border-dashed flex gap-2">
                   <Button onClick={() => handleEdit(p)} variant="outline" className="flex-1 rounded-xl h-10 font-black uppercase italic text-[10px] border-blue-100 text-blue-600 hover:bg-blue-50 transition-colors"><Edit className="h-3.5 w-3.5 mr-2" /> EDIT</Button>
-                  <Button onClick={async () => { if(confirm("Delete product?")) { await setDoc(doc(firestore!, 'products', p.id), { isDeleted: true }, { merge: true }); toast({title: 'Deleted'}); } }} variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"><Trash2 className="h-4 w-4" /></Button>
+                  <Button onClick={async () => { if(confirm("Are you sure? This will remove the product from all menus.")) { await setDoc(doc(firestore!, 'products', p.id), { isDeleted: true }, { merge: true }); toast({title: 'Removed Permanently'}); } }} variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"><Trash2 className="h-4 w-4" /></Button>
                </div>
 
                {p.options?.length > 0 && (
