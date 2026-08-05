@@ -8,9 +8,9 @@ import { useCart } from '@/components/cart/CartProvider';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 
 /**
- * @fileOverview Compact Bottom Navigation with Rewards section.
+ * @fileOverview Compact Bottom Navigation with Premium Glassmorphism.
  * Height maintained at 68px.
- * Features: Hide on Scroll Down, Show on Scroll Up.
+ * Features: Hide on Scroll Down, Show on Scroll Up, Frosted Glass Effect.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -72,7 +72,7 @@ export default function BottomNav() {
       <nav 
         className={cn(
           "w-full max-w-md h-[68px] rounded-full flex items-center justify-around px-2 pointer-events-auto",
-          "bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)]",
+          "bg-white/60 backdrop-blur-xl border border-white/30 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.2)]",
         )}
       >
         {navItems.map((item) => {
