@@ -40,7 +40,8 @@ import {
   Plus,
   Coins,
   Tag,
-  Truck
+  Truck,
+  Image as ImageIconLucide
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -153,7 +154,11 @@ export default function OrderManagement() {
     
     const storeNames = Array.from(new Set(orderData.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
-    const dateStr = orderData.createdAt?.seconds ? format(new Date(orderData.createdAt.seconds * 1000), 'dd/MM/yy HH:mm') : '--';
+    
+    // STRICT TIME ON RECEIPT
+    const dateStr = orderData.createdAt?.seconds 
+      ? format(new Date(orderData.createdAt.seconds * 1000), 'dd MMM yyyy, hh:mm a') 
+      : format(new Date(), 'dd MMM yyyy, hh:mm a');
     
     return (
       <div id={`receipt-content-customer-${orderData.id}`} className="bg-white text-black p-8 font-mono text-[10px] uppercase leading-tight w-[380px] border border-gray-100 shadow-xl">
@@ -167,7 +172,7 @@ export default function OrderManagement() {
 
         <div className="space-y-1.5">
           <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderData.orderDisplayId || orderData.id.slice(-5)}</span></div>
-          <div className="flex justify-between"><span>DATE:</span><span>{dateStr}</span></div>
+          <div className="flex justify-between"><span>TIME:</span><span className="font-black">{dateStr}</span></div>
           <div className="flex justify-between"><span>STORES:</span><span className="font-black text-right max-w-[180px] break-words">{storeNames}</span></div>
           <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black">{orderData.customerName?.slice(0,25)}</span></div>
           <div className="flex justify-between"><span>PHONE:</span><span className="font-black">{orderData.customerPhone}</span></div>
@@ -201,7 +206,6 @@ export default function OrderManagement() {
            
            {orderData.charges?.map((c: any, idx: number) => {
              const amountNum = Number(c.amount || 0);
-             // Logic to show "FREE" if amount is 0 (due to waiver)
              return (
               <div key={idx} className="flex justify-between opacity-80 italic">
                 <span>{c.name?.toUpperCase()}:</span>
@@ -270,6 +274,11 @@ export default function OrderManagement() {
           const isCancelled = order.status === 'Cancelled';
           const isDelivered = order.status === 'Delivered';
           const uniqueStores = Array.from(new Set(order.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
+          
+          // STRICT FORMATTED TIME FOR ADMIN CARD
+          const displayTime = order.createdAt?.seconds 
+            ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, hh:mm a') 
+            : 'Order Timing N/A';
 
           return (
             <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/40 shadow-sm transition-all hover:shadow-xl group transform-gpu">
@@ -295,13 +304,36 @@ export default function OrderManagement() {
                           <span className="text-[10px] font-black text-amber-800 uppercase tracking-tight">{order.paymentMethod === 'online' ? 'PREPAID ONLINE' : 'CASH ON DELIVERY'}</span>
                        </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase mt-3 tracking-widest italic">
-                       <Clock className="h-3.5 w-3.5" />
-                       {order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Recently'}
+                    <div className="flex items-center gap-1.5 text-[12px] font-black text-primary uppercase mt-3 tracking-widest italic">
+                       <Clock className="h-4 w-4" />
+                       {displayTime}
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* VERIFICATION IMAGE SECTION */}
+              {order.verificationImage && (
+                <div className="mb-8 space-y-3">
+                   <div className="flex items-center gap-2 text-primary">
+                      <Camera className="h-4 w-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest italic">Delivery Evidence / Photo</span>
+                   </div>
+                   <Dialog>
+                      <DialogTrigger asChild>
+                         <div className="relative h-44 w-full rounded-[2rem] overflow-hidden border-4 border-gray-50 shadow-inner cursor-pointer group/img">
+                            <img src={order.verificationImage} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" alt="Evidence" />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+                               <div className="bg-white/20 backdrop-blur-md p-3 rounded-full text-white border border-white/30"><Eye className="h-6 w-6" /></div>
+                            </div>
+                         </div>
+                      </DialogTrigger>
+                      <DialogContent className="rounded-[3rem] max-w-lg p-0 overflow-hidden border-none shadow-2xl">
+                         <img src={order.verificationImage} className="w-full h-auto" alt="Order Evidence Large" />
+                      </DialogContent>
+                   </Dialog>
+                </div>
+              )}
 
               <div className="bg-[#F9FAFB] rounded-[2rem] p-6 mb-8 border border-border/50 shadow-inner">
                  <div className="flex items-center justify-between mb-5">
