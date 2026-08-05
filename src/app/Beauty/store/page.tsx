@@ -61,11 +61,13 @@ export default function BeautyDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const storeImageInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
+  const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -90,36 +92,27 @@ export default function BeautyDashboard() {
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: ''
   });
 
-  // AUTH GUARD: Bulletproof session recovery
+  const [profileForm, setProfileForm] = useState({ storeName: '', address: '', fullName: '' });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (vendorProfile) {
+      setProfileForm({
+        storeName: vendorProfile.storeName || '',
+        address: vendorProfile.address || '',
+        fullName: vendorProfile.fullName || ''
+      });
+    }
+  }, [vendorProfile]);
+
+  // AUTH GUARD
   useEffect(() => {
     if (!isMounted || authLoading) return;
-
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-
     if (!user && !authLoading) {
-      if (!sessionActive) {
-        router.replace('/vendor/login?type=Beauty');
-      } else {
-        const failSafe = setTimeout(() => {
-          if (!user) {
-            localStorage.removeItem('shopykart_session_active');
-            router.replace('/vendor/login?type=Beauty');
-          }
-        }, 3000);
-        return () => clearTimeout(failSafe);
-      }
+      if (!sessionActive) router.replace('/vendor/login?type=Beauty');
     }
-
-    if (user && !profileLoading && vendorProfile === null) {
-      const finalCheck = setTimeout(() => {
-        if (!vendorProfile) {
-          localStorage.removeItem('shopykart_session_active');
-          router.replace('/vendor/login?type=Beauty');
-        }
-      }, 1000);
-      return () => clearTimeout(finalCheck);
-    }
-  }, [user, authLoading, vendorProfile, profileLoading, router, isMounted]);
+  }, [user, authLoading, router, isMounted]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -152,6 +145,30 @@ export default function BeautyDashboard() {
       await batch.commit();
       toast({ title: online ? "Beauty Hub Open! 🟢" : "Beauty Hub Closed 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handleStoreImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setIsUpdatingStoreImage(true);
+      try {
+        const compressed = await compressImage(reader.result as string, 600, 600);
+        if (firestore && user) {
+          await updateDoc(doc(firestore, 'vendors', user.uid), { 
+            imageUrl: compressed,
+            updatedAt: serverTimestamp()
+          });
+          toast({ title: "Logo Updated!" });
+        }
+      } catch (err) {
+        toast({ variant: "destructive", title: "Update Failed" });
+      } finally {
+        setIsUpdatingStoreImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,10 +204,10 @@ export default function BeautyDashboard() {
       isAvailable: true,
       isVeg: true, 
       updatedAt: serverTimestamp(),
+      isDeleted: false,
     };
 
     try {
-      // ONLY ALLOW ADD NEW
       const newRef = doc(collection(firestore, 'products'));
       await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
@@ -317,7 +334,7 @@ export default function BeautyDashboard() {
                     </Dialog>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
-                    {myProducts?.map(p => (
+                    {myProducts?.filter(p => !p.isDeleted)?.map(p => (
                       <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
                           <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
@@ -328,12 +345,49 @@ export default function BeautyDashboard() {
                         </div>
                       </div>
                     ))}
-                    {(!myProducts || myProducts.length === 0) && (
-                       <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                          <ShoppingBag className="h-16 w-16 mb-4" />
-                          <p className="font-black italic uppercase text-xs">Inventory is empty</p>
-                       </div>
-                    )}
+                  </div>
+              </div>
+            )}
+
+            {activeMainTab === 'account' && (
+              <div className="p-4 pt-0 space-y-6 animate-in fade-in duration-500">
+                  <div className="flex flex-col items-center py-8">
+                    <div className="relative group">
+                      <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted flex items-center justify-center relative">
+                        {vendorProfile?.imageUrl ? (
+                          <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" />
+                        ) : (
+                          <Store className="h-12 w-12 text-gray-300" />
+                        )}
+                        {isUpdatingStoreImage && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => storeImageInputRef.current?.click()}
+                        className="absolute bottom-[-10px] right-[-10px] bg-white p-3 rounded-2xl shadow-xl border border-border text-rose-600 active:scale-90 transition-all"
+                      >
+                        <Camera className="h-5 w-5" />
+                      </button>
+                      <input 
+                        type="file" 
+                        ref={storeImageInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleStoreImageSelect} 
+                      />
+                    </div>
+                    <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
+                    <Input value={profileForm.storeName} onChange={e => setProfileForm({...profileForm, storeName: e.target.value})} placeholder="Business Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { storeName: profileForm.storeName, fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated'}); }} disabled={isSavingProfile} className="w-full h-14 bg-rose-600 text-white rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
+                    <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
                   </div>
               </div>
             )}

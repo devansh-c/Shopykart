@@ -189,7 +189,6 @@ export function PopularProducts({
   
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_turbo', initialStores);
 
-  // PRE-CALCULATED DATA FOR HYPER PERFORMANCE
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
     if (!list || list.length === 0) return [];
@@ -197,7 +196,6 @@ export function PopularProducts({
     const storeList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(storeList.map(v => [v.id, v]));
 
-    // Cache open status per vendor for current minute to avoid thousands of recalcs
     const vendorStatusMap = new Map();
     storeList.forEach(v => {
       vendorStatusMap.set(v.id, v.isOnline !== false && isStoreScheduleOpen(v, currentTimeMinutes));

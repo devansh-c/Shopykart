@@ -68,6 +68,7 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const storeImageInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
@@ -123,6 +124,7 @@ export default function VendorDashboard() {
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', phone: '', fullName: '' });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
 
   useEffect(() => {
     if (vendorProfile) {
@@ -176,6 +178,30 @@ export default function VendorDashboard() {
       await batch.commit();
       toast({ title: online ? "Manual Switch: ON 🟢" : "Manual Switch: OFF 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handleStoreImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setIsUpdatingStoreImage(true);
+      try {
+        const compressed = await compressImage(reader.result as string, 600, 600);
+        if (firestore && user) {
+          await updateDoc(doc(firestore, 'vendors', user.uid), { 
+            imageUrl: compressed,
+            updatedAt: serverTimestamp()
+          });
+          toast({ title: "Store Logo Updated! ✨" });
+        }
+      } catch (err) {
+        toast({ variant: "destructive", title: "Update Failed" });
+      } finally {
+        setIsUpdatingStoreImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,7 +258,6 @@ export default function VendorDashboard() {
       isDeleted: false,
     };
     try {
-      // STRICTLY ONLY ALLOWING ADD NEW IN VENDOR DASHBOARD
       const newRef = doc(collection(firestore, 'products'));
       await setDoc(newRef, { ...productData, id: newRef.id, createdAt: serverTimestamp() });
       await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...productData, id: newRef.id, createdAt: serverTimestamp() });
@@ -440,14 +465,50 @@ export default function VendorDashboard() {
             {activeMainTab === 'account' && (
               <div className="p-4 pt-0 space-y-6 animate-in fade-in duration-500">
                   <div className="flex flex-col items-center py-8">
-                    <div className="relative group"><div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted">{vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Store className="h-12 w-12 m-auto text-gray-300" />}</div><button className="absolute bottom-[-10px] right-[-10px] bg-white p-3 rounded-2xl shadow-xl border border-border text-primary"><Camera className="h-5 w-5" /></button></div>
+                    <div className="relative group">
+                      <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted flex items-center justify-center relative">
+                        {vendorProfile?.imageUrl ? (
+                          <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" />
+                        ) : (
+                          <Store className="h-12 w-12 text-gray-300" />
+                        )}
+                        {isUpdatingStoreImage && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => storeImageInputRef.current?.click()}
+                        className="absolute bottom-[-10px] right-[-10px] bg-white p-3 rounded-2xl shadow-xl border border-border text-primary active:scale-90 transition-all"
+                      >
+                        <Camera className="h-5 w-5" />
+                      </button>
+                      <input 
+                        type="file" 
+                        ref={storeImageInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleStoreImageSelect} 
+                      />
+                    </div>
                     <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
                   </div>
                   <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
-                    <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated'}); }} disabled={isSavingProfile} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-muted-foreground uppercase ml-1">Store Display Name</label>
+                      <Input value={profileForm.storeName} onChange={e => setProfileForm({...profileForm, storeName: e.target.value})} placeholder="Store Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-muted-foreground uppercase ml-1">Owner Full Name</label>
+                      <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-muted-foreground uppercase ml-1">Physical Address</label>
+                      <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    </div>
+                    <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { storeName: profileForm.storeName, fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated Successfully!'}); }} disabled={isSavingProfile} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
                     <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
                   </div>
               </div>
