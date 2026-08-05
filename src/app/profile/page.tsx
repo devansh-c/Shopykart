@@ -334,7 +334,6 @@ function ProfileContent() {
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Business & Portals</h3>
           {[
-            { label: 'Join as Food Vendor', icon: Utensils, path: '/vendor/register', description: 'Sell your gourmet dishes', highlight: true, accent: 'black' },
             { label: 'Join as Beauty & Cosmetics', icon: Sparkles, path: '/vendor/register?type=Beauty', description: 'Sell luxury skincare & makeup', highlight: true, accent: 'rose' },
             { label: 'Join as Medical Store', icon: HeartPulse, path: '/vendor/register?type=Medical', description: 'Sell healthcare products & medicine', highlight: true, accent: 'teal' },
             { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard', description: 'Manage your store and products' },
