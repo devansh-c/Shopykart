@@ -1,5 +1,6 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
+import { ClientLayout } from '@/components/layout/ClientLayout';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -9,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: '404 - Page Not Found',
-  description: 'The page you are looking for does not exist.',
+  title: 'ShopyKart – Premium Food Delivery',
+  description: '10-minute delivery in Mauranipur and Ranipur.',
 };
 
 export default function RootLayout({
@@ -23,8 +24,13 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3697085425178482" crossOrigin="anonymous"></script>
       </head>
-      <body className="antialiased font-sans">{children}</body>
+      <body className="antialiased font-sans">
+        <ClientLayout>
+          {children}
+        </ClientLayout>
+      </body>
     </html>
   );
 }
