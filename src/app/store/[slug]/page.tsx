@@ -22,7 +22,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   return (
     <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
-       MenuContent forcedSlug={slug} />
+      <MenuContent forcedSlug={slug} />
     </Suspense>
   );
 }

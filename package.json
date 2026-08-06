@@ -11,7 +11,6 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "static-build": "next build",
     "cap-copy": "npx cap copy",
     "cap-sync": "npx cap sync",
     "cap-open": "npx cap open android",
