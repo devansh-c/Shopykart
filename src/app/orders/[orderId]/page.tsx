@@ -1,17 +1,18 @@
+
 import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 /**
  * @fileOverview Dynamic route for order tracking.
- * Updated for Next.js 15 async params.
+ * Fixed for Static Export: dynamicParams set to false to avoid build errors.
  */
 
 export const generateStaticParams = async () => {
   return [];
 };
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export default async function OrderPage({
   params,

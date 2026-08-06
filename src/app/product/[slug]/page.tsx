@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -5,15 +6,14 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Universal SEO Route for Products.
- * Handles both Slugs and IDs to resolve routing conflicts.
- * Fixed for Next.js 15 Async Params to prevent 500 errors.
+ * Fixed for Static Export: dynamicParams set to false to resolve Next.js build errors.
  */
 
 export const generateStaticParams = async () => {
   return [];
 };
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
@@ -5,14 +6,14 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Universal SEO Route for Stores.
- * Handles Next.js 15 Async Params to eliminate 500 errors.
+ * Fixed for Static Export: dynamicParams set to false to resolve build conflicts.
  */
 
 export const generateStaticParams = async () => {
   return [];
 };
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

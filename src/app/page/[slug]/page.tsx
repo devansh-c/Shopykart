@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
@@ -5,14 +6,14 @@ import type { Metadata } from 'next';
 
 /**
  * @fileOverview Unified SEO Route for Information Pages.
- * Standardized dynamic segment to fix server startup errors.
+ * Fixed for Static Export: dynamicParams set to false.
  */
 
 export const generateStaticParams = async () => {
   return [];
 };
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;

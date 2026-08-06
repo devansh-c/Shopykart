@@ -24,6 +24,8 @@ jobs:
 
       - name: Create Static Web Build
         run: npm run build:static
+        env:
+          NEXT_PUBLIC_STATIC_EXPORT: 'true'
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -32,21 +34,20 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
       - name: Capacitor Sync
-        run: |
-          npx cap sync android
-        continue-on-error: false
+        run: npx cap sync android
 
       - name: Build APK (Debug)
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Build App Bundle (Release)
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew bundleRelease
 
       - name: Upload APK
