@@ -17,21 +17,25 @@ import {
   Archive,
   Rocket,
   ExternalLink,
-  Cpu
+  Cpu,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Finalized Export & APK Build Guide. 
- * Updated with user's specific GitHub repository link.
+ * Updated with Fast Push Guide for the user.
  */
 export default function ExportManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
   
   const repoUrl = "https://github.com/devansh-c/Shopykart";
 
@@ -69,10 +73,63 @@ export default function ExportManagement() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCommand(text);
+    toast({ title: "Command Copied!" });
+    setTimeout(() => setCopiedCommand(null), 2000);
+  };
+
+  const fastPushCommands = [
+    "git add .",
+    "git commit -m \"Update ShopyKart\"",
+    "git push origin main"
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
       
-      {/* 1. THE GITHUB APK MASTER GUIDE */}
+      {/* FAST PUSH GUIDE */}
+      <div className="bg-gradient-to-br from-indigo-900 to-black p-8 rounded-[3rem] border border-white/10 shadow-2xl text-white relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="bg-white/10 p-3 rounded-2xl">
+              <Zap className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter">Fast Push Guide</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3 Steps to GitHub</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {fastPushCommands.map((cmd, i) => (
+              <div key={i} className="group relative flex items-center justify-between bg-black/40 border border-white/5 p-4 rounded-2xl hover:border-white/20 transition-all">
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-black text-gray-600 w-4">{i + 1}</span>
+                  <code className="text-sm font-mono text-indigo-300">{cmd}</code>
+                </div>
+                <button 
+                  onClick={() => copyToClipboard(cmd)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                >
+                  {copiedCommand === cmd ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-6 flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+            <Terminal className="h-4 w-4 text-gray-500 shrink-0 mt-0.5" />
+            <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed">
+              Firebase Studio ke terminal mein ye commands line-by-line copy-paste karein. Push hote hi GitHub Actions APK banana shuru kar dega.
+            </p>
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
+      </div>
+
+      {/* THE GITHUB APK MASTER GUIDE */}
       <div className="bg-[#0B0B0B] p-10 rounded-[3rem] border border-white/10 shadow-2xl text-white relative overflow-hidden transform-gpu">
         <div className="relative z-10 space-y-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -102,7 +159,7 @@ export default function ExportManagement() {
               </div>
               <div className="space-y-6">
                 {[
-                  { step: "01", title: "PUSH LATEST CODE", text: "Firebase Studio se latest changes ko apne GitHub repository mein push karein." },
+                  { step: "01", title: "PUSH LATEST CODE", text: "Upar diye gaye 3 commands se code GitHub par push karein." },
                   { step: "02", title: "ACTIONS TAB", text: "GitHub par jaakar top menu mein 'Actions' par click karein." },
                   { step: "03", title: "SELECT WORKFLOW", text: "Left side se 'Build Android APK & AAB' workflow select karein." },
                   { step: "04", title: "START BUILD", text: "'Run workflow' button dabayein. GitHub ke servers build shuru kar denge (Approx 6 mins)." },
