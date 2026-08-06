@@ -19,7 +19,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Create Static Web Build
         run: npm run build:static
@@ -29,12 +29,12 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+          cache: 'gradle'
 
       - name: Capacitor Sync
-        run: npx cap sync android
+        run: |
+          npx cap sync android
+        continue-on-error: false
 
       - name: Build APK (Debug)
         run: |
@@ -45,6 +45,7 @@ jobs:
       - name: Build App Bundle (Release)
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew bundleRelease
 
       - name: Upload APK
