@@ -19,7 +19,8 @@ import {
   ExternalLink,
   Cpu,
   Copy,
-  Check
+  Check,
+  Flame
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +30,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Finalized Export & APK Build Guide. 
- * Updated with Fast Push Guide for the user.
+ * Updated with "One-Command" Super Fast Push Guide.
  */
 export default function ExportManagement() {
   const firestore = useFirestore();
@@ -80,53 +81,51 @@ export default function ExportManagement() {
     setTimeout(() => setCopiedCommand(null), 2000);
   };
 
-  const fastPushCommands = [
-    "git add .",
-    "git commit -m \"Update ShopyKart\"",
-    "git push origin main"
-  ];
+  const superFastCommand = "npm run push";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
       
-      {/* FAST PUSH GUIDE */}
-      <div className="bg-gradient-to-br from-indigo-900 to-black p-8 rounded-[3rem] border border-white/10 shadow-2xl text-white relative overflow-hidden">
+      {/* SUPER FAST ONE-COMMAND PUSH */}
+      <div className="bg-gradient-to-br from-rose-600 via-primary to-orange-600 p-8 rounded-[3rem] border border-white/20 shadow-[0_20px_50px_rgba(239,68,68,0.3)] text-white relative overflow-hidden transform-gpu">
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-white/10 p-3 rounded-2xl">
-              <Zap className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+          <div className="flex items-center gap-4 mb-8">
+            <div className="bg-white/20 p-4 rounded-3xl backdrop-blur-md border border-white/30 animate-pulse">
+              <Flame className="h-8 w-8 text-white fill-white" />
             </div>
             <div>
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter">Fast Push Guide</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">3 Steps to GitHub</p>
+              <h3 className="text-3xl font-black italic uppercase tracking-tighter">Super Fast Push</h3>
+              <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mt-1">THE 1-COMMAND ULTIMATE SHORTCUT</p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            {fastPushCommands.map((cmd, i) => (
-              <div key={i} className="group relative flex items-center justify-between bg-black/40 border border-white/5 p-4 rounded-2xl hover:border-white/20 transition-all">
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-black text-gray-600 w-4">{i + 1}</span>
-                  <code className="text-sm font-mono text-indigo-300">{cmd}</code>
+          <div className="bg-black/40 backdrop-blur-xl border-2 border-white/20 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-white/40 transition-all">
+             <div className="flex items-center gap-6">
+                <div className="h-12 w-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary font-black italic border border-primary/30">
+                   GO
                 </div>
-                <button 
-                  onClick={() => copyToClipboard(cmd)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                >
-                  {copiedCommand === cmd ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-                </button>
-              </div>
-            ))}
+                <code className="text-2xl font-mono text-white tracking-tight">{superFastCommand}</code>
+             </div>
+             <button 
+                onClick={() => copyToClipboard(superFastCommand)}
+                className="w-full md:w-auto h-16 px-10 bg-white text-black hover:bg-gray-100 rounded-2xl font-black uppercase italic shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+             >
+                {copiedCommand === superFastCommand ? <Check className="h-6 w-6 text-green-600" /> : <Copy className="h-6 w-6" />}
+                {copiedCommand === superFastCommand ? 'COPIED!' : 'COPY COMMAND'}
+             </button>
           </div>
           
-          <div className="mt-6 flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
-            <Terminal className="h-4 w-4 text-gray-500 shrink-0 mt-0.5" />
-            <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed">
-              Firebase Studio ke terminal mein ye commands line-by-line copy-paste karein. Push hote hi GitHub Actions APK banana shuru kar dega.
+          <div className="mt-8 flex items-start gap-4 bg-black/20 p-5 rounded-2xl border border-white/10">
+            <div className="bg-white/10 p-2 rounded-lg"><Terminal className="h-5 w-5 text-white" /></div>
+            <p className="text-[12px] font-bold text-white/80 uppercase leading-relaxed italic">
+              Firebase Studio ke terminal mein ye 1 line paste karke Enter maariye. Code add, commit aur push sab ek sath ho jayega!
             </p>
           </div>
         </div>
-        <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12" />
+        
+        {/* Floating background elements */}
+        <div className="absolute -top-10 -right-10 h-64 w-64 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-48 w-48 bg-black/20 rounded-full blur-3xl" />
       </div>
 
       {/* THE GITHUB APK MASTER GUIDE */}
@@ -159,11 +158,11 @@ export default function ExportManagement() {
               </div>
               <div className="space-y-6">
                 {[
-                  { step: "01", title: "PUSH LATEST CODE", text: "Upar diye gaye 3 commands se code GitHub par push karein." },
+                  { step: "01", title: "PUSH LATEST CODE", text: "Naye shortcut 'npm run push' se code GitHub par bhejein." },
                   { step: "02", title: "ACTIONS TAB", text: "GitHub par jaakar top menu mein 'Actions' par click karein." },
                   { step: "03", title: "SELECT WORKFLOW", text: "Left side se 'Build Android APK & AAB' workflow select karein." },
-                  { step: "04", title: "START BUILD", text: "'Run workflow' button dabayein. GitHub ke servers build shuru kar denge (Approx 6 mins)." },
-                  { step: "05", title: "DOWNLOAD APK", text: "Build complete hone par usi page par niche 'Artifacts' section se APK download karein." }
+                  { step: "04", title: "START BUILD", text: "'Run workflow' button dabayein. Build mein approx 6 mins lagenge." },
+                  { step: "05", title: "DOWNLOAD APK", text: "Build complete hone par 'Artifacts' section se APK download kar lo." }
                 ].map((item, idx) => (
                   <div key={idx} className="flex gap-5 items-start group">
                     <span className="text-primary font-black italic text-3xl leading-none opacity-40 group-hover:opacity-100 transition-opacity">{item.step}</span>
