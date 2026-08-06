@@ -65,7 +65,7 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'banners'), limit(10))),
       getDocs(query(collection(firestore, 'categories'), limit(20))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
-      getDocs(query(collection(firestore, 'vendors'), limit(50))),
+      getDocs(query(collection(firestore, 'vendors'), limit(100))),
       getDocs(query(collection(firestore, 'products'), limit(300)))
     ]);
 
