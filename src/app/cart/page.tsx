@@ -131,7 +131,6 @@ function CartContent() {
       let amount = 0;
       const chargeVal = Number(charge.value) || 0;
       
-      // IMPROVED WAIVER LOGIC: Broaden the detection to include "Handling", "Fee", "Shipping"
       const lowerName = (charge.name || '').toLowerCase();
       const isWaivableType = lowerName.includes('delivery') || 
                              lowerName.includes('handling') || 
@@ -175,7 +174,7 @@ function CartContent() {
 
   const premiumPackingPrice = (premiumPackaging && !isPremium) ? 10 : 0;
 
-  // GRAND TOTAL: Corrected to use the potentially waived chargesTotalSum
+  // FINAL CALCULATED GRAND TOTAL
   const grandTotal = Math.max(0, totalPrice + chargesTotalSum + deliveryTip + premiumPackingPrice - coinDiscount - couponDiscount);
 
   useEffect(() => {
