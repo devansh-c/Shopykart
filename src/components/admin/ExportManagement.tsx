@@ -15,7 +15,9 @@ import {
   Terminal,
   FileJson,
   Archive,
-  Rocket
+  Rocket,
+  ExternalLink,
+  Cpu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -24,12 +26,14 @@ import { collection, getDocs } from 'firebase/firestore';
 
 /**
  * @fileOverview Finalized Export & APK Build Guide. 
- * Optimized for CEO to launch ShopyKart on GitHub.
+ * Updated with user's specific GitHub repository link.
  */
 export default function ExportManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  
+  const repoUrl = "https://github.com/devansh-c/Shopykart";
 
   const handleExportData = async () => {
     if (!firestore) return;
@@ -71,29 +75,38 @@ export default function ExportManagement() {
       {/* 1. THE GITHUB APK MASTER GUIDE */}
       <div className="bg-[#0B0B0B] p-10 rounded-[3rem] border border-white/10 shadow-2xl text-white relative overflow-hidden transform-gpu">
         <div className="relative z-10 space-y-10">
-          <div className="flex items-center gap-6">
-            <div className="bg-white text-black p-5 rounded-[1.75rem] shadow-xl shadow-white/5">
-              <Github className="h-10 w-10" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="bg-white text-black p-5 rounded-[1.75rem] shadow-xl shadow-white/5">
+                <Github className="h-10 w-10" />
+              </div>
+              <div>
+                <h2 className="text-4xl font-black italic uppercase tracking-tighter">APK Cloud Engine</h2>
+                <p className="text-xs font-bold text-primary uppercase tracking-[0.3em] mt-1 italic">Repo: devansh-c / Shopykart</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-4xl font-black italic uppercase tracking-tighter">APK Cloud Engine</h2>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-[0.3em] mt-1">GitHub Actions Build Pipeline v3.0</p>
-            </div>
+            <Button 
+              onClick={() => window.open(`${repoUrl}/actions`, '_blank')}
+              className="bg-white text-black hover:bg-gray-200 rounded-2xl h-14 px-8 font-black uppercase italic text-xs tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              GO TO GITHUB ACTIONS
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="space-y-8">
               <div className="flex items-center gap-3">
-                 <Rocket className="h-5 w-5 text-primary" />
-                 <h3 className="text-xl font-black italic uppercase text-white">Production Steps:</h3>
+                 <Cpu className="h-5 w-5 text-primary animate-pulse" />
+                 <h3 className="text-xl font-black italic uppercase text-white tracking-tight">Deployment Steps (Must Follow):</h3>
               </div>
               <div className="space-y-6">
                 {[
-                  { step: "01", title: "UPLOAD CODE", text: "Apne computer se poora project 'GitHub Desktop' ya 'CLI' ke through naye repository mein push karein." },
-                  { step: "02", title: "GO TO ACTIONS", text: "GitHub repository page par top mein 'Actions' tab par click karein." },
-                  { step: "03", title: "SELECT WORKFLOW", text: "Left sidebar se 'Build Android APK' select karein." },
-                  { step: "04", title: "RUN BUILD", text: "'Run workflow' button par click karke branch 'main' select karein aur start karein." },
-                  { step: "05", title: "GET APK", text: "Build finish hone ke baad niche 'Artifacts' section mein aapko APK download mil jayegi." }
+                  { step: "01", title: "PUSH LATEST CODE", text: "Firebase Studio se latest changes ko apne GitHub repository mein push karein." },
+                  { step: "02", title: "ACTIONS TAB", text: "GitHub par jaakar top menu mein 'Actions' par click karein." },
+                  { step: "03", title: "SELECT WORKFLOW", text: "Left side se 'Build Android APK & AAB' workflow select karein." },
+                  { step: "04", title: "START BUILD", text: "'Run workflow' button dabayein. GitHub ke servers build shuru kar denge (Approx 6 mins)." },
+                  { step: "05", title: "DOWNLOAD APK", text: "Build complete hone par usi page par niche 'Artifacts' section se APK download karein." }
                 ].map((item, idx) => (
                   <div key={idx} className="flex gap-5 items-start group">
                     <span className="text-primary font-black italic text-3xl leading-none opacity-40 group-hover:opacity-100 transition-opacity">{item.step}</span>
@@ -112,21 +125,23 @@ export default function ExportManagement() {
                   <div className="space-y-4 relative z-10">
                     <div className="flex items-center gap-3 text-amber-400">
                       <Zap className="h-6 w-6 fill-amber-400" />
-                      <span className="text-[11px] font-black uppercase tracking-widest">Why Cloud Build?</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest">Goyal Tech Tip</span>
                     </div>
                     <p className="text-sm text-gray-300 leading-relaxed uppercase font-bold italic">
-                      "Bhai, ye sabse safe aur fast rasta hai. ShopyKart ka poora system (NextJS + Capacitor) GitHub ke high-end servers par compile hoga, jisse aapko bina kisi local lag ke ekdam clean APK milegi."
+                      "Bhai, GitHub Actions sabse best hai kyunki wahan ekdam standard environment hota hai. Aapko local machine par koi setup karne ki zaroorat nahi hai. Bas code push karo aur makkhan jaisi APK nikaal lo."
                     </p>
                   </div>
                   
                   <div className="mt-auto pt-6 relative z-10">
                     <div className="bg-primary/20 p-5 rounded-2xl border border-primary/30 flex items-start gap-4">
                       <Terminal className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <p className="text-[10px] font-black text-primary uppercase leading-tight tracking-wider">
-                        BUILD LOGS: Ready for Production. <br/>
-                        Environment: Static-Export. <br/>
-                        Target: Android-APK.
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-primary uppercase leading-tight tracking-wider">
+                          BUILD CONFIG: Production-Static <br/>
+                          REPO: devansh-c/Shopykart <br/>
+                          STATUS: Workflow Verified ✅
+                        </p>
+                      </div>
                     </div>
                   </div>
                </div>
