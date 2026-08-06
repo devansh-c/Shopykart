@@ -11,7 +11,6 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
-import AdSenseUnit from '@/components/shared/AdSenseUnit';
 
 interface HomeClientProps {
   initialBanners?: any[];
@@ -22,7 +21,7 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview HomeClient - Receives authentic server-side data and renders it IMMEDIATELY.
+ * @fileOverview HomeClient - Removed AdSense components to clean up space.
  * Optimized for Zero-Delay paint by passing SSR data to child components.
  */
 export default function HomeClient({ 
@@ -90,7 +89,6 @@ export default function HomeClient({
               serviceMode={activeMode}
               initialData={initialCategories}
             />
-            <AdSenseUnit />
             <PopularProducts 
               searchQuery={searchQuery} 
               category={activeCategory} 
@@ -122,8 +120,6 @@ export default function HomeClient({
                   initialData={initialCategories}
                 />
               )}
-              
-              {!searchQuery && <AdSenseUnit />}
               
               <PopularProducts 
                 searchQuery={searchQuery} 
