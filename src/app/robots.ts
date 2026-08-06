@@ -1,11 +1,5 @@
 import { MetadataRoute } from 'next';
 
-/**
- * @fileOverview Dynamic Robots.txt generator for Next.js 15.
- * Optimized crawling paths for Googlebot discovery.
- * NOTE: Ensure src/app/robots.txt is deleted manually to avoid duplicate file errors.
- */
-
 export const dynamic = 'force-static';
 
 export default function robots(): MetadataRoute.Robots {

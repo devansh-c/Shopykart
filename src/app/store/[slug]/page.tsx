@@ -1,13 +1,7 @@
-
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 import type { Metadata } from 'next';
-
-/**
- * @fileOverview Universal SEO Route for Stores.
- * Fixed for Static Export: dynamicParams set to false to resolve build conflicts.
- */
 
 export const generateStaticParams = async () => {
   return [];

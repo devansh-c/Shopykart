@@ -1,13 +1,7 @@
-
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
-
-/**
- * @fileOverview Universal SEO Route for Products.
- * Fixed for Static Export: dynamicParams set to false to resolve Next.js build errors.
- */
 
 export const generateStaticParams = async () => {
   return [];

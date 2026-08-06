@@ -1,13 +1,7 @@
-
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
-
-/**
- * @fileOverview Unified SEO Route for Information Pages.
- * Fixed for Static Export: dynamicParams set to false.
- */
 
 export const generateStaticParams = async () => {
   return [];
