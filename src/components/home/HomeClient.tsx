@@ -20,10 +20,6 @@ interface HomeClientProps {
   initialAnnouncement?: any;
 }
 
-/**
- * @fileOverview HomeClient - Removed AdSense components to clean up space.
- * Optimized for Zero-Delay paint by passing SSR data to child components.
- */
 export default function HomeClient({ 
   initialBanners, 
   initialCategories, 

@@ -11,9 +11,6 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
-/**
- * Utility to check if a store is currently open based on its schedule.
- */
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
@@ -157,7 +154,7 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(300)); // Turbo-optimized limit
+    return query(collection(firestore, 'products'), limit(300));
   }, [firestore]);
   
   const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v8_turbo', initialData);

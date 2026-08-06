@@ -1,4 +1,3 @@
-
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { ClientLayout } from '@/components/layout/ClientLayout';
@@ -25,7 +24,6 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3697085425178482" crossOrigin="anonymous"></script>
       </head>
       <body className="antialiased font-sans">
         <ClientLayout>

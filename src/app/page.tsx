@@ -3,11 +3,6 @@ import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 
-/**
- * @fileOverview ShopyKart High-Performance Entry.
- * Optimized query limits for instant rendering.
- */
-
 export const metadata: Metadata = {
   title: 'Shopykart – 10 Min Veg Food Delivery | Order Online Mauranipur & Ranipur',
   description: 'Fastest 10-min gourmet veg food delivery in Mauranipur and Ranipur. Order pizzas, burgers, snacks and more at best prices.',
@@ -71,7 +66,7 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'categories'), limit(20))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
       getDocs(query(collection(firestore, 'vendors'), limit(50))),
-      getDocs(query(collection(firestore, 'products'), limit(200))) // Optimized for turbo speed
+      getDocs(query(collection(firestore, 'products'), limit(300)))
     ]);
 
     const vendors = vendorsSnap.docs.map(sanitizeDoc).filter(Boolean);
