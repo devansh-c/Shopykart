@@ -73,7 +73,7 @@ export default function NotFound() {
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full" />
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full" />
           </div>
-          <span className="text-white font-bold text-lg sm:text-xl ml-2">TinyTrails</span>
+          <span className="text-white font-bold text-lg sm:text-xl ml-2">ShopyKart</span>
         </div>
 
         {/* Desktop Nav Links */}
@@ -124,7 +124,7 @@ export default function NotFound() {
                   <div className="w-2.5 h-2.5 bg-white rounded-full" />
                   <div className="w-2.5 h-2.5 bg-white rounded-full" />
                 </div>
-                <span className="text-white font-bold text-lg ml-2">TinyTrails</span>
+                <span className="text-white font-bold text-lg ml-2">ShopyKart</span>
               </div>
               <button 
                 onClick={() => setIsMenuOpen(false)}
