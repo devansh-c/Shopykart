@@ -1,104 +1,99 @@
 "use client"
 
-import * as React from "react"
-import { Star, Clock, ArrowRight } from "lucide-react"
+import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
+import React, { useMemo, useTransition, useState, useEffect } from "react"
 import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel"
-import { isStoreScheduleOpen } from "./PopularProducts"
 
-/**
- * @fileOverview StoreSection with Authentic-Only Data.
- * Uses SSR pre-fetched stores for zero-delay paint.
- */
-export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
+export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
   const firestore = useFirestore();
   const router = useRouter();
-  
-  const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [activeCity, setActiveCity] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
+  useEffect(() => {
+    const updateLoc = () => {
+      setActiveCity(localStorage.getItem('user_city'));
     };
-    updateZone();
-    window.addEventListener('user-address-updated', updateZone);
-    return () => window.removeEventListener('user-address-updated', updateZone);
+    updateLoc();
+    window.addEventListener('user-address-updated', updateLoc);
+    return () => window.removeEventListener('user-address-updated', updateLoc);
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(50));
+    return query(collection(firestore, 'vendors'), limit(500));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
 
-  const filteredVendors = React.useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
-    return list.filter(v => {
-      if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
-      return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
-    }).sort((a, b) => {
-      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a) ? 1 : 0;
-      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b) ? 1 : 0;
-      if (onlineA !== onlineB) return onlineB - onlineA;
-      return (b.rating || 0) - (a.rating || 0);
+  const filteredVendors = useMemo(() => {
+    if (!dbVendors) return [];
+    
+    const targetZone = (activeCity || '').toLowerCase().trim();
+
+    return dbVendors.filter(v => {
+      const vendorZone = (v.town || '').toLowerCase().trim();
+      const categoryMatch = (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
+
+      if (!categoryMatch) return false;
+
+      // STRICT ZONE FILTERING
+      if (targetZone && targetZone !== 'local') {
+        if (vendorZone && vendorZone !== 'local' && vendorZone !== targetZone) {
+          return false;
+        }
+      }
+      
+      return true;
     });
-  }, [dbVendors, initialData, activeMode, activeZoneId]);
+  }, [dbVendors, activeMode, activeCity]);
 
-  if (filteredVendors.length === 0) return null;
+  const handleStoreClick = (store: any) => {
+    const slug = store.slug || slugify(store.storeName);
+    startTransition(() => {
+      router.push(`/store/${slug}-${store.id}`);
+    });
+  };
+
+  if (loading || filteredVendors.length === 0) return null;
 
   return (
-    <div className="py-4 overflow-hidden bg-white">
-      <div className="flex items-center justify-between mb-4 px-6">
-        <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
-          Explore <span className="text-primary">Hub</span>
-        </h2>
-        <button onClick={() => router.push('/stores')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
+    <div className="py-6">
+      <div className="flex items-center justify-between mb-6 px-6">
+        <h2 className="text-2xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">Explore <span className="text-primary">Hub</span></h2>
       </div>
 
-      <Carousel className="w-full" opts={{ loop: true, align: 'center' }}>
-        <CarouselContent className="-ml-3">
-          {filteredVendors.map((store: any) => (
-            <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
-              <button 
-                onClick={() => router.push(`/store/${store.slug || slugify(store.storeName) || store.id}`)}
-                className="block text-left w-full rounded-[2.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
-                <div className="relative h-28 w-full overflow-hidden z-10">
-                  <Image 
-                    src={store.imageUrl || "https://picsum.photos/seed/store/400/300"} 
-                    alt={store.storeName || "ShopyKart Store"} 
-                    fill 
-                    className="object-cover" 
-                    unoptimized 
-                  />
+      <div className={cn("flex overflow-x-auto space-x-5 px-6 no-scrollbar pb-4 transition-opacity", isPending && "opacity-50")}>
+        {filteredVendors.map((store: any) => (
+          <button 
+            onClick={() => handleStoreClick(store)}
+            key={store.id} 
+            className="block text-left min-w-[280px] max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-sm border border-border shrink-0 transform-gpu group"
+          >
+            <div className="relative h-36 w-full bg-muted overflow-hidden">
+              <Image src={store.imageUrl} alt={store.storeName} fill className="object-cover group-hover:scale-105 transition-transform duration-700" unoptimized />
+            </div>
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="text-lg font-black text-gray-900 italic uppercase truncate flex-1 mr-2">{store.storeName}</h3>
+                <div className="bg-[#15803d] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm shrink-0">
+                  <span className="text-[10px] font-black">{store.rating || '4.0'}</span>
+                  <Star className="h-2.5 w-2.5 fill-white" />
                 </div>
-                <div className="p-4 relative z-20 text-white">
-                  <h3 className="text-sm font-black italic uppercase leading-tight mb-2 truncate">{store.storeName}</h3>
-                  <div className="flex items-center justify-between">
-                    <div className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg flex items-center gap-1 border border-white/20 shadow-lg">
-                       <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                       <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[9px] font-black text-white/90 uppercase tracking-widest italic">
-                       <Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
+              </div>
+              <div className="flex items-center gap-2 pt-0.5 text-[9px] font-bold text-gray-500 uppercase">
+                 <div className="flex items-center gap-1"><Clock className="h-3 w-3" /><span>{store.deliveryTime || '20 MIN'}</span></div>
+                 <div className="h-2.5 w-[1px] bg-gray-200" />
+                 <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{store.town || 'Local'}</span></div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 });

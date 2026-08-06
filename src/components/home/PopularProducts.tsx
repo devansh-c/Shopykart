@@ -144,15 +144,15 @@ export function PopularProducts({
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [activeZone, setActiveZone] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(40); 
 
   useEffect(() => {
-    const zoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
-    setActiveZoneId(zoneId);
-    
-    const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
+    const updateZone = () => {
+      setActiveZone(localStorage.getItem('user_city'));
+    };
+    updateZone();
     window.addEventListener('user-address-updated', updateZone);
 
     const syncTime = () => {
@@ -204,10 +204,17 @@ export function PopularProducts({
     
     const q = searchQuery.toLowerCase().trim();
     const c = category.toLowerCase();
+    const targetZone = (activeZone || '').toLowerCase().trim();
 
     const filtered = list.filter(p => {
       const v = vendorMap.get(p.vendorId);
-      if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) return false;
+      const vendorZone = (v?.town || p.town || '').toLowerCase().trim();
+
+      if (targetZone && targetZone !== 'local') {
+        if (vendorZone && vendorZone !== 'local' && vendorZone !== targetZone) {
+          return false;
+        }
+      }
       
       const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
       if (!modeMatch) return false;
@@ -218,7 +225,6 @@ export function PopularProducts({
       const catMatch = c === 'all' || p.category?.toLowerCase() === c;
       if (!catMatch) return false;
 
-      // Filter out soft-deleted products
       return !p.isDeleted;
     });
 
@@ -233,7 +239,7 @@ export function PopularProducts({
       
       return rB - rA;
     });
-  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZoneId, currentTimeMinutes]);
+  }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZone, currentTimeMinutes]);
 
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
     e.stopPropagation();
