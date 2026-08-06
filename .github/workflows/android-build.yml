@@ -2,61 +2,44 @@ name: Build Android APK & AAB
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
 
-      - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+    - name: Install Dependencies
+      run: npm install --legacy-peer-deps
 
-      - name: Create Static Web Build
-        run: npm run build:static
-        env:
-          NEXT_PUBLIC_STATIC_EXPORT: 'true'
+    - name: Build Web App
+      run: npm run build --if-present
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'gradle'
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
 
-      - name: Make Gradlew Executable
-        run: chmod +x android/gradlew
+    - name: Capacitor Sync
+      run: npx cap sync android
 
-      - name: Capacitor Sync
-        run: npx cap sync android
+    - name: Build Debug APK
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
-      - name: Build APK (Debug)
-        run: |
-          cd android
-          ./gradlew assembleDebug
-
-      - name: Build App Bundle (Release)
-        run: |
-          cd android
-          ./gradlew bundleRelease
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ShopyKart-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload App Bundle (AAB)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ShopyKart-Release-AAB
-          path: android/app/build/outputs/bundle/release/app-release.aab
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
