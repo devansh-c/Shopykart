@@ -287,26 +287,8 @@ export default function VendorDashboard() {
 
       <main className={cn("flex-1 overflow-y-auto no-scrollbar transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
          <div className="pb-32">
-            <div className="p-4">
-               <div className={cn(
-                 "p-4 rounded-2xl border-2 mb-6 flex items-center justify-between",
-                 isCurrentlyOpenByTime ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700"
-               )}>
-                  <div className="flex items-center gap-3">
-                     <Clock className="h-5 w-5" />
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-widest">Automatic Schedule</span>
-                        <span className="text-xs font-bold italic uppercase">{vendorProfile?.openingTime} - {vendorProfile?.closingTime}</span>
-                     </div>
-                  </div>
-                  <Badge className={cn("border-none text-[8px] font-black", isCurrentlyOpenByTime ? "bg-green-600 text-white" : "bg-red-600 text-white")}>
-                    {isCurrentlyOpenByTime ? 'LIVE NOW' : 'OFFLINE'}
-                  </Badge>
-               </div>
-            </div>
-
             {activeMainTab === 'orders' && (
-              <div className="p-4 pt-0 space-y-4 animate-in fade-in duration-500">
+              <div className="p-4 space-y-4 animate-in fade-in duration-500">
                   <div className="flex bg-white rounded-2xl p-1 shadow-sm mb-4 border border-border/50">
                     {['NEW ORDERS', 'DELIVERED', 'CANCELLED'].map(f => (
                       <button key={f} onClick={() => setOrderFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", orderFilter === f ? "bg-black text-white" : "text-gray-400")}>{f}</button>
@@ -335,7 +317,7 @@ export default function VendorDashboard() {
             )}
 
             {activeMainTab === 'catalog' && (
-              <div className="p-4 pt-0 space-y-4 animate-in fade-in duration-500">
+              <div className="p-4 space-y-4 animate-in fade-in duration-500">
                   <div className="flex items-center justify-between mb-2">
                     <h2 className="text-xl font-black italic uppercase tracking-tighter">Inventory</h2>
                     <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) { setProductForm({ name: '', price: '', mrp: '', description: '', category: '', isVeg: true, isVarietyRequired: false, imageUrl: '', options: [] }); } }}>
@@ -343,7 +325,7 @@ export default function VendorDashboard() {
                         <Button className="bg-black rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-3.5 w-3.5 mr-1" /> ADD ITEM</Button>
                       </DialogTrigger>
                       <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                        <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Add New Product</DialogTitle></DialogHeader>
+                        <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Add New Product</DialogTitle></DialogHeader>
                         <div className="p-8 space-y-8">
                            <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
                               {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
@@ -408,9 +390,6 @@ export default function VendorDashboard() {
                                    </div>
                                 </div>
                               )}
-                              {productForm.options.length === 0 && (
-                                <p className="text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest italic opacity-50">No varieties defined yet.</p>
-                              )}
                            </div>
 
                            <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary text-white rounded-[2rem] font-black uppercase italic text-lg shadow-xl">
@@ -420,19 +399,11 @@ export default function VendorDashboard() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                  
                   <div className="grid grid-cols-1 gap-4">
                     {myActiveProducts?.map(p => (
-                      <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm relative overflow-hidden group">
+                      <div key={p.id} className="bg-white p-4 rounded-3xl border border-border/50 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
-                          <div className="relative">
-                            <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
-                            {p.options?.length > 0 && (
-                              <div className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white">
-                                <ListPlus className="h-3 w-3" />
-                              </div>
-                            )}
-                          </div>
+                          <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
                           <div>
                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
                             <p className="text-xs font-black text-primary italic">₹{p.price}</p>
@@ -478,18 +449,9 @@ export default function VendorDashboard() {
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
                   </div>
                   <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-muted-foreground uppercase ml-1">Store Display Name</label>
-                      <Input value={profileForm.storeName} onChange={e => setProfileForm({...profileForm, storeName: e.target.value})} placeholder="Store Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-muted-foreground uppercase ml-1">Owner Full Name</label>
-                      <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-muted-foreground uppercase ml-1">Physical Address</label>
-                      <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
-                    </div>
+                    <Input value={profileForm.storeName} onChange={e => setProfileForm({...profileForm, storeName: e.target.value})} placeholder="Store Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
+                    <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Store Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { storeName: profileForm.storeName, fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated Successfully!'}); }} disabled={isSavingProfile} className="w-full h-14 bg-black rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
                     <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
                   </div>

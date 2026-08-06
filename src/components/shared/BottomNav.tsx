@@ -9,8 +9,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 
 /**
  * @fileOverview Compact Bottom Navigation with Premium Glassmorphism.
- * Height maintained at 68px.
- * Features: Hide on Scroll Down, Show on Scroll Up, Frosted Glass Effect.
+ * Frosted Glass Effect with Ultra-Blur and subtle borders.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -23,21 +22,14 @@ export default function BottomNav() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // Minimum scroll threshold to avoid flickering
       if (Math.abs(currentScrollY - lastScrollY.current) < 10) return;
-
       if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        // Scrolling down - hide
         setIsVisible(false);
       } else {
-        // Scrolling up - show
         setIsVisible(true);
       }
-      
       lastScrollY.current = currentScrollY;
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -45,11 +37,7 @@ export default function BottomNav() {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    // Hidden on Admin, Vendor, Delivery and Checkout (Cart) pages
-    return p.startsWith('/admin') || 
-           p.startsWith('/vendor') || 
-           p.startsWith('/delivery') || 
-           p.startsWith('/cart');
+    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery') || p.startsWith('/cart');
   }, [pathname]);
 
   const navItems = [
@@ -65,7 +53,7 @@ export default function BottomNav() {
   return (
     <div 
       className={cn(
-        "fixed bottom-6 left-0 right-0 z-[10000] px-5 flex justify-center pointer-events-none transform-gpu transition-transform duration-500 ease-premium",
+        "fixed bottom-6 left-0 right-0 z-[10000] px-5 flex justify-center pointer-events-none transform-gpu transition-transform duration-500",
         isVisible ? "translate-y-0" : "translate-y-[150%]"
       )}
     >
@@ -95,15 +83,12 @@ export default function BottomNav() {
                     )} 
                   />
                 )}
-                
-                {/* Notification Badge for Cart */}
                 {item.label === 'Cart' && totalItems > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-primary text-white text-[8px] font-black h-3.5 w-3.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                     {totalItems}
                   </span>
                 )}
               </div>
-              
               <span className={cn(
                 "text-[9px] font-bold tracking-tight leading-none mt-1 uppercase",
                 isActive ? "text-primary" : "text-gray-900"
