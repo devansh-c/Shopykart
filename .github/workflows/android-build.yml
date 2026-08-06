@@ -37,12 +37,6 @@ jobs:
           npx cap sync android
         continue-on-error: false
 
-      - name: Check Build Folders (Debug)
-        run: |
-          ls -la
-          if [ -d "out" ]; then ls -la out; fi
-          if [ -d "android" ]; then ls -la android; fi
-
       - name: Build APK (Debug)
         run: |
           cd android

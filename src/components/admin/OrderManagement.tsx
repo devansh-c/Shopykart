@@ -46,7 +46,9 @@ export default function OrderManagement() {
           const isDelivered = order.status === 'Delivered';
           const displayTime = isMounted && order.createdAt?.seconds 
             ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') 
-            : 'Recently';
+            : (order.createdAt && typeof order.createdAt === 'string') 
+              ? format(new Date(order.createdAt), 'MMM d, h:mm a')
+              : 'Recently';
 
           return (
             <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/40 shadow-sm transition-all hover:shadow-xl transform-gpu">
@@ -83,7 +85,7 @@ export default function OrderManagement() {
                          </div>
                       </DialogTrigger>
                       <DialogContent className="rounded-[3rem] max-w-lg p-0 overflow-hidden border-none shadow-2xl">
-                         <img src={order.verificationImage} className="w-full h-auto" />
+                         <img src={order.verificationImage} className="w-full h-auto" alt="Full Evidence" />
                       </DialogContent>
                    </Dialog>
                 </div>
