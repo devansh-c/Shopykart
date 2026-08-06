@@ -17,7 +17,6 @@ const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/Telegr
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
 const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay'), { ssr: false });
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
-const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart'), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
