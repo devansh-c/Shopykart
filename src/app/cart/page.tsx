@@ -6,7 +6,6 @@ import {
   Minus, 
   Plus, 
   ChevronLeft, 
-  ShoppingBag, 
   Loader2, 
   MapPin, 
   ChevronRight, 
@@ -23,10 +22,7 @@ import {
   Sparkles,
   Camera,
   ImageIcon,
-  XCircle,
-  Undo2,
   IndianRupee,
-  Percent,
   Truck
 } from 'lucide-react';
 import Image from 'next/image';
@@ -42,7 +38,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { compressImage } from '@/lib/image-utils';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
 const FREE_DELIVERY_THRESHOLD = 400;
@@ -432,12 +427,6 @@ function CartContent() {
                       {item.selectedOption && (
                         <p className="text-[9px] font-black text-amber-400 uppercase italic mt-1 leading-none">Variation: {item.selectedOption.name}</p>
                       )}
-                      {item.instructions && (
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                           <MessageSquareQuote className="h-2.5 w-2.5 text-gray-500" />
-                           <p className="text-[8px] font-bold text-gray-400 uppercase truncate italic">Note: {item.instructions}</p>
-                        </div>
-                      )}
                       <div className="flex items-center bg-white/5 rounded-xl h-8 w-24 px-1 mt-2 border border-white/5">
                         <button onClick={() => removeFromCart(item.id)} className="flex-1 flex items-center justify-center text-amber-400 hover:text-white transition-colors"><Minus className="h-3 w-3 stroke-[3]" /></button>
                         <span className="w-8 text-center text-[10px] font-black text-white">{item.quantity}</span>
@@ -596,7 +585,7 @@ function CartContent() {
                   onClick={() => { setDeliveryTip(0); setShowCustomTip(false); setCustomTipValue(''); }}
                   className="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 active:scale-95 transition-all"
                 >
-                  <XCircle className="h-3 w-3" /> Remove Tip
+                  <X className="h-3 w-3" /> Remove Tip
                 </button>
               )}
            </div>

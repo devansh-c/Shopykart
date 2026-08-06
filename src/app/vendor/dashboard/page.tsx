@@ -1,11 +1,10 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, updateDoc, orderBy, writeBatch, limit } from 'firebase/firestore';
+import { collection, doc, query, where, setDoc, serverTimestamp, updateDoc, orderBy, writeBatch, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
-  Trash2, 
   Plus, 
   LogOut,
   Utensils,
@@ -13,40 +12,22 @@ import {
   Layers,
   CircleDollarSign,
   UserCircle2,
-  Edit,
   ImageIcon,
-  BellRing,
   Clock,
   Camera,
-  History,
-  Wallet,
   Store,
-  XCircle,
   X,
   Loader2,
   ListPlus,
-  FileText,
-  CheckCircle2,
-  ShieldCheck,
-  Printer,
-  Download,
   Eye,
-  Package,
   User,
-  Power,
-  PowerOff,
-  MapPin,
-  Phone,
   Save,
-  ChevronRight,
-  TrendingUp,
-  ArrowUpRight,
-  ListTree
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useRef, useMemo, memo, useTransition } from 'react';
+import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -363,7 +344,7 @@ export default function VendorDashboard() {
                       <DialogContent className="rounded-[2.5rem] max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                         <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">Add New Product</DialogTitle></DialogHeader>
                         <div className="p-8 space-y-8">
-                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                           <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
                               {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                            </div>
                            <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
