@@ -157,17 +157,17 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(400)); // Optimized limit for turbo speed
+    return query(collection(firestore, 'products'), limit(300)); // Turbo-optimized limit
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v7_turbo', initialData);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v8_turbo', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v7_turbo', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v8_turbo', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
