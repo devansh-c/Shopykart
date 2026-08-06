@@ -15,7 +15,6 @@ import FirebaseClientProvider from '@/firebase/client-provider';
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
 const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
-const DynamicAdOverlay = dynamic(() => import('@/components/shared/AdOverlay'), { ssr: false });
 const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay'), { ssr: false });
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
 const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart'), { ssr: false });
@@ -30,18 +29,13 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setIsClient(true);
-    
-    // Listen for manual auth trigger (e.g. from Add to Cart or View Cart)
     const handleOpenAuth = () => {
       if (!user) setShowAuthOverlay(true);
     };
-    
     window.addEventListener('open-auth-overlay', handleOpenAuth);
     return () => window.removeEventListener('open-auth-overlay', handleOpenAuth);
   }, [user]);
 
-  // ONLY FORCE LOGIN ON THE CART PAGE FOR GUESTS
-  // All other pages like Orders, Profile, etc. will just show an empty/login state inside the page itself or trigger on action.
   const isAuthRequiredRoute = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
@@ -70,7 +64,6 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
       {!isExcludedPath && showAuthOverlay && !user && isClient && (
         <EmailAuth onClose={() => {
           setShowAuthOverlay(false);
-          // If the user was forced to login on a restricted route, take them home on cancel
           if (isAuthRequiredRoute) router.push('/');
         }} />
       )}
@@ -101,11 +94,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 {!isExcludedPath && <DynamicLocationRequest />}
                 <DynamicNotificationHandler />
                 <DynamicTelegramNotifier />
-                <DynamicAdOverlay />
                 <DynamicWelcomeBonus />
                 {children}
               </main>
-              {!isExcludedPath && <DynamicFloatingCart />}
               {!isExcludedPath && <DynamicBottomNav />}
             </div>
           </AuthGuard>
