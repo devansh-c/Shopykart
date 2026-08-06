@@ -5,21 +5,12 @@ import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firesto
 
 /**
  * @fileOverview ShopyKart High-Performance Entry.
- * Stable SSR data fetching with strict serialization to prevent 500 errors.
+ * Optimized query limits for instant rendering.
  */
 
 export const metadata: Metadata = {
   title: 'Shopykart – 10 Min Veg Food Delivery | Order Online Mauranipur & Ranipur',
   description: 'Fastest 10-min gourmet veg food delivery in Mauranipur and Ranipur. Order pizzas, burgers, snacks and more at best prices.',
-  openGraph: {
-    title: 'Shopykart – Premium Food Delivery',
-    description: '10-minute delivery in Mauranipur and Ranipur.',
-    url: 'https://shopykart.co.in',
-    siteName: 'ShopyKart',
-    images: [{ url: 'https://shopykart.co.in/og-image.jpg' }],
-    locale: 'en_IN',
-    type: 'website',
-  },
 };
 
 function isStoreOpenOnServer(vendor: any) {
@@ -57,12 +48,6 @@ function sanitizeDoc(doc: any) {
     const value = data[key];
     if (value && typeof value === 'object' && value.seconds !== undefined) {
       plainData[key] = new Date(value.seconds * 1000).toISOString();
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      try {
-        plainData[key] = JSON.parse(JSON.stringify(value));
-      } catch (e) {
-        plainData[key] = null;
-      }
     } else {
       plainData[key] = value;
     }
@@ -82,11 +67,11 @@ async function getInitialData() {
 
   try {
     const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(15))),
-      getDocs(query(collection(firestore, 'categories'), limit(40))),
+      getDocs(query(collection(firestore, 'banners'), limit(10))),
+      getDocs(query(collection(firestore, 'categories'), limit(20))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
-      getDocs(query(collection(firestore, 'vendors'), limit(100))),
-      getDocs(query(collection(firestore, 'products'), limit(300))) // Limited for performance
+      getDocs(query(collection(firestore, 'vendors'), limit(50))),
+      getDocs(query(collection(firestore, 'products'), limit(200))) // Reduced limit for turbo speed
     ]);
 
     const vendors = vendorsSnap.docs.map(sanitizeDoc).filter(Boolean);
@@ -98,15 +83,10 @@ async function getInitialData() {
       .sort((a, b) => {
         const vA = vendorMap.get(a.vendorId);
         const vB = vendorMap.get(b.vendorId);
-        
         const openA = vA ? (vA.isOnline !== false && isStoreOpenOnServer(vA)) : true;
         const openB = vB ? (vB.isOnline !== false && isStoreOpenOnServer(vB)) : true;
-        
         if (openA !== openB) return openA ? -1 : 1;
-        
-        const ratingA = Number(a.rating) || Number(vA?.rating) || 0;
-        const ratingB = Number(b.rating) || Number(vB?.rating) || 0;
-        return ratingB - ratingA;
+        return (Number(b.rating) || 0) - (Number(a.rating) || 0);
       });
 
     return { 
@@ -117,7 +97,6 @@ async function getInitialData() {
       products: sortedProducts
     };
   } catch (e) {
-    console.error("SSR Data Fetch Error:", e);
     return { banners: [], categories: [], announcement: null, vendors: [], products: [] };
   }
 }

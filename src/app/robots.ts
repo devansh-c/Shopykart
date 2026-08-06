@@ -10,20 +10,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: [
-          '/admin/',
-          '/vendor/',
-          '/delivery/',
-          '/api/',
-          '/cart/',
-          '/wishlist/',
-        ],
-      },
-      {
-        userAgent: 'Googlebot',
-        allow: '/',
-        disallow: ['/admin/', '/vendor/', '/delivery/'],
-      },
+        disallow: ['/admin/', '/vendor/', '/delivery/', '/api/'],
+      }
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };

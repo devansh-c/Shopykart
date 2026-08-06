@@ -1,6 +1,6 @@
 "use client"
 
-import { Star, MapPin, Clock, ChevronRight } from "lucide-react"
+import { Star, MapPin, Clock } from "lucide-react"
 import Image from "next/image"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, limit } from "firebase/firestore"
@@ -8,7 +8,10 @@ import React, { useMemo, useTransition, useState, useEffect } from "react"
 import { cn, slugify } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
-export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: string }) => {
+/**
+ * @fileOverview StoreSection optimized for instant display using initialData.
+ */
+export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -25,23 +28,23 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(500));
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery);
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v5_turbo', initialData);
 
   const filteredVendors = useMemo(() => {
-    if (!dbVendors) return [];
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    if (!list) return [];
     
     const targetZone = (activeCity || '').toLowerCase().trim();
 
-    return dbVendors.filter(v => {
+    return list.filter(v => {
       const vendorZone = (v.town || '').toLowerCase().trim();
       const categoryMatch = (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
 
       if (!categoryMatch) return false;
 
-      // STRICT ZONE FILTERING
       if (targetZone && targetZone !== 'local') {
         if (vendorZone && vendorZone !== 'local' && vendorZone !== targetZone) {
           return false;
@@ -50,16 +53,16 @@ export const StoreSection = React.memo(({ activeMode = 'Food' }: { activeMode?: 
       
       return true;
     });
-  }, [dbVendors, activeMode, activeCity]);
+  }, [dbVendors, initialData, activeMode, activeCity]);
 
   const handleStoreClick = (store: any) => {
     const slug = store.slug || slugify(store.storeName);
     startTransition(() => {
-      router.push(`/store/${slug}-${store.id}`);
+      router.push(`/store/${slug}`);
     });
   };
 
-  if (loading || filteredVendors.length === 0) return null;
+  if (filteredVendors.length === 0 && !loading) return null;
 
   return (
     <div className="py-6">

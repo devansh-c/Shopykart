@@ -1,8 +1,7 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
-import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle } from "lucide-react"
+import { Plus, Minus, Share2, Store, Star } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -34,20 +33,13 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
       if (modifier === 'PM' && hours < 12) hours += 12;
       if (modifier === 'AM' && hours === 12) hours = 0;
       return hours * 60 + (isNaN(minutes) ? 0 : minutes);
-    } catch (e) { 
-      return 0; 
-    }
+    } catch (e) { return 0; }
   };
 
   const start = parseTimeToMinutes(vendor.openingTime);
   const end = parseTimeToMinutes(vendor.closingTime);
 
-  if (start < end) {
-    return mins >= start && mins <= end;
-  } else if (start > end) {
-    return mins >= start || mins <= end;
-  }
-  return true;
+  return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
 }
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove }: any) => {
@@ -70,7 +62,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
                 <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center z-10 backdrop-blur-[1px]">
                   <Store className="h-6 w-6 text-white/80 mb-1" />
                   <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">
-                    Closed Now
+                    Closed
                   </span>
                 </div>
               )}
@@ -86,7 +78,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
 
       <div className="flex-1 flex flex-col px-1">
         <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">
-          {product.restaurantName || 'ShopyKart Select'}
+          {product.restaurantName || 'ShopyKart'}
         </p>
         <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">
           {product.name}
@@ -95,16 +87,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
         <div className="mt-auto flex items-center justify-between pt-2">
           <div className="flex flex-col">
             <span className="text-lg font-black text-white italic tracking-tighter leading-none">₹{product.price}</span>
-            <div className="flex items-center gap-1 mt-1">
-               <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-               <span className="text-[8px] font-bold text-gray-400">{(Number(product.rating) || 4.5).toFixed(1)}</span>
-            </div>
           </div>
 
           {!isOffline ? (
             quantity === 0 ? (
               <ProductQuickView product={product} vendorScheduleOpen={true}>
-                <button className="bg-[#D9C4A9] text-[#451A03] h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg border border-white/20 active:scale-90 transition-all hover:bg-white">
+                <button className="bg-[#D9C4A9] text-[#451A03] h-9 px-6 rounded-full font-black text-[10px] uppercase active:scale-90 transition-all hover:bg-white">
                   ADD
                 </button>
               </ProductQuickView>
@@ -116,9 +104,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               </div>
             )
           ) : (
-            <div className="bg-gray-800 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center border border-white/5">
-              OFFLINE
-            </div>
+            <div className="bg-gray-800 text-gray-500 h-9 px-4 rounded-full font-black text-[8px] uppercase flex items-center">OFFLINE</div>
           )}
         </div>
       </div>
@@ -149,23 +135,16 @@ export function PopularProducts({
   const [visibleCount, setVisibleCount] = useState(40); 
 
   useEffect(() => {
-    const updateZone = () => {
-      setActiveZone(localStorage.getItem('user_city'));
-    };
+    const updateZone = () => setActiveZone(localStorage.getItem('user_city'));
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
 
-    const syncTime = () => {
-      const d = new Date();
-      setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes());
-    };
+    const syncTime = () => setCurrentTimeMinutes(new Date().getHours() * 60 + new Date().getMinutes());
     syncTime();
     const interval = setInterval(syncTime, 60000);
 
     const handleScroll = () => {
-       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000) {
-          setVisibleCount(prev => prev + 40);
-       }
+       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) setVisibleCount(prev => prev + 40);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
 
@@ -178,17 +157,17 @@ export function PopularProducts({
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'products'), limit(1500));
+    return query(collection(firestore, 'products'), limit(400)); // Optimized limit for turbo speed
   }, [firestore]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v6_turbo', initialData);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, 'home_products_v7_turbo', initialData);
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'vendors');
   }, [firestore]);
   
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v6_turbo', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v7_turbo', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -197,107 +176,54 @@ export function PopularProducts({
     const storeList = (vendors && vendors.length > 0) ? vendors : initialStores;
     const vendorMap = new Map(storeList.map(v => [v.id, v]));
 
-    const vendorStatusMap = new Map();
-    storeList.forEach(v => {
-      vendorStatusMap.set(v.id, v.isOnline !== false && isStoreScheduleOpen(v, currentTimeMinutes));
-    });
-    
     const q = searchQuery.toLowerCase().trim();
     const c = category.toLowerCase();
     const targetZone = (activeZone || '').toLowerCase().trim();
 
-    const filtered = list.filter(p => {
+    return list.filter(p => {
       const v = vendorMap.get(p.vendorId);
-      const vendorZone = (v?.town || p.town || '').toLowerCase().trim();
-
       if (targetZone && targetZone !== 'local') {
-        if (vendorZone && vendorZone !== 'local' && vendorZone !== targetZone) {
-          return false;
-        }
+        const vendorZone = (v?.town || p.town || '').toLowerCase().trim();
+        if (vendorZone && vendorZone !== 'local' && vendorZone !== targetZone) return false;
       }
-      
-      const modeMatch = (p.serviceMode || 'Food').toLowerCase() === activeMode.toLowerCase();
-      if (!modeMatch) return false;
-
-      const searchMatch = !q || p.name?.toLowerCase().includes(q) || v?.storeName?.toLowerCase().includes(q);
-      if (!searchMatch) return false;
-
-      const catMatch = c === 'all' || p.category?.toLowerCase() === c;
-      if (!catMatch) return false;
-
+      if ((p.serviceMode || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;
+      if (q && !p.name?.toLowerCase().includes(q) && !v?.storeName?.toLowerCase().includes(q)) return false;
+      if (c !== 'all' && p.category?.toLowerCase() !== c) return false;
       return !p.isDeleted;
-    });
-
-    return filtered.sort((a, b) => {
-      const isOpenA = vendorStatusMap.get(a.vendorId) ?? true;
-      const isOpenB = vendorStatusMap.get(b.vendorId) ?? true;
-
+    }).sort((a, b) => {
+      const isOpenA = vendorMap.get(a.vendorId)?.isOnline !== false && isStoreScheduleOpen(vendorMap.get(a.vendorId), currentTimeMinutes);
+      const isOpenB = vendorMap.get(b.vendorId)?.isOnline !== false && isStoreScheduleOpen(vendorMap.get(b.vendorId), currentTimeMinutes);
       if (isOpenA !== isOpenB) return isOpenA ? -1 : 1;
-
-      const rA = Number(a.rating) || Number(vendorMap.get(a.vendorId)?.rating) || 0;
-      const rB = Number(b.rating) || Number(vendorMap.get(b.vendorId)?.rating) || 0;
-      
-      return rB - rA;
+      return (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
   }, [dbProducts, initialData, vendors, initialStores, searchQuery, category, activeMode, activeZone, currentTimeMinutes]);
 
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
     e.stopPropagation();
-    const productSlug = product.slug || slugify(product.name) || product.id;
-    const shareUrl = `${window.location.origin}/product/${productSlug}`;
+    const shareUrl = `${window.location.origin}/product/${product.slug || slugify(product.name) || product.id}`;
     if (navigator.share) navigator.share({ title: product.name, url: shareUrl }).catch(() => {});
     else { navigator.clipboard.writeText(shareUrl); toast({ title: "Link Copied! 🔗" }); }
   }, [toast]);
 
-  if (productsToDisplay.length === 0 && !productsLoading) {
-    return (
-      <div className="px-4 py-20 text-center opacity-30 transform-gpu">
-         <Store className="h-16 w-16 mx-auto mb-4" />
-         <p className="text-sm font-black uppercase tracking-widest italic">No items found in this zone</p>
-      </div>
-    );
-  }
-
   return (
     <div className="px-4 py-6 transform-gpu min-h-[600px] bg-white">
       <div className="flex items-center justify-between mb-6 px-2">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
-          All <span className="text-primary">Products</span>
-        </h2>
-        {productsToDisplay.length > 0 && (
-          <Badge className="bg-primary text-white border-none font-black text-[10px] px-4 py-1.5 rounded-full shadow-lg">
-            {productsToDisplay.length} LIVE ITEMS
-          </Badge>
-        )}
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">All <span className="text-primary">Products</span></h2>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {productsToDisplay.slice(0, visibleCount).map((product) => {
-          const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
-          const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(store => store.id === product.vendorId);
-          const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
-
-          return (
-            <ProductItem 
-              key={product.id} 
-              product={{...product, restaurantName: v?.storeName}} 
-              quantity={quantity} 
-              isOffline={isOffline} 
-              onShare={handleShare}
-              onAdd={addToCart}
-              onRemove={removeFromCart}
-            />
-          );
-        })}
+        {productsToDisplay.slice(0, visibleCount).map((product) => (
+          <ProductItem 
+            key={product.id} 
+            product={product} 
+            quantity={cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0} 
+            isOffline={vendors?.find(v => v.id === product.vendorId)?.isOnline === false || !isStoreScheduleOpen(vendors?.find(v => v.id === product.vendorId), currentTimeMinutes)} 
+            onShare={handleShare}
+            onAdd={addToCart}
+            onRemove={removeFromCart}
+          />
+        ))}
       </div>
-      
-      {(productsLoading && productsToDisplay.length === 0) && (
-        <div className="grid grid-cols-2 gap-4">
-           {[1, 2, 3, 4, 5, 6].map(i => (
-             <div key={i} className="bg-gray-50 animate-pulse h-64 rounded-[2.5rem] border-2 border-gray-100" />
-           ))}
-        </div>
-      )}
     </div>
   );
 }
