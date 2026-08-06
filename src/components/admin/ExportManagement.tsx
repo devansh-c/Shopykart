@@ -25,10 +25,6 @@ import { useFirestore } from '@/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
-/**
- * @fileOverview Finalized Export & APK Build Guide. 
- * Updated with "One-Command" Super Fast Push Guide.
- */
 export default function ExportManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -82,8 +78,6 @@ export default function ExportManagement() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl pb-32">
-      
-      {/* SUPER FAST ONE-COMMAND PUSH */}
       <div className="bg-gradient-to-br from-rose-600 via-primary to-orange-600 p-8 rounded-[3rem] border border-white/20 shadow-[0_20px_50px_rgba(239,68,68,0.3)] text-white relative overflow-hidden transform-gpu">
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-8">
@@ -115,17 +109,15 @@ export default function ExportManagement() {
           <div className="mt-8 flex items-start gap-4 bg-black/20 p-5 rounded-2xl border border-white/10">
             <div className="bg-white/10 p-2 rounded-lg"><Terminal className="h-5 w-5 text-white" /></div>
             <p className="text-[12px] font-bold text-white/80 uppercase leading-relaxed italic">
-              Firebase Studio ke terminal mein ye 1 line paste karke Enter maariye. Code add, commit aur push sab ek sath ho jayega!
+              Terminal mein bas "{superFastCommand}" type karke Enter maariye. Code add, commit aur push sab ek sath ho jayega!
             </p>
           </div>
         </div>
         
-        {/* Floating background elements */}
         <div className="absolute -top-10 -right-10 h-64 w-64 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-10 -left-10 h-48 w-48 bg-black/20 rounded-full blur-3xl" />
       </div>
 
-      {/* THE GITHUB APK MASTER GUIDE */}
       <div className="bg-[#0B0B0B] p-10 rounded-[3rem] border border-white/10 shadow-2xl text-white relative overflow-hidden transform-gpu">
         <div className="relative z-10 space-y-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -151,15 +143,15 @@ export default function ExportManagement() {
             <div className="space-y-8">
               <div className="flex items-center gap-3">
                  <Cpu className="h-5 w-5 text-primary animate-pulse" />
-                 <h3 className="text-xl font-black italic uppercase text-white tracking-tight">Deployment Steps (Must Follow):</h3>
+                 <h3 className="text-xl font-black italic uppercase text-white tracking-tight">Deployment Steps:</h3>
               </div>
               <div className="space-y-6">
                 {[
                   { step: "01", title: "PUSH LATEST CODE", text: "Naye shortcut 'npm run push' se code GitHub par bhejein." },
                   { step: "02", title: "ACTIONS TAB", text: "GitHub par jaakar top menu mein 'Actions' par click karein." },
                   { step: "03", title: "SELECT WORKFLOW", text: "Left side se 'Build Android APK & AAB' workflow select karein." },
-                  { step: "04", title: "START BUILD", text: "'Run workflow' button dabayein. Build mein approx 6 mins lagenge." },
-                  { step: "05", title: "DOWNLOAD APK", text: "Build complete hone par 'Artifacts' section se APK download kar lo." }
+                  { step: "04", title: "START BUILD", text: "'Run workflow' button dabayein." },
+                  { step: "05", title: "DOWNLOAD APK", text: "Build complete hone par Artifacts section se APK download karein." }
                 ].map((item, idx) => (
                   <div key={idx} className="flex gap-5 items-start group">
                     <span className="text-primary font-black italic text-3xl leading-none opacity-40 group-hover:opacity-100 transition-opacity">{item.step}</span>
@@ -181,30 +173,15 @@ export default function ExportManagement() {
                       <span className="text-[11px] font-black uppercase tracking-widest">Goyal Tech Tip</span>
                     </div>
                     <p className="text-sm text-gray-300 leading-relaxed uppercase font-bold italic">
-                      "Bhai, GitHub Actions sabse best hai kyunki wahan ekdam standard environment hota hai. Aapko local machine par koi setup karne ki zaroorat nahi hai. Bas code push karo aur makkhan jaisi APK nikaal lo."
+                      "Bhai, GitHub Actions sabse best hai. Aapko local system par kuch setup nahi karna. Bas code push karo aur makkhan jaisi APK nikaal lo."
                     </p>
-                  </div>
-                  
-                  <div className="mt-auto pt-6 relative z-10">
-                    <div className="bg-primary/20 p-5 rounded-2xl border border-primary/30 flex items-start gap-4">
-                      <Terminal className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black text-primary uppercase leading-tight tracking-wider">
-                          BUILD CONFIG: Production-Static <br/>
-                          REPO: devansh-c/Shopykart <br/>
-                          STATUS: Workflow Verified ✅
-                        </p>
-                      </div>
-                    </div>
                   </div>
                </div>
             </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12 pointer-events-none" />
       </div>
 
-      {/* 2. DATABASE & SOURCE TOOLS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white p-10 rounded-[3rem] border border-border shadow-sm space-y-6 relative overflow-hidden group hover:shadow-2xl transition-all">
           <div className="flex items-center gap-4 relative z-10">
@@ -216,9 +193,6 @@ export default function ExportManagement() {
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Full Firestore Backup</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed relative z-10 uppercase font-bold opacity-60">
-            Download all products, stores, users, and orders as structured JSON files in a single ZIP.
-          </p>
           <Button 
             onClick={handleExportData} 
             disabled={isExporting}
@@ -239,9 +213,6 @@ export default function ExportManagement() {
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Complete Project Bundle</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed relative z-10 uppercase font-bold opacity-60">
-            Download the entire source code for local backup or transferring to a new development machine.
-          </p>
           <Button 
             className="w-full h-18 rounded-[2.5rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase italic shadow-xl active:scale-95 transition-all text-lg"
           >
@@ -250,7 +221,6 @@ export default function ExportManagement() {
           </Button>
         </div>
       </div>
-
     </div>
   );
 }
