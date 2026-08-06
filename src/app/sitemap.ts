@@ -4,6 +4,9 @@ import { MetadataRoute } from 'next';
  * @fileOverview Next.js Dynamic Sitemap Generator for Googlebot discovery.
  * Ensures full visibility of all content types with proper prioritization.
  */
+
+export const dynamic = 'force-static';
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://shopykart.co.in';
 
