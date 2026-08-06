@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -104,7 +105,7 @@ export default function OrderManagement() {
     } catch (err) {
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
-      downloadingId === id && setDownloadingId(null);
+      if (downloadingId === id) setDownloadingId(null);
     }
   };
 
@@ -155,7 +156,6 @@ export default function OrderManagement() {
     const storeNames = Array.from(new Set(orderData.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
     const subtotal = orderData.subtotal || orderData.items?.reduce((acc:any, it:any) => acc + (it.price * it.quantity), 0) || 0;
     
-    // STRICT TIME ON RECEIPT
     const dateStr = orderData.createdAt?.seconds 
       ? format(new Date(orderData.createdAt.seconds * 1000), 'dd MMM yyyy, hh:mm a') 
       : format(new Date(), 'dd MMM yyyy, hh:mm a');
@@ -275,7 +275,6 @@ export default function OrderManagement() {
           const isDelivered = order.status === 'Delivered';
           const uniqueStores = Array.from(new Set(order.items?.map((it: any) => it.restaurantName || it.storeName || 'Partner Store'))).join(', ');
           
-          // STRICT FORMATTED TIME FOR ADMIN CARD
           const displayTime = order.createdAt?.seconds 
             ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, hh:mm a') 
             : 'Order Timing N/A';
@@ -312,7 +311,6 @@ export default function OrderManagement() {
                 </div>
               </div>
 
-              {/* VERIFICATION IMAGE SECTION */}
               {order.verificationImage && (
                 <div className="mb-8 space-y-3">
                    <div className="flex items-center gap-2 text-primary">

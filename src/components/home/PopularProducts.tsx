@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -217,6 +218,7 @@ export function PopularProducts({
       const catMatch = c === 'all' || p.category?.toLowerCase() === c;
       if (!catMatch) return false;
 
+      // Filter out soft-deleted products
       return !p.isDeleted;
     });
 
