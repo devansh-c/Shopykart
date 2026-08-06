@@ -91,7 +91,7 @@ export default function NotFound() {
 
         {/* Menu Button */}
         <button 
-          onClick={() => setIsMenuOpen(true)}
+          onClick={() => setIsOpen(true)}
           className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-white bg-[#F16524] hover:opacity-90 transition-colors group"
         >
           <Menu className="w-4 h-4 transition-transform group-hover:scale-110" />
@@ -127,7 +127,7 @@ export default function NotFound() {
                 <span className="text-white font-bold text-lg ml-2">ShopyKart</span>
               </div>
               <button 
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => setIsOpen(false)}
                 className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors"
               >
                 <X className="w-5 h-5" />
