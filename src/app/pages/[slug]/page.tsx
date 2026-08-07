@@ -6,9 +6,9 @@ import type { Metadata } from 'next';
 /**
  * generateStaticParams is required for Next.js static export with dynamic routes.
  */
-export const generateStaticParams = async () => {
+export function generateStaticParams() {
   return [];
-};
+}
 
 export const dynamicParams = false;
 
