@@ -20,7 +20,7 @@ jobs:
     - name: Install Dependencies
       run: npm install --legacy-peer-deps
 
-    - name: Build Web App
+    - name: Build Web App (Static)
       run: npm run build:static
 
     - name: Set up JDK 17
