@@ -20,7 +20,7 @@
     "zip-project": "node scripts/zip-project.mjs",
     "reset-build": "rm -rf .next out && next build",
     "android:build-apk": "cd android && ./gradlew assembleDebug",
-    "push": "git add . && git commit -m 'Final Build Fix: Node 20, Robots Conflict, and Static Export Dynamic Params' && git push -u origin main"
+    "push": "git add . && git commit -m 'Final Build Fix: Robots Conflict and Static Export Dynamic Params' && git push -u origin main"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
