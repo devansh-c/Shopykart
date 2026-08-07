@@ -1,7 +1,1 @@
-User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /vendor/
-Disallow: /delivery/
-
-Sitemap: https://shopykart.co.in/sitemap.xml
+# Content moved to robots.ts to resolve Next.js duplicate page conflict.
