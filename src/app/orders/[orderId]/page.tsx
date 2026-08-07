@@ -3,8 +3,8 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 /**
- * generateStaticParams is required for Next.js static export with dynamic routes.
- * Returning an empty array and setting dynamicParams to false allows the build to pass.
+ * generateStaticParams is strictly required for Next.js static export.
+ * This allows the build to pass by defining which dynamic paths to generate.
  */
 export async function generateStaticParams() {
   return [];

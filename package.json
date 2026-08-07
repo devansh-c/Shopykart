@@ -2,6 +2,9 @@
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev --turbo",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
@@ -17,7 +20,7 @@
     "zip-project": "node scripts/zip-project.mjs",
     "reset-build": "rm -rf .next out && next build",
     "android:build-apk": "cd android && ./gradlew assembleDebug",
-    "push": "git add . && git commit -m '10 PM Delivery: Final Master Build Fix' && git push -u origin main"
+    "push": "git add . && git commit -m 'Final Build Fix: Node 20 and Static Export Params' && git push -u origin main"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

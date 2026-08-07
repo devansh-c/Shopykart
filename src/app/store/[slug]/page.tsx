@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 /**
- * generateStaticParams is required for Next.js static export.
+ * generateStaticParams is strictly required for Next.js static export.
  */
 export async function generateStaticParams() {
   return [];
