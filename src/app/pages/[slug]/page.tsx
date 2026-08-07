@@ -5,13 +5,13 @@ import { Loader2 } from 'lucide-react';
 /**
  * generateStaticParams is required for Next.js static export.
  */
-export function generateStaticParams() {
+export async function generateStaticParams() {
   return [];
 }
 
 export const dynamicParams = false;
 
-export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function GenericPagesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   return (

@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 /**
  * generateStaticParams is required for Next.js static export.
  */
-export function generateStaticParams() {
+export async function generateStaticParams() {
   return [];
 }
 
