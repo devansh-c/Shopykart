@@ -20,7 +20,7 @@ jobs:
     - name: Install Dependencies
       run: npm install --legacy-peer-deps
 
-    - name: Build Web App (Static)
+    - name: Build Web App (Static Export)
       run: npm run build:static
 
     - name: Set up JDK 17
@@ -29,8 +29,11 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Add Android Platform
+    - name: Add Android Platform (if missing)
       run: npx cap add android || true
+
+    - name: Generate App Icons
+      run: npx @capacitor/assets generate --android || true
 
     - name: Capacitor Sync
       run: npx cap sync android
