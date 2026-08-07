@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * generateStaticParams is required for Next.js static export with dynamic routes.
- * We return an empty array because IDs are fetched on the client side.
+ * Returning an empty array allows the page to build, while data is fetched client-side.
  */
 export const generateStaticParams = async () => {
   return [];

@@ -3,6 +3,9 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 import type { Metadata } from 'next';
 
+/**
+ * generateStaticParams is required for Next.js static export with dynamic routes.
+ */
 export const generateStaticParams = async () => {
   return [];
 };
