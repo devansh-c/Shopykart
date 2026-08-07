@@ -1,27 +1,15 @@
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
-import type { Metadata } from 'next';
 
 /**
- * generateStaticParams is required for Next.js static export with dynamic routes.
+ * generateStaticParams is required for Next.js static export.
  */
 export function generateStaticParams() {
   return [];
 }
 
 export const dynamicParams = false;
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-  const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-  return {
-    title: `${cleanTitle} | ShopyKart`,
-    description: 'Read official ShopyKart information, policies, and guidelines.',
-    robots: { index: true, follow: true }
-  };
-}
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

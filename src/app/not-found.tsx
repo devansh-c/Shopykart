@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -79,9 +78,9 @@ export default function NotFound() {
         </button>
       </nav>
 
-      <div className={`fixed inset-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? 'visible' : 'invisible'}`}>
+      <div className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out ${isMenuOpen ? 'visible' : 'invisible'}`}>
         <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-500 ${isMenuOpen ? 'opacity-100' : 'opacity-0'}`} onClick={() => setIsMenuOpen(false)} />
-        <div className={`absolute top-0 right-0 h-full w-full sm:w-[380px] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ background: 'linear-gradient(135deg, #FF6B1A 0%, #FF9642 100%)' }}>
+        <div className={`absolute top-0 right-0 h-full w-full sm:w-[380px] transition-transform duration-500 ease-in-out ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ background: 'linear-gradient(135deg, #FF6B1A 0%, #FF9642 100%)' }}>
           <div className="flex flex-col h-full p-6">
             <div className="flex items-center justify-between mb-12">
               <div className="flex items-center">
