@@ -58,7 +58,6 @@ export default function OrdersPage() {
     }
   };
 
-  // Refined loading state
   const isLoading = userLoading || (user && ordersLoading && !orders);
 
   return (
@@ -70,7 +69,7 @@ export default function OrdersPage() {
       <div className="px-4 space-y-5">
         {isLoading ? (
           <div className="flex justify-center py-20">
-             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : sortedOrders.length > 0 ? (
           sortedOrders.map((order) => (
