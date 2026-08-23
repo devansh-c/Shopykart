@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -42,7 +43,8 @@ import {
   Tag,
   Truck,
   Image as ImageIconLucide,
-  KeyRound
+  KeyRound,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -228,7 +230,7 @@ export default function OrderManagement() {
                        <h3 className="font-black text-3xl italic uppercase tracking-tighter">Order #{order.customerOrderNumber || '...'}</h3>
                        <Badge className={cn(
                          "border-none text-[8px] font-black uppercase px-2.5 py-1 rounded-full",
-                         isCancelled ? "bg-red-100 text-red-600" : isDelivered ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
+                         isCancelled ? "bg-red-100 text-red-600" : isDelivered ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
                        )}>{order.status.toUpperCase()}</Badge>
                     </div>
                     <div className="flex items-center gap-4">
@@ -264,6 +266,25 @@ export default function OrderManagement() {
                        <PhoneCall className="h-6 w-6" />
                     </button>
                  </div>
+
+                 {/* COLLECTION DETAILS */}
+                 {isDelivered && (
+                   <div className="mb-4 bg-white p-4 rounded-2xl border border-border/50 shadow-sm flex items-center justify-between animate-in zoom-in-95 duration-500">
+                      <div className="flex items-center gap-3">
+                         <div className={cn(
+                           "p-2 rounded-xl text-white",
+                           order.paymentCollectionMethod === 'Online' ? "bg-blue-500" : "bg-amber-500"
+                         )}>
+                           {order.paymentCollectionMethod === 'Online' ? <CreditCard className="h-4 w-4" /> : <Banknote className="h-4 w-4" />}
+                         </div>
+                         <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Collected By Partner</span>
+                            <span className="text-xs font-black uppercase italic text-gray-800">{order.paymentCollectionMethod} Payment</span>
+                         </div>
+                      </div>
+                      <div className="h-8 w-8 bg-green-50 rounded-full flex items-center justify-center text-green-600 border border-green-100"><Check className="h-4 w-4 stroke-[4]" /></div>
+                   </div>
+                 )}
 
                  <div className="space-y-4 pt-1">
                     <div className="bg-white/60 p-1.5 rounded-full inline-flex items-center gap-2 border border-white pr-4">

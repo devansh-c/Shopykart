@@ -17,7 +17,12 @@ import {
   CircleDollarSign,
   UserCircle2,
   KeyRound,
-  ShoppingBasket
+  ShoppingBasket,
+  QrCode,
+  CreditCard,
+  Banknote,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -30,12 +35,16 @@ import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 type MainTab = 'home' | 'history' | 'payout' | 'profile';
 type OrderFilter = 'NEW' | 'DELIVERED' | 'CANCELLED';
 
 const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
   const [enteredCode, setEnteredCode] = useState('');
+  const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
+  const [showQr, setShowQr] = useState(false);
+
   const isReadyForPickup = order.status === 'Ready for Pickup';
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isPickedUp = order.status === 'Picked Up';
@@ -51,12 +60,22 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
     } else if (isPickedUp) {
       onUpdate(order.id, 'Out for Delivery');
     } else if (isOutForDelivery) {
+      if (!collectionMethod) {
+        alert("Please select payment collection method (Online/Cash) first.");
+        return;
+      }
       if (enteredCode === order.deliveryOTP) {
-        onUpdate(order.id, 'Delivered');
+        onUpdate(order.id, 'Delivered', collectionMethod);
         setEnteredCode('');
       } else {
         alert("Invalid Delivery OTP! Ask the customer for the 6-digit code.");
       }
+    }
+  };
+
+  const handleCall = () => {
+    if (order.customerPhone) {
+      window.open(`tel:${order.customerPhone}`);
     }
   };
 
@@ -70,9 +89,14 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
              <h3 className="text-2xl font-black italic tracking-tighter leading-none">Order #{order.customerOrderNumber || 'N/A'}</h3>
              <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase mt-1.5"><Clock className="h-3 w-3" />{format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
           </div>
-          <button onClick={() => onMapOpen(order)} className="h-14 w-14 bg-blue-500 rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-blue-200">
-            <Navigation className="h-7 w-7" />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleCall} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
+              <PhoneCall className="h-5 w-5" />
+            </button>
+            <button onClick={() => onMapOpen(order)} className="h-12 w-12 bg-blue-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-blue-100">
+              <Navigation className="h-5 w-5" />
+            </button>
+          </div>
        </div>
 
        <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
@@ -93,7 +117,7 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
              {order.items?.map((item: any, i: number) => (
                <div key={i} className="flex justify-between items-center text-[10px] font-bold">
                  <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                 <span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span>
+                 <span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(0)}</span>
                </div>
              ))}
              <div className="pt-2 flex justify-between items-center border-t border-white/20 mt-2">
@@ -121,19 +145,58 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
        )}
 
        {isOutForDelivery && (
-         <div className="mb-6 space-y-3 animate-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 text-primary">
-               <KeyRound className="h-4 w-4" />
-               <span className="text-[10px] font-black uppercase">Enter 6-Digit Delivery OTP from Customer</span>
+         <div className="mb-6 space-y-6 animate-in slide-in-from-bottom-2">
+            {/* QR Payment Trigger */}
+            <Button 
+              onClick={() => setShowQr(true)}
+              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 shadow-xl"
+            >
+              <QrCode className="h-4 w-4" /> SHOW PAYMENT QR
+            </Button>
+
+            {/* Collection Method Switch */}
+            <div className="space-y-3">
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Payment Status</span>
+              <div className="grid grid-cols-2 gap-3">
+                 <button 
+                  onClick={() => setCollectionMethod('Online')}
+                  className={cn(
+                    "h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-95",
+                    collectionMethod === 'Online' ? "bg-blue-50 border-blue-500 text-blue-700 shadow-inner" : "bg-gray-50 border-transparent text-gray-400"
+                  )}
+                 >
+                    <CreditCard className="h-4 w-4" />
+                    <span className="text-[9px] font-black uppercase">Online Paid</span>
+                 </button>
+                 <button 
+                  onClick={() => setCollectionMethod('Cash')}
+                  className={cn(
+                    "h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-95",
+                    collectionMethod === 'Cash' ? "bg-amber-50 border-amber-500 text-amber-700 shadow-inner" : "bg-gray-50 border-transparent text-gray-400"
+                  )}
+                 >
+                    <Banknote className="h-4 w-4" />
+                    <span className="text-[9px] font-black uppercase">Cash Paid</span>
+                 </button>
+              </div>
             </div>
-            <Input 
-              type="tel"
-              placeholder="0 0 0 0 0 0" 
-              maxLength={6}
-              value={enteredCode}
-              onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))}
-              className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.5em]"
-            />
+
+            {collectionMethod && (
+              <div className="space-y-3 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2 text-primary">
+                   <KeyRound className="h-4 w-4" />
+                   <span className="text-[10px] font-black uppercase">Enter 6-Digit Delivery OTP from Customer</span>
+                </div>
+                <Input 
+                  type="tel"
+                  placeholder="0 0 0 0 0 0" 
+                  maxLength={6}
+                  value={enteredCode}
+                  onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))}
+                  className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.5em]"
+                />
+              </div>
+            )}
          </div>
        )}
 
@@ -159,7 +222,7 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
             {isOutForDelivery && (
               <Button 
                 onClick={handleAction} 
-                disabled={enteredCode.length !== 6}
+                disabled={enteredCode.length !== 6 || !collectionMethod}
                 className="flex-1 bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
               >
                 VERIFY & DELIVER
@@ -167,6 +230,35 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
             )}
          </div>
        )}
+
+       {/* QR MODAL */}
+       <Dialog open={showQr} onOpenChange={setShowQr}>
+          <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+             <div className="h-2 w-full bg-primary" />
+             <div className="p-8 space-y-8 flex flex-col items-center text-center">
+                <DialogHeader>
+                   <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle>
+                </DialogHeader>
+                
+                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-dashed border-gray-200 shadow-inner relative group">
+                   <img 
+                     src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`)}`} 
+                     className="h-56 w-56 grayscale contrast-125" 
+                     alt="UPI QR" 
+                     crossOrigin="anonymous" 
+                   />
+                   <div className="absolute inset-0 border-4 border-primary/20 rounded-[2.5rem] pointer-events-none" />
+                </div>
+
+                <div className="space-y-2">
+                   <p className="text-sm font-black italic text-gray-900 tracking-tight">₹{order.total?.toFixed(2)}</p>
+                   <p className="text-[9px] font-black text-primary uppercase tracking-widest">9450355709@axl</p>
+                </div>
+
+                <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE QR</Button>
+             </div>
+          </DialogContent>
+       </Dialog>
     </div>
   );
 });
@@ -223,14 +315,18 @@ export default function DeliveryDashboard() {
     });
   }, [allOrders, partnerProfile, user, homeFilter]);
 
-  const updateDelivery = async (orderId: string, status: string) => {
+  const updateDelivery = async (orderId: string, status: string, collectionMethod?: string) => {
     if (!firestore || !user) return;
     try {
-      await updateDoc(doc(firestore, 'orders', orderId), { 
+      const updateData: any = { 
         status, 
         deliveryPartnerId: user.uid, 
         updatedAt: serverTimestamp() 
-      });
+      };
+      if (collectionMethod) {
+        updateData.paymentCollectionMethod = collectionMethod;
+      }
+      await updateDoc(doc(firestore, 'orders', orderId), updateData);
       toast({ title: `Order ${status}!` });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
@@ -240,13 +336,15 @@ export default function DeliveryDashboard() {
     window.open(url, '_blank');
   };
 
-  if (!isMounted || authLoading || profileLoading || !user || !partnerProfile) {
+  if (!isMounted || authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
       </div>
     );
   }
+
+  if (!user || !partnerProfile) return null;
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative transform-gpu">
