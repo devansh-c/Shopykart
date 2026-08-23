@@ -83,71 +83,6 @@ export default function OrderManagement() {
     toast({ title: "Status Updated", description: `Order is now ${status}.` });
   };
 
-  const handleDownload = async (id: string, type: 'customer' | 'vendor') => {
-    const element = document.getElementById(`receipt-content-${type}-${id}`);
-    if (!element || !id) return;
-    setDownloadingId(id);
-    try {
-      const { toBlob } = await import('html-to-image');
-      const FileSaver = await import('file-saver');
-      const saveAs = FileSaver.saveAs || (FileSaver as any).default;
-      
-      const blob = await toBlob(element, { 
-        cacheBust: true,
-        backgroundColor: '#ffffff',
-        pixelRatio: 2
-      });
-      
-      if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `ShopyKart_Bill_${id.slice(-5)}.jpg`);
-        toast({ title: "Receipt Saved!" });
-      }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Download Failed" });
-    } finally {
-      downloadingId === id && setDownloadingId(null);
-    }
-  };
-
-  const handlePrint = (id: string, type: 'customer' | 'vendor') => {
-    const element = document.getElementById(`receipt-content-${type}-${id}`);
-    if (!element) return;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.write(`
-      <html>
-        <head>
-          <style>
-            @page { margin: 0; size: 100mm auto; }
-            body { margin: 0; padding: 0; display: flex; justify-content: center; font-family: monospace; }
-            * { -webkit-print-color-adjust: exact; }
-          </style>
-        </head>
-        <body>
-          ${element.outerHTML}
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    iframe.contentWindow?.focus();
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-      document.body.removeChild(iframe);
-    }, 500);
-  };
-
   const generateCustomerReceiptDOM = (orderData: any) => {
     if (!orderData) return null;
     const upiUri = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${orderData.total?.toFixed(2)}&cu=INR`;
@@ -314,28 +249,6 @@ export default function OrderManagement() {
                 </div>
               </div>
 
-              {order.verificationImage && (
-                <div className="mb-8 space-y-3">
-                   <div className="flex items-center gap-2 text-primary">
-                      <Camera className="h-4 w-4" />
-                      <span className="text-[10px] font-black uppercase tracking-widest italic">Delivery Evidence / Photo</span>
-                   </div>
-                   <Dialog>
-                      <DialogTrigger asChild>
-                         <div className="relative h-44 w-full rounded-[2rem] overflow-hidden border-4 border-gray-50 shadow-inner cursor-pointer group/img">
-                            <img src={order.verificationImage} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" alt="Evidence" />
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
-                               <div className="bg-white/20 backdrop-blur-md p-3 rounded-full text-white border border-white/30"><Eye className="h-6 w-6" /></div>
-                            </div>
-                         </div>
-                      </DialogTrigger>
-                      <DialogContent className="rounded-[3rem] max-w-lg p-0 overflow-hidden border-none shadow-2xl">
-                         <img src={order.verificationImage} className="w-full h-auto" alt="Order Evidence Large" />
-                      </DialogContent>
-                   </Dialog>
-                </div>
-              )}
-
               <div className="bg-[#F9FAFB] rounded-[2rem] p-6 mb-8 border border-border/50 shadow-inner">
                  <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-4">
@@ -377,24 +290,6 @@ export default function OrderManagement() {
                             </div>
                           );
                        })}
-                       {order.premiumPackaging && (
-                         <div className="flex items-center gap-2 bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">
-                            <Package className="h-3.5 w-3.5 text-rose-500" />
-                            <span className="text-[9px] font-black text-rose-700 uppercase">Premium Packing Included</span>
-                         </div>
-                       )}
-                       {order.deliveryTip > 0 && (
-                         <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-xl border border-blue-100">
-                            <Bike className="h-3.5 w-3.5 text-blue-500" />
-                            <span className="text-[9px] font-black text-blue-700 uppercase">Rider Tip: ₹{order.deliveryTip}</span>
-                         </div>
-                       )}
-                       {order.coinDiscount > 0 && (
-                         <div className="flex items-center gap-2 bg-amber-50 px-3 py-2 rounded-xl border border-amber-100">
-                            <Coins className="h-3.5 w-3.5 text-amber-500" />
-                            <span className="text-[9px] font-black text-amber-700 uppercase">Coins Used: -₹{order.coinDiscount.toFixed(0)}</span>
-                       </div>
-                       )}
                     </div>
 
                     <div className="pt-4 mt-2 border-t border-dashed border-gray-200 flex items-center gap-3">
@@ -403,16 +298,6 @@ export default function OrderManagement() {
                        </div>
                        <p className="text-[10px] font-black text-gray-500 uppercase leading-relaxed tracking-tight">{order.address}</p>
                     </div>
-
-                    {order.instructions && (
-                      <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50 mt-2">
-                         <div className="flex items-center gap-2 mb-1 text-amber-700">
-                            <MessageSquareQuote className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase">Customer Note</span>
-                         </div>
-                         <p className="text-xs font-bold text-gray-700 italic leading-relaxed">"{order.instructions}"</p>
-                      </div>
-                    )}
                  </div>
               </div>
 
@@ -435,10 +320,6 @@ export default function OrderManagement() {
                      </DialogHeader>
                      <div className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col items-center">
                         {generateCustomerReceiptDOM(order)}
-                     </div>
-                     <div className="p-4 bg-gray-50 border-t flex gap-3 shrink-0">
-                        <Button onClick={() => handlePrint(order.id, 'customer')} className="flex-1 bg-black text-white h-12 rounded-xl font-black uppercase text-[10px]">PRINT</Button>
-                        <Button onClick={() => handleDownload(order.id, 'customer')} disabled={downloadingId === order.id} className="flex-1 bg-primary text-white h-12 rounded-xl font-black uppercase text-[10px]">SAVE</Button>
                      </div>
                   </DialogContent>
                 </Dialog>

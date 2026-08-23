@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
  */
 
 export async function generateStaticParams() {
+  // During static export, we return an empty array to allow all paths to be handled client-side
   return [];
 }
 
