@@ -1,18 +1,15 @@
+
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
 
-/**
- * @fileOverview Unified SEO Route for Information Pages.
- * Strictly configured for Next.js static export with generateStaticParams.
- */
+export const dynamic = 'force-static';
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return [];
 }
-
-export const dynamicParams = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;

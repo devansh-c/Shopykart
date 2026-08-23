@@ -4,16 +4,12 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 import type { Metadata } from 'next';
 
-/**
- * @fileOverview Universal SEO Route for Stores.
- * Strictly configured for Next.js static export with generateStaticParams.
- */
+export const dynamic = 'force-static';
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return [];
 }
-
-export const dynamicParams = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

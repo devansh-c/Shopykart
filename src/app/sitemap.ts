@@ -1,10 +1,5 @@
-import { MetadataRoute } from 'next';
 
-/**
- * @fileOverview Next.js Dynamic Sitemap Generator for Googlebot discovery.
- * Ensures full visibility of all content types with proper prioritization.
- * Configuration: Strictly set to force-static for Next.js static export compatibility.
- */
+import { MetadataRoute } from 'next';
 
 export const dynamic = 'force-static';
 
@@ -43,7 +38,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.1,
   }));
 
-  // SEO Optimized Dynamic segments (Base patterns for discovery)
+  // SEO Optimized Dynamic segments
   const dynamicPatterns = [
     'product',
     'store',

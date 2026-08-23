@@ -6,41 +6,27 @@ import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp } fr
 import { 
   Navigation, 
   Package, 
-  CheckCircle, 
   MapPin, 
   LogOut, 
-  BellRing, 
-  Compass, 
-  Map, 
   User, 
   PhoneCall, 
   History,
   LayoutDashboard,
   Clock,
-  ShieldAlert,
   Loader2,
-  X,
-  ExternalLink,
   CircleDollarSign,
   UserCircle2,
-  CheckCircle2,
-  XCircle,
-  Wallet,
-  ArrowDownLeft,
-  Camera,
   KeyRound,
-  ChevronRight,
   ShoppingBasket
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useRef, useMemo, memo, useTransition } from 'react';
+import { useEffect, useState, useMemo, memo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -137,7 +123,7 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
        {isOutForDelivery && (
          <div className="mb-6 space-y-3 animate-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2 text-primary">
-               <ShieldAlert className="h-4 w-4" />
+               <KeyRound className="h-4 w-4" />
                <span className="text-[10px] font-black uppercase">Enter 6-Digit Delivery OTP from Customer</span>
             </div>
             <Input 
@@ -207,16 +193,10 @@ export default function DeliveryDashboard() {
   
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
-  // AUTH GUARD: Improved to handle APK startup and persistence better
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
-    
-    const sessionActive = localStorage.getItem('delivery_session_active') === 'true';
-    
     if (!user && !authLoading) {
-      if (!sessionActive) {
-        router.replace('/delivery/login');
-      }
+      router.replace('/delivery/login');
     }
   }, [user, authLoading, profileLoading, router, isMounted]);
 
@@ -251,7 +231,7 @@ export default function DeliveryDashboard() {
         deliveryPartnerId: user.uid, 
         updatedAt: serverTimestamp() 
       });
-      toast({ title: `Order ${status}!`, description: "Status updated instantly." });
+      toast({ title: `Order ${status}!` });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
@@ -260,32 +240,10 @@ export default function DeliveryDashboard() {
     window.open(url, '_blank');
   };
 
-  // LOADING STATE
-  if (!isMounted || authLoading || profileLoading) {
+  if (!isMounted || authLoading || profileLoading || !user || !partnerProfile) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
-          Syncing Fleet Dashboard...
-        </p>
-      </div>
-    );
-  }
-
-  // REDIRECT STATE: Show helpful info if auth fails (prevents blank screen)
-  if (!user || !partnerProfile) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6 px-8 text-center animate-in fade-in duration-500">
-        <div className="h-20 w-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 border border-red-100 shadow-inner">
-           <ShieldAlert className="h-10 w-10" />
-        </div>
-        <div className="space-y-2">
-           <h2 className="text-xl font-black italic uppercase text-gray-800">Access Restricted</h2>
-           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-             Identity not verified. Redirecting to secure login...
-           </p>
-        </div>
-        <Loader2 className="h-6 w-6 animate-spin text-gray-300" />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
       </div>
     );
   }
@@ -308,7 +266,7 @@ export default function DeliveryDashboard() {
                   <button key={f} onClick={() => setHomeFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", homeFilter === f ? "bg-primary text-white shadow-lg" : "text-gray-400")}>{f} TASKS</button>
                 ))}
               </div>
-              <div className="space-y-4 content-visibility-auto">
+              <div className="space-y-4">
                 {filteredHomeOrders.length > 0 ? filteredHomeOrders.map((order) => (
                   <OrderCard key={order.id} order={order} filter={homeFilter} onUpdate={updateDelivery} onMapOpen={(o:any) => handleOpenGoogleMaps(Number(o.latitude || 25.2443), Number(o.longitude || 79.0838))} />
                 )) : (

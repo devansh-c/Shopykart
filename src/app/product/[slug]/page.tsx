@@ -4,17 +4,12 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
 
-/**
- * @fileOverview Universal SEO Route for Products.
- * Strictly configured for Next.js static export with generateStaticParams.
- */
+export const dynamic = 'force-static';
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  // During static export, we rely on client-side resolution.
   return [];
 }
-
-export const dynamicParams = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

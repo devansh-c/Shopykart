@@ -3,17 +3,12 @@ import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
-/**
- * @fileOverview Dynamic route for order tracking.
- * Strictly configured for Next.js static export with generateStaticParams.
- */
+export const dynamic = 'force-static';
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  // Return empty array for static export compatibility
   return [];
 }
-
-export const dynamicParams = false;
 
 export default async function OrderPage({
   params,
