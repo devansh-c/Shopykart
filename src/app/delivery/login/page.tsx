@@ -1,13 +1,14 @@
+
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Bike, Mail, Lock, Loader2, ArrowRight, ChevronLeft } from 'lucide-react';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -21,6 +22,14 @@ export default function DeliveryLoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user, loading: authLoading } = useUser();
+
+  // AUTO-REDIRECT: If already logged in, go to dashboard directly
+  useEffect(() => {
+    if (user && !authLoading) {
+      router.replace('/delivery/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +85,10 @@ export default function DeliveryLoginPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center p-4">

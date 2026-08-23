@@ -207,7 +207,7 @@ export default function DeliveryDashboard() {
   
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
-  // AUTH GUARD: Improved to prevent blank screen
+  // AUTH GUARD: Improved to handle APK startup and persistence better
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
     
@@ -232,7 +232,6 @@ export default function DeliveryDashboard() {
       const assignedZone = partnerProfile.assignedPincode;
       
       if (homeFilter === 'NEW') {
-        // Show if ready for pickup and in my zone OR if already assigned to me
         const isReadyForMyZone = order.status === 'Ready for Pickup' && (!order.deliveryPartnerId || order.pincode === assignedZone);
         const isMineInProgress = order.deliveryPartnerId === user.uid && ['Picked Up', 'Out for Delivery'].includes(order.status);
         return isReadyForMyZone || isMineInProgress;
@@ -261,7 +260,7 @@ export default function DeliveryDashboard() {
     window.open(url, '_blank');
   };
 
-  // LOADING STATE: Prevent blank screen with meaningful UI
+  // LOADING STATE
   if (!isMounted || authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
@@ -273,7 +272,7 @@ export default function DeliveryDashboard() {
     );
   }
 
-  // REDIRECT STATE: Show helpful info if auth fails
+  // REDIRECT STATE: Show helpful info if auth fails (prevents blank screen)
   if (!user || !partnerProfile) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6 px-8 text-center animate-in fade-in duration-500">

@@ -9,8 +9,7 @@ import { Loader2 } from 'lucide-react';
  */
 
 export async function generateStaticParams() {
-  // During static export, we don't have IDs at build time.
-  // Return an empty array to allow the build to proceed.
+  // Return empty array for static export compatibility
   return [];
 }
 
