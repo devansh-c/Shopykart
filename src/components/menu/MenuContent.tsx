@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -16,8 +17,7 @@ import { ProductQuickView } from '@/components/product/ProductQuickView';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview MenuContent with Universal Resolution & High-Speed Product Fetching.
- * Strictly filters out deleted products.
+ * @fileOverview MenuContent with SPA Fallback to prevent 404s.
  */
 export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -42,13 +42,14 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  // RESOLUTION ENGINE: Find store by slug field, custom ID, or name match
   useEffect(() => {
     async function resolveVendor() {
-      if (!firestore || !rawSlug) return;
+      if (!firestore || !rawSlug || rawSlug === 'default') {
+        setVendorLoading(false);
+        return;
+      }
       setVendorLoading(true);
       try {
-        // 1. Try finding by 'slug' field (Modern SEO URLs)
         const slugQ = query(collection(firestore, 'vendors'), where('slug', '==', rawSlug), limit(1));
         const slugSnap = await getDocs(slugQ);
 
@@ -58,17 +59,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           return;
         }
 
-        // 2. Try finding by custom 'storeId' (A human-readable unique key)
-        const storeIdQ = query(collection(firestore, 'vendors'), where('storeId', '==', rawSlug), limit(1));
-        const storeIdSnap = await getDocs(storeIdQ);
-        
-        if (!storeIdSnap.empty) {
-          setVendorProfile({ id: storeIdSnap.docs[0].id, ...storeIdSnap.docs[0].data() });
-          setVendorLoading(false);
-          return;
-        }
-
-        // 3. Try finding by direct Document ID
         const idRef = doc(firestore, 'vendors', rawSlug);
         const idSnap = await getDoc(idRef);
         if (idSnap.exists()) {
@@ -77,7 +67,6 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
           return;
         }
 
-        // 4. Final Fallback: Search all vendors and match by slugified name (Slow but exhaustive)
         const allVendorsSnap = await getDocs(collection(firestore, 'vendors'));
         const matchedVendor = allVendorsSnap.docs.find(d => {
           const data = d.data();
@@ -99,18 +88,17 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     resolveVendor();
   }, [firestore, rawSlug]);
 
-  // PRODUCT ENGINE: Fetch all products for the resolved vendor
   const productsQuery = useMemoFirebase(() => {
     if (!firestore || !vendorProfile) return null;
     return query(collection(firestore, 'products'), where('vendorId', '==', vendorProfile.id));
   }, [firestore, vendorProfile]);
   
-  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `store_menu_${vendorProfile?.id}`);
+  const { data: dbProducts, loading: productsLoading } = useCollection<any>(productsQuery, `menu_${vendorProfile?.id}`);
 
   const filteredProducts = useMemo(() => {
     if (!dbProducts) return [];
     return dbProducts.filter((product: any) => {
-      if (product.isDeleted) return false; // STRICT FILTER FOR DELETED PRODUCTS
+      if (product.isDeleted) return false;
       const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || product.category?.toLowerCase() === activeCategory;
       return matchesSearch && matchesCategory;
@@ -129,7 +117,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
     );
   }
 
-  if (!vendorProfile) {
+  if (!vendorProfile && rawSlug !== 'default') {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
         <div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-6">
@@ -145,7 +133,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
   return (
     <div className="min-h-screen bg-white pb-40">
       <div className="relative h-64 w-full">
-        <img src={vendorProfile?.bannerUrl || vendorProfile?.imageUrl} className="w-full h-full object-cover" alt="Banner" />
+        <img src={vendorProfile?.bannerUrl || vendorProfile?.imageUrl || 'https://picsum.photos/seed/store/800/400'} className="w-full h-full object-cover" alt="Banner" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col justify-end p-6">
           <Link href="/" className="absolute top-6 left-6 h-10 w-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-transform"><X className="h-5 w-5" /></Link>
           <div className="flex items-end gap-4">
@@ -168,7 +156,7 @@ export default function MenuContent({ forcedSlug }: { forcedSlug?: string }) {
            <h1 className="text-4xl font-black italic uppercase tracking-tighter">Premium Menu</h1>
            <Badge className="bg-primary text-white border-none font-black text-[10px]">{filteredProducts.length} ITEMS</Badge>
         </div>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Curated from {vendorProfile?.storeName}</p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Curated from {vendorProfile?.storeName || 'Partner Store'}</p>
       </div>
 
       <div className="px-6 mb-8">

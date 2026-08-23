@@ -12,8 +12,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview StoresPage with Rating-based Sorting and Offline Logic.
- * Now includes "Closed Now" overlay for timed-out stores.
+ * @fileOverview StoresPage with optimized routing to avoid 404s.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +27,6 @@ export default function StoresPage() {
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
 
-    // Sync time for accurate Closed status
     const syncTime = () => {
       const now = new Date();
       setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
@@ -47,7 +45,7 @@ export default function StoresPage() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v1');
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
@@ -70,10 +68,7 @@ export default function StoresPage() {
       const isOnlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins);
       const isOnlineB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins);
 
-      // 1. Move Online stores to top
       if (isOnlineA !== isOnlineB) return isOnlineA ? -1 : 1;
-
-      // 2. Sort by Rating (High to Low)
       const ratingA = Number(a.rating) || 0;
       const ratingB = Number(b.rating) || 0;
       return ratingB - ratingA;
@@ -101,7 +96,7 @@ export default function StoresPage() {
         </div>
       </div>
 
-      <div className="px-6 space-y-6 content-visibility-auto">
+      <div className="px-6 space-y-6">
         {loading && !dbVendors ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
@@ -115,7 +110,9 @@ export default function StoresPage() {
             const isOffline = store.isOnline === false || !isOpen;
             const rating = store.rating || '4.0';
             
-            const storePath = `/store/${store.slug || slugify(store.storeName) || store.id}`;
+            // USE SECURE VIEW LINK AS FALLBACK
+            const storeSlug = store.slug || slugify(store.storeName) || store.id;
+            const storePath = `/store/${storeSlug}/`;
 
             return (
               <Link 
@@ -146,7 +143,7 @@ export default function StoresPage() {
 
                 <div className="p-5">
                   <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-xl font-black text-gray-900 italic uppercase tracking-tighter leading-none flex-1 truncate mr-2">{store.storeName}</h3>
+                    <h3 className="font-black text-xl text-gray-900 italic uppercase tracking-tighter leading-none flex-1 truncate mr-2">{store.storeName}</h3>
                     <div className="bg-[#15803d] text-white px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                        <Star className="h-3 w-3 fill-white" />
                        <span className="text-[10px] font-black">{rating}</span>

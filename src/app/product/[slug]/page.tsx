@@ -5,14 +5,14 @@ import { Loader2 } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  return [];
+  return [{ slug: 'default' }];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
   return {
@@ -25,7 +25,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
 
   return (
     <Suspense fallback={

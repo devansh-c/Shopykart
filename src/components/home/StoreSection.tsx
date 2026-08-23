@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -15,8 +16,7 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection with Authentic-Only Data.
- * Uses SSR pre-fetched stores for zero-delay paint.
+ * @fileOverview StoreSection with pre-fetched data handling to prevent delays.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -38,10 +38,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant');
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v1', initialData);
 
   const filteredVendors = React.useMemo(() => {
-    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : initialData;
+    const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
     return list.filter(v => {
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
@@ -61,7 +61,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
         <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
         </h2>
-        <button onClick={() => router.push('/stores')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
+        <button onClick={() => router.push('/stores/')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
       </div>
 
       <Carousel className="w-full" opts={{ loop: true, align: 'center' }}>
@@ -69,7 +69,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
           {filteredVendors.map((store: any) => (
             <CarouselItem key={store.id} className="pl-3 basis-[65%] sm:basis-[50%]">
               <button 
-                onClick={() => router.push(`/store/${store.slug || slugify(store.storeName) || store.id}`)}
+                onClick={() => {
+                  const storeSlug = store.slug || slugify(store.storeName) || store.id;
+                  router.push(`/store/${storeSlug}/`);
+                }}
                 className="block text-left w-full rounded-[2.5rem] overflow-hidden shadow-xl group border border-white/10 relative transform-gpu active:scale-95 transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8C7A63] via-[#B8A38B] to-[#D9C4A9]" />
