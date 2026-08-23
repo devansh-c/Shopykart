@@ -207,13 +207,18 @@ export default function DeliveryDashboard() {
   
   const { data: partnerProfile, loading: profileLoading } = useDoc<any>(partnerRef);
 
+  // AUTH GUARD: Improved to prevent blank screen
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
-    if (!user) {
-      router.replace('/delivery/login');
-      return;
+    
+    const sessionActive = localStorage.getItem('delivery_session_active') === 'true';
+    
+    if (!user && !authLoading) {
+      if (!sessionActive) {
+        router.replace('/delivery/login');
+      }
     }
-  }, [user, authLoading, profileLoading, partnerProfile, router, isMounted]);
+  }, [user, authLoading, profileLoading, router, isMounted]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -256,11 +261,35 @@ export default function DeliveryDashboard() {
     window.open(url, '_blank');
   };
 
-  if (!isMounted || authLoading || (profileLoading && !partnerProfile)) {
-    return <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Fleet Dashboard...</p></div>;
+  // LOADING STATE: Prevent blank screen with meaningful UI
+  if (!isMounted || authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4 px-8 text-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
+          Syncing Fleet Dashboard...
+        </p>
+      </div>
+    );
   }
 
-  if (!user || !partnerProfile) return null;
+  // REDIRECT STATE: Show helpful info if auth fails
+  if (!user || !partnerProfile) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-6 px-8 text-center animate-in fade-in duration-500">
+        <div className="h-20 w-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 border border-red-100 shadow-inner">
+           <ShieldAlert className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+           <h2 className="text-xl font-black italic uppercase text-gray-800">Access Restricted</h2>
+           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+             Identity not verified. Redirecting to secure login...
+           </p>
+        </div>
+        <Loader2 className="h-6 w-6 animate-spin text-gray-300" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative transform-gpu">
@@ -269,7 +298,7 @@ export default function DeliveryDashboard() {
            <div className="h-12 w-12 rounded-2xl overflow-hidden border-2 border-primary/10 bg-muted"><img src={partnerProfile.photoUrl} className="h-full w-full object-cover" alt="" /></div>
            <div><h1 className="text-sm font-black italic uppercase leading-none mb-1">{partnerProfile.fullName}</h1><div className="flex items-center gap-1.5"><div className={cn("h-1.5 w-1.5 rounded-full", partnerProfile.isOnline ? "bg-green-500 animate-pulse" : "bg-red-500")} /><p className="text-[8px] font-black uppercase text-muted-foreground">{partnerProfile.isOnline ? 'On Duty' : 'Off Duty'}</p></div></div>
         </div>
-        <Switch checked={partnerProfile.isOnline === true} onCheckedChange={async (o) => { await updateDoc(doc(firestore!, 'delivery_partners', user.uid), { isOnline: o }); toast({ title: o ? "Online" : "Offline" }); }} className="data-[state=checked]:bg-green-500" />
+        <Switch checked={partnerProfile.isOnline === true} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'delivery_partners', user.uid), { isOnline: o }); toast({ title: o ? "Online" : "Offline" }); }} className="data-[state=checked]:bg-green-500" />
       </header>
 
       <main className={cn("flex-1 pb-32 transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>

@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
