@@ -1,0 +1,89 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-burger",
+      "description": "ShopyKart Signature Selection Banner",
+      "imageUrl": "https://picsum.photos/seed/shopy-hero/800/400",
+      "imageHint": "gourmet burger"
+    },
+    {
+      "id": "category-all",
+      "description": "All Categories",
+      "imageUrl": "https://picsum.photos/seed/all-cat/100/100",
+      "imageHint": "food spread"
+    },
+    {
+      "id": "category-snacks",
+      "description": "Local Snacks",
+      "imageUrl": "https://picsum.photos/seed/snacks-cat/100/100",
+      "imageHint": "indian snacks"
+    },
+    {
+      "id": "category-pizza",
+      "description": "Artisanal Pizzas",
+      "imageUrl": "https://picsum.photos/seed/shopy-piz/100/100",
+      "imageHint": "pizza"
+    },
+    {
+      "id": "category-burger",
+      "description": "Premium Burgers",
+      "imageUrl": "https://picsum.photos/seed/shopy-burg/100/100",
+      "imageHint": "burger"
+    },
+    {
+      "id": "category-pasta",
+      "description": "Italian Pastas",
+      "imageUrl": "https://picsum.photos/seed/shopy-pasta/100/100",
+      "imageHint": "pasta"
+    },
+    {
+      "id": "category-fries",
+      "description": "Sides & Fries",
+      "imageUrl": "https://picsum.photos/seed/shopy-fries/100/100",
+      "imageHint": "fries"
+    },
+    {
+      "id": "category-drinks",
+      "description": "Coolers & Shakes",
+      "imageUrl": "https://picsum.photos/seed/shopy-drink/100/100",
+      "imageHint": "beverages"
+    },
+    {
+      "id": "action-best-offer",
+      "description": "Best Offer Promotion",
+      "imageUrl": "https://picsum.photos/seed/shopy-mega/200/200",
+      "imageHint": "megaphone offer"
+    },
+    {
+      "id": "action-services",
+      "description": "Device and Print Services",
+      "imageUrl": "https://picsum.photos/seed/shopy-device/200/200",
+      "imageHint": "printer device"
+    },
+    {
+      "id": "action-tickets",
+      "description": "Train and Event Tickets",
+      "imageUrl": "https://picsum.photos/seed/shopy-ticket/200/200",
+      "imageHint": "train ticket"
+    },
+    {
+      "id": "action-gourmet",
+      "description": "Gourmet Food Selection",
+      "imageUrl": "https://picsum.photos/seed/shopy-gourmet/200/200",
+      "imageHint": "gourmet dish"
+    },
+    {
+      "id": "promo-icecream",
+      "description": "Free Ice Cream Promo",
+      "imageUrl": "https://picsum.photos/seed/promo-ice/1080/1080",
+      "imageHint": "creamy ice cream"
+    },
+    {
+      "id": "salon-promo",
+      "description": "Beauty and Salon Services",
+      "imageUrl": "https://picsum.photos/seed/shopy-salon/600/400",
+      "imageHint": "beauty salon"
+    }
+  ]
+}

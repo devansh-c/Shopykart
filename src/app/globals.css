@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 0 72% 51%; /* Brand Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 98.5%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 98.5%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 72% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 95%;
+    --input: 0 0% 95%;
+    --ring: 0 72% 51%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+  }
+  
+  /* GLOBAL SCROLLBAR HIDER */
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  html {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    height: 100%;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), sans-serif;
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overflow-y: auto !important;
+    min-height: 100vh;
+    -webkit-overflow-scrolling: touch !important; 
+  }
+
+  /* HARDWARE ACCELERATION ENGINE */
+  .transform-gpu {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: transform, opacity;
+  }
+
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 180px;
+    contain: layout style paint;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Smooth Premium Cards */
+  .premium-card {
+    @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
+    contain: content;
+    transform: translateZ(0);
+    will-change: transform;
+    box-shadow: 0 2px 8px -2px rgba(0,0,0,0.02);
+  }
+
+  nav.fixed {
+    isolation: isolate;
+    z-index: 10000;
+    transform: translateZ(0);
+  }
+
+  svg {
+    pointer-events: none;
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* FAST ANIMATIONS - Accelerated for instant feel */
+@keyframes running-line {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-running-line {
+  animation: running-line 0.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse {
+  animation: pulse-fast 0.6s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(-45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(-45deg); }
+}
+
+@keyframes shimmer-gold {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-gold {
+  background: linear-gradient(90deg, #f3f4f6 25%, #fde68a 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer-gold 2s infinite linear;
+}

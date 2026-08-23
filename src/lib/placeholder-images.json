@@ -1,0 +1,46 @@
+{
+  "placeholderImages": [
+    {
+      "id": "category-all",
+      "description": "All Categories",
+      "imageUrl": "https://picsum.photos/seed/all-cat/100/100",
+      "imageHint": "food spread"
+    },
+    {
+      "id": "category-snacks",
+      "description": "Local Snacks",
+      "imageUrl": "https://picsum.photos/seed/snacks-cat/100/100",
+      "imageHint": "indian snacks"
+    },
+    {
+      "id": "category-pizza",
+      "description": "Artisanal Pizzas",
+      "imageUrl": "https://picsum.photos/seed/shopy-piz/100/100",
+      "imageHint": "pizza"
+    },
+    {
+      "id": "category-burger",
+      "description": "Premium Burgers",
+      "imageUrl": "https://picsum.photos/seed/shopy-burg/100/100",
+      "imageHint": "burger"
+    },
+    {
+      "id": "category-pasta",
+      "description": "Italian Pastas",
+      "imageUrl": "https://picsum.photos/seed/shopy-pasta/100/100",
+      "imageHint": "pasta"
+    },
+    {
+      "id": "category-fries",
+      "description": "Sides & Fries",
+      "imageUrl": "https://picsum.photos/seed/shopy-fries/100/100",
+      "imageHint": "fries"
+    },
+    {
+      "id": "category-drinks",
+      "description": "Coolers & Shakes",
+      "imageUrl": "https://picsum.photos/seed/shopy-drink/100/100",
+      "imageHint": "beverages"
+    }
+  ]
+}

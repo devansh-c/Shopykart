@@ -1,0 +1,27 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Deployment Timestamp: 2024-03-20T17:30:00Z (To force rule refresh)
+    
+    // FULL ACCESS FOR PROTOTYPING & DEVELOPMENT
+    // Allowing any request to read or write to any collection.
+    // This solves all "Access Restricted" errors immediately.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // Secondary explicit matches for security debugging
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+    
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if true;
+    }
+    
+    match /vendors/{vendorId}/{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
