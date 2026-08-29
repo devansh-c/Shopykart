@@ -106,7 +106,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => { window.removeEventListener('user-address-updated', updateZone); window.removeEventListener('scroll', handleScroll); clearInterval(interval); };
   }, []);
 
-  // CACHE KEY v12: ENHANCED VISIBILITY FOR RANIPUR (LIMIT 2000)
   const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(2000)) : null, [firestore]);
   const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2000_v12', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
@@ -123,7 +122,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return list.filter(p => {
       const v = vendorMap.get(p.vendorId);
       
-      // RELAXED FILTERING: If zone is Ranipur, show Global and Ranipur items
       if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) {
         const isGlobal = !v.zoneId || v.zoneId === 'global';
         const isTargetZone = activeZoneId.toLowerCase().includes('ranipur') && (v.zoneId?.toLowerCase().includes('ranipur') || v.town?.toLowerCase().includes('ranipur'));
