@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
@@ -7,9 +6,6 @@ import type { Metadata } from 'next';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-/**
- * @fileOverview Static export compatibility for store routes.
- */
 export async function generateStaticParams() {
   return [{ slug: 'default' }];
 }

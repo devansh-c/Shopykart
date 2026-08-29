@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -6,10 +5,6 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-/**
- * @fileOverview Static export compatibility for order detail routes.
- * Required for Firebase App Hosting Standard (Static) builds.
- */
 export async function generateStaticParams() {
   return [];
 }

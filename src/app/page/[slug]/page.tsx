@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
@@ -7,9 +6,6 @@ import type { Metadata } from 'next';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-/**
- * @fileOverview Static export compatibility for standard policy pages.
- */
 export async function generateStaticParams() {
   return [];
 }

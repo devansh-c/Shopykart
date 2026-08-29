@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -81,10 +80,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return () => { window.removeEventListener('user-address-updated', updateZone); window.removeEventListener('scroll', handleScroll); clearInterval(interval); };
   }, []);
 
-  const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(1500)) : null, [firestore]);
-  const { data: dbProducts, loading } = useCollection<any>(productsQuery, 'home_products_v12', initialData);
+  const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(2000)) : null, [firestore]);
+  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2000', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v12', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2000', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -93,18 +92,21 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const vendorMap = new Map(storeList.map(v => [v.id, v]));
     const q = searchQuery.toLowerCase().trim();
     const c = category.toLowerCase();
-    const filtered = list.filter(p => {
+    
+    return list.filter(p => {
       const v = vendorMap.get(p.vendorId);
+      // Relaxed zone filtering for Ranipur visibility
       if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) {
-        if (!activeZoneId.includes('Ranipur') && !v.zoneId.includes('Ranipur')) return false;
+        if (!activeZoneId.toLowerCase().includes('ranipur')) return false;
+        if (v.zoneId && !v.zoneId.toLowerCase().includes('ranipur')) return false;
       }
       if ((p.serviceMode || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;
       if (q && !p.name?.toLowerCase().includes(q) && !v?.storeName?.toLowerCase().includes(q)) return false;
       if (c !== 'all' && p.category?.toLowerCase() !== c) return false;
       return !p.isDeleted;
-    });
-    return filtered.sort((a, b) => {
-      const vA = vendorMap.get(a.vendorId); const vB = vendorMap.get(b.vendorId);
+    }).sort((a, b) => {
+      const vA = vendorMap.get(a.vendorId); 
+      const vB = vendorMap.get(b.vendorId);
       const openA = vA ? (vA.isOnline !== false && isStoreScheduleOpen(vA, currentTimeMinutes)) : true;
       const openB = vB ? (vB.isOnline !== false && isStoreScheduleOpen(vB, currentTimeMinutes)) : true;
       if (openA !== openB) return openA ? -1 : 1;
