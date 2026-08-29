@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -51,7 +51,6 @@ export default function LocationRequest() {
     }
 
     setIsDetecting(true);
-    // Pin-point accuracy strictly set to true with 0 cache age
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setIsDetecting(false);
@@ -94,6 +93,7 @@ export default function LocationRequest() {
           <div className="flex flex-col items-center text-center space-y-2">
              <div className="bg-primary/10 p-2.5 rounded-2xl text-primary mb-1"><MapPin className="h-6 w-6" /></div>
              <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter text-gray-900 leading-none">SELECT AREA</DialogTitle>
+             <DialogDescription className="sr-only">Choose your serving zone to see accurate stock and delivery times.</DialogDescription>
           </div>
         </DialogHeader>
 

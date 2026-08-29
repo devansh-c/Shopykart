@@ -12,6 +12,8 @@
     "build": "next build",
     "build:static": "NEXT_PUBLIC_STATIC_EXPORT=true next build",
     "build:admin": "NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_ADMIN_APP=true next build",
+    "build:biz": "NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_BIZ_APP=true next build",
+    "build:tow": "NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_TOW_APP=true next build",
     "admin:apk": "npm run build:admin && npx cap sync",
     "start": "next start",
     "lint": "next lint",

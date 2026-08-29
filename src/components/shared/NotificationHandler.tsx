@@ -87,7 +87,7 @@ export default function NotificationHandler() {
   return (
     <>
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
-        <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000]">
+        <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">
           <DialogHeader className="p-10 pb-2">
             <DialogTitle className="text-center text-red-600 font-black italic uppercase text-2xl tracking-tighter">Urgent Order Alert</DialogTitle>
             <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action required for a new incoming order.</DialogDescription>

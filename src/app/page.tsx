@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 
 /**
  * @fileOverview ShopyKart High-Performance Entry.
- * Standalone Admin Mode: If built with NEXT_PUBLIC_ADMIN_APP, redirects to Admin Login.
+ * Multi-App Redirection System for Standalone APKs.
  */
 
 export const metadata: Metadata = {
@@ -124,9 +124,17 @@ async function getInitialData() {
 }
 
 export default async function ShopyKartApp() {
-  // STANDALONE ADMIN MODE CHECK
+  // MULTI-APP REDIRECTION LOGIC
   if (process.env.NEXT_PUBLIC_ADMIN_APP === 'true') {
     redirect('/admin/login');
+  }
+  
+  if (process.env.NEXT_PUBLIC_BIZ_APP === 'true') {
+    redirect('/vendor/login');
+  }
+
+  if (process.env.NEXT_PUBLIC_TOW_APP === 'true') {
+    redirect('/delivery/login');
   }
 
   const initialData = await getInitialData();

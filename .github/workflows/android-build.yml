@@ -6,13 +6,15 @@ on:
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Select Build Type (customer or admin)'
+        description: 'Select App Build Variant'
         required: true
         default: 'customer'
         type: choice
         options:
         - customer
         - admin
+        - biz
+        - tow
 
 jobs:
   build:
@@ -35,6 +37,12 @@ jobs:
           if [ "${{ github.event.inputs.build_type }}" == "admin" ]; then
             echo "Building STANDALONE ADMIN APP..."
             npm run build:admin
+          elif [ "${{ github.event.inputs.build_type }}" == "biz" ]; then
+            echo "Building SHOPYKART BIZ (STORES) APP..."
+            npm run build:biz
+          elif [ "${{ github.event.inputs.build_type }}" == "tow" ]; then
+            echo "Building SHOPYKART TOW (DELIVERY) APP..."
+            npm run build:tow
           else
             echo "Building STANDARD CUSTOMER APP..."
             npm run build:static
