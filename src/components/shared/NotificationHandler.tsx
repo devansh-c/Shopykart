@@ -6,32 +6,37 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Radio, Loader2, Volume2 } from 'lucide-react';
+import { Radio, Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
+/**
+ * @fileOverview Global Notification Handler.
+ * Requests permission on mount and listens for incoming orders for Admin/Vendors.
+ */
 export default function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const pathname = usePathname();
   
-  const [isRinging, setIsRinging] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'customer' | null>(null);
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
   const [isAccepting, setIsAccepting] = useState(false);
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // AUTO PERMISSION REQUEST ON MOUNT
+  // 1. AUTO PERMISSION REQUEST ON MOUNT (FOR ALL 4 APPS)
   useEffect(() => {
-    const askPermission = async () => {
+    const askPermissions = async () => {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
-          await Notification.requestPermission().catch(() => {});
+          try {
+            await Notification.requestPermission();
+          } catch (e) {
+            console.warn("Notification permission rejected");
+          }
         }
       }
     };
-    const timer = setTimeout(askPermission, 3000);
+    const timer = setTimeout(askPermissions, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -56,6 +61,7 @@ export default function NotificationHandler() {
     checkRole();
   }, [user, firestore]);
 
+  // Real-time Order Listener for Admin/Vendors
   useEffect(() => {
     if (!firestore || !userRole) return;
     if ((userRole === 'admin' || userRole === 'vendor') && isManagementPath) {
@@ -68,7 +74,6 @@ export default function NotificationHandler() {
           targeted = allPlaced.filter((o: any) => o.vendorId === user.uid || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)));
         }
         setRingingOrders(targeted);
-        setIsRinging(targeted.length > 0);
       });
       return () => unsub();
     }
@@ -85,27 +90,25 @@ export default function NotificationHandler() {
   };
 
   return (
-    <>
-      <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
-        <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">
-          <DialogHeader className="p-10 pb-2">
-            <DialogTitle className="text-center text-red-600 font-black italic uppercase text-2xl tracking-tighter">Urgent Order Alert</DialogTitle>
-            <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action required for a new incoming order.</DialogDescription>
-          </DialogHeader>
-          <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
-             <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">URGENT: NEW ORDER</span>
+    <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
+      <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">
+        <DialogHeader className="p-10 pb-2">
+          <DialogTitle className="text-center text-red-600 font-black italic uppercase text-2xl tracking-tighter">Urgent Order Alert</DialogTitle>
+          <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action required for a new incoming order.</DialogDescription>
+        </DialogHeader>
+        <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
+           <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">URGENT: NEW ORDER</span>
+        </div>
+        <div className="p-10 pt-4 space-y-10 flex flex-col items-center text-center">
+          <div className="relative h-32 w-32 bg-red-50 rounded-[3rem] flex items-center justify-center text-red-600 border-4 border-red-100 shadow-inner">
+             <Radio className="h-16 w-16 animate-bounce" />
           </div>
-          <div className="p-10 pt-4 space-y-10 flex flex-col items-center text-center">
-            <div className="relative h-32 w-32 bg-red-50 rounded-[3rem] flex items-center justify-center text-red-600 border-4 border-red-100 shadow-inner">
-               <Radio className="h-16 w-16 animate-bounce" />
-            </div>
-            <h2 className="text-4xl font-black italic uppercase tracking-tighter text-red-600">NEW ORDER!</h2>
-            <Button onClick={() => handleAcceptOrder(ringingOrders[0].id)} disabled={isAccepting} className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic text-2xl border-b-[6px] border-green-800">
-              {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT NOW"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          <h2 className="text-4xl font-black italic uppercase tracking-tighter text-red-600">NEW ORDER!</h2>
+          <Button onClick={() => handleAcceptOrder(ringingOrders[0].id)} disabled={isAccepting} className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic text-2xl border-b-[6px] border-green-800">
+            {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT NOW"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

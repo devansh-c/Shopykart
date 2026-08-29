@@ -34,7 +34,6 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
-  // GUEST PRICING: If not logged in, price is ₹10 lower
   const basePrice = Number(product.price) || 0;
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 

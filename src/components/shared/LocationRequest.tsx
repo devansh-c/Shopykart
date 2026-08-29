@@ -8,6 +8,10 @@ import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase
 import { MapPin, ChevronRight, Store, Crosshair } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Universal Location and GPS Permission Picker.
+ * Automatically requests GPS on mount to trigger OS permission prompt.
+ */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
   const [displayZones, setDisplayZones] = useState<any[]>([]);
@@ -27,6 +31,17 @@ export default function LocationRequest() {
     const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
     if (isBot) return;
 
+    // 1. AUTO TRIGGER GPS PERMISSION PROMPT ON START
+    const triggerGPS = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          () => console.log("GPS Permission Granted"),
+          () => console.warn("GPS Permission Denied"),
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
+    };
+
     const handleOpen = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpen);
     
@@ -34,7 +49,13 @@ export default function LocationRequest() {
     if (cached) {
       try { setDisplayZones(JSON.parse(cached)); } catch (e) {}
     }
-    return () => { window.removeEventListener('open-location-picker', handleOpen); };
+
+    const timer = setTimeout(triggerGPS, 3000);
+
+    return () => { 
+      window.removeEventListener('open-location-picker', handleOpen); 
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -93,7 +114,7 @@ export default function LocationRequest() {
           <div className="flex flex-col items-center text-center space-y-2">
              <div className="bg-primary/10 p-2.5 rounded-2xl text-primary mb-1"><MapPin className="h-6 w-6" /></div>
              <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter text-gray-900 leading-none">SELECT AREA</DialogTitle>
-             <DialogDescription className="sr-only">Choose your serving zone to see accurate stock and delivery times.</DialogDescription>
+             <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Unlock 10-Min Delivery in your Zone</DialogDescription>
           </div>
         </DialogHeader>
 
