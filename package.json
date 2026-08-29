@@ -11,6 +11,8 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "build:static": "NEXT_PUBLIC_STATIC_EXPORT=true next build",
+    "build:admin": "NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_ADMIN_APP=true next build",
+    "admin:apk": "npm run build:admin && npx cap sync",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

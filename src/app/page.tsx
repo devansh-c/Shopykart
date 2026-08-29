@@ -2,10 +2,11 @@ import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
+import { redirect } from 'next/navigation';
 
 /**
  * @fileOverview ShopyKart High-Performance Entry.
- * Stable SSR data fetching with strict serialization to prevent 500 errors.
+ * Standalone Admin Mode: If built with NEXT_PUBLIC_ADMIN_APP, redirects to Admin Login.
  */
 
 export const metadata: Metadata = {
@@ -86,7 +87,7 @@ async function getInitialData() {
       getDocs(query(collection(firestore, 'categories'), limit(40))),
       getDoc(doc(firestore, 'app_settings', 'announcement')),
       getDocs(query(collection(firestore, 'vendors'), limit(100))),
-      getDocs(query(collection(firestore, 'products'), limit(300))) // Limited for performance
+      getDocs(query(collection(firestore, 'products'), limit(300))) 
     ]);
 
     const vendors = vendorsSnap.docs.map(sanitizeDoc).filter(Boolean);
@@ -123,6 +124,11 @@ async function getInitialData() {
 }
 
 export default async function ShopyKartApp() {
+  // STANDALONE ADMIN MODE CHECK
+  if (process.env.NEXT_PUBLIC_ADMIN_APP === 'true') {
+    redirect('/admin/login');
+  }
+
   const initialData = await getInitialData();
 
   return (

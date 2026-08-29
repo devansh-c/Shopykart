@@ -88,14 +88,14 @@ export default function NotificationHandler() {
     <>
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Urgent Order Alert</DialogTitle>
-            <DialogDescription>Action required for a new incoming order.</DialogDescription>
+          <DialogHeader className="p-10 pb-2">
+            <DialogTitle className="text-center text-red-600 font-black italic uppercase text-2xl tracking-tighter">Urgent Order Alert</DialogTitle>
+            <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action required for a new incoming order.</DialogDescription>
           </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
              <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">URGENT: NEW ORDER</span>
           </div>
-          <div className="p-10 space-y-10 flex flex-col items-center text-center">
+          <div className="p-10 pt-4 space-y-10 flex flex-col items-center text-center">
             <div className="relative h-32 w-32 bg-red-50 rounded-[3rem] flex items-center justify-center text-red-600 border-4 border-red-100 shadow-inner">
                <Radio className="h-16 w-16 animate-bounce" />
             </div>

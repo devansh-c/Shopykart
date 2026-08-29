@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -18,7 +17,7 @@ import {
   Loader2,
   Clock
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,8 +77,11 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[11000] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%]">
-        <DialogHeader className="sr-only"><DialogTitle>{product.name}</DialogTitle></DialogHeader>
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[11000] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none">
+        <DialogHeader className="p-6 pb-0 sr-only">
+          <DialogTitle>{product.name}</DialogTitle>
+          <DialogDescription>Quick product configuration and checkout.</DialogDescription>
+        </DialogHeader>
         <div className="bg-white max-h-[90vh] overflow-y-auto no-scrollbar pb-32">
           <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border flex items-center justify-center text-gray-400 z-50"><X className="h-4 w-4" /></button>
           <div className="p-6 pt-10 flex gap-4">
@@ -95,7 +97,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
           </div>
           <div className="px-6 py-4 space-y-4">
             {product.description && <p className="text-[11px] font-medium text-muted-foreground italic leading-relaxed">{product.description}</p>}
-            {!isMedical && <Textarea disabled={isOffline} placeholder="Special instructions (e.g. no onion)..." value={instructions} onChange={e => setInstructions(e.target.value)} className="rounded-2xl bg-gray-50 border-none text-xs min-h-[100px]" />}
+            {!isMedical && <Textarea disabled={isOffline} placeholder="Special instructions (e.g. no onion)..." value={instructions} onChange={e => setInstructions(e.target.value)} className="rounded-2xl bg-gray-50 border-none text-xs min-h-[100px] p-4" />}
           </div>
           <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t pb-10 z-[12000]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
