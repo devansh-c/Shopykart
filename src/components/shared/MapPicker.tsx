@@ -95,7 +95,11 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
           zoomControl={false}
           attributionControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) */}
+          <TileLayer 
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            subdomains='abcd'
+          />
           <CenterTracker onPositionChange={setCurrentPos} />
           <LocationTrigger onLocate={(lat, lng) => setCurrentPos([lat, lng])} />
         </MapContainer>
