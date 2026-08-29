@@ -9,6 +9,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { collection, query, limit } from "firebase/firestore"
 import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
