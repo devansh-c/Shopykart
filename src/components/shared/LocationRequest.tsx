@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Universal Location and GPS Permission Picker.
  * Automatically requests GPS on mount to trigger OS permission prompt.
+ * Strictly using High-Accuracy mode to avoid 9km error.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +38,7 @@ export default function LocationRequest() {
         navigator.geolocation.getCurrentPosition(
           () => console.log("GPS Permission Granted"),
           () => console.warn("GPS Permission Denied"),
-          { enableHighAccuracy: true, timeout: 5000 }
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
       }
     };
@@ -84,7 +85,7 @@ export default function LocationRequest() {
         setIsDetecting(false);
         toast({ variant: "destructive", title: "Accuracy Error", description: "Please allow GPS for precise location." });
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     );
   };
 
