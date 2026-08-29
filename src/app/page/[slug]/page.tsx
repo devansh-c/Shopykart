@@ -7,6 +7,9 @@ import type { Metadata } from 'next';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
+/**
+ * @fileOverview Static export compatibility for standard policy pages.
+ */
 export async function generateStaticParams() {
   return [];
 }

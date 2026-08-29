@@ -5,10 +5,12 @@ import MenuContent from '@/components/menu/MenuContent';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-static';
+export const dynamicParams = false;
 
+/**
+ * @fileOverview Static export compatibility for store routes.
+ */
 export async function generateStaticParams() {
-  // In a real production app, we would fetch slugs from Firestore here.
-  // For static export to generate the directory, we return at least one path.
   return [{ slug: 'default' }];
 }
 

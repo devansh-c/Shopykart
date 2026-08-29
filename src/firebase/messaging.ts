@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getMessaging, Messaging, isSupported, getToken } from 'firebase/messaging';
@@ -7,7 +8,7 @@ let messagingInstance: Messaging | null = null;
 
 /**
  * @fileOverview Firebase Cloud Messaging (FCM) Setup.
- * Handles token generation for background push notifications.
+ * Handles token generation for background push notifications and permission checks.
  */
 export async function getFirebaseMessaging() {
   if (typeof window === 'undefined') return null;
@@ -32,19 +33,29 @@ export async function getFirebaseMessaging() {
   }
 }
 
+/**
+ * Requests FCM token after verifying notification permissions.
+ */
 export async function requestPushToken() {
   try {
+    // Check permission first
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return null;
+      }
+    }
+
     const messaging = await getFirebaseMessaging();
     if (!messaging) return null;
 
-    // Register Service Worker explicitly for FCM background handling
     if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-        scope: '/'
-      });
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        console.warn("No active service worker found for FCM.");
+        return null;
+      }
       
-      // IMPORTANT: Replace the 'YOUR_VAPID_KEY' with your actual key from 
-      // Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
       const vapidKey = 'BIsC7y7uP9x_Xv6lZ-G_pX_Xv6lZ-G_pX_Xv6lZ-G_pX_Xv6lZ-G_p'; 
 
       try {
@@ -54,11 +65,7 @@ export async function requestPushToken() {
         });
         return token;
       } catch (tokenErr: any) {
-        if (tokenErr.code === 'messaging/token-subscribe-failed') {
-          console.warn("FCM Subscription failed. Please ensure Cloud Messaging is enabled in Firebase Console and VAPID key is correct.");
-        } else {
-          console.warn("Could not retrieve FCM token:", tokenErr.message);
-        }
+        console.warn("FCM Token Error:", tokenErr.message);
         return null;
       }
     }
