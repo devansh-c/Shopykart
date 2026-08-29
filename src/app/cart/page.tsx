@@ -11,14 +11,13 @@ import {
   MapPin, 
   CheckCircle2, 
   ShoppingBasket, 
-  Hash,
   ArrowRight,
   Crosshair,
   Timer,
   Receipt,
-  CreditCard,
   Banknote,
-  Navigation
+  Navigation,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -31,6 +30,12 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
+  ssr: false,
+  loading: () => <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest">Opening World Map...</p></div>
+});
 
 const FREE_DELIVERY_THRESHOLD = 400;
 
@@ -52,7 +57,7 @@ export default function CartPage() {
   const [customerAddress, setCustomerAddress] = useState(''); 
   const [customerCity, setCustomerCity] = useState('');
   const [customerLocation, setCustomerLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
@@ -60,12 +65,6 @@ export default function CartPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  const brandingRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'app_settings', 'branding');
-  }, [firestore]);
-  const { data: settings } = useDoc<any>(brandingRef);
 
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -114,31 +113,21 @@ export default function CartPage() {
     setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
   }, [profile]);
 
-  const handleFetchLocation = () => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      toast({ variant: "destructive", title: "GPS Error" });
-      return;
-    }
-
-    setIsFetchingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCustomerLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setIsFetchingLocation(false);
-        toast({ title: "Exact Location Locked! 📍" });
-      },
-      () => {
-        setIsFetchingLocation(false);
-        toast({ variant: "destructive", title: "Accuracy Error", description: "Allow GPS for doorstep delivery." });
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    );
+  const handleMapConfirm = (lat: number, lng: number) => {
+    setCustomerLocation({ lat, lng });
+    setIsMapOpen(false);
+    toast({ title: "Drop Location Set! 📍" });
   };
 
   const handlePlaceOrder = async () => {
     if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
     if (!firestore || !customerName || customerPhone.length < 10 || !customerAddress) {
       toast({ variant: "destructive", title: "Address Required" }); setIsEditingAddress(true); return;
+    }
+    if (!customerLocation) {
+      toast({ variant: "destructive", title: "Pin Location Required", description: "Use the map to pin your home." });
+      setIsMapOpen(true);
+      return;
     }
     if (totalPrice < 40) { toast({ variant: "destructive", title: "Min. Order ₹40" }); return; }
     if (!utrNumber) { setPaymentStep('selection'); setIsPaymentDialogOpen(true); return; }
@@ -155,7 +144,7 @@ export default function CartPage() {
         customerPhone,
         address: customerAddress.toUpperCase(),
         city: customerCity.toUpperCase(),
-        location: customerLocation ? new GeoPoint(customerLocation.lat, customerLocation.lng) : null,
+        customerLocation: new GeoPoint(customerLocation.lat, customerLocation.lng),
         items: cart,
         total: grandTotal,
         status: 'Placed',
@@ -248,7 +237,7 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* Address & GPS Card */}
+        {/* Address & MAP Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
            <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -273,22 +262,21 @@ export default function CartPage() {
                  </div>
               )}
 
-              <div className={cn("p-4 rounded-xl border-2 border-dashed flex items-center justify-between transition-all", customerLocation ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}>
+              <div 
+                onClick={() => setIsMapOpen(true)}
+                className={cn("p-4 rounded-xl border-2 border-dashed flex items-center justify-between transition-all cursor-pointer", customerLocation ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}
+              >
                  <div className="flex items-center gap-3">
                     <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shadow-sm", customerLocation ? "bg-green-500 text-white" : "bg-primary text-white")}>
-                       <Crosshair className={cn("h-5 w-5", isFetchingLocation && "animate-spin")} />
+                       <Navigation className="h-5 w-5" />
                     </div>
                     <div className="text-left">
-                       <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Doorstep GPS</span>
-                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Spot Locked' : 'Highly Recommended'}</p>
+                       <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Map Drop Pin</span>
+                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Home Location Set' : 'Pin your home on map'}</p>
                     </div>
                  </div>
-                 <button 
-                  onClick={handleFetchLocation} 
-                  disabled={isFetchingLocation}
-                  className="bg-white border border-gray-200 h-9 px-4 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all"
-                 >
-                   {customerLocation ? 'UPDATE' : 'CAPTURE'}
+                 <button className="bg-white border border-gray-200 h-9 px-4 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all">
+                   {customerLocation ? 'UPDATE' : 'OPEN MAP'}
                  </button>
               </div>
            </div>
@@ -356,6 +344,18 @@ export default function CartPage() {
             </Button>
          </div>
       </div>
+
+      {/* Map Picker Dialog */}
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+        <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
+           <div className="absolute top-4 right-4 z-[10000]">
+              <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
+                 <X className="h-6 w-6" />
+              </button>
+           </div>
+           <MapPicker onConfirm={handleMapConfirm} />
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>

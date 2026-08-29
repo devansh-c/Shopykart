@@ -9,7 +9,8 @@ import {
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, MapPin } from 'lucide-react';
+import { Check, Loader2, MapPin, Crosshair } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Internal component to track the center of the map accurately
 function CenterTracker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
@@ -21,8 +22,6 @@ function CenterTracker({ onPositionChange }: { onPositionChange: (pos: [number, 
         Number(center.lng.toFixed(8))
       ]);
     },
-    // Also update on drag for real-time feel if needed, 
-    // but moveend is most accurate for final pin
   });
 
   return (
@@ -45,6 +44,35 @@ function CenterTracker({ onPositionChange }: { onPositionChange: (pos: [number, 
   );
 }
 
+// Internal component to fly to current location
+function LocationTrigger({ onLocate }: { onLocate: (lat: number, lng: number) => void }) {
+  const map = useMap();
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleLocate = () => {
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        map.flyTo([latitude, longitude], 18);
+        onLocate(latitude, longitude);
+      },
+      () => setIsLocating(false),
+      { enableHighAccuracy: true }
+    );
+  };
+
+  return (
+    <button 
+      onClick={handleLocate}
+      className="absolute bottom-6 right-6 z-[1000] h-12 w-12 bg-white rounded-2xl shadow-2xl flex items-center justify-center text-primary border border-gray-100 active:scale-90 transition-all"
+    >
+      <Crosshair className={cn("h-6 w-6", isLocating && "animate-spin")} />
+    </button>
+  );
+}
+
 export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng: number) => void }) {
   // Default center for Mauranipur/Ranipur area
   const [currentPos, setCurrentPos] = useState<[number, number]>([25.2443, 79.0838]);
@@ -52,8 +80,6 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
 
   useEffect(() => {
     setIsReady(true);
-    // Auto-locate feature completely removed as requested.
-    // The map will always start at the default center.
   }, []);
 
   if (!isReady) return <div className="h-full w-full bg-muted animate-pulse flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -64,13 +90,14 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
       <div className="flex-1 relative">
         <MapContainer 
           center={currentPos} 
-          zoom={17} 
+          zoom={16} 
           style={{ height: '100%', width: '100%' }}
           zoomControl={false}
           attributionControl={false}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <CenterTracker onPositionChange={setCurrentPos} />
+          <LocationTrigger onLocate={(lat, lng) => setCurrentPos([lat, lng])} />
         </MapContainer>
       </div>
 
@@ -91,7 +118,7 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
           className="w-full h-16 bg-black hover:bg-gray-900 text-white rounded-[2rem] font-black uppercase italic shadow-2xl active:scale-95 transition-all text-sm tracking-widest border-b-4 border-gray-800"
         >
           <Check className="h-5 w-5 mr-3 stroke-[3]" />
-          CONFIRM PIN LOCATION
+          PICK LOCATION
         </Button>
       </div>
     </div>

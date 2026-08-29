@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -59,10 +58,10 @@ export default function OrderMapViewer({ lat, lng }: OrderMapViewerProps) {
         zoom={17} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
+        attributionControl={false}
       >
         <TileLayer 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <MapResizer lat={lat} lng={lng} />
         <Marker position={[lat, lng]} icon={icon} />

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -22,7 +21,9 @@ import {
   CreditCard,
   Banknote,
   CheckCircle2,
-  X
+  X,
+  Map as MapIcon,
+  Compass
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -36,18 +37,28 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import dynamic from 'next/dynamic';
+
+const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
+  ssr: false,
+  loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
+});
 
 type MainTab = 'home' | 'history' | 'payout' | 'profile';
 type OrderFilter = 'NEW' | 'DELIVERED' | 'CANCELLED';
 
-const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
+const OrderCard = memo(({ order, onUpdate, filter }: any) => {
   const [enteredCode, setEnteredCode] = useState('');
   const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
   const [showQr, setShowQr] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const isReadyForPickup = order.status === 'Ready for Pickup';
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isPickedUp = order.status === 'Picked Up';
+
+  const customerLat = order.customerLocation?.latitude;
+  const customerLng = order.customerLocation?.longitude;
 
   const handleAction = () => {
     if (isReadyForPickup) {
@@ -79,6 +90,14 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
     }
   };
 
+  const startNavigation = () => {
+    if (customerLat && customerLng) {
+      // Universal Google Maps navigation link with travel mode set to driving
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&travelmode=driving`;
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm relative overflow-hidden group transform-gpu transition-all hover:shadow-xl">
        <div className="flex justify-between items-start mb-6">
@@ -93,7 +112,7 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
             <button onClick={handleCall} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
               <PhoneCall className="h-5 w-5" />
             </button>
-            <button onClick={() => onMapOpen(order)} className="h-12 w-12 bg-blue-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-blue-100">
+            <button onClick={startNavigation} className="h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-blue-100">
               <Navigation className="h-5 w-5" />
             </button>
           </div>
@@ -109,6 +128,17 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
             <span className="text-[11px] font-bold text-gray-600 leading-tight">{order.address}</span>
           </div>
           
+          {customerLat && (
+            <div className="pt-2">
+               <button 
+                onClick={() => setIsMapOpen(true)}
+                className="w-full h-12 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center gap-2 font-black uppercase italic text-[9px] tracking-widest text-primary"
+               >
+                  <MapIcon className="h-4 w-4" /> PREVIEW DROP LOCATION
+               </button>
+            </div>
+          )}
+
           <div className="pt-3 border-t border-white/50 space-y-2">
              <div className="flex items-center gap-2 mb-2">
                 <ShoppingBasket className="h-3.5 w-3.5 text-primary" />
@@ -146,15 +176,20 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
 
        {isOutForDelivery && (
          <div className="mb-6 space-y-6 animate-in slide-in-from-bottom-2">
-            {/* QR Payment Trigger */}
+            <Button 
+              onClick={startNavigation}
+              className="w-full h-16 bg-blue-600 text-white rounded-2xl font-black uppercase italic text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-blue-100"
+            >
+              <Compass className="h-6 w-6 animate-pulse" /> START NAVIGATION
+            </Button>
+
             <Button 
               onClick={() => setShowQr(true)}
-              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 shadow-xl"
+              className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl"
             >
               <QrCode className="h-4 w-4" /> SHOW PAYMENT QR
             </Button>
 
-            {/* Collection Method Switch */}
             <div className="space-y-3">
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Payment Status</span>
               <div className="grid grid-cols-2 gap-3">
@@ -216,7 +251,7 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
                 onClick={handleAction} 
                 className="flex-1 bg-blue-600 h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
               >
-                START DELIVERY
+                DISPATCH ORDER
               </Button>
             )}
             {isOutForDelivery && (
@@ -230,6 +265,25 @@ const OrderCard = memo(({ order, onUpdate, onMapOpen, filter }: any) => {
             )}
          </div>
        )}
+
+       {/* MAP PREVIEW MODAL */}
+       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+          <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+             <div className="h-2 w-full bg-blue-600" />
+             <div className="p-8 space-y-6">
+                <DialogHeader>
+                   <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Drop Pin Preview</DialogTitle>
+                </DialogHeader>
+                <div className="h-64 w-full bg-muted rounded-[2rem] overflow-hidden border-4 border-muted/20">
+                   {customerLat && <OrderMapViewer lat={customerLat} lng={customerLng} />}
+                </div>
+                <div className="flex gap-3">
+                   <Button onClick={startNavigation} className="flex-1 h-14 bg-blue-600 text-white rounded-2xl font-black uppercase italic">NAVIGATE</Button>
+                   <Button onClick={() => setIsMapOpen(false)} variant="ghost" className="h-14 w-14 rounded-2xl bg-gray-100"><X className="h-5 w-5" /></Button>
+                </div>
+             </div>
+          </DialogContent>
+       </Dialog>
 
        {/* QR MODAL */}
        <Dialog open={showQr} onOpenChange={setShowQr}>
@@ -331,11 +385,6 @@ export default function DeliveryDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  const handleOpenGoogleMaps = (lat: number, lng: number) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-    window.open(url, '_blank');
-  };
-
   if (!isMounted || authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
@@ -366,7 +415,7 @@ export default function DeliveryDashboard() {
               </div>
               <div className="space-y-4">
                 {filteredHomeOrders.length > 0 ? filteredHomeOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} filter={homeFilter} onUpdate={updateDelivery} onMapOpen={(o:any) => handleOpenGoogleMaps(Number(o.latitude || 25.2443), Number(o.longitude || 79.0838))} />
+                  <OrderCard key={order.id} order={order} filter={homeFilter} onUpdate={updateDelivery} />
                 )) : (
                   <div className="text-center py-20 opacity-30 flex flex-col items-center">
                     <Package className="h-16 w-16 mb-4" />
