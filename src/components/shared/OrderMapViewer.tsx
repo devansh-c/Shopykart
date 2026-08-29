@@ -70,7 +70,7 @@ export default function OrderMapViewer({ lat, lng }: OrderMapViewerProps) {
         zoomControl={false}
         attributionControl={false}
       >
-        {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) */}
+        {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) - NO KEY NEEDED */}
         <TileLayer 
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           subdomains='abcd'

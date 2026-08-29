@@ -59,7 +59,7 @@ function LocationTrigger({ onLocate }: { onLocate: (lat: number, lng: number) =>
         onLocate(latitude, longitude);
       },
       () => setIsLocating(false),
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, maximumAge: 0 }
     );
   };
 
@@ -95,7 +95,7 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
           zoomControl={false}
           attributionControl={false}
         >
-          {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) */}
+          {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) - NO KEY NEEDED */}
           <TileLayer 
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             subdomains='abcd'
