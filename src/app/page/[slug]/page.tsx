@@ -1,25 +1,13 @@
 import { Suspense } from 'react';
 import StaticPageView from '@/components/shared/StaticPageView';
 import { Loader2 } from 'lucide-react';
-import type { Metadata } from 'next';
 
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
+// CRITICAL FOR STATIC EXPORT: Prevents build crash
 export async function generateStaticParams() {
   return [];
-}
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
-  const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-  return {
-    title: `${cleanTitle} | ShopyKart`,
-    description: 'Read official ShopyKart information, policies, and guidelines.',
-    robots: { index: true, follow: true }
-  };
 }
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {

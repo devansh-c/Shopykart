@@ -6,43 +6,28 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BellRing, ShoppingBag, Loader2, Package, User, ChevronRight, Zap, Volume2, X, AlertTriangle, Radio } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { requestPushToken } from '@/firebase/messaging';
+import { Radio, Loader2, Volume2 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export default function NotificationHandler() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
   const pathname = usePathname();
   
   const [isRinging, setIsRinging] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'delivery' | 'customer' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'customer' | null>(null);
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
-  const [customerUpdate, setCustomerUpdate] = useState<any>(null);
   const [isAccepting, setIsAccepting] = useState(false);
-  const [isAudioContextBlocked, setIsAudioContextBlocked] = useState(true);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastStatuses = useRef<Map<string, string>>(new Map());
-  const isInitialLoad = useRef(true);
 
   // AUTO PERMISSION REQUEST ON MOUNT
   useEffect(() => {
     const askPermission = async () => {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
-          try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-              console.log('Notification permission granted.');
-              await requestPushToken();
-            }
-          } catch (e) {
-            console.error('Error requesting notification permission:', e);
-          }
+          await Notification.requestPermission().catch(() => {});
         }
       }
     };
@@ -72,41 +57,22 @@ export default function NotificationHandler() {
   }, [user, firestore]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !isManagementPath) return;
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
-    audio.loop = true;
-    audioRef.current = audio;
-    return () => { audio.pause(); audioRef.current = null; };
-  }, [isManagementPath]);
-
-  useEffect(() => {
     if (!firestore || !userRole) return;
     if ((userRole === 'admin' || userRole === 'vendor') && isManagementPath) {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
-      const unsubEmergency = onSnapshot(q, (snapshot) => {
+      const unsub = onSnapshot(q, (snapshot) => {
         const allPlaced = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         let targeted: any[] = [];
         if (userRole === 'admin') targeted = allPlaced;
         else if (userRole === 'vendor' && user) {
-          targeted = allPlaced.filter((o: any) => o.vendorId === user.uid);
+          targeted = allPlaced.filter((o: any) => o.vendorId === user.uid || (Array.isArray(o.vendorIds) && o.vendorIds.includes(user.uid)));
         }
         setRingingOrders(targeted);
         setIsRinging(targeted.length > 0);
       });
-      return () => unsubEmergency();
+      return () => unsub();
     }
   }, [user, firestore, userRole, isManagementPath]);
-
-  const handleManualUnblock = (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    if (audioRef.current) {
-      audioRef.current.play().then(() => {
-        audioRef.current?.pause(); audioRef.current!.currentTime = 0;
-        setIsAudioContextBlocked(false);
-        toast({ title: "Alarms Active! 🔊" });
-      }).catch(() => {});
-    }
-  };
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!firestore || isAccepting) return;
@@ -120,20 +86,6 @@ export default function NotificationHandler() {
 
   return (
     <>
-      {(userRole === 'admin' || userRole === 'vendor') && isManagementPath && isAudioContextBlocked && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] w-full max-w-sm px-4">
-           <button onClick={handleManualUnblock} className="w-full bg-black text-white border-2 border-primary rounded-[2.5rem] p-6 shadow-2xl flex items-center gap-5 hover:bg-primary transition-all">
-              <div className="h-14 w-14 bg-primary/20 rounded-[1.5rem] flex items-center justify-center animate-pulse shrink-0 border border-primary/20">
-                <Volume2 className="h-7 w-7 text-primary" />
-              </div>
-              <div className="flex flex-col items-start text-left">
-                <span className="text-[11px] font-black uppercase text-primary leading-none">Alarm System</span>
-                <span className="text-[14px] font-black italic uppercase text-white mt-2">TAP TO ENABLE SOUND</span>
-              </div>
-           </button>
-        </div>
-      )}
-
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000]">
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">

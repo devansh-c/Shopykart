@@ -1,27 +1,13 @@
 import { Suspense } from 'react';
 import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
-import type { Metadata } from 'next';
 
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
+// CRITICAL FOR STATIC EXPORT: Prevents build crash
 export async function generateStaticParams() {
   return [{ slug: 'default' }];
-}
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
-  const cleanTitle = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-  return {
-    title: `${cleanTitle} | Buy Online at ShopyKart`,
-    description: `Order ${cleanTitle} online from ShopyKart. Freshly prepared, premium quality, and delivered in 10 minutes.`,
-    alternates: {
-      canonical: `https://shopykart.co.in/product/${slug}`,
-    }
-  };
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {

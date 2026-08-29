@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
+// CRITICAL FOR STATIC EXPORT: Prevents build crash
 export async function generateStaticParams() {
   return [];
 }
