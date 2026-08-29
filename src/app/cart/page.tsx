@@ -27,7 +27,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import dynamic from 'next/dynamic';
@@ -348,6 +348,10 @@ export default function CartPage() {
       {/* Map Picker Dialog */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
+           <DialogHeader className="sr-only">
+             <DialogTitle>Pin Delivery Location</DialogTitle>
+             <DialogDescription>Move the map to set your exact home coordinate.</DialogDescription>
+           </DialogHeader>
            <div className="absolute top-4 right-4 z-[10000]">
               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
                  <X className="h-6 w-6" />
@@ -361,7 +365,9 @@ export default function CartPage() {
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
          <DialogContent className="rounded-t-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0">
             <div className="bg-primary h-2 w-full" />
-            <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Secure Payment</DialogTitle></DialogHeader>
+            <DialogHeader className="p-8 pb-4">
+              <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Secure Payment</DialogTitle>
+            </DialogHeader>
             <div className="p-8 space-y-6 pt-0">
                {paymentStep === 'selection' ? (
                  <div className="space-y-6">

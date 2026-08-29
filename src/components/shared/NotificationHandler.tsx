@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Radio, Loader2, Volume2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -88,6 +88,10 @@ export default function NotificationHandler() {
     <>
       <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
         <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Urgent Order Alert</DialogTitle>
+            <DialogDescription>Action required for a new incoming order.</DialogDescription>
+          </DialogHeader>
           <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
              <span className="text-[10px] font-black text-white uppercase tracking-[0.5em]">URGENT: NEW ORDER</span>
           </div>
