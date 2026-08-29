@@ -13,7 +13,12 @@ import {
   ShoppingBasket, 
   Hash,
   ArrowRight,
-  Crosshair
+  Crosshair,
+  Timer,
+  Receipt,
+  CreditCard,
+  Banknote,
+  Navigation
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -29,7 +34,7 @@ import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 
 const FREE_DELIVERY_THRESHOLD = 400;
 
-function CartContent() {
+export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
   const { user } = useUser();
@@ -177,105 +182,208 @@ function CartContent() {
 
   if (cart.length === 0 && !showSuccessOverlay) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-muted h-32 w-32 rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="h-16 w-16 text-muted-foreground/30" />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+        <div className="bg-gray-50 h-32 w-32 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-gray-200">
+          <ShoppingBag className="h-14 w-14 text-gray-300" />
         </div>
-        <h2 className="text-2xl font-black italic uppercase">Empty Bag</h2>
-        <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl">Back to Explore</Button>
+        <h2 className="text-2xl font-black italic uppercase text-gray-800">Your bag is empty</h2>
+        <p className="text-xs font-bold text-gray-400 uppercase mt-2">Add some items from the menu to start checkout.</p>
+        <Button onClick={() => router.push('/')} className="mt-8 bg-black text-white rounded-xl h-12 px-8 font-black uppercase italic shadow-xl">Back to Explore</Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-32">
+    <div className="min-h-screen bg-[#F5F7F9] pb-44 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
-      <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100"><ChevronLeft className="h-6 w-6" /></button>
-        <h1 className="text-lg font-bold italic uppercase">Checkout</h1>
+      
+      {/* Sticky Header */}
+      <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b shadow-sm">
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6 text-gray-800" /></button>
+        <div>
+          <h1 className="text-base font-black italic uppercase leading-none">Checkout</h1>
+          <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">{cart.length} Item{cart.length > 1 ? 's' : ''} in Bag</p>
+        </div>
       </div>
 
-      <div className="p-4 space-y-5 max-w-lg mx-auto">
-        {/* GPS Capture */}
-        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border flex items-center justify-between">
-           <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-2.5 rounded-xl text-primary"><Crosshair className={cn("h-5 w-5", isFetchingLocation && "animate-spin")} /></div>
-              <div><h3 className="text-sm font-black uppercase italic leading-none">Doorstep GPS</h3><p className="text-[9px] font-bold opacity-60 uppercase mt-1">Required for accurate delivery</p></div>
+      <div className="p-3 space-y-4 max-w-lg mx-auto">
+        
+        {/* Delivery Timing Card */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+           <div className="h-12 w-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+              <Timer className="h-6 w-6" />
            </div>
-           <Button onClick={handleFetchLocation} disabled={isFetchingLocation} className={cn("rounded-xl h-10 px-4 font-black uppercase text-[9px]", customerLocation ? "bg-green-600" : "bg-black")}>
-              {customerLocation ? 'LOCATION LOCKED ✅' : 'GET GPS'}
-           </Button>
+           <div>
+              <h3 className="text-sm font-black italic uppercase leading-none">10 Mins Delivery</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">From your nearest ShopyKart hub</p>
+           </div>
         </div>
 
-        {/* Address */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
-           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-primary" /><h3 className="text-sm font-black uppercase italic">Address</h3></div>
-              <button onClick={() => setIsEditingAddress(!isEditingAddress)} className="text-primary text-[10px] font-black uppercase underline">{isEditingAddress ? 'Save' : 'Edit'}</button>
+        {/* Items Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+           <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
+              <ShoppingBasket className="h-4 w-4 text-gray-400" />
+              <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Selected Items</span>
            </div>
-           {!isEditingAddress ? (
-              <div className="space-y-1"><p className="text-xs font-black uppercase">{customerName}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">{customerAddress}</p><p className="text-[10px] font-bold text-muted-foreground">{customerPhone}</p></div>
-           ) : (
-              <div className="space-y-3">
-                 <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="NAME" className="h-11 rounded-xl bg-muted/20 border-none font-bold text-xs" />
-                 <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="PHONE" className="h-11 rounded-xl bg-muted/20 border-none font-bold text-xs" />
-                 <Textarea value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="FULL ADDRESS" className="min-h-[80px] rounded-xl bg-muted/20 border-none font-bold text-xs" />
+           <div className="divide-y divide-gray-50">
+              {cart.map((item, i) => (
+                <div key={i} className="p-4 flex items-center gap-4 group">
+                   <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-black uppercase italic text-gray-800 leading-tight line-clamp-1">{item.name}</h4>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mt-0.5">{item.restaurantName || 'Gourmet Selection'}</p>
+                      <div className="flex items-center gap-3 mt-3">
+                         <div className="flex items-center bg-gray-100 rounded-lg h-8 px-1">
+                            <button onClick={() => removeFromCart(item.id)} className="h-6 w-6 flex items-center justify-center text-gray-600 hover:text-primary"><Minus className="h-3 w-3 stroke-[3]" /></button>
+                            <span className="w-6 text-center text-xs font-black italic">{item.quantity}</span>
+                            <button onClick={() => addToCart({...item, quantity: 1})} className="h-6 w-6 flex items-center justify-center text-gray-600 hover:text-primary"><Plus className="h-3 w-3 stroke-[3]" /></button>
+                         </div>
+                         <span className="text-sm font-black text-gray-900 italic">₹{(item.price * item.quantity).toFixed(0)}</span>
+                      </div>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        {/* Address & GPS Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+           <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                 <MapPin className="h-4 w-4 text-gray-400" />
+                 <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Delivery Address</span>
               </div>
-           )}
-        </div>
+              <button onClick={() => setIsEditingAddress(!isEditingAddress)} className="text-[9px] font-black uppercase text-primary underline underline-offset-2">{isEditingAddress ? 'Save' : 'Change'}</button>
+           </div>
+           
+           <div className="p-4 space-y-4">
+              {!isEditingAddress ? (
+                 <div className="space-y-1">
+                    <p className="text-sm font-black uppercase italic text-gray-900 leading-none mb-1">{customerName || 'Add Name'}</p>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase leading-relaxed">{customerAddress || 'Please update your delivery address.'}</p>
+                    <div className="flex items-center gap-1 text-[10px] font-black text-gray-400 mt-2"><CheckCircle2 className="h-3 w-3 text-green-500" /> Verified: {customerPhone}</div>
+                 </div>
+              ) : (
+                 <div className="space-y-3">
+                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="CUSTOMER NAME" className="h-12 rounded-xl bg-gray-50 border-none font-bold text-xs uppercase" />
+                    <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="PHONE NUMBER" className="h-12 rounded-xl bg-gray-50 border-none font-bold text-xs" />
+                    <Textarea value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="HOUSE NO, STREET, LANDMARK" className="min-h-[100px] rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase p-4" />
+                 </div>
+              )}
 
-        {/* Items */}
-        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border space-y-6">
-           {cart.map((item, i) => (
-              <div key={i} className="flex items-center gap-4">
-                 <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-muted"><Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized /></div>
-                 <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-black uppercase italic truncate">{item.name}</h4>
-                    <div className="flex items-center gap-3 mt-1.5">
-                       <button onClick={() => removeFromCart(item.id)} className="h-6 w-6 rounded-lg border flex items-center justify-center text-primary"><Minus className="h-3 w-3 stroke-[3]" /></button>
-                       <span className="text-[10px] font-black">{item.quantity}</span>
-                       <button onClick={() => addToCart({...item, quantity: 1})} className="h-6 w-6 rounded-lg border flex items-center justify-center text-primary"><Plus className="h-3 w-3 stroke-[3]" /></button>
+              <div className={cn("p-4 rounded-xl border-2 border-dashed flex items-center justify-between transition-all", customerLocation ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}>
+                 <div className="flex items-center gap-3">
+                    <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shadow-sm", customerLocation ? "bg-green-500 text-white" : "bg-primary text-white")}>
+                       <Crosshair className={cn("h-5 w-5", isFetchingLocation && "animate-spin")} />
+                    </div>
+                    <div className="text-left">
+                       <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Doorstep GPS</span>
+                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Spot Locked' : 'Highly Recommended'}</p>
                     </div>
                  </div>
-                 <span className="text-xs font-black italic">₹{(item.price * item.quantity).toFixed(0)}</span>
+                 <button 
+                  onClick={handleFetchLocation} 
+                  disabled={isFetchingLocation}
+                  className="bg-white border border-gray-200 h-9 px-4 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all"
+                 >
+                   {customerLocation ? 'UPDATE' : 'CAPTURE'}
+                 </button>
               </div>
-           ))}
+           </div>
         </div>
 
-        {/* Bill */}
-        <div className="bg-[#0B0B0B] rounded-[2.5rem] p-8 text-white shadow-2xl">
-           <h2 className="text-xl font-black italic uppercase mb-6 tracking-tighter">Bill Summary</h2>
-           <div className="space-y-4 mb-8 opacity-70">
-              <div className="flex justify-between text-[11px] font-bold uppercase"><span>Subtotal:</span><span>₹{totalPrice.toFixed(0)}</span></div>
-              <div className="flex justify-between text-[11px] font-bold uppercase"><span>Charges:</span><span>₹{chargesTotalSum.toFixed(0)}</span></div>
+        {/* Bill Summary Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+           <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-gray-400" />
+              <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Bill Summary</span>
            </div>
-           <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-              <span className="text-lg font-black italic uppercase">Total:</span>
-              <span className="text-3xl font-black text-primary italic">₹{grandTotal.toFixed(0)}</span>
+           <div className="p-5 space-y-4">
+              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                 <span>Item Total</span>
+                 <span className="text-gray-900">₹{totalPrice.toFixed(0)}</span>
+              </div>
+              
+              {dynamic_charges.map((charge, idx) => (
+                <div key={idx} className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                   <span>{charge.name}</span>
+                   {Number(charge.calculatedAmount) === 0 ? (
+                     <span className="text-green-600 italic">FREE</span>
+                   ) : (
+                     <span className="text-gray-900">₹{charge.calculatedAmount?.toFixed(0)}</span>
+                   )}
+                </div>
+              ))}
+
+              <div className="pt-4 border-t border-dashed flex justify-between items-center">
+                 <span className="text-sm font-black uppercase italic text-gray-900">Grand Total</span>
+                 <span className="text-xl font-black italic text-primary tracking-tighter">₹{grandTotal.toFixed(0)}</span>
+              </div>
            </div>
-           <Button onClick={handlePlaceOrder} disabled={isPlacing} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20 mt-8">
-              {isPlacing ? <Loader2 className="h-6 w-6 animate-spin" /> : 'PLACE ORDER NOW'}
-           </Button>
+           <div className="bg-blue-50 px-4 py-3 border-t border-blue-100 flex items-center gap-3">
+              <div className="h-6 w-6 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600"><CheckCircle2 className="h-3.5 w-3.5" /></div>
+              <p className="text-[9px] font-black text-blue-800 uppercase tracking-tight">You will earn 10 coins on this order!</p>
+           </div>
         </div>
+
+      </div>
+
+      {/* Sticky Bottom Payment Bar (Blinkit Style) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t p-4 pb-8 flex items-center justify-center shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+         <div className="w-full max-w-lg flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+               <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none mb-1">Final Amount</span>
+               <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black italic text-gray-900 leading-none">₹{grandTotal.toFixed(0)}</span>
+                  <button onClick={() => document.querySelector('.divide-y')?.scrollIntoView({ behavior: 'smooth' })} className="text-[8px] font-black text-primary uppercase underline underline-offset-2">VIEW BILL</button>
+               </div>
+            </div>
+            <Button 
+              onClick={handlePlaceOrder} 
+              disabled={isPlacing}
+              className="flex-[2] h-14 bg-black hover:bg-gray-900 text-white rounded-2xl font-black uppercase italic text-base tracking-tighter shadow-xl shadow-black/10 active:scale-95 transition-all group"
+            >
+              {isPlacing ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <>
+                  PLACE ORDER
+                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </Button>
+         </div>
       </div>
 
       {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-         <DialogContent className="rounded-t-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-            <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl">Payment Required</DialogTitle></DialogHeader>
-            <div className="p-8 space-y-6">
+         <DialogContent className="rounded-t-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0">
+            <div className="bg-primary h-2 w-full" />
+            <DialogHeader className="p-8 pb-4"><DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Secure Payment</DialogTitle></DialogHeader>
+            <div className="p-8 space-y-6 pt-0">
                {paymentStep === 'selection' ? (
                  <div className="space-y-6">
-                    <div className="bg-gray-50 p-6 rounded-[2rem] text-center"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Payable Amount</span><div className="text-4xl font-black italic">₹{grandTotal.toFixed(0)}</div></div>
-                    <div className="bg-white p-6 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-4"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR`)}`} className="h-44 w-44" alt="QR" /><p className="text-[10px] font-black uppercase text-primary italic">Scan with PhonePe / GPay</p></div>
-                    <Button onClick={() => { window.open(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR`); setPaymentStep('utr'); }} className="w-full h-16 bg-primary text-white rounded-3xl font-black italic uppercase">OPEN UPI APP</Button>
-                    <button onClick={() => setPaymentStep('utr')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline">Already Paid? Enter UTR</button>
+                    <div className="bg-gray-50 p-6 rounded-[2rem] text-center border border-gray-100"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Payable to ShopyKart</span><div className="text-4xl font-black italic text-gray-900">₹{grandTotal.toFixed(0)}</div></div>
+                    <div className="bg-white p-6 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-4 relative overflow-hidden group">
+                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR`)}`} className="h-44 w-44 grayscale opacity-80 group-hover:opacity-100 transition-opacity" alt="QR" /><p className="text-[10px] font-black uppercase text-primary italic tracking-widest">Scan with GPay / PhonePe</p>
+                    </div>
+                    <Button onClick={() => { window.open(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${grandTotal.toFixed(2)}&cu=INR`); setPaymentStep('utr'); }} className="w-full h-16 bg-primary text-white rounded-3xl font-black italic uppercase text-lg shadow-xl shadow-primary/20">OPEN UPI APP</Button>
+                    <button onClick={() => setPaymentStep('utr')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest underline underline-offset-4">Already Paid? Enter UTR</button>
                  </div>
                ) : (
-                 <div className="space-y-6">
-                    <div className="text-center space-y-1"><Hash className="h-16 w-16 text-green-600 mx-auto" /><h3 className="text-lg font-black italic uppercase">Confirm UTR</h3></div>
-                    <Input placeholder="12 DIGIT UTR NO." value={utrNumber} onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0,12))} className="h-16 rounded-2xl bg-gray-50 border-none font-black italic text-2xl text-center" />
-                    <Button onClick={() => { if(utrNumber.length === 12) setIsPaymentDialogOpen(false); }} disabled={utrNumber.length !== 12} className="w-full h-16 bg-black text-white rounded-3xl font-black italic uppercase">DONE</Button>
+                 <div className="space-y-8 py-4">
+                    <div className="text-center space-y-2">
+                       <div className="h-16 w-16 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mx-auto border border-green-100"><CheckCircle2 className="h-8 w-8" /></div>
+                       <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">Confirm Payment</h3>
+                    </div>
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest">12-Digit UTR Number</label>
+                       <Input placeholder="0 0 0 0 0 0 0 0 0 0 0 0" value={utrNumber} onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0,12))} className="h-16 rounded-2xl bg-gray-50 border-none font-black italic text-2xl text-center tracking-[0.2em] text-primary" />
+                    </div>
+                    <Button onClick={() => { if(utrNumber.length === 12) setIsPaymentDialogOpen(false); }} disabled={utrNumber.length !== 12} className="w-full h-16 bg-black text-white rounded-3xl font-black italic uppercase text-lg shadow-xl">AUTHENTICATE & DONE</Button>
+                    <button onClick={() => setPaymentStep('selection')} className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest">← Back to QR</button>
                  </div>
                )}
             </div>
@@ -284,5 +392,3 @@ function CartContent() {
     </div>
   );
 }
-
-export default function CartPage() { return <CartContent />; }

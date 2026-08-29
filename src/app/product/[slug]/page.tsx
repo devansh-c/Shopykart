@@ -7,7 +7,7 @@ export const dynamicParams = false;
 
 // CRITICAL FOR STATIC EXPORT: Prevents build crash
 export async function generateStaticParams() {
-  return [{ slug: 'default' }];
+  return [];
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
