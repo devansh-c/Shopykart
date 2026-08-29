@@ -34,7 +34,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 }
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
-  // MARKETING GUEST PRICING: If not logged in, price is ₹10 lower
+  // GUEST PRICING: If not logged in, price is ₹10 lower
   const basePrice = Number(product.price) || 0;
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
@@ -124,8 +124,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       
       if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) {
         const isGlobal = !v.zoneId || v.zoneId === 'global';
-        const isTargetZone = activeZoneId.toLowerCase().includes('ranipur') && (v.zoneId?.toLowerCase().includes('ranipur') || v.town?.toLowerCase().includes('ranipur'));
-        if (!isGlobal && !isTargetZone) return false;
+        if (!isGlobal) return false;
       }
 
       if ((p.serviceMode || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;

@@ -53,6 +53,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
 
+  // GUEST DISCOUNT: ₹10 off if not logged in
   const displayBasePrice = !user ? Math.max(0, (product.price || 0) - 10) : (product.price || 0);
 
   const currentPrice = useMemo(() => {
@@ -67,7 +68,11 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   }, [displayBasePrice, selectedOption, globalOffer, user]);
 
   const handleAddToCart = () => {
-    if (!user) { setIsOpen(false); window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
+    if (!user) { 
+      setIsOpen(false); 
+      window.dispatchEvent(new CustomEvent('open-auth-overlay')); 
+      return; 
+    }
     if (isOffline) return;
     addToCart({ ...product, imageUrl: product.imageUrl, quantity: localQuantity, selectedOption, instructions, price: currentPrice });
     setIsOpen(false); setLocalQuantity(1); setSelectedOption(null);
@@ -78,16 +83,16 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[11000] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none">
-        <DialogHeader className="p-6 pb-0 sr-only">
-          <DialogTitle>{product.name}</DialogTitle>
-          <DialogDescription>Quick product configuration and checkout.</DialogDescription>
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="font-black italic uppercase text-center text-xl">{product.name}</DialogTitle>
+          <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Customize and Add to Bag</DialogDescription>
         </DialogHeader>
         <div className="bg-white max-h-[90vh] overflow-y-auto no-scrollbar pb-32">
           <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border flex items-center justify-center text-gray-400 z-50"><X className="h-4 w-4" /></button>
-          <div className="p-6 pt-10 flex gap-4">
+          <div className="p-6 pt-4 flex gap-4">
              <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-muted border shadow-sm">
                 <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-                {!user && !isOffline && <div className="absolute top-1 left-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-full">₹10 OFF</div>}
+                {!user && !isOffline && <div className="absolute top-1 left-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-lg">₹10 OFF</div>}
              </div>
              <div className="flex-1 min-w-0">
                 <h3 className="font-black text-xl text-gray-900 italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
