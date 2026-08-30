@@ -18,6 +18,7 @@ import { collection, query, where, doc, setDoc, serverTimestamp, getDocs } from 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
+import { useJsApiLoader } from '@react-google-maps/api';
 
 const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), { 
   ssr: false,
@@ -31,6 +32,8 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] animate-pulse text-center">SYNCHRONIZING HIGH-PRECISION MAPS...</p>
   </div>
 });
+
+const libraries: ("places")[] = ["places"];
 
 /**
  * Robust Point-in-Polygon Algorithm.
@@ -65,6 +68,13 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const hasAttemptedRef = useRef(false);
 
+  // Global Loader to ensure 'google' object is ready for Geocoding
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries: libraries
+  });
+
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
@@ -80,10 +90,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     }
 
     // Try to match zone from fresh data or cache
-    let matchedZoneId = null;
-    let matchedCity = 'Local';
-    let matchedName = address ? address.split(',')[0].toUpperCase() : 'Unknown';
-
     if (activeZones && activeZones.length > 0) {
       const zoneMatch = activeZones.find((z: any) => {
         if (z.boundary && Array.isArray(z.boundary) && z.boundary.length > 2) {
@@ -93,11 +99,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       });
 
       if (zoneMatch) {
-        matchedZoneId = zoneMatch.id;
-        matchedCity = zoneMatch.city || 'Local';
-        matchedName = zoneMatch.name;
         localStorage.setItem('active_zone_id', zoneMatch.id);
-        localStorage.setItem('user_city', matchedCity);
+        localStorage.setItem('user_city', zoneMatch.city || 'Local');
       } else {
         localStorage.removeItem('active_zone_id');
       }
@@ -127,16 +130,22 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         setInitialCoords(coords);
         
         // AUTO-OPEN LOGIC: Attempt to resolve address and open app instantly
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: coords }, (results, status) => {
-          if (status === "OK" && results?.[0]) {
-            handleFinalConfirm(coords.lat, coords.lng, results[0].formatted_address);
-            toast({ title: "Smart GPS Active! 🚚" });
-          } else {
-            // If geocoding fails but GPS works, still show map to be safe
-            setGuardState('confirming');
-          }
-        });
+        // DEFENSIVE CHECK: Ensure 'google' exists before creating Geocoder to prevent ReferenceError
+        if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: coords }, (results, status) => {
+            if (status === "OK" && results?.[0]) {
+              handleFinalConfirm(coords.lat, coords.lng, results[0].formatted_address);
+              toast({ title: "Smart GPS Active! 🚚" });
+            } else {
+              // Fallback to map if geocoding fails
+              setGuardState('confirming');
+            }
+          });
+        } else {
+          // If GPS is fast but Google script is slow, fallback to map (it handles its own loader)
+          setGuardState('confirming');
+        }
       },
       (err) => {
         // FAIL OR TIMEOUT: Show manual map picker
