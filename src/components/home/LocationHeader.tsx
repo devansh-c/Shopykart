@@ -16,8 +16,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * @fileOverview Compact Premium Header.
- * Automatically displays the auto-detected location.
- * Location text is clickable to allow manual overrides.
+ * Displays the current geocoded address line from localStorage.
  */
 export function LocationHeader({
   searchValue,
@@ -73,19 +72,19 @@ export function LocationHeader({
       <div className="flex items-center justify-between relative z-10">
         <button 
           onClick={handleOpenPicker}
-          className="flex items-center gap-1.5 active:scale-95 transition-all text-left"
+          className="flex items-center gap-1.5 active:scale-95 transition-all text-left w-full"
         >
-          <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center">
+          <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
             <MapPin className="h-4.5 w-4.5 text-primary stroke-[2.5]" />
           </div>
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 pr-10">
             <div className="flex items-center gap-1">
-              <span className="text-black text-xs font-black tracking-tight uppercase leading-none max-w-[140px] truncate">
+              <span className="text-black text-xs font-black tracking-tight uppercase leading-none truncate">
                 {isMounted ? currentAddress : 'Detecting...'}
               </span>
               <ChevronDown className="h-3 w-3 text-primary stroke-[3]" />
             </div>
-            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 max-w-[180px] truncate">
+            <span className="text-[8px] font-black text-primary uppercase tracking-widest mt-1 truncate">
               {isMounted ? fullAddress : 'Detecting...'}
             </span>
           </div>
@@ -93,7 +92,7 @@ export function LocationHeader({
 
         <button 
           onClick={() => router.push('/profile')}
-          className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 shadow-sm active:scale-90 transition-all hover:bg-gray-100"
+          className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 shadow-sm active:scale-90 transition-all hover:bg-gray-100 shrink-0"
           aria-label="Open Profile Menu"
         >
           <Menu className="h-6 w-6 text-black" />

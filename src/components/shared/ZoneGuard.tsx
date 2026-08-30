@@ -97,6 +97,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     setPermissionStatus('locating');
     setIsLocating(true);
 
+    // AGGRESSIVE PRECISION SETTINGS
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
@@ -110,8 +111,13 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           
           if (data.results && data.results[0]) {
             const address = data.results[0].formatted_address;
-            const subLocality = data.results[0].address_components.find((c: any) => c.types.includes('sublocality_level_1'))?.long_name;
-            const shortAddress = subLocality || "Detected Location";
+            const subLocality = data.results[0].address_components.find((c: any) => 
+              c.types.includes('sublocality_level_1') || 
+              c.types.includes('neighborhood') || 
+              c.types.includes('locality')
+            )?.long_name;
+
+            const shortAddress = subLocality || "Detected Area";
 
             localStorage.setItem('user_plus_code', `${lat},${lng}`);
             localStorage.setItem('user_address', shortAddress.toUpperCase());
@@ -121,10 +127,14 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             setCurrentCoords({ lat, lng });
             setPermissionStatus('granted');
             window.dispatchEvent(new CustomEvent('user-address-updated'));
-            toast({ title: "Location Locked! 📍" });
+            toast({ title: "Location Verified! 📍" });
           }
         } catch (e) {
           console.error("Geocoding failed", e);
+          // Fallback if geocoding fails but GPS worked
+          localStorage.setItem('user_plus_code', `${lat},${lng}`);
+          setCurrentCoords({ lat, lng });
+          setPermissionStatus('granted');
         } finally {
           setIsLocating(false);
         }
@@ -133,8 +143,13 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         setIsLocating(false);
         setPermissionStatus('denied');
         console.warn("Location denied:", err.message);
+        toast({ variant: "destructive", title: "Detection Failed", description: "Please select your zone manually." });
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { 
+        enableHighAccuracy: true, // STRICT HIGH ACCURACY
+        timeout: 15000, 
+        maximumAge: 0 // NO CACHED LOCATION
+      }
     );
   };
 
