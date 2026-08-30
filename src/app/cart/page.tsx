@@ -38,7 +38,7 @@ const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicke
   ssr: false,
   loading: () => <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
     <Loader2 className="h-10 w-10 animate-spin text-primary" />
-    <p className="text-[10px] font-black uppercase tracking-widest">Opening World Map...</p>
+    <p className="text-[10px] font-black uppercase tracking-widest italic">Syncing Maps...</p>
   </div>
 });
 
@@ -129,7 +129,6 @@ export default function CartPage() {
     if (!profile?.coins) return 0;
     const currentBalance = Number(profile.coins);
     const availableValue = currentBalance * coinRate;
-    // Can't redeem more than order total (before charges)
     if (availableValue > totalPrice) {
        return Math.floor(totalPrice / coinRate);
     }
@@ -151,8 +150,11 @@ export default function CartPage() {
     setCustomerCity(profile?.city || localStorage.getItem('user_city') || '');
   }, [profile]);
 
-  const handleMapConfirm = (lat: number, lng: number) => {
+  const handleMapConfirm = (lat: number, lng: number, address?: string) => {
     setCustomerLocation({ lat, lng });
+    if (address) {
+      setCustomerAddress(address.toUpperCase());
+    }
     setIsMapOpen(false);
     toast({ title: "Drop Spot Locked! 📍" });
   };
@@ -201,8 +203,6 @@ export default function CartPage() {
       };
 
       await addDoc(collection(firestore, 'orders'), orderData);
-      
-      // Update coins: Remove redeemed, Add new order bonus
       const coinBalanceChange = (useCoins ? -redeemedCoins : 0) + 10;
       await setDoc(doc(firestore, 'users', user.uid), { coins: increment(coinBalanceChange) }, { merge: true });
 
@@ -221,7 +221,7 @@ export default function CartPage() {
           <ShoppingBag className="h-14 w-14 text-gray-300" />
         </div>
         <h2 className="text-2xl font-black italic uppercase text-gray-800">Your bag is empty</h2>
-        <p className="text-xs font-bold text-gray-400 uppercase mt-2">Add some items from the menu to start checkout.</p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase mt-2 tracking-widest">Add some items from the menu to start checkout.</p>
         <Button onClick={() => router.push('/')} className="mt-8 bg-black text-white rounded-xl h-12 px-8 font-black uppercase italic shadow-xl">Back to Explore</Button>
       </div>
     );
@@ -231,11 +231,11 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F5F7F9] pb-44 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b shadow-sm">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6 text-gray-800" /></button>
+      <div className="bg-white sticky top-0 z-50 px-4 py-3 flex items-center gap-4 border-b shadow-sm">
+        <button onClick={() => router.back()} className="h-9 w-9 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 active:scale-90 transition-transform"><ChevronLeft className="h-5 w-5 text-gray-800" /></button>
         <div>
           <h1 className="text-base font-black italic uppercase leading-none">Checkout</h1>
-          <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">{cart.length} Item{cart.length > 1 ? 's' : ''} in Bag</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase mt-1 tracking-tight">{cart.length} Item{cart.length > 1 ? 's' : ''} in Bag</p>
         </div>
       </div>
 
@@ -346,7 +346,7 @@ export default function CartPage() {
               {!isEditingAddress ? (
                  <div className="space-y-1">
                     <p className="text-sm font-black uppercase italic text-gray-900 leading-none mb-1">{customerName || 'Add Name'}</p>
-                    <p className="text-[11px] font-bold text-gray-500 uppercase leading-relaxed">{customerAddress || 'Please update your delivery address.'}</p>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase leading-relaxed line-clamp-2">{customerAddress || 'Please update your delivery address.'}</p>
                     <div className="flex items-center gap-1 text-[10px] font-black text-gray-400 mt-2"><CheckCircle2 className="h-3 w-3 text-green-500" /> Verified: {customerPhone}</div>
                  </div>
               ) : (
@@ -359,18 +359,18 @@ export default function CartPage() {
 
               <div 
                 onClick={() => setIsMapOpen(true)}
-                className={cn("p-4 rounded-xl border-2 border-dashed flex items-center justify-between transition-all cursor-pointer", customerLocation ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}
+                className={cn("p-3.5 rounded-xl border-2 border-dashed flex items-center justify-between transition-all cursor-pointer", customerLocation ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}
               >
                  <div className="flex items-center gap-3">
-                    <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shadow-sm", customerLocation ? "bg-green-500 text-white" : "bg-primary text-white")}>
-                       <Navigation className="h-5 w-5" />
+                    <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shadow-sm", customerLocation ? "bg-green-500 text-white" : "bg-primary text-white")}>
+                       <Navigation className="h-4.5 w-4.5" />
                     </div>
                     <div className="text-left">
                        <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Doorstep Pin</span>
-                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Drop Spot Set' : 'Pin your house on Google Map'}</p>
+                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Drop Spot Set' : 'Pin your house on Map'}</p>
                     </div>
                  </div>
-                 <button className="bg-white border border-gray-200 h-9 px-4 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all">
+                 <button className="bg-white border border-gray-200 h-8 px-3 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all">
                    {customerLocation ? 'UPDATE' : 'OPEN MAP'}
                  </button>
               </div>
@@ -445,14 +445,14 @@ export default function CartPage() {
       </div>
 
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-        <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
-           <DialogHeader className="p-4 pb-2 border-b shrink-0 bg-white">
-             <DialogTitle className="font-black italic uppercase text-center text-lg text-gray-900 leading-none">PIN DELIVERY SPOT</DialogTitle>
-             <DialogDescription className="text-center text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1.5">MOVE MAP TO SET YOUR EXACT DOORSTEP</DialogDescription>
+        <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[2.5rem] overflow-hidden focus:outline-none flex flex-col z-[20000] bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+           <DialogHeader className="p-3 bg-white border-b shrink-0">
+             <DialogTitle className="font-black italic uppercase text-center text-lg text-gray-900 leading-none">PIN DROP SPOT</DialogTitle>
+             <DialogDescription className="text-center text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">Confirm exact doorstep for 10-min delivery</DialogDescription>
            </DialogHeader>
-           <div className="absolute top-4 right-4 z-[21000]">
-              <button onClick={() => setIsMapOpen(false)} className="h-9 w-9 bg-white/80 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
-                 <X className="h-5 w-5" />
+           <div className="absolute top-3 right-3 z-[21000]">
+              <button onClick={() => setIsMapOpen(false)} className="h-8 w-8 bg-white/80 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
+                 <X className="h-4 w-4" />
               </button>
            </div>
            <div className="flex-1 min-h-0 relative">
@@ -462,8 +462,8 @@ export default function CartPage() {
       </Dialog>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-         <DialogContent className="rounded-t-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0">
-            <div className="bg-primary h-2 w-full" />
+         <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+            <div className="bg-primary h-1.5 w-full" />
             <DialogHeader className="p-8 pb-4">
               <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Secure Payment</DialogTitle>
               <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Complete your payment to place the order.</DialogDescription>
