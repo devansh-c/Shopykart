@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import { Loader2, MapPin, Crosshair, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,8 @@ const containerStyle = {
   height: '100%'
 };
 
-const defaultCenter = {
+// Initial state - Default to local area but DO NOT lock it
+const initialCenter = {
   lat: 25.2443,
   lng: 79.0838
 };
@@ -22,8 +23,8 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview Draggable Map Pin with Real-time Reverse Geocoding.
- * Optimized for Zomato/Swiggy style UX where map moves under a static centered pin.
+ * @fileOverview Draggable Map Pin (Zomato Style).
+ * Fixed: Forces fresh GPS and removes sticky Mauranipur default.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -34,10 +35,19 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-  const [confirmCoords, setConfirmCoords] = useState(defaultCenter);
+  const [currentCoords, setCurrentCoords] = useState(initialCenter);
   const [isLocating, setIsLocating] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
+  const hasInitializedRef = useRef(false);
+
+  // 1. Initial High-Accuracy Locate on Mount
+  useEffect(() => {
+    if (isLoaded && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      handleLocate();
+    }
+  }, [isLoaded]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
@@ -54,15 +64,12 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
         map?.setCenter({ lat, lng });
-        map?.setZoom(18);
-        setConfirmCoords({ lat, lng });
+        map?.setZoom(19);
+        setCurrentCoords({ lat, lng });
       }
     }
   };
 
-  /**
-   * Fetches readable address from coordinates.
-   */
   const reverseGeocode = (lat: number, lng: number) => {
     if (!isLoaded) return;
     setIsResolving(true);
@@ -71,15 +78,14 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       if (status === "OK" && results?.[0]) {
         setResolvedAddress(results[0].formatted_address);
       } else {
-        setResolvedAddress("Unknown Location");
+        setResolvedAddress("Unknown Area");
       }
       setIsResolving(false);
     });
   };
 
   /**
-   * Standard Draggable Logic: When map drag ends (Idle), 
-   * get the center and update the delivery spot.
+   * Zomato/Swiggy Logic: When drag ends, get center of map.
    */
   const handleOnIdle = () => {
     if (map) {
@@ -87,19 +93,20 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       if (newCenter) {
         const lat = newCenter.lat();
         const lng = newCenter.lng();
-        setConfirmCoords({ lat, lng });
+        setCurrentCoords({ lat, lng });
         reverseGeocode(lat, lng);
       }
     }
   };
 
   /**
-   * Precision "Current Location" Logic with aggressive GPS options.
+   * Mandatory Fresh GPS Logic
    */
   const handleLocate = () => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     
+    // Aggressive Settings to bypass device cache
     const options = {
       enableHighAccuracy: true,
       timeout: 15000, 
@@ -111,15 +118,17 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (map) {
           map.setCenter(coords);
-          map.setZoom(18);
-          setConfirmCoords(coords);
-          reverseGeocode(coords.lat, coords.lng);
+          map.setZoom(19);
         }
+        setCurrentCoords(coords);
+        reverseGeocode(coords.lat, coords.lng);
         setIsLocating(false);
       },
       (err) => {
-        console.warn("Precision location failed:", err.message);
+        console.warn("GPS Lock Failure:", err.message);
         setIsLocating(false);
+        // If fail, we stay at initial center but geocode it
+        reverseGeocode(initialCenter.lat, initialCenter.lng);
       },
       options
     );
@@ -127,17 +136,17 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Syncing Satellites...</p>
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">SYNCING SATELLITES...</p>
     </div>
   );
 
   return (
-    <div className="h-full w-full relative bg-gray-100 flex flex-col overflow-hidden">
+    <div className="h-full w-full relative bg-gray-100 flex flex-col overflow-hidden animate-in fade-in duration-500">
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={defaultCenter}
-        zoom={17}
+        center={currentCoords}
+        zoom={18}
         onLoad={onMapLoad}
         onIdle={handleOnIdle}
         options={{
@@ -149,30 +158,30 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           ]
         }}
       >
-        {/* Floating Search Bar */}
+        {/* Floating Top Search */}
         <div className="absolute top-6 left-4 right-4 z-[1001]">
           <Autocomplete 
             onLoad={onAutocompleteLoad} 
             onPlaceChanged={onPlaceChanged}
           >
-            <div className="relative shadow-2xl rounded-2xl overflow-hidden">
+            <div className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5">
               <input 
                 type="text"
-                placeholder="Search House No, Street or Area" 
-                className="w-full h-12 pl-4 pr-12 bg-white border-none font-bold text-[13px] text-gray-800 focus:outline-none placeholder:text-gray-400"
+                placeholder="Search House No, Building or Street" 
+                className="w-full h-12 pl-4 pr-12 bg-white border-none font-bold text-xs text-gray-900 focus:outline-none placeholder:text-gray-400"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-900">
                 <Search className="h-5 w-5 stroke-[2.5]" />
               </div>
             </div>
           </Autocomplete>
         </div>
 
-        {/* STATIC CENTERED PIN - Map moves under this */}
+        {/* STATIC CENTERED PIN - Map moves under this stick */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-10">
           <div className="relative flex flex-col items-center">
-            <div className="bg-black text-white text-[7px] font-black px-2 py-1 rounded mb-1 uppercase tracking-widest animate-bounce shadow-xl border border-white/20">
-               Deliver Here
+            <div className="bg-black text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-1 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
+               DELIVER HERE
             </div>
             <div className="relative">
               <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl scale-110">
@@ -186,7 +195,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         <div className="absolute bottom-32 right-4 z-[1001]">
           <button 
             onClick={handleLocate}
-            className="h-12 w-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#2ecc71] border border-gray-100 active:scale-90 transition-all"
+            className="h-12 w-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-green-600 border border-black/5 active:scale-90 transition-all"
           >
             <Crosshair className={cn("h-6 w-6", isLocating && "animate-spin")} />
           </button>
@@ -194,25 +203,25 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
         {/* BOTTOM CONFIRMATION SHEET */}
         <div className="absolute bottom-6 left-4 right-4 z-[1001] flex flex-col gap-2">
-           <div className="bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-white/20">
+           <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-black/5">
               <div className="flex items-center gap-3">
-                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    {isResolving ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <MapPin className="h-5 w-5 text-primary" />}
+                 <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    {isResolving ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <MapPin className="h-5 w-5 text-primary" />}
                  </div>
                  <div className="flex-1 min-w-0">
-                   <p className="text-[10px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">
-                      {isResolving ? 'Pinpointing Building...' : resolvedAddress || 'Drag map to set exact spot'}
+                   <p className="text-[11px] font-black text-gray-900 line-clamp-1 uppercase tracking-tight italic">
+                      {isResolving ? 'IDENTIFYING BUILDING...' : resolvedAddress || 'DRAG MAP TO SET SPOT'}
                    </p>
-                   <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Precise Doorstep Location</p>
+                   <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">PRECISE DOORSTEP PINPOINTED</p>
                  </div>
               </div>
            </div>
            
            <button 
-            onClick={() => onConfirm(confirmCoords.lat, confirmCoords.lng, resolvedAddress)}
-            className="w-full h-16 bg-[#BDC3C7] hover:bg-black hover:text-white text-gray-800 rounded-2xl font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter"
+            onClick={() => onConfirm(currentCoords.lat, currentCoords.lng, resolvedAddress)}
+            className="w-full h-16 bg-[#BDC3C7] hover:bg-black hover:text-white text-gray-900 rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter"
            >
-            Pick Location
+            PICK THIS LOCATION
           </button>
         </div>
       </GoogleMap>
