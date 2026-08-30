@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -138,9 +139,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, []);
 
   const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(2000)) : null, [firestore]);
-  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v2', initialData);
+  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v3', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v2', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v3', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
