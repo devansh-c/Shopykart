@@ -23,7 +23,7 @@ interface GoogleMapPickerProps {
 
 /**
  * @fileOverview Premium Map Picker with Aggressive GPS Accuracy.
- * Fixed: Immediate coordinate lock on Current Location with No-Cache.
+ * Zero-Caching implemented to prevent wrong location fetching.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -90,11 +90,12 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     
-    // MANDATORY FRESH FETCH: maximumAge: 0
+    // AGGRESSIVE GPS LOCK: enableHighAccuracy, timeout, maximumAge: 0
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (map) {
+          // Instant Jump to center to ensure coordinates are locked immediately
           map.setCenter(coords);
           map.setZoom(18);
           setConfirmCoords(coords);
@@ -102,10 +103,13 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         }
         setIsLocating(false);
       },
-      () => setIsLocating(false),
+      (err) => {
+        console.warn("Location error:", err.message);
+        setIsLocating(false);
+      },
       { 
         enableHighAccuracy: true,
-        maximumAge: 0,
+        maximumAge: 0, // CRITICAL: Force device to not use cache
         timeout: 10000
       }
     );
@@ -114,7 +118,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Syncing Google Logistics...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Google Satellites...</p>
     </div>
   );
 
@@ -143,7 +147,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             <div className="relative">
               <input 
                 type="text"
-                placeholder="Search Landmark or Area" 
+                placeholder="Search House No, Street or Landmark" 
                 className="w-full h-12 pl-4 pr-12 rounded-xl bg-white border-none shadow-2xl font-bold text-[13px] text-gray-800 focus:outline-none placeholder:text-gray-400"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
@@ -153,6 +157,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
+        {/* MATHEMATICALLY CENTERED PIN */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
@@ -168,6 +173,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           <button 
             onClick={handleLocate}
             className="h-10 w-10 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#2ecc71] border border-gray-100 active:scale-90 transition-all"
+            title="Locate Me (High Precision)"
           >
             <Crosshair className={cn("h-5 w-5", isLocating && "animate-spin")} />
           </button>
@@ -177,10 +183,10 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
            <div className="bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-2xl border border-white/20">
               <div className="flex items-center gap-3 px-2 py-0.5">
                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <MapPin className="h-4 w-4 text-primary" />
+                    {isResolving ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : <MapPin className="h-4 w-4 text-primary" />}
                  </div>
                  <p className="text-[9px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">
-                    {isResolving ? 'Resolving Address...' : resolvedAddress || 'Move map to select location'}
+                    {isResolving ? 'Resolving Fresh Address...' : resolvedAddress || 'Align pin to your doorstep'}
                  </p>
               </div>
            </div>
@@ -189,7 +195,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             onClick={() => onConfirm(confirmCoords.lat, confirmCoords.lng, resolvedAddress)}
             className="w-full h-14 bg-[#BDC3C7] hover:bg-[#AAB7B8] text-white rounded-xl font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tight"
            >
-            Pick Location
+            Confirm Drop Spot
           </button>
         </div>
       </GoogleMap>

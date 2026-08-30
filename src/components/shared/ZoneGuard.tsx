@@ -42,7 +42,7 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
-  const { user, loading: userLoading } = useUser();
+  const { user } = useUser();
   const { toast } = useToast();
   
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -56,7 +56,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
-  const { data: activeZones, loading: zonesLoading } = useCollection<any>(zonesQuery);
+  const { data: activeZones } = useCollection<any>(zonesQuery);
 
   const handleRequestLocation = (isAuto = false) => {
     if (!navigator.geolocation) {
@@ -68,7 +68,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     setPermissionStatus('locating');
     setIsLocating(true);
 
-    // MANDATORY FRESH FETCH: enableHighAccuracy + maximumAge: 0
+    // AGGRESSIVE FRESH FETCH: enableHighAccuracy + maximumAge: 0 + Increased Timeout
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
@@ -96,6 +96,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             setPermissionStatus('granted');
             window.dispatchEvent(new CustomEvent('user-address-updated'));
             if (!isAuto) toast({ title: "Location Verified! 📍" });
+          } else {
+            // Fallback if geocoding fails but coordinates are valid
+            setCurrentCoords({ lat, lng });
+            setPermissionStatus('granted');
           }
         } catch (e) {
           localStorage.setItem('user_plus_code', `${lat},${lng}`);
@@ -106,14 +110,15 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         }
       },
       (err) => {
+        console.error("GPS Error:", err);
         setIsLocating(false);
         setPermissionStatus('denied');
         if (!isAuto) toast({ variant: "destructive", title: "Detection Failed", description: "Please select your zone manually." });
       },
       { 
         enableHighAccuracy: true, 
-        timeout: 10000, 
-        maximumAge: 0 // FORCE NO CACHE
+        timeout: 15000, 
+        maximumAge: 0 // FORCE NO CACHE - CRITICAL FOR ACCURACY
       }
     );
   };
@@ -125,7 +130,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
     if (!isBot && !hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
-      // Auto-trigger detection on mount to ensure fresh location
+      // ALWAYS TRIGGER FRESH FETCH ON MOUNT - NO OLD DATA ALLOWED
       handleRequestLocation(true);
     }
   }, []);
@@ -133,9 +138,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const currentZone = useMemo(() => {
     if (!activeZones || activeZones.length === 0 || !currentCoords) return null;
 
-    // First, check if there's a manual override in this session
-    const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
-    
+    // Boundary Match Priority
     const zoneMatch = activeZones.find(zone => {
       if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
         return isPointInPolygon(currentCoords.lat, currentCoords.lng, zone.boundary);
@@ -148,6 +151,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return zoneMatch;
     }
 
+    // Manual override check (only if auto-match fails)
+    const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
     if (savedZoneId) {
       return activeZones.find(z => z.id === savedZoneId) || null;
     }
@@ -158,7 +163,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   if (!mounted) return null;
   if (isCrawler) return <>{children}</>;
 
-  // While we are locating for the first time, show identifying screen
+  // If we are currently locating, show high-fidelity loading
   if (permissionState === 'locating' || (isLocating && !currentCoords)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-6 p-8">
@@ -170,7 +175,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         </div>
         <div className="text-center space-y-2">
            <h2 className="text-xl font-black italic uppercase tracking-tighter">Locating Your Hub...</h2>
-           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Fetching high-precision GPS signal</p>
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Requesting high-precision GPS lock</p>
         </div>
       </div>
     );
@@ -182,7 +187,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // If we have coordinates but NO zone match, OR permission is not granted
   return (
     <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-700">
@@ -199,11 +203,11 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
         <div className="space-y-4">
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
-            LOCATION<br /><span className="text-primary">{permissionState === 'denied' ? 'DENIED.' : 'REQUIRED.'}</span>
+            LOCATION<br /><span className="text-primary">{permissionState === 'denied' ? 'DENIED.' : 'OUTSIDE.'}</span>
           </h1>
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
             {permissionState === 'denied' 
-              ? 'PLEASE ALLOW LOCATION ACCESS TO CONNECT TO THE NEAREST HUB.' 
+              ? 'PLEASE ALLOW GPS ACCESS TO CONNECT TO THE NEAREST HUB.' 
               : 'YOU ARE CURRENTLY OUTSIDE OUR SERVICE ZONES. PLEASE CHOOSE A HUB MANUALLY.'}
           </p>
         </div>
