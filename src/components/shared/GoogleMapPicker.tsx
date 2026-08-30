@@ -10,8 +10,8 @@ const containerStyle = {
   height: '100%'
 };
 
-// Initial state - Default to local area but DO NOT lock it
-const initialCenter = {
+// Default Area Center (Mauranipur/Ranipur) - ONLY AS ROUGH FALLBACK
+const fallbackCenter = {
   lat: 25.2443,
   lng: 79.0838
 };
@@ -24,7 +24,7 @@ interface GoogleMapPickerProps {
 
 /**
  * @fileOverview Draggable Map Pin (Zomato Style).
- * Fixed: Forces fresh GPS and removes sticky Mauranipur default.
+ * Fixed: Strictly centers pin and updates address on drag-end (onIdle).
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -35,7 +35,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-  const [currentCoords, setCurrentCoords] = useState(initialCenter);
+  const [currentCoords, setCurrentCoords] = useState(fallbackCenter);
   const [isLocating, setIsLocating] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
@@ -85,7 +85,8 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   };
 
   /**
-   * Zomato/Swiggy Logic: When drag ends, get center of map.
+   * Zomato Style: Pin is fixed in center, map moves. 
+   * When map stops moving (Idle), we get the new center coordinates.
    */
   const handleOnIdle = () => {
     if (map) {
@@ -100,13 +101,12 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   };
 
   /**
-   * Mandatory Fresh GPS Logic
+   * Fresh GPS Logic
    */
   const handleLocate = () => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     
-    // Aggressive Settings to bypass device cache
     const options = {
       enableHighAccuracy: true,
       timeout: 15000, 
@@ -127,8 +127,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       (err) => {
         console.warn("GPS Lock Failure:", err.message);
         setIsLocating(false);
-        // If fail, we stay at initial center but geocode it
-        reverseGeocode(initialCenter.lat, initialCenter.lng);
+        reverseGeocode(fallbackCenter.lat, fallbackCenter.lng);
       },
       options
     );
@@ -142,7 +141,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   );
 
   return (
-    <div className="h-full w-full relative bg-gray-100 flex flex-col overflow-hidden animate-in fade-in duration-500">
+    <div className="h-full w-full relative bg-gray-100 flex flex-col overflow-hidden">
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentCoords}
@@ -167,7 +166,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             <div className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5">
               <input 
                 type="text"
-                placeholder="Search House No, Building or Street" 
+                placeholder="Search Landmark or Building" 
                 className="w-full h-12 pl-4 pr-12 bg-white border-none font-bold text-xs text-gray-900 focus:outline-none placeholder:text-gray-400"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-900">
@@ -177,10 +176,10 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* STATIC CENTERED PIN - Map moves under this stick */}
+        {/* ZOMATO STYLE CENTERED PIN */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-10">
           <div className="relative flex flex-col items-center">
-            <div className="bg-black text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-1 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
+            <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-1 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
                DELIVER HERE
             </div>
             <div className="relative">
@@ -210,9 +209,9 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
                  </div>
                  <div className="flex-1 min-w-0">
                    <p className="text-[11px] font-black text-gray-900 line-clamp-1 uppercase tracking-tight italic">
-                      {isResolving ? 'IDENTIFYING BUILDING...' : resolvedAddress || 'DRAG MAP TO SET SPOT'}
+                      {isResolving ? 'LOCATING HOUSE...' : resolvedAddress || 'DRAG MAP TO SET SPOT'}
                    </p>
-                   <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">PRECISE DOORSTEP PINPOINTED</p>
+                   <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">PINPOINT HOUSE FOR 10-MIN DELIVERY</p>
                  </div>
               </div>
            </div>
