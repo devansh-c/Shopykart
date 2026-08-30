@@ -50,7 +50,7 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 
 /**
  * @fileOverview ZoneGuard - Gate with Strict 10-Second Locating Window.
- * Displays fallback Map only after the full timeout or mandatory failure.
+ * Optimized to prevent "google is not defined" error and ensure mandatory manual pin if auto-fetch fails.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -108,9 +108,12 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // MANDATORY 10-SECOND TIMER: Only show Map screen after 10s if GPS still hasn't worked
+    // MANDATORY 10-SECOND TIMER: Wait full 10s before showing map if GPS is struggling
     const fallbackTimer = setTimeout(() => {
-      setGuardState(current => current === 'locating' ? 'confirming' : current);
+      setGuardState(current => {
+        if (current === 'locating') return 'confirming';
+        return current;
+      });
     }, 10000);
 
     const options = {
@@ -124,23 +127,21 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setInitialCoords(coords);
         
-        // Use isLoaded to prevent ReferenceError: google is not defined
+        // CRITICAL: Check if Google Maps is loaded before using Geocoder
         if (isLoaded && typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
           const geocoder = new google.maps.Geocoder();
           geocoder.geocode({ location: coords }, (results, status) => {
             if (status === "OK" && results?.[0]) {
               clearTimeout(fallbackTimer);
               handleFinalConfirm(coords.lat, coords.lng, results[0].formatted_address);
-              toast({ title: "Smart GPS Sync Active! 🚚" });
-            } else {
-              // Geocoding failed, fallback to map (it will happen automatically after 10s)
+              toast({ title: "Live Accuracy Established! 🚀" });
             }
           });
         }
       },
       (err) => {
         console.warn("GPS Initial Fetch Error:", err.message);
-        // We still wait for the 10s timeout to show the map screen for consistent UX
+        // Fallback timer will trigger the map screen automatically at 10s
       },
       options
     );
@@ -156,11 +157,12 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Only start locating if we haven't already and the app is ready
     if (!hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
       handleInitialLocate();
     }
-  }, [isLoaded]);
+  }, [isLoaded]); // Re-run if loader state changes
 
   if (!mounted) return null;
 
@@ -174,8 +176,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="text-center space-y-2">
-           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">AUTO-FETCHING...</h2>
-           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] animate-pulse">10S SMART GPS WINDOW ACTIVE</p>
+           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Establishing Lock...</h2>
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] animate-pulse">Waiting for High-Accuracy GPS (10s)</p>
         </div>
       </div>
     );
@@ -189,33 +191,16 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><MapPin className="h-5 w-5" /></div>
              <div>
                 <h2 className="text-sm font-black italic uppercase leading-none">GPS TIMEOUT</h2>
-                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Please pin your building manually</p>
+                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Manual Pinning Required</p>
              </div>
           </div>
-          <button onClick={() => window.location.reload()} className="text-[9px] font-black uppercase text-primary border-b border-primary">RETRY AUTO</button>
+          <button onClick={() => window.location.reload()} className="text-[9px] font-black uppercase text-primary border-b border-primary">Retry Auto</button>
         </div>
         <div className="flex-1 relative">
            <GoogleMapPicker 
               onConfirm={handleFinalConfirm} 
               forcedInitialCenter={initialCoords || undefined}
            />
-        </div>
-      </div>
-    );
-  }
-
-  if (guardState === 'denied') {
-    return (
-      <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-700">
-          <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden">
-            <ShieldAlert className="h-20 w-20 text-red-500 animate-bounce" />
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">ACCESS<br /><span className="text-primary">DENIED.</span></h1>
-            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] max-w-[280px] mx-auto mt-4 leading-relaxed">LOCATION SERVICES ARE MANDATORY TO ENSURE 10-MIN GOURMET DELIVERY.</p>
-          </div>
-          <Button onClick={() => window.location.reload()} className="w-full h-18 rounded-[2rem] bg-black text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all">TRY AGAIN</Button>
         </div>
       </div>
     );
