@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,12 +5,9 @@ import {
   MapPin, 
   ChevronRight, 
   Map as MapIcon, 
-  Rocket, 
-  Timer, 
   ShieldAlert, 
   Loader2,
   Navigation,
-  Sparkles,
   Search,
   Crosshair
 } from 'lucide-react';
@@ -46,7 +42,6 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
-  const [currentPincode, setCurrentPincode] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isCrawler, setIsCrawler] = useState(false);
@@ -65,10 +60,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     setIsCrawler(isBot);
 
     const updateLocation = () => {
-      const pin = localStorage.getItem('user_pincode');
       const plusCode = localStorage.getItem('user_plus_code');
-      
-      setCurrentPincode(pin);
       if (plusCode) {
         const [lat, lng] = plusCode.split(',').map(Number);
         if (!isNaN(lat) && !isNaN(lng)) {
@@ -82,51 +74,46 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   const currentZone = useMemo(() => {
-    if (!activeZones || activeZones.length === 0) return null;
+    if (!activeZones || activeZones.length === 0 || !currentCoords) return null;
 
-    if (currentCoords) {
-      const matchedMapZone = activeZones.find(zone => {
-        if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
-          return isPointInPolygon(currentCoords.lat, currentCoords.lng, zone.boundary);
-        }
-        return false;
-      });
-      if (matchedMapZone) return matchedMapZone;
-    }
-
-    if (currentPincode) {
-      const cleanPin = currentPincode.trim();
-      const matchedPinZone = activeZones.find(zone => 
-        zone.pincodes && Array.isArray(zone.pincodes) && zone.pincodes.includes(cleanPin)
-      );
-      if (matchedPinZone) return matchedPinZone;
-    }
-
-    return null;
-  }, [activeZones, currentPincode, currentCoords]);
+    return activeZones.find(zone => {
+      if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
+        return isPointInPolygon(currentCoords.lat, currentCoords.lng, zone.boundary);
+      }
+      return false;
+    });
+  }, [activeZones, currentCoords]);
 
   if (!mounted) return null;
   
-  // If it's a crawler, let it through always to ensure full indexing
+  // If it's a crawler, let it through always
   if (isCrawler) return <>{children}</>;
 
-  if (zonesLoading || userLoading) return <>{children}</>;
+  if (zonesLoading || userLoading) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Logistics...</p>
+      </div>
+    );
+  }
 
-  const hasLocation = !!localStorage.getItem('user_location_set');
+  const hasLocation = !!currentCoords;
   const noZonesDefined = !activeZones || activeZones.length === 0;
 
+  // IF User is within a zone, or no zones exist (prototyping mode), or location not yet detected (still loading/waiting)
   if (noZonesDefined || !hasLocation || !!currentZone) {
     if (currentZone) localStorage.setItem('active_zone_id', currentZone.id);
-    else localStorage.removeItem('active_zone_id');
     return <>{children}</>;
   }
 
+  // OUTSIDE ZONE SCREEN
   return (
-    <div className="fixed inset-0 z-[500] bg-[#F9FAFB] flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
-      <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700 py-10">
+    <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700">
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
-          <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden group">
+          <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
             <MapIcon className="h-20 w-20 text-primary animate-bounce" style={{ animationDuration: '3s' }} />
           </div>
@@ -144,19 +131,23 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             SERVICE<br /><span className="text-primary">UNAVAILABLE.</span>
           </h1>
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-            Aapki location hamare delivery area se bahar hai. Ham jaldi hi aapke tak pahonchenge!
+            AAPKI LOCATION HAMARE DELIVERY AREA SE BAHAR HAI. HUM JALDI HI AAPKE TAK PAHONCHENGE!
           </p>
         </div>
 
         <div className="w-full space-y-6 pt-4">
            <Button 
-            onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
-            className="w-full h-16 rounded-[2.5rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl transition-all active:scale-95"
+            onClick={() => window.location.reload()}
+            className="w-full h-16 rounded-[2.5rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95"
            >
-             <Search className="h-5 w-5 mr-3" />
-             CHANGE LOCATION
+             <Crosshair className="h-5 w-5 mr-3" />
+             RETRY DETECTION
            </Button>
         </div>
+        
+        <p className="text-[8px] font-black text-gray-300 uppercase tracking-[0.4em]">
+           ShopyKart Enterprise Network
+        </p>
       </div>
     </div>
   );

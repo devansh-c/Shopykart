@@ -5,7 +5,6 @@ import {
   Camera,
   Mic,
   MapPin,
-  ChevronDown,
   Menu
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -16,7 +15,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * @fileOverview Compact Premium Header.
- * Fixed hydration safety and destructuring of props.
+ * Automatically displays the auto-detected location.
  */
 export function LocationHeader({
   searchValue,
@@ -30,7 +29,7 @@ export function LocationHeader({
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const [currentAddress, setCurrentAddress] = useState('Ranipur');
+  const [currentAddress, setCurrentAddress] = useState('Detecting...');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -61,11 +60,11 @@ export function LocationHeader({
       />
 
       <div className="flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}>
-          <MapPin className="h-4.5 w-4.5 text-black stroke-[2.5]" />
-          <div className="flex items-center gap-1">
-            <span className="text-black text-base font-black tracking-tight">{isMounted ? currentAddress : 'Loading...'}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-black/60" />
+        <div className="flex items-center gap-1.5">
+          <MapPin className="h-4.5 w-4.5 text-primary stroke-[2.5]" />
+          <div className="flex flex-col">
+            <span className="text-black text-xs font-black tracking-tight uppercase leading-none">{isMounted ? currentAddress : 'Detecting...'}</span>
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Your Area</span>
           </div>
         </div>
 

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
+import { ZoneGuard } from '@/components/shared/ZoneGuard';
 
 // DYNAMIC IMPORTS
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
@@ -17,7 +18,6 @@ const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/Telegr
 const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
 const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay'), { ssr: false });
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
-const DynamicFloatingCart = dynamic(() => import('@/components/shared/FloatingCart'), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 const DynamicTawkChat = dynamic(() => import('@/components/shared/TawkChat').then(m => m.TawkChat), { ssr: false });
 
@@ -82,7 +82,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
-  // Hide TawkChat on cart/checkout to prevent UI overlap with map
+  // Hide TawkChat on cart/checkout or excluded paths
   const showChat = useMemo(() => {
     if (!pathname) return true;
     const p = pathname.toLowerCase();
@@ -103,9 +103,14 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 <DynamicNotificationHandler />
                 <DynamicTelegramNotifier />
                 <DynamicWelcomeBonus />
-                {children}
+                
+                {/* Wrap Customer App with ZoneGuard */}
+                {!isExcludedPath ? (
+                  <ZoneGuard>{children}</ZoneGuard>
+                ) : (
+                  <>{children}</>
+                )}
               </main>
-              {!isExcludedPath && <DynamicFloatingCart />}
               {!isExcludedPath && <DynamicBottomNav />}
               {showChat && <DynamicTawkChat />}
             </div>
