@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   X,
   Map as MapIcon,
-  Compass
+  Compass,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +37,7 @@ import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 
 const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
@@ -57,8 +58,9 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isPickedUp = order.status === 'Picked Up';
 
-  const customerLat = order.customerLocation?.latitude;
-  const customerLng = order.customerLocation?.longitude;
+  // Google Maps Coordinates from Firestore
+  const customerLat = order.customerLat || order.customerLocation?.latitude;
+  const customerLng = order.customerLng || order.customerLocation?.longitude;
 
   const handleAction = () => {
     if (isReadyForPickup) {
@@ -92,7 +94,7 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
 
   const startNavigation = () => {
     if (customerLat && customerLng) {
-      // Universal Google Maps navigation link with travel mode set to driving
+      // GOOGLE MAPS PLATFORMTurn-by-Turn Navigation URL
       const url = `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&travelmode=driving`;
       window.open(url, '_blank');
     }
@@ -112,8 +114,8 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
             <button onClick={handleCall} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
               <PhoneCall className="h-5 w-5" />
             </button>
-            <button onClick={startNavigation} className="h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-blue-100">
-              <Navigation className="h-5 w-5" />
+            <button onClick={startNavigation} className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-primary/10">
+              <Compass className="h-5 w-5" />
             </button>
           </div>
        </div>
@@ -134,7 +136,7 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
                 onClick={() => setIsMapOpen(true)}
                 className="w-full h-12 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center gap-2 font-black uppercase italic text-[9px] tracking-widest text-primary"
                >
-                  <MapIcon className="h-4 w-4" /> PREVIEW DROP LOCATION
+                  <MapIcon className="h-4 w-4" /> PREVIEW GOOGLE PIN
                </button>
             </div>
           )}
@@ -178,9 +180,9 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
          <div className="mb-6 space-y-6 animate-in slide-in-from-bottom-2">
             <Button 
               onClick={startNavigation}
-              className="w-full h-16 bg-blue-600 text-white rounded-2xl font-black uppercase italic text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-blue-100"
+              className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-primary/20"
             >
-              <Compass className="h-6 w-6 animate-pulse" /> START NAVIGATION
+              <Navigation className="h-6 w-6 animate-pulse" /> START TURN-BY-TURN
             </Button>
 
             <Button 
@@ -191,13 +193,13 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
             </Button>
 
             <div className="space-y-3">
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Payment Status</span>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Collection Mode</span>
               <div className="grid grid-cols-2 gap-3">
                  <button 
                   onClick={() => setCollectionMethod('Online')}
                   className={cn(
                     "h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-95",
-                    collectionMethod === 'Online' ? "bg-blue-50 border-blue-500 text-blue-700 shadow-inner" : "bg-gray-50 border-transparent text-gray-400"
+                    collectionMethod === 'Online' ? "bg-primary/5 border-primary text-primary shadow-inner" : "bg-gray-50 border-transparent text-gray-400"
                   )}
                  >
                     <CreditCard className="h-4 w-4" />
@@ -249,7 +251,7 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
             {isPickedUp && (
               <Button 
                 onClick={handleAction} 
-                className="flex-1 bg-blue-600 h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
+                className="flex-1 bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
               >
                 DISPATCH ORDER
               </Button>
@@ -269,16 +271,17 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
        {/* MAP PREVIEW MODAL */}
        <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
           <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-             <div className="h-2 w-full bg-blue-600" />
+             <div className="h-2 w-full bg-primary" />
              <div className="p-8 space-y-6">
                 <DialogHeader>
-                   <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Drop Pin Preview</DialogTitle>
+                   <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Customer Drop Spot</DialogTitle>
+                   <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Pinpoint coordinate on Map</DialogDescription>
                 </DialogHeader>
                 <div className="h-64 w-full bg-muted rounded-[2rem] overflow-hidden border-4 border-muted/20">
                    {customerLat && <OrderMapViewer lat={customerLat} lng={customerLng} />}
                 </div>
                 <div className="flex gap-3">
-                   <Button onClick={startNavigation} className="flex-1 h-14 bg-blue-600 text-white rounded-2xl font-black uppercase italic">NAVIGATE</Button>
+                   <Button onClick={startNavigation} className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic"><ExternalLink className="h-4 w-4 mr-2" /> OPEN GOOGLE MAPS</Button>
                    <Button onClick={() => setIsMapOpen(false)} variant="ghost" className="h-14 w-14 rounded-2xl bg-gray-100"><X className="h-5 w-5" /></Button>
                 </div>
              </div>
@@ -292,6 +295,7 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
              <div className="p-8 space-y-8 flex flex-col items-center text-center">
                 <DialogHeader>
                    <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter">Scan to Pay</DialogTitle>
+                   <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Digital Collection QR</DialogDescription>
                 </DialogHeader>
                 
                 <div className="bg-white p-6 rounded-[2.5rem] border-2 border-dashed border-gray-200 shadow-inner relative group">

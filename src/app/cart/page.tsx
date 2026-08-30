@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -13,12 +12,11 @@ import {
   CheckCircle2, 
   ShoppingBasket, 
   ArrowRight,
-  Crosshair,
   Timer,
   Receipt,
-  Banknote,
   Navigation,
-  X
+  X,
+  Crosshair
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -33,9 +31,12 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import dynamic from 'next/dynamic';
 
-const MapPicker = dynamic(() => import('@/components/shared/MapPicker'), { 
+const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
   ssr: false,
-  loading: () => <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white"><Loader2 className="h-10 w-10 animate-spin text-primary" /><p className="text-[10px] font-black uppercase tracking-widest">Opening World Map...</p></div>
+  loading: () => <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
+    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+    <p className="text-[10px] font-black uppercase tracking-widest">Opening World Map...</p>
+  </div>
 });
 
 const FREE_DELIVERY_THRESHOLD = 400;
@@ -65,6 +66,10 @@ export default function CartPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    // Request Initial Geolocation for Permission cache
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true });
+    }
   }, []);
 
   const profileRef = useMemoFirebase(() => {
@@ -117,7 +122,7 @@ export default function CartPage() {
   const handleMapConfirm = (lat: number, lng: number) => {
     setCustomerLocation({ lat, lng });
     setIsMapOpen(false);
-    toast({ title: "Drop Location Set! 📍" });
+    toast({ title: "Drop Spot Locked! 📍" });
   };
 
   const handlePlaceOrder = async () => {
@@ -126,7 +131,7 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Address Required" }); setIsEditingAddress(true); return;
     }
     if (!customerLocation) {
-      toast({ variant: "destructive", title: "Pin Location Required", description: "Use the map to pin your home." });
+      toast({ variant: "destructive", title: "Precise Drop Pin Required", description: "Use the map to pin your doorstep." });
       setIsMapOpen(true);
       return;
     }
@@ -145,6 +150,8 @@ export default function CartPage() {
         customerPhone,
         address: customerAddress.toUpperCase(),
         city: customerCity.toUpperCase(),
+        customerLat: customerLocation.lat,
+        customerLng: customerLocation.lng,
         customerLocation: new GeoPoint(customerLocation.lat, customerLocation.lng),
         items: cart,
         total: grandTotal,
@@ -200,11 +207,11 @@ export default function CartPage() {
         
         {/* Delivery Timing Card */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-           <div className="h-12 w-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+           <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
               <Timer className="h-6 w-6" />
            </div>
            <div>
-              <h3 className="text-sm font-black italic uppercase leading-none">10 Mins Delivery</h3>
+              <h3 className="text-sm font-black italic uppercase leading-none text-gray-900">10 Mins Delivery</h3>
               <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">From your nearest ShopyKart hub</p>
            </div>
         </div>
@@ -243,7 +250,7 @@ export default function CartPage() {
            <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
                  <MapPin className="h-4 w-4 text-gray-400" />
-                 <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Delivery Address</span>
+                 <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Delivery Identity</span>
               </div>
               <button onClick={() => setIsEditingAddress(!isEditingAddress)} className="text-[9px] font-black uppercase text-primary underline underline-offset-2">{isEditingAddress ? 'Save' : 'Change'}</button>
            </div>
@@ -272,8 +279,8 @@ export default function CartPage() {
                        <Navigation className="h-5 w-5" />
                     </div>
                     <div className="text-left">
-                       <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Map Drop Pin</span>
-                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Home Location Set' : 'Pin your home on map'}</p>
+                       <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Doorstep Pin</span>
+                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Drop Spot Set' : 'Pin your house on Google Map'}</p>
                     </div>
                  </div>
                  <button className="bg-white border border-gray-200 h-9 px-4 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all">
@@ -311,10 +318,6 @@ export default function CartPage() {
                  <span className="text-xl font-black italic text-primary tracking-tighter">₹{grandTotal.toFixed(0)}</span>
               </div>
            </div>
-           <div className="bg-blue-50 px-4 py-3 border-t border-blue-100 flex items-center gap-3">
-              <div className="h-6 w-6 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600"><CheckCircle2 className="h-3.5 w-3.5" /></div>
-              <p className="text-[9px] font-black text-blue-800 uppercase tracking-tight">You will earn 10 coins on this order!</p>
-           </div>
         </div>
 
       </div>
@@ -346,19 +349,19 @@ export default function CartPage() {
          </div>
       </div>
 
-      {/* Map Picker Dialog */}
+      {/* Google Map Picker Dialog */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
-           <DialogHeader className="p-6 bg-white border-b shrink-0">
-             <DialogTitle className="font-black italic uppercase text-center text-xl">Pin Delivery Location</DialogTitle>
-             <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Move the map to set your exact home coordinate.</DialogDescription>
+           <DialogHeader className="sr-only">
+             <DialogTitle>Pin Delivery Location</DialogTitle>
+             <DialogDescription>Move the map to set your exact home coordinate.</DialogDescription>
            </DialogHeader>
            <div className="absolute top-4 right-4 z-[10000]">
               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
                  <X className="h-6 w-6" />
               </button>
            </div>
-           <MapPicker onConfirm={handleMapConfirm} />
+           <GoogleMapPicker onConfirm={handleMapConfirm} />
         </DialogContent>
       </Dialog>
 

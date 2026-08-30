@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -48,7 +47,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
   return (
-    <div className={cn("relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-[#C5A021]/30 flex flex-col shadow-2xl transition-all transform-gpu", isOffline && "opacity-75 grayscale-[0.5]")}>
+    <div className={cn("relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-primary/30 flex flex-col shadow-2xl transition-all transform-gpu", isOffline && "opacity-75 grayscale-[0.5]")}>
       <div className="relative aspect-square w-full mb-3">
         <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
@@ -66,12 +65,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               )}
            </div>
         </ProductQuickView>
-        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
-          <Share2 className="h-4 w-4 text-[#C5A021]" />
+        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-primary/40 shadow-lg active:scale-75 z-30">
+          <Share2 className="h-4 w-4 text-primary" />
         </button>
       </div>
       <div className="flex-1 flex flex-col px-1">
-        <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
+        <p className="text-[9px] font-black text-primary uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
         <h3 className="font-black text-[13px] text-white leading-[1.2] italic uppercase tracking-tighter line-clamp-2 mb-1 min-h-[2.2rem]">{product.name}</h3>
         <div className="mt-auto flex items-center justify-between pt-2">
           <div className="flex flex-col">
@@ -84,10 +83,10 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
           {!isOffline ? (
             quantity === 0 ? (
               <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={true}>
-                <button className="bg-[#D9C4A9] text-[#451A03] h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90">ADD</button>
+                <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90">ADD</button>
               </ProductQuickView>
             ) : (
-              <div className="flex items-center bg-[#C5A021] text-[#451A03] rounded-full h-9 px-1.5 shadow-xl border border-white/20">
+              <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
                 <button onClick={() => onRemove(product.id)} className="w-7 h-full flex items-center justify-center"><Minus className="h-4 w-4 stroke-[3]" /></button>
                 <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
                 <button onClick={() => onAdd({...product, price: displayPrice, quantity: 1})} className="w-7 h-full flex items-center justify-center"><Plus className="h-4 w-4 stroke-[3]" /></button>
@@ -117,7 +116,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     updateZone(); 
     window.addEventListener('user-address-updated', updateZone);
     
-    // Hydration Safe Time Tracker
     const syncTime = () => { 
       const d = new Date(); 
       setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes()); 
