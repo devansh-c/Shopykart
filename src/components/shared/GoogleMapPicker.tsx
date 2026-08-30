@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -11,7 +10,7 @@ const containerStyle = {
   height: '100%'
 };
 
-// Emergency fallback only if GPS fails completely
+// Mauranipur/Ranipur Center
 const defaultCenter = {
   lat: 25.2443,
   lng: 79.0838
@@ -25,8 +24,8 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview Absolute Precision Google Map Picker.
- * Fixed: Added proper state synchronization for forcedInitialCenter to prevent default location jumps.
+ * @fileOverview Absolute Precision Google Map Picker (Zomato Style).
+ * Center-locked static pin with draggable map and auto-address resolution.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -44,7 +43,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
 
-  // CRITICAL: Synchronize state when forcedInitialCenter arrives from parent
+  // Synchronize map when forcedInitialCenter arrives
   useEffect(() => {
     if (forcedInitialCenter && isLoaded) {
       setCenter(forcedInitialCenter);
@@ -58,7 +57,6 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-    // If we already have coords, set them on the map instance directly
     if (forcedInitialCenter) {
       mapInstance.setCenter(forcedInitialCenter);
       mapInstance.setZoom(19);
@@ -103,7 +101,6 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
       if (currentCenter) {
         const lat = currentCenter.lat();
         const lng = currentCenter.lng();
-        // Update internal state to match map's new center
         setCenter({ lat, lng });
         reverseGeocode(lat, lng);
       }
