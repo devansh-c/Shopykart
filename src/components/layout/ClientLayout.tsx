@@ -20,6 +20,7 @@ const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonus
 const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
 const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
 const DynamicTawkChat = dynamic(() => import('@/components/shared/TawkChat').then(m => m.TawkChat), { ssr: false });
+const DynamicSplashScreen = dynamic(() => import('@/components/shared/SplashScreen').then(m => ({ default: m.SplashScreen })), { ssr: false });
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
@@ -86,6 +87,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     <FirebaseClientProvider>
       <CartProvider>
         <div className="relative min-h-screen flex flex-col">
+          <DynamicSplashScreen />
           <DynamicBrandingLoader />
           <FirebaseErrorListener />
           
