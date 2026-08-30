@@ -22,7 +22,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * Standard Robust Point-in-Polygon Algorithm
+ * Standard Robust Point-in-Polygon Algorithm.
+ * Fixes precision issues by ensuring inputs are strictly numeric.
  */
 function isPointInPolygon(lat: number, lng: number, points: any[]) {
   if (!points || !Array.isArray(points) || points.length < 3) return false;
@@ -41,7 +42,8 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 }
 
 /**
- * @fileOverview ZoneGuard with Forced Fresh Location and 20s Accuracy Lock.
+ * @fileOverview ZoneGuard with Forced Fresh Location and 15s Accuracy Lock.
+ * Implements building-level precision required for 10-min delivery.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -60,6 +62,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, [firestore]);
   const { data: activeZones } = useCollection<any>(zonesQuery);
 
+  /**
+   * Aggressive Geolocation Fetch.
+   * Uses maximum precision settings to bypass cached low-accuracy signals.
+   */
   const handleRequestLocation = (isAuto = false) => {
     if (!navigator.geolocation) {
       toast({ variant: "destructive", title: "GPS Not Supported" });
@@ -70,11 +76,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     setPermissionStatus('locating');
     setIsLocating(true);
 
-    // EXTREME ACCURACY SETTINGS: Strictly fresh satellite lock
     const options = {
       enableHighAccuracy: true,
-      timeout: 20000, // 20 Seconds to ensure high precision
-      maximumAge: 0   // Fresh fetch only
+      timeout: 15000, // 15 Seconds window for stable satellite fix
+      maximumAge: 0   // Force strictly fresh data
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -131,7 +136,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
     if (!isBot && !hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
-      // MANDATORY FRESH FETCH ON EVERY LOAD
       handleRequestLocation(true);
     }
   }, []);
@@ -151,6 +155,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return zoneMatch;
     }
 
+    // Fallback: If no direct polygon match, check previously selected zone
     const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
     if (savedZoneId) {
       return activeZones.find(z => z.id === savedZoneId) || null;
@@ -162,6 +167,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   if (!mounted) return null;
   if (isCrawler) return <>{children}</>;
 
+  // Loading State during precise detection
   if (permissionState === 'locating' || (isLocating && !currentCoords)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-6 p-8">
@@ -185,6 +191,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // OUTSIDE SERVICE ZONE SCREEN
   return (
     <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-700">

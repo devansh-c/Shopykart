@@ -363,7 +363,6 @@ export default function CartPage() {
                        <Navigation className="h-4.5 w-4.5" />
                     </div>
                     <div className="text-left">
-                       <span className="text-[9px] font-black uppercase block leading-none mb-1 text-gray-400">Doorstep Pin</span>
                        <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Drop Spot Set' : 'Pin your house on Map'}</p>
                     </div>
                  </div>
