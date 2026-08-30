@@ -7,9 +7,11 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Tawk.to live chat implementation for ShopyKart.
  * Hardened to prevent [Tawk/Logger] errors and handle SPA visibility.
+ * Fixed: Added onLoad readiness check to prevent premature API calls.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -20,30 +22,34 @@ export function TawkChat() {
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).Tawk_API) {
       const tawk = (window as any).Tawk_API;
-      if (tawk.onLoad) {
-        if (pathname?.startsWith('/cart')) {
-          tawk.hide();
-        } else {
-          tawk.show();
-        }
-      } else {
-        // If API is not fully ready, try again after a small delay
-        tawk.onLoad = function() {
+      
+      const updateVisibility = () => {
+        try {
           if (pathname?.startsWith('/cart')) {
             tawk.hide();
           } else {
             tawk.show();
           }
-        };
+        } catch (e) {
+          // Silent catch to prevent Tawk/Logger noise
+        }
+      };
+
+      // If Tawk is already initialized, update immediately
+      if (tawk.onLoad !== undefined) {
+        updateVisibility();
+      } else {
+        // Wait for it to be ready
+        tawk.onLoad = updateVisibility;
       }
     }
-  }, [pathname]);
+  }, [pathname, isReady]);
 
   if (!isClient) return null;
 
   return (
     <>
-      <Script id="tawk-script-config" strategy="afterInteractive">
+      <Script id="tawk-script-config" strategy="afterInteractive" onReady={() => setIsReady(true)}>
         {`
           var Tawk_API = Tawk_API || {};
           var Tawk_LoadStart = new Date();

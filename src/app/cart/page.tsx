@@ -277,6 +277,7 @@ export default function CartPage() {
            </div>
         </div>
 
+        {/* COIN WALLET CARD */}
         <div className="bg-white rounded-[2rem] shadow-sm border border-border/50 overflow-hidden">
            <div className="px-5 py-4 border-b bg-amber-50/50 flex items-center justify-between">
               <div className="flex items-center gap-2">
