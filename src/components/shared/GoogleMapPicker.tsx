@@ -95,7 +95,11 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         setIsLocating(false);
       },
       () => setIsLocating(false),
-      { enableHighAccuracy: true }
+      { 
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
     );
   };
 
@@ -142,8 +146,8 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* PRECISION CENTER PIN */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-6">
+        {/* PRECISION CENTER PIN - FIXED POSITIONING */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
