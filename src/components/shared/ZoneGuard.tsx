@@ -49,8 +49,8 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 }
 
 /**
- * @fileOverview ZoneGuard - Gate with Strict 10-Second Locating Window.
- * Optimized to prevent "google is not defined" error and ensure mandatory manual pin if auto-fetch fails.
+ * @fileOverview ZoneGuard - Gate with Mandatory 10-Second Precision Check.
+ * Ensures fresh location fetching on every entry.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -108,7 +108,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // MANDATORY 10-SECOND TIMER: Wait full 10s before showing map if GPS is struggling
+    // MANDATORY 10-SECOND TIMER: Ensure full 10s pass before Map shows if auto-fetch fails
     const fallbackTimer = setTimeout(() => {
       setGuardState(current => {
         if (current === 'locating') return 'confirming';
@@ -119,7 +119,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     const options = {
       enableHighAccuracy: true,
       timeout: 10000, 
-      maximumAge: 0   
+      maximumAge: 0 // FORCE FRESH SATELLITE SIGNAL
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -141,7 +141,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       },
       (err) => {
         console.warn("GPS Initial Fetch Error:", err.message);
-        // Fallback timer will trigger the map screen automatically at 10s
+        // Fallback timer will trigger map confirmation automatically at 10s
       },
       options
     );
@@ -157,12 +157,12 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Only start locating if we haven't already and the app is ready
+    // Always attempt fresh fetch on mount (App Refresh)
     if (!hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
       handleInitialLocate();
     }
-  }, [isLoaded]); // Re-run if loader state changes
+  }, [isLoaded]);
 
   if (!mounted) return null;
 

@@ -1,27 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { ShieldCheck, Sparkles } from 'lucide-react';
 
 /**
  * @fileOverview Premium Splash Screen for ShopyKart.
- * Features: Logo entrance animation, Gold running progress bar, Security branding.
+ * Features: Logo entrance animation using favicon.ico, Gold running progress bar.
  * Automatically fades out after 3 seconds.
  */
 export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
   const [isFading, setIsFading] = useState(false);
-  const firestore = useFirestore();
-
-  const brandingRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'app_settings', 'branding');
-  }, [firestore]);
-
-  const { data: branding } = useDoc<any>(brandingRef);
 
   useEffect(() => {
     // Phase 1: Keep visible for 2.5 seconds
@@ -62,16 +52,9 @@ export function SplashScreen() {
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full animate-pulse scale-150" />
           <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex items-center justify-center overflow-hidden transform-gpu hover:scale-105 transition-transform duration-700">
-            {branding?.logoUrl ? (
-              <img src={branding.logoUrl} alt="ShopyKart Logo" className="h-24 w-auto object-contain" />
-            ) : (
-              <div className="flex flex-col items-center">
-                <h1 className="text-3xl font-black italic tracking-tighter text-gray-900 leading-none">
-                  SHOPY<span className="text-primary">KART</span>
-                </h1>
-                <div className="w-12 h-1 bg-primary mt-2 rounded-full" />
-              </div>
-            )}
+            {/* STRICTLY USING ICON.ICO / FAVICON AS REQUESTED */}
+            <img src="/favicon.ico" alt="ShopyKart Logo" className="h-24 w-24 object-contain" />
+            
             {/* Gloss shine effect */}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full animate-[shine_3s_infinite]" />
           </div>
@@ -105,11 +88,6 @@ export function SplashScreen() {
           <p className="text-[9px] font-black uppercase tracking-[0.5em] text-gray-900">Encrypted Infrastructure</p>
         </div>
         <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">© 2024 ShopyKart Enterprise</p>
-      </div>
-
-      {/* VERSION TAG */}
-      <div className="absolute top-8 right-8 opacity-20">
-         <span className="text-[8px] font-black uppercase tracking-widest border border-black px-2 py-1 rounded-lg">v2.5.0-LUX</span>
       </div>
     </div>
   );
