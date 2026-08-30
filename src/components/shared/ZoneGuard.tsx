@@ -3,18 +3,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MapPin, 
-  Map as MapIcon, 
-  ShieldAlert, 
   Loader2,
-  Navigation,
-  Crosshair,
-  ShieldCheck,
   Navigation2,
-  Check,
-  Zap
+  ShieldAlert
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
@@ -36,7 +30,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 const libraries: ("places")[] = ["places"];
 
 /**
- * Robust Point-in-Polygon Algorithm.
+ * Robust Point-in-Polygon Algorithm for zone matching.
  */
 function isPointInPolygon(lat: number, lng: number, points: any[]) {
   if (!points || !Array.isArray(points) || points.length < 3) return false;
@@ -55,9 +49,8 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 }
 
 /**
- * @fileOverview ZoneGuard - Entry Gate with 10-Second Smart Logic.
- * If location is accurately fetched within 10s, it auto-opens. 
- * Otherwise, forces manual pin on map.
+ * @fileOverview ZoneGuard - Gate with Strict 10-Second Locating Window.
+ * Displays fallback Map only after the full timeout or mandatory failure.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -68,7 +61,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const hasAttemptedRef = useRef(false);
 
-  // Global Loader to ensure 'google' object is ready for Geocoding
+  // Load Google Maps script globally for Geocoding support
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -89,7 +82,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user_address_line', address.toUpperCase());
     }
 
-    // Try to match zone from fresh data or cache
     if (activeZones && activeZones.length > 0) {
       const zoneMatch = activeZones.find((z: any) => {
         if (z.boundary && Array.isArray(z.boundary) && z.boundary.length > 2) {
@@ -112,16 +104,19 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   const handleInitialLocate = () => {
     if (!navigator.geolocation) {
-      setGuardState('confirming'); // Force map if no GPS support
+      setGuardState('confirming');
       return;
     }
 
-    setGuardState('locating');
+    // MANDATORY 10-SECOND TIMER: Only show Map screen after 10s if GPS still hasn't worked
+    const fallbackTimer = setTimeout(() => {
+      setGuardState(current => current === 'locating' ? 'confirming' : current);
+    }, 10000);
 
     const options = {
       enableHighAccuracy: true,
-      timeout: 10000, // STRICT 10 SECOND LIMIT
-      maximumAge: 0   // FORCE FRESH DATA
+      timeout: 10000, 
+      maximumAge: 0   
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -129,36 +124,32 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setInitialCoords(coords);
         
-        // AUTO-OPEN LOGIC: Attempt to resolve address and open app instantly
-        // DEFENSIVE CHECK: Ensure 'google' exists before creating Geocoder to prevent ReferenceError
-        if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+        // Use isLoaded to prevent ReferenceError: google is not defined
+        if (isLoaded && typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
           const geocoder = new google.maps.Geocoder();
           geocoder.geocode({ location: coords }, (results, status) => {
             if (status === "OK" && results?.[0]) {
+              clearTimeout(fallbackTimer);
               handleFinalConfirm(coords.lat, coords.lng, results[0].formatted_address);
-              toast({ title: "Smart GPS Active! 🚚" });
+              toast({ title: "Smart GPS Sync Active! 🚚" });
             } else {
-              // Fallback to map if geocoding fails
-              setGuardState('confirming');
+              // Geocoding failed, fallback to map (it will happen automatically after 10s)
             }
           });
-        } else {
-          // If GPS is fast but Google script is slow, fallback to map (it handles its own loader)
-          setGuardState('confirming');
         }
       },
       (err) => {
-        // FAIL OR TIMEOUT: Show manual map picker
-        console.warn("GPS 10s Window Expired or Denied. Fallback to Map.");
-        setGuardState('confirming');
+        console.warn("GPS Initial Fetch Error:", err.message);
+        // We still wait for the 10s timeout to show the map screen for consistent UX
       },
       options
     );
+
+    return () => clearTimeout(fallbackTimer);
   };
 
   useEffect(() => {
     setMounted(true);
-    // Crawler/Bot check - bypass for SEO
     const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
     if (isBot) {
       setGuardState('granted');
@@ -169,7 +160,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       hasAttemptedRef.current = true;
       handleInitialLocate();
     }
-  }, []);
+  }, [isLoaded]);
 
   if (!mounted) return null;
 
