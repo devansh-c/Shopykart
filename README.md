@@ -1,4 +1,4 @@
-np# ShopyKart - Premium Food Delivery
+itnp# ShopyKart - Premium Food Delivery
 
 Official NextJS source code for ShopyKart.
 
