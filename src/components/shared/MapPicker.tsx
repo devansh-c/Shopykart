@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -95,10 +96,10 @@ export default function MapPicker({ onConfirm }: { onConfirm: (lat: number, lng:
           zoomControl={false}
           attributionControl={false}
         >
-          {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) - NO KEY NEEDED */}
+          {/* Truly Free OpenStreetMap Tiles - No Watermark */}
           <TileLayer 
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            subdomains='abcd'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; OpenStreetMap'
           />
           <CenterTracker onPositionChange={setCurrentPos} />
           <LocationTrigger onLocate={(lat, lng) => setCurrentPos([lat, lng])} />

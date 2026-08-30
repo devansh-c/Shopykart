@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -65,10 +66,10 @@ export default function ZoneMapDrawing({ points, onUpdate }: ZoneMapDrawingProps
         style={{ height: '100%', width: '100%' }}
         className="z-0"
       >
-        {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) */}
+        {/* Truly Free OpenStreetMap Tiles - No Watermark */}
         <TileLayer 
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          subdomains='abcd'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; OpenStreetMap'
         />
         
         <MapClickHandler onClick={handleMapClick} />

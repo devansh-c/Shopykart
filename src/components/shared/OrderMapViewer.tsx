@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -70,10 +71,10 @@ export default function OrderMapViewer({ lat, lng }: OrderMapViewerProps) {
         zoomControl={false}
         attributionControl={false}
       >
-        {/* HIGH-DETAIL STREET MAP TILES (CartoDB Voyager) - NO KEY NEEDED */}
+        {/* Truly Free OpenStreetMap Tiles - No Watermark */}
         <TileLayer 
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          subdomains='abcd'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; OpenStreetMap'
         />
         <MapResizer lat={lat} lng={lng} />
         
