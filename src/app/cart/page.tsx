@@ -72,9 +72,6 @@ export default function CartPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true });
-    }
   }, []);
 
   const profileRef = useMemoFirebase(() => {

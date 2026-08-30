@@ -40,9 +40,11 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
   return inside;
 }
 
+/**
+ * @fileOverview ZoneGuard with Forced Fresh Location and 20s Accuracy Lock.
+ */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
   
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -68,19 +70,17 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     setPermissionStatus('locating');
     setIsLocating(true);
 
-    /**
-     * HIGH PRECISION STRATEGY:
-     * We use a longer timeout (20s) and force no cache.
-     * Some devices return the first available (less accurate) point quickly. 
-     * We use enableHighAccuracy: true to force GPS/Satellite instead of Cell Tower.
-     */
+    // EXTREME ACCURACY SETTINGS: Strictly fresh satellite lock
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 20000, // 20 Seconds to ensure high precision
+      maximumAge: 0   // Fresh fetch only
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        const accuracy = pos.coords.accuracy;
-
-        console.log(`GPS Lock: ${lat}, ${lng} (Accuracy: ${accuracy}m)`);
         
         try {
           const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -103,7 +103,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             setCurrentCoords({ lat, lng });
             setPermissionStatus('granted');
             window.dispatchEvent(new CustomEvent('user-address-updated'));
-            if (!isAuto) toast({ title: "Location Verified! 📍" });
           } else {
             setCurrentCoords({ lat, lng });
             setPermissionStatus('granted');
@@ -117,16 +116,11 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         }
       },
       (err) => {
-        console.error("GPS Accurate Detection Failed:", err);
+        console.error("GPS Lock Error:", err);
         setIsLocating(false);
         setPermissionStatus('denied');
-        if (!isAuto) toast({ variant: "destructive", title: "Detection Failed", description: "Please select your zone manually." });
       },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 20000, // INCREASED TIMEOUT TO 20 SECONDS FOR SATELLITE LOCK
-        maximumAge: 0   // FORCE REFRESH - NEVER USE CACHED DATA
-      }
+      options
     );
   };
 
@@ -137,7 +131,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
     if (!isBot && !hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
-      // MANDATORY FRESH FETCH ON EVERY SESSION START
+      // MANDATORY FRESH FETCH ON EVERY LOAD
       handleRequestLocation(true);
     }
   }, []);
@@ -178,8 +172,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="text-center space-y-2">
-           <h2 className="text-xl font-black italic uppercase tracking-tighter">Connecting to Satellites...</h2>
-           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Establishing Ultra-Accurate GPS Lock (Please Wait)</p>
+           <h2 className="text-xl font-black italic uppercase tracking-tighter">Locating Your Spot...</h2>
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Establishing Ultra-Accurate GPS Lock</p>
         </div>
       </div>
     );
@@ -209,7 +203,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
             LOCATION<br /><span className="text-primary">{permissionState === 'denied' ? 'DENIED.' : 'OUTSIDE.'}</span>
           </h1>
-          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
+          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] max-w-[280px] mx-auto mt-4">
             {permissionState === 'denied' 
               ? 'PLEASE ALLOW GPS ACCESS TO CONNECT TO THE NEAREST HUB.' 
               : 'YOU ARE CURRENTLY OUTSIDE OUR SERVICE ZONES. PLEASE CHOOSE A HUB MANUALLY.'}

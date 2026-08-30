@@ -22,7 +22,8 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview Premium Map Picker with Extreme GPS Accuracy and Screenshot Alignment.
+ * @fileOverview Extreme Precision Map Picker with Screenshot-Aligned UI.
+ * Optimized for maximum GPS accuracy and zero white space.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -89,12 +90,17 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     
-    // EXTREME GPS STRATEGY: No cache, longer timeout for high precision satellite lock
+    // EXTREME ACCURACY SETTINGS: Mandatory Fresh Fetch
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 15000, // 15 seconds to ensure high precision satellite lock
+      maximumAge: 0   // No cached data allowed
+    };
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (map) {
-          // Instant precision sync: bypass pan animations
           map.setCenter(coords);
           map.setZoom(18);
           setConfirmCoords(coords);
@@ -103,21 +109,17 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         setIsLocating(false);
       },
       (err) => {
-        console.warn("High-Precision Location error:", err.message);
+        console.warn("Precision location failed:", err.message);
         setIsLocating(false);
       },
-      { 
-        enableHighAccuracy: true,
-        maximumAge: 0, 
-        timeout: 15000 // Give 15 seconds to find an accurate satellite point
-      }
+      options
     );
   };
 
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Syncing Google Satellites...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Syncing Satellites...</p>
     </div>
   );
 
@@ -138,16 +140,17 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           ]
         }}
       >
+        {/* Floating Search Bar - Perfectly Positioned */}
         <div className="absolute top-6 left-4 right-4 z-[1001]">
           <Autocomplete 
             onLoad={onAutocompleteLoad} 
             onPlaceChanged={onPlaceChanged}
           >
-            <div className="relative">
+            <div className="relative shadow-2xl rounded-2xl overflow-hidden">
               <input 
                 type="text"
-                placeholder="Search House No, Street or Landmark" 
-                className="w-full h-12 pl-4 pr-12 rounded-xl bg-white border-none shadow-2xl font-bold text-[13px] text-gray-800 focus:outline-none placeholder:text-gray-400"
+                placeholder="Search House No, Street or Area" 
+                className="w-full h-12 pl-4 pr-12 bg-white border-none font-bold text-[13px] text-gray-800 focus:outline-none placeholder:text-gray-400"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
                 <Search className="h-5 w-5 stroke-[2.5]" />
@@ -156,7 +159,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* MATHEMATICALLY CENTERED PIN (Aligned to map center exactly) */}
+        {/* MATHEMATICALLY CENTERED PIN (No Offset) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
@@ -171,21 +174,21 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         <div className="absolute bottom-28 right-4 z-[1001]">
           <button 
             onClick={handleLocate}
-            className="h-10 w-10 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#2ecc71] border border-gray-100 active:scale-90 transition-all"
-            title="Locate Me (Extreme Precision)"
+            className="h-11 w-11 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#2ecc71] border border-gray-100 active:scale-90 transition-all"
           >
             <Crosshair className={cn("h-5 w-5", isLocating && "animate-spin")} />
           </button>
         </div>
 
+        {/* BOTTOM UI - Tight and Space-Optimized */}
         <div className="absolute bottom-6 left-4 right-4 z-[1001] flex flex-col gap-2">
            <div className="bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-2xl border border-white/20">
               <div className="flex items-center gap-3 px-2 py-0.5">
                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     {isResolving ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : <MapPin className="h-4 w-4 text-primary" />}
                  </div>
-                 <p className="text-[9px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">
-                    {isResolving ? 'Locking Fresh Address...' : resolvedAddress || 'Align pin to your doorstep'}
+                 <p className="text-[10px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">
+                    {isResolving ? 'Locking Spot...' : resolvedAddress || 'Align pin at your doorstep'}
                  </p>
               </div>
            </div>

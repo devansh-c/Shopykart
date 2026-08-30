@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Hardened Tawk.to visibility control for ShopyKart.
  * Forcefully hides on /cart path using high-frequency polling.
+ * Optimized with onLoad safety to prevent [Tawk/Logger] errors.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -37,7 +38,11 @@ export function TawkChat() {
     // 1. Native onLoad sync
     if (typeof window !== 'undefined') {
       const tawk = (window as any).Tawk_API || {};
-      tawk.onLoad = manageTawkVisibility;
+      const originalOnLoad = tawk.onLoad;
+      tawk.onLoad = () => {
+        if (originalOnLoad) originalOnLoad();
+        manageTawkVisibility();
+      };
       (window as any).Tawk_API = tawk;
     }
 
