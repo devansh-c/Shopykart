@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -15,7 +16,9 @@ import {
   Timer,
   Receipt,
   Navigation,
-  X
+  X,
+  Coins,
+  Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -28,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
+import { Switch } from '@/components/ui/switch';
 import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
@@ -60,6 +64,10 @@ export default function CartPage() {
   const [customerLocation, setCustomerLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
+  // Coins State
+  const [useCoins, setUseCoins] = useState(false);
+  const [redeemedCoins, setRedeemedCoins] = useState(0);
+
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'utr'>('selection');
 
@@ -75,6 +83,14 @@ export default function CartPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: profile } = useDoc<any>(profileRef);
+
+  const brandingRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'app_settings', 'branding');
+  }, [firestore]);
+  const { data: branding } = useDoc<any>(brandingRef);
+
+  const coinRate = branding?.coinValue || 0.5;
 
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -107,7 +123,25 @@ export default function CartPage() {
   }, [dbCharges, totalPrice, isFreeDeliveryEligible]);
 
   const chargesTotalSum = useMemo(() => dynamic_charges.reduce((acc, curr) => acc + (Number(curr.calculatedAmount) || 0), 0), [dynamic_charges]);
-  const grandTotal = Math.max(0, totalPrice + chargesTotalSum);
+  
+  // Coin Calculation
+  const maxRedeemableCoins = useMemo(() => {
+    if (!profile?.coins) return 0;
+    const currentBalance = Number(profile.coins);
+    const availableValue = currentBalance * coinRate;
+    // Can't redeem more than order total (before charges)
+    if (availableValue > totalPrice) {
+       return Math.floor(totalPrice / coinRate);
+    }
+    return currentBalance;
+  }, [profile, totalPrice, coinRate]);
+
+  const coinDiscount = useMemo(() => {
+    if (!useCoins) return 0;
+    return Math.min(redeemedCoins, maxRedeemableCoins) * coinRate;
+  }, [useCoins, redeemedCoins, maxRedeemableCoins, coinRate]);
+
+  const grandTotal = Math.max(0, totalPrice + chargesTotalSum - coinDiscount);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -153,6 +187,8 @@ export default function CartPage() {
         customerLocation: new GeoPoint(customerLocation.lat, customerLocation.lng),
         items: cart,
         total: grandTotal,
+        coinDiscount: coinDiscount,
+        coinsRedeemed: useCoins ? redeemedCoins : 0,
         status: 'Placed',
         paymentMethod: 'online',
         paymentStatus: 'UTR_Pending_Verification',
@@ -165,7 +201,10 @@ export default function CartPage() {
       };
 
       await addDoc(collection(firestore, 'orders'), orderData);
-      await setDoc(doc(firestore, 'users', user.uid), { coins: increment(10) }, { merge: true });
+      
+      // Update coins: Remove redeemed, Add new order bonus
+      const coinBalanceChange = (useCoins ? -redeemedCoins : 0) + 10;
+      await setDoc(doc(firestore, 'users', user.uid), { coins: increment(coinBalanceChange) }, { merge: true });
 
       setShowSuccessOverlay(true);
       setTimeout(() => { clearCart(); router.replace(`/order/track/#${customerOrderNumber}`); }, 1500);
@@ -239,6 +278,62 @@ export default function CartPage() {
            </div>
         </div>
 
+        {/* SHOPYKART CURRENCY (COINS) SECTION */}
+        <div className="bg-white rounded-[2rem] shadow-sm border border-border/50 overflow-hidden">
+           <div className="px-5 py-4 border-b bg-amber-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                 <Coins className="h-4 w-4 text-amber-600" />
+                 <span className="text-[10px] font-black uppercase text-amber-700 tracking-widest">ShopyKart Currency</span>
+              </div>
+              <Switch 
+                checked={useCoins} 
+                onCheckedChange={setUseCoins} 
+                className="data-[state=checked]:bg-amber-500"
+              />
+           </div>
+           
+           <div className={cn("p-5 space-y-4 transition-all duration-300", !useCoins && "opacity-40 grayscale pointer-events-none")}>
+              <div className="flex items-center justify-between">
+                 <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Available Balance</p>
+                    <div className="flex items-center gap-1.5">
+                       <span className="text-xl font-black italic text-gray-900">{profile?.coins || 0} Coins</span>
+                       <span className="text-[9px] font-black text-amber-600 uppercase bg-amber-50 px-1.5 py-0.5 rounded">₹{(Number(profile?.coins || 0) * coinRate).toFixed(1)} Value</span>
+                    </div>
+                 </div>
+                 <button 
+                  onClick={() => setRedeemedCoins(maxRedeemableCoins)}
+                  className="bg-amber-600 text-white text-[8px] font-black uppercase px-3 py-1.5 rounded-lg shadow-lg shadow-amber-200 active:scale-90 transition-all"
+                 >
+                   REDEEM ALL
+                 </button>
+              </div>
+
+              {useCoins && (
+                <div className="space-y-2 animate-in slide-in-from-top-2">
+                   <div className="flex items-center gap-2">
+                      <Input 
+                        type="number"
+                        placeholder="Amount of coins"
+                        value={redeemedCoins || ''}
+                        onChange={(e) => {
+                          const val = Math.min(Number(e.target.value), maxRedeemableCoins);
+                          setRedeemedCoins(val);
+                        }}
+                        className="h-12 rounded-xl bg-gray-50 border-none font-black italic text-lg text-amber-700"
+                      />
+                      <div className="bg-gray-100 h-12 px-4 rounded-xl flex items-center justify-center shrink-0">
+                         <span className="text-xs font-black italic text-gray-400">= ₹{(redeemedCoins * coinRate).toFixed(0)}</span>
+                      </div>
+                   </div>
+                   <p className="text-[8px] font-bold text-gray-400 uppercase ml-1 italic">
+                     You can redeem up to {maxRedeemableCoins} coins for this order.
+                   </p>
+                </div>
+              )}
+           </div>
+        </div>
+
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
            <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -305,6 +400,16 @@ export default function CartPage() {
                 </div>
               ))}
 
+              {useCoins && coinDiscount > 0 && (
+                <div className="flex justify-between text-xs font-bold text-amber-600 uppercase animate-in fade-in">
+                   <div className="flex items-center gap-1">
+                      <Coins className="h-3 w-3" />
+                      <span>Coin Discount</span>
+                   </div>
+                   <span>- ₹{coinDiscount.toFixed(0)}</span>
+                </div>
+              )}
+
               <div className="pt-4 border-t border-dashed flex justify-between items-center">
                  <span className="text-sm font-black uppercase italic text-gray-900">Grand Total</span>
                  <span className="text-xl font-black italic text-primary tracking-tighter">₹{grandTotal.toFixed(0)}</span>
@@ -342,11 +447,11 @@ export default function CartPage() {
 
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
-           <DialogHeader className="sr-only">
-             <DialogTitle>Pin Delivery Location</DialogTitle>
-             <DialogDescription>Move the map to set your exact home coordinate.</DialogDescription>
+           <DialogHeader className="p-6 border-b shrink-0 bg-white">
+             <DialogTitle className="font-black italic uppercase text-center text-xl text-gray-900">Pin Delivery Spot</DialogTitle>
+             <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Move map to set your exact doorstep</DialogDescription>
            </DialogHeader>
-           <div className="absolute top-4 right-4 z-[10000]">
+           <div className="absolute top-4 right-4 z-[21000]">
               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
                  <X className="h-6 w-6" />
               </button>

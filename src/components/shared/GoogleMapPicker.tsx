@@ -22,6 +22,10 @@ interface GoogleMapPickerProps {
   onConfirm: (lat: number, lng: number) => void;
 }
 
+/**
+ * @fileOverview GoogleMapPicker with loop-safe coordinate tracking.
+ * Fixed: Replaced onCenterChanged with onIdle to prevent Maximum Update Depth error.
+ */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -29,7 +33,6 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  // confirmCoords handles the state for the confirmation button
   const [confirmCoords, setConfirmCoords] = useState(defaultCenter);
   const [isLocating, setIsLocating] = useState(false);
 
@@ -37,8 +40,8 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     setMap(map);
   }, []);
 
-  // Use onIdle to capture the center only when movement stops. 
-  // This prevents the infinite loop caused by onCenterChanged.
+  // Performance Fix: Use onIdle to capture the center only when movement stops. 
+  // This prevents the infinite loop caused by continuous setState during motion.
   const handleOnIdle = () => {
     if (map) {
       const newCenter = map.getCenter();
@@ -71,7 +74,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Premium Maps...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Maps...</p>
     </div>
   );
 
@@ -90,7 +93,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             gestureHandling: 'greedy'
           }}
         >
-          {/* Centered Overlay Pin (Fixed UI Element) */}
+          {/* Centered Overlay Pin */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-8">
             <div className="relative flex flex-col items-center">
               <div className="bg-black text-white text-[8px] font-black px-2 py-1 rounded mb-1 uppercase tracking-widest animate-bounce shadow-lg">
