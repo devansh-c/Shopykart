@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -10,8 +11,8 @@ const containerStyle = {
   height: '100%'
 };
 
-// Rough center as last-resort fallback
-const roughFallbackCenter = {
+// Emergency fallback only if GPS fails completely
+const defaultCenter = {
   lat: 25.2443,
   lng: 79.0838
 };
@@ -25,7 +26,7 @@ interface GoogleMapPickerProps {
 
 /**
  * @fileOverview Absolute Precision Google Map Picker.
- * Fixes coordinate feedback loop and forced re-centering on GPS success.
+ * Fixed: Added proper state synchronization for forcedInitialCenter to prevent default location jumps.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -37,25 +38,32 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   
-  // Internal state for the picker, initialized by props or fallback
-  const [center, setCenter] = useState(forcedInitialCenter || roughFallbackCenter);
+  // Initialize with forced center or default
+  const [center, setCenter] = useState(forcedInitialCenter || defaultCenter);
   const [isLocating, setIsLocating] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
-  const isUserInteracting = useRef(false);
 
-  // 1. If map is loaded and we have a forced center, jump there
+  // CRITICAL: Synchronize state when forcedInitialCenter arrives from parent
   useEffect(() => {
-    if (isLoaded && map && forcedInitialCenter) {
-      map.setCenter(forcedInitialCenter);
-      map.setZoom(19);
+    if (forcedInitialCenter && isLoaded) {
+      setCenter(forcedInitialCenter);
+      if (map) {
+        map.setCenter(forcedInitialCenter);
+        map.setZoom(19);
+      }
       reverseGeocode(forcedInitialCenter.lat, forcedInitialCenter.lng);
     }
-  }, [isLoaded, map, forcedInitialCenter]);
+  }, [forcedInitialCenter, isLoaded, map]);
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-  }, []);
+    // If we already have coords, set them on the map instance directly
+    if (forcedInitialCenter) {
+      mapInstance.setCenter(forcedInitialCenter);
+      mapInstance.setZoom(19);
+    }
+  }, [forcedInitialCenter]);
 
   const onAutocompleteLoad = (auto: google.maps.places.Autocomplete) => {
     setAutocomplete(auto);
@@ -67,7 +75,9 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
       if (place.geometry && place.geometry.location) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
-        map?.setCenter({ lat, lng });
+        const newCoords = { lat, lng };
+        setCenter(newCoords);
+        map?.setCenter(newCoords);
         map?.setZoom(19);
       }
     }
@@ -87,45 +97,37 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
     });
   };
 
-  /**
-   * Zomato Style: Pin is fixed in center, map moves. 
-   * When map stops moving (Idle), we get coordinates of the visual center.
-   */
   const handleOnIdle = () => {
     if (map) {
       const currentCenter = map.getCenter();
       if (currentCenter) {
         const lat = currentCenter.lat();
         const lng = currentCenter.lng();
+        // Update internal state to match map's new center
         setCenter({ lat, lng });
         reverseGeocode(lat, lng);
       }
     }
   };
 
-  /**
-   * FRESH GPS FETCH
-   * Strictly bypasses cache and forces map to move.
-   */
   const handleLocate = () => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     
     const options = {
       enableHighAccuracy: true,
-      timeout: 10000, 
+      timeout: 15000, 
       maximumAge: 0   
     };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCenter(coords);
         if (map) {
-          // Direct Map Manipulation - Force jump to coordinates
           map.setCenter(coords);
           map.setZoom(19);
         }
-        setCenter(coords);
         reverseGeocode(coords.lat, coords.lng);
         setIsLocating(false);
       },
@@ -140,7 +142,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">BOOTING GPS CHIPS...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">SYNCING SATELLITE ENGINE...</p>
     </div>
   );
 
@@ -170,7 +172,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
             <div className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5">
               <input 
                 type="text"
-                placeholder="Search House or Landmark" 
+                placeholder="Search Your Building Name" 
                 className="w-full h-12 pl-4 pr-12 bg-white border-none font-bold text-xs text-gray-900 focus:outline-none placeholder:text-gray-400"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-900">
@@ -213,9 +215,9 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
                  </div>
                  <div className="flex-1 min-w-0">
                    <p className="text-[11px] font-black text-gray-900 line-clamp-1 uppercase tracking-tight italic">
-                      {isResolving ? 'IDENTIFYING BUILDING...' : resolvedAddress || 'DRAG MAP TO SET SPOT'}
+                      {isResolving ? 'IDENTIFYING DOORSTEP...' : resolvedAddress || 'DRAG MAP TO YOUR DOOR'}
                    </p>
-                   <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">PINPOINT HOUSE FOR 10-MIN DELIVERY</p>
+                   <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">ESTABLISHING PRECISION COORDINATES</p>
                  </div>
               </div>
            </div>

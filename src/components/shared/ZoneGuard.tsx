@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -28,7 +29,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     </div>
-    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] animate-pulse">Syncing Precision Maps...</p>
+    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] animate-pulse text-center">SYCHRONIZING HIGH-PRECISION MAPS...</p>
   </div>
 });
 
@@ -53,7 +54,7 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 
 /**
  * @fileOverview ZoneGuard - Entry Gate with Force GPS Fetch.
- * Now passes detected coordinates directly to the confirmation map.
+ * Fixed: Implemented strict coordinate passthrough to ensure the map always loads at the detected position.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -80,8 +81,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
     const options = {
       enableHighAccuracy: true,
-      timeout: 15000, 
-      maximumAge: 0   
+      timeout: 20000, // Increased timeout for deep satellite fix
+      maximumAge: 0   // Force fresh fetch, no cache
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -91,7 +92,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         setGuardState('confirming');
       },
       (err) => {
-        console.warn("Initial GPS Lock Failed, Using Manual Picker");
+        console.warn("GPS Signal Weak, Using Manual Verification");
+        // Even if it fails, let them pick on the map
         setGuardState('confirming');
       },
       options
@@ -100,12 +102,14 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    // Crawler/Bot check
     const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
     if (isBot) {
       setGuardState('granted');
       return;
     }
 
+    // Single trigger on mount
     if (!hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
       handleInitialLocate();
@@ -138,7 +142,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
     window.dispatchEvent(new CustomEvent('user-address-updated'));
     setGuardState('granted');
-    toast({ title: "Spot Confirmed! 🚚" });
+    toast({ title: "Coordinates Locked! 🚚" });
   };
 
   if (!mounted) return null;
@@ -153,8 +157,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="text-center space-y-2">
-           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">CONNECTING...</h2>
-           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] animate-pulse">ESTABLISHING FRESH GPS LOCK</p>
+           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">ESTABLISHING LINK...</h2>
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] animate-pulse">REQUESTING HIGH-ACCURACY GPS DATA</p>
         </div>
       </div>
     );
@@ -167,8 +171,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><MapPin className="h-5 w-5" /></div>
              <div>
-                <h2 className="text-sm font-black italic uppercase leading-none">Verify Doorstep</h2>
-                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Move map to place pin exactly at your door</p>
+                <h2 className="text-sm font-black italic uppercase leading-none">Verify Your Spot</h2>
+                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Move map to place pin exactly at your building</p>
              </div>
           </div>
           <button onClick={() => window.location.reload()} className="text-[9px] font-black uppercase text-primary border-b border-primary">RETRY GPS</button>
@@ -191,8 +195,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             <ShieldAlert className="h-20 w-20 text-red-500 animate-bounce" />
           </div>
           <div className="space-y-4">
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">PERMISSION<br /><span className="text-primary">DENIED.</span></h1>
-            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] max-w-[280px] mx-auto mt-4 leading-relaxed">WE NEED YOUR LOCATION TO ENSURE 10-MIN DELIVERY. PLEASE ALLOW GPS ACCESS.</p>
+            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">ACCESS<br /><span className="text-primary">DENIED.</span></h1>
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] max-w-[280px] mx-auto mt-4 leading-relaxed">LOCATION SERVICES ARE MANDATORY TO ENSURE 10-MIN GOURMET DELIVERY.</p>
           </div>
           <Button onClick={() => window.location.reload()} className="w-full h-18 rounded-[2rem] bg-black text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all">TRY AGAIN</Button>
         </div>
