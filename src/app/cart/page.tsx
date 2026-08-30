@@ -15,8 +15,7 @@ import {
   Timer,
   Receipt,
   Navigation,
-  X,
-  Crosshair
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -66,7 +65,6 @@ export default function CartPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    // Request Initial Geolocation for Permission cache
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true });
     }
@@ -194,7 +192,6 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F5F7F9] pb-44 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       
-      {/* Sticky Header */}
       <div className="bg-white sticky top-0 z-50 px-4 py-4 flex items-center gap-4 border-b shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 active:scale-90 transition-transform"><ChevronLeft className="h-6 w-6 text-gray-800" /></button>
         <div>
@@ -204,8 +201,6 @@ export default function CartPage() {
       </div>
 
       <div className="p-3 space-y-4 max-w-lg mx-auto">
-        
-        {/* Delivery Timing Card */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
            <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
               <Timer className="h-6 w-6" />
@@ -216,7 +211,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* Items Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
            <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
               <ShoppingBasket className="h-4 w-4 text-gray-400" />
@@ -245,7 +239,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* Address & MAP Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
            <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -290,7 +283,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* Bill Summary Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
            <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
               <Receipt className="h-4 w-4 text-gray-400" />
@@ -322,7 +314,6 @@ export default function CartPage() {
 
       </div>
 
-      {/* Sticky Bottom Payment Bar (Blinkit Style) */}
       <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t p-4 pb-8 flex items-center justify-center shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
          <div className="w-full max-w-lg flex items-center justify-between gap-4">
             <div className="flex flex-col">
@@ -349,7 +340,6 @@ export default function CartPage() {
          </div>
       </div>
 
-      {/* Google Map Picker Dialog */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
            <DialogHeader className="sr-only">
@@ -365,7 +355,6 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
          <DialogContent className="rounded-t-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none bottom-0 top-auto translate-y-0">
             <div className="bg-primary h-2 w-full" />

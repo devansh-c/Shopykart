@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -25,7 +24,6 @@ export default function NotificationHandler() {
   const [isAccepting, setIsAccepting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 1. AUTO PERMISSION REQUEST FOR SPECIALIZED APPS
   useEffect(() => {
     const askPermissions = async () => {
       const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
@@ -35,11 +33,9 @@ export default function NotificationHandler() {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
           try {
-            // Aggressive prompt for management apps
             if (isAdminApp || isBizApp || isTowApp) {
                await Notification.requestPermission();
             } else {
-               // Soft prompt for customers after delay
                setTimeout(() => Notification.requestPermission(), 5000);
             }
           } catch (e) {
@@ -51,7 +47,6 @@ export default function NotificationHandler() {
     askPermissions();
   }, []);
 
-  // 2. DETECT USER ROLE FOR SPECIALIZED PERMISSIONS
   useEffect(() => {
     const checkRole = async () => {
       const isAdminAuth = localStorage.getItem('admin_auth') === 'true';
@@ -77,7 +72,6 @@ export default function NotificationHandler() {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery') || p.startsWith('/medical') || p.startsWith('/beauty');
   }, [pathname]);
 
-  // 3. REAL-TIME ORDER LISTENER WITH RINGING ALERT
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
@@ -99,14 +93,12 @@ export default function NotificationHandler() {
         
         setRingingOrders(targeted);
 
-        // RINGING LOGIC: Play sound if there's a new targeted order
         if (targeted.length > 0) {
           if (!audioRef.current) {
             audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); 
             audioRef.current.loop = true;
           }
           audioRef.current.play().catch(() => {
-            // User interaction required for audio
             toast({ title: "New Order Incoming!", description: "Enable sound for ringing alerts." });
           });
         } else {

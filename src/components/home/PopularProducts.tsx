@@ -12,14 +12,13 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts with Hydration-Safe store timing logic.
+ * @fileOverview PopularProducts with Hydration-Safe store timing logic and Guest Pricing.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
   
-  // SSR Safety: If time is unknown, assume open to avoid mismatch
   if (currentMins === null || currentMins === undefined) return true;
 
   const parseTimeToMinutes = (t: any) => {
@@ -44,6 +43,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
   const basePrice = Number(product.price) || 0;
+  // GUEST PRICING: ₹10 OFF if not logged in
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
   return (
