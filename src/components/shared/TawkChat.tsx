@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Hardened Tawk.to visibility control for ShopyKart.
- * Forcefully hides on /cart path using persistent polling and onLoad synchronization.
+ * Forcefully hides on /cart path using high-frequency polling.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -29,20 +29,20 @@ export function TawkChat() {
             tawk.show();
           }
         } catch (e) {
-          // Suppress noise
+          // Silent fallback
         }
       }
     };
 
-    // 1. Hook into Tawk's native onLoad
+    // 1. Native onLoad sync
     if (typeof window !== 'undefined') {
       const tawk = (window as any).Tawk_API || {};
       tawk.onLoad = manageTawkVisibility;
       (window as any).Tawk_API = tawk;
     }
 
-    // 2. Persistent Polling - Crucial for handling z-index and async popups
-    const interval = setInterval(manageTawkVisibility, 1500);
+    // 2. High-Frequency Polling (Every 800ms) for solid lockdown on cart page
+    const interval = setInterval(manageTawkVisibility, 800);
     
     return () => clearInterval(interval);
   }, [pathname, isClient]);
