@@ -16,13 +16,14 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection with pre-fetched data handling to prevent delays.
+ * @fileOverview StoreSection with hydration-safe schedule sorting.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
   const router = useRouter();
   
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
+  const [currentTimeMins, setCurrentTimeMins] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     const updateZone = () => {
@@ -30,7 +31,16 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
-    return () => window.removeEventListener('user-address-updated', updateZone);
+    
+    const syncTime = () => {
+      const now = new Date();
+      setCurrentTimeMins(now.getHours() * 60 + now.getMinutes());
+    };
+    syncTime();
+    
+    return () => {
+      window.removeEventListener('user-address-updated', updateZone);
+    };
   }, []);
 
   const vendorsQuery = useMemoFirebase(() => {
@@ -38,7 +48,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
     return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v1', initialData);
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v3_instant', initialData);
 
   const filteredVendors = React.useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
@@ -46,12 +56,12 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     }).sort((a, b) => {
-      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a) ? 1 : 0;
-      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b) ? 1 : 0;
+      const onlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins) ? 1 : 0;
+      const onlineB = b.isOnline !== false && isStoreScheduleOpen(b, currentTimeMins) ? 1 : 0;
       if (onlineA !== onlineB) return onlineB - onlineA;
       return (b.rating || 0) - (a.rating || 0);
     });
-  }, [dbVendors, initialData, activeMode, activeZoneId]);
+  }, [dbVendors, initialData, activeMode, activeZoneId, currentTimeMins]);
 
   if (filteredVendors.length === 0) return null;
 

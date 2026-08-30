@@ -12,7 +12,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview StoresPage with optimized routing to avoid 404s.
+ * @fileOverview StoresPage with hydration-safe schedule tracking.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,7 +22,7 @@ export default function StoresPage() {
 
   useEffect(() => {
     const updateZone = () => {
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveZoneId(typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null);
     };
     updateZone();
     window.addEventListener('user-address-updated', updateZone);
@@ -45,7 +45,7 @@ export default function StoresPage() {
     return collection(firestore, 'vendors');
   }, [firestore]);
 
-  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v1');
+  const { data: dbVendors, loading } = useCollection<any>(vendorsQuery, 'stores_list_v2');
 
   const filteredVendors = useMemo(() => {
     if (!dbVendors) return [];
@@ -110,7 +110,6 @@ export default function StoresPage() {
             const isOffline = store.isOnline === false || !isOpen;
             const rating = store.rating || '4.0';
             
-            // USE SECURE VIEW LINK AS FALLBACK
             const storeSlug = store.slug || slugify(store.storeName) || store.id;
             const storePath = `/store/${storeSlug}/`;
 

@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -11,10 +12,17 @@ import { ProductQuickView } from "@/components/product/ProductQuickView"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
+/**
+ * @fileOverview PopularProducts with Hydration-Safe store timing logic.
+ */
+
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   if (!vendor) return true;
   if (!vendor.openingTime || !vendor.closingTime) return true;
-  const mins = (currentMins !== undefined && currentMins !== null) ? currentMins : (new Date().getHours() * 60 + new Date().getMinutes());
+  
+  // SSR Safety: If time is unknown, assume open to avoid mismatch
+  if (currentMins === null || currentMins === undefined) return true;
+
   const parseTimeToMinutes = (t: any) => {
     try {
       if (typeof t !== 'string') return 0;
@@ -28,9 +36,11 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
       return hours * 60 + (isNaN(minutes) ? 0 : minutes);
     } catch (e) { return 0; }
   };
+
   const start = parseTimeToMinutes(vendor.openingTime);
   const end = parseTimeToMinutes(vendor.closingTime);
-  return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
+
+  return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
@@ -43,7 +53,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
         <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
               <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-              {isOffline && <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center z-10"><Store className="h-6 w-6 text-white/80 mb-1" /><span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span></div>}
+              {isOffline && (
+                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center z-10">
+                  <Store className="h-6 w-6 text-white/80 mb-1" />
+                  <span className="text-white font-black text-[9px] uppercase italic border-2 border-white/30 px-3 py-1 rounded-xl shadow-2xl">Closed</span>
+                </div>
+              )}
               {isGuest && !isOffline && (
                 <div className="absolute top-2 left-2 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg border border-white/20">
                   ₹10 OFF
@@ -51,7 +66,9 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               )}
            </div>
         </ProductQuickView>
-        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30"><Share2 className="h-4 w-4 text-[#C5A021]" /></button>
+        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-[#C5A021]/40 shadow-lg active:scale-75 z-30">
+          <Share2 className="h-4 w-4 text-[#C5A021]" />
+        </button>
       </div>
       <div className="flex-1 flex flex-col px-1">
         <p className="text-[9px] font-black text-[#C5A021] uppercase tracking-[0.1em] italic truncate mb-1 opacity-90">{product.restaurantName || 'ShopyKart Select'}</p>
@@ -97,18 +114,35 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
-    updateZone(); window.addEventListener('user-address-updated', updateZone);
-    const syncTime = () => { const d = new Date(); setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes()); };
-    syncTime(); const interval = setInterval(syncTime, 60000);
-    const handleScroll = () => { if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1200) setVisibleCount(p => p + 60); };
+    updateZone(); 
+    window.addEventListener('user-address-updated', updateZone);
+    
+    // Hydration Safe Time Tracker
+    const syncTime = () => { 
+      const d = new Date(); 
+      setCurrentTimeMinutes(d.getHours() * 60 + d.getMinutes()); 
+    };
+    syncTime(); 
+    const interval = setInterval(syncTime, 60000);
+    
+    const handleScroll = () => { 
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1200) {
+        setVisibleCount(p => p + 60);
+      }
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => { window.removeEventListener('user-address-updated', updateZone); window.removeEventListener('scroll', handleScroll); clearInterval(interval); };
+    
+    return () => { 
+      window.removeEventListener('user-address-updated', updateZone); 
+      window.removeEventListener('scroll', handleScroll); 
+      clearInterval(interval); 
+    };
   }, []);
 
   const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(2000)) : null, [firestore]);
-  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2000_v12', initialData);
+  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v2', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2000_v12', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v2', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -122,8 +156,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const v = vendorMap.get(p.vendorId);
       
       if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) {
-        const isGlobal = !v.zoneId || v.zoneId === 'global';
-        if (!isGlobal) return false;
+        if (v.zoneId !== 'global') return false;
       }
 
       if ((p.serviceMode || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;

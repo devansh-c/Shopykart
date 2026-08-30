@@ -267,7 +267,6 @@ export default function OrderManagement() {
                     </button>
                  </div>
 
-                 {/* COLLECTION DETAILS */}
                  {isDelivered && (
                    <div className="mb-4 bg-white p-4 rounded-2xl border border-border/50 shadow-sm flex items-center justify-between animate-in zoom-in-95 duration-500">
                       <div className="flex items-center gap-3">
@@ -335,9 +334,9 @@ export default function OrderManagement() {
                     </button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[420px] rounded-[2.5rem] p-0 overflow-hidden bg-white flex flex-col max-h-[85vh] z-[11000] border-none">
-                     <DialogHeader className="sr-only">
-                       <DialogTitle>Receipt Preview</DialogTitle>
-                       <DialogDescription>Administrative copy of the order bill.</DialogDescription>
+                     <DialogHeader className="p-6 border-b">
+                       <DialogTitle className="font-black italic uppercase text-center">Receipt Preview</DialogTitle>
+                       <DialogDescription className="text-center text-[10px] font-bold uppercase">Order Administrative Copy</DialogDescription>
                      </DialogHeader>
                      <div className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col items-center">
                         {generateCustomerReceiptDOM(order)}

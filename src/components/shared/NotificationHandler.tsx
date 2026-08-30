@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -11,7 +12,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Global Notification & Urgent Alert Handler.
- * Features: Role-based permission requests, Real-time order ringing for Admin/Vendors.
+ * Specialized for Admin, Biz, and Tow variants to ensure ringing alerts.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -24,21 +25,30 @@ export default function NotificationHandler() {
   const [isAccepting, setIsAccepting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 1. AUTO PERMISSION REQUEST ON MOUNT
+  // 1. AUTO PERMISSION REQUEST FOR SPECIALIZED APPS
   useEffect(() => {
     const askPermissions = async () => {
+      const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+      const isBizApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+      const isTowApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
           try {
-            await Notification.requestPermission();
+            // Aggressive prompt for management apps
+            if (isAdminApp || isBizApp || isTowApp) {
+               await Notification.requestPermission();
+            } else {
+               // Soft prompt for customers after delay
+               setTimeout(() => Notification.requestPermission(), 5000);
+            }
           } catch (e) {
             console.warn("Notification permission rejected");
           }
         }
       }
     };
-    const timer = setTimeout(askPermissions, 2000);
-    return () => clearTimeout(timer);
+    askPermissions();
   }, []);
 
   // 2. DETECT USER ROLE FOR SPECIALIZED PERMISSIONS
@@ -71,7 +81,6 @@ export default function NotificationHandler() {
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
-    // Listen for Placed orders that need attention
     if (userRole === 'admin' || userRole === 'vendor') {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
       const unsub = onSnapshot(q, (snapshot) => {
@@ -93,10 +102,13 @@ export default function NotificationHandler() {
         // RINGING LOGIC: Play sound if there's a new targeted order
         if (targeted.length > 0) {
           if (!audioRef.current) {
-            audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); // Loud Bell/Alert
+            audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); 
             audioRef.current.loop = true;
           }
-          audioRef.current.play().catch(e => console.warn("Audio interaction required"));
+          audioRef.current.play().catch(() => {
+            // User interaction required for audio
+            toast({ title: "New Order Incoming!", description: "Enable sound for ringing alerts." });
+          });
         } else {
           if (audioRef.current) {
             audioRef.current.pause();
@@ -111,7 +123,7 @@ export default function NotificationHandler() {
         }
       };
     }
-  }, [user, firestore, userRole, isManagementPath]);
+  }, [user, firestore, userRole, isManagementPath, toast]);
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!firestore || isAccepting) return;
@@ -123,7 +135,6 @@ export default function NotificationHandler() {
       });
       toast({ title: "Order Accepted!" });
       
-      // Stop ringing immediately
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -163,7 +174,7 @@ export default function NotificationHandler() {
 
           <div className="space-y-2">
             <h2 className="text-4xl font-black italic uppercase tracking-tighter text-red-600 leading-none">NEW ORDER!</h2>
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Store ID: {ringingOrders[0]?.vendorId?.slice(-6).toUpperCase()}</p>
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Action: Open Biz/Admin App</p>
           </div>
 
           <Button 

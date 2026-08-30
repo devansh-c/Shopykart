@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo } from "react"
@@ -27,7 +28,7 @@ export function CategoryList({
     return collection(firestore, 'categories');
   }, [firestore]);
 
-  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v4_instant');
+  const { data: dbCategories } = useCollection<any>(categoriesQuery, 'home_categories_v5_instant', initialData);
 
   const filteredCategories = useMemo(() => {
     const list = (dbCategories && dbCategories.length > 0) ? dbCategories : initialData;

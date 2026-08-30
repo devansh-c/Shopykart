@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,11 +53,9 @@ export function CustomDishDialog({ children }: { children: React.ReactNode }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="rounded-[3rem] max-w-sm border-none shadow-2xl bg-white overflow-hidden p-0">
-        {/* Luxury top accent */}
         <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-600 to-amber-400" />
         
         <div className="p-8 space-y-8 relative">
-          {/* Subtle background decoration */}
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
              <Utensils className="h-32 w-32 rotate-12" />
           </div>
@@ -73,10 +72,10 @@ export function CustomDishDialog({ children }: { children: React.ReactNode }) {
                 <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-black leading-none">
                   Concierge <span className="text-amber-600">Service.</span>
                 </DialogTitle>
+                <DialogDescription className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[200px] mx-auto mt-2">
+                  Tailor-made orders for your specific cravings.
+                </DialogDescription>
              </DialogHeader>
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[200px]">
-               Tailor-made orders for your specific cravings.
-             </p>
           </div>
 
           <div className="space-y-5 relative z-10">
