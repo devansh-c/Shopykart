@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MapPin, 
   ChevronRight, 
@@ -23,21 +23,17 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Standard Robust Point-in-Polygon Algorithm
- * X = Longitude, Y = Latitude
  */
 function isPointInPolygon(lat: number, lng: number, points: any[]) {
   if (!points || !Array.isArray(points) || points.length < 3) return false;
-  
   const x = Number(lng);
   const y = Number(lat);
-  
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
     const xi = Number(points[i].lng || (Array.isArray(points[i]) ? points[i][1] : points[i].longitude || 0));
     const yi = Number(points[i].lat || (Array.isArray(points[i]) ? points[i][0] : points[i].latitude || 0));
     const xj = Number(points[j].lng || (Array.isArray(points[j]) ? points[j][1] : points[j].longitude || 0));
     const yj = Number(points[j].lat || (Array.isArray(points[j]) ? points[j][0] : points[j].latitude || 0));
-    
     const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
@@ -53,8 +49,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [isCrawler, setIsCrawler] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [manualZoneId, setManualZoneId] = useState<string | null>(null);
   const [permissionState, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'locating'>('prompt');
+  const hasAttemptedRef = useRef(false);
 
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -62,48 +58,22 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, [firestore]);
   const { data: activeZones, loading: zonesLoading } = useCollection<any>(zonesQuery);
 
-  useEffect(() => {
-    setMounted(true);
-    
-    const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
-    setIsCrawler(isBot);
-
-    const updateLocationData = () => {
-      const plusCode = localStorage.getItem('user_plus_code');
-      const savedZoneId = localStorage.getItem('active_zone_id');
-      
-      if (plusCode) {
-        const [lat, lng] = plusCode.split(',').map(Number);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          setCurrentCoords({ lat, lng });
-          setPermissionStatus('granted');
-        }
-      }
-      
-      if (savedZoneId) setManualZoneId(savedZoneId);
-    };
-
-    updateLocationData();
-    window.addEventListener('user-address-updated', updateLocationData);
-    return () => window.removeEventListener('user-address-updated', updateLocationData);
-  }, []);
-
-  const handleRequestLocation = () => {
+  const handleRequestLocation = (isAuto = false) => {
     if (!navigator.geolocation) {
       toast({ variant: "destructive", title: "GPS Not Supported" });
+      setPermissionStatus('denied');
       return;
     }
 
     setPermissionStatus('locating');
     setIsLocating(true);
 
-    // AGGRESSIVE PRECISION SETTINGS
+    // MANDATORY FRESH FETCH: enableHighAccuracy + maximumAge: 0
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         
-        // Reverse Geocode Logic
         try {
           const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
           const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`);
@@ -117,20 +87,17 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
               c.types.includes('locality')
             )?.long_name;
 
-            const shortAddress = subLocality || "Detected Area";
-
             localStorage.setItem('user_plus_code', `${lat},${lng}`);
-            localStorage.setItem('user_address', shortAddress.toUpperCase());
+            localStorage.setItem('user_address', (subLocality || "Detected Area").toUpperCase());
             localStorage.setItem('user_address_line', address.toUpperCase());
             localStorage.setItem('user_location_set', 'true');
             
             setCurrentCoords({ lat, lng });
             setPermissionStatus('granted');
             window.dispatchEvent(new CustomEvent('user-address-updated'));
-            toast({ title: "Location Verified! 📍" });
+            if (!isAuto) toast({ title: "Location Verified! 📍" });
           }
         } catch (e) {
-          console.error("Geocoding failed", e);
           localStorage.setItem('user_plus_code', `${lat},${lng}`);
           setCurrentCoords({ lat, lng });
           setPermissionStatus('granted');
@@ -141,142 +108,114 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       (err) => {
         setIsLocating(false);
         setPermissionStatus('denied');
-        console.warn("Location denied:", err.message);
-        toast({ variant: "destructive", title: "Detection Failed", description: "Please select your zone manually." });
+        if (!isAuto) toast({ variant: "destructive", title: "Detection Failed", description: "Please select your zone manually." });
       },
       { 
         enableHighAccuracy: true, 
-        timeout: 15000, 
-        maximumAge: 0 
+        timeout: 10000, 
+        maximumAge: 0 // FORCE NO CACHE
       }
     );
   };
 
-  const currentZone = useMemo(() => {
-    if (!activeZones || activeZones.length === 0) return null;
+  useEffect(() => {
+    setMounted(true);
+    const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
+    setIsCrawler(isBot);
 
-    const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
-    if (savedZoneId) {
-      const found = activeZones.find(z => z.id === savedZoneId);
-      if (found) return found;
+    if (!isBot && !hasAttemptedRef.current) {
+      hasAttemptedRef.current = true;
+      // Auto-trigger detection on mount to ensure fresh location
+      handleRequestLocation(true);
     }
+  }, []);
 
-    if (!currentCoords) return null;
+  const currentZone = useMemo(() => {
+    if (!activeZones || activeZones.length === 0 || !currentCoords) return null;
 
-    return activeZones.find(zone => {
+    // First, check if there's a manual override in this session
+    const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+    
+    const zoneMatch = activeZones.find(zone => {
       if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
         return isPointInPolygon(currentCoords.lat, currentCoords.lng, zone.boundary);
       }
       return false;
     });
-  }, [activeZones, currentCoords, manualZoneId]);
+
+    if (zoneMatch) {
+      localStorage.setItem('active_zone_id', zoneMatch.id);
+      return zoneMatch;
+    }
+
+    if (savedZoneId) {
+      return activeZones.find(z => z.id === savedZoneId) || null;
+    }
+
+    return null;
+  }, [activeZones, currentCoords]);
 
   if (!mounted) return null;
   if (isCrawler) return <>{children}</>;
 
-  if (zonesLoading || userLoading) {
+  // While we are locating for the first time, show identifying screen
+  if (permissionState === 'locating' || (isLocating && !currentCoords)) {
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Logistics...</p>
-      </div>
-    );
-  }
-
-  const isAlreadySet = manualZoneId || (currentCoords && currentZone);
-
-  if (isAlreadySet || !activeZones || activeZones.length === 0) {
-    if (currentZone && !manualZoneId) localStorage.setItem('active_zone_id', currentZone.id);
-    return <>{children}</>;
-  }
-
-  if (permissionState === 'prompt' || permissionState === 'locating') {
-    return (
-      <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-700">
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
-            <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-              <Navigation2 className={cn("h-20 w-20 text-primary", permissionState === 'locating' ? "animate-pulse" : "animate-bounce")} />
-            </div>
-            <div className="absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-xl border-2 border-primary/20">
-              <ShieldCheck className="h-6 w-6 text-green-500" />
-            </div>
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-6 p-8">
+        <div className="relative">
+          <div className="absolute inset-0 bg-primary/20 blur-3xl animate-pulse rounded-full" />
+          <div className="relative h-32 w-32 rounded-[2.5rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden">
+            <Navigation2 className="h-14 w-14 text-primary animate-bounce" />
           </div>
-
-          <div className="space-y-4">
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
-              {permissionState === 'locating' ? 'FINDING\n' : 'LOCATION\n'}<span className="text-primary">{permissionState === 'locating' ? 'HUB...' : 'REQUIRED.'}</span>
-            </h1>
-            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-              WE NEED YOUR LOCATION TO CONNECT YOU TO THE NEAREST SHOPYKART GOURMET HUB FOR 10-MIN DELIVERY.
-            </p>
-          </div>
-
-          <div className="w-full space-y-4 pt-4">
-             <Button 
-              onClick={handleRequestLocation}
-              disabled={permissionState === 'locating'}
-              className="w-full h-16 rounded-[2rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
-             >
-               {permissionState === 'locating' ? (
-                 <Loader2 className="h-6 w-6 animate-spin mr-3" />
-               ) : (
-                 <Crosshair className="h-5 w-5 mr-3" />
-               )}
-               {permissionState === 'locating' ? 'DETECTING...' : 'ALLOW LOCATION'}
-             </Button>
-
-             <button 
-              onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
-              className="w-full h-14 rounded-2xl border-2 border-primary/10 text-primary font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-primary/5 transition-all"
-             >
-               <MapPinned className="h-4 w-4" />
-               CHOOSE MANUALLY
-             </button>
-          </div>
+        </div>
+        <div className="text-center space-y-2">
+           <h2 className="text-xl font-black italic uppercase tracking-tighter">Locating Your Hub...</h2>
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Fetching high-precision GPS signal</p>
         </div>
       </div>
     );
   }
 
+  const isZoneLocked = !!currentZone;
+
+  if (isZoneLocked || !activeZones || activeZones.length === 0) {
+    return <>{children}</>;
+  }
+
+  // If we have coordinates but NO zone match, OR permission is not granted
   return (
     <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700">
+      <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-700">
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
           <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
             <MapIcon className="h-20 w-20 text-primary animate-bounce" style={{ animationDuration: '3s' }} />
           </div>
-          <div className="absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-xl border-2 border-red-50">
-            <ShieldAlert className="h-6 w-6 text-red-600" />
+          <div className="absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-xl border-2 border-primary/20">
+            {permissionState === 'denied' ? <ShieldAlert className="h-6 w-6 text-red-500" /> : <ShieldCheck className="h-6 w-6 text-green-500" />}
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-5 py-1.5 rounded-full border border-red-100">
-            <Navigation className="h-4 w-4" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Service Alert</span>
-          </div>
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
-            SERVICE<br /><span className="text-primary">UNAVAILABLE.</span>
+            LOCATION<br /><span className="text-primary">{permissionState === 'denied' ? 'DENIED.' : 'REQUIRED.'}</span>
           </h1>
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
             {permissionState === 'denied' 
-              ? 'PERMISSION DENIED. PLEASE ALLOW LOCATION ACCESS OR SELECT YOUR ZONE MANUALLY TO CONTINUE.' 
-              : 'AAPKI LOCATION HAMARE DELIVERY AREA SE BAHAR HAI YA GPS GALAT DETECT HUA HAI.'}
+              ? 'PLEASE ALLOW LOCATION ACCESS TO CONNECT TO THE NEAREST HUB.' 
+              : 'YOU ARE CURRENTLY OUTSIDE OUR SERVICE ZONES. PLEASE CHOOSE A HUB MANUALLY.'}
           </p>
         </div>
 
         <div className="w-full space-y-4 pt-4">
            <Button 
-            onClick={handleRequestLocation}
+            onClick={() => handleRequestLocation()}
+            disabled={isLocating}
             className="w-full h-16 rounded-[2rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
            >
-             <Crosshair className="h-5 w-5 mr-3" />
-             RETRY DETECTION
+             {isLocating ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Crosshair className="h-5 w-5 mr-3" />}
+             {isLocating ? 'FETCHING...' : 'RETRY GPS FETCH'}
            </Button>
 
            <button 
@@ -284,13 +223,9 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             className="w-full h-14 rounded-2xl border-2 border-primary/10 text-primary font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-primary/5 transition-all"
            >
              <MapPinned className="h-4 w-4" />
-             CHOOSE AREA MANUALLY
+             SELECT HUB MANUALLY
            </button>
         </div>
-        
-        <p className="text-[8px] font-black text-gray-300 uppercase tracking-[0.4em]">
-           ShopyKart Enterprise Network
-        </p>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * @fileOverview Compact Premium Header.
- * Displays the current geocoded address line from localStorage.
+ * Optimized to always reflect fresh geocoded location.
  */
 export function LocationHeader({
   searchValue,
@@ -31,19 +31,19 @@ export function LocationHeader({
   const firestore = useFirestore();
   const router = useRouter();
   const [currentAddress, setCurrentAddress] = useState('Detecting...');
-  const [fullAddress, setFullAddress] = useState('Fetching address...');
+  const [fullAddress, setFullAddress] = useState('Searching current spot...');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
     const updateAddress = () => {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('user_address') : null;
+      const savedShort = typeof window !== 'undefined' ? localStorage.getItem('user_address') : null;
       const savedFull = typeof window !== 'undefined' ? localStorage.getItem('user_address_line') : null;
       
-      if (saved) setCurrentAddress(saved);
+      if (savedShort) setCurrentAddress(savedShort);
       if (savedFull) setFullAddress(savedFull);
-      else if (!saved) setFullAddress('TAP TO CHANGE');
     };
+
     updateAddress();
     window.addEventListener('user-address-updated', updateAddress);
     return () => window.removeEventListener('user-address-updated', updateAddress);
@@ -85,7 +85,7 @@ export function LocationHeader({
               <ChevronDown className="h-3 w-3 text-primary stroke-[3]" />
             </div>
             <span className="text-[8px] font-black text-primary uppercase tracking-widest mt-1 truncate">
-              {isMounted ? fullAddress : 'Detecting...'}
+              {isMounted ? fullAddress : 'Syncing GPS...'}
             </span>
           </div>
         </button>

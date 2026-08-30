@@ -23,8 +23,7 @@ interface GoogleMapPickerProps {
 
 /**
  * @fileOverview Premium Map Picker with Aggressive GPS Accuracy.
- * Fixed: Immediate coordinate lock on Current Location.
- * Fixed: Pin strictly points to center stick tip.
+ * Fixed: Immediate coordinate lock on Current Location with No-Cache.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -91,12 +90,11 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     
-    // AGGRESSIVE PRECISION SETTINGS
+    // MANDATORY FRESH FETCH: maximumAge: 0
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (map) {
-          // Use setCenter for instant jump to prevent onIdle conflicts during animation
           map.setCenter(coords);
           map.setZoom(18);
           setConfirmCoords(coords);
@@ -108,7 +106,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       { 
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 15000
+        timeout: 10000
       }
     );
   };
@@ -137,7 +135,6 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           ]
         }}
       >
-        {/* FLOATING SEARCH BAR */}
         <div className="absolute top-6 left-4 right-4 z-[1001]">
           <Autocomplete 
             onLoad={onAutocompleteLoad} 
@@ -156,8 +153,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* PRECISION CENTER PIN - Offset fixed to center stick point */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
@@ -168,7 +164,6 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </div>
         </div>
 
-        {/* FLOATING CONTROLS */}
         <div className="absolute bottom-28 right-4 z-[1001]">
           <button 
             onClick={handleLocate}
@@ -178,7 +173,6 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </button>
         </div>
 
-        {/* FLOATING CONFIRM BOX (Compact) */}
         <div className="absolute bottom-6 left-4 right-4 z-[1001] flex flex-col gap-2">
            <div className="bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-2xl border border-white/20">
               <div className="flex items-center gap-3 px-2 py-0.5">
