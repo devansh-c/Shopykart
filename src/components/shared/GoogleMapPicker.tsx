@@ -1,10 +1,11 @@
 
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
-import { Loader2, MapPin, Crosshair, Check } from 'lucide-react';
+import React, { useState, useCallback, useRef } from 'react';
+import { GoogleMap, useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { Loader2, MapPin, Crosshair, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const containerStyle = {
@@ -18,21 +19,27 @@ const defaultCenter = {
   lng: 79.0838
 };
 
+// Load Places library for Autocomplete
+const libraries: ("places")[] = ["places"];
+
 interface GoogleMapPickerProps {
   onConfirm: (lat: number, lng: number) => void;
 }
 
 /**
- * @fileOverview GoogleMapPicker with loop-safe coordinate tracking.
- * Fixed: Replaced onCenterChanged with onIdle to prevent Maximum Update Depth error.
+ * @fileOverview GoogleMapPicker with Places API (New) integration.
+ * Fixed: Used onIdle to prevent Maximum Update Depth loops.
+ * Added: Autocomplete search bar for rapid address finding.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries: libraries
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [confirmCoords, setConfirmCoords] = useState(defaultCenter);
   const [isLocating, setIsLocating] = useState(false);
 
@@ -40,8 +47,24 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     setMap(map);
   }, []);
 
-  // Performance Fix: Use onIdle to capture the center only when movement stops. 
-  // This prevents the infinite loop caused by continuous setState during motion.
+  const onAutocompleteLoad = (auto: google.maps.places.Autocomplete) => {
+    setAutocomplete(auto);
+  };
+
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
+      if (place.geometry && place.geometry.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        map?.panTo({ lat, lng });
+        map?.setZoom(18);
+        setConfirmCoords({ lat, lng });
+      }
+    }
+  };
+
+  // Capture center only when map stops moving to avoid re-render loops
   const handleOnIdle = () => {
     if (map) {
       const newCenter = map.getCenter();
@@ -74,7 +97,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Maps...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Premium Maps...</p>
     </div>
   );
 
@@ -93,6 +116,22 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             gestureHandling: 'greedy'
           }}
         >
+          {/* Places API (New) Autocomplete Search */}
+          <div className="absolute top-4 left-4 right-4 z-[1001]">
+            <Autocomplete 
+              onLoad={onAutocompleteLoad} 
+              onPlaceChanged={onPlaceChanged}
+            >
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Input 
+                  placeholder="Search your street or building..." 
+                  className="h-14 pl-12 rounded-2xl bg-white border-none shadow-2xl font-bold text-sm"
+                />
+              </div>
+            </Autocomplete>
+          </div>
+
           {/* Centered Overlay Pin */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-8">
             <div className="relative flex flex-col items-center">
