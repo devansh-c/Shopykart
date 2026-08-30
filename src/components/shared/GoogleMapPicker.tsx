@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Autocomplete } from '@react-google-maps/api';
-import { Loader2, MapPin, Crosshair, Search, Map as MapIcon, X } from 'lucide-react';
+import { Loader2, MapPin, Crosshair, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const containerStyle = {
@@ -21,6 +21,11 @@ interface GoogleMapPickerProps {
   onConfirm: (lat: number, lng: number, address?: string) => void;
 }
 
+/**
+ * @fileOverview Premium Map Picker with Screenshot-Accurate UI and Geocoding.
+ * Fixed: Pin points strictly to coordinate center.
+ * Fixed: Immediate coordinate lock on Current Location click.
+ */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -91,6 +96,9 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         if (map) {
           map.panTo(coords);
           map.setZoom(18);
+          // INSTANT LOCK: Ensure pin and button use detected coords immediately
+          setConfirmCoords(coords);
+          reverseGeocode(coords.lat, coords.lng);
         }
         setIsLocating(false);
       },
@@ -146,7 +154,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* PRECISION CENTER PIN - FIXED POSITIONING (Offset Removed for accuracy) */}
+        {/* PRECISION CENTER PIN - Tip points exactly to the center point */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
@@ -159,7 +167,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         </div>
 
         {/* FLOATING CONTROLS */}
-        <div className="absolute bottom-24 right-4 z-[1001]">
+        <div className="absolute bottom-28 right-4 z-[1001]">
           <button 
             onClick={handleLocate}
             className="h-10 w-10 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#2ecc71] border border-gray-100 active:scale-90 transition-all"
@@ -168,14 +176,14 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </button>
         </div>
 
-        {/* FLOATING CONFIRM BUTTON - SCREENSHOT STYLE */}
-        <div className="absolute bottom-6 left-4 right-4 z-[1001]">
-           <div className="bg-white/90 backdrop-blur-md p-2 rounded-[1.5rem] shadow-2xl mb-4 border border-white/20">
-              <div className="flex items-center gap-3 px-3 py-1">
-                 <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        {/* FLOATING CONFIRM BUTTON - SCREENSHOT STYLE (Compact) */}
+        <div className="absolute bottom-6 left-4 right-4 z-[1001] flex flex-col gap-2">
+           <div className="bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-2xl border border-white/20">
+              <div className="flex items-center gap-3 px-2 py-0.5">
+                 <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <MapPin className="h-4 w-4 text-primary" />
                  </div>
-                 <p className="text-[10px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">
+                 <p className="text-[9px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">
                     {isResolving ? 'Resolving Address...' : resolvedAddress || 'Move map to select location'}
                  </p>
               </div>
