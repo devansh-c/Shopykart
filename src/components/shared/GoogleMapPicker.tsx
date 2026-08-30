@@ -22,9 +22,9 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview Premium Map Picker with Screenshot-Accurate UI and Geocoding.
- * Fixed: Pin points strictly to coordinate center.
- * Fixed: Immediate coordinate lock on Current Location click.
+ * @fileOverview Premium Map Picker with Aggressive GPS Accuracy.
+ * Fixed: Immediate coordinate lock on Current Location.
+ * Fixed: Pin strictly points to center stick tip.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -54,7 +54,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       if (place.geometry && place.geometry.location) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
-        map?.panTo({ lat, lng });
+        map?.setCenter({ lat, lng });
         map?.setZoom(18);
         setConfirmCoords({ lat, lng });
       }
@@ -90,13 +90,15 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const handleLocate = () => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
+    
+    // AGGRESSIVE PRECISION SETTINGS
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (map) {
-          map.panTo(coords);
+          // Use setCenter for instant jump to prevent onIdle conflicts during animation
+          map.setCenter(coords);
           map.setZoom(18);
-          // INSTANT LOCK: Ensure pin and button use detected coords immediately
           setConfirmCoords(coords);
           reverseGeocode(coords.lat, coords.lng);
         }
@@ -106,7 +108,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       { 
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000
+        timeout: 15000
       }
     );
   };
@@ -135,7 +137,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           ]
         }}
       >
-        {/* FLOATING SEARCH BAR - SCREENSHOT STYLE */}
+        {/* FLOATING SEARCH BAR */}
         <div className="absolute top-6 left-4 right-4 z-[1001]">
           <Autocomplete 
             onLoad={onAutocompleteLoad} 
@@ -144,7 +146,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             <div className="relative">
               <input 
                 type="text"
-                placeholder="Search Location" 
+                placeholder="Search Landmark or Area" 
                 className="w-full h-12 pl-4 pr-12 rounded-xl bg-white border-none shadow-2xl font-bold text-[13px] text-gray-800 focus:outline-none placeholder:text-gray-400"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
@@ -154,14 +156,14 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* PRECISION CENTER PIN - Tip points exactly to the center point */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
+        {/* PRECISION CENTER PIN - Offset fixed to center stick point */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
                 <MapPin className="h-5 w-5 text-white fill-white" />
               </div>
-              <div className="w-1 h-4 bg-black mx-auto -mt-1 rounded-full shadow-lg" />
+              <div className="w-1 h-3 bg-black mx-auto -mt-1 rounded-full shadow-lg" />
             </div>
           </div>
         </div>
@@ -176,9 +178,9 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </button>
         </div>
 
-        {/* FLOATING CONFIRM BUTTON - SCREENSHOT STYLE (Compact) */}
+        {/* FLOATING CONFIRM BOX (Compact) */}
         <div className="absolute bottom-6 left-4 right-4 z-[1001] flex flex-col gap-2">
-           <div className="bg-white/90 backdrop-blur-md p-2 rounded-xl shadow-2xl border border-white/20">
+           <div className="bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-2xl border border-white/20">
               <div className="flex items-center gap-3 px-2 py-0.5">
                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <MapPin className="h-4 w-4 text-primary" />

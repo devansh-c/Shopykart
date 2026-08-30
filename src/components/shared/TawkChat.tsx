@@ -5,9 +5,8 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to live chat implementation for ShopyKart.
- * Forcefully hides on /cart path to prevent overlapping with Map and Checkout UI.
- * Implements persistent polling to ensure visibility stays consistent in SPA navigation.
+ * @fileOverview Hardened Tawk.to visibility control for ShopyKart.
+ * Forcefully hides on /cart path using persistent polling and onLoad synchronization.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -30,23 +29,20 @@ export function TawkChat() {
             tawk.show();
           }
         } catch (e) {
-          // Suppress Tawk/Logger noise
+          // Suppress noise
         }
       }
     };
 
-    // 1. Immediate execution
-    manageTawkVisibility();
-
-    // 2. Hook into Tawk's native onLoad
+    // 1. Hook into Tawk's native onLoad
     if (typeof window !== 'undefined') {
       const tawk = (window as any).Tawk_API || {};
       tawk.onLoad = manageTawkVisibility;
       (window as any).Tawk_API = tawk;
     }
 
-    // 3. Fallback Polling (Crucial for SPA transitions where onLoad doesn't re-fire)
-    const interval = setInterval(manageTawkVisibility, 2000);
+    // 2. Persistent Polling - Crucial for handling z-index and async popups
+    const interval = setInterval(manageTawkVisibility, 1500);
     
     return () => clearInterval(interval);
   }, [pathname, isClient]);

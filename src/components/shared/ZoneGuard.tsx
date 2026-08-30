@@ -131,7 +131,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           }
         } catch (e) {
           console.error("Geocoding failed", e);
-          // Fallback if geocoding fails but GPS worked
           localStorage.setItem('user_plus_code', `${lat},${lng}`);
           setCurrentCoords({ lat, lng });
           setPermissionStatus('granted');
@@ -146,9 +145,9 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         toast({ variant: "destructive", title: "Detection Failed", description: "Please select your zone manually." });
       },
       { 
-        enableHighAccuracy: true, // STRICT HIGH ACCURACY
+        enableHighAccuracy: true, 
         timeout: 15000, 
-        maximumAge: 0 // NO CACHED LOCATION
+        maximumAge: 0 
       }
     );
   };
@@ -156,14 +155,12 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const currentZone = useMemo(() => {
     if (!activeZones || activeZones.length === 0) return null;
 
-    // 1. Priority: Manual Selection
     const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
     if (savedZoneId) {
       const found = activeZones.find(z => z.id === savedZoneId);
       if (found) return found;
     }
 
-    // 2. Fallback: GPS Detection
     if (!currentCoords) return null;
 
     return activeZones.find(zone => {
@@ -188,13 +185,11 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
   const isAlreadySet = manualZoneId || (currentCoords && currentZone);
 
-  // IF everything is set, show the app
   if (isAlreadySet || !activeZones || activeZones.length === 0) {
     if (currentZone && !manualZoneId) localStorage.setItem('active_zone_id', currentZone.id);
     return <>{children}</>;
   }
 
-  // STEP 1: PERMISSION PROMPT / INITIAL ACCESS
   if (permissionState === 'prompt' || permissionState === 'locating') {
     return (
       <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
@@ -246,7 +241,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // STEP 2: DENIED OR OUT OF ZONE SCREEN
   return (
     <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700">
