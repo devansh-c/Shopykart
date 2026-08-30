@@ -278,7 +278,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* SHOPYKART CURRENCY (COINS) SECTION */}
         <div className="bg-white rounded-[2rem] shadow-sm border border-border/50 overflow-hidden">
            <div className="px-5 py-4 border-b bg-amber-50/50 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -447,16 +446,18 @@ export default function CartPage() {
 
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[3rem] overflow-hidden focus:outline-none flex flex-col z-[20000]">
-           <DialogHeader className="p-6 border-b shrink-0 bg-white">
-             <DialogTitle className="font-black italic uppercase text-center text-xl text-gray-900">Pin Delivery Spot</DialogTitle>
-             <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Move map to set your exact doorstep</DialogDescription>
+           <DialogHeader className="p-4 pb-2 border-b shrink-0 bg-white">
+             <DialogTitle className="font-black italic uppercase text-center text-lg text-gray-900 leading-none">PIN DELIVERY SPOT</DialogTitle>
+             <DialogDescription className="text-center text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1.5">MOVE MAP TO SET YOUR EXACT DOORSTEP</DialogDescription>
            </DialogHeader>
            <div className="absolute top-4 right-4 z-[21000]">
-              <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
-                 <X className="h-6 w-6" />
+              <button onClick={() => setIsMapOpen(false)} className="h-9 w-9 bg-white/80 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
+                 <X className="h-5 w-5" />
               </button>
            </div>
-           <GoogleMapPicker onConfirm={handleMapConfirm} />
+           <div className="flex-1 min-h-0 relative">
+              <GoogleMapPicker onConfirm={handleMapConfirm} />
+           </div>
         </DialogContent>
       </Dialog>
 

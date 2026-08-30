@@ -27,9 +27,8 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview GoogleMapPicker with Places API (New) integration.
- * Fixed: Used onIdle to prevent Maximum Update Depth loops.
- * Added: Autocomplete search bar for rapid address finding.
+ * @fileOverview Optimized GoogleMapPicker with compact UI.
+ * Uses Places API (New) for rapid search and high-accuracy centering.
  */
 export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -116,7 +115,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             gestureHandling: 'greedy'
           }}
         >
-          {/* Places API (New) Autocomplete Search */}
+          {/* Places API (New) Autocomplete Search - Sleek Positioning */}
           <div className="absolute top-4 left-4 right-4 z-[1001]">
             <Autocomplete 
               onLoad={onAutocompleteLoad} 
@@ -126,7 +125,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Search your street or building..." 
-                  className="h-14 pl-12 rounded-2xl bg-white border-none shadow-2xl font-bold text-sm"
+                  className="h-12 pl-11 rounded-xl bg-white border-none shadow-2xl font-bold text-xs"
                 />
               </div>
             </Autocomplete>
@@ -135,14 +134,14 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           {/* Centered Overlay Pin */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-8">
             <div className="relative flex flex-col items-center">
-              <div className="bg-black text-white text-[8px] font-black px-2 py-1 rounded mb-1 uppercase tracking-widest animate-bounce shadow-lg">
+              <div className="bg-black text-white text-[7px] font-black px-2 py-0.5 rounded mb-1 uppercase tracking-widest animate-bounce shadow-lg">
                 DROP PIN HERE
               </div>
               <div className="relative">
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
-                  <MapPin className="h-6 w-6 text-white fill-white" />
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl">
+                  <MapPin className="h-5 w-5 text-white fill-white" />
                 </div>
-                <div className="w-1.5 h-6 bg-black mx-auto -mt-1 rounded-full shadow-lg" />
+                <div className="w-1 h-5 bg-black mx-auto -mt-1 rounded-full shadow-lg" />
               </div>
             </div>
           </div>
@@ -150,28 +149,29 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
         <button 
           onClick={handleLocate}
-          className="absolute bottom-6 right-6 z-[1000] h-12 w-12 bg-white rounded-2xl shadow-2xl flex items-center justify-center text-primary border border-gray-100 active:scale-90 transition-all"
+          className="absolute bottom-4 right-4 z-[1000] h-10 w-10 bg-white rounded-xl shadow-2xl flex items-center justify-center text-primary border border-gray-100 active:scale-90 transition-all"
         >
-          <Crosshair className={cn("h-6 w-6", isLocating && "animate-spin")} />
+          <Crosshair className={cn("h-5 w-5", isLocating && "animate-spin")} />
         </button>
       </div>
 
-      <div className="bg-white p-6 pt-8 rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.15)] z-[1001] space-y-6">
-        <div className="flex items-start gap-4 px-2">
-          <div className="h-11 w-11 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
-            <MapPin className="h-5 w-5" />
+      {/* COMPACT FOOTER */}
+      <div className="bg-white p-4 pt-6 rounded-t-[2.5rem] shadow-[0_-15px_50px_rgba(0,0,0,0.1)] z-[1001] space-y-4">
+        <div className="flex items-center gap-3 px-1">
+          <div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+            <MapPin className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Confirm Identity Location</h4>
-            <p className="text-sm font-bold text-gray-800 leading-tight italic uppercase tracking-tighter">Pin your doorstep for 10-min delivery accuracy</p>
+            <h4 className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-0.5">Confirm Identity Location</h4>
+            <p className="text-[11px] font-bold text-gray-800 leading-tight italic uppercase tracking-tighter">Pin your doorstep for 10-min delivery</p>
           </div>
         </div>
 
         <Button 
           onClick={() => onConfirm(confirmCoords.lat, confirmCoords.lng)}
-          className="w-full h-16 bg-black hover:bg-gray-900 text-white rounded-[2rem] font-black uppercase italic shadow-2xl active:scale-95 transition-all text-sm tracking-widest border-b-4 border-gray-800"
+          className="w-full h-14 bg-black hover:bg-gray-900 text-white rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all text-xs tracking-widest"
         >
-          <Check className="h-5 w-5 mr-3 stroke-[3]" />
+          <Check className="h-4 w-4 mr-2 stroke-[3]" />
           CONFIRM DROP SPOT
         </Button>
       </div>
