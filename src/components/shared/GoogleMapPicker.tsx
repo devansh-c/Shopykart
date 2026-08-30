@@ -10,8 +10,8 @@ const containerStyle = {
   height: '100%'
 };
 
-// Default Area Center (Mauranipur/Ranipur) - ONLY AS ROUGH FALLBACK
-const fallbackCenter = {
+// Rough center as last-resort fallback
+const roughFallbackCenter = {
   lat: 25.2443,
   lng: 79.0838
 };
@@ -20,13 +20,14 @@ const libraries: ("places")[] = ["places"];
 
 interface GoogleMapPickerProps {
   onConfirm: (lat: number, lng: number, address?: string) => void;
+  forcedInitialCenter?: { lat: number; lng: number };
 }
 
 /**
- * @fileOverview Draggable Map Pin (Zomato Style).
- * Fixed: Strictly centers pin and updates address on drag-end (onIdle).
+ * @fileOverview Absolute Precision Google Map Picker.
+ * Fixes coordinate feedback loop and forced re-centering on GPS success.
  */
-export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
+export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -35,22 +36,25 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-  const [currentCoords, setCurrentCoords] = useState(fallbackCenter);
+  
+  // Internal state for the picker, initialized by props or fallback
+  const [center, setCenter] = useState(forcedInitialCenter || roughFallbackCenter);
   const [isLocating, setIsLocating] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
-  const hasInitializedRef = useRef(false);
+  const isUserInteracting = useRef(false);
 
-  // 1. Initial High-Accuracy Locate on Mount
+  // 1. If map is loaded and we have a forced center, jump there
   useEffect(() => {
-    if (isLoaded && !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      handleLocate();
+    if (isLoaded && map && forcedInitialCenter) {
+      map.setCenter(forcedInitialCenter);
+      map.setZoom(19);
+      reverseGeocode(forcedInitialCenter.lat, forcedInitialCenter.lng);
     }
-  }, [isLoaded]);
+  }, [isLoaded, map, forcedInitialCenter]);
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    setMap(map);
+  const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
   }, []);
 
   const onAutocompleteLoad = (auto: google.maps.places.Autocomplete) => {
@@ -65,7 +69,6 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         const lng = place.geometry.location.lng();
         map?.setCenter({ lat, lng });
         map?.setZoom(19);
-        setCurrentCoords({ lat, lng });
       }
     }
   };
@@ -86,22 +89,23 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
 
   /**
    * Zomato Style: Pin is fixed in center, map moves. 
-   * When map stops moving (Idle), we get the new center coordinates.
+   * When map stops moving (Idle), we get coordinates of the visual center.
    */
   const handleOnIdle = () => {
     if (map) {
-      const newCenter = map.getCenter();
-      if (newCenter) {
-        const lat = newCenter.lat();
-        const lng = newCenter.lng();
-        setCurrentCoords({ lat, lng });
+      const currentCenter = map.getCenter();
+      if (currentCenter) {
+        const lat = currentCenter.lat();
+        const lng = currentCenter.lng();
+        setCenter({ lat, lng });
         reverseGeocode(lat, lng);
       }
     }
   };
 
   /**
-   * Fresh GPS Logic
+   * FRESH GPS FETCH
+   * Strictly bypasses cache and forces map to move.
    */
   const handleLocate = () => {
     if (!navigator.geolocation) return;
@@ -109,7 +113,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     
     const options = {
       enableHighAccuracy: true,
-      timeout: 15000, 
+      timeout: 10000, 
       maximumAge: 0   
     };
 
@@ -117,17 +121,17 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (map) {
+          // Direct Map Manipulation - Force jump to coordinates
           map.setCenter(coords);
           map.setZoom(19);
         }
-        setCurrentCoords(coords);
+        setCenter(coords);
         reverseGeocode(coords.lat, coords.lng);
         setIsLocating(false);
       },
       (err) => {
-        console.warn("GPS Lock Failure:", err.message);
+        console.warn("GPS Precision Error:", err.message);
         setIsLocating(false);
-        reverseGeocode(fallbackCenter.lat, fallbackCenter.lng);
       },
       options
     );
@@ -136,7 +140,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">SYNCING SATELLITES...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">BOOTING GPS CHIPS...</p>
     </div>
   );
 
@@ -144,7 +148,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
     <div className="h-full w-full relative bg-gray-100 flex flex-col overflow-hidden">
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={currentCoords}
+        center={center}
         zoom={18}
         onLoad={onMapLoad}
         onIdle={handleOnIdle}
@@ -166,7 +170,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
             <div className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5">
               <input 
                 type="text"
-                placeholder="Search Landmark or Building" 
+                placeholder="Search House or Landmark" 
                 className="w-full h-12 pl-4 pr-12 bg-white border-none font-bold text-xs text-gray-900 focus:outline-none placeholder:text-gray-400"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-900">
@@ -177,7 +181,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
         </div>
 
         {/* ZOMATO STYLE CENTERED PIN */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-10">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-1">
           <div className="relative flex flex-col items-center">
             <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-1 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
                DELIVER HERE
@@ -209,7 +213,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
                  </div>
                  <div className="flex-1 min-w-0">
                    <p className="text-[11px] font-black text-gray-900 line-clamp-1 uppercase tracking-tight italic">
-                      {isResolving ? 'LOCATING HOUSE...' : resolvedAddress || 'DRAG MAP TO SET SPOT'}
+                      {isResolving ? 'IDENTIFYING BUILDING...' : resolvedAddress || 'DRAG MAP TO SET SPOT'}
                    </p>
                    <p className="text-[7px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">PINPOINT HOUSE FOR 10-MIN DELIVERY</p>
                  </div>
@@ -217,7 +221,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
            </div>
            
            <button 
-            onClick={() => onConfirm(currentCoords.lat, currentCoords.lng, resolvedAddress)}
+            onClick={() => onConfirm(center.lat, center.lng, resolvedAddress)}
             className="w-full h-16 bg-[#BDC3C7] hover:bg-black hover:text-white text-gray-900 rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter"
            >
             PICK THIS LOCATION

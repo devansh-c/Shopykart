@@ -10,7 +10,8 @@ import {
   Crosshair,
   ShieldCheck,
   Navigation2,
-  Check
+  Check,
+  Zap
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -20,7 +21,15 @@ import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), { 
   ssr: false,
-  loading: () => <div className="h-full w-full bg-white flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
+  loading: () => <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
+    <div className="relative mb-10">
+      <div className="absolute inset-0 bg-primary/20 blur-3xl animate-pulse rounded-full" />
+      <div className="relative h-24 w-24 rounded-[2rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    </div>
+    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] animate-pulse">Syncing Precision Maps...</p>
+  </div>
 });
 
 /**
@@ -43,16 +52,15 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 }
 
 /**
- * @fileOverview ZoneGuard - Zomato Style Confirmation Gate.
- * Forces Fresh GPS -> Shows Draggable Map -> User Confirms -> Enter App.
+ * @fileOverview ZoneGuard - Entry Gate with Force GPS Fetch.
+ * Now passes detected coordinates directly to the confirmation map.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // States: 'locating' | 'confirming' | 'granted' | 'denied'
   const [guardState, setGuardState] = useState<'locating' | 'confirming' | 'granted' | 'denied'>('locating');
-  const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [initialCoords, setInitialCoords] = useState<{lat: number, lng: number} | null>(null);
   const [mounted, setMounted] = useState(false);
   const hasAttemptedRef = useRef(false);
 
@@ -72,18 +80,19 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
 
     const options = {
       enableHighAccuracy: true,
-      timeout: 20000, 
+      timeout: 15000, 
       maximumAge: 0   
     };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCurrentCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGuardState('confirming'); // Force confirm on map even if GPS is found
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setInitialCoords(coords);
+        setGuardState('confirming');
       },
       (err) => {
-        console.error("GPS Lock Error:", err);
-        setGuardState('confirming'); // Show map anyway so they can pick manually
+        console.warn("Initial GPS Lock Failed, Using Manual Picker");
+        setGuardState('confirming');
       },
       options
     );
@@ -97,7 +106,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Always re-fetch fresh location on every app open/refresh as requested
     if (!hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
       handleInitialLocate();
@@ -105,7 +113,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleFinalConfirm = (lat: number, lng: number, address?: string) => {
-    // 1. Store the confirmed precise data
     localStorage.setItem('user_plus_code', `${lat},${lng}`);
     localStorage.setItem('user_location_set', 'true');
     if (address) {
@@ -113,7 +120,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user_address_line', address.toUpperCase());
     }
 
-    // 2. Sync with Zone Logic
     if (activeZones && activeZones.length > 0) {
       const zoneMatch = activeZones.find((z: any) => {
         if (z.boundary && Array.isArray(z.boundary) && z.boundary.length > 2) {
@@ -125,17 +131,18 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       if (zoneMatch) {
         localStorage.setItem('active_zone_id', zoneMatch.id);
         localStorage.setItem('user_city', zoneMatch.city || 'Local');
+      } else {
+        localStorage.removeItem('active_zone_id');
       }
     }
 
     window.dispatchEvent(new CustomEvent('user-address-updated'));
     setGuardState('granted');
-    toast({ title: "Location Confirmed! 🚚" });
+    toast({ title: "Spot Confirmed! 🚚" });
   };
 
   if (!mounted) return null;
 
-  // 1. LOCATING SCREEN
   if (guardState === 'locating') {
     return (
       <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
@@ -153,7 +160,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 2. CONFIRMATION MAP (The "Zomato" Gate)
   if (guardState === 'confirming') {
     return (
       <div className="fixed inset-0 z-[1000000] bg-white flex flex-col overflow-hidden">
@@ -161,20 +167,22 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><MapPin className="h-5 w-5" /></div>
              <div>
-                <h2 className="text-sm font-black italic uppercase leading-none">Confirm Spot</h2>
-                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Move map to place pin at your door</p>
+                <h2 className="text-sm font-black italic uppercase leading-none">Verify Doorstep</h2>
+                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Move map to place pin exactly at your door</p>
              </div>
           </div>
           <button onClick={() => window.location.reload()} className="text-[9px] font-black uppercase text-primary border-b border-primary">RETRY GPS</button>
         </div>
         <div className="flex-1 relative">
-           <GoogleMapPicker onConfirm={handleFinalConfirm} />
+           <GoogleMapPicker 
+              onConfirm={handleFinalConfirm} 
+              forcedInitialCenter={initialCoords || undefined}
+           />
         </div>
       </div>
     );
   }
 
-  // 3. DENIED SCREEN
   if (guardState === 'denied') {
     return (
       <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
@@ -192,6 +200,5 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 4. GRANTED - RENDER APP
   return <>{children}</>;
 }
