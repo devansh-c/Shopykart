@@ -426,10 +426,10 @@ export default function CartPage() {
                   <button onClick={() => document.querySelector('.divide-y')?.scrollIntoView({ behavior: 'smooth' })} className="text-[8px] font-black text-primary uppercase underline underline-offset-2">VIEW BILL</button>
                </div>
             </div>
-            <Button 
+            <button 
               onClick={handlePlaceOrder} 
               disabled={isPlacing}
-              className="flex-[2] h-14 bg-black hover:bg-gray-900 text-white rounded-2xl font-black uppercase italic text-base tracking-tighter shadow-xl shadow-black/10 active:scale-95 transition-all group"
+              className="flex-[2] h-14 bg-black hover:bg-gray-900 text-white rounded-2xl font-black uppercase italic text-base tracking-tighter shadow-xl shadow-black/10 active:scale-95 transition-all group flex items-center justify-center"
             >
               {isPlacing ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
@@ -439,7 +439,7 @@ export default function CartPage() {
                   <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
-            </Button>
+            </button>
          </div>
       </div>
 

@@ -82,13 +82,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
-  // Hide TawkChat on cart/checkout or excluded paths
-  const showChat = useMemo(() => {
-    if (!pathname) return true;
-    const p = pathname.toLowerCase();
-    return !p.startsWith('/cart') && !isExcludedPath;
-  }, [pathname, isExcludedPath]);
-
   return (
     <FirebaseClientProvider>
       <CartProvider>
@@ -112,7 +105,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 )}
               </main>
               {!isExcludedPath && <DynamicBottomNav />}
-              {showChat && <DynamicTawkChat />}
+              {/* Render globally, visibility handled inside TawkChat via Tawk_API */}
+              {!isExcludedPath && <DynamicTawkChat />}
             </div>
           </AuthGuard>
           <Toaster />

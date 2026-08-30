@@ -146,7 +146,7 @@ export default function GoogleMapPicker({ onConfirm }: GoogleMapPickerProps) {
           </Autocomplete>
         </div>
 
-        {/* PRECISION CENTER PIN - FIXED POSITIONING */}
+        {/* PRECISION CENTER PIN - FIXED POSITIONING (Offset Removed for accuracy) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
             <div className="relative">
