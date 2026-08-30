@@ -32,13 +32,18 @@ export function LocationHeader({
   const firestore = useFirestore();
   const router = useRouter();
   const [currentAddress, setCurrentAddress] = useState('Detecting...');
+  const [fullAddress, setFullAddress] = useState('Fetching address...');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
     const updateAddress = () => {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('user_address') : null;
+      const savedFull = typeof window !== 'undefined' ? localStorage.getItem('user_address_line') : null;
+      
       if (saved) setCurrentAddress(saved);
+      if (savedFull) setFullAddress(savedFull);
+      else if (!saved) setFullAddress('TAP TO CHANGE');
     };
     updateAddress();
     window.addEventListener('user-address-updated', updateAddress);
@@ -73,14 +78,16 @@ export function LocationHeader({
           <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center">
             <MapPin className="h-4.5 w-4.5 text-primary stroke-[2.5]" />
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1">
               <span className="text-black text-xs font-black tracking-tight uppercase leading-none max-w-[140px] truncate">
                 {isMounted ? currentAddress : 'Detecting...'}
               </span>
               <ChevronDown className="h-3 w-3 text-primary stroke-[3]" />
             </div>
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">TAP TO CHANGE</span>
+            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 max-w-[180px] truncate">
+              {isMounted ? fullAddress : 'Detecting...'}
+            </span>
           </div>
         </button>
 
