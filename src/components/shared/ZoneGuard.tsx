@@ -10,12 +10,16 @@ import {
   Navigation,
   Search,
   Crosshair,
-  MapPinned
+  MapPinned,
+  ShieldCheck,
+  CheckCircle2,
+  Navigation2
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Standard Robust Point-in-Polygon Algorithm
@@ -43,10 +47,14 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
+  const { toast } = useToast();
+  
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isCrawler, setIsCrawler] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [manualZoneId, setManualZoneId] = useState<string | null>(null);
+  const [permissionState, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'locating'>('prompt');
 
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -60,7 +68,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
     setIsCrawler(isBot);
 
-    const updateLocation = () => {
+    const updateLocationData = () => {
       const plusCode = localStorage.getItem('user_plus_code');
       const savedZoneId = localStorage.getItem('active_zone_id');
       
@@ -68,16 +76,67 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         const [lat, lng] = plusCode.split(',').map(Number);
         if (!isNaN(lat) && !isNaN(lng)) {
           setCurrentCoords({ lat, lng });
+          setPermissionStatus('granted');
         }
       }
       
       if (savedZoneId) setManualZoneId(savedZoneId);
     };
 
-    updateLocation();
-    window.addEventListener('user-address-updated', updateLocation);
-    return () => window.removeEventListener('user-address-updated', updateLocation);
+    updateLocationData();
+    window.addEventListener('user-address-updated', updateLocationData);
+    return () => window.removeEventListener('user-address-updated', updateLocationData);
   }, []);
+
+  const handleRequestLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ variant: "destructive", title: "GPS Not Supported" });
+      return;
+    }
+
+    setPermissionStatus('locating');
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        
+        // Reverse Geocode Logic
+        try {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`);
+          const data = await response.json();
+          
+          if (data.results && data.results[0]) {
+            const address = data.results[0].formatted_address;
+            const subLocality = data.results[0].address_components.find((c: any) => c.types.includes('sublocality_level_1'))?.long_name;
+            const shortAddress = subLocality || "Detected Location";
+
+            localStorage.setItem('user_plus_code', `${lat},${lng}`);
+            localStorage.setItem('user_address', shortAddress.toUpperCase());
+            localStorage.setItem('user_address_line', address.toUpperCase());
+            localStorage.setItem('user_location_set', 'true');
+            
+            setCurrentCoords({ lat, lng });
+            setPermissionStatus('granted');
+            window.dispatchEvent(new CustomEvent('user-address-updated'));
+            toast({ title: "Location Locked! 📍" });
+          }
+        } catch (e) {
+          console.error("Geocoding failed", e);
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (err) => {
+        setIsLocating(false);
+        setPermissionStatus('denied');
+        console.warn("Location denied:", err.message);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
 
   const currentZone = useMemo(() => {
     if (!activeZones || activeZones.length === 0) return null;
@@ -112,15 +171,67 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const noZonesDefined = !activeZones || activeZones.length === 0;
+  const isAlreadySet = manualZoneId || (currentCoords && currentZone);
 
-  // IF user has a zone (manual or GPS), or no zones exist in DB, show the app
-  if (noZonesDefined || !!currentZone) {
-    if (currentZone) localStorage.setItem('active_zone_id', currentZone.id);
+  // IF everything is set, show the app
+  if (isAlreadySet || !activeZones || activeZones.length === 0) {
+    if (currentZone && !manualZoneId) localStorage.setItem('active_zone_id', currentZone.id);
     return <>{children}</>;
   }
 
-  // OUTSIDE ZONE SCREEN
+  // STEP 1: PERMISSION PROMPT / INITIAL ACCESS
+  if (permissionState === 'prompt' || permissionState === 'locating') {
+    return (
+      <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
+        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-700">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full animate-pulse" />
+            <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-2xl border-4 border-primary/5 flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+              <Navigation2 className={cn("h-20 w-20 text-primary", permissionState === 'locating' ? "animate-pulse" : "animate-bounce")} />
+            </div>
+            <div className="absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-xl border-2 border-primary/20">
+              <ShieldCheck className="h-6 w-6 text-green-500" />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
+              {permissionState === 'locating' ? 'FINDING\n' : 'LOCATION\n'}<span className="text-primary">{permissionState === 'locating' ? 'HUB...' : 'REQUIRED.'}</span>
+            </h1>
+            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
+              WE NEED YOUR LOCATION TO CONNECT YOU TO THE NEAREST SHOPYKART GOURMET HUB FOR 10-MIN DELIVERY.
+            </p>
+          </div>
+
+          <div className="w-full space-y-4 pt-4">
+             <Button 
+              onClick={handleRequestLocation}
+              disabled={permissionState === 'locating'}
+              className="w-full h-16 rounded-[2rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
+             >
+               {permissionState === 'locating' ? (
+                 <Loader2 className="h-6 w-6 animate-spin mr-3" />
+               ) : (
+                 <Crosshair className="h-5 w-5 mr-3" />
+               )}
+               {permissionState === 'locating' ? 'DETECTING...' : 'ALLOW LOCATION'}
+             </Button>
+
+             <button 
+              onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
+              className="w-full h-14 rounded-2xl border-2 border-primary/10 text-primary font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-primary/5 transition-all"
+             >
+               <MapPinned className="h-4 w-4" />
+               CHOOSE MANUALLY
+             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // STEP 2: DENIED OR OUT OF ZONE SCREEN
   return (
     <div className="fixed inset-0 z-[1000000] bg-white flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-10 animate-in fade-in zoom-in duration-700">
@@ -138,19 +249,21 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-5 py-1.5 rounded-full border border-red-100">
             <Navigation className="h-4 w-4" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Boundary Error</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Service Alert</span>
           </div>
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 leading-[0.9]">
             SERVICE<br /><span className="text-primary">UNAVAILABLE.</span>
           </h1>
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-            AAPKI LOCATION HAMARE DELIVERY AREA SE BAHAR HAI YA GPS GALAT DETECT HUA HAI.
+            {permissionState === 'denied' 
+              ? 'PERMISSION DENIED. PLEASE ALLOW LOCATION ACCESS OR SELECT YOUR ZONE MANUALLY TO CONTINUE.' 
+              : 'AAPKI LOCATION HAMARE DELIVERY AREA SE BAHAR HAI YA GPS GALAT DETECT HUA HAI.'}
           </p>
         </div>
 
         <div className="w-full space-y-4 pt-4">
            <Button 
-            onClick={() => window.location.reload()}
+            onClick={handleRequestLocation}
             className="w-full h-16 rounded-[2rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
            >
              <Crosshair className="h-5 w-5 mr-3" />
