@@ -5,7 +5,8 @@ import {
   Camera,
   Mic,
   MapPin,
-  Menu
+  Menu,
+  ChevronDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
@@ -16,6 +17,7 @@ import { useRouter } from 'next/navigation';
 /**
  * @fileOverview Compact Premium Header.
  * Automatically displays the auto-detected location.
+ * Location text is clickable to allow manual overrides.
  */
 export function LocationHeader({
   searchValue,
@@ -43,6 +45,10 @@ export function LocationHeader({
     return () => window.removeEventListener('user-address-updated', updateAddress);
   }, []);
 
+  const handleOpenPicker = () => {
+    window.dispatchEvent(new CustomEvent('open-location-picker'));
+  };
+
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -60,13 +66,23 @@ export function LocationHeader({
       />
 
       <div className="flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-1.5">
-          <MapPin className="h-4.5 w-4.5 text-primary stroke-[2.5]" />
-          <div className="flex flex-col">
-            <span className="text-black text-xs font-black tracking-tight uppercase leading-none">{isMounted ? currentAddress : 'Detecting...'}</span>
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Your Area</span>
+        <button 
+          onClick={handleOpenPicker}
+          className="flex items-center gap-1.5 active:scale-95 transition-all text-left"
+        >
+          <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center">
+            <MapPin className="h-4.5 w-4.5 text-primary stroke-[2.5]" />
           </div>
-        </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1">
+              <span className="text-black text-xs font-black tracking-tight uppercase leading-none max-w-[140px] truncate">
+                {isMounted ? currentAddress : 'Detecting...'}
+              </span>
+              <ChevronDown className="h-3 w-3 text-primary stroke-[3]" />
+            </div>
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">TAP TO CHANGE</span>
+          </div>
+        </button>
 
         <button 
           onClick={() => router.push('/profile')}

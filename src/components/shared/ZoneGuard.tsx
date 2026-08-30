@@ -9,7 +9,8 @@ import {
   Loader2,
   Navigation,
   Search,
-  Crosshair
+  Crosshair,
+  MapPinned
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
@@ -45,6 +46,7 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isCrawler, setIsCrawler] = useState(false);
+  const [manualZoneId, setManualZoneId] = useState<string | null>(null);
 
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -55,26 +57,40 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     
-    // AGGRESSIVE CRAWLER BYPASS: Detect if search engine or headless browser
     const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
     setIsCrawler(isBot);
 
     const updateLocation = () => {
       const plusCode = localStorage.getItem('user_plus_code');
+      const savedZoneId = localStorage.getItem('active_zone_id');
+      
       if (plusCode) {
         const [lat, lng] = plusCode.split(',').map(Number);
         if (!isNaN(lat) && !isNaN(lng)) {
           setCurrentCoords({ lat, lng });
         }
       }
+      
+      if (savedZoneId) setManualZoneId(savedZoneId);
     };
+
     updateLocation();
     window.addEventListener('user-address-updated', updateLocation);
     return () => window.removeEventListener('user-address-updated', updateLocation);
   }, []);
 
   const currentZone = useMemo(() => {
-    if (!activeZones || activeZones.length === 0 || !currentCoords) return null;
+    if (!activeZones || activeZones.length === 0) return null;
+
+    // 1. Priority: Manual Selection
+    const savedZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+    if (savedZoneId) {
+      const found = activeZones.find(z => z.id === savedZoneId);
+      if (found) return found;
+    }
+
+    // 2. Fallback: GPS Detection
+    if (!currentCoords) return null;
 
     return activeZones.find(zone => {
       if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 2) {
@@ -82,11 +98,9 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       }
       return false;
     });
-  }, [activeZones, currentCoords]);
+  }, [activeZones, currentCoords, manualZoneId]);
 
   if (!mounted) return null;
-  
-  // If it's a crawler, let it through always
   if (isCrawler) return <>{children}</>;
 
   if (zonesLoading || userLoading) {
@@ -98,11 +112,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const hasLocation = !!currentCoords;
   const noZonesDefined = !activeZones || activeZones.length === 0;
 
-  // IF User is within a zone, or no zones exist (prototyping mode), or location not yet detected (still loading/waiting)
-  if (noZonesDefined || !hasLocation || !!currentZone) {
+  // IF user has a zone (manual or GPS), or no zones exist in DB, show the app
+  if (noZonesDefined || !!currentZone) {
     if (currentZone) localStorage.setItem('active_zone_id', currentZone.id);
     return <>{children}</>;
   }
@@ -131,18 +144,26 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
             SERVICE<br /><span className="text-primary">UNAVAILABLE.</span>
           </h1>
           <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto mt-4">
-            AAPKI LOCATION HAMARE DELIVERY AREA SE BAHAR HAI. HUM JALDI HI AAPKE TAK PAHONCHENGE!
+            AAPKI LOCATION HAMARE DELIVERY AREA SE BAHAR HAI YA GPS GALAT DETECT HUA HAI.
           </p>
         </div>
 
-        <div className="w-full space-y-6 pt-4">
+        <div className="w-full space-y-4 pt-4">
            <Button 
             onClick={() => window.location.reload()}
-            className="w-full h-16 rounded-[2.5rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95"
+            className="w-full h-16 rounded-[2rem] bg-[#0B0B0B] hover:bg-primary text-white font-black uppercase italic text-lg shadow-2xl active:scale-95 transition-all"
            >
              <Crosshair className="h-5 w-5 mr-3" />
              RETRY DETECTION
            </Button>
+
+           <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('open-location-picker'))}
+            className="w-full h-14 rounded-2xl border-2 border-primary/10 text-primary font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-primary/5 transition-all"
+           >
+             <MapPinned className="h-4 w-4" />
+             CHOOSE AREA MANUALLY
+           </button>
         </div>
         
         <p className="text-[8px] font-black text-gray-300 uppercase tracking-[0.4em]">

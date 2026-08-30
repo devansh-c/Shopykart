@@ -8,7 +8,7 @@ import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase
 /**
  * @fileOverview Universal Location and GPS Permission Picker.
  * Automatically requests GPS on mount to trigger OS permission prompt.
- * Strictly using High-Accuracy mode.
+ * Strictly using High-Accuracy mode with optimized cache timeout.
  */
 export default function LocationRequest() {
   const { toast } = useToast();
@@ -30,11 +30,21 @@ export default function LocationRequest() {
     const handleAutoDetect = () => {
       if (!navigator.geolocation) return;
 
+      // Ensure we don't spam requests if already set
+      const isAlreadySet = localStorage.getItem('user_location_set') === 'true';
+      const lastCheck = localStorage.getItem('last_location_check');
+      const now = Date.now();
+      
+      // If checked in last 1 hour, don't force detection unless needed
+      if (isAlreadySet && lastCheck && (now - parseInt(lastCheck)) < 3600000) return;
+
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           
+          localStorage.setItem('last_location_check', now.toString());
+
           // Reverse Geocode using Google Maps API
           try {
             const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -43,12 +53,16 @@ export default function LocationRequest() {
             
             if (data.results && data.results[0]) {
               const address = data.results[0].formatted_address;
-              const shortAddress = data.results[0].address_components.find((c: any) => c.types.includes('sublocality'))?.long_name || 
-                                   data.results[0].address_components.find((c: any) => c.types.includes('locality'))?.long_name || "Detected Location";
+              
+              // Extract a clean "area" name
+              const subLocality = data.results[0].address_components.find((c: any) => c.types.includes('sublocality_level_1'))?.long_name;
+              const locality = data.results[0].address_components.find((c: any) => c.types.includes('locality'))?.long_name;
+              
+              const shortAddress = subLocality || locality || "Detected Location";
 
               localStorage.setItem('user_plus_code', `${lat},${lng}`);
-              localStorage.setItem('user_address', shortAddress);
-              localStorage.setItem('user_address_line', address);
+              localStorage.setItem('user_address', shortAddress.toUpperCase());
+              localStorage.setItem('user_address_line', address.toUpperCase());
               localStorage.setItem('user_location_set', 'true');
               
               window.dispatchEvent(new CustomEvent('user-address-updated'));
@@ -57,11 +71,15 @@ export default function LocationRequest() {
             console.error("Geocoding failed", e);
           }
         },
-        () => {
-          // If denied, we can't do auto-detection, but the ZoneGuard will handle the 'Unavailable' state
-          console.warn("Location permission denied");
+        (err) => {
+          console.warn("Location permission denied or timeout:", err.code);
+          // Only show error if user is trying to place an order
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, 
+          maximumAge: 0 // Do not use cached location for better accuracy
+        }
       );
     };
 
