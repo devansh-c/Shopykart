@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -445,14 +444,14 @@ export default function CartPage() {
       </div>
 
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-        <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[80vh] rounded-none sm:rounded-[2.5rem] overflow-hidden focus:outline-none flex flex-col z-[20000] bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
-           <DialogHeader className="p-3 bg-white border-b shrink-0">
-             <DialogTitle className="font-black italic uppercase text-center text-lg text-gray-900 leading-none">PIN DROP SPOT</DialogTitle>
-             <DialogDescription className="text-center text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">Confirm exact doorstep for 10-min delivery</DialogDescription>
+        <DialogContent className="p-0 border-none max-w-2xl h-full sm:h-[85vh] rounded-none sm:rounded-[2.5rem] overflow-hidden focus:outline-none flex flex-col z-[20000] bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+           <DialogHeader className="sr-only">
+             <DialogTitle>Pin Drop Spot</DialogTitle>
+             <DialogDescription>Confirm exact doorstep for 10-min delivery</DialogDescription>
            </DialogHeader>
-           <div className="absolute top-3 right-3 z-[21000]">
-              <button onClick={() => setIsMapOpen(false)} className="h-8 w-8 bg-white/80 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
-                 <X className="h-4 w-4" />
+           <div className="absolute top-4 right-4 z-[21000]">
+              <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-gray-800 active:scale-90 transition-all border border-gray-100">
+                 <X className="h-5 w-5" />
               </button>
            </div>
            <div className="flex-1 min-h-0 relative">

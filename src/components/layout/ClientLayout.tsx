@@ -82,6 +82,13 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
   }, [pathname]);
 
+  // Hide TawkChat on cart/checkout to prevent UI overlap with map
+  const showChat = useMemo(() => {
+    if (!pathname) return true;
+    const p = pathname.toLowerCase();
+    return !p.startsWith('/cart') && !isExcludedPath;
+  }, [pathname, isExcludedPath]);
+
   return (
     <FirebaseClientProvider>
       <CartProvider>
@@ -100,7 +107,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               </main>
               {!isExcludedPath && <DynamicFloatingCart />}
               {!isExcludedPath && <DynamicBottomNav />}
-              {!isExcludedPath && <DynamicTawkChat />}
+              {showChat && <DynamicTawkChat />}
             </div>
           </AuthGuard>
           <Toaster />
