@@ -38,7 +38,8 @@ import {
   ArrowUpRight,
   ListTree,
   CreditCard,
-  Banknote
+  Banknote,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -99,14 +100,6 @@ export default function MedicalDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
-
-  // Trigger KYC Popup if not completed
-  useEffect(() => {
-    if (vendorProfile && vendorProfile.kycCompleted !== true) {
-      const timer = setTimeout(() => setIsKYCOpen(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [vendorProfile]);
 
   // Categories for Selection
   const categoriesQuery = useMemoFirebase(() => {
@@ -298,6 +291,8 @@ export default function MedicalDashboard() {
     );
   }
 
+  const isKycMissing = vendorProfile && vendorProfile.kycCompleted !== true;
+
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b shrink-0 z-50">
@@ -312,6 +307,24 @@ export default function MedicalDashboard() {
          </div>
          <div className="flex items-center gap-2"><Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={handleToggleStore} className="scale-75 data-[state=checked]:bg-green-500" /></div>
       </header>
+
+      {/* KYC PENDING BANNER - AS PER IMAGE */}
+      {isKycMissing && (
+        <div 
+          onClick={() => setIsKYCOpen(true)}
+          className="bg-[#3b82f6] px-5 py-4 flex items-center justify-between cursor-pointer active:brightness-90 transition-all border-b-2 border-blue-600/20"
+        >
+          <div className="text-white space-y-0.5">
+            <h4 className="text-sm font-black uppercase tracking-tight">KYC Pending</h4>
+            <p className="text-[10px] font-bold opacity-90 leading-tight">
+              KYC must be completed before the user can <br />initiate any transactions
+            </p>
+          </div>
+          <div className="h-9 w-9 border-2 border-white/40 rounded-xl flex items-center justify-center text-white">
+            <ChevronRight className="h-5 w-5 stroke-[3]" />
+          </div>
+        </div>
+      )}
 
       <main className={cn("flex-1 overflow-y-auto no-scrollbar transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
          <div className="pb-32">
@@ -476,7 +489,7 @@ export default function MedicalDashboard() {
                                    <p className="text-sm font-black tracking-widest text-teal-500">{vendorProfile.ifscCode}</p>
                                 </div>
                              </div>
-                             <Button onClick={() => setIsKYCOpen(true)} variant="ghost" className="w-full text-gray-500 font-bold uppercase text-[9px] h-10 hover:text-white">UPDATE DETAILS</Button>
+                             <button onClick={() => setIsKYCOpen(true)} className="w-full text-gray-500 font-bold uppercase text-[9px] h-10 hover:text-white text-left underline underline-offset-4">UPDATE DETAILS</button>
                           </div>
                           <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
                        </div>
@@ -503,25 +516,29 @@ export default function MedicalDashboard() {
         ))}
       </nav>
 
-      {/* KYC POPUP */}
+      {/* FULL SCREEN KYC POPUP - AS REQUESTED */}
       <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
-         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-            <div className="bg-teal-600 h-2 w-full" />
-            <DialogHeader className="p-8 pb-2">
-               <DialogTitle className="text-center text-2xl font-black italic uppercase tracking-tighter">Payment KYC</DialogTitle>
-               <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Complete your bank identity for payouts.</DialogDescription>
+         <DialogContent className="inset-0 w-full h-full max-w-none rounded-none p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none flex flex-col z-[60000]">
+            <div className="bg-primary h-1.5 w-full shrink-0" />
+            <DialogHeader className="p-8 pb-4 shrink-0 relative">
+               <button onClick={() => setIsKYCOpen(false)} className="absolute top-8 right-8 h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
+               <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="h-16 w-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-2 shadow-inner"><ShieldCheck className="h-8 w-8" /></div>
+                  <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Payment KYC</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Complete your bank identity for payouts.</DialogDescription>
+               </div>
             </DialogHeader>
-            <div className="p-8 space-y-6 pt-2">
-               <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto no-scrollbar p-8 pt-2 space-y-8">
+               <div className="space-y-6">
                   <div className="space-y-1.5">
                      <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Holder Name</label>
                      <div className="relative">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input 
-                          placeholder="AS PER PASSBOOK" 
+                          placeholder="AS PER BANK PASSBOOK" 
                           value={kycForm.accountHolderName}
                           onChange={e => setKycForm({...kycForm, accountHolderName: e.target.value.toUpperCase()})}
-                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase"
+                          className="h-16 pl-12 rounded-[1.5rem] bg-gray-50 border-none font-black text-xs uppercase focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                      </div>
                   </div>
@@ -534,7 +551,7 @@ export default function MedicalDashboard() {
                           placeholder="••••••••••••" 
                           value={kycForm.accountNumber}
                           onChange={e => setKycForm({...kycForm, accountNumber: e.target.value.replace(/\D/g,'')})}
-                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest"
+                          className="h-16 pl-12 rounded-[1.5rem] bg-gray-50 border-none font-black tracking-[0.4em] focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                      </div>
                   </div>
@@ -543,10 +560,10 @@ export default function MedicalDashboard() {
                      <div className="relative">
                         <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input 
-                          placeholder="CONFIRM NUMBER" 
+                          placeholder="CONFIRM ACCOUNT NUMBER" 
                           value={kycForm.confirmAccountNumber}
                           onChange={e => setKycForm({...kycForm, confirmAccountNumber: e.target.value.replace(/\D/g,'')})}
-                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest"
+                          className="h-16 pl-12 rounded-[1.5rem] bg-gray-50 border-none font-black tracking-widest focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                      </div>
                   </div>
@@ -558,18 +575,27 @@ export default function MedicalDashboard() {
                           placeholder="e.g. SBIN0001234" 
                           value={kycForm.ifscCode}
                           onChange={e => setKycForm({...kycForm, ifscCode: e.target.value.toUpperCase()})}
-                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest text-teal-600"
+                          className="h-16 pl-12 rounded-[1.5rem] bg-gray-50 border-none font-black tracking-widest text-primary focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                      </div>
                   </div>
                </div>
 
+               <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex items-start gap-4">
+                  <ShieldCheck className="h-6 w-6 text-amber-600 shrink-0 mt-1" />
+                  <p className="text-[10px] font-bold text-amber-800 uppercase leading-relaxed">
+                    Ensure bank details are 100% correct. We are not responsible for wrong transfers due to incorrect KYC info.
+                  </p>
+               </div>
+            </div>
+
+            <div className="p-8 bg-gray-50 shrink-0 pb-12">
                <Button 
                 onClick={handleSaveKYC}
                 disabled={isSavingKYC}
-                className="w-full h-18 bg-[#0B0B0B] hover:bg-teal-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg transition-all"
+                className="w-full h-20 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2.5rem] font-black uppercase italic shadow-2xl text-xl transition-all active:scale-95"
                >
-                 {isSavingKYC ? <Loader2 className="h-6 w-6 animate-spin" /> : "AUTHENTICATE & SAVE"}
+                 {isSavingKYC ? <Loader2 className="h-8 w-8 animate-spin" /> : "AUTHENTICATE & SAVE"}
                </Button>
             </div>
          </DialogContent>
