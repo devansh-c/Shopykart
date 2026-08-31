@@ -16,7 +16,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 
 /**
  * @fileOverview Manual Zone Selection with Map-Based Pinning.
- * STRICTLY suppressed if location is already set in localStorage.
+ * STRICTLY suppressed if location is already set in localStorage to avoid annoying loops.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,22 +38,28 @@ export default function LocationRequest() {
     const checkLocationStatus = () => {
       if (typeof window === 'undefined') return;
       
-      const locationSet = localStorage.getItem('user_location_set') === 'true' || !!localStorage.getItem('active_zone_id');
+      // STRICT CHECK: If any location indicators exist, DO NOT show the popup automatically
+      const hasZoneId = !!localStorage.getItem('active_zone_id');
+      const hasShortAddress = !!localStorage.getItem('user_address');
+      const hasLocationSetFlag = localStorage.getItem('user_location_set') === 'true';
       const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
       
-      // IMMEDIATE BLOCK: If location exists, do NOT show popup
-      if (!locationSet && !isBot) {
+      const isLocationAlreadySet = hasZoneId || hasShortAddress || hasLocationSetFlag;
+      
+      if (!isLocationAlreadySet && !isBot) {
+        // Only open if NO location data is found at all
         setIsOpen(true);
       }
     };
 
-    // Fast check on mount
-    checkLocationStatus();
+    // Delay slightly to ensure localStorage is hydrated and ready
+    const timer = setTimeout(checkLocationStatus, 100);
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);
     
     return () => { 
+      clearTimeout(timer);
       window.removeEventListener('open-location-picker', handleOpenManual); 
     };
   }, []);
