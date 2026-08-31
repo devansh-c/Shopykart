@@ -6,12 +6,11 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to visibility control with strict readiness tracking.
- * Prevents redundant calls and early API execution to eliminate [Tawk/Logger] errors.
+ * @fileOverview Tawk.to visibility control with atomic state tracking.
+ * Strictly prevents redundant API calls to eliminate [Tawk/Logger] console errors.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
-  const [isTawkReady, setIsTawkReady] = useState(false);
   const pathname = usePathname();
   const lastVisibilityRef = useRef<boolean | null>(null);
 
@@ -25,11 +24,11 @@ export function TawkChat() {
     const manageTawkVisibility = () => {
       const tawk = (window as any).Tawk_API;
       
-      // Only proceed if Tawk is fully initialized and ready
+      // Ensure Tawk is ready and functions exist
       if (tawk && typeof tawk.hide === 'function' && typeof tawk.show === 'function') {
         const path = pathname?.toLowerCase() || '';
         
-        // STRICT BLOCK: Hide on all location/map screens and business dashboards
+        // STRICT BLOCK: Hide on business/logistics routes
         const isBusinessRoute = 
           path.startsWith('/admin') || 
           path.startsWith('/vendor') || 
@@ -38,10 +37,10 @@ export function TawkChat() {
           path.startsWith('/beauty') ||
           path.startsWith('/cart'); 
 
-        const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : true;
+        const locationSet = localStorage.getItem('user_location_set') === 'true';
         const shouldHide = isBusinessRoute || !locationSet;
 
-        // Only update if visibility changed to prevent Tawk Logger errors
+        // ATOMIC CHECK: Only call if state actually flips
         if (lastVisibilityRef.current !== shouldHide) {
           try {
             if (shouldHide) {
@@ -51,15 +50,15 @@ export function TawkChat() {
             }
             lastVisibilityRef.current = shouldHide;
           } catch (e) {
-            console.debug('Tawk.to interaction silenced to prevent logger error');
+            // Silently handle any initialization races
           }
         }
       }
     };
 
-    // Run check on interval to catch Tawk late loading
-    const interval = setInterval(manageTawkVisibility, 1000);
-    return () => clearInterval(interval);
+    // Use a small delay to ensure Tawk SDK has finished its internal init
+    const timer = setTimeout(manageTawkVisibility, 2000);
+    return () => clearTimeout(timer);
   }, [pathname, isClient]);
 
   if (!isClient) return null;
@@ -69,9 +68,6 @@ export function TawkChat() {
       <Script id="tawk-setup" strategy="afterInteractive">
         {`
           var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
-          Tawk_API.onLoad = function() {
-            window.dispatchEvent(new CustomEvent('tawk-ready'));
-          };
           (function() {
             var s1 = document.createElement("script"),
                 s0 = document.getElementsByTagName("script")[0];

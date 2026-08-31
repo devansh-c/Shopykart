@@ -435,10 +435,13 @@ export default function VendorDashboard() {
                          <Button className="bg-primary hover:bg-black rounded-xl h-12 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"><Plus className="h-4 w-4 mr-1.5" /> ADD PRODUCT</Button>
                        </DialogTrigger>
                        <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
-                          <DialogHeader className="p-8 pb-4 border-b"><DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">New Item Listing</DialogTitle></DialogHeader>
+                          <DialogHeader className="p-8 pb-4 border-b">
+                            <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">New Item Listing</DialogTitle>
+                            <DialogDescription className="sr-only">Add a new product to your catalog</DialogDescription>
+                          </DialogHeader>
                           <div className="p-8 space-y-6">
                              <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
-                                {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                                {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" alt="Preview" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                              </div>
                              <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
                              
@@ -561,7 +564,7 @@ export default function VendorDashboard() {
               <div className="p-4 space-y-6 animate-in fade-in duration-500">
                   <div className="flex flex-col items-center py-8">
                     <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted flex items-center justify-center relative">
-                      {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Store className="h-10 w-10 text-gray-300" />}
+                      {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="Profile" /> : <Store className="h-10 w-10 text-gray-300" />}
                     </div>
                     <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
@@ -626,7 +629,7 @@ export default function VendorDashboard() {
          </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-1000 rounded-t-[2.5rem] shadow-2xl transform-gpu">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-[1000] rounded-t-[2.5rem] shadow-2xl transform-gpu">
         {[
           {id:'orders',label:'Orders',icon:LayoutDashboard},
           {id:'catalog',label:'Catalog',icon:Layers},
