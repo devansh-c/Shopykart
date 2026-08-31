@@ -1,17 +1,18 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Hardened Tawk.to visibility control for ShopyKart.
  * Forcefully hides on /cart path and during initial location selection phase.
- * Aggressive polling ensures it stays hidden during critical UX moments.
+ * Prevents console errors by tracking state and verifying API readiness.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
+  const lastVisibilityRef = useRef<'hidden' | 'visible' | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -22,36 +23,36 @@ export function TawkChat() {
 
     const manageTawkVisibility = () => {
       const tawk = (window as any).Tawk_API;
-      if (tawk && typeof tawk.hide === 'function') {
-        const isLocationSet = localStorage.getItem('user_location_set') === 'true';
+      
+      // Strict check: Only proceed if Tawk_API is fully ready and has expected functions
+      if (tawk && typeof tawk.hide === 'function' && typeof tawk.show === 'function') {
+        const isLocationSet = typeof window !== 'undefined' && localStorage.getItem('user_location_set') === 'true';
         const isCartPage = pathname?.startsWith('/cart');
         
-        try {
-          // STRICT HIDE: If on cart OR location isn't set yet (Map screen), keep it hidden
-          if (isCartPage || !isLocationSet) {
-            tawk.hide();
-          } else {
-            tawk.show();
+        const shouldHide = isCartPage || !isLocationSet;
+        const targetState = shouldHide ? 'hidden' : 'visible';
+
+        // Only call if state actually needs to change to prevent Redundant/Logger errors
+        if (lastVisibilityRef.current !== targetState) {
+          try {
+            if (shouldHide) {
+              tawk.hide();
+            } else {
+              tawk.show();
+            }
+            lastVisibilityRef.current = targetState;
+          } catch (e) {
+            // Silent catch to prevent Tawk logger from bubbling up to UI as an error
           }
-        } catch (e) {
-          // Silent fallback for cross-origin or script loading issues
         }
       }
     };
 
-    // 1. Initial onLoad sync when script arrives
-    if (typeof window !== 'undefined') {
-      const tawk = (window as any).Tawk_API || {};
-      const originalOnLoad = tawk.onLoad;
-      tawk.onLoad = () => {
-        if (originalOnLoad) originalOnLoad();
-        manageTawkVisibility();
-      };
-      (window as any).Tawk_API = tawk;
-    }
-
-    // 2. High-Frequency Polling (Every 800ms) for solid lockdown during transitions
-    const interval = setInterval(manageTawkVisibility, 800);
+    // Reduced polling frequency to 1200ms for stability
+    const interval = setInterval(manageTawkVisibility, 1200);
+    
+    // Initial sync
+    manageTawkVisibility();
     
     return () => clearInterval(interval);
   }, [pathname, isClient]);
@@ -71,6 +72,14 @@ export function TawkChat() {
           s1.setAttribute('crossorigin', '*');
           s0.parentNode.insertBefore(s1, s0);
         })();
+
+        Tawk_API.onLoad = function() {
+          // Verify if widget should be hidden immediately upon load
+          var locSet = localStorage.getItem('user_location_set') === 'true';
+          if (!locSet && Tawk_API.hide) {
+            Tawk_API.hide();
+          }
+        };
 
         Tawk_API.customStyle = {
           visibility : {
