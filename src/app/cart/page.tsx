@@ -28,7 +28,9 @@ import {
   AlertCircle,
   Smartphone,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Navigation,
+  ChevronDown
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -501,6 +503,11 @@ export default function CartPage() {
          <DialogContent className="rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-xs focus:outline-none overflow-hidden">
             <div className="h-2 w-full bg-amber-400 animate-pulse" />
             <div className="p-10 space-y-8 flex flex-col items-center text-center">
+               <DialogHeader className="sr-only">
+                  <DialogTitle>Verifying Transaction</DialogTitle>
+                  <DialogDescription>Please confirm your payment status.</DialogDescription>
+               </DialogHeader>
+               
                <div className="relative">
                   <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-20" />
                   <div className="relative h-24 w-24 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border-4 border-amber-100">
@@ -534,4 +541,3 @@ export default function CartPage() {
     </div>
   );
 }
-
