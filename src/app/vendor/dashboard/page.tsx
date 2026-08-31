@@ -22,7 +22,15 @@ import {
   CheckCircle2,
   MapPin,
   Sparkles,
-  Zap
+  Zap,
+  ImageIcon,
+  Trash2,
+  Wallet,
+  History,
+  ArrowUpRight,
+  ChevronRight,
+  Eye,
+  Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -32,8 +40,12 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
+import { compressImage } from '@/lib/image-utils';
 import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
@@ -50,6 +62,7 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
@@ -58,6 +71,13 @@ export default function VendorDashboard() {
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Product Form State
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: '', price: '', mrp: '', description: '', category: '', imageUrl: ''
+  });
 
   useEffect(() => { 
     setIsMounted(true); 
@@ -75,6 +95,13 @@ export default function VendorDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  // Categories for Selection
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+  const { data: dbCategories } = useCollection<any>(categoriesQuery);
 
   const isCurrentlyOpenByTime = useMemo(() => {
     return isStoreScheduleOpen(vendorProfile, currentTimeMins);
@@ -94,6 +121,19 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: rawOrders, loading: ordersLoading } = useCollection<any>(ordersQuery);
 
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'products'), where('vendorId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: myProducts } = useCollection<any>(productsQuery);
+
+  // Payout History
+  const payoutQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'), limit(50));
+  }, [firestore, user]);
+  const { data: payouts } = useCollection<any>(payoutQuery);
+
   const orders = useMemo(() => {
     if (!rawOrders || !user) return [];
     return rawOrders.filter((o: any) => {
@@ -109,6 +149,60 @@ export default function VendorDashboard() {
       return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
     });
   }, [orders, orderFilter]);
+
+  const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600);
+      setProductForm(prev => ({ ...prev, imageUrl: compressed }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProduct = async () => {
+    if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
+      toast({ variant: "destructive", title: "Missing Information" });
+      return;
+    }
+
+    setIsSavingProduct(true);
+    const pData = {
+      name: productForm.name.trim(),
+      price: parseFloat(productForm.price),
+      mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
+      description: productForm.description.trim(),
+      category: productForm.category.toLowerCase().trim(),
+      vendorId: user.uid,
+      restaurantName: vendorProfile?.storeName || 'Store Hub',
+      serviceMode: vendorProfile?.category || 'Food',
+      zoneId: vendorProfile?.zoneId || null,
+      town: vendorProfile?.town || 'Local',
+      imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/shop/400/400',
+      isAvailable: true,
+      updatedAt: serverTimestamp(),
+      isDeleted: false,
+    };
+
+    try {
+      const newRef = doc(collection(firestore, 'products'));
+      await setDoc(newRef, { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      await setDoc(doc(firestore, 'vendors', user.uid, 'products', newRef.id), { ...pData, id: newRef.id, createdAt: serverTimestamp() });
+      
+      setIsProductModalOpen(false);
+      resetProductForm();
+      toast({ title: "Product Added to Menu!" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  const resetProductForm = () => {
+    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '' });
+  };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     if (!firestore) return;
@@ -182,7 +276,6 @@ export default function VendorDashboard() {
          </div>
       </header>
 
-      {/* PIN LOCATION ALERT FOR VENDOR */}
       {!hasLocation && activeMainTab === 'orders' && (
         <button 
           onClick={() => setIsMapOpen(true)}
@@ -234,23 +327,19 @@ export default function VendorDashboard() {
                           </div>
                       </div>
 
-                      {/* SECURITY CODES SECTION */}
                       {['Placed', 'Accepted', 'Preparing', 'Ready for Pickup'].includes(o.status) && (
                         <div className="grid grid-cols-2 gap-3 mb-6">
                            <div className="bg-[#0B0B0B] p-4 rounded-2xl border border-white/5 text-center">
                               <span className="text-[7px] font-black text-amber-500 uppercase tracking-widest block mb-1">Pickup Code</span>
                               <div className="text-xl font-black italic text-white tracking-widest">{o.pickupOTP || '----'}</div>
-                              <span className="text-[6px] font-bold text-gray-500 uppercase mt-1">Give to Rider</span>
                            </div>
                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
                               <span className="text-[7px] font-black text-primary uppercase tracking-widest block mb-1">Tracker OTP</span>
                               <div className="text-xl font-black italic text-gray-800 tracking-widest">{o.deliveryOTP || '------'}</div>
-                              <span className="text-[6px] font-bold text-gray-400 uppercase mt-1">Order Reference</span>
                            </div>
                         </div>
                       )}
 
-                      {/* WORKFLOW BUTTONS */}
                       {orderFilter === 'NEW ORDERS' && (
                         <div className="flex flex-wrap gap-2 pt-2">
                            {o.status === 'Placed' && <Button onClick={() => updateOrderStatus(o.id, 'Accepted')} className="flex-1 h-12 bg-black text-white rounded-xl font-black uppercase text-[10px]">Accept</Button>}
@@ -264,15 +353,142 @@ export default function VendorDashboard() {
                       )}
                     </div>
                   )) : (
-                    <div className="text-center py-24 flex flex-col items-center justify-center animate-in fade-in duration-700">
-                      <div className="bg-[#0B0B0B] h-32 w-32 rounded-[3rem] flex items-center justify-center shadow-2xl border-4 border-white/5 mb-8 relative">
-                         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-30 animate-pulse" />
-                         <Zap className="h-16 w-16 text-primary relative z-10" />
-                      </div>
-                      <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Waiting for<br/><span className="text-primary">New Cravings</span></h2>
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-4">Orders will ring here instantly</p>
+                    <div className="text-center py-24 flex flex-col items-center justify-center">
+                      <Zap className="h-16 w-16 text-primary mb-4 opacity-20" />
+                      <h2 className="text-2xl font-black italic uppercase text-gray-900 leading-none">No active orders</h2>
                     </div>
                   )}
+              </div>
+            )}
+
+            {activeMainTab === 'catalog' && (
+              <div className="p-4 space-y-6 animate-in fade-in duration-500">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter">My Inventory</h2>
+                    <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetProductForm(); }}>
+                       <DialogTrigger asChild>
+                         <Button className="bg-primary hover:bg-black rounded-xl h-12 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"><Plus className="h-4 w-4 mr-1.5" /> ADD PRODUCT</Button>
+                       </DialogTrigger>
+                       <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
+                          <DialogHeader className="p-8 pb-4 border-b"><DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">New Item Listing</DialogTitle></DialogHeader>
+                          <div className="p-8 space-y-6">
+                             <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                                {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                             </div>
+                             <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
+                             
+                             <div className="space-y-4">
+                                <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-14 rounded-xl font-bold bg-muted/20 border-none" />
+                                <div className="grid grid-cols-2 gap-4">
+                                  <Input placeholder="MRP ₹" type="number" value={productForm.mrp} onChange={e => setProductForm({...productForm, mrp: e.target.value})} className="h-14 rounded-xl bg-muted/20 border-none" />
+                                  <Input placeholder="Selling Price ₹" type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-14 rounded-xl border-primary/40 font-black text-primary text-lg italic" />
+                                </div>
+                                <Textarea placeholder="Description / Features" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-2xl h-24 bg-muted/20 border-none p-4" />
+                                
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
+                                  <Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}>
+                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                      <SelectValue placeholder="Select Category" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                      {dbCategories?.map((cat: any) => (
+                                        <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
+                                          {cat.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                             </div>
+                             <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-18 bg-primary hover:bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg">
+                               {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : 'PUBLISH ITEM'}
+                             </Button>
+                          </div>
+                       </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {myProducts?.filter(p => !p.isDeleted)?.map(p => (
+                      <div key={p.id} className="bg-white p-5 rounded-[2rem] border border-border/50 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover bg-muted border border-border/40" alt="" />
+                          <div>
+                            <h4 className="font-black text-base uppercase italic leading-none mb-1">{p.name}</h4>
+                            <div className="flex items-center gap-2">
+                               <span className="text-sm font-black text-primary italic">₹{p.price}</span>
+                               <span className="text-[8px] font-bold text-gray-400 line-through">₹{p.mrp}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                           <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Remove item?")) await setDoc(doc(firestore!, 'products', p.id), { isDeleted: true }, { merge: true }); }} className="h-10 w-10 rounded-xl bg-red-50 text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+              </div>
+            )}
+
+            {activeMainTab === 'payouts' && (
+              <div className="p-4 space-y-6 animate-in fade-in duration-500">
+                  <div className="bg-[#0B0B0B] rounded-[3rem] p-8 text-white relative overflow-hidden shadow-2xl">
+                     <div className="relative z-10 space-y-6">
+                        <div className="flex items-center gap-4">
+                           <div className="bg-primary/20 p-3 rounded-2xl border border-primary/20">
+                              <Wallet className="h-8 w-8 text-primary" />
+                           </div>
+                           <div>
+                              <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-none">Wallet</h3>
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Earnings Control</p>
+                           </div>
+                        </div>
+
+                        <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10">
+                           <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest block mb-2">Available for Withdrawal</span>
+                           <div className="text-5xl font-black italic tracking-tighter text-white">₹{vendorProfile?.walletBalance?.toFixed(2) || '0.00'}</div>
+                        </div>
+
+                        <Button className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black uppercase italic shadow-xl active:scale-95 transition-all">
+                           WITHDRAW NOW
+                           <ArrowUpRight className="ml-2 h-5 w-5" />
+                        </Button>
+                     </div>
+                     <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
+                  </div>
+
+                  <div className="space-y-4">
+                     <div className="flex items-center justify-between px-2">
+                        <h3 className="text-lg font-black italic uppercase tracking-tighter">Settlement History</h3>
+                        <History className="h-4 w-4 text-gray-400" />
+                     </div>
+                     
+                     <div className="space-y-3">
+                        {payouts && payouts.length > 0 ? payouts.map((pay: any) => (
+                           <div key={pay.id} className="bg-white p-5 rounded-[2rem] border border-border/50 shadow-sm flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                 <div className="h-12 w-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+                                    <CheckCircle2 className="h-6 w-6" />
+                                 </div>
+                                 <div>
+                                    <h4 className="font-black text-sm uppercase italic leading-none mb-1">₹{pay.amount?.toFixed(2)}</h4>
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{pay.note || 'Payout Released'}</p>
+                                 </div>
+                              </div>
+                              <div className="text-right">
+                                 <p className="text-[9px] font-black text-gray-400 uppercase italic">{pay.date?.seconds ? format(new Date(pay.date.seconds * 1000), 'MMM d') : 'Recently'}</p>
+                                 <Badge className="bg-green-100 text-green-700 border-none text-[7px] font-black uppercase mt-1">COMPLETED</Badge>
+                              </div>
+                           </div>
+                        )) : (
+                           <div className="text-center py-20 bg-muted/20 rounded-[3rem] border-2 border-dashed">
+                              <CircleDollarSign className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
+                              <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">No payout history yet</p>
+                           </div>
+                        )}
+                     </div>
+                  </div>
               </div>
             )}
 
