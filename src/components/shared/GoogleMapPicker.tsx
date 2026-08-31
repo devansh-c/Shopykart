@@ -24,11 +24,13 @@ interface GoogleMapPickerProps {
 /**
  * @fileOverview High-Precision Map Picker.
  * Features: Anti-Glitch Stabilizer, Geocoding-Only Search, 3D Red Pin.
+ * Fixed: Unified loader options to match ClientLayout and prevent initialization errors.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
+    id: 'google-map-script-global', // Match ClientLayout ID
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries: ['places', 'geometry'], // Match ClientLayout Libraries
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
