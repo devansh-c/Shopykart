@@ -1,7 +1,8 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
-import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle } from "lucide-react"
+import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle, Clock } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -12,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts with Strict Zone Filtering and Hydration-Safe store timing.
+ * @fileOverview PopularProducts with Strict Zone Filtering and Real-time Delivery Time calculation.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -41,7 +42,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
-const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
+const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest, deliveryTime }: any) => {
   const basePrice = Number(product.price) || 0;
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
@@ -60,6 +61,12 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               {isGuest && !isOffline && (
                 <div className="absolute top-2 left-2 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg border border-white/20">
                   ₹10 OFF
+                </div>
+              )}
+              {deliveryTime && !isOffline && (
+                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
+                   <Clock className="h-2 w-2 text-primary" />
+                   {deliveryTime}
                 </div>
               )}
            </div>
@@ -109,6 +116,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(60); 
+  const [deliveryTimes, setDeliveryTimes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -137,9 +145,55 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   }, []);
 
   const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(2000)) : null, [firestore]);
-  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v3', initialData);
+  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v4', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v3', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v4', initialStores);
+
+  // REAL-TIME DISTANCE CALCULATION ENGINE
+  useEffect(() => {
+    if (typeof window === 'undefined' || !vendors || vendors.length === 0) return;
+
+    const userLat = localStorage.getItem('user_lat');
+    const userLng = localStorage.getItem('user_lng');
+
+    if (!userLat || !userLng) return;
+
+    const calculateRealTimes = async () => {
+      if (typeof google === 'undefined') return;
+
+      const service = new google.maps.DistanceMatrixService();
+      const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
+      
+      const destinationStores = vendors.filter(v => v.lat && v.lng).slice(0, 25); // Batch limit
+      if (destinationStores.length === 0) return;
+
+      const destinations = destinationStores.map(v => new google.maps.LatLng(v.lat, v.lng));
+
+      service.getDistanceMatrix({
+        origins: [origin],
+        destinations: destinations,
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.METRIC,
+      }, (response, status) => {
+        if (status === 'OK' && response) {
+          const newTimes: Record<string, string> = {};
+          response.rows[0].elements.forEach((element, idx) => {
+            if (element.status === 'OK') {
+              const vendorId = destinationStores[idx].id;
+              // Add 5-10 mins buffer for preparation
+              const durationValue = Math.ceil(element.duration.value / 60) + 10;
+              newTimes[vendorId] = `${durationValue} MIN`;
+            }
+          });
+          setDeliveryTimes(prev => ({ ...prev, ...newTimes }));
+        }
+      });
+    };
+
+    // Delay slightly to ensure Maps SDK is ready
+    const timer = setTimeout(calculateRealTimes, 2000);
+    return () => clearTimeout(timer);
+  }, [vendors, activeZoneId]);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -152,7 +206,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return list.filter(p => {
       const v = vendorMap.get(p.vendorId);
       
-      // STRICT ZONE FILTERING: Product or its Vendor must match active zone or be global
       if (activeZoneId) {
         const itemZoneId = p.zoneId || v?.zoneId;
         if (itemZoneId && itemZoneId !== activeZoneId && itemZoneId !== 'global') {
@@ -194,7 +247,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
-          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} />;
+          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} deliveryTime={deliveryTimes[product.vendorId]} />;
         })}
       </div>
       {productsToDisplay.length === 0 && (
