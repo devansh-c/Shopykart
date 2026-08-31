@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,8 +15,8 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 });
 
 /**
- * @fileOverview Manual Zone Selection with Map-Based Pinning for Real-time Logistics.
- * When customer pins house, we save lat/lng for Distance Matrix calculations.
+ * @fileOverview Manual Zone Selection with Map-Based Pinning.
+ * Fixed: Persistent storage check to prevent recurring popups on every page return.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,11 +38,16 @@ export default function LocationRequest() {
     const handleOpen = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpen);
     
-    const locationSet = localStorage.getItem('user_location_set') === 'true';
+    // STRICT CHECK: Don't auto-open if location is already set or if it's a search crawler
+    const locationSet = typeof window !== 'undefined' ? (localStorage.getItem('user_location_set') === 'true' || localStorage.getItem('active_zone_id')) : true;
     const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
     
     if (!locationSet && !isBot) {
-      const timer = setTimeout(() => setIsOpen(true), 1500);
+      const timer = setTimeout(() => {
+        // Double check again after timeout to prevent race conditions
+        const stillNotSet = localStorage.getItem('user_location_set') !== 'true' && !localStorage.getItem('active_zone_id');
+        if (stillNotSet) setIsOpen(true);
+      }, 2000);
       return () => clearTimeout(timer);
     }
 
@@ -67,11 +71,10 @@ export default function LocationRequest() {
       (pos) => {
         setIsDetecting(false);
         const { latitude, longitude } = pos.coords;
-        // Save for Distance Matrix
         localStorage.setItem('user_lat', latitude.toString());
         localStorage.setItem('user_lng', longitude.toString());
         toast({ title: "Signal Found!", description: "GPS coordinates locked." });
-        setIsMapOpen(true); // Open map to confirm exact spot
+        setIsMapOpen(true);
       },
       () => {
         setIsDetecting(false);
@@ -109,7 +112,7 @@ export default function LocationRequest() {
     setIsOpen(false);
     localStorage.setItem('user_location_set', 'true');
     window.dispatchEvent(new CustomEvent('user-address-updated'));
-    toast({ title: "Drop Spot Pinned! 🏠", description: "Calculating real-time delivery times." });
+    toast({ title: "Drop Spot Pinned! 🏠" });
   };
 
   return (
