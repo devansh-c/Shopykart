@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +16,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 
 /**
  * @fileOverview Manual Zone Selection with Map-Based Pinning.
- * Strictly suppressed if location is already set in localStorage.
+ * STRICTLY suppressed if location is already set in localStorage.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,23 +38,23 @@ export default function LocationRequest() {
     const checkLocationStatus = () => {
       if (typeof window === 'undefined') return;
       
-      const locationSet = localStorage.getItem('user_location_set') === 'true' || localStorage.getItem('active_zone_id');
+      const locationSet = localStorage.getItem('user_location_set') === 'true' || !!localStorage.getItem('active_zone_id');
       const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
       
+      // IMMEDIATE BLOCK: If location exists, do NOT show popup
       if (!locationSet && !isBot) {
         setIsOpen(true);
       }
     };
 
-    // Delay slightly to ensure storage is available and SSR matches
-    const timer = setTimeout(checkLocationStatus, 3000);
+    // Fast check on mount
+    checkLocationStatus();
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);
     
     return () => { 
       window.removeEventListener('open-location-picker', handleOpenManual); 
-      clearTimeout(timer);
     };
   }, []);
 
@@ -128,7 +127,7 @@ export default function LocationRequest() {
             <div className="flex flex-col items-center text-center space-y-2">
                <div className="bg-primary/10 p-3 rounded-2xl text-primary mb-2 shadow-inner"><MapPin className="h-7 w-7" /></div>
                <DialogTitle className="font-black italic uppercase text-2xl tracking-tighter text-gray-900 leading-none">SELECT LOCATION</DialogTitle>
-               <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Pin your house for accurate delivery</p>
+               <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pin your house for accurate delivery</DialogDescription>
             </div>
           </DialogHeader>
 

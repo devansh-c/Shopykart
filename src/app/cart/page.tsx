@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -48,6 +47,8 @@ const deliveryInstructions = [
   { id: 'leave_door', label: 'Leave at the door', icon: Package },
   { id: 'avoid_call', label: 'Avoid calling', icon: Phone },
 ];
+
+const tipOptions = [10, 20, 30, 50];
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -130,6 +131,7 @@ export default function CartPage() {
     return () => clearTimeout(timer);
   }, [cart, isMounted, firestore]);
 
+  // Fetch top rated store for "Complete your meal" upsell
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), where('isOnline', '==', true), orderBy('rating', 'desc'), limit(5));
@@ -279,7 +281,7 @@ export default function CartPage() {
                 We will share order tracking and delivery <br />communication on {activeCustomerPhone}
               </p>
            </div>
-           <button className="text-[#E91E63] font-black text-xs uppercase tracking-widest shrink-0 active:scale-95 transition-all">EDIT</button>
+           <button onClick={handleOpenPicker} className="text-[#E91E63] font-black text-xs uppercase tracking-widest shrink-0 active:scale-95 transition-all">EDIT</button>
         </div>
 
         {/* HIGH DEMAND BANNER */}
@@ -394,6 +396,31 @@ export default function CartPage() {
            </div>
         </div>
 
+        {/* RIDER TIP */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-border/40">
+           <div className="flex items-center gap-3 mb-5">
+              <div className="bg-amber-100 p-2 rounded-xl text-amber-600"><Bike className="h-5 w-5" /></div>
+              <div>
+                 <h4 className="text-sm font-black uppercase text-gray-800 tracking-tight">Appreciate your partner</h4>
+                 <p className="text-[9px] font-medium text-gray-400 uppercase tracking-widest">100% of the tip goes to the rider</p>
+              </div>
+           </div>
+           <div className="flex gap-3">
+              {tipOptions.map((tip) => (
+                <button 
+                  key={tip}
+                  onClick={() => setSelectedTip(selectedTip === tip ? null : tip)}
+                  className={cn(
+                    "flex-1 h-12 rounded-2xl border-2 font-black italic text-xs transition-all active:scale-95 flex items-center justify-center gap-1",
+                    selectedTip === tip ? "bg-[#00843D] border-[#00843D] text-white shadow-lg" : "bg-white border-gray-100 text-gray-600"
+                  )}
+                >
+                  ₹{tip}
+                </button>
+              ))}
+           </div>
+        </div>
+
         {/* BILL SUMMARY */}
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-border/40 space-y-5">
            <h3 className="text-[10px] font-black uppercase text-gray-300 tracking-[0.3em] mb-4">Detailed Bill Summary</h3>
@@ -409,12 +436,18 @@ export default function CartPage() {
                  </div>
                  <span className="line-through">₹40</span>
               </div>
+              {selectedTip && (
+                <div className="flex justify-between items-center text-xs font-bold text-gray-600 uppercase">
+                   <span>Rider Tip</span>
+                   <span>₹{selectedTip}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-xs font-bold text-gray-600 uppercase">
                  <span>Handling Charges</span>
                  <span>₹40</span>
               </div>
               <div className="pt-4 border-t-2 border-dashed border-gray-100 flex justify-between items-center">
-                 <span className="text-xl font-black italic uppercase tracking-tighter">Grand Total</span>
+                 <span className="text-xl font-black italic uppercase tracking-tighter text-[#E91E63]">Grand Total</span>
                  <span className="text-2xl font-black italic text-gray-900 tracking-tighter">₹{finalTotal}</span>
               </div>
            </div>

@@ -11,67 +11,59 @@ import { usePathname } from 'next/navigation';
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
-  const lastVisibilityRef = useRef<boolean | null>(null);
   const [isTawkReady, setIsTawkReady] = useState(false);
+  const lastStateRef = useRef<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
     
-    // Check if already loaded in window
-    if ((window as any).Tawk_API && typeof (window as any).Tawk_API.hide === 'function') {
-      setIsTawkReady(true);
-    }
-
-    const handleTawkLoad = () => {
+    // Global signal for Tawk readiness
+    (window as any).onTawkLoadSignal = () => {
       setIsTawkReady(true);
     };
 
-    window.addEventListener('tawk-loaded', handleTawkLoad);
-    return () => window.removeEventListener('tawk-loaded', handleTawkLoad);
+    return () => {
+      delete (window as any).onTawkLoadSignal;
+    };
   }, []);
 
   useEffect(() => {
     if (!isClient || !isTawkReady) return;
 
-    const manageTawkVisibility = () => {
-      const tawk = (window as any).Tawk_API;
-      
-      if (tawk && typeof tawk.hide === 'function' && typeof tawk.show === 'function') {
-        const path = pathname?.toLowerCase() || '';
-        
-        // STRICT BLOCK: Hide on business/logistics/checkout routes
-        const isRestrictedRoute = 
-          path.startsWith('/admin') || 
-          path.startsWith('/vendor') || 
-          path.startsWith('/delivery') || 
-          path.startsWith('/medical') || 
-          path.startsWith('/beauty') ||
-          path.includes('/cart') ||
-          path.startsWith('/order/track'); 
+    const tawk = (window as any).Tawk_API;
+    if (!tawk || typeof tawk.hide !== 'function' || typeof tawk.show !== 'function') return;
 
-        const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : false;
-        const shouldHide = isRestrictedRoute || !locationSet;
+    const path = pathname?.toLowerCase() || '';
+    
+    // STRICT BLOCK: Hide on business/logistics/checkout routes
+    const isRestrictedRoute = 
+      path.startsWith('/admin') || 
+      path.startsWith('/vendor') || 
+      path.startsWith('/delivery') || 
+      path.startsWith('/medical') || 
+      path.startsWith('/beauty') ||
+      path.includes('/cart') ||
+      path.startsWith('/order/track'); 
 
-        // ATOMIC CHECK: Only call if state actually flips to avoid redundant Logger triggers
-        if (lastVisibilityRef.current !== shouldHide) {
-          try {
-            if (shouldHide) {
-              tawk.hide();
-            } else {
-              tawk.show();
-            }
-            lastVisibilityRef.current = shouldHide;
-          } catch (e) {
-            // Silently handle any initialization races
-          }
+    const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : false;
+    
+    // widget logic: show only on customer frontend if location is set
+    const shouldShow = !isRestrictedRoute && locationSet;
+    const newState = shouldShow ? 'show' : 'hide';
+
+    // ATOMIC CHECK: Only call if state actually flips to avoid redundant Logger triggers
+    if (lastStateRef.current !== newState) {
+      try {
+        if (shouldShow) {
+          tawk.show();
+        } else {
+          tawk.hide();
         }
+        lastStateRef.current = newState;
+      } catch (e) {
+        // Silently handle any initialization races
       }
-    };
-
-    manageTawkVisibility();
-    // Re-check after a small delay to catch late state transitions
-    const timer = setTimeout(manageTawkVisibility, 1200);
-    return () => clearTimeout(timer);
+    }
   }, [pathname, isClient, isTawkReady]);
 
   if (!isClient) return null;
@@ -83,7 +75,7 @@ export function TawkChat() {
           var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
           
           Tawk_API.onLoad = function() {
-            window.dispatchEvent(new CustomEvent('tawk-loaded'));
+            if (window.onTawkLoadSignal) window.onTawkLoadSignal();
           };
 
           (function() {
