@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -54,6 +55,7 @@ export default function CartPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
+  const [calculatedDeliveryTime, setCalculatedDeliveryTime] = useState<string>('10 MIN');
   
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -93,6 +95,59 @@ export default function CartPage() {
     return collection(firestore, 'checkout_charges');
   }, [firestore]);
   const { data: dbCharges } = useCollection<any>(chargesQuery);
+
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: allVendors } = useCollection<any>(vendorsQuery);
+
+  // REAL-TIME DELIVERY TIME CALCULATION FOR CHECKOUT
+  useEffect(() => {
+    if (typeof window === 'undefined' || !cart.length || !allVendors || !isMounted) return;
+
+    const userLat = localStorage.getItem('user_lat');
+    const userLng = localStorage.getItem('user_lng');
+
+    if (!userLat || !userLng) return;
+
+    const calculateCheckoutTime = () => {
+      if (typeof google === 'undefined' || !google.maps) return;
+
+      const service = new google.maps.DistanceMatrixService();
+      const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
+      
+      // Get unique vendor IDs from cart
+      const uniqueVendorIds = Array.from(new Set(cart.map(item => item.vendorId).filter(Boolean)));
+      const targetVendors = allVendors.filter(v => uniqueVendorIds.includes(v.id) && v.lat && v.lng);
+
+      if (targetVendors.length === 0) return;
+
+      service.getDistanceMatrix({
+        origins: [origin],
+        destinations: targetVendors.map(v => new google.maps.LatLng(v.lat, v.lng)),
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.METRIC,
+      }, (response, status) => {
+        if (status === 'OK' && response && response.rows[0]) {
+          let maxMinutes = 0;
+          response.rows[0].elements.forEach((element) => {
+            if (element.status === 'OK') {
+              const travelMins = Math.ceil(element.duration.value / 60);
+              const totalMins = travelMins + 12; // 12 min prep buffer
+              if (totalMins > maxMinutes) maxMinutes = totalMins;
+            }
+          });
+          if (maxMinutes > 0) {
+            setCalculatedDeliveryTime(`${maxMinutes} MIN`);
+          }
+        }
+      });
+    };
+
+    const timer = setTimeout(calculateCheckoutTime, 1000);
+    return () => clearTimeout(timer);
+  }, [cart, allVendors, isMounted]);
 
   const isFreeDeliveryEligible = totalPrice >= FREE_DELIVERY_THRESHOLD;
 
@@ -148,11 +203,15 @@ export default function CartPage() {
 
   const handleMapConfirm = (lat: number, lng: number, address?: string) => {
     setCustomerLocation({ lat, lng });
+    localStorage.setItem('user_lat', lat.toString());
+    localStorage.setItem('user_lng', lng.toString());
     if (address) {
       setCustomerAddress(address.toUpperCase());
+      localStorage.setItem('user_address_line', address.toUpperCase());
     }
     setIsMapOpen(false);
     toast({ title: "Drop Spot Locked! 📍" });
+    window.dispatchEvent(new CustomEvent('user-address-updated'));
   };
 
   const handlePlaceOrder = async () => {
@@ -160,11 +219,16 @@ export default function CartPage() {
     if (!firestore || !customerName || customerPhone.length < 10 || !customerAddress) {
       toast({ variant: "destructive", title: "Address Required" }); setIsEditingAddress(true); return;
     }
-    if (!customerLocation) {
+    
+    const lat = localStorage.getItem('user_lat');
+    const lng = localStorage.getItem('user_lng');
+
+    if (!lat || !lng) {
       toast({ variant: "destructive", title: "Precise Drop Pin Required", description: "Use the map to pin your doorstep." });
       setIsMapOpen(true);
       return;
     }
+
     if (totalPrice < 40) { toast({ variant: "destructive", title: "Min. Order ₹40" }); return; }
     if (!utrNumber) { setPaymentStep('selection'); setIsPaymentDialogOpen(true); return; }
 
@@ -180,9 +244,9 @@ export default function CartPage() {
         customerPhone,
         address: customerAddress.toUpperCase(),
         city: customerCity.toUpperCase(),
-        customerLat: customerLocation.lat,
-        customerLng: customerLocation.lng,
-        customerLocation: new GeoPoint(customerLocation.lat, customerLocation.lng),
+        customerLat: parseFloat(lat),
+        customerLng: parseFloat(lng),
+        customerLocation: new GeoPoint(parseFloat(lat), parseFloat(lng)),
         items: cart,
         total: grandTotal,
         coinDiscount: coinDiscount,
@@ -236,13 +300,13 @@ export default function CartPage() {
       </div>
 
       <div className="p-3 space-y-4 max-w-lg mx-auto">
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 animate-in slide-in-from-top-2">
            <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
-              <Timer className="h-6 w-6" />
+              <Timer className="h-6 w-6 animate-pulse" />
            </div>
            <div>
-              <h3 className="text-sm font-black italic uppercase leading-none text-gray-900">10 Mins Delivery</h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">From your nearest ShopyKart hub</p>
+              <h3 className="text-sm font-black italic uppercase leading-none text-gray-900">{calculatedDeliveryTime} Delivery</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Real-time arrival from nearest hub</p>
            </div>
         </div>
 
@@ -356,18 +420,18 @@ export default function CartPage() {
 
               <div 
                 onClick={() => setIsMapOpen(true)}
-                className={cn("p-3.5 rounded-xl border-2 border-dashed flex items-center justify-between transition-all cursor-pointer", customerLocation ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}
+                className={cn("p-3.5 rounded-xl border-2 border-dashed flex items-center justify-between transition-all cursor-pointer", customerLocation || (isMounted && localStorage.getItem('user_lat')) ? "bg-green-50 border-green-200" : "bg-primary/5 border-primary/20")}
               >
                  <div className="flex items-center gap-3">
-                    <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shadow-sm", customerLocation ? "bg-green-500 text-white" : "bg-primary text-white")}>
+                    <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shadow-sm", customerLocation || (isMounted && localStorage.getItem('user_lat')) ? "bg-green-500 text-white" : "bg-primary text-white")}>
                        <Navigation className="h-4.5 w-4.5" />
                     </div>
                     <div className="text-left">
-                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation ? 'Exact Drop Spot Set' : 'Pin your house on Map'}</p>
+                       <p className="text-[11px] font-black italic uppercase leading-none">{customerLocation || (isMounted && localStorage.getItem('user_lat')) ? 'Exact Drop Spot Set' : 'Pin your house on Map'}</p>
                     </div>
                  </div>
                  <button className="bg-white border border-gray-200 h-8 px-3 rounded-lg font-black text-[9px] uppercase shadow-sm active:scale-95 transition-all">
-                   {customerLocation ? 'UPDATE' : 'OPEN MAP'}
+                   {customerLocation || (isMounted && localStorage.getItem('user_lat')) ? 'UPDATE' : 'OPEN MAP'}
                  </button>
               </div>
            </div>
