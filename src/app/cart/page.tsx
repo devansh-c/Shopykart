@@ -27,7 +27,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Smartphone,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -538,4 +539,3 @@ export default function CartPage() {
     </div>
   );
 }
-
