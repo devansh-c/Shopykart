@@ -23,14 +23,12 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     </div>
-    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] animate-pulse text-center">SYNCHRONIZING HIGH-PRECISION MAPS...</p>
+    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] animate-pulse text-center">INITIALIZING GEO-SERVICES...</p>
   </div>
 });
 
-const libraries: ("places")[] = ["places"];
-
 /**
- * Robust Point-in-Polygon Algorithm for zone matching.
+ * Point-in-Polygon logic for zone boundaries.
  */
 function isPointInPolygon(lat: number, lng: number, points: any[]) {
   if (!points || !Array.isArray(points) || points.length < 3) return false;
@@ -49,8 +47,8 @@ function isPointInPolygon(lat: number, lng: number, points: any[]) {
 }
 
 /**
- * @fileOverview ZoneGuard - Gate with Mandatory 10-Second Precision Check.
- * Ensures fresh location fetching on every entry.
+ * @fileOverview ZoneGuard - Uses strictly Geolocation & Geocoding APIs.
+ * Enforces a 10s wait for satellite fix before falling back to manual map.
  */
 export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
@@ -61,11 +59,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const hasAttemptedRef = useRef(false);
 
-  // Load Google Maps script globally for Geocoding support
+  // Load Google Maps script globally (strictly for Geocoding)
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: libraries
   });
 
   const zonesQuery = useMemoFirebase(() => {
@@ -93,8 +90,6 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       if (zoneMatch) {
         localStorage.setItem('active_zone_id', zoneMatch.id);
         localStorage.setItem('user_city', zoneMatch.city || 'Local');
-      } else {
-        localStorage.removeItem('active_zone_id');
       }
     }
 
@@ -108,56 +103,45 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // MANDATORY 10-SECOND TIMER: Ensure full 10s pass before Map shows if auto-fetch fails
-    const fallbackTimer = setTimeout(() => {
-      setGuardState(current => {
-        if (current === 'locating') return 'confirming';
-        return current;
-      });
+    // MANDATORY 10s DELAY for Map screen
+    const timer = setTimeout(() => {
+      setGuardState(curr => curr === 'locating' ? 'confirming' : curr);
     }, 10000);
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000, 
-      maximumAge: 0 // FORCE FRESH SATELLITE SIGNAL
-    };
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setInitialCoords(coords);
         
-        // CRITICAL: Check if Google Maps is loaded before using Geocoder
-        if (isLoaded && typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+        // Attempt immediate geocode if script is loaded
+        if (isLoaded && typeof google !== 'undefined') {
           const geocoder = new google.maps.Geocoder();
           geocoder.geocode({ location: coords }, (results, status) => {
             if (status === "OK" && results?.[0]) {
-              clearTimeout(fallbackTimer);
+              clearTimeout(timer);
               handleFinalConfirm(coords.lat, coords.lng, results[0].formatted_address);
-              toast({ title: "Live Accuracy Established! 🚀" });
+              toast({ title: "Precision Lock Established! 🛰️" });
             }
           });
         }
       },
       (err) => {
-        console.warn("GPS Initial Fetch Error:", err.message);
-        // Fallback timer will trigger map confirmation automatically at 10s
+        console.warn("GPS Signal Weak:", err.message);
       },
-      options
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 
-    return () => clearTimeout(fallbackTimer);
+    return () => clearTimeout(timer);
   };
 
   useEffect(() => {
     setMounted(true);
-    const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|xml-sitemaps/i.test(navigator.userAgent);
+    const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
     if (isBot) {
       setGuardState('granted');
       return;
     }
 
-    // Always attempt fresh fetch on mount (App Refresh)
     if (!hasAttemptedRef.current) {
       hasAttemptedRef.current = true;
       handleInitialLocate();
@@ -176,8 +160,8 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="text-center space-y-2">
-           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Establishing Lock...</h2>
-           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] animate-pulse">Waiting for High-Accuracy GPS (10s)</p>
+           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Scanning Signal...</h2>
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] animate-pulse">Wait 10s for Satellite Fix</p>
         </div>
       </div>
     );
@@ -191,10 +175,10 @@ export function ZoneGuard({ children }: { children: React.ReactNode }) {
              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><MapPin className="h-5 w-5" /></div>
              <div>
                 <h2 className="text-sm font-black italic uppercase leading-none">GPS TIMEOUT</h2>
-                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Manual Pinning Required</p>
+                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Manual Selection Required</p>
              </div>
           </div>
-          <button onClick={() => window.location.reload()} className="text-[9px] font-black uppercase text-primary border-b border-primary">Retry Auto</button>
+          <button onClick={() => window.location.reload()} className="text-[9px] font-black uppercase text-primary border-b border-primary">Retry GPS</button>
         </div>
         <div className="flex-1 relative">
            <GoogleMapPicker 
