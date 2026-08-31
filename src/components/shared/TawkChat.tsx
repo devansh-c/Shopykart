@@ -1,12 +1,12 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control.
- * Simplified to allow widget visibility as soon as possible.
+ * Strictly hides the widget on all business/management routes.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -22,8 +22,20 @@ export function TawkChat() {
     const manageTawkVisibility = () => {
       const tawk = (window as any).Tawk_API;
       if (tawk && typeof tawk.hide === 'function' && typeof tawk.show === 'function') {
-        const isCartPage = pathname?.startsWith('/cart');
-        if (isCartPage) {
+        const path = pathname?.toLowerCase() || '';
+        
+        // STRICT BLOCK: Hide on all location/map screens and business dashboards
+        const isBusinessRoute = 
+          path.startsWith('/admin') || 
+          path.startsWith('/vendor') || 
+          path.startsWith('/delivery') || 
+          path.startsWith('/medical/store') || 
+          path.startsWith('/beauty/store') ||
+          path.startsWith('/cart'); // Also hide on cart for map focus
+
+        const locationSet = localStorage.getItem('user_location_set') === 'true';
+
+        if (isBusinessRoute || !locationSet) {
           tawk.hide();
         } else {
           tawk.show();
@@ -31,7 +43,9 @@ export function TawkChat() {
       }
     };
 
-    const interval = setInterval(manageTawkVisibility, 1500);
+    // Run immediately and then on an interval to catch Tawk late loading
+    manageTawkVisibility();
+    const interval = setInterval(manageTawkVisibility, 2000);
     return () => clearInterval(interval);
   }, [pathname, isClient]);
 

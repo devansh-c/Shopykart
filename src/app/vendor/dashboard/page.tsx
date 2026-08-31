@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -6,7 +5,6 @@ import { collection, doc, query, where, setDoc, serverTimestamp, deleteDoc, upda
 import { signOut } from 'firebase/auth';
 import { 
   ShoppingBag, 
-  Trash2, 
   Plus, 
   LogOut,
   Utensils,
@@ -14,52 +12,34 @@ import {
   Layers,
   CircleDollarSign,
   UserCircle2,
-  Edit,
-  ImageIcon,
-  BellRing,
   Clock,
   Camera,
-  History,
-  Wallet,
   Store,
-  XCircle,
   X,
   Loader2,
-  ListPlus,
-  FileText,
-  CheckCircle2,
-  ShieldCheck,
-  Printer,
-  Download,
-  Eye,
-  Package,
   User,
-  Power,
-  PowerOff,
-  MapPin,
   Phone,
-  Save,
-  ChevronRight,
-  TrendingUp,
-  ArrowUpRight,
-  ListTree,
-  KeyRound,
-  Check
+  CheckCircle2,
+  MapPin,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useRef, useMemo, memo, useTransition } from 'react';
+import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { compressImage } from '@/lib/image-utils';
-import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
+import dynamic from 'next/dynamic';
+
+const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
+  ssr: false,
+  loading: () => <div className="h-64 w-full bg-muted animate-pulse rounded-2xl flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+});
 
 type MainTab = 'orders' | 'catalog' | 'payouts' | 'account';
 type OrderFilter = 'NEW ORDERS' | 'DELIVERED' | 'CANCELLED';
@@ -70,14 +50,14 @@ export default function VendorDashboard() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const storeImageInputRef = useRef<HTMLInputElement>(null);
   
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('orders');
   const [isPending, startTransition] = useTransition();
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('NEW ORDERS');
   const [isMounted, setIsMounted] = useState(false);
   const [currentTimeMins, setCurrentTimeMins] = useState<number | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => { 
     setIsMounted(true); 
@@ -149,6 +129,25 @@ export default function VendorDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
+  const handleConfirmLocation = async (lat: number, lng: number, address?: string) => {
+    if (!firestore || !user) return;
+    setIsProcessing(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        lat,
+        lng,
+        storeGeocodedAddress: address || '',
+        updatedAt: serverTimestamp()
+      });
+      setIsMapOpen(false);
+      toast({ title: "Hub Spot Locked! ✅", description: "Your store location is now verified." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Pinning Failed" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -158,12 +157,14 @@ export default function VendorDashboard() {
     );
   }
 
+  const hasLocation = vendorProfile?.lat && vendorProfile?.lng;
+
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">
       <header className="bg-white px-4 py-4 flex items-center justify-between border-b shrink-0 z-50">
          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50">
-              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Utensils className="h-5 w-5" />}
+            <div className="h-10 w-10 rounded-xl overflow-hidden bg-muted border border-border/50 shadow-sm">
+              {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Utensils className="h-5 w-5 text-primary" />}
             </div>
             <div>
               <h1 className="text-sm font-black italic uppercase leading-none">{vendorProfile?.storeName}</h1>
@@ -180,6 +181,17 @@ export default function VendorDashboard() {
             <Switch checked={vendorProfile?.isOnline !== false} onCheckedChange={handleToggleStore} className="scale-75 data-[state=checked]:bg-green-500" />
          </div>
       </header>
+
+      {/* PIN LOCATION ALERT FOR VENDOR */}
+      {!hasLocation && activeMainTab === 'orders' && (
+        <button 
+          onClick={() => setIsMapOpen(true)}
+          className="bg-blue-600 text-white px-4 py-3 flex items-center justify-center gap-2 animate-in slide-in-from-top-4 duration-500 relative z-40"
+        >
+          <MapPin className="h-4 w-4 animate-bounce" />
+          <span className="text-[10px] font-black uppercase tracking-widest italic">Action Required: Pin your Hub Spot</span>
+        </button>
+      )}
 
       <main className={cn("flex-1 overflow-y-auto no-scrollbar transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
          <div className="pb-32">
@@ -216,8 +228,8 @@ export default function VendorDashboard() {
                                </div>
                              ))}
                              <div className="pt-3 border-t border-white/50 mt-2 flex justify-between items-center">
-                                <span className="text-[9px] font-black uppercase">Grand Total</span>
-                                <span className="text-lg font-black italic">₹{o.total?.toFixed(0)}</span>
+                                <span className="text-[9px] font-black uppercase text-muted-foreground">Grand Total</span>
+                                <span className="text-lg font-black italic text-gray-900">₹{o.total?.toFixed(0)}</span>
                              </div>
                           </div>
                       </div>
@@ -231,9 +243,9 @@ export default function VendorDashboard() {
                               <span className="text-[6px] font-bold text-gray-500 uppercase mt-1">Give to Rider</span>
                            </div>
                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                              <span className="text-[7px] font-black text-primary uppercase tracking-widest block mb-1">Customer OTP</span>
+                              <span className="text-[7px] font-black text-primary uppercase tracking-widest block mb-1">Tracker OTP</span>
                               <div className="text-xl font-black italic text-gray-800 tracking-widest">{o.deliveryOTP || '------'}</div>
-                              <span className="text-[6px] font-bold text-gray-400 uppercase mt-1">Tracker Reference</span>
+                              <span className="text-[6px] font-bold text-gray-400 uppercase mt-1">Order Reference</span>
                            </div>
                         </div>
                       )}
@@ -252,9 +264,13 @@ export default function VendorDashboard() {
                       )}
                     </div>
                   )) : (
-                    <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                      <ShoppingBag className="h-16 w-16 mb-4" />
-                      <p className="font-black italic uppercase text-xs">No orders in this category</p>
+                    <div className="text-center py-24 flex flex-col items-center justify-center animate-in fade-in duration-700">
+                      <div className="bg-[#0B0B0B] h-32 w-32 rounded-[3rem] flex items-center justify-center shadow-2xl border-4 border-white/5 mb-8 relative">
+                         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-30 animate-pulse" />
+                         <Zap className="h-16 w-16 text-primary relative z-10" />
+                      </div>
+                      <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Waiting for<br/><span className="text-primary">New Cravings</span></h2>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-4">Orders will ring here instantly</p>
                     </div>
                   )}
               </div>
@@ -264,11 +280,30 @@ export default function VendorDashboard() {
               <div className="p-4 space-y-6 animate-in fade-in duration-500">
                   <div className="flex flex-col items-center py-8">
                     <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white shadow-2xl overflow-hidden bg-muted flex items-center justify-center relative">
-                      {vendorProfile?.imageUrl && <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" />}
+                      {vendorProfile?.imageUrl ? <img src={vendorProfile.imageUrl} className="h-full w-full object-cover" alt="" /> : <Store className="h-10 w-10 text-gray-300" />}
                     </div>
                     <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
                   </div>
+                  
+                  <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-4">
+                     <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                           <MapPin className="h-5 w-5 text-primary" />
+                           <span className="text-xs font-black uppercase">Hub Location</span>
+                        </div>
+                        <button 
+                          onClick={() => setIsMapOpen(true)}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all",
+                            hasLocation ? "bg-green-50 text-green-600" : "bg-primary text-white"
+                          )}
+                        >
+                          {hasLocation ? 'Verified' : 'Set Hub'}
+                        </button>
+                     </div>
+                  </div>
+
                   <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-14 text-red-500 font-black uppercase italic text-xs tracking-widest"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
               </div>
             )}
@@ -282,12 +317,28 @@ export default function VendorDashboard() {
           {id:'payouts',label:'Payouts',icon:CircleDollarSign},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveMainTab(item.id as MainTab)} className="flex flex-col items-center gap-1 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => startTransition(() => setActiveMainTab(item.id as MainTab))} className="flex flex-col items-center gap-1 active:scale-90 transition-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-primary scale-110" : "text-gray-500")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>
         ))}
       </nav>
+
+      {/* PIN HUB MODAL */}
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+         <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
+            <DialogHeader className="sr-only">
+               <DialogTitle>Pin Your Hub Location</DialogTitle>
+               <DialogDescription>Mark your store building for accurate delivery routing.</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 min-h-0 relative">
+               <GoogleMapPicker 
+                 onConfirm={handleConfirmLocation} 
+                 forcedInitialCenter={hasLocation ? { lat: vendorProfile.lat, lng: vendorProfile.lng } : undefined}
+               />
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }

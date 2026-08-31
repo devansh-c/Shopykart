@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -23,8 +22,8 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview High-Precision Zomato-Style Map Picker.
- * Features: Anti-Glitch Stabilizer, Manual-First Confirmation, Full Landmark Visibility.
+ * @fileOverview High-Precision Map Picker.
+ * Features: Anti-Glitch Stabilizer, Geocoding-Only Search, 3D Red Pin.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -99,7 +98,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
         const lat = currentCenter.lat();
         const lng = currentCenter.lng();
         
-        // Only update state if moved significantly to prevent glitching
+        // Only update state if moved significantly to prevent glitching (Precision check)
         const diff = Math.abs(lat - lastMapCenter.current.lat) + Math.abs(lng - lastMapCenter.current.lng);
         if (diff > 0.00001) {
           const newCenter = { lat, lng };
@@ -174,7 +173,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none mb-1">
           <div className="relative flex flex-col items-center">
             <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-2 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
-               PIN STORE HERE
+               PIN HERE
             </div>
             
             <div className="relative transform-gpu transition-all duration-300 scale-110">
@@ -212,9 +211,9 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
               <div className="flex items-start gap-4">
                  <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
                  <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Store Building Spot</span>
+                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Marked Spot</span>
                     <p className="text-sm font-bold text-gray-800 leading-tight line-clamp-2 italic uppercase">
-                       {isResolving ? 'Resolving address...' : resolvedAddress || 'Drag map to pin building...'}
+                       {isResolving ? 'Resolving address...' : resolvedAddress || 'Drag map to pin location...'}
                     </p>
                  </div>
               </div>
@@ -224,7 +223,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
             onClick={() => onConfirm(center.lat, center.lng, resolvedAddress)}
             className="w-full h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter"
            >
-            CONFIRM STORE LOCATION
+            CONFIRM THIS LOCATION
           </button>
         </div>
       </GoogleMap>
