@@ -168,6 +168,10 @@ export default function LocationRequest() {
       {/* CUSTOMER PINNING MAP */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
+            <DialogHeader className="sr-only">
+               <DialogTitle>Pin Your Delivery Spot</DialogTitle>
+               <DialogDescription>Mark your exact house for precise 10-minute delivery.</DialogDescription>
+            </DialogHeader>
             <div className="absolute top-4 right-4 z-[10000]">
                <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400"><X className="h-5 w-5" /></button>
             </div>
