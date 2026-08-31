@@ -1,16 +1,18 @@
+
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to visibility control.
- * Strictly hides the widget on all business/management routes.
+ * @fileOverview Tawk.to visibility control with strict tracking.
+ * Strictly hides the widget on all business/management routes and during location set.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
+  const lastVisibilityRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -29,23 +31,28 @@ export function TawkChat() {
           path.startsWith('/admin') || 
           path.startsWith('/vendor') || 
           path.startsWith('/delivery') || 
-          path.startsWith('/medical/store') || 
-          path.startsWith('/beauty/store') ||
-          path.startsWith('/cart'); // Also hide on cart for map focus
+          path.startsWith('/medical') || 
+          path.startsWith('/beauty') ||
+          path.startsWith('/cart'); 
 
-        const locationSet = localStorage.getItem('user_location_set') === 'true';
+        const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : true;
+        const shouldHide = isBusinessRoute || !locationSet;
 
-        if (isBusinessRoute || !locationSet) {
-          tawk.hide();
-        } else {
-          tawk.show();
+        // Only update if visibility changed to prevent Tawk Logger errors
+        if (lastVisibilityRef.current !== shouldHide) {
+          if (shouldHide) {
+            tawk.hide();
+          } else {
+            tawk.show();
+          }
+          lastVisibilityRef.current = shouldHide;
         }
       }
     };
 
     // Run immediately and then on an interval to catch Tawk late loading
     manageTawkVisibility();
-    const interval = setInterval(manageTawkVisibility, 2000);
+    const interval = setInterval(manageTawkVisibility, 1000);
     return () => clearInterval(interval);
   }, [pathname, isClient]);
 

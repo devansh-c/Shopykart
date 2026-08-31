@@ -84,6 +84,15 @@ export default function MedicalDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // AUTH GUARD & REDIRECT
+  useEffect(() => {
+    if (!isMounted || authLoading) return;
+    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+    if (!user && !authLoading) {
+      if (!sessionActive) router.replace('/vendor/login?type=Medical');
+    }
+  }, [user, authLoading, router, isMounted]);
+
   // Vendor Profile
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -125,15 +134,6 @@ export default function MedicalDashboard() {
       });
     }
   }, [vendorProfile]);
-
-  // AUTH GUARD
-  useEffect(() => {
-    if (!isMounted || authLoading) return;
-    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !authLoading) {
-      if (!sessionActive) router.replace('/vendor/login?type=Medical');
-    }
-  }, [user, authLoading, router, isMounted]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -286,11 +286,17 @@ export default function MedicalDashboard() {
     });
   }, [orders, orderFilter]);
 
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
-    return <div className="h-screen bg-white flex flex-col items-center justify-center gap-4"><Loader2 className="h-10 w-10 animate-spin text-teal-600" /><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verifying secure session...</p></div>;
+  // STRICT BLOCKING FOR UNAUTHORIZED ACCESS
+  if (!isMounted || authLoading || (profileLoading && !vendorProfile) || (!user && !authLoading)) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          {(!user && !authLoading) ? 'REDIRECTING TO LOGIN...' : 'VERIFYING SECURE SESSION...'}
+        </p>
+      </div>
+    );
   }
-
-  if (!vendorProfile) return null;
 
   return (
     <div className="h-screen bg-[#F9FAFB] flex flex-col max-lg mx-auto shadow-2xl relative overflow-hidden">

@@ -104,6 +104,15 @@ export default function VendorDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // AUTH GUARD & REDIRECT
+  useEffect(() => {
+    if (!isMounted || authLoading) return;
+    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+    if (!user && !authLoading) {
+      if (!sessionActive) router.replace('/vendor/login');
+    }
+  }, [user, authLoading, router, isMounted]);
+
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'vendors', user.uid);
@@ -128,14 +137,6 @@ export default function VendorDashboard() {
   const isCurrentlyOpenByTime = useMemo(() => {
     return isStoreScheduleOpen(vendorProfile, currentTimeMins);
   }, [vendorProfile, currentTimeMins]);
-
-  useEffect(() => {
-    if (!isMounted || authLoading) return;
-    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
-    if (!user && !authLoading) {
-      if (!sessionActive) router.replace('/vendor/login');
-    }
-  }, [user, authLoading, router, isMounted]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -292,11 +293,14 @@ export default function VendorDashboard() {
     }
   };
 
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
+  // STRICT BLOCKING FOR UNAUTHORIZED ACCESS
+  if (!isMounted || authLoading || (profileLoading && !vendorProfile) || (!user && !authLoading)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Restoring secure session...</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
+          {(!user && !authLoading) ? 'REDIRECTING TO LOGIN...' : 'VERIFYING ACCESS...'}
+        </p>
       </div>
     );
   }
