@@ -31,7 +31,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, GeoPoint, increment, setDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, GeoPoint, increment, setDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -80,15 +80,11 @@ export default function CartPage() {
       const service = new google.maps.DistanceMatrixService();
       const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
       
-      // Get vendor IDs from cart
       const vendorIds = Array.from(new Set(cart.map(item => item.vendorId).filter(Boolean)));
       if (vendorIds.length === 0) return;
 
-      // We need to fetch coordinates for these vendors
-      // For speed, we'll try to find them in a common cache or fetch first
       const destinationCoords: google.maps.LatLng[] = [];
       
-      // Fetch destinations for first 5 unique vendors in cart
       for (const vId of vendorIds.slice(0, 5)) {
         try {
           const vSnap = await getDoc(doc(firestore!, 'vendors', vId as string));
@@ -130,7 +126,6 @@ export default function CartPage() {
     return () => clearTimeout(timer);
   }, [cart, isMounted, firestore]);
 
-  // 1. Fetch Vendors to find the top rated one
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), where('isOnline', '==', true), orderBy('rating', 'desc'), limit(5));
@@ -139,7 +134,6 @@ export default function CartPage() {
 
   const bestVendorId = useMemo(() => topVendors?.[0]?.id || null, [topVendors]);
 
-  // 2. Fetch products from the best rated vendor
   const upsellQuery = useMemoFirebase(() => {
     if (!firestore || !bestVendorId) return null;
     return query(
@@ -151,7 +145,6 @@ export default function CartPage() {
   }, [firestore, bestVendorId]);
   const { data: upsellProducts } = useCollection<any>(upsellQuery);
 
-  // 3. Fallback products if top rated vendor has none or not loaded yet
   const generalProductsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), where('isAvailable', '==', true), limit(10));
@@ -174,6 +167,10 @@ export default function CartPage() {
     setSelectedInstructions(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleOpenPicker = () => {
+    window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
   const handlePlaceOrder = async () => {
@@ -243,16 +240,29 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F5F6F8] pb-44 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
 
-      <header className="bg-gradient-to-b from-[#00843D] to-[#00843D]/90 pt-8 pb-10 px-4 sticky top-0 z-[100]">
-        <div className="flex items-start gap-4 mb-2">
-          <button onClick={() => router.back()} className="mt-1"><ChevronLeft className="h-6 w-6 text-white" /></button>
+      {/* RE-DESIGNED HEADER: CUSTOMER NAME & LOCATION FOCUS */}
+      <header className="bg-gradient-to-b from-[#00843D] to-[#00843D]/90 pt-8 pb-10 px-4 sticky top-0 z-[100] border-b border-white/10 shadow-lg">
+        <div className="flex items-start gap-4">
+          <button onClick={() => router.back()} className="mt-1 h-10 w-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 active:scale-90 transition-transform">
+            <ChevronLeft className="h-6 w-6 text-white" />
+          </button>
           <div className="flex-1">
-             <h1 className="text-lg font-bold text-white leading-none mb-1">{cart[0]?.restaurantName || 'ShopyKart Gourmet'}</h1>
-             <div className="flex items-center gap-1.5 text-[11px] font-medium text-white/90">
-                <Clock className="h-3 w-3" />
-                <span>{deliveryTime} to {activeCustomerName} | {activeAddress}</span>
-                <ChevronDown className="h-3 w-3" />
-             </div>
+             <button 
+               onClick={handleOpenPicker}
+               className="text-left w-full active:opacity-70 transition-opacity focus:outline-none"
+             >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <h1 className="text-lg font-black text-white leading-none uppercase tracking-tight">Deliver to {activeCustomerName}</h1>
+                  <ChevronDown className="h-4 w-4 text-white/60" />
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-white/80 uppercase tracking-[0.1em] italic">
+                   <MapPin className="h-3 w-3 text-white/60" />
+                   <span className="truncate max-w-[180px]">{activeAddress}</span>
+                   <span className="mx-1 text-white/30 font-normal">|</span>
+                   <Clock className="h-3 w-3 text-white/60" />
+                   <span>{deliveryTime}</span>
+                </div>
+             </button>
           </div>
         </div>
       </header>
