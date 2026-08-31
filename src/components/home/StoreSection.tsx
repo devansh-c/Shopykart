@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -16,7 +15,7 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection with hydration-safe schedule sorting.
+ * @fileOverview StoreSection with Strict Zone Filtering and hydration-safe schedule sorting.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -53,7 +52,12 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
   const filteredVendors = React.useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
     return list.filter(v => {
-      if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) return false;
+      // STRICT ZONE FILTERING: Store must match active zone or be global
+      if (activeZoneId) {
+        if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
+          return false;
+        }
+      }
       return (v.category || 'Food').toLowerCase() === activeMode.toLowerCase();
     }).sort((a, b) => {
       const onlineA = a.isOnline !== false && isStoreScheduleOpen(a, currentTimeMins) ? 1 : 0;

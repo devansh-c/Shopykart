@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts with Hydration-Safe store timing logic and Guest Pricing.
+ * @fileOverview PopularProducts with Strict Zone Filtering and Hydration-Safe store timing.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -43,7 +43,6 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
 
 const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
   const basePrice = Number(product.price) || 0;
-  // GUEST PRICING: ₹10 OFF if not logged in
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
   return (
@@ -153,8 +152,12 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     return list.filter(p => {
       const v = vendorMap.get(p.vendorId);
       
-      if (activeZoneId && v?.zoneId && v.zoneId !== activeZoneId) {
-        if (v.zoneId !== 'global') return false;
+      // STRICT ZONE FILTERING: Product or its Vendor must match active zone or be global
+      if (activeZoneId) {
+        const itemZoneId = p.zoneId || v?.zoneId;
+        if (itemZoneId && itemZoneId !== activeZoneId && itemZoneId !== 'global') {
+          return false;
+        }
       }
 
       if ((p.serviceMode || 'Food').toLowerCase() !== activeMode.toLowerCase()) return false;

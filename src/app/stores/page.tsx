@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -12,7 +11,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 /**
- * @fileOverview StoresPage with hydration-safe schedule tracking.
+ * @fileOverview StoresPage with hydration-safe schedule tracking and Strict Zone Filtering.
  */
 export default function StoresPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,8 +52,11 @@ export default function StoresPage() {
     const searchLower = searchQuery.toLowerCase().trim();
 
     return dbVendors.filter(v => {
-      if (activeZoneId && v.zoneId && v.zoneId !== activeZoneId) {
-        return false;
+      // STRICT ZONE FILTERING: Store must match active zone or be global
+      if (activeZoneId) {
+        if (v.zoneId && v.zoneId !== activeZoneId && v.zoneId !== 'global') {
+          return false;
+        }
       }
 
       const matchesSearch = !searchLower || 

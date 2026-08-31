@@ -8,6 +8,9 @@ import { Plus, Zap, Star } from "lucide-react"
 import { cn, slugify } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 
+/**
+ * @fileOverview TopTenProducts with Strict Zone Filtering.
+ */
 export function TopTenProducts() {
   const firestore = useFirestore();
   const router = useRouter();
@@ -32,10 +35,15 @@ export function TopTenProducts() {
   const filteredTopProducts = useMemo(() => {
     if (!allTopProducts || !vendors) return [];
     return allTopProducts.filter(p => {
-      if (!activeZoneId) return true;
-      const vendor = vendors.find(v => v.id === p.vendorId);
-      // Show if product zone matches OR product is global OR vendor is global
-      return !p.zoneId || p.zoneId === activeZoneId || (vendor && (!vendor.zoneId || vendor.zoneId === activeZoneId));
+      // STRICT ZONE FILTERING: Product or Vendor must match active zone or be global
+      if (activeZoneId) {
+        const vendor = vendors.find(v => v.id === p.vendorId);
+        const itemZoneId = p.zoneId || vendor?.zoneId;
+        if (itemZoneId && itemZoneId !== activeZoneId && itemZoneId !== 'global') {
+          return false;
+        }
+      }
+      return !p.isDeleted;
     });
   }, [allTopProducts, vendors, activeZoneId]);
 
