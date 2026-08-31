@@ -90,7 +90,6 @@ export default function CartPage() {
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
-  // UPI DEEP LINK GENERATOR
   const triggerUPI = (app: PaymentApp) => {
     const upiID = "9450355709@axl"; 
     const payeeName = "ShopyKart";
@@ -127,6 +126,7 @@ export default function CartPage() {
       const orderData = {
         userId: user.uid,
         customerName: activeCustomerName.toUpperCase(),
+        customerPhone: localStorage.getItem('user_phone') || '',
         address: localStorage.getItem('user_address_line') || activeAddress,
         customerLat: lat ? parseFloat(lat) : null,
         customerLng: lng ? parseFloat(lng) : null,
@@ -145,7 +145,10 @@ export default function CartPage() {
 
       await addDoc(collection(firestore!, 'orders'), orderData);
       setShowSuccessOverlay(true);
-      setTimeout(() => { clearCart(); router.replace(`/order/track/#${customerOrderNumber}`); }, 1500);
+      setTimeout(() => { 
+        clearCart(); 
+        router.replace(`/order/track/#${customerOrderNumber}`); 
+      }, 1500);
     } catch (e) {
       toast({ variant: "destructive", title: "Order Failed" });
     } finally {
@@ -154,7 +157,6 @@ export default function CartPage() {
     }
   };
 
-  // SLIDER GESTURE LOGIC
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isPlacing) return;
     setIsDragging(true);
@@ -165,7 +167,7 @@ export default function CartPage() {
     if (!isDragging || isPlacing || !sliderRef.current) return;
     const currentX = e.touches[0].clientX;
     const diff = currentX - startXRef.current;
-    const trackWidth = sliderRef.current.offsetWidth - 80; // thumb width approx
+    const trackWidth = sliderRef.current.offsetWidth - 80;
     
     if (diff > 0) {
       setSliderOffset(Math.min(diff, trackWidth));
@@ -178,7 +180,6 @@ export default function CartPage() {
     
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (sliderOffset > trackWidth * 0.85) {
-      // Trigger Order
       setSliderOffset(trackWidth);
       if (!user) {
         setSliderOffset(0);
@@ -193,7 +194,6 @@ export default function CartPage() {
         finalizeOrder();
       }
     } else {
-      // Reset
       setSliderOffset(0);
     }
   };
@@ -503,22 +503,16 @@ export default function CartPage() {
          <DialogContent className="rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-xs focus:outline-none overflow-hidden">
             <div className="h-2 w-full bg-amber-400 animate-pulse" />
             <div className="p-10 space-y-8 flex flex-col items-center text-center">
-               <DialogHeader className="sr-only">
-                  <DialogTitle>Verifying Transaction</DialogTitle>
-                  <DialogDescription>Please confirm your payment status.</DialogDescription>
-               </DialogHeader>
-               
-               <div className="relative">
-                  <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-20" />
-                  <div className="relative h-24 w-24 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border-4 border-amber-100">
-                     <Smartphone className="h-10 w-10 animate-bounce" />
+               <DialogHeader className="space-y-4">
+                  <div className="relative mx-auto mb-2">
+                    <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-20" />
+                    <div className="relative h-24 w-24 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border-4 border-amber-100 mx-auto">
+                       <Smartphone className="h-10 w-10 animate-bounce" />
+                    </div>
                   </div>
-               </div>
-               
-               <div className="space-y-2">
-                  <h3 className="text-xl font-black italic uppercase text-gray-900">VERIFYING PAYMENT</h3>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">Please complete the payment in your UPI app and return here.</p>
-               </div>
+                  <DialogTitle className="text-xl font-black italic uppercase text-gray-900">VERIFYING PAYMENT</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">Please complete the payment in your UPI app and return here.</DialogDescription>
+               </DialogHeader>
 
                <div className="w-full space-y-3">
                   <Button 
