@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -24,7 +25,8 @@ import {
   MessageSquare,
   BellOff,
   Package,
-  Bike
+  Bike,
+  Phone
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -212,6 +214,17 @@ export default function CartPage() {
     );
   };
 
+  const handleConfirmMapLocation = (lat: number, lng: number, address?: string) => {
+    localStorage.setItem('user_lat', lat.toString());
+    localStorage.setItem('user_lng', lng.toString());
+    if (address) localStorage.setItem('user_address_line', address);
+    
+    setCustomerLocation({ lat, lng });
+    if (address) setCustomerAddress(address);
+    setIsMapOpen(false);
+    toast({ title: "Drop Spot Locked! 🏠" });
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
     if (!firestore || !customerName || customerPhone.length < 10 || !customerAddress) {
@@ -334,7 +347,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* DELIVERY TIP SECTION - PROFESSIONAL TOUCH */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
            <div className="px-5 py-4 border-b bg-amber-50/30 flex items-center gap-2">
               <Heart className="h-4 w-4 text-primary fill-primary/20" />
@@ -363,7 +375,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* DELIVERY INSTRUCTIONS SECTION */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
            <div className="px-5 py-4 border-b bg-gray-50 flex items-center gap-2">
               <Bike className="h-4 w-4 text-gray-400" />
@@ -413,7 +424,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* SAFETY ASSURANCE - PROFESSIONAL TOUCH */}
         <div className="bg-[#0B0B0B] p-5 rounded-2xl flex items-center gap-4 text-white shadow-xl">
            <div className="h-10 w-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary shrink-0 border border-primary/20">
               <ShieldCheck className="h-6 w-6" />
@@ -533,3 +543,4 @@ export default function CartPage() {
     </div>
   );
 }
+

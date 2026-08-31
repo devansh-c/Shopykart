@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,7 +17,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 
 /**
  * @fileOverview Manual Zone Selection with Map-Based Pinning.
- * Fixed: Persistent storage check to prevent recurring popups on every page return.
+ * Strictly suppressed if location is already set in localStorage.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,23 +36,27 @@ export default function LocationRequest() {
   const { data: activeZones } = useCollection<any>(zonesQuery);
 
   useEffect(() => {
-    const handleOpen = () => { setIsOpen(true); };
-    window.addEventListener('open-location-picker', handleOpen);
-    
-    // STRICT CHECK: Don't auto-open if location is already set or if it's a search crawler
-    const locationSet = typeof window !== 'undefined' ? (localStorage.getItem('user_location_set') === 'true' || localStorage.getItem('active_zone_id')) : true;
-    const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
-    
-    if (!locationSet && !isBot) {
-      const timer = setTimeout(() => {
-        // Double check again after timeout to prevent race conditions
-        const stillNotSet = localStorage.getItem('user_location_set') !== 'true' && !localStorage.getItem('active_zone_id');
-        if (stillNotSet) setIsOpen(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    const checkLocationStatus = () => {
+      if (typeof window === 'undefined') return;
+      
+      const locationSet = localStorage.getItem('user_location_set') === 'true' || localStorage.getItem('active_zone_id');
+      const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
+      
+      if (!locationSet && !isBot) {
+        setIsOpen(true);
+      }
+    };
 
-    return () => { window.removeEventListener('open-location-picker', handleOpen); };
+    // Delay slightly to ensure storage is available and SSR matches
+    const timer = setTimeout(checkLocationStatus, 3000);
+
+    const handleOpenManual = () => { setIsOpen(true); };
+    window.addEventListener('open-location-picker', handleOpenManual);
+    
+    return () => { 
+      window.removeEventListener('open-location-picker', handleOpenManual); 
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
