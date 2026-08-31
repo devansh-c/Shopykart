@@ -34,7 +34,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, limit, orderBy } from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
@@ -60,7 +60,12 @@ export default function CartPage() {
   const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'PENDING' | 'SUCCESS' | 'FAILED'>('PENDING');
+
+  // Slider Gesture States
+  const [sliderOffset, setSliderOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const startXRef = useRef(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -85,28 +90,28 @@ export default function CartPage() {
 
   // UPI DEEP LINK GENERATOR
   const triggerUPI = (app: PaymentApp) => {
-    const upiID = "9450355709@axl"; // Your Admin UPI ID
+    const upiID = "9450355709@axl"; 
     const payeeName = "ShopyKart";
     const amount = totalPayable.toFixed(2);
     const txnId = `SK${Date.now()}`;
     
     let baseUri = `upi://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
     
-    // App Specific Deep Links
     let finalUri = baseUri;
     if (app === 'phonepe') finalUri = `phonepe://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
     if (app === 'paytm') finalUri = `paytmmp://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
     if (app === 'googlepay') finalUri = `tez://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
 
     window.location.href = finalUri;
-    
-    // Switch to verifying state
     setShowPaymentSelector(false);
     setIsVerifying(true);
   };
 
   const finalizeOrder = async () => {
-    if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
+    if (!user) { 
+      window.dispatchEvent(new CustomEvent('open-auth-overlay')); 
+      return; 
+    }
     
     setIsPlacing(true);
     try {
@@ -143,16 +148,51 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Order Failed" });
     } finally {
       setIsPlacing(false);
+      setIsVerifying(false);
     }
   };
 
-  const handlePlaceOrderClick = () => {
-    if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
+  // SLIDER GESTURE LOGIC
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isPlacing) return;
+    setIsDragging(true);
+    startXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || isPlacing || !sliderRef.current) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startXRef.current;
+    const trackWidth = sliderRef.current.offsetWidth - 80; // thumb width approx
     
-    if (paymentMode === 'ONLINE') {
-      setShowPaymentSelector(true);
+    if (diff > 0) {
+      setSliderOffset(Math.min(diff, trackWidth));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || isPlacing || !sliderRef.current) return;
+    setIsDragging(false);
+    
+    const trackWidth = sliderRef.current.offsetWidth - 80;
+    if (sliderOffset > trackWidth * 0.85) {
+      // Trigger Order
+      setSliderOffset(trackWidth);
+      if (!user) {
+        setSliderOffset(0);
+        window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+        return;
+      }
+      
+      if (paymentMode === 'ONLINE') {
+        setShowPaymentSelector(true);
+        setTimeout(() => setSliderOffset(0), 500);
+      } else {
+        finalizeOrder();
+      }
     } else {
-      finalizeOrder();
+      // Reset
+      setSliderOffset(0);
     }
   };
 
@@ -178,7 +218,6 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-40 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
 
-      {/* 1. STICKY HEADER */}
       <header className="bg-white border-b border-gray-100 py-5 px-6 sticky top-0 z-[100] flex items-center gap-4">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90 transition-all">
           <ChevronLeft className="h-6 w-6 text-gray-900" />
@@ -188,7 +227,7 @@ export default function CartPage() {
 
       <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
         
-        {/* 2. FREE DELIVERY TARGET CARD */}
+        {/* FREE DELIVERY TARGET */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl relative overflow-hidden border border-white/5">
            <div className="flex items-center gap-4 mb-4 relative z-10">
               <div className="h-10 w-10 bg-amber-400 rounded-2xl flex items-center justify-center text-black">
@@ -209,7 +248,7 @@ export default function CartPage() {
            <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
         </section>
 
-        {/* 3. ITEMS IN BAG CARD */}
+        {/* ITEMS IN BAG */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
               <ShoppingBag className="h-4 w-4 text-amber-400" />
@@ -238,7 +277,7 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* 4. GLOBAL INSTRUCTIONS CARD */}
+        {/* GLOBAL INSTRUCTIONS */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center gap-3">
               <MessageSquare className="h-4 w-4 text-amber-400" />
@@ -252,20 +291,7 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* 5. VERIFICATION PHOTO CARD */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
-           <div className="flex items-center gap-3">
-              <Camera className="h-4 w-4 text-amber-400" />
-              <h3 className="text-xs font-black uppercase tracking-widest">VERIFICATION PHOTO <span className="opacity-40">(OPTIONAL)</span></h3>
-           </div>
-           <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Upload house photo, your selfie, or nearby landmark</p>
-           <div className="h-32 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center bg-white/5 group cursor-pointer hover:bg-white/10 transition-all">
-              <Camera className="h-6 w-6 text-white/20 mb-2 group-hover:scale-110 transition-transform" />
-              <span className="text-[8px] font-black uppercase text-white/20">Tap to upload photo</span>
-           </div>
-        </section>
-
-        {/* 6. DELIVERY ADDRESS CARD */}
+        {/* DELIVERY ADDRESS */}
         <section className="bg-[#2D281F] rounded-[2rem] p-5 flex items-center justify-between border border-white/5 shadow-2xl">
            <div className="flex items-center gap-4">
               <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black shrink-0">
@@ -281,7 +307,7 @@ export default function CartPage() {
            </button>
         </section>
 
-        {/* 7. GOURMET ENHANCEMENTS CARD */}
+        {/* GOURMET ENHANCEMENTS */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
@@ -314,64 +340,10 @@ export default function CartPage() {
                  </div>
                  <Switch checked={isRedeemCoins} onCheckedChange={setIsRedeemCoins} className="data-[state=checked]:bg-amber-400" />
               </div>
-
-              <div className="space-y-3 pt-2">
-                 <div className="flex items-center gap-2 mb-2">
-                    <Ticket className="h-3 w-3 text-amber-400" />
-                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60">APPLY PROMO CODE</span>
-                 </div>
-                 <div className="flex gap-2">
-                    <input 
-                      placeholder="ENTER CODE" 
-                      className="flex-1 h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-xs font-black uppercase placeholder:text-white/10 focus:outline-none focus:border-amber-400/50" 
-                    />
-                    <button className="bg-[#D9C4A9] text-black h-14 px-8 rounded-2xl font-black uppercase italic text-xs active:scale-95 transition-all">
-                       APPLY
-                    </button>
-                 </div>
-              </div>
            </div>
         </section>
 
-        {/* 8. RIDER APPRECIATION CARD */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
-           <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-blue-400">
-                 <Bike className="h-6 w-6" />
-              </div>
-              <div>
-                 <h3 className="text-xs font-black uppercase tracking-widest">APPRECIATE YOUR RIDER</h3>
-                 <p className="text-[8px] font-bold text-white/40 uppercase">100% Tip goes to rider</p>
-              </div>
-           </div>
-
-           <div className="grid grid-cols-4 gap-3">
-              {[10, 20, 40].map((tip) => (
-                <button 
-                  key={tip}
-                  onClick={() => setSelectedTip(tip)}
-                  className={cn(
-                    "h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all relative",
-                    selectedTip === tip ? "border-amber-400 bg-amber-400/10" : "border-white/5 bg-white/5"
-                  )}
-                >
-                   {tip === 10 && <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[6px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter whitespace-nowrap">Most Tipped</span>}
-                   <span className="text-sm font-black italic">₹{tip}</span>
-                </button>
-              ))}
-              <button 
-                onClick={() => setSelectedTip('other')}
-                className={cn(
-                  "h-14 rounded-2xl border-2 flex items-center justify-center text-[9px] font-black uppercase transition-all",
-                  selectedTip === 'other' ? "border-amber-400 bg-amber-400/10" : "border-white/5 bg-white/5"
-                )}
-              >
-                 OTHER
-              </button>
-           </div>
-        </section>
-
-        {/* 9. BILL SUMMARY CARD */}
+        {/* BILL SUMMARY */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
            <h3 className="text-xl font-black italic uppercase tracking-tighter">BILL SUMMARY</h3>
            <div className="space-y-4">
@@ -403,7 +375,7 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* 10. PAYMENT MODE CARD */}
+        {/* PAYMENT MODE */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
            <h3 className="text-xs font-black uppercase tracking-widest opacity-60">SELECT PAYMENT MODE:</h3>
            
@@ -436,34 +408,57 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* 11. FIXED BOTTOM SLIDER BUTTON */}
+        {/* REAL GESTURE SLIDER BUTTON */}
         <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white via-white to-transparent">
-           <button 
-             onClick={handlePlaceOrderClick}
-             disabled={isPlacing}
-             className="w-full h-20 bg-[#2D281F] rounded-full p-2 flex items-center relative shadow-2xl active:scale-95 transition-all overflow-hidden"
+           <div 
+             ref={sliderRef}
+             className="w-full h-20 bg-[#2D281F] rounded-full p-2 flex items-center relative shadow-2xl overflow-hidden select-none"
            >
-              <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center text-red-500 shadow-xl z-10">
-                 <ArrowRight className="h-8 w-8 animate-pulse" />
+              {/* Slider Track Text */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                 <span className={cn(
+                   "text-[10px] font-black uppercase italic tracking-[0.3em] transition-opacity duration-300",
+                   sliderOffset > 20 ? "opacity-0" : "opacity-40 text-white"
+                 )}>
+                   SLIDE TO ORDER
+                 </span>
+                 {sliderOffset > 20 && (
+                   <span className="text-[12px] font-black italic text-amber-400 animate-pulse">
+                     SHOOOOOP!
+                   </span>
+                 )}
               </div>
-              <div className="flex-1 text-center pr-4">
-                 <span className="text-[11px] font-black uppercase italic text-white/40 tracking-[0.2em]">SLIDE TO ORDER</span>
-                 <div className="text-xl font-black text-white italic tracking-tighter mt-0.5">₹{totalPayable}</div>
+
+              {/* Slider Thumb */}
+              <div 
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ transform: `translateX(${sliderOffset}px)` }}
+                className={cn(
+                  "h-16 w-16 bg-white rounded-full flex items-center justify-center text-red-500 shadow-xl z-10 cursor-grab active:cursor-grabbing transition-transform ease-out",
+                  !isDragging && "duration-300"
+                )}
+              >
+                 <ArrowRight className={cn("h-8 w-8", isDragging ? "animate-none" : "animate-pulse")} />
               </div>
-              <div className="absolute right-6 opacity-20">
-                 <ChevronLeft className="h-6 w-6 text-white rotate-180" />
+
+              {/* Total Display */}
+              <div className="flex-1 text-right pr-6 pointer-events-none">
+                 <div className="text-xl font-black text-white italic tracking-tighter">₹{totalPayable}</div>
               </div>
+
               {isPlacing && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-20">
                    <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
                 </div>
               )}
-           </button>
+           </div>
         </div>
 
       </main>
 
-      {/* UPI PAYMENT SELECTOR DIALOG */}
+      {/* UPI PAYMENT SELECTOR */}
       <Dialog open={showPaymentSelector} onOpenChange={setShowPaymentSelector}>
         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 focus:outline-none">
           <div className="h-2 w-full bg-primary" />
@@ -501,7 +496,7 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      {/* PAYMENT VERIFICATION OVERLAY */}
+      {/* PAYMENT VERIFICATION */}
       <Dialog open={isVerifying} onOpenChange={setIsVerifying}>
          <DialogContent className="rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-xs focus:outline-none overflow-hidden">
             <div className="h-2 w-full bg-amber-400 animate-pulse" />
@@ -539,3 +534,4 @@ export default function CartPage() {
     </div>
   );
 }
+
