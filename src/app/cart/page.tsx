@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -12,37 +13,26 @@ import {
   Loader2, 
   MapPin, 
   ChevronDown,
-  Info,
-  Utensils,
-  PlusCircle,
-  MessageSquare,
-  Ticket,
-  Clock,
-  CheckCircle2,
-  Package,
-  Bike,
-  Smartphone,
-  Check,
-  Phone,
+  Navigation,
+  User,
+  Truck,
+  ArrowRight,
   BellOff,
+  Package,
+  Phone,
+  ShieldCheck,
   AlertCircle,
   Pencil,
   Tag,
-  ChevronUp,
-  Navigation,
-  ShieldCheck,
-  Zap,
-  Coins,
-  History,
+  PlusCircle,
   Star,
-  User,
-  Truck,
-  ArrowRight
+  Check,
+  Clock
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, GeoPoint, increment, setDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, increment, setDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { cn, slugify } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -79,7 +69,7 @@ export default function CartPage() {
     setIsMounted(true);
   }, []);
 
-  // WORLD-CLASS: Real-time Distance Matrix Calculation
+  // REAL-TIME LOGISTICS: Distance Matrix Calculation
   useEffect(() => {
     if (typeof window === 'undefined' || cart.length === 0) return;
 
@@ -129,7 +119,7 @@ export default function CartPage() {
           
           if (maxMins > 0) {
             const totalMins = maxMins + 12; // 12 min prep time
-            setDeliveryTime(`${totalMins}-${totalMins + 5} MIN`);
+            setDeliveryTime(`${totalMins}-${totalMins + 5} MINS`);
           }
         }
       });
@@ -139,7 +129,7 @@ export default function CartPage() {
     return () => clearTimeout(timer);
   }, [cart, isMounted, firestore]);
 
-  // SMART ENGINE: Fetch Highest Rated Store for Upsell
+  // FETCH TOP RATED STORE FOR UPSELL
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'), where('isOnline', '==', true), orderBy('rating', 'desc'), limit(5));
@@ -150,12 +140,7 @@ export default function CartPage() {
 
   const upsellQuery = useMemoFirebase(() => {
     if (!firestore || !bestVendorId) return null;
-    return query(
-      collection(firestore, 'products'), 
-      where('vendorId', '==', bestVendorId),
-      where('isAvailable', '==', true),
-      limit(10)
-    );
+    return query(collection(firestore, 'products'), where('vendorId', '==', bestVendorId), where('isAvailable', '==', true), limit(10));
   }, [firestore, bestVendorId]);
   const { data: upsellProducts } = useCollection<any>(upsellQuery);
 
@@ -244,7 +229,7 @@ export default function CartPage() {
         </div>
         <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Your cart is<br /><span className="text-primary">starving!</span></h2>
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-4 mb-10 max-w-[200px]">Fill it with the best gourmet flavors in town.</p>
-        <Button onClick={() => router.push('/')} className="w-full max-w-[240px] h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl shadow-gray-200">START SHOPPING</Button>
+        <Button onClick={() => router.push('/')} className="w-full max-w-[240px] h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl">START SHOPPING</Button>
       </div>
     );
   }
@@ -253,10 +238,10 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-44 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
 
-      {/* WORLD-CLASS GLASSMORPHIC HEADER */}
-      <header className="bg-gradient-to-br from-[#00843D] via-[#006a31] to-[#004d1f] pt-10 pb-12 px-6 sticky top-0 z-[100] shadow-[0_20px_50px_rgba(0,132,61,0.2)]">
+      {/* PIXEL-PERFECT HEADER MATCHING IMAGE */}
+      <header className="bg-[#00843D] pt-10 pb-12 px-6 sticky top-0 z-[100] shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
         <div className="flex items-start gap-4">
-          <button onClick={() => router.back()} className="mt-1 h-12 w-12 flex items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 active:scale-90 transition-all">
+          <button onClick={() => router.back()} className="mt-1 flex items-center justify-center rounded-2xl active:scale-90 transition-all">
             <ChevronLeft className="h-7 w-7 text-white" />
           </button>
           <div className="flex-1 min-w-0">
@@ -264,16 +249,15 @@ export default function CartPage() {
                onClick={handleOpenPicker}
                className="text-left w-full active:opacity-70 transition-opacity focus:outline-none"
              >
-                <h1 className="text-2xl font-black text-white leading-none uppercase tracking-tighter truncate drop-shadow-lg">
-                  Deliver to <span className="text-primary-foreground underline underline-offset-4 decoration-white/30">{activeCustomerName}</span>
+                <h1 className="text-xl font-bold text-white leading-none tracking-tight truncate">
+                  {cart[0]?.restaurantName || 'ShopyKart Store'}
                 </h1>
-                <div className="flex items-center gap-2 text-[10px] font-black text-white/80 uppercase tracking-widest italic mt-2">
-                   <div className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
-                      <Clock className="h-3 w-3 text-white" />
-                      <span>{deliveryTime}</span>
-                   </div>
-                   <span className="truncate flex-1">{activeAddress}</span>
-                   <ChevronDown className="h-3 w-3 text-white/60 shrink-0" />
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-white/80 uppercase tracking-widest italic mt-2">
+                   <Navigation className="h-3 w-3 text-white/60" />
+                   <span className="truncate flex-1">
+                     {deliveryTime} to {activeCustomerName} | {activeAddress}
+                   </span>
+                   <ChevronDown className="h-3 w-3 text-white/60 shrink-0 ml-0.5" />
                 </div>
              </button>
           </div>
@@ -311,8 +295,8 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* ELITE ITEMS CONTAINER */}
-        <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-border/60 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+        {/* ITEMS CONTAINER */}
+        <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-border/60 space-y-8">
            <div className="flex items-center justify-between mb-2">
               <h3 className="text-[10px] font-black uppercase text-gray-300 tracking-[0.4em]">YOUR SELECTION</h3>
               <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-[8px]">{cart.length} ITEMS</Badge>
@@ -344,7 +328,7 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* INTELLIGENT UPSELL: COMPLETE YOUR MEAL */}
+        {/* UPSELL: COMPLETE YOUR MEAL */}
         {displayUpsell.length > 0 && (
           <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-border/60">
             <div className="flex items-center justify-between mb-6">
@@ -423,10 +407,10 @@ export default function CartPage() {
         {/* RIDER GRATITUDE TIP */}
         <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-border/60 relative overflow-hidden group">
            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform duration-1000">
-              <Bike className="h-24 w-24" />
+              <Truck className="h-24 w-24" />
            </div>
            <div className="flex items-center gap-4 mb-8">
-              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600 border border-amber-200/50 shadow-inner"><Bike className="h-6 w-6" /></div>
+              <div className="bg-amber-100 p-3 rounded-2xl text-amber-600 border border-amber-200/50 shadow-inner"><Truck className="h-6 w-6" /></div>
               <div>
                  <h4 className="text-base font-black uppercase text-gray-900 tracking-tight italic">Support Your Partner</h4>
                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">100% of this tip goes to the rider</p>
@@ -509,7 +493,7 @@ export default function CartPage() {
 
       </main>
 
-      {/* WORLD-CLASS STICKY ACTION BAR */}
+      {/* STICKY ACTION BAR */}
       <footer className="fixed bottom-0 left-0 right-0 z-[10000] bg-white/80 backdrop-blur-2xl border-t border-gray-100 px-6 pt-5 pb-12 flex items-center justify-between shadow-[0_-25px_60px_rgba(0,0,0,0.1)]">
          <div className="flex flex-col">
             <div className="flex items-baseline gap-1">
@@ -572,7 +556,7 @@ export default function CartPage() {
                      <Input 
                       placeholder="0000 0000 0000" 
                       value={utrNumber}
-                      onChange={e => setOtpValue(e.target.value.replace(/\D/g,'').slice(0,12))}
+                      onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0,12))}
                       className="h-16 rounded-2xl bg-gray-50 border-none font-black text-3xl text-center tracking-[0.2em] italic focus-visible:ring-1 focus-visible:ring-green-500/20"
                      />
                   </div>
@@ -591,14 +575,4 @@ export default function CartPage() {
       </Dialog>
     </div>
   );
-}
-
-function setOtpValue(val: string) {
-  // Helper for input handler to prevent scoping issues
-  const el = document.querySelector('input[placeholder="0000 0000 0000"]') as HTMLInputElement;
-  if(el) {
-    const event = new Event('input', { bubbles: true });
-    el.value = val;
-    el.dispatchEvent(event);
-  }
 }
