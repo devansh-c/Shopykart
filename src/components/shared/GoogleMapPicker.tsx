@@ -3,7 +3,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
-import { Loader2, MapPin, Crosshair, Search } from 'lucide-react';
+import { Loader2, Crosshair, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const containerStyle = {
@@ -23,8 +23,8 @@ interface GoogleMapPickerProps {
 }
 
 /**
- * @fileOverview High-Precision Map Picker using Geocoding API (Stable).
- * Optimized UI for manual pinning with minimal distractions.
+ * @fileOverview High-Precision Map Picker using Geocoding API.
+ * Updated with custom 3D Red Pin matching user reference.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -138,7 +138,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }]
         }}
       >
-        {/* Simple Search Input using Geocoding API */}
+        {/* Simple Search Input */}
         <div className="absolute top-6 left-4 right-4 z-[1001]">
           <form onSubmit={handleSearch} className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5">
             <input 
@@ -154,17 +154,44 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           </form>
         </div>
 
-        {/* Static Center Pin */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[1000] pointer-events-none mb-1">
+        {/* 3D Static Center Pin matching User Reference */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none mb-1">
           <div className="relative flex flex-col items-center">
-            <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-1 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
+            <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-2 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
                PIN HERE
             </div>
-            <div className="relative">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-2xl scale-110">
-                <MapPin className="h-6 w-6 text-white fill-white" />
-              </div>
-              <div className="w-1.5 h-6 bg-black mx-auto -mt-1 rounded-full shadow-lg opacity-40" />
+            
+            {/* Premium 3D Red Pin SVG */}
+            <div className="relative transform-gpu transition-all duration-300 scale-110">
+              <svg width="50" height="65" viewBox="0 0 50 65" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_15px_15px_rgba(239,68,68,0.4)]">
+                <defs>
+                  <radialGradient id="pinGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(25 25) rotate(90) scale(35)">
+                    <stop stopColor="#FF4D4D"/>
+                    <stop offset="1" stopColor="#B30000"/>
+                  </radialGradient>
+                  <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+                    <feOffset dx="2" dy="2"/>
+                    <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadow"/>
+                    <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.3 0"/>
+                  </filter>
+                </defs>
+                {/* Main Teardrop Shape */}
+                <path 
+                  d="M25 0C11.1929 0 0 11.1929 0 25C0 33.5 6 45 25 65C44 45 50 33.5 50 25C50 11.1929 38.8071 0 25 0ZM25 38C17.8203 38 12 32.1797 12 25C12 17.8203 17.8203 12 25 12C32.1797 12 38 17.8203 38 25C38 32.1797 32.1797 38 25 38Z" 
+                  fill="url(#pinGradient)"
+                />
+                {/* Shine Layer */}
+                <path 
+                  d="M15 10C10 15 8 20 8 25" 
+                  stroke="white" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeOpacity="0.3"
+                />
+              </svg>
+              {/* Shadow on Ground */}
+              <div className="w-4 h-1.5 bg-black/20 rounded-full blur-[2px] mx-auto -mt-1 scale-x-125" />
             </div>
           </div>
         </div>
