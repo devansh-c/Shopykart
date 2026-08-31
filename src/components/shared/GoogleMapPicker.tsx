@@ -3,7 +3,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
-import { Loader2, Crosshair, Search, MapPin } from 'lucide-react';
+import { Loader2, Crosshair, Search, MapPin, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const containerStyle = {
@@ -24,7 +24,7 @@ interface GoogleMapPickerProps {
 
 /**
  * @fileOverview High-Precision Zomato-Style Map Picker.
- * Features: Full Landmark Visibility, 3D Red Pin, Geocoding Search.
+ * Features: Anti-Glitch Stabilizer, Manual-First Confirmation, Full Landmark Visibility.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
@@ -38,10 +38,14 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
   const [searchInput, setSearchQuery] = useState('');
+  
+  // Anti-Glitch: Track internal vs external changes to prevent re-render loops
+  const lastMapCenter = useRef(forcedInitialCenter || defaultCenter);
 
   useEffect(() => {
     if (forcedInitialCenter && isLoaded) {
       setCenter(forcedInitialCenter);
+      lastMapCenter.current = forcedInitialCenter;
       if (map) {
         map.setCenter(forcedInitialCenter);
         map.setZoom(19);
@@ -50,7 +54,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
     }
   }, [forcedInitialCenter, isLoaded, map]);
 
-  const reverseGeocode = (lat: number, lng: number) => {
+  const reverseGeocode = useCallback((lat: number, lng: number) => {
     if (!isLoaded || typeof google === 'undefined') return;
     setIsResolving(true);
     const geocoder = new google.maps.Geocoder();
@@ -58,11 +62,11 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
       if (status === "OK" && results?.[0]) {
         setResolvedAddress(results[0].formatted_address);
       } else {
-        setResolvedAddress("Current Selected Spot");
+        setResolvedAddress("Selected Hub Location");
       }
       setIsResolving(false);
     });
-  };
+  }, [isLoaded]);
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -80,6 +84,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           lng: results[0].geometry.location.lng()
         };
         setCenter(coords);
+        lastMapCenter.current = coords;
         map?.setCenter(coords);
         map?.setZoom(19);
         setResolvedAddress(results[0].formatted_address);
@@ -93,8 +98,15 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
       if (currentCenter) {
         const lat = currentCenter.lat();
         const lng = currentCenter.lng();
-        setCenter({ lat, lng });
-        reverseGeocode(lat, lng);
+        
+        // Only update state if moved significantly to prevent glitching
+        const diff = Math.abs(lat - lastMapCenter.current.lat) + Math.abs(lng - lastMapCenter.current.lng);
+        if (diff > 0.00001) {
+          const newCenter = { lat, lng };
+          setCenter(newCenter);
+          lastMapCenter.current = newCenter;
+          reverseGeocode(lat, lng);
+        }
       }
     }
   };
@@ -107,6 +119,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCenter(coords);
+        lastMapCenter.current = coords;
         map?.setCenter(coords);
         map?.setZoom(19);
         reverseGeocode(coords.lat, coords.lng);
@@ -134,9 +147,8 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
         onIdle={handleOnIdle}
         options={{
           disableDefaultUI: true,
-          clickableIcons: true, // ENABLED: So landmarks are clickable
+          clickableIcons: true,
           gestureHandling: 'greedy',
-          // REMOVED STYLES: Now shows all street names, places and landmarks like Zomato
         }}
       >
         {/* Floating Search Bar */}
@@ -144,14 +156,16 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           <form onSubmit={handleSearch} className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5 bg-white">
             <input 
               type="text"
-              placeholder="Search building, landmark or street" 
+              placeholder="Search building or street" 
               value={searchInput}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-12 pr-12 bg-transparent border-none font-bold text-sm text-gray-900 focus:outline-none placeholder:text-gray-400"
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
             <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-900 active:scale-90 transition-transform">
-              <ArrowRightIcon className="h-5 w-5" />
+              <ArrowRight className="h-5 w-5" />
             </button>
           </form>
         </div>
@@ -160,7 +174,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none mb-1">
           <div className="relative flex flex-col items-center">
             <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-2 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
-               DELIVERY SPOT
+               PIN STORE HERE
             </div>
             
             <div className="relative transform-gpu transition-all duration-300 scale-110">
@@ -198,9 +212,9 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
               <div className="flex items-start gap-4">
                  <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
                  <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Confirming Spot</span>
+                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Store Building Spot</span>
                     <p className="text-sm font-bold text-gray-800 leading-tight line-clamp-2 italic uppercase">
-                       {isResolving ? 'Pinpointing address...' : resolvedAddress || 'Fetching exact building...'}
+                       {isResolving ? 'Resolving address...' : resolvedAddress || 'Drag map to pin building...'}
                     </p>
                  </div>
               </div>
@@ -208,21 +222,12 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
            
            <button 
             onClick={() => onConfirm(center.lat, center.lng, resolvedAddress)}
-            disabled={isResolving}
-            className="w-full h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter disabled:opacity-50"
+            className="w-full h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter"
            >
-            {isResolving ? 'WAITING FOR GPS...' : 'CONFIRM & SET LOCATION'}
+            CONFIRM STORE LOCATION
           </button>
         </div>
       </GoogleMap>
     </div>
-  );
-}
-
-function ArrowRightIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
   );
 }
