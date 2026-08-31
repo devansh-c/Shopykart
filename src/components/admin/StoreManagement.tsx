@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { cn, slugify } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -285,15 +285,6 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       {/* GLOBAL MAP DIALOG FOR PINNING */}
       <Dialog open={isMapOpen} onOpenChange={(val) => { setIsMapOpen(val); if(!val) setStoreToPin(null); }}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
-            <DialogHeader className="p-8 pb-4 bg-white border-b shrink-0">
-               <div className="flex flex-col items-center gap-2">
-                  <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-inner">
-                    <MapPin className="h-6 w-6" />
-                  </div>
-                  <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Pin Store Location</DialogTitle>
-                  <p className="text-[10px] font-bold text-center uppercase tracking-[0.2em] text-muted-foreground">{storeToPin?.storeName || 'Partner Hub'}</p>
-               </div>
-            </DialogHeader>
             <div className="flex-1 min-h-0 relative">
                <GoogleMapPicker onConfirm={handleConfirmLocation} />
             </div>
