@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -24,7 +25,9 @@ import {
   ArrowRight,
   Truck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Smartphone,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -34,6 +37,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
+type PaymentApp = 'phonepe' | 'paytm' | 'googlepay' | 'other';
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -49,6 +55,12 @@ export default function CartPage() {
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
   
+  // Payment States
+  const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
+  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'PENDING' | 'SUCCESS' | 'FAILED'>('PENDING');
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -70,7 +82,29 @@ export default function CartPage() {
     window.dispatchEvent(new CustomEvent('open-location-picker'));
   };
 
-  const handlePlaceOrder = async () => {
+  // UPI DEEP LINK GENERATOR
+  const triggerUPI = (app: PaymentApp) => {
+    const upiID = "9450355709@axl"; // Your Admin UPI ID
+    const payeeName = "ShopyKart";
+    const amount = totalPayable.toFixed(2);
+    const txnId = `SK${Date.now()}`;
+    
+    let baseUri = `upi://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
+    
+    // App Specific Deep Links
+    let finalUri = baseUri;
+    if (app === 'phonepe') finalUri = `phonepe://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
+    if (app === 'paytm') finalUri = `paytmmp://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
+    if (app === 'googlepay') finalUri = `tez://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tr=${txnId}`;
+
+    window.location.href = finalUri;
+    
+    // Switch to verifying state
+    setShowPaymentSelector(false);
+    setIsVerifying(true);
+  };
+
+  const finalizeOrder = async () => {
     if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
     
     setIsPlacing(true);
@@ -91,7 +125,8 @@ export default function CartPage() {
         items: cart,
         total: totalPayable,
         status: 'Placed',
-        paymentMethod: 'UPI',
+        paymentMethod: paymentMode,
+        paymentStatus: paymentMode === 'ONLINE' ? 'Paid' : 'Pending',
         customerOrderNumber,
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         pickupOTP: Math.floor(1000 + Math.random() * 9000).toString(),
@@ -107,6 +142,16 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Order Failed" });
     } finally {
       setIsPlacing(false);
+    }
+  };
+
+  const handlePlaceOrderClick = () => {
+    if (!user) { window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
+    
+    if (paymentMode === 'ONLINE') {
+      setShowPaymentSelector(true);
+    } else {
+      finalizeOrder();
     }
   };
 
@@ -362,9 +407,12 @@ export default function CartPage() {
            <h3 className="text-xs font-black uppercase tracking-widest opacity-60">SELECT PAYMENT MODE:</h3>
            
            <div className="space-y-6">
-              <div className="flex items-center gap-6 p-2 group cursor-pointer">
-                 <div className="h-6 w-6 rounded-full border-2 border-amber-400 flex items-center justify-center p-1">
-                    <div className="h-full w-full bg-amber-400 rounded-full" />
+              <div 
+                onClick={() => setPaymentMode('ONLINE')}
+                className={cn("flex items-center gap-6 p-2 group cursor-pointer transition-all", paymentMode !== 'ONLINE' && "opacity-30")}
+              >
+                 <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center p-1", paymentMode === 'ONLINE' ? "border-amber-400" : "border-white/10")}>
+                    {paymentMode === 'ONLINE' && <div className="h-full w-full bg-amber-400 rounded-full" />}
                  </div>
                  <div>
                     <h4 className="text-sm font-black uppercase italic tracking-tighter">UPI / QR / APP</h4>
@@ -372,8 +420,13 @@ export default function CartPage() {
                  </div>
               </div>
 
-              <div className="flex items-center gap-6 p-2 opacity-30 group cursor-pointer">
-                 <div className="h-6 w-6 rounded-full border-2 border-white/10 flex items-center justify-center p-1" />
+              <div 
+                onClick={() => setPaymentMode('COD')}
+                className={cn("flex items-center gap-6 p-2 group cursor-pointer transition-all", paymentMode !== 'COD' && "opacity-30")}
+              >
+                 <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center p-1", paymentMode === 'COD' ? "border-amber-400" : "border-white/10")}>
+                    {paymentMode === 'COD' && <div className="h-full w-full bg-amber-400 rounded-full" />}
+                 </div>
                  <div>
                     <h4 className="text-sm font-black uppercase italic tracking-tighter">CASH ON DELIVERY</h4>
                     <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-0.5">PAY AT DOORSTEP</p>
@@ -385,7 +438,7 @@ export default function CartPage() {
         {/* 11. FIXED BOTTOM SLIDER BUTTON */}
         <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white via-white to-transparent">
            <button 
-             onClick={handlePlaceOrder}
+             onClick={handlePlaceOrderClick}
              disabled={isPlacing}
              className="w-full h-20 bg-[#2D281F] rounded-full p-2 flex items-center relative shadow-2xl active:scale-95 transition-all overflow-hidden"
            >
@@ -408,6 +461,81 @@ export default function CartPage() {
         </div>
 
       </main>
+
+      {/* UPI PAYMENT SELECTOR DIALOG */}
+      <Dialog open={showPaymentSelector} onOpenChange={setShowPaymentSelector}>
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 focus:outline-none">
+          <div className="h-2 w-full bg-primary" />
+          <div className="p-8 space-y-8">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-center">PAY SECURELY</DialogTitle>
+              <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase text-center tracking-[0.2em]">SELECT YOUR PREFERRED UPI APP</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-4">
+               {[
+                 { id: 'phonepe', label: 'PhonePe', icon: 'https://cdn-icons-png.flaticon.com/512/10691/10691811.png' },
+                 { id: 'googlepay', label: 'Google Pay', icon: 'https://cdn-icons-png.flaticon.com/512/6124/6124998.png' },
+                 { id: 'paytm', label: 'Paytm', icon: 'https://cdn-icons-png.flaticon.com/512/825/825454.png' },
+                 { id: 'other', label: 'BHIM / Other', icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968313.png' }
+               ].map((app) => (
+                 <button 
+                  key={app.id}
+                  onClick={() => triggerUPI(app.id as PaymentApp)}
+                  className="bg-gray-50 p-5 rounded-[2rem] border-2 border-transparent hover:border-primary active:scale-95 transition-all flex flex-col items-center gap-3 group"
+                 >
+                    <div className="h-12 w-12 rounded-xl overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
+                       <img src={app.icon} className="h-full w-full object-cover" alt={app.label} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-gray-800">{app.label}</span>
+                 </button>
+               ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-1 opacity-40">
+               <ShieldCheck className="h-4 w-4 text-green-600" />
+               <p className="text-[7px] font-black uppercase tracking-widest">End-to-End Encrypted</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PAYMENT VERIFICATION OVERLAY */}
+      <Dialog open={isVerifying} onOpenChange={setIsVerifying}>
+         <DialogContent className="rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-xs focus:outline-none overflow-hidden">
+            <div className="h-2 w-full bg-amber-400 animate-pulse" />
+            <div className="p-10 space-y-8 flex flex-col items-center text-center">
+               <div className="relative">
+                  <div className="absolute inset-0 bg-amber-100 rounded-full animate-ping opacity-20" />
+                  <div className="relative h-24 w-24 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border-4 border-amber-100">
+                     <Smartphone className="h-10 w-10 animate-bounce" />
+                  </div>
+               </div>
+               
+               <div className="space-y-2">
+                  <h3 className="text-xl font-black italic uppercase text-gray-900">VERIFYING PAYMENT</h3>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">Please complete the payment in your UPI app and return here.</p>
+               </div>
+
+               <div className="w-full space-y-3">
+                  <Button 
+                    onClick={finalizeOrder}
+                    disabled={isPlacing}
+                    className="w-full h-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-black uppercase italic shadow-lg shadow-green-100"
+                  >
+                    {isPlacing ? <Loader2 className="h-5 w-5 animate-spin" /> : "I HAVE PAID"}
+                  </Button>
+                  <button 
+                    onClick={() => setIsVerifying(false)}
+                    className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline"
+                  >
+                    Payment Failed?
+                  </button>
+               </div>
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
