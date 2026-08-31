@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -35,14 +36,16 @@ import {
   User,
   Save,
   ArrowUpRight,
-  ListTree
+  ListTree,
+  CreditCard,
+  Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -69,6 +72,16 @@ export default function MedicalDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isUpdatingStoreImage, setIsUpdatingStoreImage] = useState(false);
 
+  // KYC States
+  const [isKYCOpen, setIsKYCOpen] = useState(false);
+  const [isSavingKYC, setIsSavingKYC] = useState(false);
+  const [kycForm, setKycForm] = useState({
+    accountHolderName: '',
+    accountNumber: '',
+    confirmAccountNumber: '',
+    ifscCode: ''
+  });
+
   useEffect(() => { setIsMounted(true); }, []);
 
   // Vendor Profile
@@ -77,6 +90,14 @@ export default function MedicalDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  // Trigger KYC Popup if not completed
+  useEffect(() => {
+    if (vendorProfile && vendorProfile.kycCompleted !== true) {
+      const timer = setTimeout(() => setIsKYCOpen(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [vendorProfile]);
 
   // Categories for Selection
   const categoriesQuery = useMemoFirebase(() => {
@@ -145,6 +166,35 @@ export default function MedicalDashboard() {
       await batch.commit();
       toast({ title: online ? "Pharmacy Open! 🟢" : "Pharmacy Closed 🔴" });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
+  };
+
+  const handleSaveKYC = async () => {
+    if (!firestore || !user) return;
+    if (!kycForm.accountHolderName || !kycForm.accountNumber || !kycForm.ifscCode) {
+      toast({ variant: "destructive", title: "Incomplete Details" });
+      return;
+    }
+    if (kycForm.accountNumber !== kycForm.confirmAccountNumber) {
+      toast({ variant: "destructive", title: "Account Number Mismatch" });
+      return;
+    }
+
+    setIsSavingKYC(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        accountHolderName: kycForm.accountHolderName.trim().toUpperCase(),
+        accountNumber: kycForm.accountNumber.trim(),
+        ifscCode: kycForm.ifscCode.trim().toUpperCase(),
+        kycCompleted: true,
+        kycUpdatedAt: serverTimestamp()
+      });
+      setIsKYCOpen(false);
+      toast({ title: "KYC Completed! ✅", description: "Payment details saved successfully." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingKYC(false);
+    }
   };
 
   const handleStoreImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -389,13 +439,45 @@ export default function MedicalDashboard() {
                     <h2 className="text-2xl font-black italic mt-6">{vendorProfile?.storeName}</h2>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
                   </div>
+                  
                   <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-5">
                     <Input value={profileForm.storeName} onChange={e => setProfileForm({...profileForm, storeName: e.target.value})} placeholder="Business Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Input value={profileForm.fullName} onChange={e => setProfileForm({...profileForm, fullName: e.target.value})} placeholder="Owner Name" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Input value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} placeholder="Pharmacy Address" className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                     <Button onClick={async () => { setIsSavingProfile(true); await updateDoc(doc(firestore!, 'vendors', user!.uid), { storeName: profileForm.storeName, fullName: profileForm.fullName, address: profileForm.address }); setIsSavingProfile(false); toast({title:'Updated Successfully!'}); }} disabled={isSavingProfile} className="w-full h-14 bg-teal-600 text-white rounded-2xl font-black uppercase italic shadow-xl">{isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} SAVE UPDATES</Button>
-                    <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
                   </div>
+
+                  {vendorProfile?.kycCompleted && (
+                    <div className="space-y-4">
+                       <h3 className="text-[10px] font-black uppercase text-muted-foreground ml-4 tracking-widest">Payout Identity (KYC)</h3>
+                       <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl border border-white/5 relative overflow-hidden">
+                          <div className="relative z-10 space-y-4">
+                             <div className="flex items-center gap-3 mb-2">
+                                <div className="bg-teal-500/20 p-2 rounded-xl border border-teal-500/20"><ShieldCheck className="h-5 w-5 text-teal-500" /></div>
+                                <span className="text-xs font-black uppercase italic tracking-widest text-teal-500">Verified Bank Details</span>
+                             </div>
+                             <div className="space-y-4">
+                                <div>
+                                   <span className="text-[8px] font-black uppercase text-gray-500">Account Holder</span>
+                                   <p className="text-sm font-black italic uppercase">{vendorProfile.accountHolderName}</p>
+                                </div>
+                                <div>
+                                   <span className="text-[8px] font-black uppercase text-gray-500">Account Number</span>
+                                   <p className="text-sm font-black tracking-widest">{vendorProfile.accountNumber}</p>
+                                </div>
+                                <div>
+                                   <span className="text-[8px] font-black uppercase text-gray-500">IFSC Code</span>
+                                   <p className="text-sm font-black tracking-widest text-teal-500">{vendorProfile.ifscCode}</p>
+                                </div>
+                             </div>
+                             <Button onClick={() => setIsKYCOpen(true)} variant="ghost" className="w-full text-gray-500 font-bold uppercase text-[9px] h-10 hover:text-white">UPDATE DETAILS</Button>
+                          </div>
+                          <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
+                       </div>
+                    </div>
+                  )}
+
+                  <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-12 text-red-500 font-black uppercase text-[10px]"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
               </div>
             )}
          </div>
@@ -414,6 +496,78 @@ export default function MedicalDashboard() {
           </button>
         ))}
       </nav>
+
+      {/* KYC POPUP */}
+      <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
+         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+            <div className="bg-teal-600 h-2 w-full" />
+            <DialogHeader className="p-8 pb-2">
+               <DialogTitle className="text-center text-2xl font-black italic uppercase tracking-tighter">Payment KYC</DialogTitle>
+               <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Complete your bank identity for payouts.</DialogDescription>
+            </DialogHeader>
+            <div className="p-8 space-y-6 pt-2">
+               <div className="space-y-4">
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Holder Name</label>
+                     <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          placeholder="AS PER PASSBOOK" 
+                          value={kycForm.accountHolderName}
+                          onChange={e => setKycForm({...kycForm, accountHolderName: e.target.value.toUpperCase()})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase"
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Number</label>
+                     <div className="relative">
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          type="password"
+                          placeholder="••••••••••••" 
+                          value={kycForm.accountNumber}
+                          onChange={e => setKycForm({...kycForm, accountNumber: e.target.value.replace(/\D/g,'')})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest"
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Re-enter Account Number</label>
+                     <div className="relative">
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          placeholder="CONFIRM NUMBER" 
+                          value={kycForm.confirmAccountNumber}
+                          onChange={e => setKycForm({...kycForm, confirmAccountNumber: e.target.value.replace(/\D/g,'')})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest"
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Bank IFSC Code</label>
+                     <div className="relative">
+                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          placeholder="e.g. SBIN0001234" 
+                          value={kycForm.ifscCode}
+                          onChange={e => setKycForm({...kycForm, ifscCode: e.target.value.toUpperCase()})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest text-teal-600"
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <Button 
+                onClick={handleSaveKYC}
+                disabled={isSavingKYC}
+                className="w-full h-18 bg-[#0B0B0B] hover:bg-teal-600 text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg transition-all"
+               >
+                 {isSavingKYC ? <Loader2 className="h-6 w-6 animate-spin" /> : "AUTHENTICATE & SAVE"}
+               </Button>
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }

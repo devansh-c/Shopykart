@@ -70,7 +70,11 @@
         "category": { "type": "string" },
         "isOnline": { "type": "boolean" },
         "zoneId": { "type": "string" },
-        "town": { "type": "string" }
+        "town": { "type": "string" },
+        "kycCompleted": { "type": "boolean" },
+        "accountHolderName": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "ifscCode": { "type": "string" }
       }
     },
     "Coupon": {

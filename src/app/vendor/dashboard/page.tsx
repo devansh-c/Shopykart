@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -30,7 +31,10 @@ import {
   ArrowUpRight,
   ChevronRight,
   Eye,
-  Save
+  Save,
+  ShieldCheck,
+  CreditCard,
+  Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -72,6 +76,16 @@ export default function VendorDashboard() {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // KYC States
+  const [isKYCOpen, setIsKYCOpen] = useState(false);
+  const [isSavingKYC, setIsSavingKYC] = useState(false);
+  const [kycForm, setKycForm] = useState({
+    accountHolderName: '',
+    accountNumber: '',
+    confirmAccountNumber: '',
+    ifscCode: ''
+  });
+
   // Product Form State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -95,6 +109,14 @@ export default function VendorDashboard() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
   const { data: vendorProfile, loading: profileLoading } = useDoc<any>(vendorRef);
+
+  // Trigger KYC Popup if not completed
+  useEffect(() => {
+    if (vendorProfile && vendorProfile.kycCompleted !== true) {
+      const timer = setTimeout(() => setIsKYCOpen(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [vendorProfile]);
 
   // Categories for Selection
   const categoriesQuery = useMemoFirebase(() => {
@@ -127,7 +149,6 @@ export default function VendorDashboard() {
   }, [firestore, user]);
   const { data: myProducts } = useCollection<any>(productsQuery);
 
-  // Payout History
   const payoutQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'vendors', user.uid, 'payout_history'), orderBy('date', 'desc'), limit(50));
@@ -149,6 +170,35 @@ export default function VendorDashboard() {
       return status === (orderFilter === 'CANCELLED' ? 'CANCELLED' : 'DELIVERED');
     });
   }, [orders, orderFilter]);
+
+  const handleSaveKYC = async () => {
+    if (!firestore || !user) return;
+    if (!kycForm.accountHolderName || !kycForm.accountNumber || !kycForm.ifscCode) {
+      toast({ variant: "destructive", title: "Incomplete Details" });
+      return;
+    }
+    if (kycForm.accountNumber !== kycForm.confirmAccountNumber) {
+      toast({ variant: "destructive", title: "Account Number Mismatch" });
+      return;
+    }
+
+    setIsSavingKYC(true);
+    try {
+      await updateDoc(doc(firestore, 'vendors', user.uid), {
+        accountHolderName: kycForm.accountHolderName.trim().toUpperCase(),
+        accountNumber: kycForm.accountNumber.trim(),
+        ifscCode: kycForm.ifscCode.trim().toUpperCase(),
+        kycCompleted: true,
+        kycUpdatedAt: serverTimestamp()
+      });
+      setIsKYCOpen(false);
+      toast({ title: "KYC Completed! ✅", description: "Payment details saved successfully." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Save Failed" });
+    } finally {
+      setIsSavingKYC(false);
+    }
+  };
 
   const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -372,7 +422,7 @@ export default function VendorDashboard() {
                        <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                           <DialogHeader className="p-8 pb-4 border-b"><DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">New Item Listing</DialogTitle></DialogHeader>
                           <div className="p-8 space-y-6">
-                             <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                             <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                                 {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                              </div>
                              <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
@@ -411,7 +461,7 @@ export default function VendorDashboard() {
 
                   <div className="grid grid-cols-1 gap-4">
                     {myProducts?.filter(p => !p.isDeleted)?.map(p => (
-                      <div key={p.id} className="bg-white p-5 rounded-[2rem] border border-border/50 flex items-center justify-between shadow-sm">
+                      <div key={p.id} className="bg-white p-5 rounded-[2.5rem] border border-border/50 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
                           <img src={p.imageUrl} className="h-16 w-16 rounded-2xl object-cover bg-muted border border-border/40" alt="" />
                           <div>
@@ -502,23 +552,58 @@ export default function VendorDashboard() {
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{vendorProfile?.category} Provider</p>
                   </div>
                   
-                  <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-4">
-                     <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
-                        <div className="flex items-center gap-3">
-                           <MapPin className="h-5 w-5 text-primary" />
-                           <span className="text-xs font-black uppercase">Hub Location</span>
+                  <div className="space-y-4">
+                     <h3 className="text-[10px] font-black uppercase text-muted-foreground ml-4 tracking-widest">Business Information</h3>
+                     <div className="bg-white p-6 rounded-[2.5rem] border border-border/50 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl">
+                           <div className="flex items-center gap-3">
+                              <MapPin className="h-5 w-5 text-primary" />
+                              <span className="text-xs font-black uppercase">Hub Location</span>
+                           </div>
+                           <button 
+                             onClick={() => setIsMapOpen(true)}
+                             className={cn(
+                               "px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all",
+                               hasLocation ? "bg-green-50 text-green-600" : "bg-primary text-white"
+                             )}
+                           >
+                             {hasLocation ? 'Verified' : 'Set Hub'}
+                           </button>
                         </div>
-                        <button 
-                          onClick={() => setIsMapOpen(true)}
-                          className={cn(
-                            "px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all",
-                            hasLocation ? "bg-green-50 text-green-600" : "bg-primary text-white"
-                          )}
-                        >
-                          {hasLocation ? 'Verified' : 'Set Hub'}
-                        </button>
                      </div>
                   </div>
+
+                  {vendorProfile?.kycCompleted && (
+                    <div className="space-y-4">
+                       <h3 className="text-[10px] font-black uppercase text-muted-foreground ml-4 tracking-widest">Payout Identity (KYC)</h3>
+                       <div className="bg-[#0B0B0B] p-8 rounded-[2.5rem] text-white shadow-2xl border border-white/5 relative overflow-hidden">
+                          <div className="relative z-10 space-y-4">
+                             <div className="flex items-center gap-3 mb-2">
+                                <div className="bg-primary/20 p-2 rounded-xl border border-primary/20"><ShieldCheck className="h-5 w-5 text-primary" /></div>
+                                <span className="text-xs font-black uppercase italic tracking-widest text-primary">Verified Bank Details</span>
+                             </div>
+                             <div className="space-y-4">
+                                <div>
+                                   <span className="text-[8px] font-black uppercase text-gray-500">Account Holder</span>
+                                   <p className="text-sm font-black italic uppercase">{vendorProfile.accountHolderName}</p>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4">
+                                   <div>
+                                      <span className="text-[8px] font-black uppercase text-gray-500">Account Number</span>
+                                      <p className="text-sm font-black tracking-widest">{vendorProfile.accountNumber}</p>
+                                   </div>
+                                   <div>
+                                      <span className="text-[8px] font-black uppercase text-gray-500">IFSC Code</span>
+                                      <p className="text-sm font-black tracking-widest text-primary">{vendorProfile.ifscCode}</p>
+                                   </div>
+                                </div>
+                             </div>
+                             <Button onClick={() => setIsKYCOpen(true)} variant="ghost" className="w-full text-gray-500 font-bold uppercase text-[9px] h-10 hover:text-white">UPDATE DETAILS</Button>
+                          </div>
+                          <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
+                       </div>
+                    </div>
+                  )}
 
                   <Button variant="ghost" onClick={() => { localStorage.removeItem('shopykart_session_active'); signOut(auth!); router.push('/'); }} className="w-full h-14 text-red-500 font-black uppercase italic text-xs tracking-widest"><LogOut className="h-4 w-4 mr-2" /> DISCONNECT</Button>
               </div>
@@ -539,6 +624,85 @@ export default function VendorDashboard() {
           </button>
         ))}
       </nav>
+
+      {/* KYC POPUP */}
+      <Dialog open={isKYCOpen} onOpenChange={setIsKYCOpen}>
+         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+            <div className="bg-primary h-2 w-full" />
+            <DialogHeader className="p-8 pb-2">
+               <DialogTitle className="text-center text-2xl font-black italic uppercase tracking-tighter">Payment KYC</DialogTitle>
+               <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Complete your bank identity for payouts.</DialogDescription>
+            </DialogHeader>
+            <div className="p-8 space-y-6 pt-2">
+               <div className="space-y-4">
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Holder Name</label>
+                     <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          placeholder="AS PER PASSBOOK" 
+                          value={kycForm.accountHolderName}
+                          onChange={e => setKycForm({...kycForm, accountHolderName: e.target.value.toUpperCase()})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black text-xs uppercase"
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Account Number</label>
+                     <div className="relative">
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          type="password"
+                          placeholder="••••••••••••" 
+                          value={kycForm.accountNumber}
+                          onChange={e => setKycForm({...kycForm, accountNumber: e.target.value.replace(/\D/g,'')})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest"
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Re-enter Account Number</label>
+                     <div className="relative">
+                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          placeholder="CONFIRM NUMBER" 
+                          value={kycForm.confirmAccountNumber}
+                          onChange={e => setKycForm({...kycForm, confirmAccountNumber: e.target.value.replace(/\D/g,'')})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest"
+                        />
+                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Bank IFSC Code</label>
+                     <div className="relative">
+                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input 
+                          placeholder="e.g. SBIN0001234" 
+                          value={kycForm.ifscCode}
+                          onChange={e => setKycForm({...kycForm, ifscCode: e.target.value.toUpperCase()})}
+                          className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-black tracking-widest text-primary"
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-start gap-4">
+                  <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0 mt-1" />
+                  <p className="text-[9px] font-bold text-amber-800 uppercase leading-relaxed">
+                    Ensure bank details are 100% correct. We are not responsible for wrong transfers due to incorrect KYC info.
+                  </p>
+               </div>
+
+               <Button 
+                onClick={handleSaveKYC}
+                disabled={isSavingKYC}
+                className="w-full h-18 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase italic shadow-xl text-lg transition-all"
+               >
+                 {isSavingKYC ? <Loader2 className="h-6 w-6 animate-spin" /> : "AUTHENTICATE & SAVE"}
+               </Button>
+            </div>
+         </DialogContent>
+      </Dialog>
 
       {/* PIN HUB MODAL */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
