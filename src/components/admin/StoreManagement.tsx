@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useMemo } from 'react';
@@ -285,6 +284,10 @@ export default function StoreManagement({ categoryFilter }: { categoryFilter?: s
       {/* GLOBAL MAP DIALOG FOR PINNING */}
       <Dialog open={isMapOpen} onOpenChange={(val) => { setIsMapOpen(val); if(!val) setStoreToPin(null); }}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
+            <DialogHeader className="sr-only">
+               <DialogTitle>Pin Store Location</DialogTitle>
+               <DialogDescription>Set the exact geocoded location for this store building.</DialogDescription>
+            </DialogHeader>
             <div className="flex-1 min-h-0 relative">
                <GoogleMapPicker onConfirm={handleConfirmLocation} />
             </div>
