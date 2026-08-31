@@ -57,7 +57,13 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
+    // Strictly exclude all business and specialized hubs from global layouts
+    return p.startsWith('/admin') || 
+           p.startsWith('/vendor') || 
+           p.startsWith('/delivery') ||
+           p.startsWith('/medical') ||
+           p.startsWith('/beauty') ||
+           p.startsWith('/order/track');
   }, [pathname]);
 
   return (
@@ -90,7 +96,12 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery');
+    return p.startsWith('/admin') || 
+           p.startsWith('/vendor') || 
+           p.startsWith('/delivery') ||
+           p.startsWith('/medical') ||
+           p.startsWith('/beauty') ||
+           p.startsWith('/order/track');
   }, [pathname]);
 
   return (
@@ -116,7 +127,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 )}
               </main>
               {!isExcludedPath && <DynamicBottomNav />}
-              {/* Render globally, visibility handled inside TawkChat via Tawk_API */}
+              {/* TawkChat has its own internal visibility logic, but excluding it here prevents initialization on business routes */}
               {!isExcludedPath && <DynamicTawkChat />}
             </div>
           </AuthGuard>

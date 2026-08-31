@@ -16,14 +16,18 @@ export function TawkChat() {
 
   useEffect(() => {
     setIsClient(true);
-    // Bind to Tawk global ready event if possible
-    const checkInterval = setInterval(() => {
-      if ((window as any).Tawk_API && typeof (window as any).Tawk_API.hide === 'function') {
-        setIsTawkReady(true);
-        clearInterval(checkInterval);
-      }
-    }, 1000);
-    return () => clearInterval(checkInterval);
+    
+    // Check if already loaded in window
+    if ((window as any).Tawk_API && typeof (window as any).Tawk_API.hide === 'function') {
+      setIsTawkReady(true);
+    }
+
+    const handleTawkLoad = () => {
+      setIsTawkReady(true);
+    };
+
+    window.addEventListener('tawk-loaded', handleTawkLoad);
+    return () => window.removeEventListener('tawk-loaded', handleTawkLoad);
   }, []);
 
   useEffect(() => {
@@ -35,7 +39,7 @@ export function TawkChat() {
       if (tawk && typeof tawk.hide === 'function' && typeof tawk.show === 'function') {
         const path = pathname?.toLowerCase() || '';
         
-        // STRICT BLOCK: Hide on business/logistics/cart routes
+        // STRICT BLOCK: Hide on business/logistics/checkout routes
         const isRestrictedRoute = 
           path.startsWith('/admin') || 
           path.startsWith('/vendor') || 
@@ -45,7 +49,7 @@ export function TawkChat() {
           path.includes('/cart') ||
           path.startsWith('/order/track'); 
 
-        const locationSet = localStorage.getItem('user_location_set') === 'true';
+        const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : false;
         const shouldHide = isRestrictedRoute || !locationSet;
 
         // ATOMIC CHECK: Only call if state actually flips to avoid redundant Logger triggers
@@ -65,8 +69,8 @@ export function TawkChat() {
     };
 
     manageTawkVisibility();
-    // Re-check after a small delay to catch late loads
-    const timer = setTimeout(manageTawkVisibility, 1500);
+    // Re-check after a small delay to catch late state transitions
+    const timer = setTimeout(manageTawkVisibility, 1200);
     return () => clearTimeout(timer);
   }, [pathname, isClient, isTawkReady]);
 
@@ -77,6 +81,11 @@ export function TawkChat() {
       <Script id="tawk-setup" strategy="afterInteractive">
         {`
           var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+          
+          Tawk_API.onLoad = function() {
+            window.dispatchEvent(new CustomEvent('tawk-loaded'));
+          };
+
           (function() {
             var s1 = document.createElement("script"),
                 s0 = document.getElementsByTagName("script")[0];
@@ -86,10 +95,6 @@ export function TawkChat() {
             s1.setAttribute('crossorigin', '*');
             s0.parentNode.insertBefore(s1, s0);
           })();
-
-          Tawk_API.onLoad = function() {
-            // Internal ready signal can be used here too
-          };
 
           Tawk_API.customStyle = {
             visibility : {
