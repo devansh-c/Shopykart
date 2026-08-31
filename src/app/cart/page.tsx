@@ -32,7 +32,8 @@ import {
   Banknote,
   X,
   CheckCircle2,
-  Utensils
+  Utensils,
+  AlertCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -58,10 +59,10 @@ export default function CartPage() {
     setIsMounted(true);
   }, []);
 
-  // 1. Fetch Dynamic Data for Upsell
+  // 1. Fetch Dynamic Data for Upsell (Highest Rated Store)
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), orderBy('rating', 'desc'), limit(10));
+    return query(collection(firestore, 'vendors'), orderBy('rating', 'desc'), limit(1));
   }, [firestore]);
   const { data: topVendors } = useCollection<any>(vendorsQuery);
 
@@ -69,7 +70,7 @@ export default function CartPage() {
 
   const upsellProductsQuery = useMemoFirebase(() => {
     if (!firestore || !bestVendorId) return null;
-    return query(collection(firestore, 'products'), where('vendorId', '==', bestVendorId), limit(8));
+    return query(collection(firestore, 'products'), where('vendorId', '==', bestVendorId), limit(10));
   }, [firestore, bestVendorId]);
   const { data: upsellProducts } = useCollection<any>(upsellProductsQuery);
 
@@ -144,7 +145,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F3F4F6] pb-32 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
 
-      {/* 1. STICKY GREEN NAVIGATION BAR */}
+      {/* 1. STICKY GREEN NAVIGATION BAR (AS REQUESTED) */}
       <header className="bg-[#00843D] text-white pt-6 pb-6 px-4 sticky top-0 z-[100] shadow-lg rounded-b-[2rem] transition-all transform-gpu">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-black/10 active:scale-90 transition-all">
@@ -154,10 +155,10 @@ export default function CartPage() {
             <h1 className="text-lg font-black uppercase tracking-tight truncate leading-tight italic">
                {cart[0]?.restaurantName || 'ShopyKart Store'}
             </h1>
-            <div className="flex items-center gap-1 text-[9px] font-bold text-white/80 uppercase tracking-widest mt-1 truncate">
-               <Navigation className="h-2.5 w-2.5 shrink-0" />
+            <div className="flex items-center gap-1.5 text-[9px] font-black text-white/80 uppercase tracking-widest mt-1 truncate">
+               <Navigation className="h-3 w-3 text-white/60 shrink-0" />
                <span className="truncate">{deliveryTime} to {activeCustomerName} | {activeAddress}</span>
-               <ChevronDown className="h-2.5 w-2.5 shrink-0 ml-0.5" />
+               <ChevronDown className="h-3 w-3 text-white/60 shrink-0 ml-0.5" />
             </div>
           </div>
         </div>
@@ -212,6 +213,7 @@ export default function CartPage() {
                       <div className="flex items-center gap-2 mt-4">
                          <button onClick={() => router.push('/')} className="text-[8px] font-black text-gray-400 uppercase border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 active:scale-95 transition-all">+ ADD ITEMS</button>
                          <button className="text-[8px] font-black text-gray-400 uppercase border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 active:scale-95 transition-all">REQUESTS</button>
+                         <button className="text-[8px] font-black text-gray-400 uppercase border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 active:scale-95 transition-all">CUTLERY</button>
                       </div>
                    </div>
                    <div className="flex flex-col items-end gap-3">
@@ -227,7 +229,7 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* 5. UP-SELL SECTION ('COMPLETE YOUR MEAL') */}
+        {/* 5. UP-SELL SECTION (DYNAMIC TOP RATED) */}
         <section className="space-y-4">
            <div className="flex items-center justify-between px-2">
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 italic">COMPLETE YOUR MEAL</h3>
@@ -347,4 +349,3 @@ export default function CartPage() {
     </div>
   );
 }
-
