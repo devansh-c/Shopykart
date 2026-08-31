@@ -29,7 +29,8 @@ import {
   AlertCircle,
   Pencil,
   Tag,
-  ChevronUp
+  ChevronUp,
+  Navigation
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -293,7 +294,7 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* ITEMS LIST - CLEANER VERSION */}
+        {/* ITEMS LIST */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-border/40 space-y-6">
            {cart.map((item, i) => (
              <div key={i} className="flex items-start justify-between gap-4">
@@ -321,7 +322,7 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* COMPLETE YOUR MEAL - DYNAMIC MATCH */}
+        {/* COMPLETE YOUR MEAL */}
         {displayUpsell.length > 0 && (
           <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-border/40">
             <h3 className="text-[11px] font-black uppercase text-gray-400 tracking-[0.2em] mb-5">COMPLETE YOUR MEAL</h3>
@@ -421,7 +422,7 @@ export default function CartPage() {
 
       </main>
 
-      {/* FOOTER - PIXEL PERFECT MATCH */}
+      {/* FOOTER */}
       <footer className="fixed bottom-0 left-0 right-0 z-[10000] bg-white border-t border-gray-100 px-6 pt-4 pb-10 flex items-center justify-between shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
          <div className="flex flex-col">
             <span className="text-2xl font-black italic text-gray-900 leading-none">₹{finalTotal}</span>
@@ -436,7 +437,7 @@ export default function CartPage() {
          </button>
       </footer>
 
-      {/* PAYMENT DIALOG - REMAINS FOR SECURITY */}
+      {/* PAYMENT DIALOG */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
          <DialogContent className="rounded-[2.5rem] max-w-sm p-8 focus:outline-none border-none shadow-3xl bg-white bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
             <div className="flex flex-col items-center text-center space-y-6">
