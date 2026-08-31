@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -30,7 +29,8 @@ import {
   CreditCard,
   Wallet,
   Banknote,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -63,7 +63,6 @@ export default function CartPage() {
   const [gateCode, setGateCode] = useState('');
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = useState('upi');
-  const [utrNumber, setUtrNumber] = useState('');
   
   useEffect(() => {
     setIsMounted(true);
@@ -204,7 +203,7 @@ export default function CartPage() {
                    placeholder="GATE CODE / DELIVERY INSTRUCTIONS" 
                    value={gateCode}
                    onChange={e => setGateCode(e.target.value.toUpperCase())}
-                   className="h-14 pl-12 rounded-2xl bg-gray-50 border-none font-bold text-[10px] tracking-widest placeholder:text-gray-300 focus-visible:ring-1 focus-visible:ring-emerald-500/20"
+                   className="h-14 rounded-2xl bg-gray-50 border-none font-bold text-[10px] tracking-widest placeholder:text-gray-300 focus-visible:ring-1 focus-visible:ring-emerald-500/20"
                  />
               </div>
 
