@@ -11,6 +11,7 @@ import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
 import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
 import { ZoneGuard } from '@/components/shared/ZoneGuard';
+import { useJsApiLoader } from '@react-google-maps/api';
 
 // DYNAMIC IMPORTS
 const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
@@ -73,8 +74,18 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 });
 AuthGuard.displayName = "AuthGuard";
 
+/**
+ * @fileOverview ClientLayout - Centralized Google Maps API loading for Distance Matrix global availability.
+ */
 export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+
+  // Load Google Maps API globally so it's available for Distance Matrix in any component
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script-global',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries: ['places', 'geometry'],
+  });
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;

@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -16,7 +15,7 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection with Real-time Delivery Time based on Distance Matrix.
+ * @fileOverview StoreSection with Real-time Distance Matrix Delivery Time.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -46,20 +45,22 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(50));
+    return query(collection(firestore, 'vendors'), limit(100));
   }, [firestore]);
 
   const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialData);
 
   // REAL-TIME DISTANCE CALCULATION
   React.useEffect(() => {
+    if (typeof window === 'undefined' || !dbVendors || dbVendors.length === 0) return;
+
     const userLat = localStorage.getItem('user_lat');
     const userLng = localStorage.getItem('user_lng');
 
-    if (!userLat || !userLng || !dbVendors) return;
+    if (!userLat || !userLng) return;
 
     const calculateTimes = () => {
-      if (typeof google === 'undefined') return;
+      if (typeof google === 'undefined' || !google.maps) return;
 
       const service = new google.maps.DistanceMatrixService();
       const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
@@ -71,8 +72,9 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
         origins: [origin],
         destinations: targets.map(v => new google.maps.LatLng(v.lat, v.lng)),
         travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.METRIC,
       }, (response, status) => {
-        if (status === 'OK' && response) {
+        if (status === 'OK' && response && response.rows[0]) {
           const times: Record<string, string> = {};
           response.rows[0].elements.forEach((el, idx) => {
             if (el.status === 'OK') {
@@ -85,7 +87,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
       });
     };
 
-    const timer = setTimeout(calculateTimes, 2500);
+    const timer = setTimeout(calculateTimes, 3500);
     return () => clearTimeout(timer);
   }, [dbVendors, activeZoneId]);
 

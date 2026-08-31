@@ -1,4 +1,3 @@
-
 'use client';
 
 import Script from 'next/script';
@@ -13,34 +12,43 @@ export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const lastVisibilityRef = useRef<boolean | null>(null);
+  const [isTawkReady, setIsTawkReady] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    // Bind to Tawk global ready event if possible
+    const checkInterval = setInterval(() => {
+      if ((window as any).Tawk_API && typeof (window as any).Tawk_API.hide === 'function') {
+        setIsTawkReady(true);
+        clearInterval(checkInterval);
+      }
+    }, 1000);
+    return () => clearInterval(checkInterval);
   }, []);
 
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !isTawkReady) return;
 
     const manageTawkVisibility = () => {
       const tawk = (window as any).Tawk_API;
       
-      // Ensure Tawk is ready and functions exist
       if (tawk && typeof tawk.hide === 'function' && typeof tawk.show === 'function') {
         const path = pathname?.toLowerCase() || '';
         
-        // STRICT BLOCK: Hide on business/logistics routes
-        const isBusinessRoute = 
+        // STRICT BLOCK: Hide on business/logistics/cart routes
+        const isRestrictedRoute = 
           path.startsWith('/admin') || 
           path.startsWith('/vendor') || 
           path.startsWith('/delivery') || 
           path.startsWith('/medical') || 
           path.startsWith('/beauty') ||
-          path.startsWith('/cart'); 
+          path.includes('/cart') ||
+          path.startsWith('/order/track'); 
 
         const locationSet = localStorage.getItem('user_location_set') === 'true';
-        const shouldHide = isBusinessRoute || !locationSet;
+        const shouldHide = isRestrictedRoute || !locationSet;
 
-        // ATOMIC CHECK: Only call if state actually flips
+        // ATOMIC CHECK: Only call if state actually flips to avoid redundant Logger triggers
         if (lastVisibilityRef.current !== shouldHide) {
           try {
             if (shouldHide) {
@@ -56,10 +64,11 @@ export function TawkChat() {
       }
     };
 
-    // Use a small delay to ensure Tawk SDK has finished its internal init
-    const timer = setTimeout(manageTawkVisibility, 2000);
+    manageTawkVisibility();
+    // Re-check after a small delay to catch late loads
+    const timer = setTimeout(manageTawkVisibility, 1500);
     return () => clearTimeout(timer);
-  }, [pathname, isClient]);
+  }, [pathname, isClient, isTawkReady]);
 
   if (!isClient) return null;
 
@@ -77,6 +86,10 @@ export function TawkChat() {
             s1.setAttribute('crossorigin', '*');
             s0.parentNode.insertBefore(s1, s0);
           })();
+
+          Tawk_API.onLoad = function() {
+            // Internal ready signal can be used here too
+          };
 
           Tawk_API.customStyle = {
             visibility : {
