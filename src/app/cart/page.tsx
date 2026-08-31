@@ -22,25 +22,19 @@ import {
   Package,
   Bike,
   Smartphone,
-  Check
+  Check,
+  Phone
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, GeoPoint, increment, setDoc } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, GeoPoint, increment, setDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-
-const UPSELL_ITEMS = [
-  { id: 'u1', name: 'Cold Coffee', price: 65, mrp: 66, imageUrl: 'https://picsum.photos/seed/coffee/200/200' },
-  { id: 'u2', name: 'Nimbu Pani', price: 32, mrp: 33, imageUrl: 'https://picsum.photos/seed/lemonade/200/200' },
-  { id: 'u3', name: 'Lassi', price: 65, mrp: 66, imageUrl: 'https://picsum.photos/seed/lassi/200/200' },
-  { id: 'u4', name: 'Milk Shake', price: 98, mrp: 99, imageUrl: 'https://picsum.photos/seed/shake/200/200' },
-];
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -58,6 +52,27 @@ export default function CartPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // 1. Fetch Vendors to find the top rated one
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'vendors'), where('isOnline', '==', true), orderBy('rating', 'desc'), limit(5));
+  }, [firestore]);
+  const { data: topVendors } = useCollection<any>(vendorsQuery);
+
+  const bestVendorId = useMemo(() => topVendors?.[0]?.id || null, [topVendors]);
+
+  // 2. Fetch products from the best rated vendor
+  const upsellQuery = useMemoFirebase(() => {
+    if (!firestore || !bestVendorId) return null;
+    return query(
+      collection(firestore, 'products'), 
+      where('vendorId', '==', bestVendorId),
+      where('isAvailable', '==', true),
+      limit(10)
+    );
+  }, [firestore, bestVendorId]);
+  const { data: upsellProducts } = useCollection<any>(upsellQuery);
 
   const activeAddress = typeof window !== 'undefined' ? localStorage.getItem('user_address') : 'Set Location';
   const activeCustomerName = typeof window !== 'undefined' ? localStorage.getItem('user_name') : 'Guest';
@@ -81,7 +96,7 @@ export default function CartPage() {
         address: localStorage.getItem('user_address_line') || 'No Address',
         customerLocation: lat ? new GeoPoint(parseFloat(lat), parseFloat(lng || '0')) : null,
         items: cart,
-        total: totalPrice + 40, // Simulated fixed charges for Toing look
+        total: totalPrice + 40, 
         status: 'Placed',
         paymentMethod: 'online',
         utrNumber,
@@ -121,7 +136,6 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F5F6F8] pb-32 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
 
-      {/* TOING STYLE HEADER */}
       <header className="bg-gradient-to-b from-[#00843D] to-[#00843D]/90 pt-8 pb-10 px-4">
         <div className="flex items-start gap-4 mb-2">
           <button onClick={() => router.back()} className="mt-1"><ChevronLeft className="h-6 w-6 text-white" /></button>
@@ -136,16 +150,13 @@ export default function CartPage() {
         </div>
       </header>
 
-      {/* MAIN CONTENT CONTAINER */}
       <main className="relative -mt-6 bg-[#F5F6F8] rounded-t-[2.5rem] px-4 space-y-4 pt-6">
         
-        {/* ORDERING FOR SOMEONE ELSE */}
         <div className="bg-white rounded-2xl p-5 flex items-center justify-between border border-border/40 shadow-sm">
            <span className="font-bold text-sm text-gray-800">Ordering for someone else?</span>
            <button className="text-[#E91E63] font-black text-xs uppercase tracking-tight">Add Details</button>
         </div>
 
-        {/* HIGH DEMAND BANNER */}
         <div className="bg-[#F3F4F6] rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden">
            <div className="flex-1">
               <p className="text-[11px] font-medium text-gray-600 leading-tight">
@@ -157,7 +168,6 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* CART ITEMS */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40 space-y-6">
            {cart.map((item, i) => (
              <div key={i} className="space-y-4">
@@ -166,7 +176,7 @@ export default function CartPage() {
                      <div className="mt-1 h-3.5 w-3.5 border-2 border-green-600 rounded-sm flex items-center justify-center p-0.5"><div className="h-full w-full bg-green-600 rounded-full" /></div>
                      <div>
                         <h4 className="font-bold text-sm text-gray-900">{item.name}</h4>
-                        <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">Jain, Extra Mayo, Cornflakes, Ex...</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">Customizations: {item.selectedOption?.name || 'Default'}</p>
                      </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -182,7 +192,7 @@ export default function CartPage() {
            ))}
 
            <div className="flex gap-3 pt-2">
-              <button className="flex-1 flex items-center justify-center gap-1.5 h-10 border border-gray-200 rounded-xl text-gray-600 text-[10px] font-bold"><Plus className="h-3 w-3" /> Add Items</button>
+              <button onClick={() => router.push('/')} className="flex-1 flex items-center justify-center gap-1.5 h-10 border border-gray-200 rounded-xl text-gray-600 text-[10px] font-bold"><Plus className="h-3 w-3" /> Add Items</button>
               <button className="flex-1 flex items-center justify-center gap-1.5 h-10 border border-gray-200 rounded-xl text-gray-600 text-[10px] font-bold"><MessageSquare className="h-3 w-3" /> Cooking requests</button>
               <div className="flex items-center gap-2 px-3 border border-gray-200 rounded-xl">
                  <input type="checkbox" className="h-4 w-4 rounded-md border-gray-300" />
@@ -191,34 +201,43 @@ export default function CartPage() {
            </div>
         </div>
 
-        {/* UPSELL SECTION: COMPLETE YOUR MEAL */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40">
-           <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4">Complete your meal</h3>
-           <div className="flex gap-5 overflow-x-auto no-scrollbar pb-2">
-              {UPSELL_ITEMS.map((item) => (
-                <div key={item.id} className="min-w-[100px] flex flex-col gap-2 relative">
-                   <div className="relative h-24 w-24 rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
-                      <button 
-                        onClick={() => addToCart({...item, quantity: 1})}
-                        className="absolute top-1 right-1 h-6 w-6 bg-white rounded-lg shadow-md flex items-center justify-center text-[#E91E63]"
-                      >
-                        <Plus className="h-3.5 w-3.5 stroke-[4]" />
-                      </button>
-                   </div>
-                   <div className="space-y-0.5 px-1">
-                      <div className="flex items-center gap-1"><div className="h-2 w-2 bg-green-600 rounded-full" /><h5 className="text-[10px] font-bold text-gray-800 truncate">{item.name}</h5></div>
-                      <div className="flex items-center gap-1.5">
-                         <span className="text-[10px] font-black">₹{item.price}</span>
-                         <span className="text-[8px] text-gray-400 line-through">₹{item.mrp}</span>
-                      </div>
-                   </div>
-                </div>
-              ))}
-           </div>
-        </div>
+        {/* UPSELL SECTION: DYNAMIC TOP RATED STORE PRODUCTS */}
+        {(upsellProducts && upsellProducts.length > 0) && (
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40 animate-in fade-in duration-700">
+            <div className="flex items-center justify-between mb-4">
+               <div>
+                  <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Complete your meal</h3>
+                  <p className="text-[8px] font-bold text-primary uppercase mt-0.5">Top Rated: {topVendors?.[0]?.storeName}</p>
+               </div>
+            </div>
+            <div className="flex gap-5 overflow-x-auto no-scrollbar pb-2">
+                {upsellProducts.map((item: any) => (
+                  <div key={item.id} className="min-w-[100px] flex flex-col gap-2 relative">
+                    <div className="relative h-24 w-24 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-muted">
+                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
+                        <button 
+                          onClick={() => {
+                            addToCart({ ...item, quantity: 1, restaurantName: topVendors?.[0]?.storeName });
+                            toast({ title: "Added to cart" });
+                          }}
+                          className="absolute top-1.5 right-1.5 h-6 w-6 bg-white rounded-lg shadow-md flex items-center justify-center text-[#E91E63] active:scale-90 transition-all"
+                        >
+                          <Plus className="h-3.5 w-3.5 stroke-[4]" />
+                        </button>
+                    </div>
+                    <div className="space-y-0.5 px-1">
+                        <div className="flex items-center gap-1"><div className="h-1.5 w-1.5 bg-green-600 rounded-full" /><h5 className="text-[10px] font-bold text-gray-800 truncate">{item.name}</h5></div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black">₹{item.price}</span>
+                          {item.mrp > item.price && <span className="text-[8px] text-gray-400 line-through">₹{item.mrp}</span>}
+                        </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
-        {/* PROMO SECTION */}
         <button className="w-full bg-white rounded-2xl p-5 flex items-center justify-between border border-border/40 shadow-sm group active:scale-[0.98] transition-all">
            <div className="flex items-center gap-4">
               <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-[#00843D]">
@@ -229,7 +248,6 @@ export default function CartPage() {
            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
         </button>
 
-        {/* DELIVERY INSTRUCTIONS ACCORDION */}
         <button className="w-full bg-white rounded-2xl p-5 flex items-center justify-between border border-border/40 shadow-sm group active:scale-[0.98] transition-all">
            <div className="flex items-center gap-4">
               <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-[#00843D]">
@@ -240,7 +258,6 @@ export default function CartPage() {
            <ChevronDown className="h-5 w-5 text-gray-400" />
         </button>
 
-        {/* BILLING ACCORDION */}
         <button className="w-full bg-white rounded-2xl p-5 flex items-center justify-between border border-border/40 shadow-sm group active:scale-[0.98] transition-all mb-10">
            <div className="flex items-center gap-4">
               <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-[#00843D]">
@@ -253,7 +270,6 @@ export default function CartPage() {
 
       </main>
 
-      {/* STICKY FOOTER */}
       <footer className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 px-6 pt-4 pb-8 flex items-center justify-between shadow-[0_-15px_40px_rgba(0,0,0,0.08)]">
          <div className="flex flex-col">
             <span className="text-lg font-black text-gray-900">₹{totalPrice + 40}</span>
@@ -268,7 +284,6 @@ export default function CartPage() {
          </button>
       </footer>
 
-      {/* UTR DIALOG */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
          <DialogContent className="rounded-[2.5rem] max-w-sm p-8 focus:outline-none border-none shadow-3xl bg-white bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
             <div className="flex flex-col items-center text-center space-y-6">
@@ -291,7 +306,7 @@ export default function CartPage() {
                      <Input 
                       placeholder="0000 0000 0000" 
                       value={utrNumber}
-                      onChange={e => setUtrNumber(e.target.value.replace(/\D/g,'').slice(0,12))}
+                      onChange={e => setOtpValue(e.target.value.replace(/\D/g,'').slice(0,12))}
                       className="h-16 rounded-2xl bg-gray-50 border-none font-black text-2xl text-center tracking-[0.2em] italic"
                      />
                   </div>
@@ -309,3 +324,4 @@ export default function CartPage() {
     </div>
   );
 }
+
