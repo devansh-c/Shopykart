@@ -3,6 +3,7 @@
 
 import { useCart } from '@/components/cart/CartProvider';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Minus, 
   Plus, 
@@ -58,10 +59,76 @@ export default function CartPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [selectedInstructions, setSelectedInstructions] = useState<string[]>([]);
+  const [deliveryTime, setDeliveryTime] = useState('40-45 MIN');
   
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // REAL-TIME DISTANCE CALCULATION FOR CART
+  useEffect(() => {
+    if (typeof window === 'undefined' || cart.length === 0) return;
+
+    const userLat = localStorage.getItem('user_lat');
+    const userLng = localStorage.getItem('user_lng');
+
+    if (!userLat || !userLng) return;
+
+    const calculateRealTimes = async () => {
+      if (typeof google === 'undefined' || !google.maps) return;
+
+      const service = new google.maps.DistanceMatrixService();
+      const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
+      
+      // Get vendor IDs from cart
+      const vendorIds = Array.from(new Set(cart.map(item => item.vendorId).filter(Boolean)));
+      if (vendorIds.length === 0) return;
+
+      // We need to fetch coordinates for these vendors
+      // For speed, we'll try to find them in a common cache or fetch first
+      const destinationCoords: google.maps.LatLng[] = [];
+      
+      // Fetch destinations for first 5 unique vendors in cart
+      for (const vId of vendorIds.slice(0, 5)) {
+        try {
+          const vSnap = await getDoc(doc(firestore!, 'vendors', vId as string));
+          if (vSnap.exists()) {
+            const vData = vSnap.data();
+            if (vData.lat && vData.lng) {
+              destinationCoords.push(new google.maps.LatLng(vData.lat, vData.lng));
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (destinationCoords.length === 0) return;
+
+      service.getDistanceMatrix({
+        origins: [origin],
+        destinations: destinationCoords,
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.METRIC,
+      }, (response, status) => {
+        if (status === 'OK' && response && response.rows[0]) {
+          let maxMins = 0;
+          response.rows[0].elements.forEach((element) => {
+            if (element.status === 'OK') {
+              const mins = Math.ceil(element.duration.value / 60);
+              if (mins > maxMins) maxMins = mins;
+            }
+          });
+          
+          if (maxMins > 0) {
+            const totalMins = maxMins + 12; // 12 min prep time
+            setDeliveryTime(`${totalMins} MIN`);
+          }
+        }
+      });
+    };
+
+    const timer = setTimeout(calculateRealTimes, 2000);
+    return () => clearTimeout(timer);
+  }, [cart, isMounted, firestore]);
 
   // 1. Fetch Vendors to find the top rated one
   const vendorsQuery = useMemoFirebase(() => {
@@ -84,7 +151,7 @@ export default function CartPage() {
   }, [firestore, bestVendorId]);
   const { data: upsellProducts } = useCollection<any>(upsellQuery);
 
-  // 3. Fallback products if top rated vendor has none
+  // 3. Fallback products if top rated vendor has none or not loaded yet
   const generalProductsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'products'), where('isAvailable', '==', true), limit(10));
@@ -117,6 +184,7 @@ export default function CartPage() {
     try {
       const lat = localStorage.getItem('user_lat');
       const lng = localStorage.getItem('user_lng');
+      const pincode = localStorage.getItem('active_zone_pincode') || '284205';
       
       const q = query(collection(firestore!, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
@@ -125,8 +193,11 @@ export default function CartPage() {
       const orderData = {
         userId: user.uid,
         customerName: activeCustomerName?.toUpperCase() || 'PREMIUM USER',
-        address: localStorage.getItem('user_address_line') || 'No Address',
+        address: localStorage.getItem('user_address_line') || localStorage.getItem('user_address') || 'No Address',
         customerLocation: lat ? new GeoPoint(parseFloat(lat), parseFloat(lng || '0')) : null,
+        customerLat: lat ? parseFloat(lat) : null,
+        customerLng: lng ? parseFloat(lng) : null,
+        pincode: pincode,
         items: cart,
         total: finalTotal, 
         status: 'Placed',
@@ -138,6 +209,8 @@ export default function CartPage() {
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         pickupOTP: Math.floor(1000 + Math.random() * 9000).toString(),
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        restaurantName: cart[0]?.restaurantName || 'ShopyKart'
       };
 
       await addDoc(collection(firestore!, 'orders'), orderData);
@@ -177,7 +250,7 @@ export default function CartPage() {
              <h1 className="text-lg font-bold text-white leading-none mb-1">{cart[0]?.restaurantName || 'ShopyKart Gourmet'}</h1>
              <div className="flex items-center gap-1.5 text-[11px] font-medium text-white/90">
                 <Clock className="h-3 w-3" />
-                <span>40-45 mins to {activeCustomerName} | {activeAddress}</span>
+                <span>{deliveryTime} to {activeCustomerName} | {activeAddress}</span>
                 <ChevronDown className="h-3 w-3" />
              </div>
           </div>
