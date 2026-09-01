@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -25,7 +24,8 @@ import {
   Printer,
   Download,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -99,7 +99,7 @@ export default function OrderManagement() {
       const FileSaver = await import('file-saver');
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
 
-      // Create a container with specific styling to match the image exactly
+      // Create a container with specific styling for receipt
       const receipt = document.createElement('div');
       receipt.style.padding = '50px 40px';
       receipt.style.width = '480px';
@@ -108,10 +108,14 @@ export default function OrderManagement() {
       receipt.style.fontFamily = "'Inter', sans-serif, 'Courier New'";
       receipt.style.textTransform = 'uppercase';
       
-      const orderDate = order.createdAt?.seconds 
-        ? format(new Date(order.createdAt.seconds * 1000), 'dd MMM yyyy, hh:mm a')
-        : format(new Date(), 'dd MMM yyyy, hh:mm a');
+      const parseOrderDate = (date: any) => {
+        if (!date) return format(new Date(), 'dd MMM yyyy, hh:mm a');
+        if (typeof date === 'string') return format(new Date(date), 'dd MMM yyyy, hh:mm a');
+        if (date.seconds) return format(new Date(date.seconds * 1000), 'dd MMM yyyy, hh:mm a');
+        return format(new Date(), 'dd MMM yyyy, hh:mm a');
+      };
 
+      const orderDate = parseOrderDate(order.createdAt);
       const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
 
@@ -163,11 +167,11 @@ export default function OrderManagement() {
         <div style="padding: 15px 0; font-size: 11px; font-weight: 700;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span>ITEMS SUBTOTAL:</span>
-            <span style="font-weight: 900;">₹${(order.total - (order.deliveryFee || 0)).toFixed(2)}</span>
+            <span style="font-weight: 900;">₹${(order.total - (order.deliveryCharge || 10)).toFixed(2)}</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-style: italic; color: #666;">
-            <span>DELHIVERY FEE:</span>
-            <span>₹${(order.deliveryFee || 10).toFixed(2)}</span>
+            <span>DELIVERY FEE:</span>
+            <span>₹${(order.deliveryCharge || 10).toFixed(2)}</span>
           </div>
         </div>
 
@@ -198,7 +202,7 @@ export default function OrderManagement() {
       `;
       
       document.body.appendChild(receipt);
-      const blob = await toBlob(receipt, { pixelRatio: 2 }); // High quality conversion
+      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
       document.body.removeChild(receipt);
       
       if (blob && typeof saveAs === 'function') {
@@ -284,14 +288,6 @@ export default function OrderManagement() {
                           <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">{order.paymentMethod?.toUpperCase()}</span>
                        </div>
                        
-                       <div className={cn(
-                         "px-3 py-1.5 rounded-xl border flex items-center gap-2",
-                         lat ? "bg-green-50 border-green-100 text-green-600" : "bg-red-50 border-red-100 text-red-500"
-                       )}>
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span className="text-[9px] font-black uppercase">{lat ? 'DROP PIN SET' : 'DROP SPOT MISSING'}</span>
-                       </div>
-
                        {order.isPremiumPacking && (
                          <div className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center gap-2">
                             <ShieldCheck className="h-3.5 w-3.5" />
@@ -301,15 +297,15 @@ export default function OrderManagement() {
                        {order.redeemCoins && (
                          <div className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center gap-2">
                             <Coins className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase">COINS REDEEMED</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">COINS REDEEMED</span>
                          </div>
                        )}
                     </div>
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end">
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Store Outlet</p>
-                   <span className="text-sm font-black italic uppercase text-primary">{order.restaurantName || 'ShopyKart'}</span>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Partner Store</p>
+                   <span className="text-xl font-black italic uppercase text-primary tracking-tighter">{order.restaurantName || 'ShopyKart'}</span>
                 </div>
               </div>
 

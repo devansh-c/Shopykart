@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Tawk.to visibility control with ultra-defensive error handling.
  * Prevents internal [Tawk/Logger] errors by debouncing and wrapping API calls.
+ * NextJS Error Overlay is strictly handled by global console override.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -17,21 +18,22 @@ export function TawkChat() {
   useEffect(() => {
     setIsClient(true);
     
+    // STRICT SUPPRESSION: Override console.error specifically for Tawk Logger noise
+    if (typeof window !== 'undefined') {
+      const originalError = window.console.error;
+      window.console.error = (...args) => {
+        const msg = args[0];
+        if (typeof msg === 'string' && (msg.includes('[Tawk/Logger]') || msg.includes('Tawk_API'))) {
+          return; // Ignore Tawk internal logs
+        }
+        originalError.apply(window.console, args);
+      };
+    }
+
     // Signal for script load
     (window as any).onTawkLoadSignal = () => {
       setIsTawkReady(true);
     };
-
-    // Suppress internal Tawk logger errors globally
-    if (typeof window !== 'undefined') {
-      const originalError = console.error;
-      console.error = (...args) => {
-        if (args[0] && typeof args[0] === 'string' && args[0].includes('[Tawk/Logger]')) {
-          return;
-        }
-        originalError.apply(console, args);
-      };
-    }
 
     return () => {
       delete (window as any).onTawkLoadSignal;

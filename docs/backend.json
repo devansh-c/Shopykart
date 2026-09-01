@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Product": {
@@ -54,8 +53,12 @@
         "status": { "type": "string" },
         "paymentMethod": { "type": "string" },
         "paymentStatus": { "type": "string" },
-        "utrNumber": { "type": "string" },
         "address": { "type": "string" },
+        "restaurantName": { "type": "string" },
+        "isPremiumPacking": { "type": "boolean" },
+        "redeemCoins": { "type": "boolean" },
+        "customerOrderNumber": { "type": "number" },
+        "deliveryOTP": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
@@ -72,43 +75,12 @@
         "isOnline": { "type": "boolean" },
         "zoneId": { "type": "string" },
         "town": { "type": "string" },
-        "kycCompleted": { "type": "boolean" },
-        "accountHolderName": { "type": "string" },
-        "accountNumber": { "type": "string" },
-        "ifscCode": { "type": "string" }
-      }
-    },
-    "Coupon": {
-      "title": "Coupon",
-      "description": "Promo codes and discounts",
-      "type": "object",
-      "properties": {
-        "code": { "type": "string" },
-        "discount": { "type": "string" },
-        "minOrder": { "type": "string" },
-        "isActive": { "type": "boolean" }
-      }
-    },
-    "TeamMember": {
-      "title": "Team Member",
-      "description": "Internal staff with specific permissions",
-      "type": "object",
-      "properties": {
-        "fullName": { "type": "string" },
-        "employeeId": { "type": "string" },
-        "permissions": { "type": "array", "items": { "type": "string" } }
-      }
-    },
-    "Ticket": {
-      "title": "Support Ticket",
-      "description": "Customer complaint or query",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "description": { "type": "string" },
-        "status": { "type": "string" }
+        "kycCompleted": { "type": "boolean" }
       }
     }
+  },
+  "auth": {
+    "providers": ["google.com", "apple.com", "password", "anonymous"]
   },
   "firestore": {
     "/zones/{zoneId}": { "schema": "#/entities/ServingZone", "description": "Delivery zones" },
@@ -116,12 +88,6 @@
     "/products/{productId}": { "schema": "#/entities/Product", "description": "Menu items" },
     "/orders/{orderId}": { "schema": "#/entities/Order", "description": "Customer orders" },
     "/users/{userId}": { "schema": "object", "description": "Customer profiles" },
-    "/tickets/{ticketId}": { "schema": "#/entities/Ticket", "description": "Support tickets" },
-    "/coupons/{couponId}": { "schema": "#/entities/Coupon", "description": "Discount codes" },
-    "/banners/{bannerId}": { "schema": "object", "description": "App banners" },
-    "/team_members/{memberId}": { "schema": "#/entities/TeamMember", "description": "Staff access" },
-    "/premium_subscriptions/{subId}": { "schema": "object", "description": "Elite membership requests" },
-    "/app_settings/{settingId}": { "schema": "object", "description": "Global config" },
-    "/checkout_charges/{chargeId}": { "schema": "object", "description": "Taxes and fees" }
+    "/app_settings/{settingId}": { "schema": "object", "description": "Global config" }
   }
 }
