@@ -4,23 +4,15 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   ChevronLeft, 
   MoreHorizontal, 
-  ChevronRight, 
   Loader2,
-  Navigation,
-  CheckCircle2,
-  CreditCard,
-  X,
-  Map as MapIcon,
-  Maximize2,
   Minimize2,
-  PhoneCall,
-  Bike
+  PhoneCall
 } from 'lucide-react';
-import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
 
@@ -38,7 +30,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [order, setOrder] = useState<any>(null);
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [eta, setEta] = useState<string>('44 mins');
+  const [etaMinutes, setEtaMinutes] = useState<number>(44);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -68,6 +60,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     }
   };
 
+  // Resolve Order & Vendors
   useEffect(() => {
     const resolveOrder = async () => {
       if (!firestore) return;
@@ -122,6 +115,24 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
     resolveOrder();
   }, [firestore, user, forcedId, searchParams]);
+
+  // COUNTDOWN LOGIC: ETA decreases over time
+  useEffect(() => {
+    if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;
+
+    const timer = setInterval(() => {
+      setEtaMinutes((prev) => (prev > 1 ? prev - 1 : 1));
+    }, 60000); // Decrease every 1 minute
+
+    return () => clearInterval(timer);
+  }, [order]);
+
+  const handleEtaUpdateFromMap = (etaString: string) => {
+    const mins = parseInt(etaString.split(' ')[0]);
+    if (!isNaN(mins)) {
+      setEtaMinutes(mins);
+    }
+  };
 
   const getHeadline = () => {
     if (!order) return "Locating Order...";
@@ -187,7 +198,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             customerLng={parseFloat(String(order.customerLng || 0))} 
             vendors={vendors}
             customerName={order.customerName}
-            onEtaUpdate={(val) => setEta(val)}
+            onEtaUpdate={handleEtaUpdateFromMap}
           />
         </div>
 
@@ -226,7 +237,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">Arriving Soon</p>
                  </div>
                  <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
-                    <span className="text-2xl font-black italic tracking-tighter leading-none">{eta.split(' ')[0]}</span>
+                    <span className="text-2xl font-black italic tracking-tighter leading-none">{etaMinutes}</span>
                     <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
                  </div>
               </div>
@@ -265,7 +276,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         "px-4 py-8 transition-all duration-500",
         isMapExpanded ? "opacity-0" : "opacity-100"
       )}>
-         {/* PROFESSIONAL PARTNER CALL CARD - REPLACED PAYMENT BOX */}
          {order.deliveryPartnerId ? (
             <div className="bg-white rounded-[2.5rem] p-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700">
                <div className="flex items-center gap-5">
