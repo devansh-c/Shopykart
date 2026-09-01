@@ -11,9 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * @fileOverview My Orders Page with Premium Shimmer Effect.
- * Uses persistent local caching via useCollection cacheKey to show data instantly.
- * Fallback to high-fidelity skeletons when no cache exists.
+ * @fileOverview My Orders Page with High-Fidelity Shimmer Effect.
+ * Fixed: Robust loading states to prevent premature "No Orders" display.
+ * Implementation: Skeleton cards exactly match the structure of real order cards.
  */
 export default function OrdersPage() {
   const router = useRouter();
@@ -62,8 +62,8 @@ export default function OrdersPage() {
     }
   };
 
-  // Logic: Show skeletons ONLY if we have NO data (neither from cache nor from server)
-  const showSkeletons = userLoading || (user && ordersLoading && !orders);
+  // Logic: Show skeletons while authenticating OR while data is being fetched and cache is empty
+  const showSkeletons = userLoading || (user && ordersLoading && (!orders || orders.length === 0));
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -73,58 +73,70 @@ export default function OrdersPage() {
 
       <div className="px-4 space-y-5">
         {showSkeletons ? (
-          /* PREMIUM SHIMMER EFFECT */
+          /* HIGH-FIDELITY PREMIUM SHIMMER EFFECT */
           <div className="space-y-6 animate-in fade-in duration-500">
-             {[1, 2, 3, 4].map((i) => (
-               <div key={i} className="bg-white rounded-[2.5rem] p-6 border border-border/40 shadow-sm space-y-6">
+             {[1, 2, 3].map((i) => (
+               <div key={i} className="bg-white rounded-[2.5rem] p-7 border border-border/60 shadow-sm space-y-6 transform-gpu">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                       <Skeleton className="h-14 w-14 rounded-2xl" />
+                       <Skeleton className="h-16 w-16 rounded-2xl bg-gray-100" />
                        <div className="space-y-2">
-                          <Skeleton className="h-5 w-24 rounded-full" />
-                          <Skeleton className="h-3 w-16 rounded-full opacity-50" />
+                          <Skeleton className="h-5 w-28 rounded-full bg-gray-100" />
+                          <Skeleton className="h-3 w-20 rounded-full bg-gray-50 opacity-60" />
                        </div>
                     </div>
-                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <Skeleton className="h-8 w-24 rounded-full bg-gray-100" />
                   </div>
                   
-                  <div className="space-y-3">
-                    <Skeleton className="h-3 w-full rounded-full opacity-30" />
-                    <div className="bg-muted/30 rounded-2xl p-4 space-y-3">
-                       <Skeleton className="h-2 w-2/3 rounded-full opacity-50" />
-                       <Skeleton className="h-2 w-1/2 rounded-full opacity-50" />
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                       <Skeleton className="h-4 w-4 rounded-full bg-gray-100" />
+                       <Skeleton className="h-3 w-full max-w-[200px] rounded-full bg-gray-50" />
+                    </div>
+                    <div className="bg-muted/30 rounded-[1.5rem] p-5 space-y-3 border border-border/30">
+                       <div className="flex justify-between">
+                          <Skeleton className="h-3 w-32 rounded-full bg-gray-100" />
+                          <Skeleton className="h-3 w-12 rounded-full bg-gray-100" />
+                       </div>
+                       <div className="flex justify-between">
+                          <Skeleton className="h-3 w-24 rounded-full bg-gray-100 opacity-60" />
+                          <Skeleton className="h-3 w-10 rounded-full bg-gray-100 opacity-60" />
+                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                     <div className="space-y-1">
-                        <Skeleton className="h-2 w-10 rounded-full opacity-30" />
-                        <Skeleton className="h-6 w-20 rounded-full" />
+                  <div className="flex items-center justify-between pt-2 border-t border-dashed border-border">
+                     <div className="space-y-1.5">
+                        <Skeleton className="h-2 w-12 rounded-full bg-gray-50 opacity-40" />
+                        <Skeleton className="h-7 w-24 rounded-full bg-gray-100" />
                      </div>
-                     <Skeleton className="h-12 w-24 rounded-2xl" />
+                     <div className="flex gap-2">
+                        <Skeleton className="h-12 w-28 rounded-2xl bg-gray-100" />
+                     </div>
                   </div>
                </div>
              ))}
           </div>
         ) : orders && orders.length > 0 ? (
+          /* ACTUAL ORDERS DATA */
           orders.map((order) => (
             <div 
               key={order.id} 
               onClick={() => router.push(`/order/track/#${order.customerOrderNumber}`)}
-              className="bg-white rounded-[2rem] p-6 border border-border/40 shadow-sm active:scale-[0.98] transition-all group cursor-pointer"
+              className="bg-white rounded-[2.5rem] p-7 border border-border/60 shadow-sm active:scale-[0.98] transition-all group cursor-pointer transform-gpu"
             >
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-4">
                   <div className={cn(
-                    "h-14 w-14 rounded-2xl flex items-center justify-center",
-                    order.status === 'Delivered' ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary shadow-lg shadow-primary/5"
+                    "h-16 w-16 rounded-[1.25rem] flex items-center justify-center border transition-colors",
+                    order.status === 'Delivered' ? "bg-muted border-border text-muted-foreground" : "bg-primary/5 border-primary/10 text-primary shadow-lg shadow-primary/5"
                   )}>
-                    <Package className="h-7 w-7" />
+                    <Package className="h-8 w-8" />
                   </div>
                   <div>
-                    <h3 className="font-black text-lg italic tracking-tight">Order #{order.customerOrderNumber || '...'}</h3>
-                    <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                      <Clock className="h-3 w-3 mr-1" />
+                    <h3 className="font-black text-xl italic uppercase tracking-tighter text-gray-900 leading-none mb-1.5">Order #{order.customerOrderNumber || '...'}</h3>
+                    <div className="flex items-center text-[10px] text-muted-foreground font-black uppercase tracking-widest italic">
+                      <Clock className="h-3 w-3 mr-1 text-primary" />
                       {isMounted && order.createdAt ? (
                         typeof order.createdAt === 'string' 
                           ? format(new Date(order.createdAt), 'MMM d, h:mm a')
@@ -133,35 +145,35 @@ export default function OrdersPage() {
                     </div>
                   </div>
                 </div>
-                <div className={cn(
-                  "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                <Badge className={cn(
+                  "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border-none",
                   ['Delivered', 'Cancelled'].includes(order.status) 
-                    ? "bg-gray-100 text-gray-500 border border-gray-200"
-                    : "bg-green-100 text-green-700 animate-pulse border border-green-200" 
+                    ? "bg-gray-100 text-gray-500"
+                    : "bg-green-100 text-green-700 animate-pulse" 
                 )}>
                   {order.status}
-                </div>
+                </Badge>
               </div>
               
-              <div className="space-y-4 mb-6">
-                <div className="flex items-start space-x-3 text-xs">
-                  <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground font-medium line-clamp-1">{order.address}</span>
+              <div className="space-y-5 mb-6">
+                <div className="flex items-start space-x-3 text-[11px] font-bold text-gray-500 uppercase italic leading-tight">
+                  <MapPin className="h-4 w-4 text-primary shrink-0" />
+                  <span className="line-clamp-1">{order.address}</span>
                 </div>
-                <div className="bg-muted/50 rounded-2xl p-4 space-y-2">
+                <div className="bg-muted/30 rounded-[1.5rem] p-5 space-y-2.5 border border-border/40 shadow-inner">
                   {order.items?.map((item: any, i: number) => (
                     <div key={i} className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-foreground">{item.quantity}x {item.name}</span>
-                      <span className="text-muted-foreground">₹{item.price * item.quantity}</span>
+                      <span className="font-black text-gray-800 uppercase italic"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                      <span className="text-gray-400 font-bold">₹{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="border-t border-dashed border-border pt-5 flex items-center justify-between gap-3">
-                <div className="flex flex-col flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Paid</span>
-                  <span className="text-xl font-black text-foreground italic tracking-tight">₹{order.total?.toFixed(2)}</span>
+              <div className="border-t border-dashed border-border pt-6 flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Grand Total</span>
+                  <span className="text-2xl font-black text-gray-900 italic tracking-tighter">₹{order.total?.toFixed(0)}</span>
                 </div>
                 
                 <div className="flex gap-2">
@@ -169,38 +181,40 @@ export default function OrdersPage() {
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
                       disabled={cancellingId === order.id}
-                      className="bg-red-50 text-red-500 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-red-100 transition-colors"
+                      className="bg-red-50 text-red-500 px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center border border-red-100 hover:bg-red-100 transition-colors"
                     >
                       {cancellingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
                       Cancel
                     </button>
                   )}
 
-                  <div className="bg-[#0B0B0B] text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center group-hover:bg-primary transition-colors">
+                  <div className="bg-[#0B0B0B] text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center group-hover:bg-primary transition-all shadow-xl active:scale-95">
                     Track
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronRight className="h-4 w-4 ml-2 text-primary" />
                   </div>
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-20 opacity-30 flex flex-col items-center">
-            <div className="relative mb-6">
+          /* TRUE EMPTY STATE */
+          <div className="text-center py-24 animate-in fade-in zoom-in duration-700">
+            <div className="relative mb-8 flex justify-center">
                <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping opacity-20 scale-150" />
-               <div className="relative bg-white h-24 w-24 rounded-full flex items-center justify-center border-4 border-white shadow-xl">
-                  <ShoppingBag className="h-10 w-10 text-gray-200" />
+               <div className="relative bg-white h-32 w-32 rounded-[3rem] flex items-center justify-center border-4 border-white shadow-2xl">
+                  <ShoppingBag className="h-14 w-14 text-gray-200" />
                </div>
             </div>
-            <p className="font-black italic uppercase tracking-widest text-sm text-gray-900">
-              {!user ? "Please login to view orders" : "No orders yet"}
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Your history is<br /><span className="text-primary">blank!</span></h2>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-4 mb-10 max-w-[240px] mx-auto leading-relaxed">
+              {!user ? "PLEASE LOGIN TO VIEW YOUR GOURMET JOURNEY." : "START ORDERING THE BEST FLAVORS IN TOWN."}
             </p>
             {user && (
               <button 
                 onClick={() => router.push('/')}
-                className="mt-6 text-primary font-black uppercase text-[10px] tracking-widest underline underline-offset-4"
+                className="h-16 px-10 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all"
               >
-                Order something delicious now
+                EXPLORE MENU
               </button>
             )}
           </div>
