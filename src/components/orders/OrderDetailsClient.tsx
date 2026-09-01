@@ -7,7 +7,8 @@ import {
   MoreHorizontal, 
   Loader2,
   Minimize2,
-  PhoneCall
+  PhoneCall,
+  KeyRound
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -61,7 +62,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     }
   };
 
-  // Resolve Order & Vendors
   useEffect(() => {
     const resolveOrder = async () => {
       if (!firestore) return;
@@ -117,7 +117,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     resolveOrder();
   }, [firestore, user, forcedId, searchParams]);
 
-  // PERSISTENT COUNTDOWN LOGIC: Anchor ETA to a fixed timestamp in localStorage
   useEffect(() => {
     if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;
 
@@ -125,7 +124,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     let targetArrivalTime = localStorage.getItem(orderKey);
 
     if (!targetArrivalTime) {
-      // Set a fixed arrival target (e.g., 44 minutes from now)
       const newTarget = Date.now() + (44 * 60 * 1000);
       localStorage.setItem(orderKey, newTarget.toString());
       targetArrivalTime = newTarget.toString();
@@ -137,21 +135,18 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       const remainingMins = Math.max(1, Math.ceil(diffMs / (60 * 1000)));
       setEtaMinutes(remainingMins);
 
-      // Clear interval if delivered
       if (order.status === 'Delivered') {
         localStorage.removeItem(orderKey);
       }
     };
 
     updateCountdown();
-    const timer = setInterval(updateCountdown, 30000); // Sync every 30 seconds
+    const timer = setInterval(updateCountdown, 30000); 
 
     return () => clearInterval(timer);
   }, [order]);
 
   const handleEtaUpdateFromMap = (etaString: string) => {
-    // If the map provides a more accurate initial ETA, we could adjust the anchor
-    // For now, we prioritize the persistent countdown once established
     console.debug("Map ETA Sync:", etaString);
   };
 
@@ -257,9 +252,18 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     </h2>
                     <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">Arriving Soon</p>
                  </div>
-                 <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
-                    <span className="text-2xl font-black italic tracking-tighter leading-none">{etaMinutes}</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
+                 <div className="flex flex-col gap-2">
+                    <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
+                       <span className="text-2xl font-black italic tracking-tighter leading-none">{etaMinutes}</span>
+                       <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
+                    </div>
+                    {/* OTP BOX FOR CUSTOMER */}
+                    {order.deliveryOTP && order.status !== 'Delivered' && (
+                      <div className="bg-gray-900 text-white p-2 rounded-xl flex flex-col items-center justify-center border border-white/10 shadow-xl animate-in zoom-in duration-500">
+                         <span className="text-[6px] font-black uppercase tracking-widest opacity-60">DELIVERY OTP</span>
+                         <span className="text-[10px] font-black italic text-primary">{order.deliveryOTP}</span>
+                      </div>
+                    )}
                  </div>
               </div>
 

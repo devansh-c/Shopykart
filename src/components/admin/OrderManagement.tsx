@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -108,7 +109,7 @@ export default function OrderManagement() {
         deliveryPartnerId: partner.id,
         deliveryPartnerName: partner.fullName,
         deliveryPartnerPhone: partner.phone,
-        status: 'Picked Up', // Automatically advance status when manually assigned
+        status: 'Picked Up', 
         updatedAt: serverTimestamp()
       });
       setIsAssignOpen(false);
@@ -127,8 +128,8 @@ export default function OrderManagement() {
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
 
       const receipt = document.createElement('div');
-      receipt.style.padding = '50px 40px';
-      receipt.style.width = '480px';
+      receipt.style.padding = '40px 30px';
+      receipt.style.width = '420px';
       receipt.style.backgroundColor = '#ffffff';
       receipt.style.color = '#000000';
       receipt.style.fontFamily = "'Inter', sans-serif";
@@ -145,28 +146,76 @@ export default function OrderManagement() {
       const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
 
+      const itemsHtml = order.items?.map((item: any) => `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; font-weight: 800;">
+          <span style="flex: 2; pr: 10px;">${item.name}</span>
+          <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
+          <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+      `).join('');
+
       receipt.innerHTML = `
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: -1px; font-style: italic;">SHOPYKART</h1>
-          <p style="margin: 4px 0; font-size: 9px; font-weight: 800; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
-          <div style="margin-top: 15px; font-size: 8px; font-weight: 700; color: #555;">POWERED BY DEVANSH GUPTA</div>
-          <div style="border-top: 1px dashed #ccc; margin: 10px auto; width: 60%;"></div>
+        <div style="text-align: center; margin-bottom: 25px;">
+          <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
+          <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
+          <div style="margin-top: 15px; font-size: 9px; font-weight: 800;">SHOPYKART PREMIUM DELIVERY</div>
+          <div style="font-size: 9px; font-weight: 800;">POWERED BY DEVANSH GUPTA</div>
+          <div style="border-top: 1.5px dashed #000; margin: 15px auto 0; width: 100%;"></div>
         </div>
-        <div style="margin-bottom: 30px; line-height: 1.8; font-size: 11px; font-weight: 600;">
-          <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span style="font-weight: 900;">#${order.customerOrderNumber || '9'}</span></div>
+
+        <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
+          <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span style="font-weight: 900;">#${order.customerOrderNumber || '1'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>STORES:</span><span style="text-align: right; max-width: 200px;">${order.restaurantName || 'ShopyKart Hub'}</span></div>
+          <div style="display: flex; justify-content: space-between; margin-top: 10px;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>PHONE:</span><span>${order.customerPhone}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>PAYMENT:</span><span>${order.paymentMethod === 'ONLINE' ? 'ONLINE PREPAID' : 'CASH ON DELIVERY'}</span></div>
-          <div style="display: flex; justify-content: space-between; color: #ef4444; margin-top: 5px;"><span>DELIVERY OTP:</span><span style="font-weight: 900;">${order.deliveryOTP || '---'}</span></div>
         </div>
-        <div style="border-top: 2px solid #000; margin-bottom: 15px;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
-          <span style="font-size: 22px; font-weight: 900; font-style: italic;">GRAND TOTAL</span>
-          <span style="font-size: 22px; font-weight: 900; font-style: italic;">₹${order.total?.toFixed(2)}</span>
+
+        <div style="border-top: 1.5px dashed #000; margin-bottom: 10px;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 900; margin-bottom: 10px;">
+          <span style="flex: 2;">ITEM DESCRIPTION</span>
+          <span style="flex: 0.5; text-align: center;">QTY</span>
+          <span style="flex: 1; text-align: right;">PRICE</span>
         </div>
-        <div style="text-align: center; margin: 30px 0;"><img src="${qrCodeUrl}" style="width: 140px; height: 140px;" /></div>
-        <div style="text-align: center; margin-top: 20px;"><p style="font-size: 14px; font-weight: 900; font-style: italic;">ENJOY YOUR DELICIOUS MEAL!</p></div>
+        <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
+
+        <div style="margin-bottom: 20px;">
+          ${itemsHtml}
+        </div>
+
+        <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
+
+        <div style="font-size: 11px; font-weight: 800; space-y: 6px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ITEMS SUBTOTAL:</span><span>₹${(order.total - 10).toFixed(2)}</span></div>
+          <div style="display: flex; justify-content: space-between; font-style: italic;"><span>DELHIVERY FEE:</span><span>₹10.00</span></div>
+        </div>
+
+        <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 24px; font-weight: 900; font-style: italic;">GRAND TOTAL</span>
+          <span style="font-size: 24px; font-weight: 900; font-style: italic;">₹${order.total?.toFixed(2)}</span>
+        </div>
+        <div style="border-top: 1.5px dashed #000; margin: 15px 0;"></div>
+
+        <div style="text-align: center; margin: 25px 0;">
+          <div style="border: 1.5px dotted #000; display: inline-block; padding: 10px; margin-bottom: 8px;">
+            <img src="${qrCodeUrl}" style="width: 150px; height: 140px; display: block;" />
+          </div>
+          <p style="font-size: 9px; font-weight: 900; letter-spacing: 2px; margin: 0;">SCAN TO PAY</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 25px;">
+          <p style="font-size: 16px; font-weight: 900; font-style: italic; margin-bottom: 5px;">ENJOY YOUR DELICIOUS MEAL!</p>
+          <p style="font-size: 8px; font-weight: 700; color: #555; line-height: 1.4;">THANK YOU FOR CHOOSING SHOPYKART! THIS IS A COMPUTER GENERATED INVOICE.</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+          <div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">
+            POWERED BY SHOPYKART
+          </div>
+        </div>
       `;
       
       document.body.appendChild(receipt);
@@ -214,8 +263,6 @@ export default function OrderManagement() {
           const isCancelled = order.status === 'Cancelled';
           const isDelivered = order.status === 'Delivered';
           const isReadyForPickup = order.status === 'Ready for Pickup';
-          const lat = order.customerLat || order.customerLocation?.latitude;
-          const lng = order.customerLng || order.customerLocation?.longitude;
           const currentIndex = STATUS_FLOW.indexOf(order.status);
           const hasNext = currentIndex < STATUS_FLOW.length - 1 && !isCancelled;
           const hasPrev = currentIndex > 0 && !isCancelled;
@@ -333,7 +380,7 @@ export default function OrderManagement() {
                  <button 
                    key={partner.id}
                    onClick={() => handleAssignPartner(partner)}
-                   className="w-full p-5 rounded-[2rem] border-2 border-gray-50 bg-gray-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all flex items-center justify-between text-left group"
+                   className="w-full p-4 rounded-[1.5rem] border-2 border-gray-50 bg-gray-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all flex items-center justify-between text-left group"
                  >
                    <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white border shrink-0">
@@ -344,7 +391,7 @@ export default function OrderManagement() {
                          <p className="text-[10px] font-bold text-muted-foreground uppercase">{partner.phone}</p>
                       </div>
                    </div>
-                   <div className="h-10 w-10 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:border-primary transition-all"><Plus className="h-5 w-5" /></div>
+                   <div className="h-8 w-8 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:border-primary transition-all"><Plus className="h-4 w-4" /></div>
                  </button>
                ))}
                {(!partners || partners.length === 0) && (
