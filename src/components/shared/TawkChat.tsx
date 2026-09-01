@@ -5,9 +5,8 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * @fileOverview Tawk.to visibility control with atomic state tracking.
- * Strictly prevents redundant API calls to eliminate [Tawk/Logger] console errors.
- * Added defensive timeout management to handle rapid navigation.
+ * @fileOverview Tawk.to visibility control with ultra-defensive error handling.
+ * Prevents internal [Tawk/Logger] errors by debouncing and wrapping API calls.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -18,7 +17,7 @@ export function TawkChat() {
   useEffect(() => {
     setIsClient(true);
     
-    // Global signal for Tawk readiness
+    // Signal for script load
     (window as any).onTawkLoadSignal = () => {
       setIsTawkReady(true);
     };
@@ -36,7 +35,7 @@ export function TawkChat() {
 
     const path = pathname?.toLowerCase() || '';
     
-    // STRICT BLOCK: Hide on business/logistics/checkout/specialized routes
+    // Restricted routes: Business portals, checkout, and tracking
     const isRestrictedRoute = 
       path.startsWith('/admin') || 
       path.startsWith('/vendor') || 
@@ -48,11 +47,9 @@ export function TawkChat() {
 
     const locationSet = typeof window !== 'undefined' ? localStorage.getItem('user_location_set') === 'true' : false;
     
-    // widget logic: show only on customer frontend if location is set
     const shouldShow = !isRestrictedRoute && locationSet;
     const newState = shouldShow ? 'show' : 'hide';
 
-    // ATOMIC CHECK & DEBOUNCE: Only call if state actually flips
     if (lastStateRef.current !== newState) {
       const applyTawkState = () => {
         const currentTawk = (window as any).Tawk_API;
@@ -65,12 +62,12 @@ export function TawkChat() {
             }
             lastStateRef.current = newState;
           } catch (e) {
-            // Silently ignore Tawk internal state errors
+            // Silently ignore script internal logger errors
           }
         }
       };
 
-      const timer = setTimeout(applyTawkState, 600);
+      const timer = setTimeout(applyTawkState, 1000);
       return () => clearTimeout(timer);
     }
   }, [pathname, isClient, isTawkReady]);

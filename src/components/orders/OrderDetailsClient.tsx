@@ -166,8 +166,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             <ChevronLeft className="h-6 w-6" />
           </button>
           <div className="flex flex-col items-center">
-             <h4 className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none drop-shadow-md">{order.restaurantName}</h4>
-             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Live Tracking</p>
+             <h4 className="text-[11px] font-black uppercase italic tracking-tighter text-gray-900 leading-none drop-shadow-md">{order.restaurantName}</h4>
+             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">
+               {format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'hh:mm a')} • {order.items?.length || 1} items
+             </p>
           </div>
           <button className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-900 shadow-lg border border-black/5 active:scale-90 transition-transform pointer-events-auto">
             <MoreHorizontal className="h-5 w-5" />

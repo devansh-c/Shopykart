@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -282,7 +281,7 @@ export default function CartPage() {
 
       setShowSuccessOverlay(true);
       
-      // AUTO REDIRECT AFTER ANIMATION
+      // AUTO REDIRECT AFTER ANIMATION (1.5s total time for satisfying tick)
       setTimeout(() => { 
         clearCart(); 
         router.replace(`/order/track/#${customerOrderNumber}`); 
