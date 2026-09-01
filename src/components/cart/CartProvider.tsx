@@ -35,7 +35,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 1. Defensively load cart from localStorage to prevent "Unexpected end of JSON input"
+  // 1. Defensively load cart from localStorage
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('shopykart_cart');
@@ -58,11 +58,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // 2. Persist cart to localStorage
+  // 2. Persist cart with Quota-Aware handling
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem('shopykart_cart', JSON.stringify(cart));
-      localStorage.setItem('shopykart_wishlist', JSON.stringify(wishlist));
+      try {
+        localStorage.setItem('shopykart_cart', JSON.stringify(cart));
+        localStorage.setItem('shopykart_wishlist', JSON.stringify(wishlist));
+      } catch (e: any) {
+        // If storage is full (QuotaExceededError), clear non-essential firestore caches
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+          console.warn("Storage Full: Purging temporary caches to save cart.");
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('fire_cache_') || key.startsWith('fire_doc_cache_')) {
+              localStorage.removeItem(key);
+            }
+          });
+          // Retry once
+          try {
+            localStorage.setItem('shopykart_cart', JSON.stringify(cart));
+            localStorage.setItem('shopykart_wishlist', JSON.stringify(wishlist));
+          } catch (retryErr) {
+            console.error("Critical: Storage remains full after cleanup.");
+          }
+        }
+      }
     }
   }, [cart, wishlist, isInitialized]);
 

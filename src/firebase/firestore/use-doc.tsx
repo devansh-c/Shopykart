@@ -13,7 +13,7 @@ import { FirestorePermissionError } from '../errors';
 
 /**
  * @fileOverview High-Performance Document Hook with Instant Cache Access.
- * Prevents Next.js Hydration Mismatches by strictly aligning server and initial client state.
+ * Quota-Aware: Safely handles full storage errors.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
   // 1. Initialize strictly with SSR data or Cache
@@ -49,11 +49,15 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
         setLoading(false);
         setError(null);
 
-        // Update Cache for instant subsequent loads
+        // Update Cache for instant subsequent loads - DEFENSIVELY
         if (cacheKey && typeof window !== 'undefined' && docData) {
           try {
             localStorage.setItem(`fire_doc_cache_${cacheKey}`, JSON.stringify(docData));
-          } catch (e) {}
+          } catch (e: any) {
+            if (e.name === 'QuotaExceededError') {
+              console.warn("Firestore Doc Cache skipped: quota exceeded.");
+            }
+          }
         }
       },
       async (err: FirestoreError) => {

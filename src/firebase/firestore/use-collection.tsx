@@ -14,7 +14,7 @@ import { FirestorePermissionError } from '../errors';
 /**
  * @fileOverview High-Performance Real-time Collection Hook.
  * Implements aggressive localStorage caching for "0-second" delay loads.
- * Optimized cleanup to prevent memory leaks and redundant listeners.
+ * Quota-Aware: Safely handles full storage errors.
  */
 export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey?: string, initialData?: T[]) {
   // 1. Initialize strictly with SSR data or Cache to match server render and avoid pop-in
@@ -35,7 +35,6 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
   
   // Use a ref for the query string to avoid re-running effect on every render
   const queryStr = useMemo(() => query ? JSON.stringify((query as any)._query || {}) : '', [query]);
-  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     if (!query) {
@@ -67,11 +66,16 @@ export function useCollection<T = DocumentData>(query: Query<T> | null, cacheKey
         setLoading(false);
         setError(null);
         
-        // Update Cache for subsequent instant loads
+        // Update Cache for subsequent instant loads - DEFENSIVELY
         if (cacheKey && typeof window !== 'undefined') {
           try {
             localStorage.setItem(`fire_cache_${cacheKey}`, JSON.stringify(items));
-          } catch (e) {}
+          } catch (e: any) {
+            // Silently fail caching if storage is full
+            if (e.name === 'QuotaExceededError') {
+               console.warn("Firestore Cache skipped: localStorage quota exceeded.");
+            }
+          }
         }
       },
       async (err: FirestoreError) => {
