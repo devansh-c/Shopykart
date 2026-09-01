@@ -30,17 +30,28 @@ import {
   X,
   ShieldCheck,
   Navigation,
-  ChevronDown
+  ChevronDown,
+  Clock,
+  User,
+  Phone,
+  Edit2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, limit, orderBy } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, limit, orderBy, setDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import dynamic from 'next/dynamic';
+
+const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
+  ssr: false,
+  loading: () => <div className="h-64 w-full bg-muted animate-pulse flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+});
 
 type PaymentApp = 'phonepe' | 'paytm' | 'googlepay' | 'other';
 
@@ -58,6 +69,17 @@ export default function CartPage() {
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
   
+  // Recipient States
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [recipientForm, setRecipientForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    lat: '',
+    lng: ''
+  });
+
   // Payment States
   const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
@@ -71,23 +93,66 @@ export default function CartPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    // Initialize recipient form from storage
+    if (typeof window !== 'undefined') {
+      setRecipientForm({
+        name: localStorage.getItem('user_name') || '',
+        phone: localStorage.getItem('user_phone') || '',
+        address: localStorage.getItem('user_address_line') || localStorage.getItem('user_address') || '',
+        lat: localStorage.getItem('user_lat') || '',
+        lng: localStorage.getItem('user_lng') || ''
+      });
+    }
   }, []);
 
-  const activeAddress = typeof window !== 'undefined' ? (localStorage.getItem('user_address') || 'Set Location') : 'Set Location';
-  const activeCustomerName = typeof window !== 'undefined' ? (localStorage.getItem('user_name') || 'Premium User') : 'Premium User';
+  const activeAddress = recipientForm.address || 'Set delivery location';
+  const activeCustomerName = recipientForm.name || 'Premium User';
   
   const deliveryFee = 10;
-  const platformFee = 0;
   const totalPayable = useMemo(() => {
-    let base = totalPrice + deliveryFee + platformFee;
+    let base = totalPrice + deliveryFee;
     if (isPremiumPacking) base += 10;
     if (isRedeemCoins) base -= 5;
     if (typeof selectedTip === 'number') base += selectedTip;
     return Math.max(0, base);
   }, [totalPrice, isPremiumPacking, isRedeemCoins, selectedTip]);
 
-  const handleOpenPicker = () => {
-    window.dispatchEvent(new CustomEvent('open-location-picker'));
+  const handleSaveRecipient = async () => {
+    if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10) {
+      toast({ variant: "destructive", title: "Invalid Details", description: "Name and 10-digit Phone are mandatory." });
+      return;
+    }
+
+    localStorage.setItem('user_name', recipientForm.name.toUpperCase());
+    localStorage.setItem('user_phone', recipientForm.phone);
+    localStorage.setItem('user_address_line', recipientForm.address);
+    localStorage.setItem('user_location_set', 'true');
+    
+    if (user && firestore) {
+      await setDoc(doc(firestore, 'users', user.uid), {
+        fullName: recipientForm.name.toUpperCase(),
+        phoneNumber: recipientForm.phone,
+        address: recipientForm.address,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
+    setIsAddressModalOpen(false);
+    window.dispatchEvent(new CustomEvent('user-address-updated'));
+    toast({ title: "Details Updated! ✅" });
+  };
+
+  const handleConfirmMapLocation = (lat: number, lng: number, address?: string) => {
+    setRecipientForm(prev => ({
+      ...prev,
+      lat: lat.toString(),
+      lng: lng.toString(),
+      address: address || prev.address
+    }));
+    localStorage.setItem('user_lat', lat.toString());
+    localStorage.setItem('user_lng', lng.toString());
+    setIsMapOpen(false);
+    toast({ title: "House Pinned! 🏠" });
   };
 
   const triggerUPI = (app: PaymentApp) => {
@@ -116,9 +181,6 @@ export default function CartPage() {
     
     setIsPlacing(true);
     try {
-      const lat = localStorage.getItem('user_lat');
-      const lng = localStorage.getItem('user_lng');
-      
       const q = query(collection(firestore!, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
       const customerOrderNumber = countSnap.data().count + 1;
@@ -126,10 +188,10 @@ export default function CartPage() {
       const orderData = {
         userId: user.uid,
         customerName: activeCustomerName.toUpperCase(),
-        customerPhone: localStorage.getItem('user_phone') || '',
-        address: localStorage.getItem('user_address_line') || activeAddress,
-        customerLat: lat ? parseFloat(lat) : null,
-        customerLng: lng ? parseFloat(lng) : null,
+        customerPhone: recipientForm.phone,
+        address: activeAddress,
+        customerLat: recipientForm.lat ? parseFloat(recipientForm.lat) : null,
+        customerLng: recipientForm.lng ? parseFloat(recipientForm.lng) : null,
         items: cart,
         total: totalPayable,
         status: 'Placed',
@@ -220,7 +282,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-40 transform-gpu">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
 
-      <header className="bg-white border-b border-gray-100 py-5 px-6 sticky top-0 z-[100] flex items-center gap-4">
+      <header className="bg-white border-b border-gray-100 py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90 transition-all">
           <ChevronLeft className="h-6 w-6 text-gray-900" />
         </button>
@@ -229,27 +291,6 @@ export default function CartPage() {
 
       <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
         
-        {/* FREE DELIVERY TARGET */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl relative overflow-hidden border border-white/5">
-           <div className="flex items-center gap-4 mb-4 relative z-10">
-              <div className="h-10 w-10 bg-amber-400 rounded-2xl flex items-center justify-center text-black">
-                 <Truck className="h-5 w-5" />
-              </div>
-              <div>
-                 <h3 className="text-xs font-black uppercase tracking-widest">FREE DELIVERY TARGET</h3>
-                 <p className="text-[9px] font-bold text-amber-400/80 uppercase">Add ₹351 more for free delivery</p>
-              </div>
-           </div>
-           <div className="space-y-2 relative z-10">
-              <Progress value={30} className="h-2.5 bg-white/10" indicatorClassName="bg-amber-400" />
-              <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
-                 <span>Subtotal: ₹{totalPrice}</span>
-                 <span>Target: ₹499</span>
-              </div>
-           </div>
-           <div className="absolute top-0 right-0 h-full w-24 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
-        </section>
-
         {/* ITEMS IN BAG */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
@@ -293,18 +334,26 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* DELIVERY ADDRESS */}
-        <section className="bg-[#2D281F] rounded-[2rem] p-5 flex items-center justify-between border border-white/5 shadow-2xl">
-           <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black shrink-0">
-                 <MapPin className="h-5 w-5" />
+        {/* RECIPIENT & ADDRESS CARD - FIXED AS REQUESTED */}
+        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
+           <div className="flex items-center gap-5 flex-1 min-w-0">
+              <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
+                 <MapPin className="h-6 w-6" />
               </div>
               <div className="flex flex-col min-w-0 pr-4">
-                 <h4 className="text-xs font-black uppercase tracking-tight italic leading-none mb-1 truncate text-white">Delivery to: {activeCustomerName}</h4>
-                 <p className="text-[9px] font-bold text-white/40 uppercase truncate leading-none">{activeAddress}</p>
+                 <h4 className="text-[13px] font-black uppercase tracking-tight italic leading-none mb-1.5 text-white truncate">
+                   Deliver to: <span className="text-amber-400">{activeCustomerName || 'Guest'}</span>
+                 </h4>
+                 <p className="text-[10px] font-bold text-white/80 uppercase mt-2 line-clamp-1 italic">{activeAddress}</p>
+                 <div className="flex items-center gap-2 mt-3 text-[9px] font-black uppercase tracking-widest text-white/60">
+                    <Clock className="h-3 w-3" /> 25-35 MINS DELIVERY
+                 </div>
               </div>
            </div>
-           <button onClick={handleOpenPicker} className="bg-white/10 text-white text-[9px] font-black uppercase px-4 py-2 rounded-lg border border-white/10 active:scale-95 transition-all">
+           <button 
+            onClick={() => setIsAddressModalOpen(true)} 
+            className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase px-5 h-12 rounded-xl border border-white/10 active:scale-95 transition-all shrink-0 flex items-center justify-center"
+           >
               CHANGE
            </button>
         </section>
@@ -352,10 +401,6 @@ export default function CartPage() {
               <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
                  <span>ITEMS SUBTOTAL:</span>
                  <span className="text-white font-black italic text-sm">₹{totalPrice}</span>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                 <span>DELIVERY & HANDLING:</span>
-                 <span className="text-white font-black italic text-sm">₹{deliveryFee}</span>
               </div>
               {isPremiumPacking && (
                 <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
@@ -410,13 +455,12 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* REAL GESTURE SLIDER BUTTON */}
+        {/* SLIDER BUTTON */}
         <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white via-white to-transparent">
            <div 
              ref={sliderRef}
              className="w-full h-20 bg-[#2D281F] rounded-full p-2 flex items-center relative shadow-2xl overflow-hidden select-none"
            >
-              {/* Slider Track Text */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn(
                    "text-[10px] font-black uppercase italic tracking-[0.3em] transition-opacity duration-300",
@@ -431,7 +475,6 @@ export default function CartPage() {
                  )}
               </div>
 
-              {/* Slider Thumb */}
               <div 
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -445,7 +488,6 @@ export default function CartPage() {
                  <ArrowRight className={cn("h-8 w-8", isDragging ? "animate-none" : "animate-pulse")} />
               </div>
 
-              {/* Total Display */}
               <div className="flex-1 text-right pr-6 pointer-events-none">
                  <div className="text-xl font-black text-white italic tracking-tighter">₹{totalPayable}</div>
               </div>
@@ -459,6 +501,89 @@ export default function CartPage() {
         </div>
 
       </main>
+
+      {/* ADDRESS & RECIPIENT EDIT MODAL */}
+      <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 border-none shadow-2xl bg-[#0B0B0B] max-w-sm bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 focus:outline-none flex flex-col h-[650px]">
+          <div className="h-2 w-full bg-amber-400" />
+          <DialogHeader className="p-8 pb-4 shrink-0 text-white flex flex-col items-center">
+            <div className="h-16 w-16 bg-amber-400/20 rounded-[1.5rem] flex items-center justify-center text-amber-400 mb-2 shadow-inner border border-amber-400/20">
+               <MapPin className="h-8 w-8" />
+            </div>
+            <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-center">RECIPIENT & ADDRESS</DialogTitle>
+            <DialogDescription className="text-[9px] font-bold text-gray-500 uppercase text-center tracking-[0.2em] mt-1">Set house details for 10-min delivery</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-6">
+             <div className="space-y-4">
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Customer Name</label>
+                   <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input 
+                        placeholder="WHO IS RECEIVING?" 
+                        value={recipientForm.name}
+                        onChange={e => setRecipientForm({...recipientForm, name: e.target.value.toUpperCase()})}
+                        className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 text-white font-black text-xs uppercase"
+                      />
+                   </div>
+                </div>
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Contact Number</label>
+                   <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input 
+                        placeholder="MOBILE FOR UPDATES" 
+                        value={recipientForm.phone}
+                        onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})}
+                        className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 text-white font-black text-xs"
+                      />
+                   </div>
+                </div>
+                <div className="space-y-1.5">
+                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Detailed Address</label>
+                   <div className="relative">
+                      <Navigation className="absolute left-4 top-4 h-4 w-4 text-gray-500" />
+                      <textarea 
+                        placeholder="HOUSE NO, BUILDING, LANDMARK..." 
+                        value={recipientForm.address}
+                        onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})}
+                        className="w-full h-24 pl-12 pr-4 pt-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-[11px] uppercase placeholder:text-gray-600 focus:outline-none focus:border-amber-400/50"
+                      />
+                   </div>
+                </div>
+             </div>
+
+             <Button 
+                onClick={() => setIsMapOpen(true)}
+                className="w-full h-14 bg-white/10 hover:bg-white/20 text-amber-400 rounded-2xl font-black uppercase italic text-[10px] tracking-widest border border-amber-400/20 shadow-lg shadow-amber-400/5"
+             >
+                <MapPin className="h-4 w-4 mr-2" /> PIN HOUSE ON MAP
+             </Button>
+          </div>
+
+          <div className="p-8 bg-black/40 shrink-0 pb-10 border-t border-white/5">
+             <Button 
+                onClick={handleSaveRecipient}
+                className="w-full h-18 bg-amber-400 hover:bg-amber-500 text-black rounded-[2rem] font-black uppercase italic text-lg shadow-xl shadow-amber-400/20"
+             >
+                SAVE & PROCEED
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MAP PINNING DIALOG */}
+      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+         <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
+            <div className="absolute top-4 right-4 z-[10000]">
+               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 min-h-0 relative">
+               <GoogleMapPicker onConfirm={handleConfirmMapLocation} />
+            </div>
+         </DialogContent>
+      </Dialog>
 
       {/* UPI PAYMENT SELECTOR */}
       <Dialog open={showPaymentSelector} onOpenChange={setShowPaymentSelector}>
