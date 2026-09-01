@@ -33,7 +33,9 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     setIsClient(true);
     const handleOpenAuth = () => {
       // STRICT CHECK: Only open if not loading and definitely not logged in
-      if (!loading && !user) setShowAuthOverlay(true);
+      if (!loading && !user) {
+        setShowAuthOverlay(true);
+      }
     };
     window.addEventListener('open-auth-overlay', handleOpenAuth);
     return () => window.removeEventListener('open-auth-overlay', handleOpenAuth);
@@ -54,7 +56,9 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Auto-close overlay if user becomes authenticated
-    if (user) setShowAuthOverlay(false);
+    if (user) {
+      setShowAuthOverlay(false);
+    }
   }, [user]);
 
   const isExcludedPath = useMemo(() => {
@@ -68,10 +72,14 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
            p.startsWith('/order/track');
   }, [pathname]);
 
+  // SMART FALLBACK: If we are on a required route and auth is loading, just show children
+  // Don't ever show the login overlay while 'loading' is true to prevent annoying existing users.
+  const shouldRenderAuth = !isExcludedPath && showAuthOverlay && !user && !loading && isClient;
+
   return (
     <>
       {children}
-      {!isExcludedPath && showAuthOverlay && !user && !loading && isClient && (
+      {shouldRenderAuth && (
         <EmailAuth onClose={() => {
           setShowAuthOverlay(false);
           if (isAuthRequiredRoute) router.push('/');

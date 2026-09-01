@@ -62,11 +62,12 @@ export default function LocationRequest() {
         }
         
         // No cached location and no profile recovery possible? Show popup.
+        // We only show it if the session is definitely active OR auth finished and no user.
         setIsOpen(true);
       }
     };
 
-    const timer = setTimeout(checkLocationStatus, 1500); // Wait for auth to hydrate
+    const timer = setTimeout(checkLocationStatus, 2000); // Wait for auth to fully hydrate
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);

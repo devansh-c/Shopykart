@@ -28,7 +28,7 @@ export function useUser() {
         }
       } else {
         setUser(null);
-        // CLEAR FLAG ONLY ON EXPLICIT LOGOUT (Optional: depends on strictness)
+        // We don't clear the flag here to prevent flicker during slow network auth reconnections
       }
       setLoading(false);
     });
