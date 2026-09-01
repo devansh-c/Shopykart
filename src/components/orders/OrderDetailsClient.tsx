@@ -231,27 +231,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                  </div>
               </div>
 
-              {/* PARTNER CARD FOR CUSTOMER */}
-              {order.deliveryPartnerId && (
-                <div className="bg-primary/5 rounded-[2rem] p-5 mb-6 border border-primary/10 flex items-center justify-between animate-in zoom-in duration-500">
-                   <div className="flex items-center gap-4">
-                      <div className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20">
-                         <Bike className="h-6 w-6" />
-                      </div>
-                      <div>
-                         <span className="text-[9px] font-black text-primary uppercase tracking-widest block mb-0.5">Your Delivery Hero</span>
-                         <h4 className="text-lg font-black italic uppercase tracking-tight text-gray-900 leading-none">{order.deliveryPartnerName}</h4>
-                      </div>
-                   </div>
-                   <button 
-                    onClick={handleCallPartner}
-                    className="h-14 w-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-all border-b-4 border-green-800"
-                   >
-                      <PhoneCall className="h-7 w-7" />
-                   </button>
-                </div>
-              )}
-
               <div className="space-y-6 relative mb-4">
                  <div className="absolute left-[7px] top-[10px] bottom-[10px] w-[2px] border-l-2 border-dotted border-gray-200" />
                  
@@ -286,18 +265,35 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         "px-4 py-8 transition-all duration-500",
         isMapExpanded ? "opacity-0" : "opacity-100"
       )}>
-         <div className="flex items-center justify-between py-6 px-4 bg-gray-50/50 rounded-[2rem] border border-gray-100 group cursor-pointer active:bg-gray-100 transition-all">
-            <div className="flex items-center gap-4">
-               <div className="h-12 w-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-100">
-                  <CreditCard className="h-6 w-6 text-white" />
+         {/* PROFESSIONAL PARTNER CALL CARD - REPLACED PAYMENT BOX */}
+         {order.deliveryPartnerId ? (
+            <div className="bg-white rounded-[2.5rem] p-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700">
+               <div className="flex items-center gap-5">
+                  <div className="relative">
+                     <div className="h-16 w-16 bg-primary/5 rounded-[1.5rem] flex items-center justify-center border border-primary/10 overflow-hidden shadow-inner">
+                        <img src="https://cdn-icons-png.flaticon.com/512/619/619032.png" className="h-full w-full object-cover p-2 opacity-80" alt="" />
+                     </div>
+                     <div className="absolute -bottom-1 -right-1 bg-green-500 h-4 w-4 rounded-full border-2 border-white shadow-sm" />
+                  </div>
+                  <div className="min-w-0">
+                     <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Your Delivery Hero</span>
+                     <h4 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 leading-none truncate max-w-[160px]">{order.deliveryPartnerName}</h4>
+                  </div>
                </div>
-               <div className="flex flex-col">
-                  <p className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-tight max-w-[200px]">Pay ₹{order.total?.toFixed(0)} online for No-Contact Delivery.</p>
-                  <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1 italic">Secure Digital Payment</p>
-               </div>
+               
+               <button 
+                  onClick={handleCallPartner}
+                  className="h-14 w-14 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-green-100 active:scale-90 transition-all border-b-4 border-green-800"
+               >
+                  <PhoneCall className="h-7 w-7" />
+               </button>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:translate-x-1 transition-transform" />
-         </div>
+         ) : (
+            <div className="flex flex-col items-center justify-center py-6 text-center opacity-40">
+               <Loader2 className="h-5 w-5 animate-spin text-gray-400 mb-2" />
+               <p className="text-[8px] font-black uppercase tracking-[0.4em]">Assigning your delivery hero...</p>
+            </div>
+         )}
       </div>
 
       <div className="mt-auto pb-10 text-center opacity-20">
