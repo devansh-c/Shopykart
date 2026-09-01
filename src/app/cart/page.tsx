@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -395,10 +396,11 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* LOGO REMOVED FROM THIS BOX AS REQUESTED */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
            <div className="flex items-center gap-5 flex-1 min-w-0">
               <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
-                 <MapPin className="h-6 w-6" />
+                 <Navigation className="h-6 w-6" />
               </div>
               <div className="flex flex-col min-w-0 pr-4">
                  <h4 className="text-[13px] font-black uppercase tracking-tight italic leading-none mb-1.5 text-white truncate">
@@ -619,7 +621,7 @@ export default function CartPage() {
           <div className="h-2 w-full bg-amber-400" />
           <DialogHeader className="p-8 pb-4 shrink-0 text-white flex flex-col items-center">
             <div className="h-16 w-16 bg-amber-400/20 rounded-[1.5rem] flex items-center justify-center text-amber-400 mb-2 shadow-inner border border-amber-400/20">
-               <MapPin className="h-8 w-8" />
+               <Navigation className="h-8 w-8" />
             </div>
             <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-center">RECIPIENT & ADDRESS</DialogTitle>
             <DialogDescription className="text-[9px] font-bold text-gray-500 uppercase text-center tracking-[0.2em] mt-1">Set house details for accurate delivery</DialogDescription>

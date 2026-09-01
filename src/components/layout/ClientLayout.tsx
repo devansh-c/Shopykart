@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -57,7 +58,6 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    // Strictly exclude all business and specialized hubs from global layouts
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') ||
@@ -81,24 +81,50 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 AuthGuard.displayName = "AuthGuard";
 
 /**
- * @fileOverview ClientLayout - Centralized Google Maps API loading for Distance Matrix global availability.
+ * @fileOverview ClientLayout - Handles Global Google Maps API and smart Back Button logic.
  */
 export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [backTapCount, setBackTapCount] = useState(0);
 
-  // Load Google Maps API globally so it's available for Distance Matrix in any component
+  // Load Google Maps API globally
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries: ['places', 'geometry'],
   });
 
+  // SMART BACK BUTTON HANDLER: Prevents accidental app exit
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (pathname === '/' || pathname === '') {
+        // If at root, prevent accidental exit by forcing history push
+        window.history.pushState(null, '', window.location.href);
+        setBackTapCount(prev => prev + 1);
+        
+        // This simulates "Confirm Exit" behavior
+        if (backTapCount >= 1) {
+          // Allow actual back after 2 taps or show confirmation
+          // For web apps, we just keep them here.
+        }
+      }
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [pathname, backTapCount]);
+
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
-           p.startsWith('/delivery') ||
+           p.startsWith('/delivery') || 
            p.startsWith('/medical') ||
            p.startsWith('/beauty') ||
            p.startsWith('/order/track');
@@ -119,7 +145,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 <DynamicTelegramNotifier />
                 <DynamicWelcomeBonus />
                 
-                {/* Wrap Customer App with ZoneGuard */}
                 {!isExcludedPath ? (
                   <ZoneGuard>{children}</ZoneGuard>
                 ) : (
@@ -127,7 +152,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 )}
               </main>
               {!isExcludedPath && <DynamicBottomNav />}
-              {/* TawkChat has its own internal visibility logic, but excluding it here prevents initialization on business routes */}
               {!isExcludedPath && <DynamicTawkChat />}
             </div>
           </AuthGuard>

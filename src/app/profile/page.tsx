@@ -6,78 +6,46 @@ import {
   MapPin, 
   LogOut, 
   ChevronRight, 
-  Heart, 
   ShoppingCart, 
   Store, 
   Bike, 
   Loader2, 
   Phone, 
   Camera, 
-  Share2, 
-  MessageCircle, 
-  FileText, 
-  Info, 
-  LifeBuoy, 
-  Mail, 
   Sparkles, 
-  CheckCircle2, 
-  ChevronDown, 
-  ChevronUp, 
-  Headphones,
+  HeartPulse, 
   ShieldCheck,
-  ScrollText,
-  XCircle,
-  Undo2,
-  HeartPulse,
-  Users,
-  ShieldAlert,
-  Crown,
-  Smartphone,
-  Hash,
-  ArrowRight,
-  Clock,
-  AlertCircle,
   Calendar,
-  QrCode,
-  Utensils
+  X,
+  Smartphone,
+  Mail,
+  Navigation
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, collection, addDoc, query, where, orderBy, limit } from 'firebase/firestore';
-import { useRef, useState, useEffect, useMemo, useTransition, Suspense } from 'react';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useRef, useState, useEffect, useMemo, Suspense } from 'react';
 import { compressImage } from '@/lib/image-utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { cn, slugify } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 function ProfileContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isPending, startTransition] = useTransition();
   const [isMounted, setIsMounted] = useState(false);
   
   const [isUploading, setIsUploading] = useState(false);
-  const [isSupportExpanded, setIsSupportExpanded] = useState(false);
-  const [isTicketOpen, setIsTicketOpen] = useState(false);
-  const [ticketState, setTicketState] = useState<'form' | 'success'>('form');
-  const [isRaising, setIsRaising] = useState(false);
-
-  const [ticketData, setTicketData] = useState({
-    description: '',
-    phone: ''
-  });
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -89,12 +57,6 @@ function ProfileContent() {
   }, [firestore, user]);
 
   const { data: profile } = useDoc<any>(profileRef);
-
-  const isPremium = useMemo(() => {
-    if (!profile?.isPremium || !profile?.premiumExpiry) return false;
-    const expiry = new Date(profile.premiumExpiry).getTime();
-    return expiry > Date.now();
-  }, [profile]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,7 +74,7 @@ function ProfileContent() {
             profileImageUrl: compressed,
             updatedAt: serverTimestamp()
           }, { merge: true });
-          toast({ title: "Profile Updated", description: "Identity photo synced." });
+          toast({ title: "Profile Updated" });
         }
       } catch (err) {
         toast({ variant: "destructive", title: "Sync Failed" });
@@ -137,28 +99,27 @@ function ProfileContent() {
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
 
   return (
-    <div className="min-h-screen bg-white pb-32">
-      <div className="bg-primary h-56 relative flex flex-col items-center justify-center pt-8">
-        <div className="absolute bottom-0 w-full h-16 bg-white rounded-t-[3rem]" />
+    <div className="min-h-screen bg-[#F9FAFB] pb-40">
+      <div className="bg-primary h-52 relative flex flex-col items-center justify-center pt-8">
+        <div className="absolute bottom-0 w-full h-12 bg-[#F9FAFB] rounded-t-[3rem]" />
         
         <div 
           className="relative group cursor-pointer active:scale-95 transition-all"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Avatar className="h-28 w-28 border-4 border-white shadow-2xl relative z-10 translate-y-6 overflow-hidden bg-muted transition-all duration-500">
+          <Avatar className="h-24 w-24 border-4 border-white shadow-2xl relative z-10 translate-y-4 overflow-hidden bg-white transition-all duration-500">
             {profile?.profileImageUrl ? (
               <AvatarImage src={profile.profileImageUrl} className="object-cover" />
             ) : null}
-            <AvatarFallback className="text-4xl font-black bg-muted text-primary">
-              {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> : displayName.charAt(0)}
+            <AvatarFallback className="text-3xl font-black bg-muted text-primary">
+              {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : displayName.charAt(0)}
             </AvatarFallback>
           </Avatar>
           
-          <div className="absolute bottom-0 right-0 z-20 bg-white p-2.5 rounded-full shadow-xl border border-border translate-y-6">
-            <Camera className="h-4 w-4 text-primary" />
+          <div className="absolute bottom-0 right-0 z-20 bg-white p-2 rounded-full shadow-xl border border-border translate-y-4">
+            <Camera className="h-3.5 w-3.5 text-primary" />
           </div>
           
-          {/* CAMERA TRIGGER: accept="image/*" handles OS permissions */}
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -169,48 +130,101 @@ function ProfileContent() {
         </div>
       </div>
 
-      <div className="px-4 text-center mt-12">
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter">{displayName}</h2>
-        <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 mt-2">
-          {isPremium ? 'Elite Member' : 'Gold Member'}
-        </Badge>
+      <div className="px-6 text-center mt-8">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter">{displayName}</h2>
+        <div className="flex justify-center gap-2 mt-2">
+          <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-[0.2em] px-2.5 py-1">
+            ELITE MEMBER
+          </Badge>
+          {profile?.createdAt && (
+            <Badge variant="outline" className="text-[7px] font-black uppercase tracking-widest bg-white border-border/50 text-gray-400">
+              JOINED {isMounted ? format(new Date(profile.createdAt), 'MMM yyyy') : '...'}
+            </Badge>
+          )}
+        </div>
       </div>
 
-      <div className="px-4 mt-8 space-y-6">
+      <div className="px-6 mt-8 space-y-8">
+        {/* PERSONAL DETAILS CARD - NEW VISIBILITY */}
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-border/40 space-y-4">
+           <div className="flex items-center gap-4">
+              <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 shadow-sm border border-green-100">
+                 <Smartphone className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col">
+                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Linked Phone</span>
+                 <p className="text-sm font-black italic">{profile?.phoneNumber || 'Not Linked'}</p>
+              </div>
+           </div>
+           
+           <div className="flex items-center gap-4">
+              <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                 <Navigation className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Primary Address</span>
+                 <p className="text-xs font-bold text-gray-700 leading-tight uppercase line-clamp-1 italic">{profile?.address || 'No address set'}</p>
+              </div>
+           </div>
+        </div>
+
         <div className="space-y-3">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Personal Settings</h3>
+          <h3 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-3">Customer Panel</h3>
           <button onClick={() => router.push('/orders')} className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all">
             <div className="flex items-center space-x-4">
-              <div className="bg-secondary/40 p-2.5 rounded-xl text-primary"><ShoppingCart className="h-5 w-5" /></div>
-              <span className="text-sm font-bold">My Orders</span>
+              <div className="bg-primary/5 p-2.5 rounded-xl text-primary"><ShoppingCart className="h-5 w-5" /></div>
+              <span className="text-sm font-bold">Manage Orders</span>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Business & Portals</h3>
-          {[
-            { label: 'Join as Beauty & Cosmetics', icon: Sparkles, path: '/vendor/register?type=Beauty' },
-            { label: 'Join as Medical Store', icon: HeartPulse, path: '/vendor/register?type=Medical' },
-            { label: 'Vendor Dashboard', icon: Store, path: '/vendor/dashboard' },
-            { label: 'Delivery Dashboard', icon: Bike, path: '/delivery/dashboard' },
-          ].map((item: any) => (
-            <button key={item.label} onClick={() => router.push(item.path)} className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-primary/10 shadow-sm active:scale-[0.97] transition-all">
-              <div className="flex items-center space-x-4">
-                <div className="bg-primary/10 p-2.5 rounded-xl text-primary"><item.icon className="h-5 w-5" /></div>
-                <span className="text-sm font-bold">{item.label}</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-primary" />
-            </button>
-          ))}
+          <h3 className="text-[9px] font-black uppercase tracking-widest text-primary ml-3">Partner Hubs</h3>
+          <div className="grid grid-cols-1 gap-3">
+            {[
+              { label: 'Beauty & Cosmetics Portal', icon: Sparkles, path: '/vendor/login?type=Beauty', color: 'bg-rose-50 text-rose-600' },
+              { label: 'Medical Store Console', icon: HeartPulse, path: '/vendor/login?type=Medical', color: 'bg-teal-50 text-teal-600' },
+              { label: 'Delivery Fleet Dashboard', icon: Bike, path: '/delivery/login', color: 'bg-blue-50 text-blue-600' },
+            ].map((item: any) => (
+              <button key={item.label} onClick={() => router.push(item.path)} className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.97] transition-all">
+                <div className="flex items-center space-x-4">
+                  <div className={cn("p-2.5 rounded-xl", item.color)}><item.icon className="h-5 w-5" /></div>
+                  <span className="text-sm font-bold">{item.label}</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-300" />
+              </button>
+            ))}
+          </div>
         </div>
 
-        <button onClick={handleSignOut} className="w-full bg-white rounded-2xl p-4 flex items-center space-x-4 text-red-500 border border-red-50 active:scale-95 transition-all mt-6">
+        <button 
+          onClick={() => setShowLogoutConfirm(true)} 
+          className="w-full bg-white rounded-2xl p-5 flex items-center space-x-4 text-red-500 border border-red-50 shadow-sm active:scale-95 transition-all mt-4"
+        >
           <div className="bg-red-50 p-2.5 rounded-xl"><LogOut className="h-5 w-5" /></div>
-          <span className="text-sm font-bold">Sign Out</span>
+          <span className="text-sm font-black uppercase italic">Disconnect Account</span>
         </button>
       </div>
+
+      {/* SIGN OUT CONFIRMATION DIALOG */}
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+         <DialogContent className="rounded-[2.5rem] max-w-xs p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+            <div className="p-8 text-center space-y-6">
+               <div className="h-16 w-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto shadow-inner">
+                  <LogOut className="h-8 w-8" />
+               </div>
+               <div className="space-y-2">
+                  <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Sign Out?</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Are you sure you want to end your session?</DialogDescription>
+               </div>
+               <div className="flex flex-col gap-3 pt-2">
+                  <Button onClick={handleSignOut} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black uppercase italic shadow-lg shadow-red-100">YES, SIGN OUT</Button>
+                  <Button onClick={() => setShowLogoutConfirm(false)} variant="ghost" className="w-full h-12 text-gray-400 font-bold uppercase text-[9px] tracking-widest">CANCEL</Button>
+               </div>
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }
