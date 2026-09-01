@@ -5,7 +5,6 @@ import { useCart } from '@/components/cart/CartProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Progress } from '@/components/ui/progress';
 import { 
   Minus, 
   Plus, 
@@ -13,33 +12,27 @@ import {
   ShoppingBag, 
   Loader2, 
   MapPin, 
-  Camera,
   MessageSquare,
   Sparkles,
   Coins,
-  Ticket,
   Bike,
-  IndianRupee,
   CreditCard,
   Banknote,
   ArrowRight,
   Truck,
-  CheckCircle2,
-  AlertCircle,
-  Smartphone,
-  X,
   ShieldCheck,
   Navigation,
-  ChevronDown,
   Clock,
   User,
   Phone,
-  Edit2
+  Smartphone,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, limit, orderBy, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, setDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -65,7 +58,6 @@ export default function CartPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
-  const [selectedTip, setSelectedTip] = useState<number | 'other'>(10);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
   
@@ -93,7 +85,6 @@ export default function CartPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    // Initialize recipient form from storage
     if (typeof window !== 'undefined') {
       setRecipientForm({
         name: localStorage.getItem('user_name') || '',
@@ -106,16 +97,15 @@ export default function CartPage() {
   }, []);
 
   const activeAddress = recipientForm.address || 'Set delivery location';
-  const activeCustomerName = recipientForm.name || 'Premium User';
+  const activeCustomerName = recipientForm.name || 'Guest';
   
   const deliveryFee = 10;
   const totalPayable = useMemo(() => {
     let base = totalPrice + deliveryFee;
     if (isPremiumPacking) base += 10;
     if (isRedeemCoins) base -= 5;
-    if (typeof selectedTip === 'number') base += selectedTip;
     return Math.max(0, base);
-  }, [totalPrice, isPremiumPacking, isRedeemCoins, selectedTip]);
+  }, [totalPrice, isPremiumPacking, isRedeemCoins]);
 
   const handleSaveRecipient = async () => {
     if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10) {
@@ -134,7 +124,7 @@ export default function CartPage() {
         phoneNumber: recipientForm.phone,
         address: recipientForm.address,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      }, { merge: true }).catch(() => {});
     }
 
     setIsAddressModalOpen(false);
@@ -174,14 +164,11 @@ export default function CartPage() {
   };
 
   const finalizeOrder = async () => {
-    if (!user) { 
-      window.dispatchEvent(new CustomEvent('open-auth-overlay')); 
-      return; 
-    }
+    if (!user || !firestore) return;
     
     setIsPlacing(true);
     try {
-      const q = query(collection(firestore!, 'orders'), where('userId', '==', user.uid));
+      const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
       const customerOrderNumber = countSnap.data().count + 1;
 
@@ -205,7 +192,7 @@ export default function CartPage() {
         restaurantName: cart[0]?.restaurantName || 'ShopyKart'
       };
 
-      await addDoc(collection(firestore!, 'orders'), orderData);
+      await addDoc(collection(firestore, 'orders'), orderData);
       setShowSuccessOverlay(true);
       setTimeout(() => { 
         clearCart(); 
@@ -320,21 +307,7 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* GLOBAL INSTRUCTIONS */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
-           <div className="flex items-center gap-3">
-              <MessageSquare className="h-4 w-4 text-amber-400" />
-              <h3 className="text-xs font-black uppercase tracking-widest">GLOBAL INSTRUCTIONS <span className="opacity-40">(OPTIONAL)</span></h3>
-           </div>
-           <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <textarea 
-                placeholder="E.g. Make it extra spicy, Leave at the gate..." 
-                className="w-full bg-transparent border-none text-[11px] font-medium placeholder:text-white/20 focus:ring-0 min-h-[80px] no-scrollbar"
-              />
-           </div>
-        </section>
-
-        {/* RECIPIENT & ADDRESS CARD - FIXED AS REQUESTED */}
+        {/* RECIPIENT & ADDRESS CARD */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
            <div className="flex items-center gap-5 flex-1 min-w-0">
               <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
@@ -342,7 +315,7 @@ export default function CartPage() {
               </div>
               <div className="flex flex-col min-w-0 pr-4">
                  <h4 className="text-[13px] font-black uppercase tracking-tight italic leading-none mb-1.5 text-white truncate">
-                   Deliver to: <span className="text-amber-400">{activeCustomerName || 'Guest'}</span>
+                   Deliver to: <span className="text-amber-400">{activeCustomerName}</span>
                  </h4>
                  <p className="text-[10px] font-bold text-white/80 uppercase mt-2 line-clamp-1 italic">{activeAddress}</p>
                  <div className="flex items-center gap-2 mt-3 text-[9px] font-black uppercase tracking-widest text-white/60">
@@ -401,6 +374,10 @@ export default function CartPage() {
               <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
                  <span>ITEMS SUBTOTAL:</span>
                  <span className="text-white font-black italic text-sm">₹{totalPrice}</span>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                 <span>DELIVERY FEE:</span>
+                 <span className="text-white font-black italic text-sm">₹{deliveryFee}</span>
               </div>
               {isPremiumPacking && (
                 <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
@@ -576,6 +553,10 @@ export default function CartPage() {
       {/* MAP PINNING DIALOG */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
+            <DialogHeader className="sr-only">
+               <DialogTitle>Pin Your Delivery Location</DialogTitle>
+               <DialogDescription>Mark your house on the map for accurate delivery.</DialogDescription>
+            </DialogHeader>
             <div className="absolute top-4 right-4 z-[10000]">
                <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
             </div>
