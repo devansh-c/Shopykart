@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -9,14 +10,18 @@ import {
   Navigation,
   CheckCircle2,
   CreditCard,
-  X
+  X,
+  Map as MapIcon,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { format } from 'date-fns';
 
 const LiveTrackingMap = dynamic(() => import('./LiveTrackingMap'), { 
   ssr: false,
@@ -33,6 +38,35 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [vendor, setVendor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [eta, setEta] = useState<string>('44 mins');
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+  
+  // Gesture Handling
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isUpSwipe = distance > minSwipeDistance;
+    const isDownSwipe = distance < -minSwipeDistance;
+
+    if (isUpSwipe && isMapExpanded) {
+      setIsMapExpanded(false);
+    }
+    if (isDownSwipe && !isMapExpanded) {
+      setIsMapExpanded(true);
+    }
+  };
 
   useEffect(() => {
     const resolveOrder = async () => {
@@ -105,17 +139,22 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   );
 
   return (
-    <div className="min-h-screen bg-white flex flex-col transform-gpu overflow-x-hidden no-scrollbar">
+    <div className="min-h-screen bg-white flex flex-col transform-gpu overflow-x-hidden no-scrollbar relative">
       
-      {/* 1. TOP HALF: MAP SECTION */}
-      <div className="relative h-[48vh] w-full shrink-0">
+      {/* 1. MAP SECTION - DYNAMIC HEIGHT */}
+      <div 
+        className={cn(
+          "relative w-full shrink-0 transition-all duration-700 cubic-bezier(0.23,1,0.32,1) z-0",
+          isMapExpanded ? "h-screen" : "h-[48vh]"
+        )}
+      >
         <header className="absolute top-0 left-0 right-0 z-[100] px-4 py-4 flex items-center justify-between pointer-events-none">
           <button onClick={() => router.push('/orders')} className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-900 shadow-lg border border-black/5 active:scale-90 transition-transform pointer-events-auto">
             <ChevronLeft className="h-6 w-6" />
           </button>
           <div className="flex flex-col items-center">
-             <h4 className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">{order.restaurantName}</h4>
-             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Order Tracking Live</p>
+             <h4 className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none drop-shadow-md">{order.restaurantName}</h4>
+             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Live Tracking</p>
           </div>
           <button className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-900 shadow-lg border border-black/5 active:scale-90 transition-transform pointer-events-auto">
             <MoreHorizontal className="h-5 w-5" />
@@ -123,7 +162,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </header>
 
         {/* MAP CONTAINER WITH CURVE */}
-        <div className="absolute inset-0 z-0 overflow-hidden rounded-b-[2.5rem]">
+        <div className={cn(
+          "absolute inset-0 z-0 overflow-hidden transition-all duration-700",
+          isMapExpanded ? "rounded-none" : "rounded-b-[4rem]"
+        )}>
           <LiveTrackingMap 
             customerLat={parseFloat(String(order.customerLat || 0))} 
             customerLng={parseFloat(String(order.customerLng || 0))} 
@@ -134,36 +176,66 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             onEtaUpdate={(val) => setEta(val)}
           />
         </div>
+
+        {/* FLOATING ACTION WHEN FULL SCREEN */}
+        {isMapExpanded && (
+          <div className="absolute bottom-10 left-0 right-0 flex justify-center z-[200] animate-in slide-in-from-bottom-4">
+             <button 
+              onClick={() => setIsMapExpanded(false)}
+              className="bg-[#0B0B0B] text-white px-8 py-4 rounded-full font-black uppercase italic text-xs shadow-2xl flex items-center gap-3 active:scale-95 transition-all"
+             >
+                <Minimize2 className="h-4 w-4 text-primary" /> SHOW DETAILS
+             </button>
+          </div>
+        )}
       </div>
 
       {/* 2. FLOATING TRACKING CARD - OVERLAPPING MAP */}
-      <div className="relative z-[110] px-4 -mt-12">
-         <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden border border-black/[0.03]">
-            <div className="p-7">
+      <div 
+        className={cn(
+          "relative z-[110] px-4 transition-all duration-700 cubic-bezier(0.23,1,0.32,1)",
+          isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100"
+        )}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+         <div className="bg-white rounded-[2.5rem] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.15)] overflow-hidden border border-black/[0.03]">
+            {/* DRAG HANDLE */}
+            <div className="w-full h-8 flex items-center justify-center cursor-ns-resize">
+               <div className="w-12 h-1.5 bg-gray-100 rounded-full" />
+            </div>
+
+            <div className="p-7 pt-0">
               <div className="flex justify-between items-start mb-6">
                  <div>
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
                       {getHeadline()}
                     </h2>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">Arriving Soon</p>
                  </div>
-                 <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.25rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
+                 <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
                     <span className="text-2xl font-black italic tracking-tighter leading-none">{eta.split(' ')[0]}</span>
                     <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
                  </div>
               </div>
 
-              <div className="space-y-5 relative">
+              <div className="space-y-6 relative mb-4">
                  <div className="absolute left-[7px] top-[10px] bottom-[10px] w-[2px] border-l-2 border-dotted border-gray-200" />
                  
                  <div className="flex items-center gap-4 relative">
-                    <div className="h-3 w-3 rounded-full bg-gray-200 border-2 border-white shadow-sm shrink-0" />
-                    <span className="text-xs font-black uppercase italic text-gray-500 truncate">{order.restaurantName}</span>
+                    <div className="h-3.5 w-3.5 rounded-full bg-gray-200 border-2 border-white shadow-sm shrink-0" />
+                    <div className="flex flex-col">
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Picked up from</span>
+                       <span className="text-sm font-black uppercase italic text-gray-800 truncate">{order.restaurantName}</span>
+                    </div>
                  </div>
                  
                  <div className="flex items-start gap-4 relative">
-                    <div className="h-3.5 w-3.5 bg-green-500 rounded-sm border-2 border-white shadow-sm shrink-0 mt-1" />
+                    <div className="h-4 w-4 bg-green-500 rounded-sm border-2 border-white shadow-sm shrink-0 mt-1" />
                     <div className="flex-1 min-w-0">
-                       <p className="text-sm font-black text-gray-800 uppercase leading-none truncate">To {order.customerName}</p>
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Delivering to</span>
+                       <p className="text-sm font-black text-gray-800 uppercase leading-none truncate mt-0.5">To {order.customerName}</p>
                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5 leading-relaxed line-clamp-1 italic tracking-tight">
                          {order.address}
                        </p>
@@ -172,8 +244,8 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
               </div>
 
               <div className="mt-8 pt-5 border-t border-gray-50 flex items-center justify-between">
-                 <span className="text-[11px] font-black uppercase tracking-tight text-gray-800 flex items-center gap-2">
-                    Add Delivery Instructions <ChevronRight className="h-3.5 w-3.5" />
+                 <span className="text-[11px] font-black uppercase tracking-tight text-gray-800 flex items-center gap-2 group cursor-pointer">
+                    Add Delivery Instructions <ChevronRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
                  </span>
               </div>
             </div>
@@ -181,15 +253,18 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       </div>
 
       {/* 3. UPI PAYMENT STRIP */}
-      <div className="px-4 py-8">
-         <div className="flex items-center justify-between py-4 border-b border-t border-gray-50 group cursor-pointer active:bg-gray-50 transition-all">
+      <div className={cn(
+        "px-4 py-8 transition-all duration-500",
+        isMapExpanded ? "opacity-0" : "opacity-100"
+      )}>
+         <div className="flex items-center justify-between py-6 px-4 bg-gray-50/50 rounded-[2rem] border border-gray-100 group cursor-pointer active:bg-gray-100 transition-all">
             <div className="flex items-center gap-4">
-               <div className="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-100">
-                  <CreditCard className="h-5 w-5 text-white" />
+               <div className="h-12 w-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-100">
+                  <CreditCard className="h-6 w-6 text-white" />
                </div>
                <div className="flex flex-col">
-                  <p className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-tight">Pay ₹{order.total?.toFixed(0)} online to avoid cash handling.</p>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Secure Digital Payment</p>
+                  <p className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-tight max-w-[200px]">Pay ₹{order.total?.toFixed(0)} online for No-Contact Delivery.</p>
+                  <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1 italic">Secure Digital Payment</p>
                </div>
             </div>
             <ChevronRight className="h-5 w-5 text-gray-300 group-hover:translate-x-1 transition-transform" />
@@ -198,7 +273,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
       {/* CLEAN FOOTER */}
       <div className="mt-auto pb-10 text-center opacity-20">
-         <p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Network</p>
+         <p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Logistics</p>
       </div>
 
     </div>
@@ -207,7 +282,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
 export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) {
   return (
-    <Suspense fallback={<div className="h-screen bg-white flex flex-col items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
+    <Suspense fallback={
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-primary h-10 w-10" />
+        <p className="text-[10px] font-black uppercase tracking-widest">Locating GPS...</p>
+      </div>
+    }>
       <OrderDetailsInner forcedId={forcedId} />
     </Suspense>
   );
