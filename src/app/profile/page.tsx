@@ -98,6 +98,22 @@ function ProfileContent() {
 
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
 
+  // Safe Date Parsing to prevent RangeError
+  const joinedDate = useMemo(() => {
+    if (!profile?.createdAt) return null;
+    try {
+      const createdAt = profile.createdAt;
+      // Handle both normalized string and Firestore Timestamp object
+      const d = typeof createdAt === 'string' 
+        ? new Date(createdAt) 
+        : (createdAt.seconds ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
+      
+      return isNaN(d.getTime()) ? null : d;
+    } catch (e) {
+      return null;
+    }
+  }, [profile?.createdAt]);
+
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-40">
       <div className="bg-primary h-52 relative flex flex-col items-center justify-center pt-8">
@@ -133,19 +149,19 @@ function ProfileContent() {
       <div className="px-6 text-center mt-8">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter">{displayName}</h2>
         <div className="flex justify-center gap-2 mt-2">
-          <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-[0.2em] px-2.5 py-1">
+          <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-widest px-2.5 py-1">
             ELITE MEMBER
           </Badge>
-          {profile?.createdAt && (
+          {joinedDate && (
             <Badge variant="outline" className="text-[7px] font-black uppercase tracking-widest bg-white border-border/50 text-gray-400">
-              JOINED {isMounted ? format(new Date(profile.createdAt), 'MMM yyyy') : '...'}
+              JOINED {isMounted ? format(joinedDate, 'MMM yyyy') : '...'}
             </Badge>
           )}
         </div>
       </div>
 
       <div className="px-6 mt-8 space-y-8">
-        {/* PERSONAL DETAILS CARD - NEW VISIBILITY */}
+        {/* PERSONAL DETAILS CARD */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-border/40 space-y-4">
            <div className="flex items-center gap-4">
               <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 shadow-sm border border-green-100">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -44,7 +45,22 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
       ref,
       { includeMetadataChanges: false },
       (snapshot: DocumentSnapshot<T>) => {
-        const docData = snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } as T : null;
+        const rawData = snapshot.data();
+        if (!snapshot.exists() || !rawData) {
+          setData(null);
+          setLoading(false);
+          return;
+        }
+
+        // Normalize Dates consistently like useCollection
+        const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
+          if (value && typeof value === 'object' && value.seconds !== undefined) {
+            return new Date(value.seconds * 1000).toISOString();
+          }
+          return value;
+        }));
+
+        const docData = { ...cleanData, id: snapshot.id } as T;
         setData(docData);
         setLoading(false);
         setError(null);
