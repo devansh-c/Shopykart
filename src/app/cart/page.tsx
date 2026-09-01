@@ -3,7 +3,6 @@
 
 import { useCart } from '@/components/cart/CartProvider';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { 
   Minus, 
@@ -12,22 +11,22 @@ import {
   ShoppingBag, 
   Loader2, 
   MapPin, 
-  MessageSquare,
-  Sparkles,
-  Coins,
-  Bike,
-  CreditCard,
-  Banknote,
-  ArrowRight,
-  Truck,
-  ShieldCheck,
-  Navigation,
-  Clock,
-  User,
-  Phone,
-  Smartphone,
-  X,
-  AlertCircle
+  Sparkles, 
+  Coins, 
+  CreditCard, 
+  Banknote, 
+  ArrowRight, 
+  Truck, 
+  ShieldCheck, 
+  Navigation, 
+  Clock, 
+  User, 
+  Phone, 
+  Smartphone, 
+  X, 
+  AlertCircle,
+  Heart,
+  Smile
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -60,6 +59,7 @@ export default function CartPage() {
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
+  const [deliveryTip, setDeliveryTip] = useState<number>(0);
   
   // Recipient States
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -101,11 +101,11 @@ export default function CartPage() {
   
   const deliveryFee = 10;
   const totalPayable = useMemo(() => {
-    let base = totalPrice + deliveryFee;
+    let base = totalPrice + deliveryFee + deliveryTip;
     if (isPremiumPacking) base += 10;
     if (isRedeemCoins) base -= 5;
     return Math.max(0, base);
-  }, [totalPrice, isPremiumPacking, isRedeemCoins]);
+  }, [totalPrice, isPremiumPacking, isRedeemCoins, deliveryTip]);
 
   const handleSaveRecipient = async () => {
     if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10) {
@@ -181,6 +181,7 @@ export default function CartPage() {
         customerLng: recipientForm.lng ? parseFloat(recipientForm.lng) : null,
         items: cart,
         total: totalPayable,
+        deliveryTip: deliveryTip,
         status: 'Placed',
         paymentMethod: paymentMode,
         paymentStatus: paymentMode === 'ONLINE' ? 'Paid' : 'Pending',
@@ -245,6 +246,10 @@ export default function CartPage() {
     } else {
       setSliderOffset(0);
     }
+  };
+
+  const handleTipSelect = (amount: number) => {
+    setDeliveryTip(prev => prev === amount ? 0 : amount);
   };
 
   if (!isMounted) return null;
@@ -331,6 +336,39 @@ export default function CartPage() {
            </button>
         </section>
 
+        {/* DELIVERY TIP SECTION */}
+        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-5">
+           <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                 <Heart className="h-4 w-4 text-primary fill-primary" />
+                 <h3 className="text-xs font-black uppercase tracking-widest">SUPPORT YOUR RIDER</h3>
+              </div>
+              {deliveryTip > 0 && <span className="text-[10px] font-black text-primary uppercase italic">₹{deliveryTip} Added</span>}
+           </div>
+           
+           <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed px-1">
+              Your small token of appreciation goes a long way. 100% of the tip goes directly to the delivery partner.
+           </p>
+
+           <div className="grid grid-cols-4 gap-3">
+              {[10, 20, 30, 50].map((amount) => (
+                <button 
+                  key={amount}
+                  onClick={() => handleTipSelect(amount)}
+                  className={cn(
+                    "h-12 rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90",
+                    deliveryTip === amount 
+                      ? "bg-primary/20 border-primary text-primary shadow-lg shadow-primary/10" 
+                      : "bg-white/5 border-white/10 text-white/60"
+                  )}
+                >
+                   <Smile className="h-3 w-3" />
+                   <span className="text-[11px] font-black italic">₹{amount}</span>
+                </button>
+              ))}
+           </div>
+        </section>
+
         {/* GOURMET ENHANCEMENTS */}
         <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
@@ -379,6 +417,12 @@ export default function CartPage() {
                  <span>DELIVERY FEE:</span>
                  <span className="text-white font-black italic text-sm">₹{deliveryFee}</span>
               </div>
+              {deliveryTip > 0 && (
+                <div className="flex justify-between items-center text-[10px] font-bold text-primary uppercase tracking-widest">
+                   <span>DELIVERY TIP:</span>
+                   <span className="font-black italic text-sm">₹{deliveryTip}</span>
+                </div>
+              )}
               {isPremiumPacking && (
                 <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
                    <span>PREMIUM PACKING:</span>
@@ -553,13 +597,11 @@ export default function CartPage() {
       {/* MAP PINNING DIALOG */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
-            <DialogHeader className="sr-only">
-               <DialogTitle>Pin Your Delivery Location</DialogTitle>
-               <DialogDescription>Mark your house on the map for accurate delivery.</DialogDescription>
+            <DialogHeader className="p-4 bg-white border-b shrink-0 relative">
+               <DialogTitle className="text-center font-black italic uppercase">Pin Your Delivery Location</DialogTitle>
+               <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Mark your house on the map for accurate delivery.</DialogDescription>
+               <button onClick={() => setIsMapOpen(false)} className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
             </DialogHeader>
-            <div className="absolute top-4 right-4 z-[10000]">
-               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
-            </div>
             <div className="flex-1 min-h-0 relative">
                <GoogleMapPicker onConfirm={handleConfirmMapLocation} />
             </div>
