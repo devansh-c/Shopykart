@@ -5,11 +5,15 @@ import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2, Trash2 } fr
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useMemo, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * @fileOverview My Orders Page optimized for speed.
+ * Uses persistent local caching via useCollection cacheKey to show data instantly.
+ */
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
@@ -22,16 +26,22 @@ export default function OrdersPage() {
     setIsMounted(true);
   }, []);
 
+  // Stable query memoization with User ID guard
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return query(
       collection(firestore, 'orders'),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(50) // Speed optimization: Limit to last 50 orders
     );
-  }, [firestore, user]);
+  }, [firestore, user?.uid]);
 
-  const { data: orders, loading: ordersLoading } = useCollection<any>(ordersQuery);
+  // Providing a unique cacheKey ensures orders are loaded instantly from localStorage on return
+  const { data: orders, loading: ordersLoading } = useCollection<any>(
+    ordersQuery, 
+    user?.uid ? `user_orders_${user.uid}` : undefined
+  );
 
   const handleCancelOrder = async (orderId: string) => {
     if (!firestore || cancellingId) return;
@@ -51,7 +61,8 @@ export default function OrdersPage() {
     }
   };
 
-  const isLoading = userLoading || (user && ordersLoading && !orders);
+  // Logic: Show loader ONLY if we have NO data (neither from cache nor from server)
+  const showInitialLoader = userLoading || (user && ordersLoading && !orders);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -60,13 +71,18 @@ export default function OrdersPage() {
       </div>
 
       <div className="px-4 space-y-5">
-        {isLoading ? (
-          <div className="flex justify-center py-20">
-             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {showInitialLoader ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing with history...</p>
           </div>
         ) : orders && orders.length > 0 ? (
           orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-border/40 shadow-sm active:scale-[0.98] transition-all group">
+            <div 
+              key={order.id} 
+              onClick={() => router.push(`/order/track/#${order.customerOrderNumber}`)}
+              className="bg-white rounded-[2rem] p-6 border border-border/40 shadow-sm active:scale-[0.98] transition-all group cursor-pointer"
+            >
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center space-x-4">
                   <div className={cn(
@@ -79,7 +95,11 @@ export default function OrdersPage() {
                     <h3 className="font-black text-lg italic tracking-tight">Order #{order.customerOrderNumber || '...'}</h3>
                     <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
                       <Clock className="h-3 w-3 mr-1" />
-                      {isMounted && order.createdAt?.seconds ? format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Just now'}
+                      {isMounted && order.createdAt ? (
+                        typeof order.createdAt === 'string' 
+                          ? format(new Date(order.createdAt), 'MMM d, h:mm a')
+                          : format(new Date(order.createdAt.seconds * 1000), 'MMM d, h:mm a')
+                      ) : 'Recently'}
                     </div>
                   </div>
                 </div>
@@ -114,36 +134,40 @@ export default function OrdersPage() {
                   <span className="text-xl font-black text-foreground italic tracking-tight">₹{order.total?.toFixed(2)}</span>
                 </div>
                 
-                {order.status === 'Placed' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
-                    disabled={cancellingId === order.id}
-                    className="bg-red-50 text-red-500 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-red-100 transition-colors"
-                  >
-                    {cancellingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                    Cancel
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {order.status === 'Placed' && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
+                      disabled={cancellingId === order.id}
+                      className="bg-red-50 text-red-500 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-red-100 transition-colors"
+                    >
+                      {cancellingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                      Cancel
+                    </button>
+                  )}
 
-                <button 
-                  onClick={() => router.push(`/order/track/#${order.customerOrderNumber}`)}
-                  className="bg-[#0B0B0B] text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-primary transition-colors"
-                >
-                  Track
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </button>
+                  <div className="bg-[#0B0B0B] text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center group-hover:bg-primary transition-colors">
+                    Track
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </div>
+                </div>
               </div>
             </div>
           ))
         ) : (
           <div className="text-center py-20 opacity-30 flex flex-col items-center">
-            <ShoppingBag className="h-16 w-16 mb-4" />
+            <div className="relative mb-6">
+               <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping opacity-20 scale-150" />
+               <div className="relative bg-white h-24 w-24 rounded-full flex items-center justify-center border-4 border-white shadow-xl">
+                  <ShoppingBag className="h-10 w-10 text-gray-200" />
+               </div>
+            </div>
             <p className="font-black italic uppercase tracking-widest text-sm">
               {!user ? "Please login to view orders" : "No orders yet"}
             </p>
             {user && (
               <button 
-                onClick={() => router.push('/menu')}
+                onClick={() => router.push('/')}
                 className="mt-6 text-primary font-black uppercase text-[10px] tracking-widest underline underline-offset-4"
               >
                 Order something delicious now
