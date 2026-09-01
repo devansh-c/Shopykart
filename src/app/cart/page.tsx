@@ -122,18 +122,15 @@ export default function CartPage() {
     if (!isMounted || cart.length === 0 || !recipientForm.lat || !recipientForm.lng || !firestore) return;
 
     const calculateDeliveryTime = async () => {
-      // 1. Check if Google Maps is loaded
       if (typeof google === 'undefined' || !google.maps) {
         setTimeout(calculateDeliveryTime, 2000);
         return;
       }
 
       try {
-        // 2. Get Vendor ID from the first item
         const firstVendorId = cart[0].vendorId;
         if (!firstVendorId) return;
 
-        // 3. Fetch Vendor location
         const vendorSnap = await getDoc(doc(firestore, 'vendors', firstVendorId));
         if (!vendorSnap.exists()) return;
         const vendorData = vendorSnap.data();
@@ -151,8 +148,8 @@ export default function CartPage() {
           }, (response, status) => {
             if (status === 'OK' && response?.rows[0]?.elements[0]?.status === 'OK') {
               const element = response.rows[0].elements[0];
-              const durationValue = Math.ceil(element.duration.value / 60); // duration in minutes
-              const totalTime = durationValue + 12; // Add 12 mins preparation time
+              const durationValue = Math.ceil(element.duration.value / 60); 
+              const totalTime = durationValue + 12; 
               setRealDeliveryTime(`${totalTime} MINS`);
             } else {
               setRealDeliveryTime('30-40 MINS');
@@ -275,7 +272,17 @@ export default function CartPage() {
       };
 
       await addDoc(collection(firestore, 'orders'), orderData);
+      
+      // PLAY SUCCESS SOUND
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+        audio.volume = 0.6;
+        audio.play().catch(() => {});
+      } catch (e) {}
+
       setShowSuccessOverlay(true);
+      
+      // AUTO REDIRECT AFTER ANIMATION
       setTimeout(() => { 
         clearCart(); 
         router.replace(`/order/track/#${customerOrderNumber}`); 
@@ -506,7 +513,6 @@ export default function CartPage() {
                  <span className="text-white font-black italic text-sm">₹{totalPrice.toFixed(0)}</span>
               </div>
               
-              {/* Dynamic Admin Charges */}
               {calculatedAdminCharges.map((charge, i) => (
                 <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
                    <span>{charge.name}:</span>
@@ -697,7 +703,7 @@ export default function CartPage() {
             <DialogHeader className="p-4 bg-white border-b shrink-0 relative">
                <DialogTitle className="text-center font-black italic uppercase">Pin Your Delivery Location</DialogTitle>
                <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Mark your house on the map for accurate delivery.</DialogDescription>
-               <button onClick={() => setIsMapOpen(false)} className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90"><X className="h-5 w-5" /></button>
+               <button onClick={() => setIsMapOpen(false)} className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90 transition-all"><X className="h-5 w-5" /></button>
             </DialogHeader>
             <div className="flex-1 min-h-0 relative">
                <GoogleMapPicker onConfirm={handleConfirmMapLocation} />
