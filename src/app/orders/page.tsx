@@ -9,11 +9,11 @@ import { format } from 'date-fns';
 import { useMemo, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview My Orders Page with High-Fidelity Shimmer Effect.
- * Fixed: Robust loading states to prevent premature "No Orders" display.
- * Implementation: Skeleton cards exactly match the structure of real order cards.
+ * Fixed: Added missing Badge import and robust loading states.
  */
 export default function OrdersPage() {
   const router = useRouter();
@@ -146,7 +146,7 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <Badge className={cn(
-                  "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border-none",
+                  "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border-none shadow-none",
                   ['Delivered', 'Cancelled'].includes(order.status) 
                     ? "bg-gray-100 text-gray-500"
                     : "bg-green-100 text-green-700 animate-pulse" 
