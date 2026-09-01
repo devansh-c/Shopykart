@@ -19,7 +19,11 @@ import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs, limit, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
@@ -166,7 +170,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         />
       </div>
 
-      {/* DETAIL CARD OVERLAY - CLONING THE SCREENSHOT DESIGN */}
+      {/* DETAIL CARD OVERLAY */}
       <div className="absolute bottom-0 left-0 right-0 z-[100] p-4 pb-12 space-y-4">
         
         {/* MAIN TRACKING CARD */}
@@ -185,7 +189,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
               </div>
 
               <div className="space-y-5 relative">
-                 {/* Visual dashed line connector */}
                  <div className="absolute left-[5px] top-[14px] bottom-[14px] w-[2px] border-l-2 border-dashed border-gray-200" />
                  
                  <div className="flex items-center gap-4 relative">
@@ -213,7 +216,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
            </div>
         </div>
 
-        {/* PROMO / PAYMENT BANNER BELOW CARD */}
+        {/* PROMO / PAYMENT BANNER */}
         <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-black/5 shadow-lg animate-in slide-in-from-bottom-2 duration-500 delay-300">
            <div className="flex items-center gap-4">
               <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
@@ -227,7 +230,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
            <ChevronRight className="h-4 w-4 text-gray-300" />
         </div>
 
-        {/* SECRET ADMIN SHORTCUT FOR USER */}
         {order.status === 'Placed' && (
           <button 
             onClick={handleCancelOrder}
@@ -238,7 +240,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         )}
       </div>
 
-      {/* OTP PROTECTION BOX FOR SECURITY */}
       {!['Delivered', 'Cancelled'].includes(order.status) && (
         <div className="fixed top-24 left-4 z-[100] animate-in slide-in-from-left-4 duration-500">
            <div className="bg-black text-white px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 border border-white/10">
