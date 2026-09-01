@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, orderBy, limit, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -27,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 /**
  * @fileOverview LocationHeader with FCM Notification Bell.
  * Replaced Menu with Bell. Integrated Notification Center with Firestore.
+ * Fixed: Added missing Button import.
  */
 export function LocationHeader({
   searchValue,
