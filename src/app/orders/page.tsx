@@ -9,10 +9,12 @@ import { collection, query, where, doc, updateDoc, serverTimestamp, orderBy, lim
 import { format } from 'date-fns';
 import { useMemo, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * @fileOverview My Orders Page optimized for speed.
+ * @fileOverview My Orders Page with Premium Shimmer Effect.
  * Uses persistent local caching via useCollection cacheKey to show data instantly.
+ * Fallback to high-fidelity skeletons when no cache exists.
  */
 export default function OrdersPage() {
   const router = useRouter();
@@ -61,8 +63,8 @@ export default function OrdersPage() {
     }
   };
 
-  // Logic: Show loader ONLY if we have NO data (neither from cache nor from server)
-  const showInitialLoader = userLoading || (user && ordersLoading && !orders);
+  // Logic: Show skeletons ONLY if we have NO data (neither from cache nor from server)
+  const showSkeletons = userLoading || (user && ordersLoading && !orders);
 
   return (
     <div className="min-h-screen bg-white pb-32">
@@ -71,10 +73,39 @@ export default function OrdersPage() {
       </div>
 
       <div className="px-4 space-y-5">
-        {showInitialLoader ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing with history...</p>
+        {showSkeletons ? (
+          /* PREMIUM SHIMMER EFFECT */
+          <div className="space-y-6 animate-in fade-in duration-500">
+             {[1, 2, 3, 4].map((i) => (
+               <div key={i} className="bg-white rounded-[2.5rem] p-6 border border-border/40 shadow-sm space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                       <Skeleton className="h-14 w-14 rounded-2xl" />
+                       <div className="space-y-2">
+                          <Skeleton className="h-5 w-24 rounded-full" />
+                          <Skeleton className="h-3 w-16 rounded-full opacity-50" />
+                       </div>
+                    </div>
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Skeleton className="h-3 w-full rounded-full opacity-30" />
+                    <div className="bg-muted/30 rounded-2xl p-4 space-y-3">
+                       <Skeleton className="h-2 w-2/3 rounded-full opacity-50" />
+                       <Skeleton className="h-2 w-1/2 rounded-full opacity-50" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                     <div className="space-y-1">
+                        <Skeleton className="h-2 w-10 rounded-full opacity-30" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                     </div>
+                     <Skeleton className="h-12 w-24 rounded-2xl" />
+                  </div>
+               </div>
+             ))}
           </div>
         ) : orders && orders.length > 0 ? (
           orders.map((order) => (
