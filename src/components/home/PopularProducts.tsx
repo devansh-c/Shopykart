@@ -1,7 +1,8 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
-import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle, Clock } from "lucide-react"
+import { Plus, Minus, Share2, Loader2, Store, Star, AlertCircle, Clock, Timer } from "lucide-react"
 import { useCart } from "@/components/cart/CartProvider"
 import { cn, slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -62,10 +63,20 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
                   ₹10 OFF
                 </div>
               )}
-              {deliveryTime && !isOffline && (
-                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
-                   <Clock className="h-2 w-2 text-primary" />
-                   {deliveryTime}
+              {!isOffline && (
+                <div className="absolute bottom-2 left-2 flex flex-col gap-1 z-20">
+                   {deliveryTime && (
+                     <div className="bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
+                        <Clock className="h-2 w-2 text-primary" />
+                        {deliveryTime}
+                     </div>
+                   )}
+                   {product.preparingTime && (
+                     <div className="bg-green-600/80 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
+                        <Timer className="h-2 w-2 text-white" />
+                        READY IN {product.preparingTime}M
+                     </div>
+                   )}
                 </div>
               )}
            </div>

@@ -39,7 +39,8 @@ import {
   ListTree,
   CreditCard,
   Banknote,
-  ChevronRight
+  ChevronRight,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -112,7 +113,7 @@ export default function MedicalDashboard() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [productForm, setProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', mfgDate: '', expiryDate: ''
+    name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', mfgDate: '', expiryDate: '', preparingTime: ''
   });
 
   const [profileForm, setProfileForm] = useState({ storeName: '', address: '', fullName: '' });
@@ -238,6 +239,7 @@ export default function MedicalDashboard() {
       mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
       description: productForm.description.trim(),
       category: productForm.category.toLowerCase().trim(),
+      preparingTime: parseInt(productForm.preparingTime) || 10,
       vendorId: user.uid,
       restaurantName: vendorProfile?.storeName || 'Pharmacy',
       serviceMode: 'Medical',
@@ -268,7 +270,7 @@ export default function MedicalDashboard() {
   };
 
   const resetForm = () => {
-    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', mfgDate: '', expiryDate: '' });
+    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', mfgDate: '', expiryDate: '', preparingTime: '' });
   };
 
   const filteredOrders = useMemo(() => {
@@ -381,20 +383,29 @@ export default function MedicalDashboard() {
                                 </div>
                                 <Textarea placeholder="Medical Instructions (Dosage, Contents)" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="rounded-xl h-24 bg-muted/20 border-none p-4" />
                                 
-                                <div className="space-y-1">
-                                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category</label>
-                                  <Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
-                                      <SelectValue placeholder="Category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl">
-                                      {medicalCategories?.map((cat: any) => (
-                                        <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
-                                          {cat.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                <div className="grid grid-cols-2 gap-4">
+                                   <div className="space-y-1">
+                                     <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Select Category</label>
+                                     <Select value={productForm.category} onValueChange={(val) => setProductForm({...productForm, category: val})}>
+                                       <SelectTrigger className="h-12 rounded-xl bg-muted/20 border-none font-bold">
+                                         <SelectValue placeholder="Category" />
+                                       </SelectTrigger>
+                                       <SelectContent className="rounded-2xl">
+                                         {medicalCategories?.map((cat: any) => (
+                                           <SelectItem key={cat.id} value={cat.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">
+                                             {cat.name}
+                                           </SelectItem>
+                                         ))}
+                                       </SelectContent>
+                                     </Select>
+                                   </div>
+                                   <div className="space-y-1">
+                                      <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Preparing Time (Min)</label>
+                                      <div className="relative">
+                                         <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                         <Input type="number" placeholder="10" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none pl-9 font-bold" />
+                                      </div>
+                                   </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -416,7 +427,10 @@ export default function MedicalDashboard() {
                           <img src={p.imageUrl} className="h-16 w-16 rounded-xl object-cover bg-muted" alt="" />
                           <div>
                             <h4 className="font-black text-sm uppercase italic leading-none mb-1">{p.name}</h4>
-                            <p className="text-xs font-black text-teal-600 italic">₹{p.price}</p>
+                            <div className="flex items-center gap-2">
+                               <p className="text-xs font-black text-teal-600 italic">₹{p.price}</p>
+                               {p.preparingTime && <Badge className="bg-gray-100 text-gray-500 text-[8px] font-black border-none uppercase px-1.5"><Timer className="h-2 w-2 mr-1" />{p.preparingTime}m</Badge>}
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -15,7 +16,8 @@ import {
   AlertCircle,
   Zap,
   Loader2,
-  Clock
+  Clock,
+  Timer
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -96,7 +98,14 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
              </div>
              <div className="flex-1 min-w-0">
                 <h3 className="font-black text-xl text-gray-900 italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
-                <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic mt-1">{product.restaurantName || 'ShopyKart Store'}</p>
+                <div className="flex items-center gap-2 mt-1">
+                   <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic">{product.restaurantName || 'ShopyKart Store'}</p>
+                   {product.preparingTime && (
+                     <Badge className="bg-green-100 text-green-700 border-none font-black text-[7px] uppercase px-1.5 py-0">
+                        <Timer className="h-2 w-2 mr-1" /> READY IN {product.preparingTime}M
+                     </Badge>
+                   )}
+                </div>
                 <div className="text-2xl font-black text-gray-900 italic tracking-tighter mt-2">₹ {currentPrice.toFixed(0)}</div>
              </div>
           </div>

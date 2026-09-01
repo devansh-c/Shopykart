@@ -20,6 +20,7 @@
         "isTopTen": { "type": "boolean" },
         "isAvailable": { "type": "boolean" },
         "serviceMode": { "type": "string" },
+        "preparingTime": { "type": "number", "description": "Time in minutes to prepare the item" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },

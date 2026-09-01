@@ -34,7 +34,8 @@ import {
   Save,
   ShieldCheck,
   CreditCard,
-  Banknote
+  Banknote,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -64,7 +65,7 @@ export default function VendorDashboard() {
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [productForm, setProductForm] = useState({
-    name: '', price: '', mrp: '', description: '', category: '', imageUrl: ''
+    name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
 
   useEffect(() => { setIsMounted(true); }, []);
@@ -97,13 +98,15 @@ export default function VendorDashboard() {
         vendorId: user.uid,
         price: parseFloat(productForm.price),
         mrp: parseFloat(productForm.mrp) || parseFloat(productForm.price),
+        preparingTime: parseInt(productForm.preparingTime) || 15,
         createdAt: serverTimestamp(),
         isAvailable: true,
-        isDeleted: false
+        isDeleted: false,
+        restaurantName: vendorProfile?.storeName || 'Store'
       };
       await setDoc(newRef, pData);
       setIsProductModalOpen(false);
-      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '' });
+      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
       toast({ title: "Product Added!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Save Failed" });
@@ -143,8 +146,19 @@ export default function VendorDashboard() {
                            {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="text-center"><Camera className="h-8 w-8 text-gray-300 mb-1 mx-auto" /><span className="text-[10px] font-black uppercase text-gray-400">Add Photo</span></div>}
                         </div>
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleProductImageSelect} />
-                        <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-bold" />
-                        <Input type="number" placeholder="Price ₹" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-bold" />
+                        
+                        <div className="space-y-4">
+                           <Input placeholder="Product Name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-bold" />
+                           
+                           <div className="grid grid-cols-2 gap-4">
+                              <Input type="number" placeholder="Price ₹" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-bold" />
+                              <div className="relative">
+                                 <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                 <Input type="number" placeholder="Prep Mins" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl border-none bg-gray-50 font-bold pl-9" />
+                              </div>
+                           </div>
+                        </div>
+
                         <Button onClick={handleSaveProduct} disabled={isSavingProduct} className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
                            {isSavingProduct ? <Loader2 className="h-6 w-6 animate-spin" /> : "PUBLISH NOW"}
                         </Button>
