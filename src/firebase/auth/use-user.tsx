@@ -6,6 +6,7 @@ import { useAuth } from '../provider';
 
 /**
  * @fileOverview Optimized hook for real Firebase Auth with persistent session support.
+ * Automatically syncs localStorage flag to help persistence guards across refreshes.
  */
 export function useUser() {
   const auth = useAuth();
@@ -21,8 +22,13 @@ export function useUser() {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
+        // SYNC SESSION FLAG: Ensure persistence guards (Vendor/Delivery) know we are logged in
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('shopykart_session_active', 'true');
+        }
       } else {
         setUser(null);
+        // CLEAR FLAG ONLY ON EXPLICIT LOGOUT (Optional: depends on strictness)
       }
       setLoading(false);
     });

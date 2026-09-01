@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { MapPin, ChevronRight, Store, Crosshair, Loader2, Navigation, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 
 /**
  * @fileOverview Manual Zone Selection with Map-Based Pinning.
- * STRICTLY suppressed if location is already set in localStorage to avoid annoying loops.
+ * SMART RECOVERY: Automatically recovers location from logged-in user's profile.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,35 +25,48 @@ export default function LocationRequest() {
   const [isDetecting, setIsDetecting] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
 
+  // 1. Fetch active zones
   const zonesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'zones'), where('isActive', '==', true));
   }, [firestore]);
-  
   const { data: activeZones } = useCollection<any>(zonesQuery);
+
+  // 2. Fetch logged-in user's profile for recovery
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: profile, loading: profileLoading } = useDoc<any>(userProfileRef);
 
   useEffect(() => {
     const checkLocationStatus = () => {
       if (typeof window === 'undefined') return;
       
-      // STRICT CHECK: If any location indicators exist, DO NOT show the popup automatically
       const hasZoneId = !!localStorage.getItem('active_zone_id');
-      const hasShortAddress = !!localStorage.getItem('user_address');
-      const hasLocationSetFlag = localStorage.getItem('user_location_set') === 'true';
       const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
       
-      const isLocationAlreadySet = hasZoneId || hasShortAddress || hasLocationSetFlag;
-      
-      if (!isLocationAlreadySet && !isBot) {
-        // Only open if NO location data is found at all
+      // If we already have location in local storage, don't show popup
+      if (hasZoneId || isBot) return;
+
+      // SMART RECOVERY: If user is logged in, wait for profile to see if we can restore location
+      if (!userLoading && !profileLoading) {
+        if (profile?.lastSelectedZone && activeZones) {
+          const matchedZone = activeZones.find((z: any) => z.name === profile.lastSelectedZone);
+          if (matchedZone) {
+            handleZoneSelect(matchedZone, true); // Silent restoration
+            return;
+          }
+        }
+        
+        // No cached location and no profile recovery possible? Show popup.
         setIsOpen(true);
       }
     };
 
-    // Delay slightly to ensure localStorage is hydrated and ready
-    const timer = setTimeout(checkLocationStatus, 100);
+    const timer = setTimeout(checkLocationStatus, 1500); // Wait for auth to hydrate
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);
@@ -62,7 +75,7 @@ export default function LocationRequest() {
       clearTimeout(timer);
       window.removeEventListener('open-location-picker', handleOpenManual); 
     };
-  }, []);
+  }, [userLoading, profileLoading, profile, activeZones]);
 
   useEffect(() => {
     if (activeZones && activeZones.length > 0) {
@@ -94,7 +107,7 @@ export default function LocationRequest() {
     );
   };
 
-  const handleZoneSelect = (zone: any) => {
+  const handleZoneSelect = (zone: any, isSilent = false) => {
     setIsOpen(false);
     localStorage.setItem('active_zone_id', zone.id);
     localStorage.setItem('user_city', zone.city || 'Local');
@@ -102,9 +115,13 @@ export default function LocationRequest() {
     localStorage.setItem('user_location_set', 'true');
 
     window.dispatchEvent(new CustomEvent('user-address-updated'));
-    toast({ title: `Zone Set: ${zone.name}` });
+    
+    if (!isSilent) {
+      toast({ title: `Zone Set: ${zone.name}` });
+    }
 
-    if (user && firestore) {
+    // Save to profile for future cross-device recovery
+    if (user && firestore && !isSilent) {
       setDoc(doc(firestore, 'users', user.uid), {
         city: zone.city || 'Local',
         lastSelectedZone: zone.name,
@@ -178,7 +195,6 @@ export default function LocationRequest() {
         </DialogContent>
       </Dialog>
 
-      {/* CUSTOMER PINNING MAP */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
             <DialogHeader className="sr-only">

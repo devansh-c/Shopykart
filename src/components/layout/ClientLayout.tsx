@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -33,11 +32,12 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setIsClient(true);
     const handleOpenAuth = () => {
-      if (!user) setShowAuthOverlay(true);
+      // STRICT CHECK: Only open if not loading and definitely not logged in
+      if (!loading && !user) setShowAuthOverlay(true);
     };
     window.addEventListener('open-auth-overlay', handleOpenAuth);
     return () => window.removeEventListener('open-auth-overlay', handleOpenAuth);
-  }, [user]);
+  }, [user, loading]);
 
   const isAuthRequiredRoute = useMemo(() => {
     if (!pathname) return false;
@@ -46,12 +46,14 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   useEffect(() => {
+    // If route requires auth and we are definitely NOT logged in after load
     if (isAuthRequiredRoute && !user && !loading && isClient) {
       setShowAuthOverlay(true);
     }
   }, [isAuthRequiredRoute, user, loading, isClient]);
 
   useEffect(() => {
+    // Auto-close overlay if user becomes authenticated
     if (user) setShowAuthOverlay(false);
   }, [user]);
 
@@ -69,7 +71,7 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   return (
     <>
       {children}
-      {!isExcludedPath && showAuthOverlay && !user && isClient && (
+      {!isExcludedPath && showAuthOverlay && !user && !loading && isClient && (
         <EmailAuth onClose={() => {
           setShowAuthOverlay(false);
           if (isAuthRequiredRoute) router.push('/');
@@ -104,12 +106,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         // If at root, prevent accidental exit by forcing history push
         window.history.pushState(null, '', window.location.href);
         setBackTapCount(prev => prev + 1);
-        
-        // This simulates "Confirm Exit" behavior
-        if (backTapCount >= 1) {
-          // Allow actual back after 2 taps or show confirmation
-          // For web apps, we just keep them here.
-        }
       }
     };
 
@@ -125,8 +121,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') || 
-           p.startsWith('/medical') ||
-           p.startsWith('/beauty') ||
+           p.startsWith('/medical') || 
+           p.startsWith('/beauty') || 
            p.startsWith('/order/track');
   }, [pathname]);
 
