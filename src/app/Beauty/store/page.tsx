@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -398,10 +397,10 @@ export default function BeautyDashboard() {
                                       </Select>
                                    </div>
                                    <div className="space-y-1">
-                                      <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Preparing Time (Min)</label>
+                                      <label className="text-[9px] font-black uppercase text-rose-600 ml-1">Prep Time (Min)</label>
                                       <div className="relative">
-                                         <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                         <Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none pl-9 font-bold" />
+                                         <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-400" />
+                                         <Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-rose-50 border-none pl-9 font-bold" />
                                       </div>
                                    </div>
                                 </div>

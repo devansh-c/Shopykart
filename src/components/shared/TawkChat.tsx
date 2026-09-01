@@ -35,7 +35,7 @@ export function TawkChat() {
 
     const path = pathname?.toLowerCase() || '';
     
-    // STRICT BLOCK: Hide on business/logistics/checkout routes
+    // STRICT BLOCK: Hide on business/logistics/checkout/specialized routes
     const isRestrictedRoute = 
       path.startsWith('/admin') || 
       path.startsWith('/vendor') || 
@@ -51,15 +51,18 @@ export function TawkChat() {
     const shouldShow = !isRestrictedRoute && locationSet;
     const newState = shouldShow ? 'show' : 'hide';
 
-    // ATOMIC CHECK: Only call if state actually flips to avoid redundant Logger triggers
+    // ATOMIC CHECK & DEBOUNCE: Only call if state actually flips
     if (lastStateRef.current !== newState) {
       try {
-        if (shouldShow) {
-          tawk.show();
-        } else {
-          tawk.hide();
-        }
-        lastStateRef.current = newState;
+        // Slight timeout to let the widget internal state settle
+        setTimeout(() => {
+          if (shouldShow) {
+            tawk.show();
+          } else {
+            tawk.hide();
+          }
+          lastStateRef.current = newState;
+        }, 300);
       } catch (e) {
         // Silently handle any initialization races
       }

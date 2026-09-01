@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -370,7 +369,7 @@ export default function MedicalDashboard() {
                        <DialogContent className="rounded-[2.5rem] max-w-md max-h-[85vh] overflow-y-auto no-scrollbar focus:outline-none p-0">
                           <DialogHeader className="p-6 border-b"><DialogTitle className="font-black italic uppercase text-center">New Medicine entry</DialogTitle></DialogHeader>
                           <div className="p-8 space-y-6">
-                             <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
+                             <div onClick={() => fileInputRef.current?.click()} className="h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group">
                                 {productForm.imageUrl ? <img src={productForm.imageUrl} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                              </div>
                              <input type="file" ref={fileInputRef} className="hidden" onChange={handleProductImageSelect} />
@@ -400,10 +399,10 @@ export default function MedicalDashboard() {
                                      </Select>
                                    </div>
                                    <div className="space-y-1">
-                                      <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Preparing Time (Min)</label>
+                                      <label className="text-[9px] font-black uppercase text-teal-600 ml-1">Prep Time (Min)</label>
                                       <div className="relative">
-                                         <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                         <Input type="number" placeholder="10" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none pl-9 font-bold" />
+                                         <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-teal-400" />
+                                         <Input type="number" placeholder="10" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-teal-50 border-none pl-9 font-bold" />
                                       </div>
                                    </div>
                                 </div>
@@ -523,7 +522,7 @@ export default function MedicalDashboard() {
           {id:'payouts',label:'Payouts',icon:CircleDollarSign},
           {id:'account',label:'Profile',icon:UserCircle2}
         ].map(item => (
-          <button key={item.id} onClick={() => startTransition(() => setActiveMainTab(item.id as MainTab))} className="flex flex-col items-center gap-1 active:scale-90 transition-none">
+          <button key={item.id} onClick={() => startTransition(() => setActiveMainTab(item.id as MainTab))} className="flex flex-col items-center gap-1.5 active:scale-90 transition-none">
             <item.icon className={cn("h-5 w-5", activeMainTab === item.id ? "text-teal-500 scale-110" : "text-gray-500")} />
             <span className={cn("text-[9px] font-black uppercase tracking-widest", activeMainTab === item.id ? "text-white" : "text-gray-500")}>{item.label}</span>
           </button>

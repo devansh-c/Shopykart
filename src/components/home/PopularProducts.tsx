@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -13,7 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts with Real-time Distance Matrix Delivery Time.
+ * @fileOverview PopularProducts with Real-time Distance Matrix Delivery Time and Preparation Badges.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -159,7 +158,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v4', initialStores);
 
-  // REAL-TIME DISTANCE CALCULATION ENGINE
   useEffect(() => {
     if (typeof window === 'undefined' || !vendors || vendors.length === 0) return;
 
@@ -169,13 +167,11 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     if (!userLat || !userLng) return;
 
     const calculateRealTimes = async () => {
-      // Check if Google Maps is loaded (globally via ClientLayout)
       if (typeof google === 'undefined' || !google.maps) return;
 
       const service = new google.maps.DistanceMatrixService();
       const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
       
-      // Get vendors that have lat/lng set
       const destinationStores = vendors.filter(v => v.lat && v.lng).slice(0, 40); 
       if (destinationStores.length === 0) return;
 
@@ -192,7 +188,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           response.rows[0].elements.forEach((element, idx) => {
             if (element.status === 'OK') {
               const vendorId = destinationStores[idx].id;
-              // Duration is in seconds. Convert to minutes and add 12 mins buffer for preparation.
               const durationValue = Math.ceil(element.duration.value / 60) + 12;
               newTimes[vendorId] = `${durationValue} MIN`;
             }
@@ -202,7 +197,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       });
     };
 
-    // Retry loop until google maps is loaded or first run
     const timer = setTimeout(calculateRealTimes, 3000);
     return () => clearTimeout(timer);
   }, [vendors, activeZoneId]);

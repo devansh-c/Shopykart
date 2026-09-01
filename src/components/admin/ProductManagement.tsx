@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Loader2, Trophy, FileUp, Globe, ListPlus, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Loader2, Trophy, FileUp, Globe, ListPlus, X, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,8 +27,10 @@ export default function ProductManagement() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [price, setPrice] = useState('');
+  const [mrp, setMrp] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [preparingTime, setPreparingTime] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -86,8 +88,10 @@ export default function ProductManagement() {
       name: name.trim(),
       slug: finalSlug,
       price: parseFloat(price),
+      mrp: parseFloat(mrp) || parseFloat(price),
       description: description.trim(),
       category: category.toLowerCase().trim(),
+      preparingTime: parseInt(preparingTime) || 15,
       vendorId: selectedVendorId,
       restaurantName: vendor?.storeName || 'Store',
       imageUrl: selectedImage || 'https://picsum.photos/seed/food/300/300',
@@ -108,7 +112,7 @@ export default function ProductManagement() {
       }
       setIsAddOpen(false);
       resetForm();
-      toast({ title: "Product SEO Published" });
+      toast({ title: "Product Sync Complete" });
     } catch (e) { toast({ variant: "destructive", title: "Save Error" }); }
     finally { setIsProcessing(false); }
   };
@@ -118,8 +122,10 @@ export default function ProductManagement() {
     setName(''); 
     setSlug(''); 
     setPrice(''); 
+    setMrp('');
     setDescription('');
     setCategory('');
+    setPreparingTime('');
     setSelectedVendorId(''); 
     setSelectedImage(null);
     setOptions([]);
@@ -131,8 +137,10 @@ export default function ProductManagement() {
     setName(p.name); 
     setSlug(p.slug || ''); 
     setPrice(p.price.toString()); 
+    setMrp(p.mrp?.toString() || '');
     setDescription(p.description || '');
     setCategory(p.category || '');
+    setPreparingTime(p.preparingTime?.toString() || '');
     setSelectedVendorId(p.vendorId); 
     setSelectedImage(p.imageUrl); 
     setOptions(p.options || []);
@@ -143,7 +151,7 @@ export default function ProductManagement() {
   const filteredProducts = useMemo(() => {
     if (!products) return [];
     return products.filter(p => {
-      if (p.isDeleted) return false; // HIDE DELETED PRODUCTS FROM ADMIN LIST
+      if (p.isDeleted) return false;
       const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.restaurantName?.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
@@ -155,7 +163,7 @@ export default function ProductManagement() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-3xl border shadow-sm gap-4">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search inventory..." className="pl-12 h-11 bg-muted/30 border-none rounded-xl font-bold" />
+          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search catalog..." className="pl-10 h-11 bg-muted/30 border-none rounded-xl font-bold" />
         </div>
         <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
           <DialogTrigger asChild><Button className="w-full md:w-auto bg-black rounded-xl font-black uppercase italic"><Plus className="h-4 w-4 mr-2" /> ADD PRODUCT</Button></DialogTrigger>
@@ -164,7 +172,7 @@ export default function ProductManagement() {
             <div className="p-4 space-y-8">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div onClick={() => fileInputRef.current?.click()} className="h-48 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center bg-muted/20 cursor-pointer overflow-hidden group hover:border-primary transition-all">
-                     {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
+                     {selectedImage ? <img src={selectedImage} className="h-full w-full object-cover" alt="" /> : <div className="flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 opacity-20" /><span className="text-[10px] font-black uppercase text-muted-foreground">Product Photo</span></div>}
                   </div>
                   <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageSelect} />
                   
@@ -174,20 +182,24 @@ export default function ProductManagement() {
                         <Input value={name} onChange={e => setName(e.target.value)} placeholder="Product Name" className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
                      </div>
                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> Super SEO Slug</label>
-                        <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="dairy-milk-silk" className="h-12 rounded-xl bg-primary/5 border-primary/10 font-black italic text-primary" />
+                        <label className="text-[9px] font-black uppercase text-primary ml-1 flex items-center gap-1.5"><Globe className="h-2.5 w-2.5" /> SEO Slug</label>
+                        <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="e.g. classic-burger" className="h-12 rounded-xl bg-primary/5 border-primary/10 font-black italic text-primary" />
                      </div>
                   </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1">
-                     <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Selling Price ₹</label>
-                     <Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Base Rate" className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
+                     <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Price ₹</label>
+                     <Input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="0.00" className="h-12 rounded-xl font-black text-lg bg-muted/20 border-none" />
                   </div>
                   <div className="space-y-1">
                      <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Category</label>
                      <Input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Burger" className="h-12 rounded-xl font-bold bg-muted/20 border-none" />
+                  </div>
+                  <div className="space-y-1">
+                     <label className="text-[9px] font-black uppercase text-teal-600 ml-1 flex items-center gap-1"><Timer className="h-3 w-3" /> Prep Time</label>
+                     <Input type="number" value={preparingTime} onChange={e => setPreparingTime(e.target.value)} placeholder="15" className="h-12 rounded-xl font-black bg-teal-50 border-none text-center" />
                   </div>
                </div>
 
@@ -204,49 +216,15 @@ export default function ProductManagement() {
                   <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Product features..." className="rounded-xl h-24 bg-muted/20 border-none p-4" />
                </div>
 
-               {/* VARIETY / OPTIONS BUILDER */}
-               <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 space-y-6">
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <div className="bg-primary/10 p-2 rounded-xl text-primary"><ListPlus className="h-5 w-5" /></div>
-                        <h3 className="text-sm font-black uppercase tracking-tight">Varieties / Options</h3>
-                     </div>
-                     <Button type="button" onClick={handleAddOption} className="bg-white border-2 border-gray-100 text-gray-800 h-9 rounded-xl font-black uppercase text-[9px] hover:bg-gray-50"><Plus className="h-3 w-3 mr-1" /> ADD OPTION</Button>
-                  </div>
-
-                  {options.length > 0 && (
-                    <div className="space-y-3">
-                       {options.map((opt, idx) => (
-                         <div key={idx} className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
-                            <Input value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} placeholder="e.g. Regular Size" className="flex-1 h-11 rounded-xl bg-white border-none font-bold text-xs" />
-                            <Input type="number" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} placeholder="+ ₹" className="w-24 h-11 rounded-xl bg-white border-none font-black text-center text-primary" />
-                            <button onClick={() => handleRemoveOption(idx)} className="h-11 w-11 rounded-xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><X className="h-4 w-4" /></button>
-                         </div>
-                       ))}
-
-                       <div className="pt-4 border-t border-dashed flex items-center justify-between">
-                          <div className="flex flex-col">
-                             <span className="text-xs font-black uppercase">Selection Required?</span>
-                             <span className="text-[8px] font-bold text-muted-foreground uppercase">Customer must pick one to checkout</span>
-                          </div>
-                          <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} />
-                       </div>
-                    </div>
-                  )}
-                  {options.length === 0 && (
-                    <p className="text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest italic opacity-50">No varieties defined yet.</p>
-                  )}
-               </div>
-
-               <Button onClick={handleSave} disabled={isProcessing} className="w-full h-18 bg-primary text-white rounded-[2.5rem] font-black uppercase italic text-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.01]">
-                 {isProcessing ? <Loader2 className="h-7 w-7 animate-spin" /> : editingId ? 'UPDATE PRODUCT SEO' : 'PUBLISH SUPER SEO'}
+               <Button onClick={handleSave} disabled={isProcessing} className="w-full h-18 bg-primary text-white rounded-[2.5rem] font-black uppercase italic text-xl shadow-xl shadow-primary/20 transition-all">
+                 {isProcessing ? <Loader2 className="h-7 w-7 animate-spin" /> : editingId ? 'UPDATE PRODUCT' : 'PUBLISH PRODUCT'}
                </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-20">
         {loading && !products ? (
           <div className="col-span-full flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : filteredProducts.length > 0 ? (
@@ -259,20 +237,16 @@ export default function ProductManagement() {
                
                <div className="flex-1 min-w-0">
                   <h4 className="font-black text-base uppercase italic truncate leading-none mb-1">{p.name}</h4>
-                  <p className="text-[8px] font-black text-primary truncate italic mb-3 opacity-60">/product/{p.slug || slugify(p.name)}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4 truncate italic">{p.restaurantName || 'Gourmet'}</p>
+                  <div className="flex items-center gap-2 mb-3">
+                     <p className="text-[9px] font-bold text-muted-foreground uppercase truncate italic">{p.restaurantName || 'Gourmet'}</p>
+                     {p.preparingTime && <Badge className="bg-green-50 text-green-600 border-none font-black text-[7px] px-1.5 py-0"><Timer className="h-2 w-2 mr-1" />{p.preparingTime}M</Badge>}
+                  </div>
                </div>
 
                <div className="mt-auto pt-4 border-t border-dashed flex gap-2">
                   <Button onClick={() => handleEdit(p)} variant="outline" className="flex-1 rounded-xl h-10 font-black uppercase italic text-[10px] border-blue-100 text-blue-600 hover:bg-blue-50 transition-colors"><Edit className="h-3.5 w-3.5 mr-2" /> EDIT</Button>
                   <Button onClick={async () => { if(confirm("Are you sure? This will remove the product from all menus.")) { await setDoc(doc(firestore!, 'products', p.id), { isDeleted: true }, { merge: true }); toast({title: 'Removed Permanently'}); } }} variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"><Trash2 className="h-4 w-4" /></Button>
                </div>
-
-               {p.options?.length > 0 && (
-                 <div className="absolute top-3 right-3 h-6 w-6 bg-primary rounded-full flex items-center justify-center text-white shadow-lg shadow-primary/20 border-2 border-white">
-                    <ListPlus className="h-3 w-3" />
-                 </div>
-               )}
             </div>
           ))
         ) : (
@@ -285,3 +259,7 @@ export default function ProductManagement() {
     </div>
   );
 }
+
+const Edit3 = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+);
