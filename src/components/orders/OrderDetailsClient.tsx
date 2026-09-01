@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -35,7 +34,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const { user } = useUser();
   
   const [order, setOrder] = useState<any>(null);
-  const [vendor, setVendor] = useState<any>(null);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [eta, setEta] = useState<string>('44 mins');
   const [isMapExpanded, setIsMapExpanded] = useState(false);
@@ -101,10 +100,24 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
       if (foundOrder) {
         setOrder(foundOrder);
-        if (foundOrder.vendorId || foundOrder.items?.[0]?.vendorId) {
-          const vId = foundOrder.vendorId || foundOrder.items[0].vendorId;
-          const vSnap = await getDoc(doc(firestore, 'vendors', vId));
-          if (vSnap.exists()) setVendor(vSnap.data());
+        
+        // RESOLVE ALL VENDORS IN THIS ORDER
+        const vendorIds = Array.from(new Set([
+          foundOrder.vendorId, 
+          ...(foundOrder.vendorIds || []),
+          ...(foundOrder.items?.map((it: any) => it.vendorId) || [])
+        ].filter(Boolean)));
+
+        if (vendorIds.length > 0) {
+          try {
+            const vendorDocs = await Promise.all(vendorIds.map(async (vId: any) => {
+              const vSnap = await getDoc(doc(firestore, 'vendors', vId));
+              return vSnap.exists() ? { id: vSnap.id, ...vSnap.data() } : null;
+            }));
+            setVendors(vendorDocs.filter(Boolean));
+          } catch (vErr) {
+            console.error("Vendor fetch error:", vErr);
+          }
         }
       }
       setLoading(false);
@@ -169,10 +182,8 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
           <LiveTrackingMap 
             customerLat={parseFloat(String(order.customerLat || 0))} 
             customerLng={parseFloat(String(order.customerLng || 0))} 
-            vendorLat={vendor?.lat ? parseFloat(String(vendor.lat)) : undefined}
-            vendorLng={vendor?.lng ? parseFloat(String(vendor.lng)) : undefined}
+            vendors={vendors}
             customerName={order.customerName}
-            storeName={order.restaurantName}
             onEtaUpdate={(val) => setEta(val)}
           />
         </div>
@@ -226,8 +237,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                  <div className="flex items-center gap-4 relative">
                     <div className="h-3.5 w-3.5 rounded-full bg-gray-200 border-2 border-white shadow-sm shrink-0" />
                     <div className="flex flex-col">
-                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Picked up from</span>
-                       <span className="text-sm font-black uppercase italic text-gray-800 truncate">{order.restaurantName}</span>
+                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Pickup Network</span>
+                       <div className="flex flex-wrap gap-2 mt-1">
+                          {vendors.map((v, i) => (
+                            <span key={i} className="text-[11px] font-black uppercase italic text-gray-800 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">{v.storeName}</span>
+                          ))}
+                       </div>
                     </div>
                  </div>
                  

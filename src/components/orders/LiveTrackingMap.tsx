@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow, OverlayView } from '@react-google-maps/api';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const containerStyle = {
   width: '100%',
@@ -17,20 +18,20 @@ const defaultCenter = {
 interface LiveTrackingMapProps {
   customerLat: number;
   customerLng: number;
-  vendorLat?: number;
-  vendorLng?: number;
+  vendors: any[];
   customerName: string;
-  storeName: string;
   onEtaUpdate: (eta: string) => void;
 }
 
+/**
+ * @fileOverview Advanced Live Tracking Map.
+ * Features: Circular Store Image Markers, Multi-Vendor Display, Customer Drop Pin.
+ */
 export default function LiveTrackingMap({ 
   customerLat, 
   customerLng, 
-  vendorLat, 
-  vendorLng, 
+  vendors,
   customerName, 
-  storeName,
   onEtaUpdate 
 }: LiveTrackingMapProps) {
   const { isLoaded } = useJsApiLoader({
@@ -41,42 +42,55 @@ export default function LiveTrackingMap({
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  const center = useMemo(() => {
-    const cLat = parseFloat(String(customerLat));
-    const cLng = parseFloat(String(customerLng));
-    const vLat = vendorLat ? parseFloat(String(vendorLat)) : NaN;
-    const vLng = vendorLng ? parseFloat(String(vendorLng)) : NaN;
+  // Sanitize coordinates to prevent NaN crashes
+  const cLat = parseFloat(String(customerLat));
+  const cLng = parseFloat(String(customerLng));
+  const isValidCustomer = !isNaN(cLat) && !isNaN(cLng);
 
-    if (!isNaN(cLat) && !isNaN(vLat)) {
-      return { lat: (cLat + vLat) / 2, lng: (cLng + vLng) / 2 };
-    }
-    return !isNaN(cLat) ? { lat: cLat, lng: cLng } : defaultCenter;
-  }, [customerLat, customerLng, vendorLat, vendorLng]);
+  // Calculate center based on all valid points
+  const center = useMemo(() => {
+    if (!isValidCustomer) return defaultCenter;
+    return { lat: cLat, lng: cLng };
+  }, [cLat, cLng, isValidCustomer]);
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-    const cLat = parseFloat(String(customerLat));
-    const cLng = parseFloat(String(customerLng));
-    const vLat = vendorLat ? parseFloat(String(vendorLat)) : NaN;
-    const vLng = vendorLng ? parseFloat(String(vendorLng)) : NaN;
+    if (!isValidCustomer) return;
 
-    if (!isNaN(cLat) && !isNaN(vLat)) {
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend({ lat: cLat, lng: cLng });
-      bounds.extend({ lat: vLat, lng: vLng });
-      mapInstance.fitBounds(bounds, { top: 60, bottom: 200, left: 60, right: 60 });
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: cLat, lng: cLng });
+    
+    let hasVendors = false;
+    vendors.forEach(v => {
+      if (v.lat && v.lng) {
+        bounds.extend({ lat: parseFloat(String(v.lat)), lng: parseFloat(String(v.lng)) });
+        hasVendors = true;
+      }
+    });
+
+    if (hasVendors) {
+      mapInstance.fitBounds(bounds, { top: 80, bottom: 220, left: 60, right: 60 });
+    } else {
+      mapInstance.setZoom(16);
     }
-  }, [customerLat, customerLng, vendorLat, vendorLng]);
+  }, [cLat, cLng, isValidCustomer, vendors]);
 
   useEffect(() => {
-    if (!isLoaded || isNaN(parseFloat(String(vendorLat))) || isNaN(parseFloat(String(customerLat)))) return;
+    if (!isLoaded || !isValidCustomer || vendors.length === 0) return;
 
     const calculateEta = () => {
       if (typeof google === 'undefined') return;
+      
+      const firstVendor = vendors.find(v => v.lat && v.lng);
+      if (!firstVendor) {
+        onEtaUpdate('25 mins');
+        return;
+      }
+
       const service = new google.maps.DistanceMatrixService();
       service.getDistanceMatrix({
-        origins: [{ lat: Number(vendorLat), lng: Number(vendorLng) }],
-        destinations: [{ lat: Number(customerLat), lng: Number(customerLng) }],
+        origins: [{ lat: Number(firstVendor.lat), lng: Number(firstVendor.lng) }],
+        destinations: [{ lat: cLat, lng: cLng }],
         travelMode: google.maps.TravelMode.DRIVING,
         unitSystem: google.maps.UnitSystem.METRIC,
       }, (response, status) => {
@@ -90,8 +104,9 @@ export default function LiveTrackingMap({
       });
     };
 
-    calculateEta();
-  }, [isLoaded, customerLat, customerLng, vendorLat, vendorLng, onEtaUpdate]);
+    const timer = setTimeout(calculateEta, 2000);
+    return () => clearTimeout(timer);
+  }, [isLoaded, cLat, cLng, isValidCustomer, vendors, onEtaUpdate]);
 
   if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-primary opacity-20" /></div>;
 
@@ -110,37 +125,52 @@ export default function LiveTrackingMap({
         gestureHandling: 'greedy'
       }}
     >
-      {/* STORE MARKER WITH LABEL AS PER IMAGE */}
-      {!isNaN(parseFloat(String(vendorLat))) && (
-        <>
-          <Marker 
-            position={{ lat: Number(vendorLat), lng: Number(vendorLng) }}
-            icon={{
-              url: 'https://cdn-icons-png.flaticon.com/512/619/619032.png',
-              scaledSize: new google.maps.Size(32, 32),
-              anchor: new google.maps.Point(16, 32)
-            }}
-          />
-          <InfoWindow position={{ lat: Number(vendorLat), lng: Number(vendorLng) }} options={{ disableAutoPan: true }}>
-             <div className="bg-white px-2 py-0.5 rounded shadow-sm">
-                <span className="text-[10px] font-black text-gray-800 uppercase italic whitespace-nowrap">{storeName}</span>
-             </div>
-          </InfoWindow>
-        </>
-      )}
+      {/* 1. RENDER ALL VENDORS AS CIRCULAR IMAGE MARKERS */}
+      {vendors.map((vendor, idx) => {
+        const vLat = parseFloat(String(vendor.lat));
+        const vLng = parseFloat(String(vendor.lng));
+        if (isNaN(vLat) || isNaN(vLng)) return null;
 
-      {/* CUSTOMER MARKER WITH LABEL AS PER IMAGE */}
-      {!isNaN(parseFloat(String(customerLat))) && (
+        return (
+          <OverlayView
+            key={vendor.id || idx}
+            position={{ lat: vLat, lng: vLng }}
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          >
+            <div className="relative -translate-x-1/2 -translate-y-full mb-1 group">
+               {/* Label Tag */}
+               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white px-2 py-0.5 rounded shadow-md border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <span className="text-[9px] font-black text-gray-800 uppercase italic">{vendor.storeName}</span>
+               </div>
+               
+               {/* Circular Image Container */}
+               <div className="h-10 w-10 rounded-full border-4 border-white shadow-xl overflow-hidden bg-muted transform-gpu transition-transform group-hover:scale-125">
+                  <img 
+                    src={vendor.imageUrl || 'https://cdn-icons-png.flaticon.com/512/619/619032.png'} 
+                    className="h-full w-full object-cover"
+                    alt={vendor.storeName}
+                  />
+               </div>
+               
+               {/* Arrow pointer */}
+               <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-white mx-auto shadow-sm" />
+            </div>
+          </OverlayView>
+        );
+      })}
+
+      {/* 2. CUSTOMER DROP MARKER */}
+      {isValidCustomer && (
         <>
           <Marker 
-            position={{ lat: Number(customerLat), lng: Number(customerLng) }}
+            position={{ lat: cLat, lng: cLng }}
             icon={{
               url: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
               scaledSize: new google.maps.Size(38, 38),
               anchor: new google.maps.Point(19, 38)
             }}
           />
-          <InfoWindow position={{ lat: Number(customerLat), lng: Number(customerLng) }} options={{ disableAutoPan: true }}>
+          <InfoWindow position={{ lat: cLat, lng: cLng }} options={{ disableAutoPan: true }}>
              <div className="bg-white px-2 py-0.5 rounded shadow-sm border border-gray-100">
                 <span className="text-[10px] font-black text-gray-800 uppercase italic whitespace-nowrap">{customerName}</span>
              </div>
