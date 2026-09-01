@@ -19,17 +19,27 @@ import {
   X,
   Smartphone,
   Mail,
-  Navigation
+  Navigation,
+  Heart,
+  FileText,
+  HelpCircle,
+  Share2,
+  Users2,
+  ShieldAlert,
+  UserPlus,
+  RefreshCw,
+  XCircle,
+  Headphones
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRef, useState, useEffect, useMemo, Suspense } from 'react';
 import { compressImage } from '@/lib/image-utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -98,134 +108,157 @@ function ProfileContent() {
 
   const displayName = profile?.fullName || user?.displayName || 'Premium User';
 
-  // Safe Date Parsing to prevent RangeError
-  const joinedDate = useMemo(() => {
-    if (!profile?.createdAt) return null;
-    try {
-      const createdAt = profile.createdAt;
-      // Handle both normalized string and Firestore Timestamp object
-      const d = typeof createdAt === 'string' 
-        ? new Date(createdAt) 
-        : (createdAt.seconds ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
-      
-      return isNaN(d.getTime()) ? null : d;
-    } catch (e) {
-      return null;
+  const menuItems = [
+    {
+      section: "PERSONAL SETTINGS",
+      items: [
+        { label: "Wishlist", icon: Heart, color: "text-red-500", path: "/wishlist" },
+        { label: "Active Cart", icon: ShoppingCart, color: "text-rose-500", path: "/cart" },
+        { label: "Personal Information", icon: User, color: "text-rose-400", path: "/profile" },
+        { label: "Delivery Addresses", icon: MapPin, color: "text-red-600", path: "/profile" },
+      ]
+    },
+    {
+      section: "INFORMATION & LEGAL",
+      items: [
+        { label: "CANCELLATION POLICY", icon: XCircle, color: "text-blue-600", path: "/page/cancellation-policy" },
+        { label: "TERMS AND CONDITIONS", icon: FileText, color: "text-blue-500", path: "/page/terms-and-conditions" },
+        { label: "PRIVACY POLICY", icon: ShieldCheck, color: "text-blue-400", path: "/page/privacy-policy" },
+        { label: "RETURN & REFUND POLICY", icon: RefreshCw, color: "text-blue-600", path: "/page/return-policy" },
+      ]
+    },
+    {
+      section: "BUSINESS & PORTALS",
+      items: [
+        { label: "Join as Beauty & Cosmetics", icon: Sparkles, color: "text-rose-400", path: "/vendor/register?type=Beauty", sub: "Sell luxury skincare & makeup" },
+        { label: "Join as Medical Store", icon: HeartPulse, color: "text-teal-400", path: "/vendor/register?type=Medical", sub: "Sell healthcare products & medicine" },
+        { label: "Vendor Dashboard", icon: Store, color: "text-red-400", path: "/vendor/login", sub: "Manage your store and products" },
+        { label: "Delivery Dashboard", icon: Bike, color: "text-rose-400", path: "/delivery/login", sub: "View and accept delivery tasks" },
+        { label: "Join as Team Member", icon: ShieldAlert, color: "text-red-300", path: "/admin/login?mode=team", sub: "Access assigned staff portals" },
+      ]
     }
-  }, [profile?.createdAt]);
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-40">
-      <div className="bg-primary h-52 relative flex flex-col items-center justify-center pt-8">
-        <div className="absolute bottom-0 w-full h-12 bg-[#F9FAFB] rounded-t-[3rem]" />
-        
+    <div className="min-h-screen bg-[#F9FAFB] pb-40 transform-gpu">
+      {/* HEADER SECTION - RED BACKGROUND */}
+      <div className="bg-primary h-48 relative">
+        <div className="absolute bottom-0 w-full h-10 bg-[#F9FAFB] rounded-t-[3rem]" />
+      </div>
+
+      {/* AVATAR & NAME - OVERLAPPING */}
+      <div className="flex flex-col items-center -mt-24 px-6 text-center">
         <div 
           className="relative group cursor-pointer active:scale-95 transition-all"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Avatar className="h-24 w-24 border-4 border-white shadow-2xl relative z-10 translate-y-4 overflow-hidden bg-white transition-all duration-500">
+          <div className="h-28 w-28 rounded-full border-4 border-white shadow-2xl relative overflow-hidden bg-white">
             {profile?.profileImageUrl ? (
-              <AvatarImage src={profile.profileImageUrl} className="object-cover" />
-            ) : null}
-            <AvatarFallback className="text-3xl font-black bg-muted text-primary">
-              {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : displayName.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="absolute bottom-0 right-0 z-20 bg-white p-2 rounded-full shadow-xl border border-border translate-y-4">
-            <Camera className="h-3.5 w-3.5 text-primary" />
+              <img src={profile.profileImageUrl} className="h-full w-full object-cover" alt="" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-gray-100 text-3xl font-black text-primary">
+                {displayName.charAt(0)}
+              </div>
+            )}
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+              </div>
+            )}
           </div>
-          
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*" 
-            onChange={handleImageUpload} 
-          />
+          <div className="absolute bottom-0 right-0 bg-white p-1.5 rounded-full shadow-lg border border-gray-100">
+             <Camera className="h-4 w-4 text-red-400" />
+          </div>
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
         </div>
-      </div>
 
-      <div className="px-6 text-center mt-8">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter">{displayName}</h2>
-        <div className="flex justify-center gap-2 mt-2">
-          <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-widest px-2.5 py-1">
-            ELITE MEMBER
+        <div className="mt-6 space-y-1">
+          <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-[0.2em] px-3 py-0.5">
+            GOLD MEMBER
           </Badge>
-          {joinedDate && (
-            <Badge variant="outline" className="text-[7px] font-black uppercase tracking-widest bg-white border-border/50 text-gray-400">
-              JOINED {isMounted ? format(joinedDate, 'MMM yyyy') : '...'}
-            </Badge>
-          )}
+          <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">{displayName}</h2>
+          <div className="flex items-center justify-center gap-1 text-gray-400">
+             <Phone className="h-3 w-3" />
+             <span className="text-[11px] font-black">{profile?.phoneNumber || '9898988999'}</span>
+          </div>
         </div>
       </div>
 
-      <div className="px-6 mt-8 space-y-8">
-        {/* PERSONAL DETAILS CARD */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-border/40 space-y-4">
+      <div className="px-6 mt-10 space-y-10">
+        
+        {/* INVITE FRIENDS CARD */}
+        <button className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-gray-200">
            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 shadow-sm border border-green-100">
-                 <Smartphone className="h-5 w-5" />
+              <div className="h-12 w-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20 group-hover:rotate-12 transition-transform">
+                 <Share2 className="h-6 w-6" />
               </div>
-              <div className="flex flex-col">
-                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Linked Phone</span>
-                 <p className="text-sm font-black italic">{profile?.phoneNumber || 'Not Linked'}</p>
+              <div className="text-left">
+                 <h4 className="text-base font-black italic uppercase text-white leading-none">Invite Friends</h4>
+                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">Spread the gourmet love</p>
               </div>
            </div>
-           
-           <div className="flex items-center gap-4">
-              <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
-                 <Navigation className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col min-w-0 flex-1">
-                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Primary Address</span>
-                 <p className="text-xs font-bold text-gray-700 leading-tight uppercase line-clamp-1 italic">{profile?.address || 'No address set'}</p>
-              </div>
-           </div>
-        </div>
+           <ChevronRight className="h-5 w-5 text-gray-700" />
+        </button>
 
-        <div className="space-y-3">
-          <h3 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-3">Customer Panel</h3>
-          <button onClick={() => router.push('/orders')} className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.98] transition-all">
-            <div className="flex items-center space-x-4">
-              <div className="bg-primary/5 p-2.5 rounded-xl text-primary"><ShoppingCart className="h-5 w-5" /></div>
-              <span className="text-sm font-bold">Manage Orders</span>
+        {/* DYNAMIC SECTIONS */}
+        {menuItems.map((section, sIdx) => (
+          <div key={sIdx} className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-4">{section.section}</h3>
+            <div className="space-y-3">
+              {section.items.map((item, iIdx) => (
+                <button 
+                  key={iIdx} 
+                  onClick={() => router.push(item.path)}
+                  className="w-full bg-white rounded-[1.75rem] p-5 flex items-center justify-between border border-gray-50 shadow-sm active:scale-[0.98] transition-all group"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className={cn("h-6 w-6 shrink-0", item.color)}>
+                       <item.icon className="h-full w-full" />
+                    </div>
+                    <div className="text-left">
+                       <h4 className={cn("text-xs font-black uppercase italic tracking-tight", section.section === 'INFORMATION & LEGAL' ? 'text-gray-800' : 'text-gray-900')}>
+                         {item.label}
+                       </h4>
+                       {item.sub && <p className="text-[9px] font-bold text-gray-400 uppercase leading-none mt-1">{item.sub}</p>}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-200 group-hover:text-primary transition-colors" />
+                </button>
+              ))}
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <h3 className="text-[9px] font-black uppercase tracking-widest text-primary ml-3">Partner Hubs</h3>
-          <div className="grid grid-cols-1 gap-3">
-            {[
-              { label: 'Beauty & Cosmetics Portal', icon: Sparkles, path: '/vendor/login?type=Beauty', color: 'bg-rose-50 text-rose-600' },
-              { label: 'Medical Store Console', icon: HeartPulse, path: '/vendor/login?type=Medical', color: 'bg-teal-50 text-teal-600' },
-              { label: 'Delivery Fleet Dashboard', icon: Bike, path: '/delivery/login', color: 'bg-blue-50 text-blue-600' },
-            ].map((item: any) => (
-              <button key={item.label} onClick={() => router.push(item.path)} className="w-full bg-white rounded-2xl p-4 flex items-center justify-between border border-border/40 shadow-sm active:scale-[0.97] transition-all">
-                <div className="flex items-center space-x-4">
-                  <div className={cn("p-2.5 rounded-xl", item.color)}><item.icon className="h-5 w-5" /></div>
-                  <span className="text-sm font-bold">{item.label}</span>
-                </div>
-                <ChevronRight className="h-4 w-4 text-gray-300" />
-              </button>
-            ))}
           </div>
+        ))}
+
+        {/* ASSISTANCE CENTER */}
+        <div className="space-y-4">
+           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-4">ASSISTANCE CENTER</h3>
+           <div className="bg-rose-50/50 rounded-[2rem] p-6 flex items-center justify-between border border-rose-100 shadow-sm">
+              <div className="flex items-center gap-4">
+                 <div className="h-12 w-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-500 shadow-inner">
+                    <Headphones className="h-6 w-6" />
+                 </div>
+                 <div className="text-left">
+                    <h4 className="text-base font-black italic uppercase text-gray-900 leading-none">Need Support?</h4>
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">Connect with our team</p>
+                 </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-rose-300" />
+           </div>
         </div>
 
+        {/* LOGOUT */}
         <button 
-          onClick={() => setShowLogoutConfirm(true)} 
-          className="w-full bg-white rounded-2xl p-5 flex items-center space-x-4 text-red-500 border border-red-50 shadow-sm active:scale-95 transition-all mt-4"
+          onClick={() => setShowLogoutConfirm(true)}
+          className="w-full h-16 bg-white rounded-[2rem] flex items-center gap-4 px-8 text-rose-500 shadow-sm active:scale-95 transition-all border border-rose-50 mt-10"
         >
-          <div className="bg-red-50 p-2.5 rounded-xl"><LogOut className="h-5 w-5" /></div>
-          <span className="text-sm font-black uppercase italic">Disconnect Account</span>
+          <div className="h-10 w-10 bg-rose-50 rounded-xl flex items-center justify-center"><LogOut className="h-5 w-5" /></div>
+          <span className="text-sm font-black uppercase italic">Sign Out</span>
         </button>
       </div>
 
       {/* SIGN OUT CONFIRMATION DIALOG */}
       <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-         <DialogContent className="rounded-[2.5rem] max-w-xs p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
+         <DialogContent className="rounded-[3rem] max-w-xs p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
             <div className="p-8 text-center space-y-6">
                <div className="h-16 w-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto shadow-inner">
                   <LogOut className="h-8 w-8" />
