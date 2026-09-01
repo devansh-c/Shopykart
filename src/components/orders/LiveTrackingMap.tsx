@@ -26,6 +26,7 @@ interface LiveTrackingMapProps {
 /**
  * @fileOverview Advanced Live Tracking Map.
  * Features: Circular Store Image Markers, Multi-Vendor Display, Customer Drop Pin.
+ * Fixed: Synchronized libraries to prevent Loader errors.
  */
 export default function LiveTrackingMap({ 
   customerLat, 

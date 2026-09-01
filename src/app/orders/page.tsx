@@ -1,4 +1,3 @@
-
 "use client"
 
 import { ShoppingBag, ChevronRight, Clock, MapPin, Package, Loader2, Trash2 } from 'lucide-react';
@@ -35,7 +34,7 @@ export default function OrdersPage() {
       collection(firestore, 'orders'),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
-      limit(50) // Speed optimization: Limit to last 50 orders
+      limit(50) 
     );
   }, [firestore, user?.uid]);
 
@@ -69,7 +68,7 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-white pb-32">
       <div className="px-6 pt-12 pb-6 flex items-center justify-between">
-        <h1 className="text-4xl font-black italic uppercase tracking-tighter">My Orders</h1>
+        <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900">My Orders</h1>
       </div>
 
       <div className="px-4 space-y-5">
@@ -193,7 +192,7 @@ export default function OrdersPage() {
                   <ShoppingBag className="h-10 w-10 text-gray-200" />
                </div>
             </div>
-            <p className="font-black italic uppercase tracking-widest text-sm">
+            <p className="font-black italic uppercase tracking-widest text-sm text-gray-900">
               {!user ? "Please login to view orders" : "No orders yet"}
             </p>
             {user && (

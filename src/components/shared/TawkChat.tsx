@@ -22,6 +22,17 @@ export function TawkChat() {
       setIsTawkReady(true);
     };
 
+    // Suppress internal Tawk logger errors globally
+    if (typeof window !== 'undefined') {
+      const originalError = console.error;
+      console.error = (...args) => {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('[Tawk/Logger]')) {
+          return;
+        }
+        originalError.apply(console, args);
+      };
+    }
+
     return () => {
       delete (window as any).onTawkLoadSignal;
     };
