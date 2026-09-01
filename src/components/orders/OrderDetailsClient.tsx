@@ -160,10 +160,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       {/* FULL SCREEN MAP AREA */}
       <div className="flex-1 relative">
         <LiveTrackingMap 
-          customerLat={order.customerLat} 
-          customerLng={order.customerLng} 
-          vendorLat={vendor?.lat}
-          vendorLng={vendor?.lng}
+          customerLat={parseFloat(String(order.customerLat || 0))} 
+          customerLng={parseFloat(String(order.customerLng || 0))} 
+          vendorLat={vendor?.lat ? parseFloat(String(vendor.lat)) : undefined}
+          vendorLng={vendor?.lng ? parseFloat(String(vendor.lng)) : undefined}
           customerName={order.customerName}
           storeName={order.restaurantName}
           onEtaUpdate={(val) => setEta(val)}

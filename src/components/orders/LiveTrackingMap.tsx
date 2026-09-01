@@ -10,6 +10,12 @@ const containerStyle = {
   height: '100%'
 };
 
+// Safe Default Center (Mauranipur Area)
+const defaultCenter = {
+  lat: 25.2443,
+  lng: 79.0838
+};
+
 interface LiveTrackingMapProps {
   customerLat: number;
   customerLng: number;
@@ -23,7 +29,7 @@ interface LiveTrackingMapProps {
 /**
  * @fileOverview Live Tracking Map with Google Maps API.
  * Matches Zomato-style labels and branded markers.
- * Optimized: Synchronized libraries to prevent Loader mismatch errors.
+ * Fixed: Robust coordinate validation to prevent NaN errors in setCenter.
  */
 export default function LiveTrackingMap({ 
   customerLat, 
@@ -49,36 +55,61 @@ export default function LiveTrackingMap({
   }, []);
 
   const center = useMemo(() => {
-    if (vendorLat && vendorLng) {
+    // Ensure all values are strictly numbers
+    const cLat = parseFloat(String(customerLat));
+    const cLng = parseFloat(String(customerLng));
+    const vLat = vendorLat ? parseFloat(String(vendorLat)) : NaN;
+    const vLng = vendorLng ? parseFloat(String(vendorLng)) : NaN;
+
+    // Validation check for finite numbers
+    const isCustomerValid = !isNaN(cLat) && !isNaN(cLng) && isFinite(cLat) && isFinite(cLng);
+    const isVendorValid = !isNaN(vLat) && !isNaN(vLng) && isFinite(vLat) && isFinite(vLng);
+
+    if (isCustomerValid && isVendorValid) {
       return { 
-        lat: (customerLat + vendorLat) / 2, 
-        lng: (customerLng + vendorLng) / 2 
+        lat: (cLat + vLat) / 2, 
+        lng: (cLng + vLng) / 2 
       };
     }
-    return { lat: customerLat, lng: customerLng };
+
+    if (isCustomerValid) {
+      return { lat: cLat, lng: cLng };
+    }
+
+    if (isVendorValid) {
+      return { lat: vLat, lng: vLng };
+    }
+
+    return defaultCenter;
   }, [customerLat, customerLng, vendorLat, vendorLng]);
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
     
-    // Fit bounds to show both pins
-    if (vendorLat && vendorLng) {
+    // Fit bounds to show both pins if valid
+    const cLat = parseFloat(String(customerLat));
+    const cLng = parseFloat(String(customerLng));
+    const vLat = vendorLat ? parseFloat(String(vendorLat)) : NaN;
+    const vLng = vendorLng ? parseFloat(String(vendorLng)) : NaN;
+
+    if (!isNaN(cLat) && !isNaN(cLng) && !isNaN(vLat) && !isNaN(vLng)) {
       const bounds = new google.maps.LatLngBounds();
-      bounds.extend({ lat: customerLat, lng: customerLng });
-      bounds.extend({ lat: vendorLat, lng: vendorLng });
+      bounds.extend({ lat: cLat, lng: cLng });
+      bounds.extend({ lat: vLat, lng: vLng });
       mapInstance.fitBounds(bounds, { top: 100, bottom: 400, left: 50, right: 50 });
     }
   }, [customerLat, customerLng, vendorLat, vendorLng]);
 
   // ETA CALCULATION
   useEffect(() => {
-    if (!isLoaded || !vendorLat || !vendorLng) return;
+    if (!isLoaded || isNaN(parseFloat(String(vendorLat))) || isNaN(parseFloat(String(customerLat)))) return;
 
     const calculateEta = () => {
+      if (typeof google === 'undefined') return;
       const service = new google.maps.DistanceMatrixService();
       service.getDistanceMatrix({
-        origins: [{ lat: vendorLat, lng: vendorLng }],
-        destinations: [{ lat: customerLat, lng: customerLng }],
+        origins: [{ lat: Number(vendorLat), lng: Number(vendorLng) }],
+        destinations: [{ lat: Number(customerLat), lng: Number(customerLng) }],
         travelMode: google.maps.TravelMode.DRIVING,
         unitSystem: google.maps.UnitSystem.METRIC,
       }, (response, status) => {
@@ -130,16 +161,16 @@ export default function LiveTrackingMap({
       }}
     >
       {/* VENDOR PIN */}
-      {vendorLat && vendorLng && (
+      {!isNaN(parseFloat(String(vendorLat))) && !isNaN(parseFloat(String(vendorLng))) && (
         <Marker 
-          position={{ lat: vendorLat, lng: vendorLng }}
+          position={{ lat: Number(vendorLat), lng: Number(vendorLng) }}
           icon={{
             url: 'https://cdn-icons-png.flaticon.com/512/619/619032.png',
             scaledSize: new google.maps.Size(40, 40),
             anchor: new google.maps.Point(20, 40)
           }}
         >
-          <InfoWindow position={{ lat: vendorLat, lng: vendorLng }}>
+          <InfoWindow position={{ lat: Number(vendorLat), lng: Number(vendorLng) }}>
              <div className="px-2 py-0.5">
                 <span className="text-[9px] font-black uppercase italic text-gray-900">{storeName}</span>
              </div>
@@ -148,20 +179,22 @@ export default function LiveTrackingMap({
       )}
 
       {/* CUSTOMER PIN */}
-      <Marker 
-        position={{ lat: customerLat, lng: customerLng }}
-        icon={{
-          url: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-          scaledSize: new google.maps.Size(45, 45),
-          anchor: new google.maps.Point(22, 45)
-        }}
-      >
-        <InfoWindow position={{ lat: customerLat, lng: customerLng }}>
-           <div className="px-2 py-0.5">
-              <span className="text-[9px] font-black uppercase italic text-gray-900">{customerName}</span>
-           </div>
-        </InfoWindow>
-      </Marker>
+      {!isNaN(parseFloat(String(customerLat))) && !isNaN(parseFloat(String(customerLng))) && (
+        <Marker 
+          position={{ lat: Number(customerLat), lng: Number(customerLng) }}
+          icon={{
+            url: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+            scaledSize: new google.maps.Size(45, 45),
+            anchor: new google.maps.Point(22, 45)
+          }}
+        >
+          <InfoWindow position={{ lat: Number(customerLat), lng: Number(customerLng) }}>
+             <div className="px-2 py-0.5">
+                <span className="text-[9px] font-black uppercase italic text-gray-900">{customerName}</span>
+             </div>
+          </InfoWindow>
+        </Marker>
+      )}
 
     </GoogleMap>
   );
