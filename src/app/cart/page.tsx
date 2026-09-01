@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -259,6 +260,8 @@ export default function CartPage() {
         items: cart,
         total: totalPayable,
         deliveryTip: deliveryTip,
+        isPremiumPacking: isPremiumPacking,
+        redeemCoins: isRedeemCoins,
         status: 'Placed',
         paymentMethod: paymentMode,
         paymentStatus: paymentMode === 'ONLINE' ? 'Paid' : 'Pending',
@@ -272,7 +275,6 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // PLAY SUCCESS SOUND
       try {
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
         audio.volume = 0.6;
@@ -281,7 +283,6 @@ export default function CartPage() {
 
       setShowSuccessOverlay(true);
       
-      // AUTO REDIRECT AFTER ANIMATION (1.5s total time for satisfying tick)
       setTimeout(() => { 
         clearCart(); 
         router.replace(`/order/track/#${customerOrderNumber}`); 
@@ -625,7 +626,6 @@ export default function CartPage() {
 
       </main>
 
-      {/* ADDRESS & RECIPIENT EDIT MODAL */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 border-none shadow-2xl bg-[#0B0B0B] max-w-sm bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 focus:outline-none flex flex-col h-[650px]">
           <div className="h-2 w-full bg-amber-400" />
@@ -696,7 +696,6 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      {/* MAP PINNING DIALOG */}
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
          <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
             <DialogHeader className="p-4 bg-white border-b shrink-0 relative">
@@ -710,7 +709,6 @@ export default function CartPage() {
          </DialogContent>
       </Dialog>
 
-      {/* UPI PAYMENT SELECTOR */}
       <Dialog open={showPaymentSelector} onOpenChange={setShowPaymentSelector}>
         <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2 focus:outline-none">
           <div className="h-2 w-full bg-primary" />
@@ -748,7 +746,6 @@ export default function CartPage() {
         </DialogContent>
       </Dialog>
 
-      {/* PAYMENT VERIFICATION */}
       <Dialog open={isVerifying} onOpenChange={setIsVerifying}>
          <DialogContent className="rounded-[3rem] p-0 border-none shadow-2xl bg-white max-w-xs focus:outline-none overflow-hidden">
             <div className="h-2 w-full bg-amber-400 animate-pulse" />
