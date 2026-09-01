@@ -9,6 +9,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 /**
  * @fileOverview Premium Bottom Navigation Centered.
  * Features: Center Aligned, Hide on Scroll Down, Show on Scroll Up, Frosted Glass Effect.
+ * Order: Home | Cart | Track | Rewards | Profile
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -45,9 +46,9 @@ export default function BottomNav() {
 
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },
-    { label: 'Rewards', icon: Gift, href: '/rewards' },
-    { label: 'Track', icon: Map, href: '/orders' },
     { label: 'Cart', icon: ShoppingCart, href: '/cart' },
+    { label: 'Track', icon: Map, href: '/orders' },
+    { label: 'Rewards', icon: Gift, href: '/rewards' },
     { label: 'Profile', icon: User, href: '/profile' },
   ];
 
