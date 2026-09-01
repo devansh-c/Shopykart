@@ -1,7 +1,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDocs } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -25,7 +25,9 @@ import {
   Download,
   FileText,
   ShieldCheck,
-  Building2
+  Building2,
+  UserPlus,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +58,8 @@ export default function OrderManagement() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [selectedOrderForPartner, setSelectedOrderForPartner] = useState<any>(null);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -63,8 +67,13 @@ export default function OrderManagement() {
     if (!firestore) return null;
     return query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'));
   }, [firestore]);
-
   const { data: orders, loading } = useCollection<any>(ordersQuery);
+
+  const partnersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'delivery_partners');
+  }, [firestore]);
+  const { data: partners } = useCollection<any>(partnersQuery);
 
   const handleNextStatus = async (id: string, currentStatus: string) => {
     if (!firestore) return;
@@ -92,6 +101,24 @@ export default function OrderManagement() {
     }
   };
 
+  const handleAssignPartner = async (partner: any) => {
+    if (!firestore || !selectedOrderForPartner) return;
+    try {
+      await updateDoc(doc(firestore, 'orders', selectedOrderForPartner.id), {
+        deliveryPartnerId: partner.id,
+        deliveryPartnerName: partner.fullName,
+        deliveryPartnerPhone: partner.phone,
+        status: 'Picked Up', // Automatically advance status when manually assigned
+        updatedAt: serverTimestamp()
+      });
+      setIsAssignOpen(false);
+      setSelectedOrderForPartner(null);
+      toast({ title: "Partner Assigned!", description: `${partner.fullName} is on the task.` });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Assignment Failed" });
+    }
+  };
+
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -99,13 +126,12 @@ export default function OrderManagement() {
       const FileSaver = await import('file-saver');
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
 
-      // Create a container with specific styling for receipt
       const receipt = document.createElement('div');
       receipt.style.padding = '50px 40px';
       receipt.style.width = '480px';
       receipt.style.backgroundColor = '#ffffff';
       receipt.style.color = '#000000';
-      receipt.style.fontFamily = "'Inter', sans-serif, 'Courier New'";
+      receipt.style.fontFamily = "'Inter', sans-serif";
       receipt.style.textTransform = 'uppercase';
       
       const parseOrderDate = (date: any) => {
@@ -122,83 +148,25 @@ export default function OrderManagement() {
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: -1px; font-style: italic;">SHOPYKART</h1>
-          <p style="margin: 4px 0; font-size: 9px; font-weight: 800; letter-spacing: 2px; color: #333;">PREMIUM DELIVERY NETWORK</p>
-          <div style="margin-top: 15px; font-size: 8px; font-weight: 700; color: #555;">
-            SHOPYKART PREMIUM DELIVERY<br/>POWERED BY DEVANSH GUPTA
-          </div>
+          <p style="margin: 4px 0; font-size: 9px; font-weight: 800; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
+          <div style="margin-top: 15px; font-size: 8px; font-weight: 700; color: #555;">POWERED BY DEVANSH GUPTA</div>
           <div style="border-top: 1px dashed #ccc; margin: 10px auto; width: 60%;"></div>
         </div>
-
         <div style="margin-bottom: 30px; line-height: 1.8; font-size: 11px; font-weight: 600;">
           <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span style="font-weight: 900;">#${order.customerOrderNumber || '9'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>STORES:</span><span style="text-align: right; max-width: 250px;">${order.restaurantName || 'ShopyKart Hub'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>PHONE:</span><span>${order.customerPhone}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>PAYMENT:</span><span>${order.paymentMethod === 'ONLINE' ? 'ONLINE PREPAID' : 'CASH ON DELIVERY'}</span></div>
           <div style="display: flex; justify-content: space-between; color: #ef4444; margin-top: 5px;"><span>DELIVERY OTP:</span><span style="font-weight: 900;">${order.deliveryOTP || '---'}</span></div>
         </div>
-
-        <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-        
-        <table style="width: 100%; font-size: 11px; border-collapse: collapse; font-weight: 700;">
-          <thead>
-            <tr>
-              <th style="text-align: left; padding: 10px 0;">ITEM DESCRIPTION</th>
-              <th style="text-align: center; padding: 10px 0;">QTY</th>
-              <th style="text-align: right; padding: 10px 0;">PRICE</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom: 1px dashed #000;"></tr>
-            ${order.items?.map((item: any) => `
-              <tr>
-                <td style="padding: 12px 0; font-weight: 900;">${item.name}</td>
-                <td style="text-align: center; color: #666;">X${item.quantity}</td>
-                <td style="text-align: right; font-weight: 900;">${(item.price * item.quantity).toFixed(2)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-
-        <div style="border-top: 1px dashed #000; margin-top: 10px;"></div>
-        
-        <div style="padding: 15px 0; font-size: 11px; font-weight: 700;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>ITEMS SUBTOTAL:</span>
-            <span style="font-weight: 900;">₹${(order.total - (order.deliveryCharge || 10)).toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-style: italic; color: #666;">
-            <span>DELIVERY FEE:</span>
-            <span>₹${(order.deliveryCharge || 10).toFixed(2)}</span>
-          </div>
-        </div>
-
         <div style="border-top: 2px solid #000; margin-bottom: 15px;"></div>
-        
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
-          <span style="font-size: 22px; font-weight: 900; font-style: italic; letter-spacing: -1px;">GRAND TOTAL</span>
+          <span style="font-size: 22px; font-weight: 900; font-style: italic;">GRAND TOTAL</span>
           <span style="font-size: 22px; font-weight: 900; font-style: italic;">₹${order.total?.toFixed(2)}</span>
         </div>
-
-        <div style="border-top: 1px dashed #000; margin: 20px 0;"></div>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <div style="display: inline-block; padding: 15px; border: 1px dotted #000; border-radius: 4px;">
-            <img src="${qrCodeUrl}" style="width: 140px; height: 140px;" />
-            <p style="margin-top: 10px; font-size: 8px; font-weight: 900; letter-spacing: 2px; color: #000;">SCAN TO PAY</p>
-          </div>
-        </div>
-
-        <div style="text-align: center; margin-top: 20px;">
-          <p style="font-size: 14px; font-weight: 900; font-style: italic; margin-bottom: 5px;">ENJOY YOUR DELICIOUS MEAL!</p>
-          <p style="font-size: 7px; color: #999; line-height: 1.4;">THANK YOU FOR CHOOSING SHOPYKART! THIS IS A COMPUTER GENERATED INVOICE.</p>
-          
-          <div style="margin-top: 30px; display: inline-block; border: 1px solid #000; padding: 5px 15px;">
-            <span style="font-size: 8px; font-weight: 900; letter-spacing: 3px;">POWERED BY SHOPYKART</span>
-          </div>
-        </div>
+        <div style="text-align: center; margin: 30px 0;"><img src="${qrCodeUrl}" style="width: 140px; height: 140px;" /></div>
+        <div style="text-align: center; margin-top: 20px;"><p style="font-size: 14px; font-weight: 900; font-style: italic;">ENJOY YOUR DELICIOUS MEAL!</p></div>
       `;
       
       document.body.appendChild(receipt);
@@ -210,7 +178,6 @@ export default function OrderManagement() {
         toast({ title: "Receipt Downloaded! ✅" });
       }
     } catch (err) {
-      console.error("Receipt error:", err);
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
       setIsDownloading(null);
@@ -246,6 +213,7 @@ export default function OrderManagement() {
         {orders?.map((order: any) => {
           const isCancelled = order.status === 'Cancelled';
           const isDelivered = order.status === 'Delivered';
+          const isReadyForPickup = order.status === 'Ready for Pickup';
           const lat = order.customerLat || order.customerLocation?.latitude;
           const lng = order.customerLng || order.customerLocation?.longitude;
           const currentIndex = STATUS_FLOW.indexOf(order.status);
@@ -255,11 +223,10 @@ export default function OrderManagement() {
           return (
             <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl">
               
-              {/* TOP HEADER: ORDER # AND STATUS */}
               <div className="flex items-start justify-between mb-8">
                 <div className="flex items-center gap-6">
                   <div className={cn(
-                    "h-20 w-20 rounded-[1.75rem] flex items-center justify-center border-2 shrink-0 transition-colors",
+                    "h-20 w-20 rounded-[1.75rem] flex items-center justify-center border-2 shrink-0",
                     isCancelled ? "bg-red-50 border-red-100 text-red-500" : isDelivered ? "bg-green-50 border-green-100 text-green-600" : "bg-primary/5 border-primary/10 text-primary"
                   )}>
                     <Package className="h-10 w-10" />
@@ -274,11 +241,7 @@ export default function OrderManagement() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-3">
-                       <button 
-                        onClick={() => generateReceipt(order)}
-                        disabled={isDownloading === order.id}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2 transition-all active:scale-95"
-                       >
+                       <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2 transition-all active:scale-95">
                           {isDownloading === order.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-blue-600" />}
                           <span className="text-[10px] font-black uppercase tracking-tight">RECEIPT</span>
                        </button>
@@ -288,16 +251,10 @@ export default function OrderManagement() {
                           <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">{order.paymentMethod?.toUpperCase()}</span>
                        </div>
                        
-                       {order.isPremiumPacking && (
-                         <div className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center gap-2">
-                            <ShieldCheck className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase">PREMIUM PACKING</span>
-                         </div>
-                       )}
-                       {order.redeemCoins && (
-                         <div className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center gap-2">
-                            <Coins className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">COINS REDEEMED</span>
+                       {order.deliveryPartnerName && (
+                         <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-xl border border-green-200 flex items-center gap-2">
+                            <Bike className="h-3.5 w-3.5" />
+                            <span className="text-[9px] font-black uppercase">{order.deliveryPartnerName}</span>
                          </div>
                        )}
                     </div>
@@ -309,21 +266,13 @@ export default function OrderManagement() {
                 </div>
               </div>
 
-              {/* CUSTOMER & ITEMS CARD */}
               <div className="bg-gray-50 rounded-[2.5rem] p-7 mb-8 border border-border shadow-inner">
                  <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-5">
-                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border">
-                          <User className="h-6 w-6" />
-                       </div>
+                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border"><User className="h-6 w-6" /></div>
                        <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900">{order.customerName}</span>
                     </div>
-                    <button 
-                      onClick={() => window.open(`tel:${order.customerPhone}`)}
-                      className="h-14 w-14 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-xl active:scale-90 transition-all border-b-4 border-green-800"
-                    >
-                       <PhoneCall className="h-7 w-7" />
-                    </button>
+                    <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-14 w-14 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-xl active:scale-90 transition-all border-b-4 border-green-800"><PhoneCall className="h-7 w-7" /></button>
                  </div>
 
                  <div className="space-y-4">
@@ -335,80 +284,75 @@ export default function OrderManagement() {
                          </div>
                        ))}
                     </div>
-
                     <div className="pt-6 mt-4 border-t border-dashed border-border flex items-start gap-3">
                        <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                        <p className="text-xs font-bold text-gray-600 uppercase leading-relaxed tracking-tight">{order.address}</p>
                     </div>
-
-                    {lat && (
-                      <div className="pt-4">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-border bg-white hover:bg-gray-50">
-                              <MapIcon className="h-4 w-4 mr-2 text-primary" /> VIEW DROP LOGISTICS
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white">
-                            <DialogHeader className="p-8">
-                               <DialogTitle className="font-black italic uppercase text-center text-xl text-gray-900">Delivery Route</DialogTitle>
-                            </DialogHeader>
-                            <div className="p-8 pt-0 space-y-6">
-                               <div className="h-64 w-full bg-muted rounded-[2rem] overflow-hidden border-4 border-muted/20">
-                                  <OrderMapViewer lat={lat} lng={lng} />
-                                </div>
-                                <Button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`)} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">
-                                   <Navigation className="h-4 w-4 mr-2" /> OPEN GOOGLE MAPS
-                                </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    )}
                  </div>
               </div>
 
-              {/* WORKFLOW STATUS BUTTONS */}
               <div className="space-y-2">
                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest">Workflow Status Control</label>
                  <div className="flex gap-3">
-                    <Button 
-                      onClick={() => handleNextStatus(order.id, order.status)}
-                      disabled={isDelivered || isCancelled}
-                      className={cn(
+                    <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className={cn(
                         "flex-1 h-18 py-8 rounded-[1.75rem] font-black uppercase italic text-lg tracking-tighter transition-all active:scale-95 border-b-4",
                         isDelivered ? "bg-green-600 border-green-800 text-white" : "bg-white text-black hover:bg-primary hover:text-white border-gray-200"
-                      )}
-                    >
+                      )}>
                       {isDelivered ? <CheckCircle2 className="mr-2 h-6 w-6" /> : null}
                       {getButtonLabel(order.status)}
                     </Button>
                     
-                    {hasPrev && (
+                    {isReadyForPickup && !order.deliveryPartnerId && (
                       <button 
-                        onClick={() => handlePrevStatus(order.id, order.status)}
-                        className="h-18 w-18 bg-gray-100 rounded-[1.75rem] flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all border border-border active:scale-90"
-                        title="Reverse Status"
+                        onClick={() => { setSelectedOrderForPartner(order); setIsAssignOpen(true); }}
+                        className="h-18 px-6 bg-amber-500 rounded-[1.75rem] flex items-center justify-center text-white hover:bg-amber-600 transition-all border-b-4 border-amber-700 active:translate-y-1 active:border-b-0"
                       >
-                         <RotateCcw className="h-7 w-7" />
+                         <UserPlus className="h-6 w-6 mr-2" />
+                         <span className="text-[10px] font-black uppercase">Assign</span>
                       </button>
                     )}
 
-                    {!isCancelled && !isDelivered && (
-                      <button 
-                        onClick={async () => { if(confirm("Cancel this order?")) await updateDoc(doc(firestore!, 'orders', order.id), { status: 'Cancelled' }); }}
-                        className="h-18 w-18 bg-red-50 rounded-[1.75rem] flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-100 active:scale-90"
-                      >
-                         <X className="h-7 w-7" />
-                      </button>
+                    {hasPrev && (
+                      <button onClick={() => handlePrevStatus(order.id, order.status)} className="h-18 w-18 bg-gray-100 rounded-[1.75rem] flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all border border-border active:scale-90"><RotateCcw className="h-7 w-7" /></button>
                     )}
                  </div>
               </div>
-
             </div>
           );
         })}
       </div>
+
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+         <DialogContent className="rounded-[3rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white flex flex-col max-h-[85vh]">
+            <DialogHeader className="p-8 pb-4 shrink-0">
+               <DialogTitle className="font-black italic uppercase text-center text-2xl tracking-tighter">Assign Delivery Hero</DialogTitle>
+               <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest mt-1">Select from active partners in zone</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-3">
+               {partners?.filter((p: any) => p.isOnline).map((partner: any) => (
+                 <button 
+                   key={partner.id}
+                   onClick={() => handleAssignPartner(partner)}
+                   className="w-full p-5 rounded-[2rem] border-2 border-gray-50 bg-gray-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all flex items-center justify-between text-left group"
+                 >
+                   <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white border shrink-0">
+                         <img src={partner.photoUrl} className="h-full w-full object-cover" alt="" />
+                      </div>
+                      <div>
+                         <h4 className="font-black italic uppercase text-sm leading-none mb-1">{partner.fullName}</h4>
+                         <p className="text-[10px] font-bold text-muted-foreground uppercase">{partner.phone}</p>
+                      </div>
+                   </div>
+                   <div className="h-10 w-10 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:border-primary transition-all"><Plus className="h-5 w-5" /></div>
+                 </button>
+               ))}
+               {(!partners || partners.length === 0) && (
+                 <div className="text-center py-20 opacity-30 uppercase font-black text-xs">No active partners found</div>
+               )}
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }

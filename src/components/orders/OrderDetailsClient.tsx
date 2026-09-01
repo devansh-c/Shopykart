@@ -12,7 +12,9 @@ import {
   X,
   Map as MapIcon,
   Maximize2,
-  Minimize2
+  Minimize2,
+  PhoneCall,
+  Bike
 } from 'lucide-react';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -39,7 +41,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [eta, setEta] = useState<string>('44 mins');
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   
-  // Gesture Handling
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const minSwipeDistance = 50;
@@ -100,8 +101,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
       if (foundOrder) {
         setOrder(foundOrder);
-        
-        // RESOLVE ALL VENDORS IN THIS ORDER
         const vendorIds = Array.from(new Set([
           foundOrder.vendorId, 
           ...(foundOrder.vendorIds || []),
@@ -115,9 +114,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
               return vSnap.exists() ? { id: vSnap.id, ...vSnap.data() } : null;
             }));
             setVendors(vendorDocs.filter(Boolean));
-          } catch (vErr) {
-            console.error("Vendor fetch error:", vErr);
-          }
+          } catch (vErr) {}
         }
       }
       setLoading(false);
@@ -137,6 +134,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     return order.status;
   };
 
+  const handleCallPartner = () => {
+    if (order?.deliveryPartnerPhone) {
+      window.open(`tel:${order.deliveryPartnerPhone}`);
+    }
+  };
+
   if (loading) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -154,7 +157,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   return (
     <div className="min-h-screen bg-white flex flex-col transform-gpu overflow-x-hidden no-scrollbar relative">
       
-      {/* 1. MAP SECTION - DYNAMIC HEIGHT */}
       <div 
         className={cn(
           "relative w-full shrink-0 transition-all duration-700 cubic-bezier(0.23,1,0.32,1) z-0",
@@ -176,7 +178,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
           </button>
         </header>
 
-        {/* MAP CONTAINER WITH CURVE */}
         <div className={cn(
           "absolute inset-0 z-0 overflow-hidden transition-all duration-700",
           isMapExpanded ? "rounded-none" : "rounded-b-[4rem]"
@@ -190,7 +191,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
           />
         </div>
 
-        {/* FLOATING ACTION WHEN FULL SCREEN */}
         {isMapExpanded && (
           <div className="absolute bottom-10 left-0 right-0 flex justify-center z-[200] animate-in slide-in-from-bottom-4">
              <button 
@@ -203,7 +203,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         )}
       </div>
 
-      {/* 2. FLOATING TRACKING CARD - OVERLAPPING MAP */}
       <div 
         className={cn(
           "relative z-[110] px-4 transition-all duration-700 cubic-bezier(0.23,1,0.32,1)",
@@ -214,7 +213,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         onTouchEnd={onTouchEnd}
       >
          <div className="bg-white rounded-[2.5rem] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.15)] overflow-hidden border border-black/[0.03]">
-            {/* DRAG HANDLE */}
             <div className="w-full h-8 flex items-center justify-center cursor-ns-resize">
                <div className="w-12 h-1.5 bg-gray-100 rounded-full" />
             </div>
@@ -232,6 +230,27 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
                  </div>
               </div>
+
+              {/* PARTNER CARD FOR CUSTOMER */}
+              {order.deliveryPartnerId && (
+                <div className="bg-primary/5 rounded-[2rem] p-5 mb-6 border border-primary/10 flex items-center justify-between animate-in zoom-in duration-500">
+                   <div className="flex items-center gap-4">
+                      <div className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20">
+                         <Bike className="h-6 w-6" />
+                      </div>
+                      <div>
+                         <span className="text-[9px] font-black text-primary uppercase tracking-widest block mb-0.5">Your Delivery Hero</span>
+                         <h4 className="text-lg font-black italic uppercase tracking-tight text-gray-900 leading-none">{order.deliveryPartnerName}</h4>
+                      </div>
+                   </div>
+                   <button 
+                    onClick={handleCallPartner}
+                    className="h-14 w-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-all border-b-4 border-green-800"
+                   >
+                      <PhoneCall className="h-7 w-7" />
+                   </button>
+                </div>
+              )}
 
               <div className="space-y-6 relative mb-4">
                  <div className="absolute left-[7px] top-[10px] bottom-[10px] w-[2px] border-l-2 border-dotted border-gray-200" />
@@ -259,17 +278,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     </div>
                  </div>
               </div>
-
-              <div className="mt-8 pt-5 border-t border-gray-50 flex items-center justify-between">
-                 <span className="text-[11px] font-black uppercase tracking-tight text-gray-800 flex items-center gap-2 group cursor-pointer">
-                    Add Delivery Instructions <ChevronRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
-                 </span>
-              </div>
             </div>
          </div>
       </div>
 
-      {/* 3. UPI PAYMENT STRIP */}
       <div className={cn(
         "px-4 py-8 transition-all duration-500",
         isMapExpanded ? "opacity-0" : "opacity-100"
@@ -288,7 +300,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
          </div>
       </div>
 
-      {/* CLEAN FOOTER */}
       <div className="mt-auto pb-10 text-center opacity-20">
          <p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Logistics</p>
       </div>

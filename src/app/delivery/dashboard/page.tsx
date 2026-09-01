@@ -24,7 +24,9 @@ import {
   X,
   Map as MapIcon,
   Compass,
-  ExternalLink
+  ExternalLink,
+  ChevronRight,
+  Bike
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -45,10 +47,9 @@ const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'
   loading: () => <div className="h-full w-full bg-muted animate-pulse rounded-3xl" />
 });
 
-type MainTab = 'home' | 'history' | 'payout' | 'profile';
-type OrderFilter = 'NEW' | 'DELIVERED' | 'CANCELLED';
+type MainTab = 'tasks' | 'history' | 'payout' | 'profile';
 
-const OrderCard = memo(({ order, onUpdate, filter }: any) => {
+const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
   const [enteredCode, setEnteredCode] = useState('');
   const [collectionMethod, setCollectionMethod] = useState<'Online' | 'Cash' | null>(null);
   const [showQr, setShowQr] = useState(false);
@@ -58,18 +59,14 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
   const isOutForDelivery = order.status === 'Out for Delivery';
   const isPickedUp = order.status === 'Picked Up';
 
-  // Google Maps Coordinates from Firestore
+  // Google Maps Coordinates
   const customerLat = order.customerLat || order.customerLocation?.latitude;
   const customerLng = order.customerLng || order.customerLocation?.longitude;
 
   const handleAction = () => {
     if (isReadyForPickup) {
-      if (enteredCode === order.pickupOTP) {
-        onUpdate(order.id, 'Picked Up');
-        setEnteredCode('');
-      } else {
-        alert("Invalid Pickup Code! Ask the vendor for the 4-digit code.");
-      }
+      // In Task Marketplace mode
+      onUpdate(order.id, 'Picked Up', null, userData);
     } else if (isPickedUp) {
       onUpdate(order.id, 'Out for Delivery');
     } else if (isOutForDelivery) {
@@ -94,7 +91,6 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
 
   const startNavigation = () => {
     if (customerLat && customerLng) {
-      // GOOGLE MAPS PLATFORMTurn-by-Turn Navigation URL
       const url = `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&travelmode=driving`;
       window.open(url, '_blank');
     }
@@ -111,9 +107,11 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
              <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase mt-1.5"><Clock className="h-3 w-3" />{format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'MMM d, h:mm a')}</div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleCall} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
-              <PhoneCall className="h-5 w-5" />
-            </button>
+            {!isReadyForPickup && (
+              <button onClick={handleCall} className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-green-100">
+                <PhoneCall className="h-5 w-5" />
+              </button>
+            )}
             <button onClick={startNavigation} className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-primary/10">
               <Compass className="h-5 w-5" />
             </button>
@@ -122,57 +120,44 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
 
        <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
           <div className="flex items-center gap-4">
-            <div className="bg-white p-2 rounded-xl shadow-sm text-primary"><User className="h-5 w-5" /></div>
-            <span className="text-sm font-black uppercase italic tracking-tighter text-gray-800">{order.customerName}</span>
-          </div>
-          <div className="flex items-start gap-4">
-            <div className="bg-white p-2 rounded-xl shadow-sm text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
-            <span className="text-[11px] font-bold text-gray-600 leading-tight">{order.address}</span>
+            <div className="bg-white p-2 rounded-xl shadow-sm text-primary"><Bike className="h-5 w-5" /></div>
+            <span className="text-sm font-black uppercase italic tracking-tighter text-gray-800">{order.restaurantName || 'ShopyKart Hub'}</span>
           </div>
           
-          {customerLat && (
-            <div className="pt-2">
-               <button 
-                onClick={() => setIsMapOpen(true)}
-                className="w-full h-12 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center gap-2 font-black uppercase italic text-[9px] tracking-widest text-primary"
-               >
-                  <MapIcon className="h-4 w-4" /> PREVIEW GOOGLE PIN
-               </button>
+          {!isReadyForPickup && (
+            <div className="flex items-start gap-4 pt-1">
+              <div className="bg-white p-2 rounded-xl shadow-sm text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
+              <span className="text-[11px] font-bold text-gray-600 leading-tight">{order.address}</span>
             </div>
           )}
-
+          
           <div className="pt-3 border-t border-white/50 space-y-2">
-             <div className="flex items-center gap-2 mb-2">
-                <ShoppingBasket className="h-3.5 w-3.5 text-primary" />
-                <span className="text-[9px] font-black uppercase text-gray-400">Products & Bill</span>
-             </div>
-             {order.items?.map((item: any, i: number) => (
-               <div key={i} className="flex justify-between items-center text-[10px] font-bold">
-                 <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                 <span className="text-primary font-black">₹{(item.price * item.quantity).toFixed(0)}</span>
-               </div>
-             ))}
-             <div className="pt-2 flex justify-between items-center border-t border-white/20 mt-2">
-                <span className="text-[10px] font-black uppercase">Total Collection</span>
+             <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-gray-400">Total Collection</span>
                 <span className="text-base font-black italic text-gray-900">₹{order.total?.toFixed(0)}</span>
              </div>
           </div>
        </div>
 
+       {isPickedUp && (
+         <div className="mb-6 animate-in slide-in-from-bottom-2">
+            <Button 
+              onClick={handleAction} 
+              className="w-full bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              DISPATCH ORDER
+            </Button>
+         </div>
+       )}
+
        {isReadyForPickup && (
-         <div className="mb-6 space-y-3 animate-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2 text-amber-600">
-               <KeyRound className="h-4 w-4" />
-               <span className="text-[10px] font-black uppercase">Enter 4-Digit Pickup Code from Vendor</span>
-            </div>
-            <Input 
-              type="tel"
-              placeholder="0 0 0 0" 
-              maxLength={4}
-              value={enteredCode}
-              onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))}
-              className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.8em]"
-            />
+         <div className="mb-2 animate-in slide-in-from-bottom-2">
+            <Button 
+              onClick={handleAction} 
+              className="w-full bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all border-b-4 border-green-800"
+            >
+              <CheckCircle2 className="h-5 w-5 mr-2" /> ACCEPT PICKUP TASK
+            </Button>
          </div>
        )}
 
@@ -232,61 +217,17 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
                   onChange={e => setEnteredCode(e.target.value.replace(/\D/g,''))}
                   className="h-14 rounded-2xl bg-gray-50 border-none text-center font-black text-2xl tracking-[0.5em]"
                 />
+                <Button 
+                  onClick={handleAction} 
+                  disabled={enteredCode.length !== 6 || !collectionMethod}
+                  className="w-full h-16 bg-green-600 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all mt-4"
+                >
+                  VERIFY & DELIVER
+                </Button>
               </div>
             )}
          </div>
        )}
-
-       {filter === 'NEW' && (
-         <div className="flex gap-3">
-            {isReadyForPickup && (
-              <Button 
-                onClick={handleAction} 
-                disabled={enteredCode.length !== 4}
-                className="flex-1 bg-black h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
-              >
-                VERIFY & PICKUP
-              </Button>
-            )}
-            {isPickedUp && (
-              <Button 
-                onClick={handleAction} 
-                className="flex-1 bg-primary h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
-              >
-                DISPATCH ORDER
-              </Button>
-            )}
-            {isOutForDelivery && (
-              <Button 
-                onClick={handleAction} 
-                disabled={enteredCode.length !== 6 || !collectionMethod}
-                className="flex-1 bg-green-600 h-16 rounded-[1.5rem] font-black uppercase text-sm tracking-widest shadow-xl active:scale-95 transition-all"
-              >
-                VERIFY & DELIVER
-              </Button>
-            )}
-         </div>
-       )}
-
-       {/* MAP PREVIEW MODAL */}
-       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-          <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
-             <div className="h-2 w-full bg-primary" />
-             <div className="p-8 space-y-6">
-                <DialogHeader>
-                   <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">Customer Drop Spot</DialogTitle>
-                   <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Pinpoint coordinate on Map</DialogDescription>
-                </DialogHeader>
-                <div className="h-64 w-full bg-muted rounded-[2rem] overflow-hidden border-4 border-muted/20">
-                   {customerLat && <OrderMapViewer lat={customerLat} lng={customerLng} />}
-                </div>
-                <div className="flex gap-3">
-                   <Button onClick={startNavigation} className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase italic"><ExternalLink className="h-4 w-4 mr-2" /> OPEN GOOGLE MAPS</Button>
-                   <Button onClick={() => setIsMapOpen(false)} variant="ghost" className="h-14 w-14 rounded-2xl bg-gray-100"><X className="h-5 w-5" /></Button>
-                </div>
-             </div>
-          </DialogContent>
-       </Dialog>
 
        {/* QR MODAL */}
        <Dialog open={showQr} onOpenChange={setShowQr}>
@@ -303,16 +244,9 @@ const OrderCard = memo(({ order, onUpdate, filter }: any) => {
                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`)}`} 
                      className="h-56 w-56 grayscale contrast-125" 
                      alt="UPI QR" 
-                     crossOrigin="anonymous" 
                    />
                    <div className="absolute inset-0 border-4 border-primary/20 rounded-[2.5rem] pointer-events-none" />
                 </div>
-
-                <div className="space-y-2">
-                   <p className="text-sm font-black italic text-gray-900 tracking-tight">₹{order.total?.toFixed(2)}</p>
-                   <p className="text-[9px] font-black text-primary uppercase tracking-widest">9450355709@axl</p>
-                </div>
-
                 <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE QR</Button>
              </div>
           </DialogContent>
@@ -329,9 +263,7 @@ export default function DeliveryDashboard() {
   const { toast } = useToast();
   const router = useRouter();
   
-  const [activeTab, setActiveTab] = useState<MainTab>('home');
-  const [isPending, startTransition] = useTransition();
-  const [homeFilter, setHomeFilter] = useState<OrderFilter>('NEW');
+  const [activeTab, setActiveTab] = useState<MainTab>('tasks');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
@@ -356,34 +288,43 @@ export default function DeliveryDashboard() {
   }, [firestore]);
   const { data: allOrders } = useCollection<any>(ordersQuery);
 
-  const filteredHomeOrders = useMemo(() => {
+  const taskOrders = useMemo(() => {
     if (!allOrders || !partnerProfile || !user) return [];
     return allOrders.filter(order => {
-      const assignedZone = partnerProfile.assignedPincode;
+      // 1. New Tasks in Zone (Not assigned to anyone yet)
+      const isMarketplaceTask = order.status === 'Ready for Pickup' && !order.deliveryPartnerId && 
+        (order.pincode === partnerProfile.assignedPincode || order.zoneId === partnerProfile.zoneId || !partnerProfile.assignedPincode);
       
-      if (homeFilter === 'NEW') {
-        const isReadyForMyZone = order.status === 'Ready for Pickup' && (!order.deliveryPartnerId || order.pincode === assignedZone);
-        const isMineInProgress = order.deliveryPartnerId === user.uid && ['Picked Up', 'Out for Delivery'].includes(order.status);
-        return isReadyForMyZone || isMineInProgress;
-      }
+      // 2. My Current Tasks (Assigned to me and not terminal)
+      const isMyCurrentTask = order.deliveryPartnerId === user.uid && ['Picked Up', 'Out for Delivery'].includes(order.status);
       
-      if (homeFilter === 'DELIVERED') return order.status === 'Delivered' && order.deliveryPartnerId === user.uid;
-      
-      return order.status === 'Cancelled' && (order.deliveryPartnerId === user.uid || order.pincode === assignedZone);
+      return isMarketplaceTask || isMyCurrentTask;
     });
-  }, [allOrders, partnerProfile, user, homeFilter]);
+  }, [allOrders, partnerProfile, user]);
 
-  const updateDelivery = async (orderId: string, status: string, collectionMethod?: string) => {
+  const historyOrders = useMemo(() => {
+    if (!allOrders || !user) return [];
+    return allOrders.filter(o => o.deliveryPartnerId === user.uid && ['Delivered', 'Cancelled'].includes(o.status));
+  }, [allOrders, user]);
+
+  const updateDelivery = async (orderId: string, status: string, collectionMethod?: string | null, partnerData?: any) => {
     if (!firestore || !user) return;
     try {
       const updateData: any = { 
         status, 
-        deliveryPartnerId: user.uid, 
         updatedAt: serverTimestamp() 
       };
+      
+      if (status === 'Picked Up') {
+        updateData.deliveryPartnerId = user.uid;
+        updateData.deliveryPartnerName = partnerData?.fullName || 'Partner';
+        updateData.deliveryPartnerPhone = partnerData?.phone || '';
+      }
+
       if (collectionMethod) {
         updateData.paymentCollectionMethod = collectionMethod;
       }
+      
       await updateDoc(doc(firestore, 'orders', orderId), updateData);
       toast({ title: `Order ${status}!` });
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
@@ -409,23 +350,44 @@ export default function DeliveryDashboard() {
         <Switch checked={partnerProfile.isOnline === true} onCheckedChange={async (o) => { if(firestore && user) await updateDoc(doc(firestore, 'delivery_partners', user.uid), { isOnline: o }); toast({ title: o ? "Online" : "Offline" }); }} className="data-[state=checked]:bg-green-500" />
       </header>
 
-      <main className={cn("flex-1 pb-32 transition-opacity duration-300", isPending ? "opacity-50" : "opacity-100")}>
-         {activeTab === 'home' && (
+      <main className="flex-1 pb-32">
+         {activeTab === 'tasks' && (
            <div className="p-4 space-y-6 animate-in fade-in duration-500">
-              <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-border/50">
-                {['NEW', 'DELIVERED', 'CANCELLED'].map((f) => (
-                  <button key={f} onClick={() => setHomeFilter(f as OrderFilter)} className={cn("flex-1 py-3 text-[9px] font-black rounded-xl transition-all", homeFilter === f ? "bg-primary text-white shadow-lg" : "text-gray-400")}>{f} TASKS</button>
-                ))}
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xl font-black italic uppercase tracking-tighter">Current Tasks</h2>
+                 <Badge className="bg-primary/5 text-primary border-none text-[8px] px-2 font-black">{taskOrders.length} ALERTS</Badge>
               </div>
               <div className="space-y-4">
-                {filteredHomeOrders.length > 0 ? filteredHomeOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} filter={homeFilter} onUpdate={updateDelivery} />
+                {taskOrders.length > 0 ? taskOrders.map((order) => (
+                  <OrderCard key={order.id} order={order} type="active" onUpdate={updateDelivery} userData={partnerProfile} />
                 )) : (
                   <div className="text-center py-20 opacity-30 flex flex-col items-center">
-                    <Package className="h-16 w-16 mb-4" />
-                    <p className="font-black italic uppercase text-xs">No active tasks available</p>
+                    <div className="bg-gray-100 p-8 rounded-full mb-6"><Bike className="h-16 w-16" /></div>
+                    <p className="font-black italic uppercase text-xs">Waiting for tasks in your zone...</p>
                   </div>
                 )}
+              </div>
+           </div>
+         )}
+
+         {activeTab === 'history' && (
+           <div className="p-4 space-y-6 animate-in fade-in duration-500">
+              <div className="flex items-center justify-between px-2">
+                 <h2 className="text-xl font-black italic uppercase tracking-tighter">Delivery History</h2>
+              </div>
+              <div className="space-y-4">
+                {historyOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm opacity-80">
+                     <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-black italic">#{order.customerOrderNumber}</span>
+                        <Badge className={cn("text-[7px] font-black uppercase border-none", order.status === 'Delivered' ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>{order.status}</Badge>
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-[10px] font-bold text-gray-500 uppercase truncate">{order.address}</span>
+                     </div>
+                  </div>
+                ))}
               </div>
            </div>
          )}
@@ -470,7 +432,7 @@ export default function DeliveryDashboard() {
 
       <nav className="fixed bottom-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl">
         {[
-          {id:'home',label:'Tasks',icon:LayoutDashboard},
+          {id:'tasks',label:'Tasks',icon:LayoutDashboard},
           {id:'history',label:'History',icon:History},
           {id:'payout',label:'Earnings',icon:CircleDollarSign},
           {id:'profile',label:'Profile',icon:UserCircle2}

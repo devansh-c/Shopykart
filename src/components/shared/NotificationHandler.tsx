@@ -6,12 +6,13 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Radio, Loader2, BellRing, Volume2 } from 'lucide-react';
+import { Radio, Loader2, BellRing, Volume2, Bike, MapPin } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Global Notification & Urgent Alert Handler.
  * Specialized for Admin, Biz, and Tow variants to ensure ringing alerts.
+ * Added: Ringing logic for Delivery Partners when order is "Ready for Pickup" in their zone.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -20,24 +21,17 @@ export default function NotificationHandler() {
   const pathname = usePathname();
   
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'customer' | 'delivery' | null>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
   const [isAccepting, setIsAccepting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const askPermissions = async () => {
-      const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-      const isBizApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-      const isTowApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
-
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
           try {
-            if (isAdminApp || isBizApp || isTowApp) {
-               await Notification.requestPermission();
-            } else {
-               setTimeout(() => Notification.requestPermission(), 5000);
-            }
+             setTimeout(() => Notification.requestPermission(), 5000);
           } catch (e) {
             console.warn("Notification permission rejected");
           }
@@ -53,12 +47,25 @@ export default function NotificationHandler() {
       if (isAdminAuth) { setUserRole('admin'); return; }
       
       const isDeliveryAuth = localStorage.getItem('delivery_session_active') === 'true';
-      if (isDeliveryAuth) { setUserRole('delivery'); return; }
+      if (isDeliveryAuth && user && firestore) {
+        try {
+          const partnerSnap = await getDoc(doc(firestore, 'delivery_partners', user.uid));
+          if (partnerSnap.exists()) {
+            setUserRole('delivery');
+            setUserData(partnerSnap.data());
+            return;
+          }
+        } catch (e) {}
+      }
 
       if (user && firestore) {
         try {
           const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
-          if (vendorDoc.exists()) { setUserRole('vendor'); return; }
+          if (vendorDoc.exists()) { 
+            setUserRole('vendor'); 
+            setUserData(vendorDoc.data());
+            return; 
+          }
           setUserRole('customer');
         } catch (e) { setUserRole('customer'); }
       }
@@ -75,6 +82,7 @@ export default function NotificationHandler() {
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
+    // 1. ADMIN & VENDOR: Listen for "Placed" orders
     if (userRole === 'admin' || userRole === 'vendor') {
       const q = query(collection(firestore, 'orders'), where('status', '==', 'Placed'));
       const unsub = onSnapshot(q, (snapshot) => {
@@ -92,47 +100,77 @@ export default function NotificationHandler() {
         }
         
         setRingingOrders(targeted);
-
-        if (targeted.length > 0) {
-          if (!audioRef.current) {
-            audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); 
-            audioRef.current.loop = true;
-          }
-          audioRef.current.play().catch(() => {
-            toast({ title: "New Order Incoming!", description: "Enable sound for ringing alerts." });
-          });
-        } else {
-          if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-          }
-        }
+        handleAudio(targeted.length > 0);
       });
-      return () => {
-        unsub();
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-      };
+      return () => unsub();
     }
-  }, [user, firestore, userRole, isManagementPath, toast]);
 
-  const handleAcceptOrder = async (orderId: string) => {
-    if (!firestore || isAccepting) return;
-    setIsAccepting(true);
-    try {
-      await updateDoc(doc(firestore, 'orders', orderId), { 
-        status: 'Accepted', 
-        updatedAt: serverTimestamp() 
+    // 2. DELIVERY PARTNER: Listen for "Ready for Pickup" orders in their zone
+    if (userRole === 'delivery' && userData) {
+      const q = query(
+        collection(firestore, 'orders'), 
+        where('status', '==', 'Ready for Pickup')
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const allReady = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Filter by partner's assigned zone/pincode
+        const targeted = allReady.filter((o: any) => {
+          // If order has no delivery partner assigned yet
+          if (o.deliveryPartnerId) return false;
+          
+          const zoneMatch = o.zoneId === userData.zoneId;
+          const pincodeMatch = o.pincode === userData.assignedPincode;
+          return zoneMatch || pincodeMatch || !userData.assignedPincode; // Default to all if no area set
+        });
+
+        setRingingOrders(targeted);
+        handleAudio(targeted.length > 0);
       });
-      toast({ title: "Order Accepted!" });
-      
+      return () => unsub();
+    }
+
+  }, [user, firestore, userRole, userData, isManagementPath, toast]);
+
+  const handleAudio = (shouldPlay: boolean) => {
+    if (shouldPlay) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); 
+        audioRef.current.loop = true;
+      }
+      audioRef.current.play().catch(() => {
+        toast({ title: "Task Alert!", description: "New order needs attention." });
+      });
+    } else {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
+    }
+  };
+
+  const handleAction = async (orderId: string) => {
+    if (!firestore || isAccepting || !user) return;
+    setIsAccepting(true);
+    try {
+      const nextStatus = userRole === 'delivery' ? 'Picked Up' : 'Accepted';
+      const updateData: any = { 
+        status: nextStatus, 
+        updatedAt: serverTimestamp() 
+      };
+
+      if (userRole === 'delivery') {
+        updateData.deliveryPartnerId = user.uid;
+        updateData.deliveryPartnerName = userData?.fullName || 'Partner';
+        updateData.deliveryPartnerPhone = userData?.phone || '';
+      }
+
+      await updateDoc(doc(firestore, 'orders', orderId), updateData);
+      toast({ title: userRole === 'delivery' ? "Pickup Accepted! 📦" : "Order Accepted!" });
+      
+      handleAudio(false);
+      setRingingOrders([]);
     } catch (err) { 
-      toast({ variant: "destructive", title: "Acceptance Failed" }); 
+      toast({ variant: "destructive", title: "Action Failed" }); 
     } finally { 
       setIsAccepting(false); 
     }
@@ -142,8 +180,10 @@ export default function NotificationHandler() {
     <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
       <DialogContent className="rounded-[3.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white z-[55000] focus:outline-none">
         <DialogHeader className="p-10 pb-2">
-          <DialogTitle className="text-center text-red-600 font-black italic uppercase text-2xl tracking-tighter">Urgent Order Alert</DialogTitle>
-          <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action required for a new incoming order.</DialogDescription>
+          <DialogTitle className="text-center text-red-600 font-black italic uppercase text-2xl tracking-tighter">
+            {userRole === 'delivery' ? 'New Pickup Alert' : 'Urgent Order Alert'}
+          </DialogTitle>
+          <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action required for a new incoming task.</DialogDescription>
         </DialogHeader>
         
         <div className="bg-red-600 h-10 w-full animate-pulse flex items-center justify-center border-b-4 border-black/10">
@@ -157,7 +197,7 @@ export default function NotificationHandler() {
           <div className="relative">
              <div className="absolute inset-0 bg-red-100 rounded-full animate-ping opacity-20" />
              <div className="relative h-32 w-32 bg-red-50 rounded-[3rem] flex items-center justify-center text-red-600 border-4 border-red-100 shadow-inner">
-                <Radio className="h-16 w-16 animate-bounce" />
+                {userRole === 'delivery' ? <Bike className="h-16 w-16 animate-bounce" /> : <Radio className="h-16 w-16 animate-bounce" />}
              </div>
              <div className="absolute -bottom-2 -right-2 bg-white p-2 rounded-xl shadow-lg border border-red-50">
                 <Volume2 className="h-5 w-5 text-red-600" />
@@ -165,19 +205,29 @@ export default function NotificationHandler() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-4xl font-black italic uppercase tracking-tighter text-red-600 leading-none">NEW ORDER!</h2>
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Action: Open Biz/Admin App</p>
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-red-600 leading-none">
+               {userRole === 'delivery' ? 'PICKUP READY!' : 'NEW ORDER!'}
+            </h2>
+            <div className="flex flex-col gap-1">
+               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                  Order #{ringingOrders[0]?.customerOrderNumber || '...'}
+               </p>
+               <div className="flex items-center justify-center gap-1.5 text-primary">
+                  <MapPin className="h-3 w-3" />
+                  <span className="text-[10px] font-bold uppercase">{ringingOrders[0]?.restaurantName || 'ShopyKart Hub'}</span>
+               </div>
+            </div>
           </div>
 
           <Button 
-            onClick={() => handleAcceptOrder(ringingOrders[0].id)} 
+            onClick={() => handleAction(ringingOrders[0].id)} 
             disabled={isAccepting} 
             className="w-full h-20 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black uppercase italic text-2xl border-b-[6px] border-green-800 active:translate-y-1 active:border-b-0 transition-all shadow-xl shadow-green-200"
           >
-            {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : "ACCEPT NOW"}
+            {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : (userRole === 'delivery' ? "ACCEPT PICKUP" : "ACCEPT NOW")}
           </Button>
           
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Order will ring until accepted</p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Alert will stop once accepted</p>
         </div>
       </DialogContent>
     </Dialog>

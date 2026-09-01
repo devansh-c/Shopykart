@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -63,7 +62,6 @@ export default function CartPage() {
   const [deliveryTip, setDeliveryTip] = useState<number>(0);
   const [realDeliveryTime, setRealDeliveryTime] = useState<string>('Calculating...');
   
-  // Recipient States
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({
@@ -74,12 +72,10 @@ export default function CartPage() {
     lng: ''
   });
 
-  // Payment States
   const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Slider Gesture States
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -101,7 +97,6 @@ export default function CartPage() {
   const activeAddress = recipientForm.address || 'Set delivery location';
   const activeCustomerName = recipientForm.name || 'Guest';
   
-  // Dynamic Charges from Admin
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'checkout_charges');
@@ -117,7 +112,6 @@ export default function CartPage() {
 
   const deliveryFee = zoneData?.deliveryCharge || 0;
 
-  // REAL-TIME DISTANCE CALCULATION
   useEffect(() => {
     if (!isMounted || cart.length === 0 || !recipientForm.lat || !recipientForm.lng || !firestore) return;
 
@@ -257,6 +251,8 @@ export default function CartPage() {
         address: activeAddress,
         customerLat: recipientForm.lat ? parseFloat(recipientForm.lat) : null,
         customerLng: recipientForm.lng ? parseFloat(recipientForm.lng) : null,
+        zoneId: activeZoneId,
+        pincode: localStorage.getItem('user_pincode') || '284205',
         items: cart,
         total: totalPayable,
         deliveryTip: deliveryTip,
@@ -371,7 +367,6 @@ export default function CartPage() {
 
       <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
         
-        {/* ITEMS IN BAG */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
               <ShoppingBag className="h-4 w-4 text-amber-400" />
@@ -400,7 +395,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* RECIPIENT & ADDRESS CARD */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
            <div className="flex items-center gap-5 flex-1 min-w-0">
               <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
@@ -424,7 +418,6 @@ export default function CartPage() {
            </button>
         </section>
 
-        {/* DELIVERY TIP SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-5">
            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
@@ -441,7 +434,6 @@ export default function CartPage() {
                     <span className="text-[8px] font-black uppercase tracking-widest">REMOVE</span>
                   </button>
                 )}
-                {deliveryTip > 0 && <span className="text-[10px] font-black text-primary uppercase italic">₹{deliveryTip} Added</span>}
               </div>
            </div>
            
@@ -468,7 +460,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* GOURMET ENHANCEMENTS */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
@@ -504,7 +495,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* BILL SUMMARY */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
            <h3 className="text-xl font-black italic uppercase tracking-tighter">BILL SUMMARY</h3>
            <div className="space-y-4">
@@ -546,7 +536,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* PAYMENT MODE */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
            <h3 className="text-xs font-black uppercase tracking-widest opacity-60">SELECT PAYMENT MODE:</h3>
            
@@ -579,7 +568,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SLIDER BUTTON */}
         <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white via-white to-transparent">
            <div 
              ref={sliderRef}
@@ -642,7 +630,7 @@ export default function CartPage() {
                 <div className="space-y-1.5">
                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Customer Name</label>
                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input 
                         placeholder="WHO IS RECEIVING?" 
                         value={recipientForm.name}
@@ -654,7 +642,7 @@ export default function CartPage() {
                 <div className="space-y-1.5">
                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Contact Number</label>
                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input 
                         placeholder="MOBILE FOR UPDATES" 
                         value={recipientForm.phone}
@@ -769,12 +757,6 @@ export default function CartPage() {
                   >
                     {isPlacing ? <Loader2 className="h-5 w-5 animate-spin" /> : "I HAVE PAID"}
                   </Button>
-                  <button 
-                    onClick={() => setIsVerifying(false)}
-                    className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline"
-                  >
-                    Payment Failed?
-                  </button>
                </div>
             </div>
          </DialogContent>
