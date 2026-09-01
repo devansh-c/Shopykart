@@ -8,7 +8,8 @@ import {
   Loader2,
   Minimize2,
   PhoneCall,
-  KeyRound
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -252,18 +253,9 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     </h2>
                     <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">Arriving Soon</p>
                  </div>
-                 <div className="flex flex-col gap-2">
-                    <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
-                       <span className="text-2xl font-black italic tracking-tighter leading-none">{etaMinutes}</span>
-                       <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
-                    </div>
-                    {/* OTP BOX FOR CUSTOMER */}
-                    {order.deliveryOTP && order.status !== 'Delivered' && (
-                      <div className="bg-gray-900 text-white p-2 rounded-xl flex flex-col items-center justify-center border border-white/10 shadow-xl animate-in zoom-in duration-500">
-                         <span className="text-[6px] font-black uppercase tracking-widest opacity-60">DELIVERY OTP</span>
-                         <span className="text-[10px] font-black italic text-primary">{order.deliveryOTP}</span>
-                      </div>
-                    )}
+                 <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg shadow-green-100/50">
+                    <span className="text-2xl font-black italic tracking-tighter leading-none">{etaMinutes}</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
                  </div>
               </div>
 
@@ -298,11 +290,23 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       </div>
 
       <div className={cn(
-        "px-4 py-8 transition-all duration-500",
+        "px-4 py-4 transition-all duration-500",
         isMapExpanded ? "opacity-0" : "opacity-100"
       )}>
+         {/* FLOATING OTP BOX - BETWEEN CARDS */}
+         {order.deliveryOTP && order.status !== 'Delivered' && (
+           <div className="flex justify-center -mb-5 relative z-[150] animate-in zoom-in duration-500">
+             <div className="bg-[#0B0B0B] text-white px-6 py-2.5 rounded-[1.25rem] shadow-2xl border-2 border-primary/30 flex flex-col items-center">
+                <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 flex items-center gap-1">
+                  <KeyRound className="h-2 w-2 text-primary" /> SECURE DELIVERY OTP
+                </span>
+                <span className="text-sm font-black italic text-primary tracking-widest mt-0.5">{order.deliveryOTP}</span>
+             </div>
+           </div>
+         )}
+
          {order.deliveryPartnerId ? (
-            <div className="bg-white rounded-[2.5rem] p-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700">
+            <div className="bg-white rounded-[2.5rem] p-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700 pt-8">
                <div className="flex items-center gap-5">
                   <div className="relative">
                      <div className="h-16 w-16 bg-primary/5 rounded-[1.5rem] flex items-center justify-center border border-primary/10 overflow-hidden shadow-inner">
@@ -324,7 +328,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                </button>
             </div>
          ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center opacity-40">
+            <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
                <Loader2 className="h-5 w-5 animate-spin text-gray-400 mb-2" />
                <p className="text-[8px] font-black uppercase tracking-[0.4em]">Assigning your delivery hero...</p>
             </div>
