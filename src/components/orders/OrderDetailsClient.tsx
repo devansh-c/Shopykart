@@ -115,14 +115,14 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
           </button>
           <div className="flex flex-col items-center">
              <h4 className="text-[12px] font-black uppercase italic tracking-tighter text-gray-900 leading-none">{order.restaurantName}</h4>
-             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">03:40 PM • {order.items?.length || 1} items</p>
+             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Order Tracking Live</p>
           </div>
           <button className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-900 shadow-lg border border-black/5 active:scale-90 transition-transform pointer-events-auto">
             <MoreHorizontal className="h-5 w-5" />
           </button>
         </header>
 
-        {/* MAP CONTAINER WITH CURVE AS PER IMAGE */}
+        {/* MAP CONTAINER WITH CURVE */}
         <div className="absolute inset-0 z-0 overflow-hidden rounded-b-[2.5rem]">
           <LiveTrackingMap 
             customerLat={parseFloat(String(order.customerLat || 0))} 
@@ -133,14 +133,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             storeName={order.restaurantName}
             onEtaUpdate={(val) => setEta(val)}
           />
-          
-          {/* FLOATING EXPLORE BUTTON */}
-          <div className="absolute right-4 bottom-16 z-50">
-             <div className="h-16 w-16 bg-black rounded-full border-2 border-white/20 flex flex-col items-center justify-center text-white shadow-2xl active:scale-95 transition-all">
-                <span className="text-[12px] font-black leading-none italic">be10x</span>
-                <span className="text-[6px] font-black uppercase tracking-widest mt-1">EXPLORE</span>
-             </div>
-          </div>
         </div>
       </div>
 
@@ -197,14 +189,14 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                </div>
                <div className="flex flex-col">
                   <p className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-tight">Pay ₹{order.total?.toFixed(0)} online to avoid cash handling.</p>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Get cashback with super.money</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Secure Digital Payment</p>
                </div>
             </div>
             <ChevronRight className="h-5 w-5 text-gray-300 group-hover:translate-x-1 transition-transform" />
          </div>
       </div>
 
-      {/* CLEAN FOOTER - BANNERS REMOVED AS REQUESTED */}
+      {/* CLEAN FOOTER */}
       <div className="mt-auto pb-10 text-center opacity-20">
          <p className="text-[8px] font-black uppercase tracking-[0.5em]">ShopyKart Secure Network</p>
       </div>
