@@ -26,11 +26,12 @@ import {
   X, 
   AlertCircle,
   Heart,
-  Smile
+  Smile,
+  ReceiptText
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, setDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
@@ -99,13 +100,38 @@ export default function CartPage() {
   const activeAddress = recipientForm.address || 'Set delivery location';
   const activeCustomerName = recipientForm.name || 'Guest';
   
-  const deliveryFee = 10;
+  // Dynamic Charges from Admin
+  const chargesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'checkout_charges');
+  }, [firestore]);
+  const { data: adminCharges } = useCollection<any>(chargesQuery);
+
+  const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
+  const zonesQuery = useMemoFirebase(() => {
+    if (!firestore || !activeZoneId) return null;
+    return doc(firestore, 'zones', activeZoneId);
+  }, [firestore, activeZoneId]);
+  const { data: zoneData } = useDoc<any>(zonesQuery);
+
+  const deliveryFee = zoneData?.deliveryCharge || 0;
+
+  const calculatedAdminCharges = useMemo(() => {
+    if (!adminCharges) return [];
+    return adminCharges.filter((c: any) => !c.zoneId || c.zoneId === 'global' || c.zoneId === activeZoneId)
+      .map((c: any) => {
+        const value = c.type === 'percentage' ? (totalPrice * (c.value / 100)) : c.value;
+        return { name: c.name, value: Math.round(value) };
+      });
+  }, [adminCharges, totalPrice, activeZoneId]);
+
   const totalPayable = useMemo(() => {
     let base = totalPrice + deliveryFee + deliveryTip;
+    calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
     if (isRedeemCoins) base -= 5;
     return Math.max(0, base);
-  }, [totalPrice, isPremiumPacking, isRedeemCoins, deliveryTip]);
+  }, [totalPrice, deliveryFee, deliveryTip, calculatedAdminCharges, isPremiumPacking, isRedeemCoins]);
 
   const handleSaveRecipient = async () => {
     if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10) {
@@ -343,7 +369,18 @@ export default function CartPage() {
                  <Heart className="h-4 w-4 text-primary fill-primary" />
                  <h3 className="text-xs font-black uppercase tracking-widest">SUPPORT YOUR RIDER</h3>
               </div>
-              {deliveryTip > 0 && <span className="text-[10px] font-black text-primary uppercase italic">₹{deliveryTip} Added</span>}
+              <div className="flex items-center gap-2">
+                {deliveryTip > 0 && (
+                  <button 
+                    onClick={() => setDeliveryTip(0)}
+                    className="flex items-center gap-1.5 bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full border border-red-500/20 active:scale-95 transition-all"
+                  >
+                    <X className="h-3 w-3 stroke-[4]" />
+                    <span className="text-[8px] font-black uppercase tracking-widest">REMOVE</span>
+                  </button>
+                )}
+                {deliveryTip > 0 && <span className="text-[10px] font-black text-primary uppercase italic">₹{deliveryTip} Added</span>}
+              </div>
            </div>
            
            <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed px-1">
@@ -413,10 +450,15 @@ export default function CartPage() {
                  <span>ITEMS SUBTOTAL:</span>
                  <span className="text-white font-black italic text-sm">₹{totalPrice}</span>
               </div>
-              <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                 <span>DELIVERY FEE:</span>
-                 <span className="text-white font-black italic text-sm">₹{deliveryFee}</span>
-              </div>
+              
+              {/* Dynamic Admin Charges */}
+              {calculatedAdminCharges.map((charge, i) => (
+                <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                   <span>{charge.name}:</span>
+                   <span className="text-white font-black italic text-sm">₹{charge.value}</span>
+                </div>
+              ))}
+
               {deliveryTip > 0 && (
                 <div className="flex justify-between items-center text-[10px] font-bold text-primary uppercase tracking-widest">
                    <span>DELIVERY TIP:</span>
@@ -683,3 +725,4 @@ export default function CartPage() {
     </div>
   );
 }
+
