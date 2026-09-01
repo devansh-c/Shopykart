@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -116,22 +117,42 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     resolveOrder();
   }, [firestore, user, forcedId, searchParams]);
 
-  // COUNTDOWN LOGIC: ETA decreases over time
+  // PERSISTENT COUNTDOWN LOGIC: Anchor ETA to a fixed timestamp in localStorage
   useEffect(() => {
     if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;
 
-    const timer = setInterval(() => {
-      setEtaMinutes((prev) => (prev > 1 ? prev - 1 : 1));
-    }, 60000); // Decrease every 1 minute
+    const orderKey = `shopykart_eta_anchor_${order.id}`;
+    let targetArrivalTime = localStorage.getItem(orderKey);
+
+    if (!targetArrivalTime) {
+      // Set a fixed arrival target (e.g., 44 minutes from now)
+      const newTarget = Date.now() + (44 * 60 * 1000);
+      localStorage.setItem(orderKey, newTarget.toString());
+      targetArrivalTime = newTarget.toString();
+    }
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const diffMs = parseInt(targetArrivalTime!) - now;
+      const remainingMins = Math.max(1, Math.ceil(diffMs / (60 * 1000)));
+      setEtaMinutes(remainingMins);
+
+      // Clear interval if delivered
+      if (order.status === 'Delivered') {
+        localStorage.removeItem(orderKey);
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 30000); // Sync every 30 seconds
 
     return () => clearInterval(timer);
   }, [order]);
 
   const handleEtaUpdateFromMap = (etaString: string) => {
-    const mins = parseInt(etaString.split(' ')[0]);
-    if (!isNaN(mins)) {
-      setEtaMinutes(mins);
-    }
+    // If the map provides a more accurate initial ETA, we could adjust the anchor
+    // For now, we prioritize the persistent countdown once established
+    console.debug("Map ETA Sync:", etaString);
   };
 
   const getHeadline = () => {
@@ -161,7 +182,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   if (!order) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
       <h2 className="text-2xl font-black italic uppercase text-gray-900 tracking-tighter">Order not found</h2>
-      <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-2xl h-14 px-8 font-black uppercase italic shadow-xl">Back to Explore</Button>
+      <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl h-14 px-8 font-black uppercase italic shadow-xl">Back to Explore</Button>
     </div>
   );
 
