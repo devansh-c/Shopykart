@@ -1,19 +1,19 @@
 "use client"
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Map, ShoppingCart, User, Home, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 /**
  * @fileOverview Premium Bottom Navigation Centered.
- * Features: Center Aligned, Hide on Scroll Down, Show on Scroll Up, Frosted Glass Effect.
+ * Features: Center Aligned, Link-based Navigation for stability, Frosted Glass Effect.
  * Order: Home | Cart | Track | Rewards | Profile
  */
 export default function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { totalItems } = useCart();
   
   const [isVisible, setIsVisible] = useState(true);
@@ -38,6 +38,7 @@ export default function BottomNav() {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
+    // Strictly exclude all business and specialized hubs from global layouts
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') || 
@@ -72,9 +73,9 @@ export default function BottomNav() {
           const Icon = item.icon;
 
           return (
-            <button
+            <Link
               key={item.label}
-              onClick={() => router.push(item.href)}
+              href={item.href}
               className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90 group"
             >
               <div className="relative">
@@ -99,7 +100,7 @@ export default function BottomNav() {
               )}>
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </nav>
