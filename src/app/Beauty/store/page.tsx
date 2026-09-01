@@ -85,7 +85,7 @@ export default function BeautyDashboard() {
 
   useEffect(() => { setIsMounted(true); }, []);
 
-  // AUTH GUARD & REDIRECT
+  // AUTH GUARD & REDIRECT: Persistent Session Guard
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
@@ -298,7 +298,7 @@ export default function BeautyDashboard() {
     });
   }, [orders, orderFilter]);
 
-  // STRICT BLOCKING FOR UNAUTHORIZED ACCESS
+  // STRICT BLOCKING FOR UNAUTHORIZED ACCESS: Wait for auth recovery
   if (!isMounted || authLoading || (profileLoading && !vendorProfile) || (!user && !authLoading)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">

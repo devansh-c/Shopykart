@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Store, Lock, Loader2, Fingerprint, HeartPulse, Sparkles, ChevronLeft, ArrowRight } from 'lucide-react';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,29 @@ function LoginPageContent() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user, loading: authLoading } = useUser();
+
+  // AUTO-REDIRECT IF ALREADY LOGGED IN
+  useEffect(() => {
+    if (!authLoading && user && firestore) {
+      const checkAndRedirect = async () => {
+        try {
+          const vendorRef = doc(firestore, 'vendors', user.uid);
+          const vendorSnap = await getDoc(vendorRef);
+          if (vendorSnap.exists()) {
+            const vendorData = vendorSnap.data();
+            localStorage.setItem('shopykart_session_active', 'true');
+            if (vendorData.category === 'Medical') router.replace('/Medical/store');
+            else if (vendorData.category === 'Beauty') router.replace('/Beauty/store');
+            else router.replace('/vendor/dashboard');
+          }
+        } catch (e) {
+          console.error("Redirect check failed", e);
+        }
+      };
+      checkAndRedirect();
+    }
+  }, [user, authLoading, firestore, router]);
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -102,6 +125,10 @@ function LoginPageContent() {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">

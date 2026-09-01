@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
@@ -83,6 +82,15 @@ export default function VendorDashboard() {
   });
 
   useEffect(() => { setIsMounted(true); }, []);
+
+  // AUTH GUARD: Prevent repetitive logins
+  useEffect(() => {
+    if (!isMounted || authLoading) return;
+    const sessionActive = localStorage.getItem('shopykart_session_active') === 'true';
+    if (!user && !authLoading) {
+      if (!sessionActive) router.replace('/vendor/login');
+    }
+  }, [user, authLoading, router, isMounted]);
 
   const vendorRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -219,7 +227,7 @@ export default function VendorDashboard() {
     setIsVarietyRequired(false);
   };
 
-  if (!isMounted || authLoading || (profileLoading && !vendorProfile)) {
+  if (!isMounted || authLoading || (profileLoading && !vendorProfile) || (!user && !authLoading)) {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />

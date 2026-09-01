@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
 import { 
   Navigation, 
   Package, 
@@ -280,9 +279,10 @@ export default function DeliveryDashboard() {
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
     
-    // REDIRECT IF NOT LOGGED IN
+    // REDIRECT IF NOT LOGGED IN: Persistence Guard
+    const sessionActive = localStorage.getItem('delivery_session_active') === 'true';
     if (!user && !authLoading) {
-      router.replace('/delivery/login');
+      if (!sessionActive) router.replace('/delivery/login');
       return;
     }
 
@@ -344,7 +344,7 @@ export default function DeliveryDashboard() {
     } catch (e) { toast({ variant: "destructive", title: "Update Failed" }); }
   };
 
-  if (!isMounted || authLoading || profileLoading) {
+  if (!isMounted || authLoading || profileLoading || (!user && !authLoading)) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -26,7 +25,8 @@ export default function DeliveryLoginPage() {
 
   // AUTO-REDIRECT: If already logged in, go to dashboard directly
   useEffect(() => {
-    if (user && !authLoading) {
+    if (!authLoading && user) {
+      localStorage.setItem('delivery_session_active', 'true');
       router.replace('/delivery/dashboard');
     }
   }, [user, authLoading, router]);
