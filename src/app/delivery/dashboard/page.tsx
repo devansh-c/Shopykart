@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -26,7 +27,8 @@ import {
   Compass,
   ExternalLink,
   ChevronRight,
-  Bike
+  Bike,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -277,10 +279,22 @@ export default function DeliveryDashboard() {
 
   useEffect(() => {
     if (!isMounted || authLoading || profileLoading) return;
+    
+    // REDIRECT IF NOT LOGGED IN
     if (!user && !authLoading) {
       router.replace('/delivery/login');
+      return;
     }
-  }, [user, authLoading, profileLoading, router, isMounted]);
+
+    // SECURITY CHECK: If user is logged in but no partner profile exists, sign them out
+    if (user && !partnerProfile && !profileLoading) {
+       console.warn("Security Alert: Logged in user has no delivery profile.");
+       localStorage.removeItem('delivery_session_active');
+       signOut(auth!).then(() => {
+          router.replace('/delivery/login');
+       });
+    }
+  }, [user, authLoading, profileLoading, partnerProfile, router, isMounted, auth]);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -332,13 +346,35 @@ export default function DeliveryDashboard() {
 
   if (!isMounted || authLoading || profileLoading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
-        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic animate-pulse">Syncing Fleet Dashboard...</p>
       </div>
     );
   }
 
-  if (!user || !partnerProfile) return null;
+  // FALLBACK FOR MISSING PROFILE
+  if (!user || !partnerProfile) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-10 text-center gap-6">
+         <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 shadow-inner">
+            <ShieldAlert className="h-10 w-10" />
+         </div>
+         <div className="space-y-2">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Access Denied</h2>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+               This account is not authorized to access the delivery dashboard. Please contact support.
+            </p>
+         </div>
+         <Button 
+            onClick={() => { localStorage.removeItem('delivery_session_active'); signOut(auth!); router.replace('/delivery/login'); }}
+            className="h-12 px-8 bg-black text-white rounded-xl font-black uppercase italic text-[10px]"
+         >
+            BACK TO LOGIN
+         </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col max-w-lg mx-auto shadow-2xl relative transform-gpu">
