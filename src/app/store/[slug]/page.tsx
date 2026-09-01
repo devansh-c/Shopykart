@@ -5,9 +5,12 @@ import MenuContent from '@/components/menu/MenuContent';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-// CRITICAL FOR STATIC EXPORT: Prevents build crash
+/**
+ * @fileOverview Store Hub static export.
+ * Returning a placeholder to satisfy the build requirement.
+ */
 export async function generateStaticParams() {
-  return [];
+  return [{ slug: 'premium-store' }];
 }
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {

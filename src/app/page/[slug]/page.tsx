@@ -5,9 +5,18 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-// CRITICAL FOR STATIC EXPORT: Prevents build crash
+/**
+ * @fileOverview Static export configuration for Policy Pages.
+ * Returning essential slugs to satisfy Next.js build requirements.
+ */
 export async function generateStaticParams() {
-  return [];
+  return [
+    { slug: 'cancellation-policy' },
+    { slug: 'terms-and-conditions' },
+    { slug: 'privacy-policy' },
+    { slug: 'return-policy' },
+    { slug: 'shipping-policy' }
+  ];
 }
 
 export default async function GenericPage({ params }: { params: Promise<{ slug: string }> }) {

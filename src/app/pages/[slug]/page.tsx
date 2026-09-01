@@ -10,7 +10,12 @@ export const dynamicParams = false;
  * @fileOverview Static export compatibility for custom policy pages.
  */
 export async function generateStaticParams() {
-  return [];
+  return [
+    { slug: 'cancellation-policy' },
+    { slug: 'terms-and-conditions' },
+    { slug: 'privacy-policy' },
+    { slug: 'return-policy' }
+  ];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

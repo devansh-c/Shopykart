@@ -5,9 +5,12 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-// CRITICAL FOR STATIC EXPORT: Prevents build crash
+/**
+ * @fileOverview Product details static export.
+ * Returning a placeholder to satisfy the mandatory generateStaticParams requirement.
+ */
 export async function generateStaticParams() {
-  return [];
+  return [{ slug: 'gourmet-item' }];
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
