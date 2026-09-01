@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { Loader2 } from 'lucide-react';
 
@@ -23,6 +23,7 @@ interface LiveTrackingMapProps {
 /**
  * @fileOverview Live Tracking Map with Google Maps API.
  * Matches Zomato-style labels and branded markers.
+ * Optimized: Synchronized libraries to prevent Loader mismatch errors.
  */
 export default function LiveTrackingMap({ 
   customerLat, 
@@ -33,10 +34,11 @@ export default function LiveTrackingMap({
   storeName,
   onEtaUpdate 
 }: LiveTrackingMapProps) {
+  // CRITICAL: Libraries must match exactly with other useJsApiLoader calls in the app
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['geometry'],
+    libraries: ['places', 'geometry'],
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -97,7 +99,10 @@ export default function LiveTrackingMap({
 
   if (!isLoaded || !isClient) return (
     <div className="h-full w-full flex items-center justify-center bg-gray-50">
-      <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Rendering Satellite View...</p>
+      </div>
     </div>
   );
 
@@ -160,8 +165,4 @@ export default function LiveTrackingMap({
 
     </GoogleMap>
   );
-}
-
-function useMemo(factory: () => any, deps: any[]) {
-  return React.useMemo(factory, deps);
 }
