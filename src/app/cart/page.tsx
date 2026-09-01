@@ -32,7 +32,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, setDoc } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, setDoc, getDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,7 @@ export default function CartPage() {
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
   const [deliveryTip, setDeliveryTip] = useState<number>(0);
+  const [realDeliveryTime, setRealDeliveryTime] = useState<string>('Calculating...');
   
   // Recipient States
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -116,6 +117,58 @@ export default function CartPage() {
 
   const deliveryFee = zoneData?.deliveryCharge || 0;
 
+  // REAL-TIME DISTANCE CALCULATION
+  useEffect(() => {
+    if (!isMounted || cart.length === 0 || !recipientForm.lat || !recipientForm.lng || !firestore) return;
+
+    const calculateDeliveryTime = async () => {
+      // 1. Check if Google Maps is loaded
+      if (typeof google === 'undefined' || !google.maps) {
+        setTimeout(calculateDeliveryTime, 2000);
+        return;
+      }
+
+      try {
+        // 2. Get Vendor ID from the first item
+        const firstVendorId = cart[0].vendorId;
+        if (!firstVendorId) return;
+
+        // 3. Fetch Vendor location
+        const vendorSnap = await getDoc(doc(firestore, 'vendors', firstVendorId));
+        if (!vendorSnap.exists()) return;
+        const vendorData = vendorSnap.data();
+
+        if (vendorData.lat && vendorData.lng) {
+          const service = new google.maps.DistanceMatrixService();
+          const origin = new google.maps.LatLng(parseFloat(recipientForm.lat), parseFloat(recipientForm.lng));
+          const destination = new google.maps.LatLng(vendorData.lat, vendorData.lng);
+
+          service.getDistanceMatrix({
+            origins: [origin],
+            destinations: [destination],
+            travelMode: google.maps.TravelMode.DRIVING,
+            unitSystem: google.maps.UnitSystem.METRIC,
+          }, (response, status) => {
+            if (status === 'OK' && response?.rows[0]?.elements[0]?.status === 'OK') {
+              const element = response.rows[0].elements[0];
+              const durationValue = Math.ceil(element.duration.value / 60); // duration in minutes
+              const totalTime = durationValue + 12; // Add 12 mins preparation time
+              setRealDeliveryTime(`${totalTime} MINS`);
+            } else {
+              setRealDeliveryTime('30-40 MINS');
+            }
+          });
+        } else {
+          setRealDeliveryTime('25-35 MINS');
+        }
+      } catch (err) {
+        setRealDeliveryTime('35-45 MINS');
+      }
+    };
+
+    calculateDeliveryTime();
+  }, [isMounted, cart, recipientForm.lat, recipientForm.lng, firestore]);
+
   const calculatedAdminCharges = useMemo(() => {
     if (!adminCharges) return [];
     return adminCharges.filter((c: any) => !c.zoneId || c.zoneId === 'global' || c.zoneId === activeZoneId)
@@ -159,14 +212,16 @@ export default function CartPage() {
   };
 
   const handleConfirmMapLocation = (lat: number, lng: number, address?: string) => {
+    const sLat = lat.toString();
+    const sLng = lng.toString();
     setRecipientForm(prev => ({
       ...prev,
-      lat: lat.toString(),
-      lng: lng.toString(),
+      lat: sLat,
+      lng: sLng,
       address: address || prev.address
     }));
-    localStorage.setItem('user_lat', lat.toString());
-    localStorage.setItem('user_lng', lng.toString());
+    localStorage.setItem('user_lat', sLat);
+    localStorage.setItem('user_lng', sLng);
     setIsMapOpen(false);
     toast({ title: "House Pinned! 🏠" });
   };
@@ -310,7 +365,7 @@ export default function CartPage() {
       <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
         
         {/* ITEMS IN BAG */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
               <ShoppingBag className="h-4 w-4 text-amber-400" />
               <h3 className="text-xs font-black uppercase tracking-widest">ITEMS IN BAG</h3>
@@ -332,14 +387,14 @@ export default function CartPage() {
                          </div>
                       </div>
                    </div>
-                   <div className="text-sm font-black italic">₹{item.price * item.quantity}</div>
+                   <div className="text-sm font-black italic">₹{(item.price * item.quantity).toFixed(0)}</div>
                 </div>
               ))}
            </div>
         </section>
 
         {/* RECIPIENT & ADDRESS CARD */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
            <div className="flex items-center gap-5 flex-1 min-w-0">
               <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
                  <MapPin className="h-6 w-6" />
@@ -350,7 +405,7 @@ export default function CartPage() {
                  </h4>
                  <p className="text-[10px] font-bold text-white/80 uppercase mt-2 line-clamp-1 italic">{activeAddress}</p>
                  <div className="flex items-center gap-2 mt-3 text-[9px] font-black uppercase tracking-widest text-white/60">
-                    <Clock className="h-3 w-3" /> 25-35 MINS DELIVERY
+                    <Clock className="h-3 w-3 text-amber-400" /> {realDeliveryTime} DELIVERY
                  </div>
               </div>
            </div>
@@ -363,7 +418,7 @@ export default function CartPage() {
         </section>
 
         {/* DELIVERY TIP SECTION */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-5">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-5">
            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
                  <Heart className="h-4 w-4 text-primary fill-primary" />
@@ -407,7 +462,7 @@ export default function CartPage() {
         </section>
 
         {/* GOURMET ENHANCEMENTS */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center gap-3 mb-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
               <h3 className="text-xs font-black uppercase tracking-widest">GOURMET ENHANCEMENTS</h3>
@@ -443,19 +498,19 @@ export default function CartPage() {
         </section>
 
         {/* BILL SUMMARY */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
            <h3 className="text-xl font-black italic uppercase tracking-tighter">BILL SUMMARY</h3>
            <div className="space-y-4">
               <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
                  <span>ITEMS SUBTOTAL:</span>
-                 <span className="text-white font-black italic text-sm">₹{totalPrice}</span>
+                 <span className="text-white font-black italic text-sm">₹{totalPrice.toFixed(0)}</span>
               </div>
               
               {/* Dynamic Admin Charges */}
               {calculatedAdminCharges.map((charge, i) => (
                 <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
                    <span>{charge.name}:</span>
-                   <span className="text-white font-black italic text-sm">₹{charge.value}</span>
+                   <span className="text-white font-black italic text-sm">₹{charge.value.toFixed(0)}</span>
                 </div>
               ))}
 
@@ -481,12 +536,12 @@ export default function CartPage() {
 
            <div className="pt-6 border-t border-white/5 flex justify-between items-center">
               <span className="text-sm font-black italic uppercase tracking-tighter text-white/40">GRAND TOTAL:</span>
-              <span className="text-3xl font-black italic tracking-tighter text-amber-400">₹{totalPayable}</span>
+              <span className="text-3xl font-black italic tracking-tighter text-amber-400">₹{totalPayable.toFixed(0)}</span>
            </div>
         </section>
 
         {/* PAYMENT MODE */}
-        <section className="bg-[#2D281F] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-8">
            <h3 className="text-xs font-black uppercase tracking-widest opacity-60">SELECT PAYMENT MODE:</h3>
            
            <div className="space-y-6">
@@ -522,7 +577,7 @@ export default function CartPage() {
         <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white via-white to-transparent">
            <div 
              ref={sliderRef}
-             className="w-full h-20 bg-[#2D281F] rounded-full p-2 flex items-center relative shadow-2xl overflow-hidden select-none"
+             className="w-full h-20 bg-[#1C1917] rounded-full p-2 flex items-center relative shadow-2xl overflow-hidden select-none"
            >
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn(
@@ -552,7 +607,7 @@ export default function CartPage() {
               </div>
 
               <div className="flex-1 text-right pr-6 pointer-events-none">
-                 <div className="text-xl font-black text-white italic tracking-tighter">₹{totalPayable}</div>
+                 <div className="text-xl font-black text-white italic tracking-tighter">₹{totalPayable.toFixed(0)}</div>
               </div>
 
               {isPlacing && (
@@ -574,7 +629,7 @@ export default function CartPage() {
                <MapPin className="h-8 w-8" />
             </div>
             <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-center">RECIPIENT & ADDRESS</DialogTitle>
-            <DialogDescription className="text-[9px] font-bold text-gray-500 uppercase text-center tracking-[0.2em] mt-1">Set house details for 10-min delivery</DialogDescription>
+            <DialogDescription className="text-[9px] font-bold text-gray-500 uppercase text-center tracking-[0.2em] mt-1">Set house details for accurate delivery</DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-6">
