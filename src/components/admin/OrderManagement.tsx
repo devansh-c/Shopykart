@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -24,7 +24,8 @@ import {
   CheckCircle2,
   Printer,
   Download,
-  FileText
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -98,67 +99,114 @@ export default function OrderManagement() {
       const FileSaver = await import('file-saver');
       const saveAs = FileSaver.saveAs || (FileSaver as any).default;
 
-      // Create a hidden receipt element
+      // Create a container with specific styling to match the image exactly
       const receipt = document.createElement('div');
-      receipt.style.padding = '40px';
-      receipt.style.width = '400px';
+      receipt.style.padding = '50px 40px';
+      receipt.style.width = '480px';
       receipt.style.backgroundColor = '#ffffff';
       receipt.style.color = '#000000';
-      receipt.style.fontFamily = 'monospace';
+      receipt.style.fontFamily = "'Inter', sans-serif, 'Courier New'";
       receipt.style.textTransform = 'uppercase';
       
+      const orderDate = order.createdAt?.seconds 
+        ? format(new Date(order.createdAt.seconds * 1000), 'dd MMM yyyy, hh:mm a')
+        : format(new Date(), 'dd MMM yyyy, hh:mm a');
+
+      const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+
       receipt.innerHTML = `
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 24px;">SHOPYKART</h1>
-          <p style="margin: 5px 0; font-size: 10px;">Premium Delivery Network</p>
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 900; letter-spacing: -1px; font-style: italic;">SHOPYKART</h1>
+          <p style="margin: 4px 0; font-size: 9px; font-weight: 800; letter-spacing: 2px; color: #333;">PREMIUM DELIVERY NETWORK</p>
+          <div style="margin-top: 15px; font-size: 8px; font-weight: 700; color: #555;">
+            SHOPYKART PREMIUM DELIVERY<br/>POWERED BY DEVANSH GUPTA
+          </div>
+          <div style="border-top: 1px dashed #ccc; margin: 10px auto; width: 60%;"></div>
         </div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-        <div style="font-size: 11px; margin-bottom: 20px;">
-          <p>Order: #${order.customerOrderNumber || order.id.slice(-6)}</p>
-          <p>Date: ${format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd/MM/yyyy HH:mm')}</p>
-          <p>Store: ${order.restaurantName || 'ShopyKart'}</p>
-          <p>Customer: ${order.customerName}</p>
-          <p>Phone: ${order.customerPhone}</p>
+
+        <div style="margin-bottom: 30px; line-height: 1.8; font-size: 11px; font-weight: 600;">
+          <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span style="font-weight: 900;">#${order.customerOrderNumber || '9'}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>STORES:</span><span style="text-align: right; max-width: 250px;">${order.restaurantName || 'ShopyKart Hub'}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>PHONE:</span><span>${order.customerPhone}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>PAYMENT:</span><span>${order.paymentMethod === 'ONLINE' ? 'ONLINE PREPAID' : 'CASH ON DELIVERY'}</span></div>
+          <div style="display: flex; justify-content: space-between; color: #ef4444; margin-top: 5px;"><span>DELIVERY OTP:</span><span style="font-weight: 900;">${order.deliveryOTP || '---'}</span></div>
         </div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-        <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+
+        <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
+        
+        <table style="width: 100%; font-size: 11px; border-collapse: collapse; font-weight: 700;">
           <thead>
-            <tr style="border-bottom: 1px dashed #000;">
-              <th style="text-align: left; padding: 5px 0;">Item</th>
-              <th style="text-align: right; padding: 5px 0;">Qty</th>
-              <th style="text-align: right; padding: 5px 0;">Amt</th>
+            <tr>
+              <th style="text-align: left; padding: 10px 0;">ITEM DESCRIPTION</th>
+              <th style="text-align: center; padding: 10px 0;">QTY</th>
+              <th style="text-align: right; padding: 10px 0;">PRICE</th>
             </tr>
           </thead>
           <tbody>
+            <tr style="border-bottom: 1px dashed #000;"></tr>
             ${order.items?.map((item: any) => `
               <tr>
-                <td style="padding: 5px 0;">${item.name}</td>
-                <td style="text-align: right;">${item.quantity}</td>
-                <td style="text-align: right;">₹${(item.price * item.quantity).toFixed(0)}</td>
+                <td style="padding: 12px 0; font-weight: 900;">${item.name}</td>
+                <td style="text-align: center; color: #666;">X${item.quantity}</td>
+                <td style="text-align: right; font-weight: 900;">${(item.price * item.quantity).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
-        <div style="border-top: 1px dashed #000; margin: 20px 0 10px 0;"></div>
-        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
-          <span>Total</span>
-          <span>₹${order.total?.toFixed(0)}</span>
+
+        <div style="border-top: 1px dashed #000; margin-top: 10px;"></div>
+        
+        <div style="padding: 15px 0; font-size: 11px; font-weight: 700;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>ITEMS SUBTOTAL:</span>
+            <span style="font-weight: 900;">₹${(order.total - (order.deliveryFee || 0)).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-style: italic; color: #666;">
+            <span>DELHIVERY FEE:</span>
+            <span>₹${(order.deliveryFee || 10).toFixed(2)}</span>
+          </div>
         </div>
-        <div style="text-align: center; margin-top: 30px; font-size: 10px;">
-          <p>Payment: ${order.paymentMethod}</p>
-          <p>Thank you for choosing ShopyKart!</p>
+
+        <div style="border-top: 2px solid #000; margin-bottom: 15px;"></div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
+          <span style="font-size: 22px; font-weight: 900; font-style: italic; letter-spacing: -1px;">GRAND TOTAL</span>
+          <span style="font-size: 22px; font-weight: 900; font-style: italic;">₹${order.total?.toFixed(2)}</span>
+        </div>
+
+        <div style="border-top: 1px dashed #000; margin: 20px 0;"></div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <div style="display: inline-block; padding: 15px; border: 1px dotted #000; border-radius: 4px;">
+            <img src="${qrCodeUrl}" style="width: 140px; height: 140px;" />
+            <p style="margin-top: 10px; font-size: 8px; font-weight: 900; letter-spacing: 2px; color: #000;">SCAN TO PAY</p>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+          <p style="font-size: 14px; font-weight: 900; font-style: italic; margin-bottom: 5px;">ENJOY YOUR DELICIOUS MEAL!</p>
+          <p style="font-size: 7px; color: #999; line-height: 1.4;">THANK YOU FOR CHOOSING SHOPYKART! THIS IS A COMPUTER GENERATED INVOICE.</p>
+          
+          <div style="margin-top: 30px; display: inline-block; border: 1px solid #000; padding: 5px 15px;">
+            <span style="font-size: 8px; font-weight: 900; letter-spacing: 3px;">POWERED BY SHOPYKART</span>
+          </div>
         </div>
       `;
       
       document.body.appendChild(receipt);
-      const blob = await toBlob(receipt);
+      const blob = await toBlob(receipt, { pixelRatio: 2 }); // High quality conversion
       document.body.removeChild(receipt);
       
       if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `Receipt_Order_${order.customerOrderNumber || 'SK'}.png`);
+        saveAs(blob, `ShopyKart_Receipt_${order.customerOrderNumber || order.id.slice(-4)}.png`);
         toast({ title: "Receipt Downloaded! ✅" });
       }
     } catch (err) {
+      console.error("Receipt error:", err);
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
       setIsDownloading(null);
@@ -336,7 +384,7 @@ export default function OrderManagement() {
                         isDelivered ? "bg-green-600 border-green-800 text-white" : "bg-white text-black hover:bg-primary hover:text-white border-gray-200"
                       )}
                     >
-                      {isDelivered && <CheckCircle2 className="mr-2 h-6 w-6" />}
+                      {isDelivered ? <CheckCircle2 className="mr-2 h-6 w-6" /> : null}
                       {getButtonLabel(order.status)}
                     </Button>
                     
