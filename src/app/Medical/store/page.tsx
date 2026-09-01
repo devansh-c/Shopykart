@@ -111,6 +111,8 @@ export default function MedicalDashboard() {
   // Product Form State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
+  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
   const [productForm, setProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', mfgDate: '', expiryDate: '', preparingTime: ''
   });
@@ -225,6 +227,20 @@ export default function MedicalDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddOption = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setOptions(newOptions);
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
       toast({ variant: "destructive", title: "Missing Information" });
@@ -248,6 +264,8 @@ export default function MedicalDashboard() {
       isAvailable: true,
       mfgDate: productForm.mfgDate || null,
       expiryDate: productForm.expiryDate || null,
+      options: options.filter(opt => opt.name.trim() !== ''),
+      isVarietyRequired: isVarietyRequired,
       isVeg: true, 
       updatedAt: serverTimestamp(),
       isDeleted: false,
@@ -270,6 +288,8 @@ export default function MedicalDashboard() {
 
   const resetForm = () => {
     setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', mfgDate: '', expiryDate: '', preparingTime: '' });
+    setOptions([]);
+    setIsVarietyRequired(false);
   };
 
   const filteredOrders = useMemo(() => {
@@ -407,6 +427,29 @@ export default function MedicalDashboard() {
                                    </div>
                                 </div>
 
+                                {/* VARIETY SECTION FOR MEDICAL HUB */}
+                                <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
+                                   <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                         <ListTree className="h-4 w-4 text-teal-600" />
+                                         <span className="text-[10px] font-black uppercase">Packaging Units</span>
+                                      </div>
+                                      <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-teal-600" />
+                                   </div>
+                                   <div className="space-y-2">
+                                      {options.map((opt, idx) => (
+                                        <div key={idx} className="flex gap-2">
+                                           <Input placeholder="Unit (e.g. 10 Tabs)" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs flex-[2]" />
+                                           <Input type="number" placeholder="+₹" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-xs text-teal-600 flex-1" />
+                                           <button onClick={() => handleRemoveOption(idx)} className="h-10 w-10 text-red-400"><Trash2 className="h-4 w-4" /></button>
+                                        </div>
+                                      ))}
+                                      <button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-teal-100 text-teal-600 rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2">
+                                         <Plus className="h-3 w-3" /> ADD UNIT VARIETY
+                                      </button>
+                                   </div>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                    <Input placeholder="MFG Date" value={productForm.mfgDate} onChange={e => setProductForm({...productForm, mfgDate: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none" />
                                    <Input placeholder="EXP Date" value={productForm.expiryDate} onChange={e => setProductForm({...productForm, expiryDate: e.target.value})} className="h-12 rounded-xl bg-muted/20 border-none text-red-500 font-black" />
@@ -515,7 +558,7 @@ export default function MedicalDashboard() {
          </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-[1000] rounded-t-[2.5rem] shadow-2xl transform-gpu">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-[#0F172A] pt-4 pb-8 px-6 flex justify-around border-t border-white/5 z-50 rounded-t-[2.5rem] shadow-2xl transform-gpu">
         {[
           {id:'orders',label:'Orders',icon:LayoutDashboard},
           {id:'catalog',label:'Catalog',icon:Layers},

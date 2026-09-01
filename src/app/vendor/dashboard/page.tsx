@@ -34,7 +34,8 @@ import {
   ShieldCheck,
   CreditCard,
   Banknote,
-  Timer
+  Timer,
+  ListTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -64,6 +65,8 @@ export default function VendorDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
+  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
   const [productForm, setProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
@@ -99,6 +102,20 @@ export default function VendorDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddOption = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setOptions(newOptions);
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price) {
       toast({ variant: "destructive", title: "Missing Info" });
@@ -118,6 +135,8 @@ export default function VendorDashboard() {
         imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/food/400/400',
         vendorId: user.uid,
         id: newRef.id,
+        options: options.filter(opt => opt.name.trim() !== ''),
+        isVarietyRequired: isVarietyRequired,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         isAvailable: true,
@@ -128,13 +147,19 @@ export default function VendorDashboard() {
       await setDoc(newRef, pData);
       
       setIsProductModalOpen(false);
-      setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
+      resetForm();
       toast({ title: "Product Published!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Save Failed" });
     } finally {
       setIsSavingProduct(false);
     }
+  };
+
+  const resetForm = () => {
+    setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
+    setOptions([]);
+    setIsVarietyRequired(false);
   };
 
   if (!isMounted || authLoading || !user) {
@@ -171,7 +196,7 @@ export default function VendorDashboard() {
           <div className="p-4 space-y-6">
             <div className="flex justify-between items-center px-2">
                <h2 className="text-xl font-black italic uppercase">Inventory</h2>
-               <Dialog open={isProductModalOpen} onOpenChange={setIsProductModalOpen}>
+               <Dialog open={isProductModalOpen} onOpenChange={(val) => { setIsProductModalOpen(val); if(!val) resetForm(); }}>
                   <DialogTrigger asChild><Button className="bg-primary text-white rounded-xl h-10 font-black uppercase text-[10px]"><Plus className="h-4 w-4 mr-1" /> ADD ITEM</Button></DialogTrigger>
                   <DialogContent className="rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-h-[85vh] flex flex-col">
                      <DialogHeader className="p-8 pb-2 shrink-0">
@@ -209,6 +234,30 @@ export default function VendorDashboard() {
                                     {foodCategories?.map((c: any) => <SelectItem key={c.id} value={c.name.toLowerCase()} className="font-bold py-3 uppercase text-xs">{c.name}</SelectItem>)}
                                  </SelectContent>
                               </Select>
+                           </div>
+
+                           {/* VARIETY SECTION - RESTORED FOR VENDOR DASHBOARD */}
+                           <div className="space-y-4 p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
+                              <div className="flex items-center justify-between">
+                                 <div className="flex items-center gap-2">
+                                    <div className="bg-primary/10 p-2 rounded-xl text-primary"><ListTree className="h-4 w-4" /></div>
+                                    <span className="text-[10px] font-black uppercase tracking-tight">Varieties / Sizes</span>
+                                 </div>
+                                 <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-primary" />
+                              </div>
+
+                              <div className="space-y-2">
+                                 {options.map((opt, idx) => (
+                                   <div key={idx} className="flex gap-2">
+                                      <Input placeholder="Name" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]" />
+                                      <Input type="number" placeholder="+₹" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-xs text-primary flex-1" />
+                                      <button onClick={() => handleRemoveOption(idx)} className="bg-red-50 text-red-500 h-10 w-10 rounded-xl flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
+                                   </div>
+                                 ))}
+                                 <button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-primary/20 text-primary rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2 hover:bg-primary/5 transition-all">
+                                    <Plus className="h-3 w-3" /> ADD VARIETY OPTION
+                                 </button>
+                              </div>
                            </div>
 
                            <div className="space-y-1">

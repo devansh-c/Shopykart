@@ -111,6 +111,8 @@ export default function BeautyDashboard() {
   // Product Form State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isVarietyRequired, setIsVarietyRequired] = useState(false);
+  const [options, setOptions] = useState<{ name: string; price: number }[]>([]);
   const [productForm, setProductForm] = useState({
     name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: ''
   });
@@ -225,6 +227,20 @@ export default function BeautyDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleAddOption = () => {
+    setOptions([...options, { name: '', price: 0 }]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: string, value: any) => {
+    const newOptions = [...options];
+    (newOptions[index] as any)[field] = field === 'price' ? parseFloat(value) || 0 : value;
+    setOptions(newOptions);
+  };
+
   const handleSaveProduct = async () => {
     if (!firestore || !user || !productForm.name || !productForm.price || !productForm.category) {
       toast({ variant: "destructive", title: "Missing Information" });
@@ -246,6 +262,8 @@ export default function BeautyDashboard() {
       town: vendorProfile?.town || 'Local',
       imageUrl: productForm.imageUrl || 'https://picsum.photos/seed/beauty/400/400',
       isAvailable: true,
+      options: options.filter(opt => opt.name.trim() !== ''),
+      isVarietyRequired: isVarietyRequired,
       isVeg: true, 
       updatedAt: serverTimestamp(),
       isDeleted: false,
@@ -268,6 +286,8 @@ export default function BeautyDashboard() {
 
   const resetForm = () => {
     setProductForm({ name: '', price: '', mrp: '', description: '', category: '', imageUrl: '', preparingTime: '' });
+    setOptions([]);
+    setIsVarietyRequired(false);
   };
 
   const filteredOrders = useMemo(() => {
@@ -402,6 +422,29 @@ export default function BeautyDashboard() {
                                          <Timer className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-400" />
                                          <Input type="number" placeholder="15" value={productForm.preparingTime} onChange={e => setProductForm({...productForm, preparingTime: e.target.value})} className="h-12 rounded-xl bg-rose-50 border-none pl-9 font-bold" />
                                       </div>
+                                   </div>
+                                </div>
+
+                                {/* VARIETY SECTION FOR BEAUTY HUB */}
+                                <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
+                                   <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                         <ListTree className="h-4 w-4 text-rose-600" />
+                                         <span className="text-[10px] font-black uppercase">Product Shades/Sizes</span>
+                                      </div>
+                                      <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-rose-600" />
+                                   </div>
+                                   <div className="space-y-2">
+                                      {options.map((opt, idx) => (
+                                        <div key={idx} className="flex gap-2">
+                                           <Input placeholder="Shade Name" value={opt.name} onChange={e => updateOption(idx, 'name', e.target.value)} className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]" />
+                                           <Input type="number" placeholder="+₹" value={opt.price} onChange={e => updateOption(idx, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-xs text-rose-600 flex-1" />
+                                           <button onClick={() => handleRemoveOption(idx)} className="h-10 w-10 text-red-400"><Trash2 className="h-4 w-4" /></button>
+                                        </div>
+                                      ))}
+                                      <button onClick={handleAddOption} className="w-full h-10 border-2 border-dashed border-rose-100 text-rose-600 rounded-xl font-black uppercase text-[8px] flex items-center justify-center gap-2">
+                                         <Plus className="h-3 w-3" /> ADD OPTION
+                                      </button>
                                    </div>
                                 </div>
                              </div>
@@ -580,7 +623,7 @@ export default function BeautyDashboard() {
                         <Input 
                           placeholder="e.g. SBIN0001234" 
                           value={kycForm.ifscCode}
-                          onChange={e => setKycForm({...kycForm, ifscCode: e.target.value.toUpperCase()})}
+                          onChange={e => setKycForm({...kycCode, ifscCode: e.target.value.toUpperCase()})}
                           className="h-16 pl-12 rounded-[1.5rem] bg-gray-50 border-none font-black tracking-widest text-primary focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                      </div>

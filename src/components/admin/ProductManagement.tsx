@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Loader2, Trophy, FileUp, Globe, ListPlus, X, Timer } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Image as ImageIcon, Loader2, Trophy, FileUp, Globe, ListPlus, X, Timer, ListTree } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -203,6 +203,58 @@ export default function ProductManagement() {
                   </div>
                </div>
 
+               {/* VARIETY SECTION - RESTORED AS PER REQUEST */}
+               <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
+                  <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                        <div className="bg-primary/10 p-2 rounded-xl text-primary"><ListTree className="h-4 w-4" /></div>
+                        <div>
+                           <h4 className="text-[11px] font-black uppercase tracking-tight">Product Varieties / Sizes</h4>
+                           <p className="text-[7px] font-bold text-muted-foreground uppercase">Add different versions of this product</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-black uppercase text-gray-400">Choice Required?</span>
+                        <Switch checked={isVarietyRequired} onCheckedChange={setIsVarietyRequired} className="scale-75 data-[state=checked]:bg-primary" />
+                     </div>
+                  </div>
+
+                  <div className="space-y-3">
+                     {options.map((opt, idx) => (
+                       <div key={idx} className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
+                          <Input 
+                            placeholder="Variant Name (e.g. Full)" 
+                            value={opt.name}
+                            onChange={e => updateOption(idx, 'name', e.target.value)}
+                            className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase flex-[2]"
+                          />
+                          <div className="relative flex-1">
+                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary">₹</span>
+                             <Input 
+                                type="number" 
+                                placeholder="0" 
+                                value={opt.price}
+                                onChange={e => updateOption(idx, 'price', e.target.value)}
+                                className="h-10 pl-6 rounded-xl bg-white border-none font-black text-xs text-primary"
+                             />
+                          </div>
+                          <button 
+                            onClick={() => handleRemoveOption(idx)}
+                            className="h-10 w-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all"
+                          >
+                             <Trash2 className="h-4 w-4" />
+                          </button>
+                       </div>
+                     ))}
+                     <button 
+                        onClick={handleAddOption}
+                        className="w-full h-10 border-2 border-dashed border-primary/20 text-primary rounded-xl font-black uppercase text-[8px] tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-primary/5 transition-all"
+                     >
+                        <Plus className="h-3 w-3" /> ADD VARIETY OPTION
+                     </button>
+                  </div>
+               </div>
+
                <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Assign to Partner Store</label>
                   <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
@@ -259,7 +311,3 @@ export default function ProductManagement() {
     </div>
   );
 }
-
-const Edit3 = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-);
