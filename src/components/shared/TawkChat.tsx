@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Tawk.to visibility control with atomic state tracking.
  * Strictly prevents redundant API calls to eliminate [Tawk/Logger] console errors.
+ * Added defensive timeout management to handle rapid navigation.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -31,7 +32,7 @@ export function TawkChat() {
     if (!isClient || !isTawkReady) return;
 
     const tawk = (window as any).Tawk_API;
-    if (!tawk || typeof tawk.hide !== 'function' || typeof tawk.show !== 'function') return;
+    if (!tawk) return;
 
     const path = pathname?.toLowerCase() || '';
     
@@ -53,19 +54,24 @@ export function TawkChat() {
 
     // ATOMIC CHECK & DEBOUNCE: Only call if state actually flips
     if (lastStateRef.current !== newState) {
-      try {
-        // Slight timeout to let the widget internal state settle
-        setTimeout(() => {
-          if (shouldShow) {
-            tawk.show();
-          } else {
-            tawk.hide();
+      const applyTawkState = () => {
+        const currentTawk = (window as any).Tawk_API;
+        if (currentTawk && typeof currentTawk.show === 'function' && typeof currentTawk.hide === 'function') {
+          try {
+            if (shouldShow) {
+              currentTawk.show();
+            } else {
+              currentTawk.hide();
+            }
+            lastStateRef.current = newState;
+          } catch (e) {
+            // Silently ignore Tawk internal state errors
           }
-          lastStateRef.current = newState;
-        }, 300);
-      } catch (e) {
-        // Silently handle any initialization races
-      }
+        }
+      };
+
+      const timer = setTimeout(applyTawkState, 600);
+      return () => clearTimeout(timer);
     }
   }, [pathname, isClient, isTawkReady]);
 

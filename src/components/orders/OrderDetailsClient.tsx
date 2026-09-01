@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -65,7 +64,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       }
 
       if (!foundOrder) {
-        const hash = window.location.hash.replace('#', '');
+        const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
         const orderNum = parseInt(hash);
         if (!isNaN(orderNum) && user) {
            try {
@@ -158,7 +157,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </div>
       </div>
 
-      {/* 2. FLOATING TRACKING CARD (INTEGRATED) */}
+      {/* 2. FLOATING TRACKING CARD (INTEGRATED OVERLAP) */}
       <div className="relative z-[100] px-4 -mt-20">
          <div className="bg-white rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.15)] overflow-hidden border border-black/[0.03] animate-in slide-in-from-bottom-6 duration-700">
             <div className="p-7">
