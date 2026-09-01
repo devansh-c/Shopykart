@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Tawk.to visibility control with ultra-defensive error handling.
  * Prevents internal [Tawk/Logger] errors by debouncing and wrapping API calls.
- * NextJS Error Overlay is strictly handled by global console override.
+ * Implements a global error suppressor to prevent Next.js Error Overlay for Tawk internal bugs.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -18,15 +18,30 @@ export function TawkChat() {
   useEffect(() => {
     setIsClient(true);
     
-    // STRICT SUPPRESSION: Override console.error specifically for Tawk Logger noise
     if (typeof window !== 'undefined') {
+      // 1. STRICT SUPPRESSION: Override console.error specifically for Tawk Logger noise
       const originalError = window.console.error;
       window.console.error = (...args) => {
         const msg = args[0];
-        if (typeof msg === 'string' && (msg.includes('[Tawk/Logger]') || msg.includes('Tawk_API'))) {
+        if (typeof msg === 'string' && (msg.includes('[Tawk/Logger]') || msg.includes('Tawk_API') || msg.includes('i18next'))) {
           return; // Ignore Tawk internal logs
         }
         originalError.apply(window.console, args);
+      };
+
+      // 2. GLOBAL ERROR SHIELD: Specifically catch and ignore Tawk-related runtime errors
+      // This prevents the Next.js Red Screen of Death for third-party script bugs.
+      const originalWindowError = window.onerror;
+      window.onerror = function(message, source, lineno, colno, error) {
+        const msg = String(message).toLowerCase();
+        if (msg.includes('tawk') || msg.includes('i18next') || (source && source.includes('tawk.to'))) {
+          console.debug('Suppressed Tawk internal error:', message);
+          return true; // Prevents the error from propagating and triggering the overlay
+        }
+        if (originalWindowError) {
+          return originalWindowError.apply(window, [message, source, lineno, colno, error]);
+        }
+        return false;
       };
     }
 
@@ -75,12 +90,12 @@ export function TawkChat() {
             }
             lastStateRef.current = newState;
           } catch (e) {
-            // Silently ignore script internal logger errors
+            // Silently ignore script internal errors
           }
         }
       };
 
-      const timer = setTimeout(applyTawkState, 1000);
+      const timer = setTimeout(applyTawkState, 1500); // Increased debounce for stability
       return () => clearTimeout(timer);
     }
   }, [pathname, isClient, isTawkReady]);
@@ -89,7 +104,7 @@ export function TawkChat() {
 
   return (
     <>
-      <Script id="tawk-setup" strategy="afterInteractive">
+      <Script id="tawk-setup" strategy="lazyOnload">
         {`
           var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
           
