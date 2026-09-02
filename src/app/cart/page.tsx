@@ -508,6 +508,13 @@ export default function CartPage() {
                  <span>ITEMS SUBTOTAL:</span>
                  <span className="text-white font-black italic text-sm">₹{totalPrice.toFixed(0)}</span>
               </div>
+
+              {deliveryFee > 0 && (
+                <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                   <span>DELIVERY FEE:</span>
+                   <span className="text-white font-black italic text-sm">₹{deliveryFee.toFixed(0)}</span>
+                </div>
+              )}
               
               {calculatedAdminCharges.map((charge, i) => (
                 <div key={i} className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-widest">
