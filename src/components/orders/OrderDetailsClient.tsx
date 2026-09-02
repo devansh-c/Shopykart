@@ -19,7 +19,8 @@ import {
   ShoppingBag,
   Timer,
   CheckCircle2,
-  Clock
+  Clock,
+  MessageSquare
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -221,6 +222,25 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </div>
       `).join('');
 
+      let taxHtml = '';
+      if (order.deliveryFee > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
+      }
+      if (order.chargesBreakdown && Array.isArray(order.chargesBreakdown)) {
+        order.chargesBreakdown.forEach((charge: any) => {
+          taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>${charge.name}:</span><span>₹${charge.value.toFixed(2)}</span></div>`;
+        });
+      }
+      if (order.isPremiumPacking) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>`;
+      }
+      if (order.deliveryTip > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY TIP:</span><span>₹${order.deliveryTip.toFixed(2)}</span></div>`;
+      }
+      if (order.redeemCoins) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
+      }
+
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
           <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
@@ -236,6 +256,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         </div>
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
         <div>${itemsHtml}</div>
+        <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 9px;">
+          <div style="font-weight: 900; margin-bottom: 5px;">CHARGES BREAKDOWN:</div>
+          ${taxHtml || '<div>NO EXTRA CHARGES</div>'}
+        </div>
         <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
@@ -358,6 +382,18 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         className={cn("relative z-[110] px-4 transition-all duration-700", isMapExpanded ? "translate-y-[80vh] opacity-0 pointer-events-none" : "-mt-20 opacity-100")}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
+         {order.adminNote && (
+           <div className="bg-amber-100 border-2 border-amber-400 p-5 rounded-[2rem] mb-4 shadow-xl animate-in zoom-in duration-500 flex items-start gap-4">
+              <div className="bg-amber-400 p-2 rounded-xl text-white shadow-sm shrink-0">
+                 <MessageSquare className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                 <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Message from Store</h4>
+                 <p className="text-sm font-black italic text-amber-900 leading-tight">"{order.adminNote}"</p>
+              </div>
+           </div>
+         )}
+
          <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-black/[0.03]">
             <div className="w-full h-8 flex items-center justify-center cursor-ns-resize"><div className="w-12 h-1.5 bg-gray-100 rounded-full" /></div>
             <div className="p-7 pt-0">
@@ -404,7 +440,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                  </div>
                  <button onClick={generateReceipt} disabled={isDownloading} className="flex items-center gap-2 text-[9px] font-black uppercase text-blue-600 py-2 px-4 bg-blue-50 rounded-xl">
                     {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                    <span>DOWNLOAD RECEIPT</span>
+                    <span>RECEIPT</span>
                  </button>
               </div>
             </div>

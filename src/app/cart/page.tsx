@@ -89,7 +89,6 @@ export default function CartPage() {
     if (typeof window !== 'undefined') {
       const savedName = localStorage.getItem('user_name') || '';
       const savedPhone = localStorage.getItem('user_phone') || '';
-      // CRITICAL: We only take 'user_address_line'. If missing, we leave it blank instead of using 'user_address' (zone name)
       const savedDetailedAddress = localStorage.getItem('user_address_line') || '';
       const savedLat = localStorage.getItem('user_lat') || '';
       const savedLng = localStorage.getItem('user_lng') || '';
@@ -271,6 +270,20 @@ export default function CartPage() {
 
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
+
+    // STRICT VALIDATION: Ensure all recipient details are present
+    if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10 || !recipientForm.address.trim()) {
+      setIsAddressModalOpen(true);
+      toast({ 
+        variant: "destructive", 
+        title: "Details Missing", 
+        description: "Please fill Name, Phone, and Detailed Address to proceed." 
+      });
+      setIsPlacing(false);
+      setIsVerifying(false);
+      setSliderOffset(0);
+      return;
+    }
     
     setIsPlacing(true);
     try {
@@ -290,8 +303,10 @@ export default function CartPage() {
         items: cart,
         total: totalPayable,
         deliveryTip: deliveryTip,
+        deliveryFee: deliveryFee,
         isPremiumPacking: isPremiumPacking,
         redeemCoins: isRedeemCoins,
+        chargesBreakdown: calculatedAdminCharges,
         status: 'Placed',
         paymentMethod: paymentMode,
         paymentStatus: paymentMode === 'ONLINE' ? 'Paid' : 'Pending',
@@ -352,6 +367,18 @@ export default function CartPage() {
       if (!user) {
         setSliderOffset(0);
         window.dispatchEvent(new CustomEvent('open-auth-overlay'));
+        return;
+      }
+
+      // STRICT VALIDATION CHECK BEFORE PROCEEDING
+      if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10 || !recipientForm.address.trim()) {
+        setSliderOffset(0);
+        setIsAddressModalOpen(true);
+        toast({ 
+          variant: "destructive", 
+          title: "Incomplete Identity", 
+          description: "Name, Phone and Address are required for delivery." 
+        });
         return;
       }
       

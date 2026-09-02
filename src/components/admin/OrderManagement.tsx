@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDocs, deleteDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -31,7 +31,9 @@ import {
   Plus,
   Compass,
   Sparkles,
-  Clock
+  Clock,
+  MessageSquare,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +42,8 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
 
 const OrderMapViewer = dynamic(() => import('@/components/shared/OrderMapViewer'), { 
@@ -64,6 +68,10 @@ export default function OrderManagement() {
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedOrderForPartner, setSelectedOrderForPartner] = useState<any>(null);
+  const [isNoteOpen, setIsNoteOpen] = useState(false);
+  const [selectedOrderForNote, setSelectedOrderForNote] = useState<any>(null);
+  const [adminNote, setAdminNote] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -102,6 +110,36 @@ export default function OrderManagement() {
         updatedAt: serverTimestamp()
       });
       toast({ title: "Status Reversed", description: `Back to ${prevStatus}` });
+    }
+  };
+
+  const handleCancelOrder = async (id: string) => {
+    if (!firestore) return;
+    if (confirm("Are you sure you want to CANCEL this order? This cannot be undone.")) {
+      await updateDoc(doc(firestore, 'orders', id), {
+        status: 'Cancelled',
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Order Cancelled" });
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!firestore || !selectedOrderForNote || isSavingNote) return;
+    setIsSavingNote(true);
+    try {
+      await updateDoc(doc(firestore, 'orders', selectedOrderForNote.id), {
+        adminNote: adminNote.trim(),
+        updatedAt: serverTimestamp()
+      });
+      setIsNoteOpen(false);
+      setAdminNote('');
+      setSelectedOrderForNote(null);
+      toast({ title: "Note Shared with Customer! 📝" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Note Save Failed" });
+    } finally {
+      setIsSavingNote(false);
     }
   };
 
@@ -171,12 +209,31 @@ export default function OrderManagement() {
         </div>
       `).join('');
 
+      // New Tax Section Logic
+      let taxHtml = '';
+      if (order.deliveryFee > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
+      }
+      if (order.chargesBreakdown && Array.isArray(order.chargesBreakdown)) {
+        order.chargesBreakdown.forEach((charge: any) => {
+          taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>${charge.name}:</span><span>₹${charge.value.toFixed(2)}</span></div>`;
+        });
+      }
+      if (order.isPremiumPacking) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>`;
+      }
+      if (order.deliveryTip > 0) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY TIP:</span><span>₹${order.deliveryTip.toFixed(2)}</span></div>`;
+      }
+      if (order.redeemCoins) {
+        taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
+      }
+
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
           <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
           <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
           <div style="margin-top: 15px; font-size: 9px; font-weight: 800;">SHOPYKART PREMIUM DELIVERY</div>
-          <div style="font-size: 9px; font-weight: 800;">POWERED BY DEVANSH GUPTA</div>
           <div style="border-top: 1.5px dashed #000; margin: 15px auto 0; width: 100%;"></div>
         </div>
 
@@ -202,8 +259,13 @@ export default function OrderManagement() {
         </div>
 
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
+        
+        <div style="font-size: 9px; font-weight: 800; margin-bottom: 15px; border-bottom: 1.5px dashed #000; padding-bottom: 10px;">
+          <div style="font-size: 10px; font-weight: 900; margin-bottom: 8px;">TAX & EXTRA CHARGES:</div>
+          ${taxHtml || '<div>NO EXTRA CHARGES</div>'}
+        </div>
 
-        <div style="font-size: 11px; font-weight: 800; space-y: 6px;">
+        <div style="font-size: 14px; font-weight: 900; font-style: italic;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>GRAND TOTAL:</span><span>₹${order.total?.toFixed(2)}</span></div>
         </div>
 
@@ -277,7 +339,10 @@ export default function OrderManagement() {
           const hasPrev = currentIndex > 0 && !isCancelled;
 
           return (
-            <div key={order.id} className="bg-white rounded-[3rem] p-6 md:p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl relative overflow-hidden">
+            <div key={order.id} className={cn(
+              "bg-white rounded-[3rem] p-6 md:p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl relative overflow-hidden",
+              isCancelled && "opacity-60 grayscale-[0.5]"
+            )}>
               
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
                 <div className="flex items-center gap-5">
@@ -302,30 +367,22 @@ export default function OrderManagement() {
                           <span className="text-[10px] font-black uppercase tracking-tight">RECEIPT</span>
                        </button>
 
-                       <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2 shadow-sm">
-                          <Banknote className="h-3.5 w-3.5 text-amber-600" />
-                          <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">{order.paymentMethod?.toUpperCase()}</span>
-                       </div>
-                       
-                       {order.deliveryPartnerName && (
-                         <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-xl border border-green-100 flex items-center gap-2 shadow-sm">
-                            <Bike className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase">{order.deliveryPartnerName}</span>
-                         </div>
-                       )}
+                       <button 
+                        onClick={() => { setSelectedOrderForNote(order); setAdminNote(order.adminNote || ''); setIsNoteOpen(true); }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl border flex items-center gap-2 transition-all active:scale-95 shadow-sm",
+                          order.adminNote ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-gray-100 border-border text-gray-500"
+                        )}
+                       >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          <span className="text-[10px] font-black uppercase tracking-tight">{order.adminNote ? 'EDIT NOTE' : 'ADD NOTE'}</span>
+                       </button>
 
-                       {order.redeemCoins && (
-                         <div className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-2 shadow-sm">
-                            <Coins className="h-3.5 w-3.5 fill-amber-500/20" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">COINS REDEEMED</span>
-                         </div>
-                       )}
-
-                       {order.isPremiumPackaging && (
-                         <div className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">PREMIUM PACKING</span>
-                         </div>
+                       {!isCancelled && !isDelivered && (
+                         <button onClick={() => handleCancelOrder(order.id)} className="bg-red-50 text-red-500 px-3 py-1.5 rounded-xl border border-red-100 flex items-center gap-2 shadow-sm active:scale-95 transition-all">
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-black uppercase tracking-tight">CANCEL</span>
+                         </button>
                        )}
                     </div>
                   </div>
@@ -336,12 +393,23 @@ export default function OrderManagement() {
                 </div>
               </div>
 
+              {order.adminNote && (
+                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl mb-6 flex items-start gap-3">
+                   <MessageSquare className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                   <div>
+                      <p className="text-[8px] font-black text-amber-700 uppercase tracking-widest mb-0.5">Admin Note to Customer</p>
+                      <p className="text-xs font-bold text-amber-900 italic leading-tight">"{order.adminNote}"</p>
+                   </div>
+                </div>
+              )}
+
               <div className="bg-gray-50/80 rounded-[2.5rem] p-6 md:p-8 mb-8 border border-border shadow-inner relative">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                     <div className="flex items-center gap-5">
                        <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border border-gray-100 shrink-0"><User className="h-6 w-6" /></div>
                        <div className="min-w-0">
                           <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 truncate block">{order.customerName}</span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">{order.customerPhone}</span>
                        </div>
                     </div>
                     <div className="flex gap-3">
@@ -447,6 +515,30 @@ export default function OrderManagement() {
                {(!partners || partners.length === 0) && (
                  <div className="text-center py-20 opacity-30 uppercase font-black text-xs italic">No active partners found</div>
                )}
+            </div>
+         </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
+         <DialogContent className="rounded-[3rem] max-w-sm p-8 border-none shadow-2xl bg-white">
+            <DialogHeader className="mb-4">
+               <DialogTitle className="font-black italic uppercase text-center text-xl">Order Memo</DialogTitle>
+               <DialogDescription className="text-center text-[10px] font-bold uppercase">This note is visible to the customer</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+               <Textarea 
+                value={adminNote}
+                onChange={e => setAdminNote(e.target.value)}
+                placeholder="e.g. Preparing fresh, might take 10 mins more."
+                className="min-h-[120px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs italic"
+               />
+               <Button 
+                onClick={handleSaveNote}
+                disabled={isSavingNote}
+                className="w-full h-14 bg-black text-white rounded-xl font-black uppercase italic active:scale-95 transition-all shadow-xl"
+               >
+                 {isSavingNote ? <Loader2 className="h-5 w-5 animate-spin" /> : 'SHARE NOTE'}
+               </Button>
             </div>
          </DialogContent>
       </Dialog>
