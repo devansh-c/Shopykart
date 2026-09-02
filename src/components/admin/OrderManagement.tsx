@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDocs, deleteDoc, getDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -33,7 +32,8 @@ import {
   Sparkles,
   Clock,
   MessageSquare,
-  AlertTriangle
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -201,7 +201,7 @@ export default function OrderManagement() {
       const itemsHtml = order.items?.map((item: any) => `
         <div style="margin-bottom: 12px;">
           <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
-            <span style="flex: 2; pr: 10px;">${item.name}</span>
+            <span style="flex: 2; padding-right: 10px;">${item.name}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
@@ -209,7 +209,6 @@ export default function OrderManagement() {
         </div>
       `).join('');
 
-      // New Tax Section Logic
       let taxHtml = '';
       if (order.deliveryFee > 0) {
         taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
@@ -404,11 +403,25 @@ export default function OrderManagement() {
               )}
 
               <div className="bg-gray-50/80 rounded-[2.5rem] p-6 md:p-8 mb-8 border border-border shadow-inner relative">
+                 {/* Premium Badges Overlay */}
+                 <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                    {order.redeemCoins && (
+                      <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-widest px-2 py-0.5">
+                        <Coins className="h-2 w-2 mr-1 fill-amber-700" /> COINS REDEEMED
+                      </Badge>
+                    )}
+                    {order.isPremiumPacking && (
+                      <Badge className="bg-primary/10 text-primary border-none font-black text-[7px] uppercase tracking-widest px-2 py-0.5">
+                        <Sparkles className="h-2 w-2 mr-1 fill-primary" /> PREMIUM PACKING
+                      </Badge>
+                    )}
+                 </div>
+
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                     <div className="flex items-center gap-5">
                        <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border border-gray-100 shrink-0"><User className="h-6 w-6" /></div>
                        <div className="min-w-0">
-                          <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 truncate block">{order.customerName}</span>
+                          <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 truncate block pr-20">{order.customerName}</span>
                           <span className="text-[9px] font-bold text-gray-400 uppercase">{order.customerPhone}</span>
                        </div>
                     </div>
@@ -487,6 +500,7 @@ export default function OrderManagement() {
         })}
       </div>
 
+      {/* MODALS */}
       <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
          <DialogContent className="rounded-[3rem] max-w-md p-0 overflow-hidden border-none shadow-2xl bg-white flex flex-col max-h-[85vh]">
             <DialogHeader className="p-8 pb-4 shrink-0">
@@ -512,7 +526,7 @@ export default function OrderManagement() {
                    <div className="h-8 w-8 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:border-primary transition-all"><Plus className="h-4 w-4" /></div>
                  </button>
                ))}
-               {(!partners || partners.length === 0) && (
+               {(!partners || partners.filter((p:any) => p.isOnline).length === 0) && (
                  <div className="text-center py-20 opacity-30 uppercase font-black text-xs italic">No active partners found</div>
                )}
             </div>
@@ -520,7 +534,7 @@ export default function OrderManagement() {
       </Dialog>
 
       <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
-         <DialogContent className="rounded-[3rem] max-w-sm p-8 border-none shadow-2xl bg-white">
+         <DialogContent className="rounded-[3rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
             <DialogHeader className="mb-4">
                <DialogTitle className="font-black italic uppercase text-center text-xl">Order Memo</DialogTitle>
                <DialogDescription className="text-center text-[10px] font-bold uppercase">This note is visible to the customer</DialogDescription>
