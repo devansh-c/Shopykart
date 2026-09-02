@@ -28,7 +28,9 @@ import {
   ShieldCheck,
   Building2,
   UserPlus,
-  Plus
+  Plus,
+  Compass,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -120,6 +122,17 @@ export default function OrderManagement() {
     }
   };
 
+  const startNavigation = (order: any) => {
+    const lat = order.customerLat;
+    const lng = order.customerLng;
+    if (lat && lng) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+      window.open(url, '_blank');
+    } else {
+      toast({ variant: "destructive", title: "Location Missing", description: "Customer hasn't pinned their exact house." });
+    }
+  };
+
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -188,17 +201,10 @@ export default function OrderManagement() {
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
 
         <div style="font-size: 11px; font-weight: 800; space-y: 6px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ITEMS SUBTOTAL:</span><span>₹${(order.total - 10).toFixed(2)}</span></div>
-          <div style="display: flex; justify-content: space-between; font-style: italic;"><span>DELHIVERY FEE:</span><span>₹10.00</span></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>GRAND TOTAL:</span><span>₹${order.total?.toFixed(2)}</span></div>
         </div>
 
         <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 24px; font-weight: 900; font-style: italic;">GRAND TOTAL</span>
-          <span style="font-size: 24px; font-weight: 900; font-style: italic;">₹${order.total?.toFixed(2)}</span>
-        </div>
-        <div style="border-top: 1.5px dashed #000; margin: 15px 0;"></div>
-
         <div style="text-align: center; margin: 25px 0;">
           <div style="border: 1.5px dotted #000; display: inline-block; padding: 10px; margin-bottom: 8px;">
             <img src="${qrCodeUrl}" style="width: 150px; height: 140px; display: block;" />
@@ -219,7 +225,7 @@ export default function OrderManagement() {
       `;
       
       document.body.appendChild(receipt);
-      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
+      const blob = await toBlob(receipt, { pixelRatio: 2, skipFonts: true }); 
       document.body.removeChild(receipt);
       
       if (blob && typeof saveAs === 'function') {
@@ -248,7 +254,7 @@ export default function OrderManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-2">
         <div className="space-y-1">
           <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">ORDER LOGISTICS</h2>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Management Console</p>
@@ -268,12 +274,12 @@ export default function OrderManagement() {
           const hasPrev = currentIndex > 0 && !isCancelled;
 
           return (
-            <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl">
+            <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl relative overflow-hidden">
               
               <div className="flex items-start justify-between mb-8">
                 <div className="flex items-center gap-6">
                   <div className={cn(
-                    "h-20 w-20 rounded-[1.75rem] flex items-center justify-center border-2 shrink-0",
+                    "h-20 w-20 rounded-[1.75rem] flex items-center justify-center border-2 shrink-0 shadow-inner",
                     isCancelled ? "bg-red-50 border-red-100 text-red-500" : isDelivered ? "bg-green-50 border-green-100 text-green-600" : "bg-primary/5 border-primary/10 text-primary"
                   )}>
                     <Package className="h-10 w-10" />
@@ -282,85 +288,119 @@ export default function OrderManagement() {
                     <div className="flex items-center gap-3 mb-2">
                        <h3 className="font-black text-4xl italic uppercase tracking-tighter leading-none">ORDER #{order.customerOrderNumber || '...'}</h3>
                        <Badge className={cn(
-                         "border-none text-[8px] font-black uppercase px-3 py-1 rounded-full",
+                         "border-none text-[8px] font-black uppercase px-3 py-1 rounded-full shadow-sm",
                          isCancelled ? "bg-red-500 text-white" : isDelivered ? "bg-green-600 text-white" : "bg-primary text-white animate-pulse"
                        )}>{order.status.toUpperCase()}</Badge>
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-3">
-                       <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2 transition-all active:scale-95">
+                       <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2 transition-all active:scale-95 shadow-sm">
                           {isDownloading === order.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 text-blue-600" />}
                           <span className="text-[10px] font-black uppercase tracking-tight">RECEIPT</span>
                        </button>
 
-                       <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2">
+                       <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-border flex items-center gap-2 shadow-sm">
                           <Banknote className="h-3.5 w-3.5 text-amber-600" />
                           <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">{order.paymentMethod?.toUpperCase()}</span>
                        </div>
                        
                        {order.deliveryPartnerName && (
-                         <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-xl border border-green-200 flex items-center gap-2">
+                         <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-xl border border-green-100 flex items-center gap-2 shadow-sm">
                             <Bike className="h-3.5 w-3.5" />
                             <span className="text-[9px] font-black uppercase">{order.deliveryPartnerName}</span>
+                         </div>
+                       )}
+
+                       {/* PREMIUM INDICATORS */}
+                       {order.redeemCoins && (
+                         <div className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-2 shadow-sm">
+                            <Coins className="h-3.5 w-3.5 fill-amber-500/20" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">COINS REDEEMED</span>
+                         </div>
+                       )}
+
+                       {order.isPremiumPacking && (
+                         <div className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">PREMIUM PACKING</span>
                          </div>
                        )}
                     </div>
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end">
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Partner Store</p>
-                   <span className="text-xl font-black italic uppercase text-primary tracking-tighter">{order.restaurantName || 'ShopyKart'}</span>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Main Hub</p>
+                   <span className="text-xl font-black italic uppercase text-primary tracking-tighter drop-shadow-sm">{order.restaurantName || 'ShopyKart Hub'}</span>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-[2.5rem] p-7 mb-8 border border-border shadow-inner">
+              <div className="bg-gray-50/80 rounded-[2.5rem] p-7 mb-8 border border-border shadow-inner relative">
                  <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-5">
-                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border"><User className="h-6 w-6" /></div>
+                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border border-gray-100"><User className="h-6 w-6" /></div>
                        <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900">{order.customerName}</span>
                     </div>
-                    <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-14 w-14 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-xl active:scale-90 transition-all border-b-4 border-green-800"><PhoneCall className="h-7 w-7" /></button>
+                    <div className="flex gap-2">
+                       <button onClick={() => startNavigation(order)} className="h-14 w-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-all border-b-4 border-blue-800" title="Navigate to Customer">
+                          <Compass className="h-7 w-7 animate-pulse" />
+                       </button>
+                       <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-14 w-14 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-xl active:scale-90 transition-all border-b-4 border-green-800"><PhoneCall className="h-7 w-7" /></button>
+                    </div>
                  </div>
 
                  <div className="space-y-4">
                     <div className="space-y-3">
                        {order.items?.map((item: any, i: number) => (
-                         <div key={i} className="flex justify-between items-center text-lg font-black italic">
-                            <span className="text-gray-400"><span className="text-gray-900">{item.quantity}x</span> <span className="uppercase text-gray-700">{item.name}</span></span>
+                         <div key={i} className="flex justify-between items-center text-lg font-black italic group/item">
+                            <div className="flex flex-col">
+                               <span className="text-gray-400"><span className="text-gray-900">{item.quantity}x</span> <span className="uppercase text-gray-700">{item.name}</span></span>
+                               {item.restaurantName && <span className="text-[8px] font-bold text-primary uppercase tracking-widest">{item.restaurantName}</span>}
+                            </div>
                             <span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span>
                          </div>
                        ))}
                     </div>
-                    <div className="pt-6 mt-4 border-t border-dashed border-border flex items-start gap-3">
+                    <div className="pt-6 mt-4 border-t border-dashed border-gray-300 flex items-start gap-3">
                        <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                       <p className="text-xs font-bold text-gray-600 uppercase leading-relaxed tracking-tight">{order.address}</p>
+                       <div className="flex-1">
+                          <p className="text-xs font-bold text-gray-600 uppercase leading-relaxed tracking-tight">{order.address}</p>
+                          <div className="flex items-center gap-1.5 mt-2 text-[8px] font-black text-gray-400 uppercase italic">
+                             <Navigation className="h-2.5 w-2.5" />
+                             {order.customerLat ? `Pinned: ${order.customerLat.toFixed(4)}, ${order.customerLng.toFixed(4)}` : 'Manual Address Only'}
+                          </div>
+                       </div>
                     </div>
                  </div>
               </div>
 
-              <div className="space-y-2">
-                 <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest">Workflow Status Control</label>
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Workflow Status Control</label>
+                    <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase italic">
+                       <Clock className="h-2.5 w-2.5" /> {format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM, hh:mm a')}
+                    </div>
+                 </div>
                  <div className="flex gap-3">
                     <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className={cn(
-                        "flex-1 h-18 py-8 rounded-[1.75rem] font-black uppercase italic text-lg tracking-tighter transition-all active:scale-95 border-b-4",
-                        isDelivered ? "bg-green-600 border-green-800 text-white" : "bg-white text-black hover:bg-primary hover:text-white border-gray-200"
+                        "flex-1 h-20 py-8 rounded-[1.75rem] font-black uppercase italic text-xl tracking-tighter transition-all active:scale-95 border-b-[6px] shadow-2xl",
+                        isDelivered ? "bg-green-600 border-green-800 text-white" : "bg-[#0B0B0B] text-white hover:bg-primary border-black/20"
                       )}>
-                      {isDelivered ? <CheckCircle2 className="mr-2 h-6 w-6" /> : null}
+                      {isDelivered ? <CheckCircle2 className="mr-2 h-7 w-7" /> : null}
                       {getButtonLabel(order.status)}
                     </Button>
                     
                     {isReadyForPickup && !order.deliveryPartnerId && (
                       <button 
                         onClick={() => { setSelectedOrderForPartner(order); setIsAssignOpen(true); }}
-                        className="h-18 px-6 bg-amber-500 rounded-[1.75rem] flex items-center justify-center text-white hover:bg-amber-600 transition-all border-b-4 border-amber-700 active:translate-y-1 active:border-b-0"
+                        className="h-20 px-8 bg-amber-500 rounded-[1.75rem] flex flex-col items-center justify-center text-white hover:bg-amber-600 transition-all border-b-[6px] border-amber-700 active:translate-y-1 active:border-b-0 shadow-xl"
                       >
-                         <UserPlus className="h-6 w-6 mr-2" />
-                         <span className="text-[10px] font-black uppercase">Assign</span>
+                         <UserPlus className="h-6 w-6 mb-1" />
+                         <span className="text-[8px] font-black uppercase tracking-widest">ASSIGN</span>
                       </button>
                     )}
 
                     {hasPrev && (
-                      <button onClick={() => handlePrevStatus(order.id, order.status)} className="h-18 w-18 bg-gray-100 rounded-[1.75rem] flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all border border-border active:scale-90"><RotateCcw className="h-7 w-7" /></button>
+                      <button onClick={() => handlePrevStatus(order.id, order.status)} className="h-20 w-20 bg-gray-100 rounded-[1.75rem] flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all border border-border active:scale-90 shadow-sm"><RotateCcw className="h-7 w-7" /></button>
                     )}
                  </div>
               </div>
@@ -383,7 +423,7 @@ export default function OrderManagement() {
                    className="w-full p-4 rounded-[1.5rem] border-2 border-gray-50 bg-gray-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all flex items-center justify-between text-left group"
                  >
                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white border shrink-0">
+                      <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0 shadow-sm">
                          <img src={partner.photoUrl} className="h-full w-full object-cover" alt="" />
                       </div>
                       <div>
@@ -395,7 +435,7 @@ export default function OrderManagement() {
                  </button>
                ))}
                {(!partners || partners.length === 0) && (
-                 <div className="text-center py-20 opacity-30 uppercase font-black text-xs">No active partners found</div>
+                 <div className="text-center py-20 opacity-30 uppercase font-black text-xs italic">No active partners found</div>
                )}
             </div>
          </DialogContent>
