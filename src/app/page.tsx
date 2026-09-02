@@ -1,125 +1,87 @@
-import { Metadata } from 'next';
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
-import { initializeFirebase } from '@/firebase/init';
+import { useFirestore } from '@/firebase';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Shopykart – 10 Min Veg Food Delivery | Order Online Mauranipur & Ranipur',
-  description: 'Fastest 10-min gourmet veg food delivery in Mauranipur and Ranipur. Order pizzas, burgers, snacks and more at best prices.',
-  openGraph: {
-    title: 'Shopykart – Premium Food Delivery',
-    description: '10-minute delivery in Mauranipur and Ranipur.',
-    url: 'https://shopykart.co.in',
-    siteName: 'ShopyKart',
-    images: [{ url: 'https://shopykart.co.in/og-image.jpg' }],
-    locale: 'en_IN',
-    type: 'website',
-  },
-};
+/**
+ * @fileOverview Multi-App Router for APK Builds.
+ * Detects target app type from environment variables and routes to correct entry point.
+ */
+export default function ShopyKartApp() {
+  const router = useRouter();
+  const firestore = useFirestore();
+  const [initialData, setInitialData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow'>('customer');
 
-function isStoreOpenOnServer(vendor: any) {
-  if (!vendor) return true;
-  if (!vendor.openingTime || !vendor.closingTime) return true;
-  
-  const now = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
+  useEffect(() => {
+    // 1. IDENTIFY APP TYPE FROM BUILD FLAGS
+    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
-  const parseTime = (t: string) => {
-    try {
-      if (!t || typeof t !== 'string') return 0;
-      const parts = t.trim().split(' ');
-      if (parts.length < 2) return 0;
-      const [time, modifier] = parts;
-      let [hours, minutes] = time.split(':').map(Number);
-      if (modifier === 'PM' && hours < 12) hours += 12;
-      if (modifier === 'AM' && hours === 12) hours = 0;
-      return hours * 60 + (minutes || 0);
-    } catch (e) { return 0; }
-  };
-
-  const start = parseTime(vendor.openingTime);
-  const end = parseTime(vendor.closingTime);
-
-  return start < end ? (mins >= start && mins <= end) : (mins >= start || mins <= end);
-}
-
-function sanitizeDoc(doc: any) {
-  if (!doc || !doc.exists()) return null;
-  const data = doc.data();
-  const plainData: any = {};
-
-  Object.keys(data).forEach(key => {
-    const value = data[key];
-    if (value && typeof value === 'object' && value.seconds !== undefined) {
-      plainData[key] = new Date(value.seconds * 1000).toISOString();
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      try {
-        plainData[key] = JSON.parse(JSON.stringify(value));
-      } catch (e) {
-        plainData[key] = null;
-      }
+    if (isAdmin) {
+      setAppType('admin');
+      router.replace('/admin/login');
+    } else if (isBiz) {
+      setAppType('biz');
+      router.replace('/vendor/login');
+    } else if (isTow) {
+      setAppType('tow');
+      router.replace('/delivery/login');
     } else {
-      plainData[key] = value;
+      setAppType('customer');
+      fetchData();
     }
-  });
+  }, [router]);
 
-  return { 
-    ...plainData,
-    id: doc.id,
-    price: Number(data.price) || 0,
-    rating: Number(data.rating) || 0
-  };
-}
+  async function fetchData() {
+    if (!firestore) return;
+    try {
+      const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
+        getDocs(query(collection(firestore, 'banners'), limit(15))),
+        getDocs(query(collection(firestore, 'categories'), limit(40))),
+        getDoc(doc(firestore, 'app_settings', 'announcement')),
+        getDocs(query(collection(firestore, 'vendors'), limit(100))),
+        getDocs(query(collection(firestore, 'products'), limit(300)))
+      ]);
 
-async function getInitialData() {
-  const { firestore } = initializeFirebase();
-  if (!firestore) return { banners: [], categories: [], announcement: null, vendors: [], products: [] };
+      const sanitize = (docs: any[]) => docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        createdAt: d.data().createdAt?.seconds ? new Date(d.data().createdAt.seconds * 1000).toISOString() : d.data().createdAt
+      }));
 
-  try {
-    const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
-      getDocs(query(collection(firestore, 'banners'), limit(15))),
-      getDocs(query(collection(firestore, 'categories'), limit(40))),
-      getDoc(doc(firestore, 'app_settings', 'announcement')),
-      getDocs(query(collection(firestore, 'vendors'), limit(100))),
-      getDocs(query(collection(firestore, 'products'), limit(300))) 
-    ]);
-
-    const vendors = vendorsSnap.docs.map(sanitizeDoc).filter(Boolean);
-    const vendorMap = new Map(vendors.map(v => [v.id, v]));
-
-    const sortedProducts = productsSnap.docs
-      .map(sanitizeDoc)
-      .filter(Boolean)
-      .sort((a, b) => {
-        const vA = vendorMap.get(a.vendorId);
-        const vB = vendorMap.get(b.vendorId);
-        
-        const openA = vA ? (vA.isOnline !== false && isStoreOpenOnServer(vA)) : true;
-        const openB = vB ? (vB.isOnline !== false && isStoreOpenOnServer(vB)) : true;
-        
-        if (openA !== openB) return openA ? -1 : 1;
-        
-        const ratingA = Number(a.rating) || Number(vA?.rating) || 0;
-        const ratingB = Number(b.rating) || Number(vB?.rating) || 0;
-        return ratingB - ratingA;
+      setInitialData({
+        banners: sanitize(bannersSnap.docs),
+        categories: sanitize(categoriesSnap.docs),
+        announcement: announcementSnap.exists() ? { id: announcementSnap.id, ...announcementSnap.data() } : null,
+        vendors: sanitize(vendorsSnap.docs),
+        products: sanitize(productsSnap.docs)
       });
-
-    return { 
-      banners: bannersSnap.docs.map(sanitizeDoc).filter(Boolean), 
-      categories: categoriesSnap.docs.map(sanitizeDoc).filter(Boolean),
-      announcement: sanitizeDoc(announcementSnap),
-      vendors: vendors,
-      products: sortedProducts
-    };
-  } catch (e) {
-    console.error("SSR Data Fetch Error:", e);
-    return { banners: [], categories: [], announcement: null, vendors: [], products: [] };
+    } catch (e) {
+      console.error("Data fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
-export default async function ShopyKartApp() {
-  // REDIRECTION REMOVED: main route always serves customer app
-  const initialData = await getInitialData();
+  // SHOW LOADER DURING REDIRECTION FOR NON-CUSTOMER APPS
+  if (appType !== 'customer' || loading) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
+          {appType === 'customer' ? 'Connecting to ShopyKart...' : `Launching ${appType.toUpperCase()} Portal...`}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <HomeClient 

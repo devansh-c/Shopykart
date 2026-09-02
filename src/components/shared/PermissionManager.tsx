@@ -1,76 +1,62 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 
 /**
- * @fileOverview Global Permission Manager to request Location, Notification, Camera and Gallery.
- * Smart Logic: Excludes Camera/Media for Customer App to ensure privacy.
+ * @fileOverview Global Permission Manager with App-Aware Logic.
+ * Smart Logic: Uses environment variables + path to detect if it's a Business APK.
  */
 export default function PermissionManager() {
   const pathname = usePathname();
   const [hasRequested, setHasRequested] = useState(false);
 
   useEffect(() => {
-    // Prevent multiple requests in one session
     const alreadyAsked = sessionStorage.getItem('permissions_requested');
     if (alreadyAsked === 'true' || hasRequested) return;
 
     const requestAllPermissions = async () => {
-      // Check if user is in a Business/Admin portal
-      const isBusinessPortal = 
+      // 1. DETECT CONTEXT (Is this an Admin/Vendor/Delivery App or Portal?)
+      const isAdminApp = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+      const isBizApp = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+      const isTowApp = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+      
+      const isBusinessPath = 
         pathname.startsWith('/admin') || 
         pathname.startsWith('/vendor') || 
         pathname.startsWith('/delivery') ||
         pathname.startsWith('/Medical') ||
         pathname.startsWith('/Beauty');
 
-      console.log("System: Initiating Context-Aware Permission Sync...");
+      const isBusinessContext = isAdminApp || isBizApp || isTowApp || isBusinessPath;
+
+      console.log(`System: Permission Sync for ${isBusinessContext ? 'BUSINESS' : 'CUSTOMER'} Context...`);
       
-      // 1. NOTIFICATION PERMISSION - For everyone (Alerts)
-      if ('Notification' in window) {
-        try {
-          if (Notification.permission === 'default') {
-            await Notification.requestPermission();
-          }
-        } catch (e) {
-          console.warn("Notification prompt skipped");
-        }
+      // 2. UNIVERSAL PERMISSIONS (Notification & Location)
+      if ('Notification' in window && Notification.permission === 'default') {
+        try { await Notification.requestPermission(); } catch (e) {}
       }
 
-      // 2. LOCATION PERMISSION - For everyone (Accurate Delivery)
       if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          () => console.log("Location Access: Granted"),
-          () => console.warn("Location Access: Denied"),
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
+        navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 5000 });
       }
 
-      // 3. CAMERA & MEDIA - ONLY for Business Portals (KYC/Product Photos)
-      // Excluded for Customer App as requested.
-      if (isBusinessPortal && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      // 3. SENSITIVE PERMISSIONS (Camera & Media) - ONLY FOR BUSINESS
+      if (isBusinessContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: true, 
-            audio: false 
-          });
-          // Stop stream immediately after permission is granted
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           stream.getTracks().forEach(track => track.stop());
-          console.log("Media Access (Business): Granted");
+          console.log("Media Access: Verified for Business Identity");
         } catch (e) {
-          console.warn("Media Access: Denied/Skipped");
+          console.warn("Media Access: Denied or Unavailable");
         }
-      } else {
-        console.log("Media Access: Skipped for Customer Privacy");
       }
 
       sessionStorage.setItem('permissions_requested', 'true');
       setHasRequested(true);
     };
 
-    // Trigger after a small delay for smoother splash-to-app transition
     const timer = setTimeout(requestAllPermissions, 3000);
     return () => clearTimeout(timer);
   }, [hasRequested, pathname]);
