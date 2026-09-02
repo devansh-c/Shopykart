@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Select App Build Variant'
+        description: 'Select App Build Variant (Manual)'
         required: true
         default: 'customer'
         type: choice
@@ -19,6 +19,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [customer, admin, biz, tow]
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -34,17 +38,17 @@ jobs:
 
       - name: Create Static Web Build
         run: |
-          if [ "${{ github.event.inputs.build_type }}" == "admin" ]; then
-            echo "Building STANDALONE ADMIN APP..."
+          # Use matrix on push, or input on manual dispatch
+          TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
+          echo "Building ShopyKart variant: $TYPE"
+          
+          if [ "$TYPE" == "admin" ]; then
             npm run build:admin
-          elif [ "${{ github.event.inputs.build_type }}" == "biz" ]; then
-            echo "Building SHOPYKART BIZ (STORES) APP..."
+          elif [ "$TYPE" == "biz" ]; then
             npm run build:biz
-          elif [ "${{ github.event.inputs.build_type }}" == "tow" ]; then
-            echo "Building SHOPYKART TOW (DELIVERY) APP..."
+          elif [ "$TYPE" == "tow" ]; then
             npm run build:tow
           else
-            echo "Building STANDARD CUSTOMER APP..."
             npm run build:static
           fi
 
@@ -79,11 +83,11 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-${{ github.event.inputs.build_type || 'Customer' }}-APK
+          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload App Bundle (AAB)
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-${{ github.event.inputs.build_type || 'Customer' }}-AAB
+          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-AAB
           path: android/app/build/outputs/bundle/release/app-release.aab
