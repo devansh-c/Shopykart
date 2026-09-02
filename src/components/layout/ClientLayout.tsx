@@ -13,14 +13,14 @@ import FirebaseClientProvider from '@/firebase/client-provider';
 import { ZoneGuard } from '@/components/shared/ZoneGuard';
 import { useJsApiLoader } from '@react-google-maps/api';
 
-// DYNAMIC IMPORTS
-const DynamicBrandingLoader = dynamic(() => import('@/components/shared/BrandingLoader'), { ssr: false });
-const DynamicTelegramNotifier = dynamic(() => import('@/components/shared/TelegramNotifier'), { ssr: false });
-const DynamicNotificationHandler = dynamic(() => import('@/components/shared/NotificationHandler'), { ssr: false });
-const DynamicWelcomeBonus = dynamic(() => import('@/components/auth/WelcomeBonusOverlay'), { ssr: false });
-const DynamicLocationRequest = dynamic(() => import('@/components/shared/LocationRequest'), { ssr: false });
-const DynamicBottomNav = dynamic(() => import('@/components/shared/BottomNav'), { ssr: false });
-const DynamicTawkChat = dynamic(() => import('@/components/shared/TawkChat').then(m => m.TawkChat), { ssr: false });
+// STATIC IMPORTS FOR STABILITY (Fixed chunk loading errors)
+import BrandingLoader from '@/components/shared/BrandingLoader';
+import TelegramNotifier from '@/components/shared/TelegramNotifier';
+import NotificationHandler from '@/components/shared/NotificationHandler';
+import WelcomeBonusOverlay from '@/components/auth/WelcomeBonusOverlay';
+import LocationRequest from '@/components/shared/LocationRequest';
+import BottomNav from '@/components/shared/BottomNav';
+import { TawkChat } from '@/components/shared/TawkChat';
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
@@ -32,7 +32,6 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setIsClient(true);
     const handleOpenAuth = () => {
-      // ONLY open if definitely not logged in and not loading
       if (!loading && !user) {
         setShowAuthOverlay(true);
       }
@@ -48,14 +47,12 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   useEffect(() => {
-    // If route requires auth and we are definitely NOT logged in after load
     if (isAuthRequiredRoute && !user && !loading && isClient) {
       setShowAuthOverlay(true);
     }
   }, [isAuthRequiredRoute, user, loading, isClient]);
 
   useEffect(() => {
-    // Auto-close overlay if user becomes authenticated
     if (user) {
       setShowAuthOverlay(false);
     }
@@ -72,10 +69,7 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
            p.startsWith('/order/track');
   }, [pathname]);
 
-  // ELITE IDENTITY PROTECTION: Use persistent session flag to avoid flickering registration popups
   const hasPersistentSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
-  
-  // NEVER render auth overlay if Firebase is still checking or if we have a known active session
   const shouldRenderAuth = !isExcludedPath && showAuthOverlay && !user && !loading && !hasPersistentSession && isClient;
 
   return (
@@ -97,14 +91,12 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [backTapCount, setBackTapCount] = useState(0);
 
-  // Load Google Maps API globally
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries: ['places', 'geometry'],
   });
 
-  // SMART BACK BUTTON HANDLER: Prevents accidental app exit
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -136,16 +128,16 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     <FirebaseClientProvider>
       <CartProvider>
         <div className="relative min-h-screen flex flex-col">
-          <DynamicBrandingLoader />
+          <BrandingLoader />
           <FirebaseErrorListener />
           
           <AuthGuard>
             <div className="relative min-h-screen flex flex-col">
               <main className={cn("flex-1", !isExcludedPath && "pb-44")}>
-                {!isExcludedPath && <DynamicLocationRequest />}
-                <DynamicNotificationHandler />
-                <DynamicTelegramNotifier />
-                <DynamicWelcomeBonus />
+                {!isExcludedPath && <LocationRequest />}
+                <NotificationHandler />
+                <TelegramNotifier />
+                <WelcomeBonusOverlay />
                 
                 {!isExcludedPath ? (
                   <ZoneGuard>{children}</ZoneGuard>
@@ -153,8 +145,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                   <>{children}</>
                 )}
               </main>
-              {!isExcludedPath && <DynamicBottomNav />}
-              {!isExcludedPath && <DynamicTawkChat />}
+              {!isExcludedPath && <BottomNav />}
+              {!isExcludedPath && <TawkChat />}
             </div>
           </AuthGuard>
           <Toaster />
