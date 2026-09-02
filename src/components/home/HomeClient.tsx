@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { StoreSection } from '@/components/home/StoreSection';
 import { PopularProducts } from '@/components/home/PopularProducts';
 import OffersSection from '@/components/home/OffersSection';
 import AnnouncementBanner from '@/components/home/AnnouncementBanner';
+import { LocationPinPrompt } from '@/components/shared/LocationPinPrompt';
 
 interface HomeClientProps {
   initialBanners?: any[];
@@ -22,7 +24,7 @@ interface HomeClientProps {
 
 /**
  * @fileOverview HomeClient - Receives authentic server-side data and renders it IMMEDIATELY.
- * Sponsored components removed.
+ * Added: LocationPinPrompt below OfferSlider.
  */
 export default function HomeClient({ 
   initialBanners, 
@@ -102,6 +104,7 @@ export default function HomeClient({
             {!searchQuery && activeCategory === 'all' && (
               <>
                 <OfferSlider initialData={initialBanners} />
+                <LocationPinPrompt />
                 <StoreSection activeMode={activeMode} initialData={initialStores} />
                 
                 {activeMode === 'Food' && (

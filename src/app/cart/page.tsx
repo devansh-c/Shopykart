@@ -40,6 +40,7 @@ import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
+import { LocationPinPrompt } from '@/components/shared/LocationPinPrompt';
 
 const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
   ssr: false,
@@ -396,28 +397,31 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* LOGO REMOVED FROM THIS BOX AS REQUESTED */}
-        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 flex items-center justify-between border border-white/5 shadow-2xl overflow-hidden">
-           <div className="flex items-center gap-5 flex-1 min-w-0">
-              <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
-                 <Navigation className="h-6 w-6" />
-              </div>
-              <div className="flex flex-col min-w-0 pr-4">
-                 <h4 className="text-[13px] font-black uppercase tracking-tight italic leading-none mb-1.5 text-white truncate">
-                   Deliver to: <span className="text-amber-400">{activeCustomerName}</span>
-                 </h4>
-                 <p className="text-[10px] font-bold text-white/80 uppercase mt-2 line-clamp-1 italic">{activeAddress}</p>
-                 <div className="flex items-center gap-2 mt-3 text-[9px] font-black uppercase tracking-widest text-white/60">
-                    <Clock className="h-3 w-3 text-amber-400" /> {realDeliveryTime} DELIVERY
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 flex flex-col border border-white/5 shadow-2xl overflow-hidden">
+           <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-5 flex-1 min-w-0">
+                 <div className="h-12 w-12 bg-amber-400 rounded-[1.25rem] flex items-center justify-center text-black shrink-0 shadow-lg shadow-amber-400/20">
+                    <Navigation className="h-6 w-6" />
+                 </div>
+                 <div className="flex flex-col min-w-0 pr-4">
+                    <h4 className="text-[13px] font-black uppercase tracking-tight italic leading-none mb-1.5 text-white truncate">
+                      Deliver to: <span className="text-amber-400">{activeCustomerName}</span>
+                    </h4>
+                    <p className="text-[10px] font-bold text-white/80 uppercase mt-2 line-clamp-1 italic">{activeAddress}</p>
+                    <div className="flex items-center gap-2 mt-3 text-[9px] font-black uppercase tracking-widest text-white/60">
+                       <Clock className="h-3 w-3 text-amber-400" /> {realDeliveryTime} DELIVERY
+                    </div>
                  </div>
               </div>
+              <button 
+               onClick={() => setIsAddressModalOpen(true)} 
+               className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase px-5 h-12 rounded-xl border border-white/10 active:scale-95 transition-all shrink-0 flex items-center justify-center"
+              >
+                 CHANGE
+              </button>
            </div>
-           <button 
-            onClick={() => setIsAddressModalOpen(true)} 
-            className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase px-5 h-12 rounded-xl border border-white/10 active:scale-95 transition-all shrink-0 flex items-center justify-center"
-           >
-              CHANGE
-           </button>
+           
+           <LocationPinPrompt />
         </section>
 
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-5">
