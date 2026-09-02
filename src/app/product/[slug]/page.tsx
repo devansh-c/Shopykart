@@ -3,19 +3,18 @@ import ProductDetailsClient from '@/components/product/ProductDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
 
 /**
- * @fileOverview Product details static export.
- * Returning a placeholder to satisfy the mandatory generateStaticParams requirement.
+ * @fileOverview Product details dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
+  // Providing a placeholder to satisfy the build requirement
   return [{ slug: 'gourmet-item' }];
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
+  const slug = params.slug;
 
   return (
     <Suspense fallback={
@@ -26,7 +25,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
       </div>
     }>
-      <ProductDetailsClient forcedSlug={slug} />
+      <ProductDetailsClient forcedSlug={slug === 'gourmet-item' ? undefined : slug} />
     </Suspense>
   );
 }

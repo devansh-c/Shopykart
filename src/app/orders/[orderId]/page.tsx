@@ -3,19 +3,20 @@ import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
 
-// CRITICAL FOR STATIC EXPORT: Prevents build crash
+/**
+ * @fileOverview Dynamic order page with static export compatibility.
+ */
 export async function generateStaticParams() {
-  return [];
+  // Providing a placeholder to satisfy the build requirement
+  return [{ orderId: 'tracking' }];
 }
 
-export default async function OrderPage({
-  params,
-}: {
+export default async function OrderPage(props: {
   params: Promise<{ orderId: string }>;
 }) {
-  const { orderId } = await params;
+  const params = await props.params;
+  const orderId = params.orderId;
 
   return (
     <Suspense fallback={
@@ -26,7 +27,7 @@ export default async function OrderPage({
         </div>
       </div>
     }>
-      <OrderDetailsClient forcedId={orderId} />
+      <OrderDetailsClient forcedId={orderId === 'tracking' ? undefined : orderId} />
     </Suspense>
   );
 }

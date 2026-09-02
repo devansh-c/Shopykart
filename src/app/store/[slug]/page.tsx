@@ -3,19 +3,18 @@ import { Loader2 } from 'lucide-react';
 import MenuContent from '@/components/menu/MenuContent';
 
 export const dynamic = 'force-static';
-export const dynamicParams = false;
 
 /**
- * @fileOverview Store Hub static export.
- * Returning a placeholder to satisfy the build requirement.
+ * @fileOverview Store hub dynamic page with static export compatibility.
  */
 export async function generateStaticParams() {
+  // Providing a placeholder to satisfy the build requirement
   return [{ slug: 'premium-store' }];
 }
 
-export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams.slug;
+export default async function StorePage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
+  const slug = params.slug;
 
   return (
     <Suspense fallback={
@@ -26,7 +25,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
     }>
-      <MenuContent forcedSlug={slug} />
+      <MenuContent forcedSlug={slug === 'premium-store' ? undefined : slug} />
     </Suspense>
   );
 }
