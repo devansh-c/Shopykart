@@ -1,7 +1,20 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Image as ImageIcon, Globe, Loader2, Link as LinkIcon, BellRing, Coins, IndianRupee, Send, ShieldCheck, Zap, ReceiptText, FileText, Type, Trash2 } from 'lucide-react';
+import { 
+  Save, 
+  Image as ImageIcon, 
+  Loader2, 
+  BellRing, 
+  Smartphone, 
+  ReceiptText, 
+  Trash2, 
+  MonitorSmartphone,
+  CheckCircle2,
+  Info,
+  Type,
+  ExternalLink
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,14 +23,10 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { compressImage } from '@/lib/image-utils';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-/**
- * @fileOverview BrandingManagement with Footer sections removed as requested.
- */
 export default function BrandingManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -39,10 +48,6 @@ export default function BrandingManagement() {
     faviconUrl: '',
     notificationLogoUrl: '',
     coinValue: '0.5',
-    telegramBotToken: '',
-    telegramChatId: '',
-    enableTelegram: false,
-    // Receipt Customization
     receiptHeader: 'SHOPYKART PREMIUM DELIVERY\nMain Road, Mauranipur\nGSTIN: 09ABCDE1234F1Z5',
     receiptFooter: 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
     receiptThankYou: 'Enjoy your delicious meal!',
@@ -50,7 +55,6 @@ export default function BrandingManagement() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -61,9 +65,6 @@ export default function BrandingManagement() {
         faviconUrl: settings.faviconUrl || '',
         notificationLogoUrl: settings.notificationLogoUrl || '',
         coinValue: settings.coinValue ? settings.coinValue.toString() : '0.5',
-        telegramBotToken: settings.telegramBotToken || '',
-        telegramChatId: settings.telegramChatId || '',
-        enableTelegram: settings.enableTelegram || false,
         receiptHeader: settings.receiptHeader || 'SHOPYKART PREMIUM DELIVERY\nMain Road, Mauranipur\nGSTIN: 09ABCDE1234F1Z5',
         receiptFooter: settings.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
         receiptThankYou: settings.receiptThankYou || 'Enjoy your delicious meal!',
@@ -93,26 +94,6 @@ export default function BrandingManagement() {
     toast({ title: "Asset Removed", description: "Save changes to apply permanently." });
   };
 
-  const handleTestTelegram = async () => {
-    if (!formData.telegramBotToken || !formData.telegramChatId) {
-      toast({ variant: "destructive", title: "Missing Credentials", description: "Please enter Bot Token and Chat ID first." });
-      return;
-    }
-
-    setIsTesting(true);
-    const testMsg = `🔔 SHOPYKART TEST ALERT\n\nYour Telegram system is now ACTIVE and connected correctly! ✅`;
-    const url = `https://api.telegram.org/bot${formData.telegramBotToken.trim()}/sendMessage?chat_id=${formData.telegramChatId.trim()}&text=${encodeURIComponent(testMsg)}`;
-
-    try {
-      await fetch(url, { mode: 'no-cors' });
-      toast({ title: "Test Sent!", description: "Check your Telegram bot." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Test Failed" });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!firestore) return;
     setIsSaving(true);
@@ -136,9 +117,9 @@ export default function BrandingManagement() {
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <Tabs defaultValue="brand" className="w-full">
         <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-3 md:flex">
-           <TabsTrigger value="brand" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Identity & SEO</TabsTrigger>
-           <TabsTrigger value="receipt" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Receipts</TabsTrigger>
-           <TabsTrigger value="automation" className="rounded-xl px-8 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest transition-all">Automation</TabsTrigger>
+           <TabsTrigger value="brand" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">Identity</TabsTrigger>
+           <TabsTrigger value="apk-icons" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">App Icons</TabsTrigger>
+           <TabsTrigger value="receipt" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">Receipts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="brand" className="space-y-8 mt-0">
@@ -210,28 +191,68 @@ export default function BrandingManagement() {
                     <>
                       <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="Favicon" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button onClick={(e) => { e.stopPropagation(); faviconInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><LinkIcon className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); faviconInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
                         <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('faviconUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
-                    <LinkIcon className="h-6 w-6 opacity-20" />
+                    <ImageIcon className="h-6 w-6 opacity-20" />
                   )}
                 </div>
                 <input type="file" ref={faviconInputRef} className="hidden" accept="image/png, image/x-icon" onChange={(e) => handleImageUpload(e, 'faviconUrl')} />
               </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Site SEO Title</label>
-                  <Input value={formData.siteTitle} onChange={e => setFormData({...formData, siteTitle: e.target.value})} className="h-12 rounded-xl font-bold" />
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">1 Coin = ? INR</label>
-                  <Input type="number" step="0.1" value={formData.coinValue} onChange={e => setFormData({...formData, coinValue: e.target.value})} className="h-12 rounded-xl font-black italic text-primary" />
-               </div>
-            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="apk-icons" className="mt-0">
+          <div className="bg-[#0B0B0B] p-8 rounded-[3rem] border border-white/5 shadow-2xl text-white relative overflow-hidden">
+             <div className="relative z-10 space-y-8">
+                <div className="flex items-center gap-5">
+                   <div className="h-16 w-16 bg-primary/20 rounded-[1.5rem] flex items-center justify-center text-primary border border-primary/20 shadow-xl">
+                      <MonitorSmartphone className="h-8 w-8" />
+                   </div>
+                   <div>
+                      <h2 className="text-3xl font-black italic uppercase tracking-tighter">APK Launcher Icons</h2>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Change logos on phone home screen</p>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-6">
+                      <h3 className="text-lg font-black italic uppercase text-primary">Process for Logos:</h3>
+                      <div className="space-y-4">
+                        {[
+                          { step: "01", text: "Apne PC par ek 1024x1024 size ka PNG logo banayein aur uska naam 'icon.png' rakhein." },
+                          { step: "02", text: "Project ke root folder mein 'assets' naam ka folder banayein (agar nahi hai)." },
+                          { step: "03", text: "Apna logo us folder mein dal dein (assets/icon.png)." },
+                          { step: "04", text: "GitHub par code push karein. Humara build system automatically naye icons generate kar dega." }
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex gap-4 items-start">
+                            <span className="text-primary font-black italic text-xl leading-none">{item.step}</span>
+                            <p className="text-[11px] font-bold text-gray-300 uppercase leading-relaxed">{item.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                   </div>
+
+                   <div className="bg-white/5 rounded-[2rem] p-8 border border-white/10 flex flex-col justify-center text-center space-y-6">
+                      <div className="relative mx-auto w-24 h-24">
+                        <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping" />
+                        <div className="relative h-24 w-24 bg-white rounded-[2rem] flex items-center justify-center shadow-2xl border-4 border-white/5">
+                           <ImageIcon className="h-10 w-10 text-gray-200" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-xl font-black italic uppercase">Bypass Manual Work</h4>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase leading-relaxed">
+                          Ye system automatically 18+ different sizes ke Android icons banayega taaki logo kabhi phate nahi.
+                        </p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+             <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
           </div>
         </TabsContent>
 
@@ -272,34 +293,12 @@ export default function BrandingManagement() {
             </div>
           </div>
         </TabsContent>
-
-        <TabsContent value="automation" className="mt-0">
-          <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-border/50 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-500/10 p-2 rounded-xl text-blue-600"><Send className="h-5 w-5" /></div>
-                <h3 className="text-lg font-black italic uppercase">Telegram Alerts</h3>
-              </div>
-              <Switch checked={formData.enableTelegram} onCheckedChange={(checked) => setFormData({...formData, enableTelegram: checked})} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div className="space-y-4">
-                  <Input value={formData.telegramBotToken} onChange={e => setFormData({...formData, telegramBotToken: e.target.value})} placeholder="Bot Token" className="h-12 rounded-xl bg-muted/5 border-none font-bold" />
-                  <Input value={formData.telegramChatId} onChange={e => setFormData({...formData, telegramChatId: e.target.value})} placeholder="Chat ID" className="h-12 rounded-xl bg-muted/5 border-none font-bold" />
-                  <Button onClick={handleTestTelegram} disabled={isTesting} variant="outline" className="w-full h-12 rounded-xl border-blue-100 text-blue-600 font-black uppercase text-[10px]">TEST CONNECTION</Button>
-               </div>
-               <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 flex flex-col justify-center">
-                  <p className="text-[10px] font-bold text-blue-700 uppercase leading-relaxed italic">Get real-time order alerts on Telegram.</p>
-               </div>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
 
       <div className="flex justify-center pt-10">
         <Button onClick={handleSave} disabled={isSaving} className="w-full md:w-auto px-16 h-18 rounded-[2rem] bg-[#0B0B0B] text-white font-black uppercase italic text-lg shadow-2xl transition-all hover:bg-primary">
           {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Save className="h-6 w-6 mr-3" />}
-          SAVE CONFIGURATION
+          SAVE ALL CHANGES
         </Button>
       </div>
     </div>
