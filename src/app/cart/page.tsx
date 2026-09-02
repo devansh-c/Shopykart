@@ -83,18 +83,47 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
+  // Initialize from LocalStorage and Firestore Profile
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('user_name') || '';
+      const savedPhone = localStorage.getItem('user_phone') || '';
+      // CRITICAL: We only take 'user_address_line'. If missing, we leave it blank instead of using 'user_address' (zone name)
+      const savedDetailedAddress = localStorage.getItem('user_address_line') || '';
+      const savedLat = localStorage.getItem('user_lat') || '';
+      const savedLng = localStorage.getItem('user_lng') || '';
+
       setRecipientForm({
-        name: localStorage.getItem('user_name') || '',
-        phone: localStorage.getItem('user_phone') || '',
-        address: localStorage.getItem('user_address_line') || localStorage.getItem('user_address') || '',
-        lat: localStorage.getItem('user_lat') || '',
-        lng: localStorage.getItem('user_lng') || ''
+        name: savedName,
+        phone: savedPhone,
+        address: savedDetailedAddress,
+        lat: savedLat,
+        lng: savedLng
       });
     }
   }, []);
+
+  // Sync with Firestore profile if logged in and address is empty
+  useEffect(() => {
+    if (user && firestore && isMounted && !recipientForm.address) {
+      const fetchProfile = async () => {
+        const snap = await getDoc(doc(firestore, 'users', user.uid));
+        if (snap.exists()) {
+          const profile = snap.data();
+          if (profile.address) {
+            setRecipientForm(prev => ({
+              ...prev,
+              address: profile.address,
+              name: prev.name || profile.fullName || '',
+              phone: prev.phone || profile.phoneNumber || ''
+            }));
+          }
+        }
+      };
+      fetchProfile();
+    }
+  }, [user, firestore, isMounted, recipientForm.address]);
 
   const activeAddress = recipientForm.address || 'Set delivery location';
   const activeCustomerName = recipientForm.name || 'Guest';
@@ -215,6 +244,9 @@ export default function CartPage() {
     }));
     localStorage.setItem('user_lat', sLat);
     localStorage.setItem('user_lng', sLng);
+    if (address) {
+      localStorage.setItem('user_address_line', address);
+    }
     setIsMapOpen(false);
     toast({ title: "House Pinned! 🏠" });
   };
@@ -678,12 +710,12 @@ export default function CartPage() {
                 </div>
              </div>
 
-             <Button 
+             <button 
                 onClick={() => setIsMapOpen(true)}
-                className="w-full h-14 bg-white/10 hover:bg-white/20 text-amber-400 rounded-2xl font-black uppercase italic text-[10px] tracking-widest border border-amber-400/20 shadow-lg shadow-amber-400/5"
+                className="w-full h-14 bg-white/10 hover:bg-white/20 text-amber-400 rounded-2xl font-black uppercase italic text-[10px] tracking-widest border border-amber-400/20 shadow-lg shadow-amber-400/5 flex items-center justify-center gap-2"
              >
-                <MapPin className="h-4 w-4 mr-2" /> PIN HOUSE ON MAP
-             </Button>
+                <MapPin className="h-4 w-4" /> PIN HOUSE ON MAP
+             </button>
           </div>
 
           <div className="p-8 bg-black/40 shrink-0 pb-10 border-t border-white/5">
