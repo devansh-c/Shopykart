@@ -1,3 +1,4 @@
+
 "use client"
 
 import { usePathname } from 'next/navigation';
@@ -9,15 +10,26 @@ import Link from 'next/link';
 
 /**
  * @fileOverview Premium Bottom Navigation Centered.
- * Features: Center Aligned, Link-based Navigation for stability, Frosted Glass Effect.
- * Order: Home | Cart | Track | Rewards | Profile
+ * Added: Logic to hide Nav when any Dialog (Map Picker) is open to prevent overlapping.
  */
 export default function BottomNav() {
   const pathname = usePathname();
   const { totalItems } = useCart();
   
   const [isVisible, setIsVisible] = useState(true);
+  const [isDialogOpen, setIsAnyDialogOpen] = useState(false);
   const lastScrollY = useRef(0);
+
+  // DETECT DIALOGS (Map Picker, Auth, etc)
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const dialog = document.querySelector('[role="dialog"]');
+      setIsAnyDialogOpen(!!dialog);
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,7 +50,6 @@ export default function BottomNav() {
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    // Strictly exclude all business and specialized hubs from global layouts
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') || 
@@ -53,7 +64,8 @@ export default function BottomNav() {
     { label: 'Profile', icon: User, href: '/profile' },
   ];
 
-  if (isExcludedPath) return null;
+  // Hide if excluded path OR if a full-screen dialog is open
+  if (isExcludedPath || isDialogOpen) return null;
 
   return (
     <div 

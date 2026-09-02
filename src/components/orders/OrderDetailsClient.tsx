@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -396,7 +397,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
               <div className="pt-6 mt-6 border-t border-dashed border-gray-100 flex items-center justify-between">
                  <div className="flex flex-col">
-                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Payable Amount</span>
+                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Total Paid</span>
                     <div className="flex items-center gap-1.5 text-2xl font-black italic text-gray-900 tracking-tighter"><IndianRupee className="h-5 w-5 text-primary" /><span>{order.total?.toFixed(0)}</span></div>
                  </div>
                  <button onClick={generateReceipt} disabled={isDownloading} className="flex items-center gap-2 text-[9px] font-black uppercase text-blue-600 py-2 px-4 bg-blue-50 rounded-xl">
