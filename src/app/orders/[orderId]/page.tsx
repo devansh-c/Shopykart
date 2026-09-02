@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import OrderDetailsClient from '@/components/orders/OrderDetailsClient';
 import { Loader2 } from 'lucide-react';
@@ -6,10 +7,14 @@ export const dynamic = 'force-static';
 
 /**
  * @fileOverview Dynamic order page with static export compatibility.
+ * Provides multiple sample paths to satisfy Next.js static generation.
  */
 export async function generateStaticParams() {
-  // Providing a placeholder to satisfy the build requirement
-  return [{ orderId: 'tracking' }];
+  return [
+    { orderId: 'tracking' },
+    { orderId: 'status' },
+    { orderId: 'latest' }
+  ];
 }
 
 export default async function OrderPage(props: {
@@ -17,6 +22,8 @@ export default async function OrderPage(props: {
 }) {
   const params = await props.params;
   const orderId = params.orderId;
+
+  const isReservedSlug = ['tracking', 'status', 'latest'].includes(orderId);
 
   return (
     <Suspense fallback={
@@ -27,7 +34,7 @@ export default async function OrderPage(props: {
         </div>
       </div>
     }>
-      <OrderDetailsClient forcedId={orderId === 'tracking' ? undefined : orderId} />
+      <OrderDetailsClient forcedId={isReservedSlug ? undefined : orderId} />
     </Suspense>
   );
 }

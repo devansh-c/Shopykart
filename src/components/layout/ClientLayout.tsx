@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -32,7 +33,7 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setIsClient(true);
     const handleOpenAuth = () => {
-      // STRICT CHECK: Only open if not loading and definitely not logged in
+      // ONLY open if definitely not logged in and not loading
       if (!loading && !user) {
         setShowAuthOverlay(true);
       }
@@ -72,9 +73,10 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
            p.startsWith('/order/track');
   }, [pathname]);
 
-  // SMART FALLBACK: If we are on a required route and auth is loading, just show children
-  // Don't ever show the login overlay while 'loading' is true to prevent annoying existing users.
-  const shouldRenderAuth = !isExcludedPath && showAuthOverlay && !user && !loading && isClient;
+  // ELITE IDENTITY PROTECTION: Never show auth overlay if Firebase is still loading
+  // or if we have a persistent session flag in localStorage
+  const hasPersistentSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+  const shouldRenderAuth = !isExcludedPath && showAuthOverlay && !user && !loading && !hasPersistentSession && isClient;
 
   return (
     <>

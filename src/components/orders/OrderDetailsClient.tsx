@@ -301,7 +301,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       `;
       
       document.body.appendChild(receipt);
-      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
+      // Fix SecurityError: Add cacheBust and font skipping for stability
+      const blob = await toBlob(receipt, { 
+        pixelRatio: 2, 
+        cacheBust: true,
+        fontEmbedCSS: '' // Prevents cssRules security access error
+      }); 
       document.body.removeChild(receipt);
       
       if (blob && typeof saveAs === 'function') {
@@ -309,6 +314,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         toast({ title: "Receipt Downloaded! ✅" });
       }
     } catch (err) {
+      console.error("Receipt generation error:", err);
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
       setIsDownloading(false);
@@ -551,4 +557,3 @@ export default function OrderDetailsClient({ forcedId }: { forcedId?: string }) 
     </Suspense>
   );
 }
-

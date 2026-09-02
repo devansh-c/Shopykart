@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,7 +17,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 
 /**
  * @fileOverview Manual Zone Selection with Map-Based Pinning.
- * SMART RECOVERY: Automatically recovers location from logged-in user's profile.
+ * SMART RECOVERY: Automatically recovers location from logged-in user's profile to prevent redundant popups.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,12 +63,12 @@ export default function LocationRequest() {
         }
         
         // No cached location and no profile recovery possible? Show popup.
-        // We only show it if the session is definitely active OR auth finished and no user.
         setIsOpen(true);
       }
     };
 
-    const timer = setTimeout(checkLocationStatus, 2000); // Wait for auth to fully hydrate
+    // Use a small delay to ensure Auth state is stable
+    const timer = setTimeout(checkLocationStatus, 1500);
 
     const handleOpenManual = () => { setIsOpen(true); };
     window.addEventListener('open-location-picker', handleOpenManual);
