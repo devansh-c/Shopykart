@@ -57,8 +57,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Capacitor Sync
-        run: npx cap sync android
+      - name: Capacitor Add/Sync Android
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Android directory not found. Adding platform..."
+            npx cap add android
+          fi
+          npx cap sync android
 
       - name: Build APK (Debug)
         run: |

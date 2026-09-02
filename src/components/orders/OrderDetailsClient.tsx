@@ -228,7 +228,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
           <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span>#${order.customerOrderNumber || '1'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
-          <div style="display: flex; justify-content: space-between; margin-top: 10px;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
         </div>
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
