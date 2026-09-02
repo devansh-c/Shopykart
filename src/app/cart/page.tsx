@@ -33,14 +33,11 @@ import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
-import { LocationPinPrompt } from '@/components/shared/LocationPinPrompt';
 
 const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
   ssr: false,
   loading: () => <div className="h-64 w-full bg-muted animate-pulse flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
 });
-
-type PaymentApp = 'phonepe' | 'paytm' | 'googlepay' | 'other';
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -54,8 +51,6 @@ export default function CartPage() {
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
-  const [deliveryTip, setDeliveryTip] = useState<number>(0);
-  const [realDeliveryTime, setRealDeliveryTime] = useState<string>('Calculating...');
   
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -95,32 +90,12 @@ export default function CartPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (user && firestore && isMounted && !recipientForm.address) {
-      const fetchProfile = async () => {
-        const snap = await getDoc(doc(firestore, 'users', user.uid));
-        if (snap.exists()) {
-          const profile = snap.data();
-          if (profile.address) {
-            setRecipientForm(prev => ({
-              ...prev,
-              address: profile.address,
-              name: prev.name || profile.fullName || '',
-              phone: prev.phone || profile.phoneNumber || ''
-            }));
-          }
-        }
-      };
-      fetchProfile();
-    }
-  }, [user, firestore, isMounted, recipientForm.address]);
-
   const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
-  const zonesQuery = useMemoFirebase(() => {
+  const zoneRef = useMemoFirebase(() => {
     if (!firestore || !activeZoneId) return null;
     return doc(firestore, 'zones', activeZoneId);
   }, [firestore, activeZoneId]);
-  const { data: zoneData } = useDoc<any>(zonesQuery);
+  const { data: zoneData } = useDoc<any>(zoneRef);
 
   const deliveryFee = zoneData?.deliveryCharge || 0;
 
@@ -140,42 +115,18 @@ export default function CartPage() {
   }, [adminCharges, totalPrice, activeZoneId]);
 
   const totalPayable = useMemo(() => {
-    let base = totalPrice + deliveryFee + deliveryTip;
+    let base = totalPrice + deliveryFee;
     calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
     if (isRedeemCoins) base -= 5;
     return Math.max(0, base);
-  }, [totalPrice, deliveryFee, deliveryTip, calculatedAdminCharges, isPremiumPacking, isRedeemCoins]);
-
-  const handleSaveRecipient = async () => {
-    if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10 || !recipientForm.address.trim()) {
-      toast({ variant: "destructive", title: "Missing Info", description: "Name, Phone and Address are required." });
-      return;
-    }
-
-    localStorage.setItem('user_name', recipientForm.name.toUpperCase());
-    localStorage.setItem('user_phone', recipientForm.phone);
-    localStorage.setItem('user_address_line', recipientForm.address);
-    localStorage.setItem('user_location_set', 'true');
-    
-    if (user && firestore) {
-      await setDoc(doc(firestore, 'users', user.uid), {
-        fullName: recipientForm.name.toUpperCase(),
-        phoneNumber: recipientForm.phone,
-        address: recipientForm.address,
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => {});
-    }
-
-    setIsAddressModalOpen(false);
-    window.dispatchEvent(new CustomEvent('user-address-updated'));
-    toast({ title: "Details Saved! ✅" });
-  };
+  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins]);
 
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
     
-    if (!recipientForm.name.trim() || !recipientForm.phone || !recipientForm.address.trim()) {
+    // STRICT VALIDATION
+    if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10 || !recipientForm.address.trim()) {
       setIsAddressModalOpen(true);
       setSliderOffset(0);
       return;
@@ -198,7 +149,6 @@ export default function CartPage() {
         items: cart,
         total: totalPayable,
         deliveryFee: deliveryFee,
-        deliveryTip: deliveryTip,
         isPremiumPacking: isPremiumPacking,
         redeemCoins: isRedeemCoins,
         chargesBreakdown: calculatedAdminCharges,
@@ -357,39 +307,9 @@ export default function CartPage() {
              <button onClick={() => setIsMapOpen(true)} className="w-full h-14 bg-primary/5 text-primary rounded-2xl font-black uppercase italic text-[10px] tracking-widest border border-primary/20 flex items-center justify-center gap-2"><MapPin className="h-4 w-4" /> PIN ON MAP</button>
           </div>
           <div className="p-8 bg-gray-50 pb-10 border-t">
-             <Button onClick={handleSaveRecipient} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SAVE & PROCEED</Button>
+             <Button onClick={() => { localStorage.setItem('user_name', recipientForm.name); localStorage.setItem('user_phone', recipientForm.phone); localStorage.setItem('user_address_line', recipientForm.address); setIsAddressModalOpen(false); toast({title:'Details Saved'}); }} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SAVE & PROCEED</Button>
           </div>
         </DialogContent>
-      </Dialog>
-
-      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-         <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
-            <DialogHeader className="p-4 border-b bg-white shrink-0"><DialogTitle className="text-center font-black italic uppercase">Pin Location</DialogTitle></DialogHeader>
-            <div className="flex-1 min-h-0 relative"><GoogleMapPicker onConfirm={(lat, lng, addr) => { setRecipientForm({...recipientForm, lat: lat.toString(), lng: lng.toString(), address: addr || recipientForm.address}); setIsMapOpen(false); }} /></div>
-         </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPaymentSelector} onOpenChange={setShowPaymentSelector}>
-        <DialogContent className="rounded-t-[3rem] p-8 border-none bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none">
-          <DialogHeader><DialogTitle className="text-2xl font-black italic uppercase text-center">PAY SECURELY</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4 mt-8">
-             {[{id:'phonepe',label:'PhonePe'},{id:'googlepay',label:'GPay'},{id:'paytm',label:'Paytm'},{id:'other',label:'Other'}].map(app => (
-               <button key={app.id} onClick={() => { setShowPaymentSelector(false); setIsVerifying(true); }} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-transparent hover:border-primary active:scale-95 transition-all flex flex-col items-center gap-2">
-                  <div className="h-10 w-10 bg-white rounded-xl shadow-sm" />
-                  <span className="text-[10px] font-black uppercase">{app.label}</span>
-               </button>
-             ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isVerifying} onOpenChange={setIsVerifying}>
-         <DialogContent className="rounded-[3rem] p-10 border-none bg-white max-w-xs focus:outline-none text-center space-y-6">
-            <Loader2 className="h-12 w-12 animate-spin text-amber-400 mx-auto" />
-            <h2 className="text-xl font-black italic uppercase">Verifying Payment</h2>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">Please complete payment in your UPI app and return.</p>
-            <Button onClick={finalizeOrder} disabled={isPlacing} className="w-full h-14 bg-green-600 text-white rounded-2xl font-black uppercase italic shadow-lg">{isPlacing ? <Loader2 className="h-5 w-5 animate-spin" /> : "I HAVE PAID"}</Button>
-         </DialogContent>
       </Dialog>
     </div>
   );

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { cn } from "@/lib/utils";
@@ -8,8 +7,7 @@ import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 /**
- * @fileOverview Logo component adjusted for a stretched pill design.
- * Includes a secret shortcut to Admin Dashboard.
+ * @fileOverview Logo component using the new premium branded image.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -26,9 +24,7 @@ export function Logo({ className }: { className?: string }) {
 
   const handleTap = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-
     const nextTaps = taps + 1;
-    
     if (nextTaps >= 5) {
       setTaps(0);
       router.push('/admin/dashboard');
@@ -44,24 +40,15 @@ export function Logo({ className }: { className?: string }) {
     <div 
       onClick={handleTap}
       className={cn(
-        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-6 py-1 border-2 border-[#C5A021]/40 rounded-full bg-black/60 backdrop-blur-md shadow-[0_0_25px_rgba(197,160,33,0.15)] min-w-[150px] justify-center h-10", 
+        "flex flex-col items-center cursor-pointer select-none active:scale-95 transition-all duration-300 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md shadow-lg min-w-[140px] justify-center h-10 border border-white/5", 
         className
       )}
     >
-      {branding?.logoUrl ? (
-        <img src={branding.logoUrl} alt={branding.siteTitle || 'Logo'} className="h-7 w-auto object-contain" />
-      ) : (
-        <>
-          <h1 className="flex items-center text-base font-black italic tracking-tighter leading-none">
-            <span className="text-white">SHOPY</span>
-            <span className="text-[#C5A021]">KART</span>
-          </h1>
-          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#C5A021]/40 to-transparent mt-1 opacity-50" />
-          <span className="text-[6px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">
-            QUALITY FIRST
-          </span>
-        </>
-      )}
+      <img 
+        src={branding?.logoUrl || "/file_000000004d78821193714c20786ca8d1.png"} 
+        alt="ShopyKart Logo" 
+        className="h-8 w-auto object-contain" 
+      />
     </div>
   );
 }

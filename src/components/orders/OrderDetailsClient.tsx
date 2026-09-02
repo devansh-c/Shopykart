@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -245,7 +244,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         <div style="text-align: center; margin-bottom: 25px;">
           <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
           <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
-          <div style="margin-top: 15px; font-size: 9px; font-weight: 800;">SHOPYKART PREMIUM DELIVERY</div>
           <div style="border-top: 1.5px dashed #000; margin: 15px auto 0; width: 100%;"></div>
         </div>
         <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
@@ -257,7 +255,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
         <div>${itemsHtml}</div>
         <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 9px;">
-          <div style="font-weight: 900; margin-bottom: 5px;">CHARGES BREAKDOWN:</div>
+          <div style="font-weight: 900; margin-bottom: 5px;">TAX & EXTRA CHARGES:</div>
           ${taxHtml || '<div>NO EXTRA CHARGES</div>'}
         </div>
         <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
@@ -268,11 +266,11 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       `;
       
       document.body.appendChild(receipt);
-      const blob = await toBlob(receipt, { pixelRatio: 2, skipFonts: true }); 
+      const blob = await toBlob(receipt, { pixelRatio: 2 }); 
       document.body.removeChild(receipt);
       
       if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `ShopyKart_Receipt_${order.customerOrderNumber || order.id.slice(-4)}.png`);
+        saveAs(blob, `Receipt_${order.customerOrderNumber}.png`);
         toast({ title: "Receipt Saved! ✅" });
       }
     } catch (err) {

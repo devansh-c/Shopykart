@@ -6,18 +6,15 @@ import { ShieldCheck, Sparkles } from 'lucide-react';
 
 /**
  * @fileOverview Premium Splash Screen for ShopyKart.
- * Features: Logo entrance animation using favicon.ico, Gold running progress bar.
- * Automatically fades out after 3 seconds.
+ * Updated: Using user-uploaded premium logo for high-end branding.
  */
 export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
   const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
-    // Phase 1: Keep visible for 2.5 seconds
     const timer = setTimeout(() => {
       setIsFading(true);
-      // Phase 2: Fade out transition for 0.5 seconds
       setTimeout(() => {
         setIsVisible(false);
       }, 500);
@@ -35,7 +32,6 @@ export function SplashScreen() {
         isFading ? "opacity-0 scale-105" : "opacity-100 scale-100"
       )}
     >
-      {/* BACKGROUND DECORATION */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.03]">
         <div 
           className="absolute inset-0" 
@@ -47,41 +43,37 @@ export function SplashScreen() {
       </div>
 
       <div className="relative flex flex-col items-center space-y-12 animate-in zoom-in-95 fade-in duration-1000 transform-gpu">
-        
-        {/* LOGO CONTAINER */}
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full animate-pulse scale-150" />
-          <div className="relative h-40 w-40 rounded-[3rem] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex items-center justify-center overflow-hidden transform-gpu hover:scale-105 transition-transform duration-700">
-            {/* STRICTLY USING ICON.ICO / FAVICON AS REQUESTED */}
-            <img src="/favicon.ico" alt="ShopyKart Logo" className="h-24 w-24 object-contain" />
-            
-            {/* Gloss shine effect */}
+          <div className="relative h-44 w-44 rounded-[3rem] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex items-center justify-center overflow-hidden transform-gpu">
+            {/* BRANDED LOGO IMPLEMENTATION */}
+            <img 
+              src="/file_000000004d78821193714c20786ca8d1.png" 
+              alt="ShopyKart Premium" 
+              className="h-32 w-32 object-contain animate-in zoom-in duration-700" 
+            />
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full animate-[shine_3s_infinite]" />
           </div>
-          
           <div className="absolute -top-4 -right-4 bg-amber-400 text-white p-2.5 rounded-2xl shadow-xl animate-bounce">
             <Sparkles className="h-5 w-5" />
           </div>
         </div>
 
-        {/* LOADING TEXT & PROGRESS */}
         <div className="flex flex-col items-center text-center space-y-5">
            <div className="space-y-1">
               <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
                 PREMIUM <span className="text-primary">DELIVERY.</span>
               </h2>
               <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.4em] opacity-60">
-                Quality First • Mauranipur
+                Quality First • Instant Support
               </p>
            </div>
-           
            <div className="w-44 h-1.5 bg-gray-100 rounded-full overflow-hidden relative border border-gray-50 shadow-inner">
               <div className="absolute h-full bg-gradient-to-r from-primary to-amber-500 animate-[running-line_1.5s_infinite] w-1/2 rounded-full" />
            </div>
         </div>
       </div>
 
-      {/* FOOTER BRANDING */}
       <div className="absolute bottom-16 flex flex-col items-center gap-3 opacity-30 transform-gpu animate-in slide-in-from-bottom-2 duration-1000 delay-300">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary" />

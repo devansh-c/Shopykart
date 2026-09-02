@@ -12,8 +12,7 @@ const inter = Inter({
 });
 
 /**
- * @fileOverview Root Layout with Optimized Metadata for Google Indexing.
- * Ads components removed for a clean premium experience.
+ * @fileOverview Root Layout with Updated Premium Logo and Favicon.
  */
 export default function RootLayout({
   children,
@@ -25,25 +24,18 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <title>Shopykart – 10 Min Veg Food Delivery | Mauranipur, Ranipur | Order Online</title>
-        <meta name="description" content="Shopykart: Official 10-Min Veg Food Delivery! 🥗 Order fresh gourmet food, artisanal pizzas, and local snacks. Best prices, premium quality, delivered instantly in Mauranipur and Ranipur." />
+        <title>Shopykart – Premium Gourmet Delivery | Mauranipur, Ranipur</title>
+        <meta name="description" content="Official 10-Min Veg Food Delivery! 🥗 Order fresh gourmet food instantly." />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/file_000000004d78821193714c20786ca8d1.png" sizes="any" />
+        <link rel="apple-touch-icon" href="/file_000000004d78821193714c20786ca8d1.png" />
         <link rel="canonical" href={siteUrl} />
         
-        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-        <meta name="googlebot" content="index, follow" />
-        
+        <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Shopykart – Premium 10-Min Food Delivery" />
-        <meta property="og:description" content="Official 10-Min Veg Food Delivery in Mauranipur & Ranipur. Freshly Prepared | Best Prices." />
+        <meta property="og:title" content="Shopykart – Premium 10-Min Delivery" />
         <meta property="og:url" content={siteUrl} />
-        <meta property="og:site_name" content="Shopykart" />
-        <meta property="og:image" content={`${siteUrl}/og-image.jpg`} />
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Shopykart – Fast Gourmet Delivery" />
-        <meta name="twitter:description" content="10-minute veg food delivery. Order now!" />
+        <meta property="og:image" content="/file_000000004d78821193714c20786ca8d1.png" />
 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
