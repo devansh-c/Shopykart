@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -92,7 +93,7 @@ export default function OrderManagement() {
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     if (currentIndex < STATUS_FLOW.length - 1) {
       const nextStatus = STATUS_FLOW[currentIndex + 1];
-      await updateDoc(doc(firestore, 'orders', id), { 
+      updateDoc(doc(firestore, 'orders', id), { 
         status: nextStatus,
         updatedAt: serverTimestamp()
       });
@@ -105,7 +106,7 @@ export default function OrderManagement() {
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     if (currentIndex > 0) {
       const prevStatus = STATUS_FLOW[currentIndex - 1];
-      await updateDoc(doc(firestore, 'orders', id), { 
+      updateDoc(doc(firestore, 'orders', id), { 
         status: prevStatus,
         updatedAt: serverTimestamp()
       });
@@ -116,7 +117,7 @@ export default function OrderManagement() {
   const handleCancelOrder = async (id: string) => {
     if (!firestore) return;
     if (confirm("Are you sure you want to CANCEL this order? This cannot be undone.")) {
-      await updateDoc(doc(firestore, 'orders', id), {
+      updateDoc(doc(firestore, 'orders', id), {
         status: 'Cancelled',
         updatedAt: serverTimestamp()
       });
@@ -512,7 +513,9 @@ export default function OrderManagement() {
                  <button 
                    key={partner.id}
                    onClick={() => handleAssignPartner(partner)}
-                   className="w-full p-4 rounded-[1.5rem] border-2 border-gray-50 bg-gray-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all flex items-center justify-between text-left group"
+                   className={cn(
+                     "w-full p-4 rounded-[1.5rem] border-2 border-gray-50 bg-gray-50/50 hover:bg-primary/5 hover:border-primary/20 transition-all flex items-center justify-between text-left group"
+                   )}
                  >
                    <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0 shadow-sm">
