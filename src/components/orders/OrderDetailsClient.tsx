@@ -301,11 +301,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       `;
       
       document.body.appendChild(receipt);
-      // Fix SecurityError: Add cacheBust and font skipping for stability
+      // Fix SecurityError: Add cacheBust and disable fontEmbedding which causes the rules access error
       const blob = await toBlob(receipt, { 
         pixelRatio: 2, 
         cacheBust: true,
-        fontEmbedCSS: '' // Prevents cssRules security access error
+        fontEmbedCSS: '', // Prevents SecurityError on cross-origin CSS
+        style: { fontFamily: 'monospace' } // Fallback to safe font
       }); 
       document.body.removeChild(receipt);
       
@@ -477,7 +478,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                   disabled={isDownloading}
                   className="flex items-center gap-2 text-[9px] font-black uppercase text-blue-600 hover:text-blue-700 transition-colors py-2 px-4 bg-blue-50 rounded-xl"
                  >
-                    {isDownloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                    {isDownloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                     <span>{isDownloading ? 'Generating...' : 'Download Receipt'}</span>
                  </button>
               </div>
@@ -489,7 +490,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         "px-4 py-4 transition-all duration-500",
         isMapExpanded ? "opacity-0" : "opacity-100"
       )}>
-         {/* FLOATING OTP BOX - BETWEEN CARDS */}
+         {/* FLOATING OTP BOX - AS REQUESTED */}
          {order.deliveryOTP && order.status !== 'Delivered' && order.status !== 'Cancelled' && (
            <div className="flex justify-center -mb-5 relative z-[150] animate-in zoom-in duration-500">
              <div className="bg-[#0B0B0B] text-white px-6 py-2.5 rounded-[1.25rem] shadow-2xl border-2 border-primary/30 flex flex-col items-center">

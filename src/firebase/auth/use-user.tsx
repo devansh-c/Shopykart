@@ -20,9 +20,6 @@ export function useUser() {
       return;
     }
 
-    // Set initial loading based on whether we think we have a session
-    const maybeActive = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
-    
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
@@ -32,11 +29,7 @@ export function useUser() {
         }
       } else {
         setUser(null);
-        // We only clear the flag if Firebase definitely confirms no user is logged in
-        if (typeof window !== 'undefined') {
-          // Keep the flag during short disconnects/reloads to avoid flicker
-          // localStorage.removeItem('shopykart_session_active');
-        }
+        // Do NOT clear shopykart_session_active immediately to prevent hydration flickering
       }
       setLoading(false);
     });

@@ -16,8 +16,8 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 });
 
 /**
- * @fileOverview Manual Zone Selection with Map-Based Pinning.
- * SMART RECOVERY: Automatically recovers location from logged-in user's profile to prevent redundant popups.
+ * @fileOverview Manual Zone Selection with Map-Based Pinning and Identity Recovery.
+ * SMART RECOVERY: Restores location from profile to prevent popups for existing users.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -147,7 +147,7 @@ export default function LocationRequest() {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl h-[550px] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+        <DialogContent className="rounded-t-[3rem] sm:rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl h-[550px] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
           <DialogHeader className="p-8 bg-white border-b shrink-0">
             <div className="flex flex-col items-center text-center space-y-2">
                <div className="bg-primary/10 p-3 rounded-2xl text-primary mb-2 shadow-inner"><MapPin className="h-7 w-7" /></div>

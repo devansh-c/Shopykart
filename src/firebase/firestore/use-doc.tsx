@@ -13,7 +13,7 @@ import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
 /**
- * @fileOverview High-Performance Document Hook with Instant Cache Access.
+ * @fileOverview High-Performance Document Hook with Instant Cache Access and Date Normalization.
  * Quota-Aware: Safely handles full storage errors.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {

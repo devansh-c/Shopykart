@@ -68,6 +68,19 @@ function ProfileContent() {
 
   const { data: profile } = useDoc<any>(profileRef);
 
+  const joinedDate = useMemo(() => {
+    if (!profile?.createdAt) return null;
+    try {
+      // Safe date parsing to prevent RangeError: Invalid time value
+      const date = typeof profile.createdAt === 'string' 
+        ? new Date(profile.createdAt) 
+        : new Date(profile.createdAt.seconds * 1000);
+      return isNaN(date.getTime()) ? null : date;
+    } catch (e) {
+      return null;
+    }
+  }, [profile?.createdAt]);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -141,12 +154,10 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-40 transform-gpu">
-      {/* HEADER SECTION - RED BACKGROUND */}
       <div className="bg-primary h-48 relative">
         <div className="absolute bottom-0 w-full h-10 bg-[#F9FAFB] rounded-t-[3rem]" />
       </div>
 
-      {/* AVATAR & NAME - OVERLAPPING */}
       <div className="flex flex-col items-center -mt-24 px-6 text-center">
         <div 
           className="relative group cursor-pointer active:scale-95 transition-all"
@@ -172,21 +183,27 @@ function ProfileContent() {
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
         </div>
 
-        <div className="mt-6 space-y-1">
+        <div className="mt-6 space-y-2">
           <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase tracking-[0.2em] px-3 py-0.5">
             GOLD MEMBER
           </Badge>
           <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">{displayName}</h2>
-          <div className="flex items-center justify-center gap-1 text-gray-400">
-             <Phone className="h-3 w-3" />
-             <span className="text-[11px] font-black">{profile?.phoneNumber || '9898988999'}</span>
+          <div className="flex items-center justify-center gap-4">
+             <div className="flex items-center gap-1 text-gray-400">
+                <Phone className="h-3 w-3" />
+                <span className="text-[11px] font-black">{profile?.phoneNumber || 'N/A'}</span>
+             </div>
+             {joinedDate && (
+               <Badge variant="outline" className="text-[7px] font-black uppercase tracking-widest bg-white border-border/50 text-gray-400">
+                 JOINED {format(joinedDate, 'MMM yyyy')}
+               </Badge>
+             )}
           </div>
         </div>
       </div>
 
       <div className="px-6 mt-10 space-y-10">
         
-        {/* INVITE FRIENDS CARD */}
         <button className="w-full bg-[#0B0B0B] rounded-[2rem] p-6 flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-gray-200">
            <div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20 group-hover:rotate-12 transition-transform">
@@ -200,7 +217,6 @@ function ProfileContent() {
            <ChevronRight className="h-5 w-5 text-gray-700" />
         </button>
 
-        {/* DYNAMIC SECTIONS */}
         {menuItems.map((section, sIdx) => (
           <div key={sIdx} className="space-y-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-4">{section.section}</h3>
@@ -229,7 +245,6 @@ function ProfileContent() {
           </div>
         ))}
 
-        {/* ASSISTANCE CENTER */}
         <div className="space-y-4">
            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-4">ASSISTANCE CENTER</h3>
            <div className="bg-rose-50/50 rounded-[2rem] p-6 flex items-center justify-between border border-rose-100 shadow-sm">
@@ -246,7 +261,6 @@ function ProfileContent() {
            </div>
         </div>
 
-        {/* LOGOUT */}
         <button 
           onClick={() => setShowLogoutConfirm(true)}
           className="w-full h-16 bg-white rounded-[2rem] flex items-center gap-4 px-8 text-rose-500 shadow-sm active:scale-95 transition-all border border-rose-50 mt-10"
@@ -256,7 +270,6 @@ function ProfileContent() {
         </button>
       </div>
 
-      {/* SIGN OUT CONFIRMATION DIALOG */}
       <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
          <DialogContent className="rounded-[3rem] max-w-xs p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
             <div className="p-8 text-center space-y-6">
