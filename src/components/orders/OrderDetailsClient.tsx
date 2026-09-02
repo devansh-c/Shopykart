@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -142,6 +141,9 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     if (mins) setEtaDisplay(mins);
   };
 
+  const isDelivered = order?.status === 'Delivered';
+  const isCancelled = order?.status === 'Cancelled';
+
   const getHeadline = () => {
     if (!order) return "Locating Order...";
     const status = order.status || 'Placed';
@@ -267,7 +269,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     </div>
   );
 
-  if (order.status === 'Cancelled') {
+  if (isCancelled) {
     return (
       <div className="min-h-screen bg-white flex flex-col transform-gpu animate-in fade-in duration-500">
          <header className="px-6 py-6 border-b flex items-center justify-between">
@@ -359,7 +361,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
               <div className="flex justify-between items-start mb-6">
                  <div>
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{getHeadline()}</h2>
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">{order.status === 'Delivered' ? 'ENJOY YOUR MEAL' : 'ARRIVING SOON'}</p>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">{isDelivered ? 'ENJOY YOUR MEAL' : 'ARRIVING SOON'}</p>
                  </div>
                  {!isDelivered && (
                    <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg">
@@ -407,7 +409,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       </div>
 
       <div className={cn("px-4 py-4 transition-all duration-500", isMapExpanded ? "opacity-0" : "opacity-100")}>
-         {order.deliveryOTP && order.status !== 'Delivered' && (
+         {order.deliveryOTP && !isDelivered && (
            <div className="flex justify-center -mb-5 relative z-[150] animate-in zoom-in duration-500">
              <div className="bg-[#0B0B0B] text-white px-6 py-2.5 rounded-[1.25rem] shadow-2xl border-2 border-primary/30 flex flex-col items-center">
                 <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 flex items-center gap-1"><KeyRound className="h-2 w-2 text-primary" /> SECURE DELIVERY OTP</span>
