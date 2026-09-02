@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,7 +11,7 @@ import Loading from './loading';
 
 /**
  * @fileOverview Multi-App Router for APK Builds.
- * Detects target app type from environment variables and routes to correct entry point.
+ * Harden entry point to prevent force-closing during redirection.
  */
 export default function ShopyKartApp() {
   const router = useRouter();
@@ -20,10 +21,10 @@ export default function ShopyKartApp() {
   const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow'>('customer');
 
   useEffect(() => {
-    // 1. IDENTIFY APP TYPE FROM BUILD FLAGS
-    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-    const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
+    // 1. IDENTIFY APP TYPE FROM BUILD FLAGS (Defensive check)
+    const isAdmin = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+    const isBiz = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    const isTow = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
     if (isAdmin) {
       setAppType('admin');
@@ -43,18 +44,18 @@ export default function ShopyKartApp() {
   async function fetchData() {
     if (!firestore) return;
     try {
+      // Parallel fetch with limits for speed
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
         getDocs(query(collection(firestore, 'banners'), limit(15))),
         getDocs(query(collection(firestore, 'categories'), limit(40))),
         getDoc(doc(firestore, 'app_settings', 'announcement')),
-        getDocs(query(collection(firestore, 'vendors'), limit(100))),
-        getDocs(query(collection(firestore, 'products'), limit(300)))
+        getDocs(query(collection(firestore, 'vendors'), limit(50))),
+        getDocs(query(collection(firestore, 'products'), limit(100)))
       ]);
 
       const sanitize = (docs: any[]) => docs.map(d => ({ 
         id: d.id, 
-        ...d.data(),
-        createdAt: d.data().createdAt?.seconds ? new Date(d.data().createdAt.seconds * 1000).toISOString() : d.data().createdAt
+        ...d.data()
       }));
 
       setInitialData({
@@ -65,14 +66,22 @@ export default function ShopyKartApp() {
         products: sanitize(productsSnap.docs)
       });
     } catch (e) {
-      console.error("Data fetch error:", e);
+      console.error("Initial data fetch error:", e);
+      // Fail silently and provide empty arrays to prevent crash
+      setInitialData({
+        banners: [],
+        categories: [],
+        announcement: null,
+        vendors: [],
+        products: []
+      });
     } finally {
       setLoading(false);
     }
   }
 
   // SHOW SHIMMER EFFECT DURING DATA FETCHING FOR CUSTOMER APP
-  if (appType === 'customer' && loading) {
+  if (appType === 'customer' && (loading || !initialData)) {
     return <Loading />;
   }
 

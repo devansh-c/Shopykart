@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -12,7 +13,7 @@ import { usePathname } from 'next/navigation';
 /**
  * @fileOverview Global Notification & Urgent Alert Handler.
  * Specialized for Admin, Biz, and Tow variants to ensure ringing alerts.
- * Added: Ringing logic for Delivery Partners when order is "Ready for Pickup" in their zone.
+ * Safety: Added defensive checks to prevent force closing on start.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -27,22 +28,9 @@ export default function NotificationHandler() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const askPermissions = async () => {
-      if (typeof window !== 'undefined' && 'Notification' in window) {
-        if (Notification.permission === 'default') {
-          try {
-             setTimeout(() => Notification.requestPermission(), 5000);
-          } catch (e) {
-            console.warn("Notification permission rejected");
-          }
-        }
-      }
-    };
-    askPermissions();
-  }, []);
-
-  useEffect(() => {
     const checkRole = async () => {
+      if (typeof window === 'undefined') return;
+
       const isAdminAuth = localStorage.getItem('admin_auth') === 'true';
       if (isAdminAuth) { setUserRole('admin'); return; }
       
@@ -101,11 +89,13 @@ export default function NotificationHandler() {
         
         setRingingOrders(targeted);
         handleAudio(targeted.length > 0);
+      }, (err) => {
+        console.warn("Ringing listener restricted:", err.message);
       });
       return () => unsub();
     }
 
-    // 2. DELIVERY PARTNER: Listen for "Ready for Pickup" orders in their zone
+    // 2. DELIVERY PARTNER: Listen for "Ready for Pickup" orders
     if (userRole === 'delivery' && userData) {
       const q = query(
         collection(firestore, 'orders'), 
@@ -113,14 +103,11 @@ export default function NotificationHandler() {
       );
       const unsub = onSnapshot(q, (snapshot) => {
         const allReady = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        // Filter by partner's assigned zone/pincode
         const targeted = allReady.filter((o: any) => {
-          // If order has no delivery partner assigned yet
           if (o.deliveryPartnerId) return false;
-          
           const zoneMatch = o.zoneId === userData.zoneId;
           const pincodeMatch = o.pincode === userData.assignedPincode;
-          return zoneMatch || pincodeMatch || !userData.assignedPincode; // Default to all if no area set
+          return zoneMatch || pincodeMatch || !userData.assignedPincode;
         });
 
         setRingingOrders(targeted);
@@ -129,16 +116,18 @@ export default function NotificationHandler() {
       return () => unsub();
     }
 
-  }, [user, firestore, userRole, userData, isManagementPath, toast]);
+  }, [user, firestore, userRole, userData, isManagementPath]);
 
   const handleAudio = (shouldPlay: boolean) => {
+    if (typeof window === 'undefined') return;
+    
     if (shouldPlay) {
       if (!audioRef.current) {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3'); 
         audioRef.current.loop = true;
       }
       audioRef.current.play().catch(() => {
-        toast({ title: "Task Alert!", description: "New order needs attention." });
+        // Silently fail if audio context is blocked, user will still see the dialog
       });
     } else {
       if (audioRef.current) {
@@ -175,6 +164,8 @@ export default function NotificationHandler() {
       setIsAccepting(false); 
     }
   };
+
+  if (ringingOrders.length === 0) return null;
 
   return (
     <Dialog open={ringingOrders.length > 0} onOpenChange={() => {}}>
@@ -226,8 +217,6 @@ export default function NotificationHandler() {
           >
             {isAccepting ? <Loader2 className="h-8 w-8 animate-spin" /> : (userRole === 'delivery' ? "ACCEPT PICKUP" : "ACCEPT NOW")}
           </Button>
-          
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Alert will stop once accepted</p>
         </div>
       </DialogContent>
     </Dialog>
