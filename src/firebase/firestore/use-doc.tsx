@@ -1,5 +1,4 @@
-
-'use client';
+"use client"
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
@@ -15,6 +14,7 @@ import { FirestorePermissionError } from '../errors';
 /**
  * @fileOverview High-Performance Document Hook with Instant Cache Access and Date Normalization.
  * Quota-Aware: Safely handles full storage errors.
+ * Normalization ensures standard Dates across the app to prevent hydration RangeErrors.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cacheKey?: string, initialData?: T) {
   // 1. Initialize strictly with SSR data or Cache
@@ -52,7 +52,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null, cache
           return;
         }
 
-        // Normalize Dates consistently like useCollection
+        // CONSISTENT NORMALIZATION: Converts Firestore Timestamps to ISO Strings
         const cleanData = JSON.parse(JSON.stringify(rawData, (key, value) => {
           if (value && typeof value === 'object' && value.seconds !== undefined) {
             return new Date(value.seconds * 1000).toISOString();

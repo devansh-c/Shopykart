@@ -67,20 +67,14 @@ function ProfileContent() {
 
   const { data: profile } = useDoc<any>(profileRef);
 
+  // ROBUST DATE PARSING: Fixes RangeError: Invalid time value
   const joinedDate = useMemo(() => {
     if (!profile?.createdAt) return null;
     try {
-      // Robust Firestore Timestamp conversion
-      let dateValue;
-      if (typeof profile.createdAt.toDate === 'function') {
-        dateValue = profile.createdAt.toDate();
-      } else if (profile.createdAt.seconds) {
-        dateValue = new Date(profile.createdAt.seconds * 1000);
-      } else {
-        dateValue = new Date(profile.createdAt);
-      }
-      
-      return isNaN(dateValue.getTime()) ? null : dateValue;
+      if (profile.createdAt.seconds) return new Date(profile.createdAt.seconds * 1000);
+      if (typeof profile.createdAt.toDate === 'function') return profile.createdAt.toDate();
+      const d = new Date(profile.createdAt);
+      return isNaN(d.getTime()) ? null : d;
     } catch (e) {
       return null;
     }

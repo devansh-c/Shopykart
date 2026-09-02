@@ -1,9 +1,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  // Conditional output: 'export' only for static APK builds (controlled by env var)
-  // This prevents build errors on Firebase App Hosting while maintaining APK compatibility
-  output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : undefined,
+  // Conditional output: 'export' only for static APK builds. 
+  // For App Hosting/Production, 'standalone' is required to prevent manifest errors.
+  output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : 'standalone',
   images: {
     unoptimized: true,
   },

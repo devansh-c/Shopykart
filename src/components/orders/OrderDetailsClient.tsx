@@ -301,7 +301,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       
       document.body.appendChild(receipt);
       
-      // CRITICAL FIX: Add skipFonts to prevent SecurityError with cross-origin font rules
+      // CRITICAL FIX: Add skipFonts and cacheBust to prevent SecurityError with cross-origin assets
       const blob = await toBlob(receipt, { 
         pixelRatio: 2, 
         cacheBust: true,
