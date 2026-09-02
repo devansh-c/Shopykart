@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import HomeClient from '@/components/home/HomeClient';
 import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
-import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Shopykart – 10 Min Veg Food Delivery | Order Online Mauranipur & Ranipur',
@@ -51,7 +50,6 @@ function sanitizeDoc(doc: any) {
 
   Object.keys(data).forEach(key => {
     const value = data[key];
-    // Consistently serialize Firestore Timestamps to ISO Strings
     if (value && typeof value === 'object' && value.seconds !== undefined) {
       plainData[key] = new Date(value.seconds * 1000).toISOString();
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -120,19 +118,7 @@ async function getInitialData() {
 }
 
 export default async function ShopyKartApp() {
-  // MULTI-APP REDIRECTION LOGIC
-  if (process.env.NEXT_PUBLIC_ADMIN_APP === 'true') {
-    redirect('/admin/login');
-  }
-  
-  if (process.env.NEXT_PUBLIC_BIZ_APP === 'true') {
-    redirect('/vendor/login');
-  }
-
-  if (process.env.NEXT_PUBLIC_TOW_APP === 'true') {
-    redirect('/delivery/login');
-  }
-
+  // REDIRECTION REMOVED: main route always serves customer app
   const initialData = await getInitialData();
 
   return (

@@ -13,7 +13,7 @@ import FirebaseClientProvider from '@/firebase/client-provider';
 import { ZoneGuard } from '@/components/shared/ZoneGuard';
 import { useJsApiLoader } from '@react-google-maps/api';
 
-// STATIC IMPORTS FOR STABILITY (Fixed chunk loading errors)
+// STATIC IMPORTS FOR STABILITY
 import BrandingLoader from '@/components/shared/BrandingLoader';
 import TelegramNotifier from '@/components/shared/TelegramNotifier';
 import NotificationHandler from '@/components/shared/NotificationHandler';
@@ -21,6 +21,7 @@ import WelcomeBonusOverlay from '@/components/auth/WelcomeBonusOverlay';
 import LocationRequest from '@/components/shared/LocationRequest';
 import BottomNav from '@/components/shared/BottomNav';
 import { TawkChat } from '@/components/shared/TawkChat';
+import PermissionManager from '@/components/shared/PermissionManager';
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
@@ -130,6 +131,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         <div className="relative min-h-screen flex flex-col">
           <BrandingLoader />
           <FirebaseErrorListener />
+          <PermissionManager />
           
           <AuthGuard>
             <div className="relative min-h-screen flex flex-col">
