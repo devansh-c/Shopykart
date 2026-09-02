@@ -277,10 +277,10 @@ export default function OrderManagement() {
           const hasPrev = currentIndex > 0 && !isCancelled;
 
           return (
-            <div key={order.id} className="bg-white rounded-[3rem] p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl relative overflow-hidden">
+            <div key={order.id} className="bg-white rounded-[3rem] p-6 md:p-8 border border-border/60 shadow-sm text-gray-900 transform-gpu transition-all hover:shadow-xl relative overflow-hidden">
               
-              <div className="flex items-start justify-between mb-8">
-                <div className="flex items-center gap-6">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+                <div className="flex items-center gap-5">
                   <div className={cn(
                     "h-20 w-20 rounded-[1.75rem] flex items-center justify-center border-2 shrink-0 shadow-inner",
                     isCancelled ? "bg-red-50 border-red-100 text-red-500" : isDelivered ? "bg-green-50 border-green-100 text-green-600" : "bg-primary/5 border-primary/10 text-primary"
@@ -288,8 +288,8 @@ export default function OrderManagement() {
                     <Package className="h-10 w-10" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 mb-2">
-                       <h3 className="font-black text-4xl italic uppercase tracking-tighter leading-none">ORDER #{order.customerOrderNumber || '...'}</h3>
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                       <h3 className="font-black text-3xl md:text-4xl italic uppercase tracking-tighter leading-none">ORDER #{order.customerOrderNumber || '...'}</h3>
                        <Badge className={cn(
                          "border-none text-[8px] font-black uppercase px-3 py-1 rounded-full shadow-sm",
                          isCancelled ? "bg-red-500 text-white" : isDelivered ? "bg-green-600 text-white" : "bg-primary text-white animate-pulse"
@@ -314,7 +314,6 @@ export default function OrderManagement() {
                          </div>
                        )}
 
-                       {/* PREMIUM INDICATORS */}
                        {order.redeemCoins && (
                          <div className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-2 shadow-sm">
                             <Coins className="h-3.5 w-3.5 fill-amber-500/20" />
@@ -331,45 +330,51 @@ export default function OrderManagement() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right flex flex-col items-end">
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Main Hub</p>
+                <div className="text-left md:text-right flex flex-col md:items-end">
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Source Hub</p>
                    <span className="text-xl font-black italic uppercase text-primary tracking-tighter drop-shadow-sm">{order.restaurantName || 'ShopyKart Hub'}</span>
                 </div>
               </div>
 
-              <div className="bg-gray-50/80 rounded-[2.5rem] p-7 mb-8 border border-border shadow-inner relative">
-                 <div className="flex items-center justify-between mb-8">
+              <div className="bg-gray-50/80 rounded-[2.5rem] p-6 md:p-8 mb-8 border border-border shadow-inner relative">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                     <div className="flex items-center gap-5">
-                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border border-gray-100"><User className="h-6 w-6" /></div>
-                       <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900">{order.customerName}</span>
+                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border border-gray-100 shrink-0"><User className="h-6 w-6" /></div>
+                       <div className="min-w-0">
+                          <span className="font-black text-2xl italic uppercase tracking-tighter text-gray-900 truncate block">{order.customerName}</span>
+                       </div>
                     </div>
-                    <div className="flex gap-2">
-                       <button onClick={() => startNavigation(order)} className="h-14 w-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-all border-b-4 border-blue-800" title="Navigate to Customer">
-                          <Compass className="h-7 w-7 animate-pulse" />
+                    <div className="flex gap-3">
+                       <button onClick={() => startNavigation(order)} className="flex-1 md:flex-none h-14 px-6 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-3 shadow-xl active:scale-90 transition-all border-b-4 border-blue-800" title="Navigate to Customer">
+                          <Compass className="h-6 w-6 animate-pulse" />
+                          <span className="text-[10px] font-black uppercase tracking-widest md:hidden">NAVIGATE</span>
                        </button>
-                       <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-14 w-14 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-xl active:scale-90 transition-all border-b-4 border-green-800"><PhoneCall className="h-7 w-7" /></button>
+                       <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="flex-1 md:flex-none h-14 px-6 bg-green-600 rounded-2xl flex items-center justify-center gap-3 text-white shadow-xl active:scale-90 transition-all border-b-4 border-green-800">
+                          <PhoneCall className="h-6 w-6" />
+                          <span className="text-[10px] font-black uppercase tracking-widest md:hidden">CALL</span>
+                       </button>
                     </div>
                  </div>
 
-                 <div className="space-y-4">
-                    <div className="space-y-3">
+                 <div className="space-y-6">
+                    <div className="space-y-4">
                        {order.items?.map((item: any, i: number) => (
-                         <div key={i} className="flex justify-between items-center text-lg font-black italic group/item">
-                            <div className="flex flex-col">
-                               <span className="text-gray-400"><span className="text-gray-900">{item.quantity}x</span> <span className="uppercase text-gray-700">{item.name}</span></span>
-                               {item.restaurantName && <span className="text-[8px] font-bold text-primary uppercase tracking-widest">{item.restaurantName}</span>}
+                         <div key={i} className="flex justify-between items-center text-lg font-black italic border-b border-white pb-3 last:border-0 group/item">
+                            <div className="flex flex-col min-w-0 pr-4">
+                               <span className="text-gray-400 truncate"><span className="text-gray-900">{item.quantity}x</span> <span className="uppercase text-gray-700">{item.name}</span></span>
+                               {item.restaurantName && <span className="text-[8px] font-bold text-primary uppercase tracking-widest mt-1">{item.restaurantName}</span>}
                             </div>
-                            <span className="text-primary">₹{(item.price * item.quantity).toFixed(0)}</span>
+                            <span className="text-primary shrink-0">₹{(item.price * item.quantity).toFixed(0)}</span>
                          </div>
                        ))}
                     </div>
-                    <div className="pt-6 mt-4 border-t border-dashed border-gray-300 flex items-start gap-3">
-                       <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                       <div className="flex-1">
-                          <p className="text-xs font-bold text-gray-600 uppercase leading-relaxed tracking-tight">{order.address}</p>
+                    <div className="pt-6 mt-4 border-t border-dashed border-gray-300 flex items-start gap-4">
+                       <div className="bg-primary/10 p-2 rounded-xl text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
+                       <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold text-gray-600 uppercase leading-relaxed tracking-tight break-words">{order.address || 'SET DELIVERY LOCATION'}</p>
                           <div className="flex items-center gap-1.5 mt-2 text-[8px] font-black text-gray-400 uppercase italic">
                              <Navigation className="h-2.5 w-2.5" />
-                             {order.customerLat ? `Pinned: ${order.customerLat.toFixed(4)}, ${order.customerLng.toFixed(4)}` : 'Manual Address Only'}
+                             {order.customerLat ? `Pinned: ${order.customerLat.toFixed(4)}, ${order.customerLng.toFixed(4)}` : 'MANUAL ADDRESS ONLY'}
                           </div>
                        </div>
                     </div>
@@ -383,7 +388,7 @@ export default function OrderManagement() {
                        <Clock className="h-2.5 w-2.5" /> {format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM, hh:mm a')}
                     </div>
                  </div>
-                 <div className="flex gap-3">
+                 <div className="flex flex-col md:flex-row gap-3">
                     <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className={cn(
                         "flex-1 h-20 py-8 rounded-[1.75rem] font-black uppercase italic text-xl tracking-tighter transition-all active:scale-95 border-b-[6px] shadow-2xl",
                         isDelivered ? "bg-green-600 border-green-800 text-white" : "bg-[#0B0B0B] text-white hover:bg-primary border-black/20"
@@ -392,19 +397,21 @@ export default function OrderManagement() {
                       {getButtonLabel(order.status)}
                     </Button>
                     
-                    {isReadyForPickup && !order.deliveryPartnerId && (
-                      <button 
-                        onClick={() => { setSelectedOrderForPartner(order); setIsAssignOpen(true); }}
-                        className="h-20 px-8 bg-amber-500 rounded-[1.75rem] flex flex-col items-center justify-center text-white hover:bg-amber-600 transition-all border-b-[6px] border-amber-700 active:translate-y-1 active:border-b-0 shadow-xl"
-                      >
-                         <UserPlus className="h-6 w-6 mb-1" />
-                         <span className="text-[8px] font-black uppercase tracking-widest">ASSIGN</span>
-                      </button>
-                    )}
+                    <div className="flex gap-3">
+                      {isReadyForPickup && !order.deliveryPartnerId && (
+                        <button 
+                          onClick={() => { setSelectedOrderForPartner(order); setIsAssignOpen(true); }}
+                          className="flex-1 md:flex-none h-20 px-8 bg-amber-500 rounded-[1.75rem] flex flex-col items-center justify-center text-white hover:bg-amber-600 transition-all border-b-[6px] border-amber-700 active:translate-y-1 active:border-b-0 shadow-xl"
+                        >
+                           <UserPlus className="h-6 w-6 mb-1" />
+                           <span className="text-[8px] font-black uppercase tracking-widest">ASSIGN</span>
+                        </button>
+                      )}
 
-                    {hasPrev && (
-                      <button onClick={() => handlePrevStatus(order.id, order.status)} className="h-20 w-20 bg-gray-100 rounded-[1.75rem] flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all border border-border active:scale-90 shadow-sm"><RotateCcw className="h-7 w-7" /></button>
-                    )}
+                      {hasPrev && (
+                        <button onClick={() => handlePrevStatus(order.id, order.status)} className="h-20 w-20 bg-gray-100 rounded-[1.75rem] flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all border border-border active:scale-90 shadow-sm shrink-0"><RotateCcw className="h-7 w-7" /></button>
+                      )}
+                    </div>
                  </div>
               </div>
             </div>
