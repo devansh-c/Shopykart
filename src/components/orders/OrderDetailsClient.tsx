@@ -18,7 +18,8 @@ import {
   AlertCircle,
   ShoppingBag,
   Timer,
-  CheckCircle2
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -208,14 +209,15 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       receipt.style.textTransform = 'uppercase';
       
       const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
-      const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
-
+      
       const itemsHtml = order.items?.map((item: any) => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; font-weight: 800;">
-          <span style="flex: 2; pr: 10px;">${item.name}</span>
-          <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
-          <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
+            <span style="flex: 2; pr: 10px;">${item.name}</span>
+            <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
+            <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+          ${item.restaurantName ? `<div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName}</div>` : ''}
         </div>
       `).join('');
 

@@ -161,10 +161,13 @@ export default function OrderManagement() {
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
 
       const itemsHtml = order.items?.map((item: any) => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; font-weight: 800;">
-          <span style="flex: 2; pr: 10px;">${item.name}</span>
-          <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
-          <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
+            <span style="flex: 2; pr: 10px;">${item.name}</span>
+            <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
+            <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+          ${item.restaurantName ? `<div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName}</div>` : ''}
         </div>
       `).join('');
 
@@ -180,7 +183,6 @@ export default function OrderManagement() {
         <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
           <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span style="font-weight: 900;">#${order.customerOrderNumber || '1'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>STORES:</span><span style="text-align: right; max-width: 200px;">${order.restaurantName || 'ShopyKart Hub'}</span></div>
           <div style="display: flex; justify-content: space-between; margin-top: 10px;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>PHONE:</span><span>${order.customerPhone}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
@@ -320,7 +322,7 @@ export default function OrderManagement() {
                          </div>
                        )}
 
-                       {order.isPremiumPacking && (
+                       {order.isPremiumPackaging && (
                          <div className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-2 shadow-sm">
                             <Sparkles className="h-3.5 w-3.5" />
                             <span className="text-[9px] font-black uppercase tracking-widest">PREMIUM PACKING</span>
