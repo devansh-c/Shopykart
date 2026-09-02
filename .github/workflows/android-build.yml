@@ -36,9 +36,36 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Configure Unique Package Name
+        run: |
+          TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
+          echo "Configuring Identity for: $TYPE"
+          
+          # Default Values (Customer)
+          APP_ID="co.in.shopykart.app"
+          APP_NAME="ShopyKart"
+
+          if [ "$TYPE" == "admin" ]; then
+            APP_ID="co.in.shopykart.admin"
+            APP_NAME="ShopyKart Admin"
+          elif [ "$TYPE" == "biz" ]; then
+            APP_ID="co.in.shopykart.biz"
+            APP_NAME="ShopyKart Partner"
+          elif [ "$TYPE" == "tow" ]; then
+            APP_ID="co.in.shopykart.tow"
+            APP_NAME="ShopyKart Fleet"
+          fi
+
+          # Update capacitor.config.ts dynamically using sed
+          # We use a temp file to ensure clean replacement
+          sed -i "s/appId: '.*'/appId: '$APP_ID'/g" capacitor.config.ts
+          sed -i "s/appName: '.*'/appName: '$APP_NAME'/g" capacitor.config.ts
+          
+          echo "Final Package ID: $APP_ID"
+          echo "Final App Name: $APP_NAME"
+
       - name: Create Static Web Build
         run: |
-          # Use matrix on push, or input on manual dispatch
           TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
           echo "Building ShopyKart variant: $TYPE"
           
@@ -63,10 +90,9 @@ jobs:
 
       - name: Capacitor Add/Sync Android
         run: |
-          if [ ! -d "android" ]; then
-            echo "Android directory not found. Adding platform..."
-            npx cap add android
-          fi
+          # Clean old android folder if it exists to force fresh manifest with new ID
+          rm -rf android
+          npx cap add android
           npx cap sync android
 
       - name: Build APK (Debug)
