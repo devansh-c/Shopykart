@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -221,7 +220,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       receipt.style.width = '420px';
       receipt.style.backgroundColor = '#ffffff';
       receipt.style.color = '#000000';
-      receipt.style.fontFamily = "'Inter', sans-serif";
+      receipt.style.fontFamily = 'monospace';
       receipt.style.textTransform = 'uppercase';
       
       const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
@@ -301,12 +300,13 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       `;
       
       document.body.appendChild(receipt);
-      // Fix SecurityError: Add cacheBust and disable fontEmbedding which causes the rules access error
+      
+      // CRITICAL FIX: Add skipFonts to prevent SecurityError with cross-origin font rules
       const blob = await toBlob(receipt, { 
         pixelRatio: 2, 
         cacheBust: true,
-        fontEmbedCSS: '', // Prevents SecurityError on cross-origin CSS
-        style: { fontFamily: 'monospace' } // Fallback to safe font
+        skipFonts: true,
+        style: { fontFamily: 'monospace' } 
       }); 
       document.body.removeChild(receipt);
       
@@ -490,7 +490,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         "px-4 py-4 transition-all duration-500",
         isMapExpanded ? "opacity-0" : "opacity-100"
       )}>
-         {/* FLOATING OTP BOX - AS REQUESTED */}
+         {/* FLOATING OTP BOX */}
          {order.deliveryOTP && order.status !== 'Delivered' && order.status !== 'Cancelled' && (
            <div className="flex justify-center -mb-5 relative z-[150] animate-in zoom-in duration-500">
              <div className="bg-[#0B0B0B] text-white px-6 py-2.5 rounded-[1.25rem] shadow-2xl border-2 border-primary/30 flex flex-col items-center">

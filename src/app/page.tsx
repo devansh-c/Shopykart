@@ -4,11 +4,6 @@ import { initializeFirebase } from '@/firebase/init';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
 
-/**
- * @fileOverview ShopyKart High-Performance Entry.
- * Multi-App Redirection System for Standalone APKs.
- */
-
 export const metadata: Metadata = {
   title: 'Shopykart – 10 Min Veg Food Delivery | Order Online Mauranipur & Ranipur',
   description: 'Fastest 10-min gourmet veg food delivery in Mauranipur and Ranipur. Order pizzas, burgers, snacks and more at best prices.',
@@ -32,7 +27,7 @@ function isStoreOpenOnServer(vendor: any) {
 
   const parseTime = (t: string) => {
     try {
-      if (!t) return 0;
+      if (!t || typeof t !== 'string') return 0;
       const parts = t.trim().split(' ');
       if (parts.length < 2) return 0;
       const [time, modifier] = parts;
@@ -56,6 +51,7 @@ function sanitizeDoc(doc: any) {
 
   Object.keys(data).forEach(key => {
     const value = data[key];
+    // Consistently serialize Firestore Timestamps to ISO Strings
     if (value && typeof value === 'object' && value.seconds !== undefined) {
       plainData[key] = new Date(value.seconds * 1000).toISOString();
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {

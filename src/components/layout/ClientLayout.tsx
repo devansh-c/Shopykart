@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -73,9 +72,10 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
            p.startsWith('/order/track');
   }, [pathname]);
 
-  // ELITE IDENTITY PROTECTION: Never show auth overlay if Firebase is still loading
-  // or if we have a persistent session flag in localStorage
+  // ELITE IDENTITY PROTECTION: Use persistent session flag to avoid flickering registration popups
   const hasPersistentSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
+  
+  // NEVER render auth overlay if Firebase is still checking or if we have a known active session
   const shouldRenderAuth = !isExcludedPath && showAuthOverlay && !user && !loading && !hasPersistentSession && isClient;
 
   return (
@@ -92,9 +92,6 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
 });
 AuthGuard.displayName = "AuthGuard";
 
-/**
- * @fileOverview ClientLayout - Handles Global Google Maps API and smart Back Button logic.
- */
 export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -113,7 +110,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
 
     const handlePopState = (event: PopStateEvent) => {
       if (pathname === '/' || pathname === '') {
-        // If at root, prevent accidental exit by forcing history push
         window.history.pushState(null, '', window.location.href);
         setBackTapCount(prev => prev + 1);
       }

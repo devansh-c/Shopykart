@@ -1,4 +1,3 @@
-
 "use client"
 
 import { 
@@ -71,11 +70,17 @@ function ProfileContent() {
   const joinedDate = useMemo(() => {
     if (!profile?.createdAt) return null;
     try {
-      // Safe date parsing to prevent RangeError: Invalid time value
-      const date = typeof profile.createdAt === 'string' 
-        ? new Date(profile.createdAt) 
-        : new Date(profile.createdAt.seconds * 1000);
-      return isNaN(date.getTime()) ? null : date;
+      // Robust Firestore Timestamp conversion
+      let dateValue;
+      if (typeof profile.createdAt.toDate === 'function') {
+        dateValue = profile.createdAt.toDate();
+      } else if (profile.createdAt.seconds) {
+        dateValue = new Date(profile.createdAt.seconds * 1000);
+      } else {
+        dateValue = new Date(profile.createdAt);
+      }
+      
+      return isNaN(dateValue.getTime()) ? null : dateValue;
     } catch (e) {
       return null;
     }
