@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,6 +6,7 @@ import HomeClient from '@/components/home/HomeClient';
 import { useFirestore } from '@/firebase';
 import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import Loading from './loading';
 
 /**
  * @fileOverview Multi-App Router for APK Builds.
@@ -71,13 +71,18 @@ export default function ShopyKartApp() {
     }
   }
 
+  // SHOW SHIMMER EFFECT DURING DATA FETCHING FOR CUSTOMER APP
+  if (appType === 'customer' && loading) {
+    return <Loading />;
+  }
+
   // SHOW LOADER DURING REDIRECTION FOR NON-CUSTOMER APPS
-  if (appType !== 'customer' || loading) {
+  if (appType !== 'customer') {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
-          {appType === 'customer' ? 'Connecting to ShopyKart...' : `Launching ${appType.toUpperCase()} Portal...`}
+          Launching {appType.toUpperCase()} Portal...
         </p>
       </div>
     );
