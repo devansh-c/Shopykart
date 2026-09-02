@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -78,7 +79,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
           const times: Record<string, string> = {};
           response.rows[0].elements.forEach((el, idx) => {
             if (el.status === 'OK') {
-              const mins = Math.ceil(el.duration.value / 60) + 12; // 12 min prep time
+              const mins = Math.ceil(el.duration.value / 60) + 12; // 12 min constant prep time
               times[targets[idx].id] = `${mins} min`;
             }
           });

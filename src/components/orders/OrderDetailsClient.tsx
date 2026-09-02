@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -13,7 +14,9 @@ import {
   HelpCircle,
   Download,
   IndianRupee,
-  FileText
+  FileText,
+  AlertCircle,
+  ShoppingBag
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, limit, getDocs, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -301,7 +304,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       
       document.body.appendChild(receipt);
       
-      // CRITICAL FIX: Add skipFonts and cacheBust to prevent SecurityError with cross-origin assets
       const blob = await toBlob(receipt, { 
         pixelRatio: 2, 
         cacheBust: true,
@@ -335,6 +337,50 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl h-14 px-8 font-black uppercase italic shadow-xl">Back to Explore</Button>
     </div>
   );
+
+  // CANCELLED VIEW: Minimal UI as requested
+  if (order.status === 'Cancelled') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col transform-gpu animate-in fade-in duration-500">
+         <header className="px-6 py-6 border-b flex items-center justify-between">
+            <button onClick={() => router.push('/orders')} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-900 active:scale-90 transition-transform">
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-900">ORDER LOG</h1>
+            <div className="w-10" />
+         </header>
+
+         <main className="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-8">
+            <div className="relative">
+               <div className="absolute inset-0 bg-red-100 rounded-full animate-ping opacity-20 scale-150" />
+               <div className="relative h-32 w-32 bg-red-50 rounded-[3rem] flex items-center justify-center text-red-500 border-4 border-red-100 shadow-xl">
+                  <XCircle className="h-16 w-16" />
+               </div>
+            </div>
+
+            <div className="space-y-4">
+               <h2 className="text-5xl font-black italic uppercase tracking-tighter text-red-600 leading-none">ORDER<br />CANCELLED</h2>
+               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto">
+                 YOUR ORDER #{order.customerOrderNumber} HAS BEEN VOIDED. ANY REFUND WILL BE PROCESSED AUTOMATICALLY TO SOURCE.
+               </p>
+            </div>
+
+            <div className="w-full bg-gray-50 p-6 rounded-[2.5rem] border border-dashed border-gray-200">
+               <div className="flex justify-between items-center mb-1">
+                  <span className="text-[8px] font-black uppercase text-gray-400">Voided Amount</span>
+                  <span className="text-xl font-black italic text-gray-900">₹{order.total?.toFixed(0)}</span>
+               </div>
+               <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest text-left">Order placed on {format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM, hh:mm a')}</p>
+            </div>
+
+            <div className="w-full space-y-4">
+               <Button onClick={() => router.push('/')} className="w-full h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl">ORDER SOMETHING ELSE</Button>
+               <button onClick={handleHelp} className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] underline underline-offset-4">NEED HELP? CHAT WITH US</button>
+            </div>
+         </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col transform-gpu overflow-x-hidden no-scrollbar relative">
@@ -502,7 +548,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
            </div>
          )}
 
-         {order.deliveryPartnerId ? (
+         {order.deliveryPartnerId && order.status !== 'Cancelled' ? (
             <div className="bg-white rounded-[2.5rem] p-5 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-50 flex items-center justify-between animate-in slide-in-from-bottom-4 duration-700 pt-8">
                <div className="flex items-center gap-5">
                   <div className="relative">
@@ -519,18 +565,12 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                
                <button 
                   onClick={handleCallPartner}
-                  className="h-14 w-14 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-green-100 active:scale-90 transition-all border-b-4 border-green-800"
+                  className="h-14 w-14 bg- gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-green-100 active:scale-90 transition-all border-b-4 border-green-800"
                >
                   <PhoneCall className="h-7 w-7" />
                </button>
             </div>
-         ) : order.status === 'Cancelled' ? (
-            <div className="bg-red-50 rounded-[2.5rem] p-8 text-center border-2 border-red-100">
-               <XCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-               <h3 className="text-2xl font-black italic uppercase text-red-600 tracking-tighter">Order Cancelled</h3>
-               <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mt-2">Any refund will be processed to source.</p>
-            </div>
-         ) : (
+         ) : order.status === 'Cancelled' ? null : (
             <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
                <Loader2 className="h-5 w-5 animate-spin text-gray-400 mb-2" />
                <p className="text-[8px] font-black uppercase tracking-[0.4em]">Assigning your delivery hero...</p>

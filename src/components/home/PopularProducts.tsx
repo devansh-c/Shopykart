@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -172,7 +173,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
       const service = new google.maps.DistanceMatrixService();
       const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
       
-      const destinationStores = vendors.filter(v => v.lat && v.lng).slice(0, 40); 
+      const destinationStores = (vendors && vendors.length > 0 ? vendors : initialStores).filter(v => v.lat && v.lng);
       if (destinationStores.length === 0) return;
 
       const destinations = destinationStores.map(v => new google.maps.LatLng(v.lat, v.lng));
@@ -188,8 +189,9 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           response.rows[0].elements.forEach((element, idx) => {
             if (element.status === 'OK') {
               const vendorId = destinationStores[idx].id;
-              const durationValue = Math.ceil(element.duration.value / 60) + 12;
-              newTimes[vendorId] = `${durationValue} MIN`;
+              const durationValue = Math.ceil(element.duration.value / 60);
+              // Adding constant buffer for prep time is done per product below
+              newTimes[vendorId] = `${durationValue}`; // Base travel time in mins
             }
           });
           setDeliveryTimes(prev => ({ ...prev, ...newTimes }));
@@ -199,7 +201,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
 
     const timer = setTimeout(calculateRealTimes, 3000);
     return () => clearTimeout(timer);
-  }, [vendors, activeZoneId]);
+  }, [vendors, initialStores, activeZoneId]);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -253,7 +255,13 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
-          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} deliveryTime={deliveryTimes[product.vendorId]} />;
+          
+          // Final Delivery Time Calculation: Travel Time + Prep Time
+          const baseTravel = parseInt(deliveryTimes[product.vendorId] || '25');
+          const prepTime = parseInt(product.preparingTime || '15');
+          const finalTime = `${baseTravel + prepTime} MIN`;
+
+          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} deliveryTime={finalTime} />;
         })}
       </div>
       {productsToDisplay.length === 0 && (
