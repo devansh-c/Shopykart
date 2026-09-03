@@ -44,7 +44,7 @@ export async function requestPushToken() {
 
     // 1. Get VAPID Key from Branding Settings
     const brandingSnap = await getDoc(doc(firestore, 'app_settings', 'branding'));
-    const vapidKey = brandingSnap.data()?.vapidKey || 'BIsC7y7uP9x_Xv6lZ-G_pX_Xv6lZ-G_pX_Xv6lZ-G_pX_Xv6lZ-G_p';
+    const vapidKey = brandingSnap.data()?.vapidKey || 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
     // 2. Check permission first
     if (typeof window !== 'undefined' && 'Notification' in window) {
