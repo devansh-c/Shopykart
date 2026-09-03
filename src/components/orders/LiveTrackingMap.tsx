@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
@@ -23,8 +24,8 @@ interface LiveTrackingMapProps {
 }
 
 /**
- * @fileOverview Clean Tracking Map without logos/images.
- * Uses standard geometric markers for a minimal professional look.
+ * @fileOverview LiveTrackingMap updated to remove Distance Matrix API.
+ * Uses a standard professional default for ETA to eliminate API charges.
  */
 export default function LiveTrackingMap({ 
   customerLat, 
@@ -69,33 +70,11 @@ export default function LiveTrackingMap({
   useEffect(() => {
     if (!isLoaded || !isValidCustomer || vendors.length === 0) return;
 
-    const calculateEta = () => {
-      if (typeof google === 'undefined') return;
-      
-      const firstVendor = vendors.find(v => v.lat && v.lng);
-      if (!firstVendor) {
-        onEtaUpdate('25 mins');
-        return;
-      }
-
-      const service = new google.maps.DistanceMatrixService();
-      service.getDistanceMatrix({
-        origins: [{ lat: Number(firstVendor.lat), lng: Number(firstVendor.lng) }],
-        destinations: [{ lat: cLat, lng: cLng }],
-        travelMode: google.maps.TravelMode.DRIVING,
-        unitSystem: google.maps.UnitSystem.METRIC,
-      }, (response, status) => {
-        if (status === 'OK' && response && response.rows[0]?.elements[0]?.status === 'OK') {
-          const element = response.rows[0].elements[0];
-          const durationValue = Math.ceil(element.duration.value / 60) + 12;
-          onEtaUpdate(`${durationValue} mins`);
-        } else {
-          onEtaUpdate('44 mins');
-        }
-      });
-    };
-
-    calculateEta();
+    // Direct static ETA update instead of calling Distance Matrix Service
+    const firstVendor = vendors.find(v => v.lat && v.lng);
+    const staticEta = firstVendor?.deliveryTime || '25 mins';
+    onEtaUpdate(staticEta);
+    
   }, [isLoaded, cLat, cLng, isValidCustomer, vendors, onEtaUpdate]);
 
   if (!isLoaded) return <div className="h-full w-full flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-primary opacity-20" /></div>;

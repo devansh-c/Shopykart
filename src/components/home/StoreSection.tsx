@@ -16,7 +16,8 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection with Real-time Distance Matrix Delivery Time.
+ * @fileOverview StoreSection updated to remove Distance Matrix API.
+ * Uses vendor profile's static delivery time for zero API overhead.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -24,7 +25,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
   
   const [activeZoneId, setActiveZoneId] = React.useState<string | null>(null);
   const [currentTimeMins, setCurrentTimeMins] = React.useState<number | null>(null);
-  const [deliveryTimes, setDeliveryTimes] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     const updateZone = () => {
@@ -50,47 +50,6 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
   }, [firestore]);
 
   const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialData);
-
-  // REAL-TIME DISTANCE CALCULATION
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || !dbVendors || dbVendors.length === 0) return;
-
-    const userLat = localStorage.getItem('user_lat');
-    const userLng = localStorage.getItem('user_lng');
-
-    if (!userLat || !userLng) return;
-
-    const calculateTimes = () => {
-      if (typeof google === 'undefined' || !google.maps) return;
-
-      const service = new google.maps.DistanceMatrixService();
-      const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
-      const targets = dbVendors.filter(v => v.lat && v.lng);
-
-      if (targets.length === 0) return;
-
-      service.getDistanceMatrix({
-        origins: [origin],
-        destinations: targets.map(v => new google.maps.LatLng(v.lat, v.lng)),
-        travelMode: google.maps.TravelMode.DRIVING,
-        unitSystem: google.maps.UnitSystem.METRIC,
-      }, (response, status) => {
-        if (status === 'OK' && response && response.rows[0]) {
-          const times: Record<string, string> = {};
-          response.rows[0].elements.forEach((el, idx) => {
-            if (el.status === 'OK') {
-              const mins = Math.ceil(el.duration.value / 60) + 12; // 12 min constant prep time
-              times[targets[idx].id] = `${mins} min`;
-            }
-          });
-          setDeliveryTimes(times);
-        }
-      });
-    };
-
-    const timer = setTimeout(calculateTimes, 3500);
-    return () => clearTimeout(timer);
-  }, [dbVendors, activeZoneId]);
 
   const filteredVendors = React.useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
@@ -149,7 +108,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
                        <span className="text-[10px] font-black">{store.rating || '4.8'}</span>
                     </div>
                     <div className="flex items-center gap-1 text-[9px] font-black text-white/90 uppercase tracking-widest italic">
-                       <Clock className="h-3 w-3" /> {deliveryTimes[store.id] || store.deliveryTime || '25 min'}
+                       <Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}
                     </div>
                   </div>
                 </div>

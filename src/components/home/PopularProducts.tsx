@@ -13,7 +13,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts with Real-time Distance Matrix Delivery Time and Preparation Badges.
+ * @fileOverview PopularProducts updated to remove Distance Matrix API.
+ * Uses static vendor delivery times for better performance and zero API cost.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -126,7 +127,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(60); 
-  const [deliveryTimes, setDeliveryTimes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -158,50 +158,6 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v4', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
   const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v4', initialStores);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !vendors || vendors.length === 0) return;
-
-    const userLat = localStorage.getItem('user_lat');
-    const userLng = localStorage.getItem('user_lng');
-
-    if (!userLat || !userLng) return;
-
-    const calculateRealTimes = async () => {
-      if (typeof google === 'undefined' || !google.maps) return;
-
-      const service = new google.maps.DistanceMatrixService();
-      const origin = new google.maps.LatLng(parseFloat(userLat), parseFloat(userLng));
-      
-      const destinationStores = (vendors && vendors.length > 0 ? vendors : initialStores).filter(v => v.lat && v.lng);
-      if (destinationStores.length === 0) return;
-
-      const destinations = destinationStores.map(v => new google.maps.LatLng(v.lat, v.lng));
-
-      service.getDistanceMatrix({
-        origins: [origin],
-        destinations: destinations,
-        travelMode: google.maps.TravelMode.DRIVING,
-        unitSystem: google.maps.UnitSystem.METRIC,
-      }, (response, status) => {
-        if (status === 'OK' && response && response.rows[0]) {
-          const newTimes: Record<string, string> = {};
-          response.rows[0].elements.forEach((element, idx) => {
-            if (element.status === 'OK') {
-              const vendorId = destinationStores[idx].id;
-              const durationValue = Math.ceil(element.duration.value / 60);
-              // Adding constant buffer for prep time is done per product below
-              newTimes[vendorId] = `${durationValue}`; // Base travel time in mins
-            }
-          });
-          setDeliveryTimes(prev => ({ ...prev, ...newTimes }));
-        }
-      });
-    };
-
-    const timer = setTimeout(calculateRealTimes, 3000);
-    return () => clearTimeout(timer);
-  }, [vendors, initialStores, activeZoneId]);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -256,10 +212,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
           
-          // Final Delivery Time Calculation: Travel Time + Prep Time
-          const baseTravel = parseInt(deliveryTimes[product.vendorId] || '25');
-          const prepTime = parseInt(product.preparingTime || '15');
-          const finalTime = `${baseTravel + prepTime} MIN`;
+          // Use vendor's deliveryTime or calculated static time
+          const finalTime = v?.deliveryTime || '25 MIN';
 
           return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} deliveryTime={finalTime} />;
         })}
