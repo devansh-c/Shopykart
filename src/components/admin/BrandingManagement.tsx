@@ -149,7 +149,7 @@ export default function BrandingManagement() {
                       <img src={formData.logoUrl} className="h-full w-full object-contain p-4" alt="Logo" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button onClick={(e) => { e.stopPropagation(); logoInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('logoUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('logoUrl'); }} className="bg-red-50 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
@@ -173,7 +173,7 @@ export default function BrandingManagement() {
                       <img src={formData.notificationLogoUrl} className="h-full w-full object-contain p-4" alt="Notify" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button onClick={(e) => { e.stopPropagation(); notifyInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('notificationLogoUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('notificationLogoUrl'); }} className="bg-red-50 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
@@ -197,7 +197,7 @@ export default function BrandingManagement() {
                       <img src={formData.faviconUrl} className="h-10 w-10 object-contain" alt="Favicon" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <button onClick={(e) => { e.stopPropagation(); faviconInputRef.current?.click(); }} className="bg-white p-2 rounded-lg text-black hover:bg-gray-100"><ImageIcon className="h-4 w-4" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('faviconUrl'); }} className="bg-red-500 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteImage('faviconUrl'); }} className="bg-red-50 p-2 rounded-lg text-white hover:bg-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </>
                   ) : (
@@ -287,7 +287,7 @@ export default function BrandingManagement() {
                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                    <div className="space-y-2">
                       <p className="text-[10px] font-bold text-blue-800 uppercase leading-relaxed">
-                         Go to Firebase Console > Project Settings > Cloud Messaging > Web Configuration. Generate Key and paste here.
+                         Go to Firebase Console &gt; Project Settings &gt; Cloud Messaging &gt; Web Configuration. Generate Key and paste here.
                       </p>
                       <button className="text-[9px] font-black text-blue-600 underline uppercase tracking-widest">Open Console Guide</button>
                    </div>
