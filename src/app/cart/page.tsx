@@ -19,9 +19,6 @@ import {
   Phone, 
   X, 
   Heart,
-  Smile,
-  ShieldCheck,
-  Smartphone,
   Tag,
   Gift,
   CheckCircle2,
@@ -382,7 +379,7 @@ export default function CartPage() {
         </section>
 
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-4">
-           <h3 className="text-xl font-black italic uppercase tracking-tighter">BILL SUMMARY</h3>
+           <h3 className="text-xl font-black italic uppercase tracking-tighter text-amber-400">BILL SUMMARY</h3>
            <div className="space-y-3">
               <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Subtotal</span><span>₹{totalPrice.toFixed(0)}</span></div>
               <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Delivery Fee</span><span>₹{deliveryFee.toFixed(0)}</span></div>
@@ -395,7 +392,7 @@ export default function CartPage() {
               {isRedeemCoins && <div className="flex justify-between text-[10px] font-bold text-green-400 uppercase"><span>Coins Redeemed</span><span>- ₹5</span></div>}
            </div>
            <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-              <span className="text-sm font-black uppercase opacity-40">TOTAL</span>
+              <span className="text-sm font-black uppercase opacity-40">TOTAL PAYABLE</span>
               <span className="text-3xl font-black italic text-amber-400">₹{totalPayable.toFixed(0)}</span>
            </div>
         </section>
@@ -414,13 +411,21 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SLIDE BUTTON - SCROLL TO BOTTOM MODE */}
+        {/* SLIDE BUTTON - NON-FIXED POSITION AT BOTTOM */}
         <div className="pt-4 pb-20">
            <div ref={sliderRef} className="w-full h-24 bg-[#1C1917] rounded-[2rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 border-amber-400/20">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <span className={cn("text-xs font-black uppercase italic tracking-[0.4em] text-white/20", sliderOffset > 20 && "opacity-0")}>SLIDE TO ORDER</span>
               </div>
-              <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform"><ArrowRight className="h-8 w-8" /></div>
+              <div 
+                onTouchStart={handleTouchStart} 
+                onTouchMove={handleTouchMove} 
+                onTouchEnd={handleTouchEnd} 
+                style={{ transform: `translateX(${sliderOffset}px)` }} 
+                className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform cursor-grab active:cursor-grabbing"
+              >
+                <ArrowRight className="h-8 w-8" />
+              </div>
               <div className="flex-1 text-right pr-8 pointer-events-none">
                 <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest opacity-60">Total Payable</div>
                 <div className="text-3xl font-black text-white italic tracking-tighter">₹{totalPayable.toFixed(0)}</div>

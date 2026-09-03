@@ -11,7 +11,7 @@ import Loading from './loading';
 
 /**
  * @fileOverview Multi-App Router for APK Builds.
- * Harden entry point to prevent force-closing during redirection.
+ * Identify app variant from build flags and redirect to respective portals.
  */
 export default function ShopyKartApp() {
   const router = useRouter();
@@ -21,10 +21,11 @@ export default function ShopyKartApp() {
   const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow'>('customer');
 
   useEffect(() => {
-    // 1. IDENTIFY APP TYPE FROM BUILD FLAGS (Defensive check)
-    const isAdmin = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
-    const isBiz = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BIZ_APP === 'true';
-    const isTow = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_TOW_APP === 'true';
+    // 1. IDENTIFY APP TYPE FROM BUILD FLAGS
+    // These are set during the GitHub Actions Build process
+    const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
+    const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
+    const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
 
     if (isAdmin) {
       setAppType('admin');
@@ -67,7 +68,6 @@ export default function ShopyKartApp() {
       });
     } catch (e) {
       console.error("Initial data fetch error:", e);
-      // Fail silently and provide empty arrays to prevent crash
       setInitialData({
         banners: [],
         categories: [],
