@@ -34,7 +34,8 @@ import {
   ShieldAlert,
   FileSpreadsheet,
   Zap,
-  Crown
+  Crown,
+  Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -68,9 +69,11 @@ const TicketManagement = dynamic(() => import('@/components/admin/TicketManageme
 const TeamManagement = dynamic(() => import('@/components/admin/TeamManagement'), { ssr: false });
 const ReceiptGenerator = dynamic(() => import('@/components/admin/ReceiptGenerator'), { ssr: false });
 const PremiumUserManagement = dynamic(() => import('@/components/admin/PremiumUserManagement'), { ssr: false });
+const NotificationManagement = dynamic(() => import('@/components/admin/NotificationManagement'), { ssr: false });
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'notifications', label: 'Push Alerts', icon: Bell },
   { id: 'announcement', label: 'Broadcast Alert', icon: Megaphone },
   { id: 'premium_users', label: 'Premium Users', icon: Crown },
   { id: 'global_offer', label: 'Flash Sale (Store-wide)', icon: Zap },
@@ -223,6 +226,7 @@ export default function AdminDashboard() {
 
     switch (activeTab) {
       case 'dashboard': return <AdminOverview />;
+      case 'notifications': return <NotificationManagement />;
       case 'announcement': return <AnnouncementManagement />;
       case 'premium_users': return <PremiumUserManagement />;
       case 'global_offer': return <GlobalOfferManagement />;
