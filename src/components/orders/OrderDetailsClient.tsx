@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -27,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { format } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -51,7 +52,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const [order, setOrder] = useState<any>(null);
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [etaDisplay, setEtaDisplay] = useState<string>('44');
+  const [etaDisplay, setEtaDisplay] = useState<string>('20');
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -138,10 +139,27 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     return () => unsub?.();
   }, [firestore, user, forcedId, searchParams]);
 
-  const handleEtaUpdateFromMap = (etaString: string) => {
-    const mins = etaString.replace(/[^0-9]/g, '');
-    if (mins) setEtaDisplay(mins);
-  };
+  // SMART TIMER LOGIC: Start at 20 mins and countdown based on order age
+  useEffect(() => {
+    if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;
+
+    const updateTimer = () => {
+      const createdAt = order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000) : new Date();
+      const elapsedMins = Math.abs(differenceInMinutes(new Date(), createdAt));
+      
+      let remaining = 20 - elapsedMins;
+      
+      if (remaining <= 0) {
+        setEtaDisplay("2-3"); // Visual fallback to keep customer excited
+      } else {
+        setEtaDisplay(remaining.toString());
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [order]);
 
   const isDelivered = order?.status === 'Delivered';
   const isCancelled = order?.status === 'Cancelled';
@@ -363,7 +381,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             customerLng={parseFloat(String(order.customerLng || 0))} 
             vendors={vendors}
             customerName={order.customerName}
-            onEtaUpdate={handleEtaUpdateFromMap}
+            onEtaUpdate={() => {}}
           />
         </div>
 

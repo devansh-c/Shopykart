@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts updated to remove Distance Matrix API.
- * Uses static vendor delivery times for better performance and zero API cost.
+ * @fileOverview PopularProducts with hardcoded 15-20 MIN timing labels.
+ * Google Distance Matrix API removed completely for performance and cost saving.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -43,7 +43,7 @@ export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
   return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
 }
 
-const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest, deliveryTime }: any) => {
+const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemove, isGuest }: any) => {
   const basePrice = Number(product.price) || 0;
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
@@ -66,12 +66,10 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               )}
               {!isOffline && (
                 <div className="absolute bottom-2 left-2 flex flex-col gap-1 z-20">
-                   {deliveryTime && (
-                     <div className="bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
-                        <Clock className="h-2 w-2 text-primary" />
-                        {deliveryTime}
-                     </div>
-                   )}
+                   <div className="bg-black/60 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
+                      <Clock className="h-2 w-2 text-primary" />
+                      15-20 MIN
+                   </div>
                    {product.preparingTime && (
                      <div className="bg-green-600/80 backdrop-blur-md text-white text-[7px] font-black px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
                         <Timer className="h-2 w-2 text-white" />
@@ -212,10 +210,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);
           const isOffline = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
           
-          // Use vendor's deliveryTime or calculated static time
-          const finalTime = v?.deliveryTime || '25 MIN';
-
-          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} deliveryTime={finalTime} />;
+          return <ProductItem key={product.id} product={{...product, restaurantName: v?.storeName}} quantity={quantity} isOffline={isOffline} onShare={handleShare} onAdd={addToCart} onRemove={removeFromCart} isGuest={!user} />;
         })}
       </div>
       {productsToDisplay.length === 0 && (
