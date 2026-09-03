@@ -20,12 +20,17 @@ import {
   Heart,
   Smile,
   ShieldCheck,
-  Smartphone
+  Smartphone,
+  Tag,
+  Gift,
+  CheckCircle2,
+  Trash2,
+  Bike
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, setDoc, getDoc } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, getDocs, limit } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -62,9 +67,14 @@ export default function CartPage() {
     lng: ''
   });
 
+  // NEW STATES: Coupon & Tip
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [deliveryTip, setDeliveryTip] = useState(0);
+
   const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -114,18 +124,50 @@ export default function CartPage() {
       });
   }, [adminCharges, totalPrice, activeZoneId]);
 
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'percentage') {
+      return (totalPrice * (appliedCoupon.discountValue / 100));
+    }
+    return appliedCoupon.discountValue;
+  }, [appliedCoupon, totalPrice]);
+
   const totalPayable = useMemo(() => {
-    let base = totalPrice + deliveryFee;
+    let base = totalPrice + deliveryFee + deliveryTip;
     calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
     if (isRedeemCoins) base -= 5;
+    base -= couponDiscount;
     return Math.max(0, base);
-  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins]);
+  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount]);
+
+  const handleApplyCoupon = async () => {
+    if (!firestore || !couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    try {
+      const q = query(collection(firestore, 'coupons'), where('code', '==', couponCode.toUpperCase().trim()), limit(1));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        toast({ variant: "destructive", title: "Invalid Code", description: "This coupon does not exist." });
+      } else {
+        const data = snap.docs[0].data();
+        if (data.minOrderValue && totalPrice < data.minOrderValue) {
+          toast({ variant: "destructive", title: "Min Order Not Met", description: `Add ₹${data.minOrderValue - totalPrice} more to use this code.` });
+        } else {
+          setAppliedCoupon({ id: snap.docs[0].id, ...data });
+          toast({ title: "Coupon Applied! 🎟️" });
+        }
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Could not verify coupon." });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
 
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
     
-    // STRICT VALIDATION
     if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10 || !recipientForm.address.trim()) {
       setIsAddressModalOpen(true);
       setSliderOffset(0);
@@ -149,6 +191,10 @@ export default function CartPage() {
         items: cart,
         total: totalPayable,
         deliveryFee: deliveryFee,
+        deliveryTip: deliveryTip,
+        couponId: appliedCoupon?.id || null,
+        couponCode: appliedCoupon?.code || null,
+        couponDiscount: couponDiscount,
         isPremiumPacking: isPremiumPacking,
         redeemCoins: isRedeemCoins,
         chargesBreakdown: calculatedAdminCharges,
@@ -169,7 +215,6 @@ export default function CartPage() {
       toast({ variant: "destructive", title: "Order Failed" });
     } finally {
       setIsPlacing(false);
-      setIsVerifying(false);
     }
   };
 
@@ -197,8 +242,7 @@ export default function CartPage() {
         setIsAddressModalOpen(true);
         return;
       }
-      if (paymentMode === 'ONLINE') setShowPaymentSelector(true);
-      else finalizeOrder();
+      finalizeOrder();
     } else setSliderOffset(0);
   };
 
@@ -235,6 +279,7 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* RECIPIENT SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl">
            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
@@ -248,15 +293,111 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* COUPON SECTION */}
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
+           <div className="flex items-center gap-3 text-amber-400">
+              <Tag className="h-4 w-4" />
+              <h3 className="text-xs font-black uppercase tracking-widest">COUPON CODES</h3>
+           </div>
+           
+           {!appliedCoupon ? (
+             <div className="flex gap-2">
+                <Input 
+                  placeholder="ENTER CODE" 
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                  className="bg-white/5 border-white/10 text-white rounded-xl h-12 font-black italic tracking-widest"
+                />
+                <Button 
+                  onClick={handleApplyCoupon}
+                  disabled={isApplyingCoupon || !couponCode.trim()}
+                  className="bg-amber-400 text-black rounded-xl h-12 px-6 font-black uppercase"
+                >
+                  {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
+                </Button>
+             </div>
+           ) : (
+             <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="bg-green-500 p-1.5 rounded-lg"><CheckCircle2 className="h-4 w-4 text-white" /></div>
+                   <div>
+                      <h4 className="text-xs font-black uppercase text-green-400">{appliedCoupon.code} APPLIED</h4>
+                      <p className="text-[9px] font-bold text-green-500/60 uppercase">Saving ₹{couponDiscount.toFixed(0)}</p>
+                   </div>
+                </div>
+                <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+             </div>
+           )}
+        </section>
+
+        {/* DELIVERY TIP SECTION */}
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
+           <div className="flex items-center gap-3 text-blue-400">
+              <Bike className="h-4 w-4" />
+              <h3 className="text-xs font-black uppercase tracking-widest">DELIVERY TIP</h3>
+           </div>
+           <p className="text-[9px] font-bold text-gray-500 uppercase leading-relaxed">
+             Support your delivery partner. 100% of the tip goes to them.
+           </p>
+           <div className="flex justify-between gap-2">
+              {[10, 20, 30, 50].map((amt) => (
+                <button 
+                  key={amt}
+                  onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)}
+                  className={cn(
+                    "flex-1 h-12 rounded-xl border-2 font-black italic text-sm transition-all",
+                    deliveryTip === amt ? "bg-amber-400 border-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-white/5 border-white/5 text-gray-400"
+                  )}
+                >
+                  ₹{amt}
+                </button>
+              ))}
+           </div>
+        </section>
+
+        {/* PREMIUM PACKING & COINS */}
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
+           <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-3">
+                 <ShoppingBag className="h-5 w-5 text-amber-400" />
+                 <div>
+                    <h4 className="text-[11px] font-black uppercase">Premium Packing</h4>
+                    <p className="text-[8px] font-bold text-gray-500 uppercase">Double-sealed safe delivery</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-black italic text-amber-400">+₹10</span>
+                 <Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-amber-400" />
+              </div>
+           </div>
+
+           <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-3">
+                 <Coins className="h-5 w-5 text-amber-400" />
+                 <div>
+                    <h4 className="text-[11px] font-black uppercase">Redeem Coins</h4>
+                    <p className="text-[8px] font-bold text-gray-500 uppercase">Use available loyalty points</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-black italic text-green-400">-₹5</span>
+                 <Switch checked={isRedeemCoins} onCheckedChange={setIsRedeemCoins} className="data-[state=checked]:bg-green-400" />
+              </div>
+           </div>
+        </section>
+
+        {/* BILL SUMMARY */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-4">
            <h3 className="text-xl font-black italic uppercase tracking-tighter">BILL SUMMARY</h3>
            <div className="space-y-3">
               <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Subtotal</span><span>₹{totalPrice.toFixed(0)}</span></div>
               <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Delivery Fee</span><span>₹{deliveryFee.toFixed(0)}</span></div>
+              {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Delivery Tip</span><span>₹{deliveryTip}</span></div>}
               {calculatedAdminCharges.map((c, i) => (
                 <div key={i} className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>{c.name}</span><span>₹{c.value.toFixed(0)}</span></div>
               ))}
               {isPremiumPacking && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Premium Packing</span><span>₹10</span></div>}
+              {appliedCoupon && <div className="flex justify-between text-[10px] font-black text-green-400 uppercase"><span>Coupon Discount ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(0)}</span></div>}
               {isRedeemCoins && <div className="flex justify-between text-[10px] font-bold text-green-400 uppercase"><span>Coins Redeemed</span><span>- ₹5</span></div>}
            </div>
            <div className="pt-4 border-t border-white/5 flex justify-between items-center">
@@ -265,6 +406,7 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* PAYMENT SELECTOR */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-6">
            <h3 className="text-xs font-black uppercase opacity-60 tracking-widest">PAYMENT MODE:</h3>
            <div className="space-y-4">
@@ -279,6 +421,7 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* SLIDE BUTTON */}
         <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white to-transparent">
            <div ref={sliderRef} className="w-full h-20 bg-[#1C1917] rounded-full p-2 flex items-center relative shadow-2xl overflow-hidden select-none">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
