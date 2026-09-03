@@ -46,7 +46,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   
   const [order, setOrder] = useState<any>(null);
@@ -86,6 +86,8 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
   useEffect(() => {
     if (!firestore) return;
+    // Wait for auth to resolve before we decide if the order is missing
+    if (authLoading) return;
 
     const queryId = forcedId || searchParams.get('id');
     const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
@@ -113,6 +115,8 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             setVendors(vendorDocs.filter(Boolean));
           }
           setLoading(false);
+        } else {
+          setLoading(false);
         }
       });
     };
@@ -120,7 +124,13 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     const resolveAndListen = async () => {
       if (queryId && queryId.length > 10) {
         startListener(queryId);
-      } else if (!isNaN(orderNum) && user) {
+      } else if (!isNaN(orderNum)) {
+        // Only run the query if user is present, otherwise keep loading if auth is still pending
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
         const q = query(
           collection(firestore, 'orders'), 
           where('userId', '==', user.uid), 
@@ -128,8 +138,11 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
           limit(1)
         );
         const snap = await getDocs(q);
-        if (!snap.empty) startListener(snap.docs[0].id);
-        else setLoading(false);
+        if (!snap.empty) {
+          startListener(snap.docs[0].id);
+        } else {
+          setLoading(false);
+        }
       } else {
         setLoading(false);
       }
@@ -137,9 +150,9 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
     resolveAndListen();
     return () => unsub?.();
-  }, [firestore, user, forcedId, searchParams]);
+  }, [firestore, user, authLoading, forcedId, searchParams]);
 
-  // SMART TIMER LOGIC: Start at 20 mins and countdown based on order age
+  // SMART TIMER LOGIC
   useEffect(() => {
     if (!order || order.status === 'Delivered' || order.status === 'Cancelled') return;
 
@@ -150,14 +163,14 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       let remaining = 20 - elapsedMins;
       
       if (remaining <= 0) {
-        setEtaDisplay("2-3"); // Visual fallback to keep customer excited
+        setEtaDisplay("2-3");
       } else {
         setEtaDisplay(remaining.toString());
       }
     };
 
     updateTimer();
-    const interval = setInterval(updateTimer, 60000); // Update every minute
+    const interval = setInterval(updateTimer, 60000);
     return () => clearInterval(interval);
   }, [order]);
 
@@ -294,21 +307,34 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     } catch (err) {
       toast({ variant: "destructive", title: "Download Failed" });
     } finally {
-      setIsDownloading(false);
+      setIsDownloading(null);
     }
   };
 
-  if (loading) return (
+  // Keep showing loader if Auth or Data is pending
+  if (authLoading || (loading && !order)) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic">Connecting...</p>
+      <div className="relative">
+         <div className="h-20 w-20 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+         </div>
+         <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />
+      </div>
+      <div className="flex flex-col items-center text-center">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-900 italic">Connecting to Delivery Hub...</p>
+        <p className="text-[8px] font-bold uppercase text-muted-foreground mt-1 tracking-widest">Validating Order Identity</p>
+      </div>
     </div>
   );
   
-  if (!order) return (
-    <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-      <h2 className="text-2xl font-black italic uppercase text-gray-900 tracking-tighter">Order not found</h2>
-      <Button onClick={() => router.push('/')} className="mt-8 bg-black rounded-xl h-14 px-8 font-black uppercase italic shadow-xl">Back to Explore</Button>
+  if (!order && !loading) return (
+    <div className="h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+      <div className="bg-muted/30 h-24 w-24 rounded-full flex items-center justify-center mb-6">
+         <ShoppingBag className="h-12 w-12 text-muted-foreground/30" />
+      </div>
+      <h2 className="text-4xl font-black italic uppercase text-gray-900 tracking-tighter leading-none">ORDER<br /><span className="text-primary">NOT FOUND</span></h2>
+      <p className="text-[10px] font-bold text-muted-foreground uppercase mt-4 tracking-widest leading-relaxed">The link you followed might be broken or the order doesn't exist.</p>
+      <Button onClick={() => router.push('/')} className="mt-10 bg-black text-white rounded-2xl h-16 px-10 font-black uppercase italic shadow-xl active:scale-95 transition-all">BACK TO EXPLORE</Button>
     </div>
   );
 
