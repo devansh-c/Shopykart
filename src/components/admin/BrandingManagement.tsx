@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   Info,
   Type,
-  ExternalLink
+  ExternalLink,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +54,7 @@ export default function BrandingManagement() {
     receiptFooter: 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
     receiptThankYou: 'Enjoy your delicious meal!',
     showGstOnReceipt: true,
+    vapidKey: ''
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -69,6 +72,7 @@ export default function BrandingManagement() {
         receiptFooter: settings.receiptFooter || 'Thank you for choosing ShopyKart!\nThis is a computer generated invoice.',
         receiptThankYou: settings.receiptThankYou || 'Enjoy your delicious meal!',
         showGstOnReceipt: settings.showGstOnReceipt !== false,
+        vapidKey: settings.vapidKey || ''
       });
     }
   }, [settings]);
@@ -116,9 +120,10 @@ export default function BrandingManagement() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl pb-20">
       <Tabs defaultValue="brand" className="w-full">
-        <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-3 md:flex">
+        <TabsList className="bg-white border p-1 rounded-2xl mb-8 w-full md:w-auto h-auto grid grid-cols-4 md:flex">
            <TabsTrigger value="brand" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">Identity</TabsTrigger>
            <TabsTrigger value="apk-icons" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">App Icons</TabsTrigger>
+           <TabsTrigger value="notify" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">Cloud Notifications</TabsTrigger>
            <TabsTrigger value="receipt" className="rounded-xl px-6 py-3 data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-[9px] tracking-widest transition-all">Receipts</TabsTrigger>
         </TabsList>
 
@@ -253,6 +258,58 @@ export default function BrandingManagement() {
                 </div>
              </div>
              <div className="absolute top-0 right-0 h-full w-44 bg-primary/5 -skew-x-12 translate-x-12" />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notify" className="mt-0">
+          <div className="bg-white p-8 rounded-[3rem] border border-border/50 shadow-sm space-y-8">
+             <div className="flex items-center gap-4">
+                <div className="bg-blue-50 p-3 rounded-2xl text-blue-600 shadow-inner">
+                   <KeyRound className="h-7 w-7" />
+                </div>
+                <div>
+                   <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Push Configuration</h2>
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Connect Firebase Cloud Messaging</p>
+                </div>
+             </div>
+
+             <div className="space-y-4">
+                <div className="space-y-1.5">
+                   <label className="text-[10px] font-black uppercase text-blue-600 ml-1">FCM VAPID KEY (Web Push)</label>
+                   <Input 
+                      value={formData.vapidKey} 
+                      onChange={e => setFormData({...formData, vapidKey: e.target.value})}
+                      placeholder="Paste long key from Firebase Console Settings..." 
+                      className="h-14 rounded-2xl bg-gray-50 border-none font-bold"
+                   />
+                </div>
+                <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 flex items-start gap-4">
+                   <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                   <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-blue-800 uppercase leading-relaxed">
+                         Go to Firebase Console > Project Settings > Cloud Messaging > Web Configuration. Generate Key and paste here.
+                      </p>
+                      <button className="text-[9px] font-black text-blue-600 underline uppercase tracking-widest">Open Console Guide</button>
+                   </div>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center space-y-3">
+                   <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 shadow-sm">
+                      <ShieldCheck className="h-6 w-6" />
+                   </div>
+                   <h4 className="text-sm font-black uppercase italic">Safe Storage</h4>
+                   <p className="text-[9px] font-bold text-muted-foreground uppercase leading-tight">User tokens are encrypted and stored per device.</p>
+                </div>
+                <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center text-center space-y-3">
+                   <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shadow-sm">
+                      <BellRing className="h-6 w-6" />
+                   </div>
+                   <h4 className="text-sm font-black uppercase italic">Real-time Delivery</h4>
+                   <p className="text-[9px] font-bold text-muted-foreground uppercase leading-tight">Order updates will trigger instant background bells.</p>
+                </div>
+             </div>
           </div>
         </TabsContent>
 

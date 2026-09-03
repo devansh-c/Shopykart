@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, limit, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { requestPushToken } from '@/firebase/messaging';
@@ -27,8 +27,7 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview LocationHeader with FCM Notification Bell.
- * Replaced Menu with Bell. Integrated Notification Center with Firestore.
- * Fixed: Added missing Button import.
+ * Handles token generation and saving it to Firestore for re-targeting.
  */
 export function LocationHeader({
   searchValue,
@@ -79,19 +78,29 @@ export function LocationHeader({
     return notifications?.filter((n: any) => n.read === false).length || 0;
   }, [notifications]);
 
-  // Request FCM Token on mount if user logged in
+  // Request FCM Token and Save to User Profile
   useEffect(() => {
-    if (user && isMounted) {
-      setTimeout(async () => {
-        const token = await requestPushToken();
-        if (token && firestore) {
-           // Save token to user profile for Admin pushes
-           const tokenRef = doc(firestore, 'users', user.uid, 'fcm_tokens', token);
-           import('firebase/firestore').then(({ setDoc, serverTimestamp }) => {
-             setDoc(tokenRef, { token, lastUpdated: serverTimestamp() }, { merge: true });
-           });
+    if (user && isMounted && firestore) {
+      const syncToken = async () => {
+        try {
+          const token = await requestPushToken();
+          if (token) {
+            const tokenRef = doc(firestore, 'users', user.uid, 'fcm_tokens', token);
+            await setDoc(tokenRef, { 
+              token, 
+              lastUpdated: serverTimestamp(),
+              platform: 'web'
+            }, { merge: true });
+            console.log("FCM Identity Synced to Firestore.");
+          }
+        } catch (e) {
+          console.debug("FCM Sync skipped: Permission or Browser issue.");
         }
-      }, 5000);
+      };
+
+      // Delay token request to not block main thread
+      const timer = setTimeout(syncToken, 5000);
+      return () => clearTimeout(timer);
     }
   }, [user, isMounted, firestore]);
 
