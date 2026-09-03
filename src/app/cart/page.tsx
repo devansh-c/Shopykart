@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -67,14 +68,12 @@ export default function CartPage() {
     lng: ''
   });
 
-  // NEW STATES: Coupon & Tip
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [deliveryTip, setDeliveryTip] = useState(0);
 
   const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
-  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
 
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -249,7 +248,7 @@ export default function CartPage() {
   if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-40">
+    <div className="min-h-screen bg-[#F9FAFB] pb-20">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       <header className="bg-white border-b py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50"><ChevronLeft className="h-6 w-6" /></button>
@@ -279,7 +278,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* RECIPIENT SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl">
            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
@@ -293,7 +291,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* COUPON SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center gap-3 text-amber-400">
               <Tag className="h-4 w-4" />
@@ -330,7 +327,6 @@ export default function CartPage() {
            )}
         </section>
 
-        {/* DELIVERY TIP SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center gap-3 text-blue-400">
               <Bike className="h-4 w-4" />
@@ -355,7 +351,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* PREMIUM PACKING & COINS */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
               <div className="flex items-center gap-3">
@@ -386,7 +381,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* BILL SUMMARY */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-4">
            <h3 className="text-xl font-black italic uppercase tracking-tighter">BILL SUMMARY</h3>
            <div className="space-y-3">
@@ -406,7 +400,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* PAYMENT SELECTOR */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-6">
            <h3 className="text-xs font-black uppercase opacity-60 tracking-widest">PAYMENT MODE:</h3>
            <div className="space-y-4">
@@ -421,15 +414,18 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SLIDE BUTTON */}
-        <div className="fixed bottom-0 left-0 right-0 z-[1000] p-6 bg-gradient-to-t from-white to-transparent">
-           <div ref={sliderRef} className="w-full h-20 bg-[#1C1917] rounded-full p-2 flex items-center relative shadow-2xl overflow-hidden select-none">
+        {/* SLIDE BUTTON - SCROLL TO BOTTOM MODE */}
+        <div className="pt-4 pb-20">
+           <div ref={sliderRef} className="w-full h-24 bg-[#1C1917] rounded-[2rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 border-amber-400/20">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <span className={cn("text-[10px] font-black uppercase italic tracking-[0.3em] text-white/30", sliderOffset > 20 && "opacity-0")}>SLIDE TO ORDER</span>
+                 <span className={cn("text-xs font-black uppercase italic tracking-[0.4em] text-white/20", sliderOffset > 20 && "opacity-0")}>SLIDE TO ORDER</span>
               </div>
-              <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-full flex items-center justify-center text-primary shadow-xl z-10 transition-transform"><ArrowRight className="h-8 w-8" /></div>
-              <div className="flex-1 text-right pr-6 pointer-events-none"><div className="text-xl font-black text-white italic">₹{totalPayable.toFixed(0)}</div></div>
-              {isPlacing && <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20"><Loader2 className="h-8 w-8 animate-spin text-amber-400" /></div>}
+              <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform"><ArrowRight className="h-8 w-8" /></div>
+              <div className="flex-1 text-right pr-8 pointer-events-none">
+                <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest opacity-60">Total Payable</div>
+                <div className="text-3xl font-black text-white italic tracking-tighter">₹{totalPayable.toFixed(0)}</div>
+              </div>
+              {isPlacing && <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20"><Loader2 className="h-10 w-10 animate-spin text-amber-400" /></div>}
            </div>
         </div>
       </main>
