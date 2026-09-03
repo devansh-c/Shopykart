@@ -16,14 +16,15 @@ import {
   Smartphone,
   Info,
   Clock,
-  Trash2
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, getDocs, writeBatch, query, limit } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDocs, writeBatch, query, limit, orderBy } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,7 +43,7 @@ export default function NotificationManagement() {
   // Fetch Users
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), limit(500));
+    return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'), limit(500));
   }, [firestore]);
 
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
@@ -65,11 +66,8 @@ export default function NotificationManagement() {
 
     setIsSending(true);
     try {
-      // In a real high-scale app, this would be a Cloud Function.
-      // For prototyping, we iterate and batch or write to a global 'broadcasts' collection
       const batch = writeBatch(firestore);
       
-      // We'll also save a record in a global collection that clients can listen to
       const broadcastRef = doc(collection(firestore, 'broadcasts'));
       batch.set(broadcastRef, {
         title,
@@ -105,7 +103,7 @@ export default function NotificationManagement() {
         type: msgType,
         timestamp: serverTimestamp(),
         read: false,
-        isUrgent: true // This flags the NotificationHandler to show a popup
+        isUrgent: true 
       });
       
       toast({ title: "Alert Pushed!", description: `Message delivered to ${userName}` });
@@ -218,10 +216,10 @@ export default function NotificationManagement() {
           <div className="bg-blue-50 p-6 rounded-[2.5rem] border-2 border-dashed border-blue-100 flex items-start gap-4">
              <div className="bg-blue-600 p-2.5 rounded-xl text-white"><Info className="h-5 w-5" /></div>
              <div>
-                <h4 className="font-black italic uppercase text-blue-900 text-sm">System Logic</h4>
+                <h4 className="font-black italic uppercase text-blue-900 text-sm">Real-time Logic</h4>
                 <p className="text-[10px] font-bold text-blue-700/70 uppercase leading-relaxed mt-1">
-                  Jab aap "Individual" mode mein message bhejenge, toh customer ko app kholte hi ek popup dikhega. 
-                  Real "Device Tray" notifications ke liye aapko Firebase Console ka use karna hoga (tokens Firestore mein synced hain).
+                  Individual push alerts will trigger a stylish popup on the user's screen instantly. 
+                  Users with the <span className="text-green-600 font-black">"PUSH READY"</span> badge have successfully synced their device identity.
                 </p>
              </div>
           </div>
@@ -257,7 +255,12 @@ export default function NotificationManagement() {
                            </div>
                            <div className="min-w-0">
                               <h4 className="text-[11px] font-black uppercase truncate italic">{u.fullName || 'Guest User'}</h4>
-                              <p className="text-[9px] font-bold text-gray-400 truncate">{u.phoneNumber || 'No Phone'}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[8px] font-bold text-gray-400 truncate">{u.phoneNumber || 'No Phone'}</span>
+                                {u.isPushEnabled && (
+                                  <Badge className="bg-green-100 text-green-700 border-none text-[6px] font-black px-1.5 py-0 rounded uppercase animate-pulse">PUSH READY</Badge>
+                                )}
+                              </div>
                            </div>
                         </div>
                         <button 

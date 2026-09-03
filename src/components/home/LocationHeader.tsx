@@ -11,7 +11,8 @@ import {
   MessageSquare,
   Clock,
   Loader2,
-  Trash2
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,8 +27,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 /**
- * @fileOverview LocationHeader with FCM Notification Bell.
- * Handles token generation and saving it to Firestore for re-targeting.
+ * @fileOverview LocationHeader with FCM Notification Bell and Identity Sync.
  */
 export function LocationHeader({
   searchValue,
@@ -85,21 +85,29 @@ export function LocationHeader({
         try {
           const token = await requestPushToken();
           if (token) {
+            // 1. Save Token for direct targeting
             const tokenRef = doc(firestore, 'users', user.uid, 'fcm_tokens', token);
             await setDoc(tokenRef, { 
               token, 
               lastUpdated: serverTimestamp(),
               platform: 'web'
             }, { merge: true });
-            console.log("FCM Identity Synced to Firestore.");
+
+            // 2. Mark User as Push Ready for Admin Panel
+            await updateDoc(doc(firestore, 'users', user.uid), {
+              isPushEnabled: true,
+              lastPushSync: serverTimestamp()
+            });
+
+            console.log("Push Identity Verified & Synced.");
           }
         } catch (e) {
           console.debug("FCM Sync skipped: Permission or Browser issue.");
         }
       };
 
-      // Delay token request to not block main thread
-      const timer = setTimeout(syncToken, 5000);
+      // Delay token request to ensure UI is ready
+      const timer = setTimeout(syncToken, 4000);
       return () => clearTimeout(timer);
     }
   }, [user, isMounted, firestore]);

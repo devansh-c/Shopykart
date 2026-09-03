@@ -8,7 +8,7 @@ let messagingInstance: Messaging | null = null;
 
 /**
  * @fileOverview Firebase Cloud Messaging (FCM) Setup.
- * Handles token generation for background push notifications and permission checks.
+ * Handles token generation for background push notifications and programmatic SW registration.
  */
 export async function getFirebaseMessaging() {
   if (typeof window === 'undefined') return null;
@@ -35,18 +35,18 @@ export async function getFirebaseMessaging() {
 
 /**
  * Requests FCM token after verifying notification permissions.
- * Uses VAPID key from branding settings or a default placeholder.
+ * Programmatically registers a service worker if not present.
  */
 export async function requestPushToken() {
   try {
     const { firestore } = initializeFirebase();
     if (!firestore) return null;
 
-    // 1. Get VAPID Key from Branding Settings
+    // 1. Get VAPID Key from Branding Settings or use User Provided Fallback
     const brandingSnap = await getDoc(doc(firestore, 'app_settings', 'branding'));
     const vapidKey = brandingSnap.data()?.vapidKey || 'BC5Gx8VDwyRgNuv-SzJPZnqkcCCDzrhZnJ4SsGfK65Z9_SkQRYjSSfZraLlUpxIwGenba0GpsQAnnatRwSQ-VKo';
 
-    // 2. Check permission first
+    // 2. Check permission
     if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'default') {
         const permission = await Notification.requestPermission();
@@ -59,31 +59,36 @@ export async function requestPushToken() {
     const messaging = await getFirebaseMessaging();
     if (!messaging) return null;
 
-    // 3. Register Service Worker for FCM
+    // 3. Programmatic Service Worker Registration for FCM
     if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
+      let registration = await navigator.serviceWorker.getRegistration();
+      
       if (!registration) {
-        console.warn("No active service worker found for FCM.");
-        return null;
+        try {
+          // Register a generic worker if missing - this is critical for getToken to work
+          registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        } catch (swErr) {
+          console.debug("Inline SW registration skipped, attempting getToken with default.");
+        }
       }
 
       try {
         const token = await getToken(messaging, {
           vapidKey: vapidKey,
-          serviceWorkerRegistration: registration
+          serviceWorkerRegistration: registration || undefined
         });
         
         if (token) {
-          console.log("FCM Token Generated Successfully.");
+          console.log("FCM Token Synced successfully.");
           return token;
         }
       } catch (tokenErr: any) {
-        console.warn("FCM Token Generation Error:", tokenErr.message);
+        console.warn("FCM Token Error:", tokenErr.message);
         return null;
       }
     }
   } catch (err) {
-    console.warn("FCM Permission flow interrupted:", err);
+    console.warn("FCM Flow interrupted:", err);
     return null;
   }
   return null;
