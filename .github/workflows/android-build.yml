@@ -57,7 +57,6 @@ jobs:
           fi
 
           # Update capacitor.config.ts dynamically using sed
-          # We use a temp file to ensure clean replacement
           sed -i "s/appId: '.*'/appId: '$APP_ID'/g" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: '$APP_NAME'/g" capacitor.config.ts
           
@@ -90,7 +89,6 @@ jobs:
 
       - name: Capacitor Add/Sync Android
         run: |
-          # Clean old android folder if it exists to force fresh manifest with new ID
           rm -rf android
           npx cap add android
           npx cap sync android

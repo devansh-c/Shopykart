@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -11,7 +10,7 @@ import Loading from './loading';
 
 /**
  * @fileOverview Multi-App Router for APK Builds.
- * Identify app variant from build flags and redirect to respective portals.
+ * Restored Shimmer (Loading) for Customer App. Redirection for Portals.
  */
 export default function ShopyKartApp() {
   const router = useRouter();
@@ -21,8 +20,7 @@ export default function ShopyKartApp() {
   const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow'>('customer');
 
   useEffect(() => {
-    // 1. IDENTIFY APP TYPE FROM BUILD FLAGS
-    // These are set during the GitHub Actions Build process
+    // Identify app variant from build flags
     const isAdmin = process.env.NEXT_PUBLIC_ADMIN_APP === 'true';
     const isBiz = process.env.NEXT_PUBLIC_BIZ_APP === 'true';
     const isTow = process.env.NEXT_PUBLIC_TOW_APP === 'true';
@@ -45,7 +43,6 @@ export default function ShopyKartApp() {
   async function fetchData() {
     if (!firestore) return;
     try {
-      // Parallel fetch with limits for speed
       const [bannersSnap, categoriesSnap, announcementSnap, vendorsSnap, productsSnap] = await Promise.all([
         getDocs(query(collection(firestore, 'banners'), limit(15))),
         getDocs(query(collection(firestore, 'categories'), limit(40))),
@@ -68,24 +65,18 @@ export default function ShopyKartApp() {
       });
     } catch (e) {
       console.error("Initial data fetch error:", e);
-      setInitialData({
-        banners: [],
-        categories: [],
-        announcement: null,
-        vendors: [],
-        products: []
-      });
+      setInitialData({ banners: [], categories: [], announcement: null, vendors: [], products: [] });
     } finally {
       setLoading(false);
     }
   }
 
-  // SHOW SHIMMER EFFECT DURING DATA FETCHING FOR CUSTOMER APP
+  // SHOW SHIMMER EFFECT FOR CUSTOMER APP
   if (appType === 'customer' && (loading || !initialData)) {
     return <Loading />;
   }
 
-  // SHOW LOADER DURING REDIRECTION FOR NON-CUSTOMER APPS
+  // SHOW LOADER FOR PORTAL REDIRECTS
   if (appType !== 'customer') {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">

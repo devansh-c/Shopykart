@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -23,7 +22,8 @@ import {
   Sparkles,
   Clock,
   MessageSquare,
-  XCircle
+  XCircle,
+  IndianRupee
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -146,9 +146,7 @@ export default function OrderManagement() {
       receipt.style.textTransform = 'uppercase';
       
       const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
-      const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
-
+      
       const itemsHtml = order.items?.map((item: any) => `
         <div style="margin-bottom: 12px;">
           <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
@@ -191,10 +189,6 @@ export default function OrderManagement() {
         <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
-        </div>
-        <div style="text-align: center; margin-top: 20px;">
-          <img src="${qrCodeUrl}" style="width: 150px; height: 150px;" />
-          <p style="font-size: 9px; margin-top: 5px;">SCAN TO PAY</p>
         </div>
       `;
       
@@ -247,7 +241,7 @@ export default function OrderManagement() {
               "bg-white rounded-[3rem] p-6 border-2 transition-all relative overflow-hidden",
               isCancelled ? "border-red-100 opacity-60" : "border-border shadow-sm hover:shadow-xl"
             )}>
-              <div className="flex justify-between items-start mb-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                  <div className="flex items-center gap-4">
                     <div className={cn("h-16 w-16 rounded-[1.25rem] flex items-center justify-center border-2 shrink-0", isCancelled ? "bg-red-50 text-red-500" : "bg-primary/5 text-primary")}>
                        <Package className="h-8 w-8" />

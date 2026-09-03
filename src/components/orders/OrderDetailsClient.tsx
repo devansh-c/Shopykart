@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -86,7 +85,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
 
   useEffect(() => {
     if (!firestore) return;
-    // Wait for auth to resolve before we decide if the order is missing
     if (authLoading) return;
 
     const queryId = forcedId || searchParams.get('id');
@@ -125,7 +123,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       if (queryId && queryId.length > 10) {
         startListener(queryId);
       } else if (!isNaN(orderNum)) {
-        // Only run the query if user is present, otherwise keep loading if auth is still pending
         if (!user) {
           setLoading(false);
           return;
@@ -311,7 +308,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
     }
   };
 
-  // Keep showing loader if Auth or Data is pending
   if (authLoading || (loading && !order)) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
       <div className="relative">
@@ -337,35 +333,6 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       <Button onClick={() => router.push('/')} className="mt-10 bg-black text-white rounded-2xl h-16 px-10 font-black uppercase italic shadow-xl active:scale-95 transition-all">BACK TO EXPLORE</Button>
     </div>
   );
-
-  if (isCancelled) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col transform-gpu animate-in fade-in duration-500">
-         <header className="px-6 py-6 border-b flex items-center justify-between">
-            <button onClick={() => router.push('/orders')} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-900 active:scale-90 transition-transform">
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-900">ORDER LOG</h1>
-            <div className="w-10" />
-         </header>
-         <main className="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-8">
-            <div className="relative">
-               <div className="absolute inset-0 bg-red-100 rounded-full animate-ping opacity-20 scale-150" />
-               <div className="relative h-32 w-32 bg-red-50 rounded-[3rem] flex items-center justify-center text-red-500 border-4 border-red-100 shadow-xl">
-                  <XCircle className="h-16 w-16" />
-               </div>
-            </div>
-            <div className="space-y-4">
-               <h2 className="text-5xl font-black italic uppercase tracking-tighter text-red-600 leading-none">ORDER<br />CANCELLED</h2>
-               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-relaxed max-w-[280px] mx-auto">
-                 YOUR ORDER #{order.customerOrderNumber} HAS BEEN VOIDED.
-               </p>
-            </div>
-            <Button onClick={() => router.push('/')} className="w-full h-16 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic shadow-xl">ORDER SOMETHING ELSE</Button>
-         </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col transform-gpu overflow-x-hidden no-scrollbar relative">
@@ -444,7 +411,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
                     <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">{getHeadline()}</h2>
                     <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2">{isDelivered ? 'ENJOY YOUR MEAL' : 'ARRIVING SOON'}</p>
                  </div>
-                 {!isDelivered && (
+                 {!isDelivered && !isCancelled && (
                    <div className="bg-[#16a34a] text-white w-16 h-16 rounded-[1.5rem] flex flex-col items-center justify-center shadow-lg">
                       <span className="text-2xl font-black italic tracking-tighter leading-none">{etaDisplay}</span>
                       <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1">mins</span>
@@ -490,7 +457,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
       </div>
 
       <div className={cn("px-4 py-4 transition-all duration-500", isMapExpanded ? "opacity-0" : "opacity-100")}>
-         {order.deliveryOTP && !isDelivered && (
+         {order.deliveryOTP && !isDelivered && !isCancelled && (
            <div className="flex justify-center -mb-5 relative z-[150] animate-in zoom-in duration-500">
              <div className="bg-[#0B0B0B] text-white px-6 py-2.5 rounded-[1.25rem] shadow-2xl border-2 border-primary/30 flex flex-col items-center">
                 <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-60 flex items-center gap-1"><KeyRound className="h-2 w-2 text-primary" /> SECURE DELIVERY OTP</span>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -164,7 +163,12 @@ export default function CartPage() {
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
     
-    if (!recipientForm.name.trim() || !recipientForm.phone || recipientForm.phone.length < 10 || !recipientForm.address.trim()) {
+    // STRICT VALIDATION: Name, Phone (10 digits), and Address (not just zone name)
+    const isAddressClean = recipientForm.address.trim() && recipientForm.address.trim().length > 5;
+    const isPhoneClean = recipientForm.phone && recipientForm.phone.length === 10;
+
+    if (!recipientForm.name.trim() || !isPhoneClean || !isAddressClean) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Please enter your full name, 10-digit phone, and real house address." });
       setIsAddressModalOpen(true);
       setSliderOffset(0);
       return;
@@ -233,11 +237,6 @@ export default function CartPage() {
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (sliderOffset > trackWidth * 0.85) {
       if (!user) { setSliderOffset(0); window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
-      if (!recipientForm.name.trim() || !recipientForm.phone || !recipientForm.address.trim()) {
-        setSliderOffset(0);
-        setIsAddressModalOpen(true);
-        return;
-      }
       finalizeOrder();
     } else setSliderOffset(0);
   };
@@ -411,7 +410,6 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* SLIDE BUTTON - NON-FIXED POSITION AT BOTTOM */}
         <div className="pt-4 pb-20">
            <div ref={sliderRef} className="w-full h-24 bg-[#1C1917] rounded-[2rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 border-amber-400/20">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
