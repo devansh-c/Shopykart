@@ -78,7 +78,7 @@ export default function RewardsPage() {
   return (
     <div className="min-h-screen bg-white pb-32">
       <div className="px-6 pt-12 pb-6 flex items-center justify-between">
-        <h1 className="text-4xl font-black italic uppercase tracking-tighter">My Rewards</h1>
+        <h1 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900">My Rewards</h1>
         <button className="h-10 w-10 bg-white rounded-full shadow-sm border border-border/50 flex items-center justify-center">
           <Info className="h-5 w-5 text-muted-foreground" />
         </button>
@@ -201,13 +201,13 @@ export default function RewardsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <h2 className="text-xl font-black italic uppercase tracking-tight ml-2">My Coupons</h2>
+            <h2 className="text-xl font-black italic uppercase tracking-tight ml-2 text-gray-900">My Coupons</h2>
             {coupons.map((coupon, i) => (
               <div key={i} className="relative bg-white rounded-3xl p-6 border-2 border-dashed border-muted-foreground/20 flex flex-col gap-4 active:scale-[0.98] transition-all overflow-hidden group">
                 <div className={cn("absolute top-0 right-0 h-2 w-full", coupon.color)} />
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-black italic uppercase tracking-tighter">{coupon.code}</h3>
+                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">{coupon.code}</h3>
                     <p className="text-xs text-muted-foreground font-medium">{coupon.desc}</p>
                   </div>
                   <button 

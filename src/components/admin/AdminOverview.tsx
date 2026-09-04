@@ -43,12 +43,6 @@ export default function AdminOverview() {
   }, [firestore]);
   const { data: users } = useCollection<any>(usersQuery);
 
-  const premiumQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'premium_subscriptions'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
-  const { data: premiumRequests, loading: premiumLoading } = useCollection<any>(premiumQuery);
-
   const stats = useMemo(() => {
     const totalOrders = orders?.length || 0;
     const totalRevenue = orders?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0;
@@ -63,43 +57,35 @@ export default function AdminOverview() {
   }, [orders, users]);
 
   const handleResetAllRewards = async () => {
-    if (!firestore || !users || isResetting) return;
-    if (!confirm("🚨 WARNING: This will set ALL customer coins to 0. Continue?")) return;
-
+    if (!firestore || isResetting) return;
+    
+    // Explicitly fetch users to ensure we have the latest list
     setIsResetting(true);
     try {
+      const snap = await getDocs(collection(firestore, 'users'));
+      if (snap.empty) {
+        toast({ title: "No users to reset" });
+        setIsResetting(false);
+        return;
+      }
+
+      if (!confirm(`🚨 WARNING: This will set coins to 0 for ALL ${snap.size} customers. Continue?`)) {
+        setIsResetting(false);
+        return;
+      }
+
       const batch = writeBatch(firestore);
-      users.forEach(user => {
-        batch.update(doc(firestore, 'users', user.id), { coins: 0 });
+      snap.docs.forEach(uDoc => {
+        batch.update(uDoc.ref, { coins: 0 });
       });
+      
       await batch.commit();
-      toast({ title: "Rewards Cleared! 🗑️", description: "All users now have 0 coins." });
+      toast({ title: "Rewards Cleared! 🗑️", description: `Reset completed for ${snap.size} users.` });
     } catch (err) {
+      console.error(err);
       toast({ variant: "destructive", title: "Reset Failed" });
     } finally {
       setIsResetting(false);
-    }
-  };
-
-  const handleVerifyPremium = async (req: any) => {
-    if (!firestore || processingId) return;
-    setProcessingId(req.id);
-    try {
-      const expiryDate = addDays(new Date(), 60).toISOString();
-      await updateDoc(doc(firestore, 'users', req.userId), {
-        isPremium: true,
-        premiumExpiry: expiryDate,
-        updatedAt: serverTimestamp()
-      });
-      await updateDoc(doc(firestore, 'premium_subscriptions', req.id), {
-        status: 'verified',
-        verifiedAt: serverTimestamp()
-      });
-      toast({ title: "Premium Activated! 👑" });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Verification Failed" });
-    } finally {
-      setProcessingId(null);
     }
   };
 
@@ -200,7 +186,7 @@ export default function AdminOverview() {
                 disabled={isResetting}
                 className="w-full bg-black text-white hover:bg-red-600 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest shadow-xl"
                >
-                 {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                 {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                  RESET ALL REWARDS
                </Button>
             </div>

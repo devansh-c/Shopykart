@@ -96,6 +96,14 @@ export default function CartPage() {
     }
   }, []);
 
+  // FETCH USER PROFILE TO GET REAL COIN BALANCE
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: profile } = useDoc<any>(userProfileRef);
+  const userCoins = profile?.coins || 0;
+
   const activeZoneId = typeof window !== 'undefined' ? localStorage.getItem('active_zone_id') : null;
   const zoneRef = useMemoFirebase(() => {
     if (!firestore || !activeZoneId) return null;
@@ -132,10 +140,11 @@ export default function CartPage() {
     let base = totalPrice + deliveryFee + deliveryTip;
     calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
-    if (isRedeemCoins) base -= 5;
+    // ONLY DEDUCT IF USER HAS COINS AND TOGGLE IS ON
+    if (isRedeemCoins && userCoins > 0) base -= 5;
     base -= couponDiscount;
     return Math.max(0, base);
-  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount]);
+  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount, userCoins]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponCode.trim()) return;
@@ -177,6 +186,7 @@ export default function CartPage() {
     
     setIsPlacing(true);
     try {
+      // Find order count to apply tiered rewards
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
       const customerOrderNumber = countSnap.data().count + 1;
@@ -216,7 +226,7 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // COIN UPDATE LOGIC - DEDUCT ALL IF REDEEMED
+      // COIN UPDATE LOGIC - DEDUCT ALL IF REDEEMED, THEN ADD NEW
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
         // If redeemed, reset to 0 then add the new earnings
@@ -347,30 +357,6 @@ export default function CartPage() {
         </section>
 
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
-           <div className="flex items-center gap-3 text-blue-400">
-              <Bike className="h-4 w-4" />
-              <h3 className="text-xs font-black uppercase tracking-widest">DELIVERY TIP</h3>
-           </div>
-           <p className="text-[9px] font-bold text-gray-500 uppercase leading-relaxed">
-             Support your delivery partner. 100% of the tip goes to them.
-           </p>
-           <div className="flex justify-between gap-2">
-              {[10, 20, 30, 50].map((amt) => (
-                <button 
-                  key={amt}
-                  onClick={() => setDeliveryTip(deliveryTip === amt ? 0 : amt)}
-                  className={cn(
-                    "flex-1 h-12 rounded-xl border-2 font-black italic text-sm transition-all",
-                    deliveryTip === amt ? "bg-amber-400 border-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-white/5 border-white/5 text-gray-400"
-                  )}
-                >
-                  ₹{amt}
-                </button>
-              ))}
-           </div>
-        </section>
-
-        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
               <div className="flex items-center gap-3">
                  <ShoppingBag className="h-5 w-5 text-amber-400" />
@@ -390,12 +376,17 @@ export default function CartPage() {
                  <Coins className="h-5 w-5 text-amber-400" />
                  <div>
                     <h4 className="text-[11px] font-black uppercase">Redeem Coins</h4>
-                    <p className="text-[8px] font-bold text-gray-500 uppercase">Use available loyalty points</p>
+                    <p className="text-[8px] font-bold text-gray-500 uppercase">Available: {userCoins} Coins</p>
                  </div>
               </div>
               <div className="flex items-center gap-2">
                  <span className="text-[10px] font-black italic text-green-400">-₹5</span>
-                 <Switch checked={isRedeemCoins} onCheckedChange={setIsRedeemCoins} className="data-[state=checked]:bg-green-400" />
+                 <Switch 
+                  disabled={userCoins <= 0}
+                  checked={isRedeemCoins && userCoins > 0} 
+                  onCheckedChange={setIsRedeemCoins} 
+                  className="data-[state=checked]:bg-green-400" 
+                 />
               </div>
            </div>
         </section>
@@ -411,25 +402,11 @@ export default function CartPage() {
               ))}
               {isPremiumPacking && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Premium Packing</span><span>₹10</span></div>}
               {appliedCoupon && <div className="flex justify-between text-[10px] font-black text-green-400 uppercase"><span>Coupon Discount ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(0)}</span></div>}
-              {isRedeemCoins && <div className="flex justify-between text-[10px] font-bold text-green-400 uppercase"><span>Coins Redeemed</span><span>- ₹5</span></div>}
+              {isRedeemCoins && userCoins > 0 && <div className="flex justify-between text-[10px] font-bold text-green-400 uppercase"><span>Coins Redeemed</span><span>- ₹5</span></div>}
            </div>
            <div className="pt-4 border-t border-white/5 flex justify-between items-center">
               <span className="text-sm font-black uppercase opacity-40">TOTAL PAYABLE</span>
               <span className="text-3xl font-black italic text-amber-400">₹{totalPayable.toFixed(0)}</span>
-           </div>
-        </section>
-
-        <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-6">
-           <h3 className="text-xs font-black uppercase opacity-60 tracking-widest">PAYMENT MODE:</h3>
-           <div className="space-y-4">
-              <div onClick={() => setPaymentMode('ONLINE')} className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", paymentMode === 'ONLINE' ? "border-amber-400 bg-amber-400/5" : "border-white/5")}>
-                 <div className={cn("h-4 w-4 rounded-full border-2", paymentMode === 'ONLINE' ? "bg-amber-400 border-amber-400" : "border-white/20")} />
-                 <span className="text-sm font-black uppercase italic">UPI / App Payment</span>
-              </div>
-              <div onClick={() => setPaymentMode('COD')} className={cn("flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer", paymentMode === 'COD' ? "border-amber-400 bg-amber-400/5" : "border-white/5")}>
-                 <div className={cn("h-4 w-4 rounded-full border-2", paymentMode === 'COD' ? "bg-amber-400 border-amber-400" : "border-white/20")} />
-                 <span className="text-sm font-black uppercase italic">Cash on Delivery</span>
-              </div>
            </div>
         </section>
 
