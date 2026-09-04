@@ -216,7 +216,7 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // COIN UPDATE LOGIC
+      // COIN UPDATE LOGIC - DEDUCT ALL IF REDEEMED
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
         // If redeemed, reset to 0 then add the new earnings
