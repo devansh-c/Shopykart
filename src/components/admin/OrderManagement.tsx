@@ -130,6 +130,10 @@ export default function OrderManagement() {
     }
   };
 
+  const handleCallCustomer = (phone: string) => {
+    if (phone) window.open(`tel:${phone}`);
+  };
+
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -178,6 +182,7 @@ export default function OrderManagement() {
           <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span>#${order.customerOrderNumber || '1'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>PHONE:</span><span>${order.customerPhone || 'N/A'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
         </div>
         <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
@@ -252,10 +257,11 @@ export default function OrderManagement() {
                     </div>
                  </div>
                  <div className="flex gap-2">
-                    <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm"><FileText className="h-5 w-5" /></button>
-                    <button onClick={() => { setSelectedOrderForNote(order); setAdminNote(order.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm"><MessageSquare className="h-5 w-5" /></button>
+                    <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm" title="Download Receipt"><FileText className="h-5 w-5" /></button>
+                    <button onClick={() => { setSelectedOrderForNote(order); setAdminNote(order.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm" title="Add Note"><MessageSquare className="h-5 w-5" /></button>
+                    <button onClick={() => handleCallCustomer(order.customerPhone)} className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 shadow-sm" title="Call Customer"><PhoneCall className="h-5 w-5" /></button>
                     {!isCancelled && !isDelivered && (
-                      <button onClick={() => handleCancelOrder(order.id)} className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm"><XCircle className="h-5 w-5" /></button>
+                      <button onClick={() => handleCancelOrder(order.id)} className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm" title="Cancel Order"><XCircle className="h-5 w-5" /></button>
                     )}
                  </div>
               </div>

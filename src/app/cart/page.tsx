@@ -27,7 +27,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, getDocs, limit, updateDoc, increment } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -163,7 +163,7 @@ export default function CartPage() {
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
     
-    // STRICT VALIDATION: Name, Phone (10 digits), and Address (not just zone name)
+    // STRICT VALIDATION
     const isAddressClean = recipientForm.address.trim() && recipientForm.address.trim().length > 5;
     const isPhoneClean = recipientForm.phone && recipientForm.phone.length === 10;
 
@@ -209,6 +209,15 @@ export default function CartPage() {
       };
 
       await addDoc(collection(firestore, 'orders'), orderData);
+      
+      // COIN DEDUCTION LOGIC
+      if (isRedeemCoins) {
+        await updateDoc(doc(firestore, 'users', user.uid), {
+          coins: 0, // Reset coins after redemption
+          updatedAt: serverTimestamp()
+        });
+      }
+
       setShowSuccessOverlay(true);
       setTimeout(() => { clearCart(); router.replace(`/order/track/#${customerOrderNumber}`); }, 1500);
     } catch (e) {
