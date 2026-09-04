@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -180,6 +181,11 @@ export default function CartPage() {
       const countSnap = await getCountFromServer(q);
       const customerOrderNumber = countSnap.data().count + 1;
 
+      // REWARDS LOGIC: 1st=20, 2nd=10, 3rd+=5
+      let coinsToAdd = 5;
+      if (customerOrderNumber === 1) coinsToAdd = 20;
+      else if (customerOrderNumber === 2) coinsToAdd = 10;
+
       const orderData = {
         userId: user.uid,
         customerName: recipientForm.name.toUpperCase(),
@@ -210,10 +216,18 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // COIN DEDUCTION LOGIC
+      // COIN UPDATE LOGIC
+      const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        await updateDoc(doc(firestore, 'users', user.uid), {
-          coins: 0, // Reset coins after redemption
+        // If redeemed, reset to 0 then add the new earnings
+        await updateDoc(userRef, {
+          coins: coinsToAdd,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        // If not redeemed, just increment
+        await updateDoc(userRef, {
+          coins: increment(coinsToAdd),
           updatedAt: serverTimestamp()
         });
       }

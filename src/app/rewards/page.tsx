@@ -1,6 +1,7 @@
+
 "use client"
 
-import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift, IndianRupee, Sparkles, UserPlus } from 'lucide-react';
+import { Star, Trophy, ArrowRight, Copy, Info, Coins, History, Gift, IndianRupee, Sparkles, UserPlus, Zap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -100,7 +101,7 @@ export default function RewardsPage() {
 
                 <div className="bg-white/5 p-6 rounded-[1.5rem] border border-white/10 text-center">
                    <span className="text-[10px] font-black uppercase text-primary tracking-[0.3em] block mb-2">Welcome Bonus</span>
-                   <div className="text-4xl font-black italic text-white tracking-tighter mb-1">10 FREE COINS</div>
+                   <div className="text-4xl font-black italic text-white tracking-tighter mb-1">20 FREE COINS</div>
                    <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">Redeemable on your very first order at ShopyKart.</p>
                 </div>
 
@@ -129,9 +130,9 @@ export default function RewardsPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] font-black uppercase tracking-wider opacity-80">
                   <span>Value: ₹{(currentCoins * coinValue).toFixed(2)}</span>
-                  <span>Earn 10 coins on every order</span>
+                  <span>Keep ordering to earn more</span>
                 </div>
-                <Progress value={Math.min(100, (currentCoins / 5000) * 100)} className="h-2 bg-white/20" />
+                <Progress value={Math.min(100, (currentCoins / 1000) * 100)} className="h-2 bg-white/20" />
               </div>
             </div>
           </div>
@@ -166,10 +167,35 @@ export default function RewardsPage() {
                   <Trophy className="h-10 w-10 text-amber-500" />
                </div>
                <h2 className="text-2xl font-black italic uppercase tracking-tight">How it works?</h2>
-               <div className="text-xs text-muted-foreground font-bold mt-2 leading-relaxed px-4 uppercase space-y-1">
-                 <p>Har order par aapko <span className="text-primary">10 Bonus Coins</span> milenge.</p>
-                 <p>Checkout ke waqt unhe redeem karein: <span className="text-primary">1 Coin = ₹{coinValue}</span> ka discount!</p>
-                 <p className="pt-2 text-[10px] text-gray-400">Redeem karne par purane coins khatam ho jayenge aur naye 10 coins jud jayenge.</p>
+               <div className="text-xs text-muted-foreground font-bold mt-4 leading-relaxed px-4 uppercase space-y-6">
+                 <div className="flex items-center gap-4 text-left p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="h-10 w-10 bg-primary text-white rounded-xl flex items-center justify-center font-black italic">1st</div>
+                    <div>
+                       <p className="text-gray-900 leading-none mb-1">Earn 20 Coins</p>
+                       <p className="text-[9px] text-gray-400">On your very first order</p>
+                    </div>
+                 </div>
+                 
+                 <div className="flex items-center gap-4 text-left p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="h-10 w-10 bg-primary/20 text-primary rounded-xl flex items-center justify-center font-black italic">2nd</div>
+                    <div>
+                       <p className="text-gray-900 leading-none mb-1">Earn 10 Coins</p>
+                       <p className="text-[9px] text-gray-400">On your second order</p>
+                    </div>
+                 </div>
+
+                 <div className="flex items-center gap-4 text-left p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="h-10 w-10 bg-gray-200 text-gray-500 rounded-xl flex items-center justify-center font-black italic">3+</div>
+                    <div>
+                       <p className="text-gray-900 leading-none mb-1">Earn 5 Coins</p>
+                       <p className="text-[9px] text-gray-400">On every subsequent order</p>
+                    </div>
+                 </div>
+
+                 <div className="pt-2 text-[10px] text-gray-400 border-t border-dashed">
+                    <Zap className="h-3 w-3 inline mr-1 text-amber-500" />
+                    Redeem at checkout: 1 Coin = ₹{coinValue} discount!
+                 </div>
                </div>
             </div>
           </div>

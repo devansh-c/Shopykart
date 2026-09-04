@@ -1,11 +1,12 @@
+
 "use client"
 
 import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2, Clock, TrendingUp, Crown, Check, X, ShieldCheck } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2, Clock, TrendingUp, Crown, Check, X, ShieldCheck, Eraser, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { 
   Bar, 
   BarChart, 
@@ -17,12 +18,14 @@ import {
 } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, format } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 export default function AdminOverview() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -59,6 +62,25 @@ export default function AdminOverview() {
     ];
   }, [orders, users]);
 
+  const handleResetAllRewards = async () => {
+    if (!firestore || !users || isResetting) return;
+    if (!confirm("🚨 WARNING: This will set ALL customer coins to 0. Continue?")) return;
+
+    setIsResetting(true);
+    try {
+      const batch = writeBatch(firestore);
+      users.forEach(user => {
+        batch.update(doc(firestore, 'users', user.id), { coins: 0 });
+      });
+      await batch.commit();
+      toast({ title: "Rewards Cleared! 🗑️", description: "All users now have 0 coins." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Reset Failed" });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleVerifyPremium = async (req: any) => {
     if (!firestore || processingId) return;
     setProcessingId(req.id);
@@ -76,22 +98,6 @@ export default function AdminOverview() {
       toast({ title: "Premium Activated! 👑" });
     } catch (err) {
       toast({ variant: "destructive", title: "Verification Failed" });
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleRejectPremium = async (reqId: string) => {
-    if (!firestore || processingId) return;
-    setProcessingId(reqId);
-    try {
-      await updateDoc(doc(firestore, 'premium_subscriptions', reqId), {
-        status: 'failed',
-        rejectedAt: serverTimestamp()
-      });
-      toast({ title: "Request Rejected" });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Action Failed" });
     } finally {
       setProcessingId(null);
     }
@@ -182,11 +188,21 @@ export default function AdminOverview() {
          </Card>
 
          <Card className="border-none shadow-sm rounded-[2rem] bg-primary text-white p-8 flex flex-col justify-center text-center relative overflow-hidden h-full">
-            <div className="relative z-10">
-               <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
-               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Management</h4>
-               <div className="text-4xl font-black italic tracking-tighter text-white leading-none">SYSTEM<br/>HEALTH</div>
-               <p className="text-[9px] font-bold text-white/80 mt-6 uppercase leading-relaxed">Secure data pipelines active.</p>
+            <div className="relative z-10 space-y-6">
+               <div>
+                  <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Management</h4>
+                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">SYSTEM<br/>HEALTH</div>
+               </div>
+
+               <Button 
+                onClick={handleResetAllRewards}
+                disabled={isResetting}
+                className="w-full bg-black text-white hover:bg-red-600 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest shadow-xl"
+               >
+                 {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                 RESET ALL REWARDS
+               </Button>
             </div>
             <div className="absolute inset-0 bg-black/10 -skew-x-12 translate-x-1/2" />
          </Card>
