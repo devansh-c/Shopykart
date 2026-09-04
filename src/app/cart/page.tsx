@@ -140,8 +140,12 @@ export default function CartPage() {
     let base = totalPrice + deliveryFee + deliveryTip;
     calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
+    
     // ONLY DEDUCT IF USER HAS COINS AND TOGGLE IS ON
-    if (isRedeemCoins && userCoins > 0) base -= 5;
+    if (isRedeemCoins && userCoins > 0) {
+      base -= 5;
+    }
+    
     base -= couponDiscount;
     return Math.max(0, base);
   }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount, userCoins]);
@@ -186,7 +190,7 @@ export default function CartPage() {
     
     setIsPlacing(true);
     try {
-      // Find order count to apply tiered rewards
+      // Find order count to apply tiered rewards (20, 10, 5)
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
       const customerOrderNumber = countSnap.data().count + 1;
@@ -226,16 +230,16 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // COIN UPDATE LOGIC - DEDUCT ALL IF REDEEMED, THEN ADD NEW
+      // COIN UPDATE LOGIC - DEDUCT ALL IF REDEEMED, THEN ADD NEW EARNINGS
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // If redeemed, reset to 0 then add the new earnings
+        // If redeemed, we clear old coins and just add the ones earned from this order
         await updateDoc(userRef, {
           coins: coinsToAdd,
           updatedAt: serverTimestamp()
         });
       } else {
-        // If not redeemed, just increment
+        // If not redeemed, we increment by the new coins
         await updateDoc(userRef, {
           coins: increment(coinsToAdd),
           updatedAt: serverTimestamp()
@@ -243,7 +247,10 @@ export default function CartPage() {
       }
 
       setShowSuccessOverlay(true);
-      setTimeout(() => { clearCart(); router.replace(`/order/track/#${customerOrderNumber}`); }, 1500);
+      setTimeout(() => { 
+        clearCart(); 
+        router.replace(`/order/track/#${customerOrderNumber}`); 
+      }, 1500);
     } catch (e) {
       toast({ variant: "destructive", title: "Order Failed" });
     } finally {
@@ -269,12 +276,29 @@ export default function CartPage() {
     setIsDragging(false);
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (sliderOffset > trackWidth * 0.85) {
-      if (!user) { setSliderOffset(0); window.dispatchEvent(new CustomEvent('open-auth-overlay')); return; }
+      if (!user) { 
+        setSliderOffset(0); 
+        window.dispatchEvent(new CustomEvent('open-auth-overlay')); 
+        return; 
+      }
       finalizeOrder();
     } else setSliderOffset(0);
   };
 
   if (!isMounted) return null;
+
+  if (cart.length === 0 && !showSuccessOverlay) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <div className="bg-gray-50 h-24 w-24 rounded-full flex items-center justify-center mb-6">
+          <ShoppingBag className="h-12 w-12 text-gray-200" />
+        </div>
+        <h2 className="text-2xl font-black italic uppercase">Empty Bag</h2>
+        <p className="text-xs font-bold text-muted-foreground uppercase mt-2 mb-10 tracking-widest">Start adding gourmet items to checkout</p>
+        <Button onClick={() => router.push('/')} className="h-14 px-10 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">EXPLORE HUB</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-20">
@@ -311,12 +335,12 @@ export default function CartPage() {
            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
                  <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black"><Navigation className="h-5 w-5" /></div>
-                 <div>
-                    <h4 className="text-xs font-black uppercase">{recipientForm.name || 'SET RECIPIENT'}</h4>
+                 <div className="min-w-0">
+                    <h4 className="text-xs font-black uppercase truncate max-w-[150px]">{recipientForm.name || 'SET RECIPIENT'}</h4>
                     <p className="text-[9px] font-bold text-gray-400 uppercase truncate max-w-[150px]">{recipientForm.address || 'TAP TO PIN ADDRESS'}</p>
                  </div>
               </div>
-              <button onClick={() => setIsAddressModalOpen(true)} className="bg-white/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">CHANGE</button>
+              <button onClick={() => setIsAddressModalOpen(true)} className="bg-white/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0">CHANGE</button>
            </div>
         </section>
 
@@ -449,7 +473,13 @@ export default function CartPage() {
              <button onClick={() => setIsMapOpen(true)} className="w-full h-14 bg-primary/5 text-primary rounded-2xl font-black uppercase italic text-[10px] tracking-widest border border-primary/20 flex items-center justify-center gap-2"><MapPin className="h-4 w-4" /> PIN ON MAP</button>
           </div>
           <div className="p-8 bg-gray-50 pb-10 border-t">
-             <Button onClick={() => { localStorage.setItem('user_name', recipientForm.name); localStorage.setItem('user_phone', recipientForm.phone); localStorage.setItem('user_address_line', recipientForm.address); setIsAddressModalOpen(false); toast({title:'Details Saved'}); }} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SAVE & PROCEED</Button>
+             <Button onClick={() => { 
+                localStorage.setItem('user_name', recipientForm.name); 
+                localStorage.setItem('user_phone', recipientForm.phone); 
+                localStorage.setItem('user_address_line', recipientForm.address); 
+                setIsAddressModalOpen(false); 
+                toast({title:'Details Saved'}); 
+             }} className="w-full h-16 bg-black text-white rounded-[2rem] font-black uppercase italic shadow-xl">SAVE & PROCEED</Button>
           </div>
         </DialogContent>
       </Dialog>

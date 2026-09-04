@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button';
 export default function AdminOverview() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [processingId, setProcessingId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -59,12 +58,11 @@ export default function AdminOverview() {
   const handleResetAllRewards = async () => {
     if (!firestore || isResetting) return;
     
-    // Explicitly fetch users to ensure we have the latest list
     setIsResetting(true);
     try {
       const snap = await getDocs(collection(firestore, 'users'));
       if (snap.empty) {
-        toast({ title: "No users to reset" });
+        toast({ title: "No users found to reset." });
         setIsResetting(false);
         return;
       }
@@ -76,7 +74,7 @@ export default function AdminOverview() {
 
       const batch = writeBatch(firestore);
       snap.docs.forEach(uDoc => {
-        batch.update(uDoc.ref, { coins: 0 });
+        batch.update(uDoc.ref, { coins: 0, updatedAt: serverTimestamp() });
       });
       
       await batch.commit();

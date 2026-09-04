@@ -113,7 +113,7 @@ export default function RewardsPage() {
                   REGISTER & CLAIM
                 </Button>
              </div>
-             <div className="absolute top-0 right-0 h-full w-40 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
+             <div className="absolute top-0 right-0 h-full w-44 bg-white/5 -skew-x-12 translate-x-12 pointer-events-none" />
           </div>
         ) : (
           /* Points Card for Logged-in Users */
