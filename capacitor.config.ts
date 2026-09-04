@@ -6,7 +6,11 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     androidScheme: 'https',
-    cleartext: true
+    cleartext: true,
+    allowNavigation: [
+      'shopykart.co.in',
+      '*.shopykart.co.in'
+    ]
   }
 };
 

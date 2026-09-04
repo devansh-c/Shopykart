@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "co.in.shopykart.app",
+      "sha256_cert_fingerprints": [
+        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:46:28:C7:39:43:83:51:71:32:30:1F:4B:2E:F0:71:98:81:4A:23:4B:8F"
+      ]
+    }
+  }
+]

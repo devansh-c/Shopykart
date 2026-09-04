@@ -89,8 +89,10 @@ jobs:
 
       - name: Capacitor Add/Sync Android
         run: |
-          rm -rf android
-          npx cap add android
+          # Only add if directory doesn't exist, to preserve native config changes
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
           npx cap sync android
 
       - name: Build APK (Debug)
