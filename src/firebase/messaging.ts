@@ -61,29 +61,23 @@ export async function requestPushToken() {
 
     // 3. Programmatic Service Worker Registration for FCM
     if ('serviceWorker' in navigator) {
-      let registration = await navigator.serviceWorker.getRegistration();
-      
-      if (!registration) {
-        try {
-          // Register a generic worker if missing - this is critical for getToken to work
-          registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-        } catch (swErr) {
-          console.debug("Inline SW registration skipped, attempting getToken with default.");
-        }
-      }
-
+      // Register dedicated worker for Firebase Messaging
       try {
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { 
+          scope: '/firebase-cloud-messaging-push-scope' 
+        });
+        
         const token = await getToken(messaging, {
           vapidKey: vapidKey,
-          serviceWorkerRegistration: registration || undefined
+          serviceWorkerRegistration: registration
         });
         
         if (token) {
-          console.log("FCM Token Synced successfully.");
+          console.log("FCM Identity Synced.");
           return token;
         }
-      } catch (tokenErr: any) {
-        console.warn("FCM Token Error:", tokenErr.message);
+      } catch (swErr: any) {
+        console.warn("FCM SW Error:", swErr.message);
         return null;
       }
     }
