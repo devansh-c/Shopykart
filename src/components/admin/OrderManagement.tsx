@@ -101,40 +101,6 @@ export default function OrderManagement() {
     }
   };
 
-  const handleSaveNote = async () => {
-    if (!firestore || !selectedOrderForNote || isSavingNote) return;
-    setIsSavingNote(true);
-    try {
-      await updateDoc(doc(firestore, 'orders', selectedOrderForNote.id), {
-        adminNote: adminNote.trim(),
-        updatedAt: serverTimestamp()
-      });
-      setIsNoteOpen(false);
-      setAdminNote('');
-      setSelectedOrderForNote(null);
-      toast({ title: "Note Shared with Customer! 📝" });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Note Save Failed" });
-    } finally {
-      setIsSavingNote(false);
-    }
-  };
-
-  const startNavigation = (order: any) => {
-    const lat = order.customerLat;
-    const lng = order.customerLng;
-    if (lat && lng) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
-      window.open(url, '_blank');
-    } else {
-      toast({ variant: "destructive", title: "Location Missing" });
-    }
-  };
-
-  const handleCallCustomer = (phone: string) => {
-    if (phone) window.open(`tel:${phone}`);
-  };
-
   const generateReceipt = async (order: any) => {
     setIsDownloading(order.id);
     try {
@@ -213,16 +179,8 @@ export default function OrderManagement() {
     }
   };
 
-  const getButtonLabel = (status: string) => {
-    switch (status) {
-      case 'Placed': return 'ACCEPT ORDER';
-      case 'Accepted': return 'START PREPARING';
-      case 'Preparing': return 'READY FOR PICKUP';
-      case 'Ready for Pickup': return 'MARK PICKED UP';
-      case 'Picked Up': return 'OUT FOR DELIVERY';
-      case 'Out for Delivery': return 'MARK DELIVERED';
-      default: return 'UPDATE STATUS';
-    }
+  const handleCallCustomer = (phone: string) => {
+    if (phone) window.open(`tel:${phone}`);
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -238,9 +196,6 @@ export default function OrderManagement() {
         {orders?.map((order: any) => {
           const isCancelled = order.status === 'Cancelled';
           const isDelivered = order.status === 'Delivered';
-          const currentIndex = STATUS_FLOW.indexOf(order.status);
-          const hasNext = currentIndex < STATUS_FLOW.length - 1 && !isCancelled;
-          const hasPrev = currentIndex > 0 && !isCancelled;
 
           return (
             <div key={order.id} className={cn(
@@ -259,7 +214,6 @@ export default function OrderManagement() {
                  </div>
                  <div className="flex gap-2">
                     <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm" title="Download Receipt"><FileText className="h-5 w-5" /></button>
-                    <button onClick={() => { setSelectedOrderForNote(order); setAdminNote(order.adminNote || ''); setIsNoteOpen(true); }} className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm" title="Add Note"><MessageSquare className="h-5 w-5" /></button>
                     <button onClick={() => handleCallCustomer(order.customerPhone)} className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 shadow-sm" title="Call Customer"><PhoneCall className="h-5 w-5" /></button>
                     {!isCancelled && !isDelivered && (
                       <button onClick={() => handleCancelOrder(order.id)} className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm" title="Cancel Order"><XCircle className="h-5 w-5" /></button>
@@ -268,14 +222,9 @@ export default function OrderManagement() {
               </div>
 
               <div className="bg-gray-50 p-6 rounded-[2rem] border border-border shadow-inner mb-6 relative">
-                 <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-                    {order.redeemCoins && <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[7px] uppercase px-2 py-0.5">COINS REDEEMED</Badge>}
-                    {order.isPremiumPacking && <Badge className="bg-primary/10 text-primary border-none font-black text-[7px] uppercase px-2 py-0.5">PREMIUM PACKING</Badge>}
-                 </div>
-
                  <div className="flex items-center gap-4 mb-6">
                     <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm border shrink-0"><User className="h-5 w-5" /></div>
-                    <div className="min-w-0 pr-20">
+                    <div className="min-w-0">
                        <span className="font-black text-xl italic uppercase tracking-tighter truncate block">{order.customerName}</span>
                        <span className="text-[9px] font-bold text-gray-400 uppercase">{order.customerPhone}</span>
                     </div>
@@ -298,37 +247,13 @@ export default function OrderManagement() {
 
               <div className="flex gap-3">
                  <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className="flex-1 h-16 bg-[#0B0B0B] text-white rounded-2xl font-black uppercase italic shadow-xl">
-                    {getButtonLabel(order.status)}
+                    UPDATE STATUS
                  </Button>
-                 <button onClick={() => startNavigation(order)} className="h-16 w-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-transform"><Compass className="h-7 w-7" /></button>
-                 {hasPrev && (
-                   <button onClick={() => handlePrevStatus(order.id, order.status)} className="h-16 w-16 bg-gray-100 text-gray-400 rounded-2xl flex items-center justify-center border active:scale-90 transition-transform"><RotateCcw className="h-7 w-7" /></button>
-                 )}
               </div>
             </div>
           );
         })}
       </div>
-
-      <Dialog open={isNoteOpen} onOpenChange={setIsNoteOpen}>
-         <DialogContent className="rounded-[3rem] max-w-sm p-8 border-none shadow-2xl bg-white focus:outline-none">
-            <DialogHeader className="mb-4">
-               <DialogTitle className="font-black italic uppercase text-center text-xl">Order Memo</DialogTitle>
-               <DialogDescription className="text-center text-[10px] font-bold uppercase">Visible to the customer</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6">
-               <Textarea 
-                value={adminNote}
-                onChange={e => setAdminNote(e.target.value)}
-                placeholder="e.g. Preparing fresh, might take 10 mins more."
-                className="min-h-[120px] rounded-2xl bg-gray-50 border-none font-bold p-4 text-xs italic"
-               />
-               <Button onClick={handleSaveNote} disabled={isSavingNote} className="w-full h-14 bg-black text-white rounded-xl font-black uppercase italic">
-                 {isSavingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : 'SHARE NOTE'}
-               </Button>
-            </div>
-         </DialogContent>
-      </Dialog>
     </div>
   );
 }

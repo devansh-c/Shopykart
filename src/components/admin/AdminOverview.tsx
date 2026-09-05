@@ -17,7 +17,7 @@ import {
   Cell
 } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
 export default function AdminOverview() {
@@ -58,16 +58,13 @@ export default function AdminOverview() {
   const handleResetAllRewards = async () => {
     if (!firestore || isResetting) return;
     
+    if (!confirm("🚨 WARNING: Are you sure you want to reset coins for ALL users to 0? This cannot be undone.")) return;
+
     setIsResetting(true);
     try {
       const snap = await getDocs(collection(firestore, 'users'));
       if (snap.empty) {
-        toast({ title: "No users found to reset." });
-        setIsResetting(false);
-        return;
-      }
-
-      if (!confirm(`🚨 WARNING: This will set coins to 0 for ALL ${snap.size} customers. Continue?`)) {
+        toast({ title: "No users found" });
         setIsResetting(false);
         return;
       }
@@ -78,9 +75,8 @@ export default function AdminOverview() {
       });
       
       await batch.commit();
-      toast({ title: "Rewards Cleared! 🗑️", description: `Reset completed for ${snap.size} users.` });
+      toast({ title: "Rewards Reset Successfully! ✅", description: `Reset completed for ${snap.size} users.` });
     } catch (err) {
-      console.error(err);
       toast({ variant: "destructive", title: "Reset Failed" });
     } finally {
       setIsResetting(false);
@@ -175,7 +171,7 @@ export default function AdminOverview() {
             <div className="relative z-10 space-y-6">
                <div>
                   <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Management</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Operations</h4>
                   <div className="text-4xl font-black italic tracking-tighter text-white leading-none">SYSTEM<br/>HEALTH</div>
                </div>
 

@@ -35,12 +35,6 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import dynamic from 'next/dynamic';
-
-const GoogleMapPicker = dynamic(() => import('@/components/shared/GoogleMapPicker'), { 
-  ssr: false,
-  loading: () => <div className="h-64 w-full bg-muted animate-pulse flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-});
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -56,21 +50,16 @@ export default function CartPage() {
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
   
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [isMapOpen, setIsMapOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({
     name: '',
     phone: '',
-    address: '',
-    lat: '',
-    lng: ''
+    address: ''
   });
 
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [deliveryTip, setDeliveryTip] = useState(0);
-
-  const [paymentMode, setPaymentMode] = useState<'ONLINE' | 'COD'>('ONLINE');
 
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -80,23 +69,15 @@ export default function CartPage() {
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
-      const savedName = localStorage.getItem('user_name') || '';
-      const savedPhone = localStorage.getItem('user_phone') || '';
-      const savedDetailedAddress = localStorage.getItem('user_address_line') || '';
-      const savedLat = localStorage.getItem('user_lat') || '';
-      const savedLng = localStorage.getItem('user_lng') || '';
-
       setRecipientForm({
-        name: savedName,
-        phone: savedPhone,
-        address: savedDetailedAddress,
-        lat: savedLat,
-        lng: savedLng
+        name: localStorage.getItem('user_name') || '',
+        phone: localStorage.getItem('user_phone') || '',
+        address: localStorage.getItem('user_address_line') || ''
       });
     }
   }, []);
 
-  // FETCH USER PROFILE TO GET REAL COIN BALANCE
+  // Fetch User Profile for Coin Balance
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -141,7 +122,7 @@ export default function CartPage() {
     calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
     
-    // ONLY DEDUCT IF USER HAS COINS AND TOGGLE IS ON
+    // Deduct ₹5 if redeeming coins and user has balance
     if (isRedeemCoins && userCoins > 0) {
       base -= 5;
     }
@@ -157,18 +138,18 @@ export default function CartPage() {
       const q = query(collection(firestore, 'coupons'), where('code', '==', couponCode.toUpperCase().trim()), limit(1));
       const snap = await getDocs(q);
       if (snap.empty) {
-        toast({ variant: "destructive", title: "Invalid Code", description: "This coupon does not exist." });
+        toast({ variant: "destructive", title: "Invalid Code" });
       } else {
         const data = snap.docs[0].data();
         if (data.minOrderValue && totalPrice < data.minOrderValue) {
-          toast({ variant: "destructive", title: "Min Order Not Met", description: `Add ₹${data.minOrderValue - totalPrice} more to use this code.` });
+          toast({ variant: "destructive", title: "Min Order Not Met" });
         } else {
           setAppliedCoupon({ id: snap.docs[0].id, ...data });
           toast({ title: "Coupon Applied! 🎟️" });
         }
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Could not verify coupon." });
+      toast({ variant: "destructive", title: "Error" });
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -177,12 +158,8 @@ export default function CartPage() {
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
     
-    // STRICT VALIDATION
-    const isAddressClean = recipientForm.address.trim() && recipientForm.address.trim().length > 5;
-    const isPhoneClean = recipientForm.phone && recipientForm.phone.length === 10;
-
-    if (!recipientForm.name.trim() || !isPhoneClean || !isAddressClean) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please enter your full name, 10-digit phone, and real house address." });
+    if (!recipientForm.name.trim() || recipientForm.phone.length !== 10 || !recipientForm.address.trim()) {
+      toast({ variant: "destructive", title: "Missing Info", description: "Complete your address and phone." });
       setIsAddressModalOpen(true);
       setSliderOffset(0);
       return;
@@ -205,22 +182,18 @@ export default function CartPage() {
         customerName: recipientForm.name.toUpperCase(),
         customerPhone: recipientForm.phone,
         address: recipientForm.address.toUpperCase(),
-        customerLat: recipientForm.lat ? parseFloat(recipientForm.lat) : null,
-        customerLng: recipientForm.lng ? parseFloat(recipientForm.lng) : null,
         zoneId: activeZoneId,
         items: cart,
         total: totalPayable,
         deliveryFee: deliveryFee,
         deliveryTip: deliveryTip,
-        couponId: appliedCoupon?.id || null,
         couponCode: appliedCoupon?.code || null,
         couponDiscount: couponDiscount,
         isPremiumPacking: isPremiumPacking,
         redeemCoins: isRedeemCoins,
         chargesBreakdown: calculatedAdminCharges,
         status: 'Placed',
-        paymentMethod: paymentMode,
-        paymentStatus: paymentMode === 'ONLINE' ? 'Paid' : 'Pending',
+        paymentMethod: 'ONLINE',
         customerOrderNumber,
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         createdAt: serverTimestamp(),
@@ -230,20 +203,12 @@ export default function CartPage() {
 
       await addDoc(collection(firestore, 'orders'), orderData);
       
-      // COIN UPDATE LOGIC - DEDUCT ALL IF REDEEMED, THEN ADD NEW EARNINGS
+      // Update coins: If redeemed, clear old balance and add new reward. Else, increment.
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // If redeemed, we clear old coins and just add the ones earned from this order
-        await updateDoc(userRef, {
-          coins: coinsToAdd,
-          updatedAt: serverTimestamp()
-        });
+        await updateDoc(userRef, { coins: coinsToAdd, updatedAt: serverTimestamp() });
       } else {
-        // If not redeemed, we increment by the new coins
-        await updateDoc(userRef, {
-          coins: increment(coinsToAdd),
-          updatedAt: serverTimestamp()
-        });
+        await updateDoc(userRef, { coins: increment(coinsToAdd), updatedAt: serverTimestamp() });
       }
 
       setShowSuccessOverlay(true);
@@ -287,28 +252,16 @@ export default function CartPage() {
 
   if (!isMounted) return null;
 
-  if (cart.length === 0 && !showSuccessOverlay) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-gray-50 h-24 w-24 rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="h-12 w-12 text-gray-200" />
-        </div>
-        <h2 className="text-2xl font-black italic uppercase">Empty Bag</h2>
-        <p className="text-xs font-bold text-muted-foreground uppercase mt-2 mb-10 tracking-widest">Start adding gourmet items to checkout</p>
-        <Button onClick={() => router.push('/')} className="h-14 px-10 bg-black text-white rounded-2xl font-black uppercase italic shadow-xl">EXPLORE HUB</Button>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-20">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       <header className="bg-white border-b py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50"><ChevronLeft className="h-6 w-6" /></button>
-        <h1 className="text-sm font-black uppercase italic tracking-widest">SECURE CHECKOUT</h1>
+        <h1 className="text-sm font-black uppercase italic tracking-widest">CHECKOUT</h1>
       </header>
 
       <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
+        {/* ITEMS SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <h3 className="text-xs font-black uppercase tracking-widest text-amber-400">ITEMS IN BAG</h3>
            <div className="space-y-6">
@@ -331,19 +284,21 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* ADDRESS SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl">
            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
                  <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center text-black"><Navigation className="h-5 w-5" /></div>
                  <div className="min-w-0">
                     <h4 className="text-xs font-black uppercase truncate max-w-[150px]">{recipientForm.name || 'SET RECIPIENT'}</h4>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase truncate max-w-[150px]">{recipientForm.address || 'TAP TO PIN ADDRESS'}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase truncate max-w-[150px]">{recipientForm.address || 'ENTER ADDRESS'}</p>
                  </div>
               </div>
               <button onClick={() => setIsAddressModalOpen(true)} className="bg-white/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0">CHANGE</button>
            </div>
         </section>
 
+        {/* COUPON SECTION */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center gap-3 text-amber-400">
               <Tag className="h-4 w-4" />
@@ -356,7 +311,7 @@ export default function CartPage() {
                   placeholder="ENTER CODE" 
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                  className="bg-white/5 border-white/10 text-white rounded-xl h-12 font-black italic tracking-widest"
+                  className="bg-white/5 border-white/10 text-white rounded-xl h-12 font-black italic"
                 />
                 <Button 
                   onClick={handleApplyCoupon}
@@ -375,11 +330,12 @@ export default function CartPage() {
                       <p className="text-[9px] font-bold text-green-500/60 uppercase">Saving ₹{couponDiscount.toFixed(0)}</p>
                    </div>
                 </div>
-                <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="text-red-400"><Trash2 className="h-4 w-4" /></button>
              </div>
            )}
         </section>
 
+        {/* PREMIUM & COINS */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
               <div className="flex items-center gap-3">
@@ -415,18 +371,19 @@ export default function CartPage() {
            </div>
         </section>
 
+        {/* BILL SUMMARY */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-8 text-white shadow-2xl space-y-4">
            <h3 className="text-xl font-black italic uppercase tracking-tighter text-amber-400">BILL SUMMARY</h3>
            <div className="space-y-3">
               <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Subtotal</span><span>₹{totalPrice.toFixed(0)}</span></div>
               <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Delivery Fee</span><span>₹{deliveryFee.toFixed(0)}</span></div>
-              {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Delivery Tip</span><span>₹{deliveryTip}</span></div>}
+              {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Tip</span><span>₹{deliveryTip}</span></div>}
               {calculatedAdminCharges.map((c, i) => (
                 <div key={i} className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>{c.name}</span><span>₹{c.value.toFixed(0)}</span></div>
               ))}
-              {isPremiumPacking && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Premium Packing</span><span>₹10</span></div>}
-              {appliedCoupon && <div className="flex justify-between text-[10px] font-black text-green-400 uppercase"><span>Coupon Discount ({appliedCoupon.code})</span><span>- ₹{couponDiscount.toFixed(0)}</span></div>}
-              {isRedeemCoins && userCoins > 0 && <div className="flex justify-between text-[10px] font-bold text-green-400 uppercase"><span>Coins Redeemed</span><span>- ₹5</span></div>}
+              {isPremiumPacking && <div className="flex justify-between text-[10px] font-bold text-white/60 uppercase"><span>Packing</span><span>₹10</span></div>}
+              {appliedCoupon && <div className="flex justify-between text-[10px] font-black text-green-400 uppercase"><span>Coupon Discount</span><span>- ₹{couponDiscount.toFixed(0)}</span></div>}
+              {isRedeemCoins && userCoins > 0 && <div className="flex justify-between text-[10px] font-bold text-green-400 uppercase"><span>Coins Used</span><span>- ₹5</span></div>}
            </div>
            <div className="pt-4 border-t border-white/5 flex justify-between items-center">
               <span className="text-sm font-black uppercase opacity-40">TOTAL PAYABLE</span>
@@ -458,11 +415,10 @@ export default function CartPage() {
       </main>
 
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="rounded-t-[3rem] p-0 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[600px]">
+        <DialogContent className="rounded-t-[3rem] p-0 border-none shadow-2xl bg-white max-w-sm bottom-0 top-auto translate-y-0 focus:outline-none flex flex-col h-[500px]">
           <div className="h-2 w-full bg-primary" />
           <DialogHeader className="p-8 pb-4">
             <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-center">DELIVERY DETAILS</DialogTitle>
-            <DialogDescription className="text-[9px] font-bold text-gray-500 uppercase text-center tracking-[0.2em]">Enter recipient info for fast delivery</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-6">
              <div className="space-y-4">
@@ -470,7 +426,6 @@ export default function CartPage() {
                 <Input placeholder="10 DIGIT PHONE" value={recipientForm.phone} onChange={e => setRecipientForm({...recipientForm, phone: e.target.value.replace(/\D/g,'').slice(0, 10)})} className="h-14 rounded-2xl bg-gray-50 border-none font-black text-xs" />
                 <textarea placeholder="HOUSE NO, BUILDING, LANDMARK..." value={recipientForm.address} onChange={e => setRecipientForm({...recipientForm, address: e.target.value.toUpperCase()})} className="w-full h-24 p-4 rounded-2xl bg-gray-50 border-none font-bold text-xs uppercase focus:outline-none" />
              </div>
-             <button onClick={() => setIsMapOpen(true)} className="w-full h-14 bg-primary/5 text-primary rounded-2xl font-black uppercase italic text-[10px] tracking-widest border border-primary/20 flex items-center justify-center gap-2"><MapPin className="h-4 w-4" /> PIN ON MAP</button>
           </div>
           <div className="p-8 bg-gray-50 pb-10 border-t">
              <Button onClick={() => { 
