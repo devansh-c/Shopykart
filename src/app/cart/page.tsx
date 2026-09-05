@@ -63,7 +63,7 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
-  // HYDRATION FIX: Initialize localStorage data only after mount
+  // HYDRATION & PERSISTENCE FIX
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
