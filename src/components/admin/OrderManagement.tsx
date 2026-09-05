@@ -2,29 +2,18 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDocs, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, serverTimestamp, deleteDoc, getDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
   MapPin, 
   PhoneCall, 
-  Navigation, 
-  X, 
+  XCircle, 
   Loader2, 
-  Banknote, 
-  RotateCcw,
-  Crown, 
-  Trash2,
-  Coins,
-  CheckCircle2,
+  IndianRupee, 
   FileText,
-  ShieldCheck,
-  Compass,
-  Sparkles,
   Clock,
-  MessageSquare,
-  XCircle,
-  IndianRupee
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -32,9 +21,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 
 const STATUS_FLOW = [
   "Placed", 
@@ -51,10 +37,6 @@ export default function OrderManagement() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
-  const [isNoteOpen, setIsNoteOpen] = useState(false);
-  const [selectedOrderForNote, setSelectedOrderForNote] = useState<any>(null);
-  const [adminNote, setAdminNote] = useState('');
-  const [isSavingNote, setIsSavingNote] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -69,7 +51,7 @@ export default function OrderManagement() {
     const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     if (currentIndex < STATUS_FLOW.length - 1) {
       const nextStatus = STATUS_FLOW[currentIndex + 1];
-      updateDoc(doc(firestore, 'orders', id), { 
+      await updateDoc(doc(firestore, 'orders', id), { 
         status: nextStatus,
         updatedAt: serverTimestamp()
       });
@@ -77,23 +59,10 @@ export default function OrderManagement() {
     }
   };
 
-  const handlePrevStatus = async (id: string, currentStatus: string) => {
-    if (!firestore) return;
-    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
-    if (currentIndex > 0) {
-      const prevStatus = STATUS_FLOW[currentIndex - 1];
-      updateDoc(doc(firestore, 'orders', id), { 
-        status: prevStatus,
-        updatedAt: serverTimestamp()
-      });
-      toast({ title: "Status Reversed", description: `Back to ${prevStatus}` });
-    }
-  };
-
   const handleCancelOrder = async (id: string) => {
     if (!firestore) return;
     if (confirm("Are you sure you want to CANCEL this order?")) {
-      updateDoc(doc(firestore, 'orders', id), {
+      await updateDoc(doc(firestore, 'orders', id), {
         status: 'Cancelled',
         updatedAt: serverTimestamp()
       });
@@ -143,6 +112,7 @@ export default function OrderManagement() {
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
           <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
+          <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
           <div style="border-top: 1.5px dashed #000; margin: 15px auto 0; width: 100%;"></div>
         </div>
         <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
@@ -162,6 +132,7 @@ export default function OrderManagement() {
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
         </div>
+        <div style="text-align: center; margin-top: 30px;"><div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div></div>
       `;
       
       document.body.appendChild(receipt);
@@ -179,17 +150,13 @@ export default function OrderManagement() {
     }
   };
 
-  const handleCallCustomer = (phone: string) => {
-    if (phone) window.open(`tel:${phone}`);
-  };
-
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6 pb-32">
       <div className="flex items-center justify-between px-2">
         <h2 className="text-3xl font-black italic uppercase tracking-tighter">ORDER LOGISTICS</h2>
-        <Badge variant="outline" className="rounded-full border-primary text-primary font-black uppercase">{orders?.length || 0} TOTAL</Badge>
+        <Badge variant="outline" className="rounded-full border-primary text-primary font-black uppercase tracking-widest">{orders?.length || 0} TOTAL</Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
@@ -213,20 +180,20 @@ export default function OrderManagement() {
                     </div>
                  </div>
                  <div className="flex gap-2">
-                    <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm" title="Download Receipt"><FileText className="h-5 w-5" /></button>
-                    <button onClick={() => handleCallCustomer(order.customerPhone)} className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 shadow-sm" title="Call Customer"><PhoneCall className="h-5 w-5" /></button>
+                    <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm hover:bg-blue-50 transition-colors" title="Download Receipt"><FileText className="h-6 w-6" /></button>
+                    <button onClick={() => { if(order.customerPhone) window.open(`tel:${order.customerPhone}`) }} className="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-600 shadow-sm hover:bg-green-100 transition-colors" title="Call Customer"><PhoneCall className="h-6 w-6" /></button>
                     {!isCancelled && !isDelivered && (
-                      <button onClick={() => handleCancelOrder(order.id)} className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm" title="Cancel Order"><XCircle className="h-5 w-5" /></button>
+                      <button onClick={() => handleCancelOrder(order.id)} className="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm hover:bg-red-100 transition-colors" title="Cancel Order"><XCircle className="h-6 w-6" /></button>
                     )}
                  </div>
               </div>
 
               <div className="bg-gray-50 p-6 rounded-[2rem] border border-border shadow-inner mb-6 relative">
                  <div className="flex items-center gap-4 mb-6">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm border shrink-0"><User className="h-5 w-5" /></div>
+                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border shrink-0"><User className="h-6 w-6" /></div>
                     <div className="min-w-0">
-                       <span className="font-black text-xl italic uppercase tracking-tighter truncate block">{order.customerName}</span>
-                       <span className="text-[9px] font-bold text-gray-400 uppercase">{order.customerPhone}</span>
+                       <span className="font-black text-xl italic uppercase tracking-tighter truncate block text-gray-900">{order.customerName}</span>
+                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{order.customerPhone || 'NO PHONE'}</span>
                     </div>
                  </div>
 
@@ -241,12 +208,12 @@ export default function OrderManagement() {
 
                  <div className="flex items-start gap-3 pt-3 border-t border-dashed border-gray-300">
                     <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[10px] font-bold text-gray-600 uppercase leading-relaxed tracking-tight">{order.address}</p>
+                    <p className="text-[10px] font-bold text-gray-600 uppercase leading-relaxed tracking-tight italic">{order.address}</p>
                  </div>
               </div>
 
               <div className="flex gap-3">
-                 <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className="flex-1 h-16 bg-[#0B0B0B] text-white rounded-2xl font-black uppercase italic shadow-xl">
+                 <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className="flex-1 h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl transition-all active:scale-95">
                     UPDATE STATUS
                  </Button>
               </div>

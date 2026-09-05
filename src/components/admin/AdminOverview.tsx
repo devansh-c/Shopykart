@@ -3,10 +3,10 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IndianRupee, Users, ShoppingBag, Terminal, Rocket, AlertCircle, Shield, Globe, Loader2, RefreshCw, CheckCircle2, Clock, TrendingUp, Crown, Check, X, ShieldCheck, Eraser, Trash2 } from 'lucide-react';
+import { IndianRupee, Users, ShoppingBag, Globe, Loader2, RefreshCw, Trash2, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp, setDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
 import { 
   Bar, 
   BarChart, 
@@ -17,7 +17,6 @@ import {
   Cell
 } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
 export default function AdminOverview() {
@@ -64,20 +63,32 @@ export default function AdminOverview() {
     try {
       const snap = await getDocs(collection(firestore, 'users'));
       if (snap.empty) {
-        toast({ title: "No users found" });
+        toast({ title: "No users found to reset" });
         setIsResetting(false);
         return;
       }
 
-      const batch = writeBatch(firestore);
-      snap.docs.forEach(uDoc => {
-        batch.update(uDoc.ref, { coins: 0, updatedAt: serverTimestamp() });
-      });
+      const batchSize = 500;
+      const chunks = [];
+      for (let i = 0; i < snap.docs.length; i += batchSize) {
+        chunks.push(snap.docs.slice(i, i + batchSize));
+      }
+
+      for (const chunk of chunks) {
+        const batch = writeBatch(firestore);
+        chunk.forEach(uDoc => {
+          batch.update(uDoc.ref, { 
+            coins: 0, 
+            updatedAt: serverTimestamp() 
+          });
+        });
+        await batch.commit();
+      }
       
-      await batch.commit();
       toast({ title: "Rewards Reset Successfully! ✅", description: `Reset completed for ${snap.size} users.` });
     } catch (err) {
-      toast({ variant: "destructive", title: "Reset Failed" });
+      console.error("Reset Error:", err);
+      toast({ variant: "destructive", title: "Reset Failed", description: "Could not update user database." });
     } finally {
       setIsResetting(false);
     }
@@ -122,7 +133,7 @@ export default function AdminOverview() {
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                      <TrendingUp className="h-6 w-6 text-primary" />
-                     <h3 className="text-xl font-black italic uppercase tracking-tight">Weekly Sales</h3>
+                     <h3 className="text-xl font-black italic uppercase tracking-tighter">Weekly Sales</h3>
                   </div>
                   <Badge className="bg-primary text-white font-black text-[10px]">LIVE</Badge>
                </div>
@@ -172,19 +183,19 @@ export default function AdminOverview() {
                <div>
                   <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
                   <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Operations</h4>
-                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none">SYSTEM<br/>HEALTH</div>
+                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none uppercase">SYSTEM<br/>HEALTH</div>
                </div>
 
                <Button 
                 onClick={handleResetAllRewards}
                 disabled={isResetting}
-                className="w-full bg-black text-white hover:bg-red-600 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest shadow-xl"
+                className="w-full bg-black text-white hover:bg-red-600 rounded-xl h-14 font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95"
                >
                  {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                  RESET ALL REWARDS
                </Button>
             </div>
-            <div className="absolute inset-0 bg-black/10 -skew-x-12 translate-x-1/2" />
+            <div className="absolute inset-0 bg-black/10 -skew-x-12 translate-x-1/2 pointer-events-none" />
          </Card>
       </div>
 
