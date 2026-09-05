@@ -2,7 +2,7 @@
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, serverTimestamp, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -10,10 +10,9 @@ import {
   PhoneCall, 
   XCircle, 
   Loader2, 
-  IndianRupee, 
   FileText,
   Clock,
-  MessageSquare
+  IndianRupee
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -180,8 +179,12 @@ export default function OrderManagement() {
                     </div>
                  </div>
                  <div className="flex gap-2">
+                    {order.customerPhone && (
+                      <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 rounded-2xl bg-green-500 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                        <PhoneCall className="h-6 w-6" />
+                      </button>
+                    )}
                     <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm hover:bg-blue-50 transition-colors" title="Download Receipt"><FileText className="h-6 w-6" /></button>
-                    <button onClick={() => { if(order.customerPhone) window.open(`tel:${order.customerPhone}`) }} className="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-600 shadow-sm hover:bg-green-100 transition-colors" title="Call Customer"><PhoneCall className="h-6 w-6" /></button>
                     {!isCancelled && !isDelivered && (
                       <button onClick={() => handleCancelOrder(order.id)} className="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm hover:bg-red-100 transition-colors" title="Cancel Order"><XCircle className="h-6 w-6" /></button>
                     )}

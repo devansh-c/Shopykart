@@ -3,7 +3,6 @@
 
 import { Trophy, Coins, UserPlus, Zap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { useState } from 'react';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -84,14 +83,14 @@ export default function RewardsPage() {
              <div className="bg-amber-50 h-20 w-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-2 border-amber-100">
                 <Trophy className="h-10 w-10 text-amber-500" />
              </div>
-             <h2 className="text-2xl font-black italic uppercase tracking-tight text-gray-900">Reward Plan</h2>
+             <h2 className="text-2xl font-black italic uppercase tracking-tight text-gray-900">Official Reward Plan</h2>
              <div className="text-xs text-muted-foreground font-bold mt-6 leading-relaxed px-4 uppercase space-y-4">
                
                <div className="flex items-center gap-4 text-left p-4 bg-gray-50 rounded-2xl border border-gray-100 group transition-all hover:bg-white hover:shadow-lg">
                   <div className="h-12 w-12 bg-primary text-white rounded-xl flex items-center justify-center font-black italic shrink-0 shadow-lg">20</div>
                   <div>
                      <p className="text-gray-900 leading-none mb-1 font-black">1ST ORDER REWARD</p>
-                     <p className="text-[8px] text-gray-400 tracking-widest font-black">Get 20 Coins on your debut</p>
+                     <p className="text-[8px] text-gray-400 tracking-widest font-black">Earn 20 Coins on your very first order</p>
                   </div>
                </div>
                
@@ -99,7 +98,7 @@ export default function RewardsPage() {
                   <div className="h-12 w-12 bg-primary/20 text-primary rounded-xl flex items-center justify-center font-black italic shrink-0 border border-primary/20">10</div>
                   <div>
                      <p className="text-gray-900 leading-none mb-1 font-black">2ND ORDER REWARD</p>
-                     <p className="text-[8px] text-gray-400 tracking-widest font-black">Get 10 Coins on next visit</p>
+                     <p className="text-[8px] text-gray-400 tracking-widest font-black">Earn 10 Coins on your second order</p>
                   </div>
                </div>
 
@@ -107,13 +106,13 @@ export default function RewardsPage() {
                   <div className="h-12 w-12 bg-gray-200 text-gray-500 rounded-xl flex items-center justify-center font-black italic shrink-0">05</div>
                   <div>
                      <p className="text-gray-900 leading-none mb-1 font-black">LOYALTY REWARD</p>
-                     <p className="text-[8px] text-gray-400 tracking-widest font-black">Get 5 Coins on every order</p>
+                     <p className="text-[8px] text-gray-400 tracking-widest font-black">Earn 5 Coins on every order thereafter</p>
                   </div>
                </div>
 
                <div className="pt-4 text-[9px] text-primary font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
                   <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500 animate-pulse" />
-                  Redeem at checkout for instant cash slash!
+                  Redeem coins at checkout for instant ₹5 slash!
                </div>
              </div>
           </div>

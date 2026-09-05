@@ -14,16 +14,9 @@ import {
   Coins, 
   ArrowRight, 
   Navigation, 
-  Clock, 
-  User, 
-  Phone, 
-  X, 
-  Heart,
   Tag,
-  Gift,
   CheckCircle2,
   Trash2,
-  Bike,
   IndianRupee
 } from 'lucide-react';
 import Image from 'next/image';
@@ -34,7 +27,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -70,6 +63,7 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
+  // HYDRATION FIX: Initialize localStorage data only after mount
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -175,7 +169,7 @@ export default function CartPage() {
       const ordersCount = countSnap.data().count;
       const customerOrderNumber = ordersCount + 1;
 
-      // REWARD LOGIC (20/10/5): 1st=20, 2nd=10, others=5
+      // NEW REWARD LOGIC (20/10/5): 1st=20, 2nd=10, others=5
       let coinsToEarn = 5;
       if (customerOrderNumber === 1) coinsToEarn = 20;
       else if (customerOrderNumber === 2) coinsToEarn = 10;
@@ -208,7 +202,7 @@ export default function CartPage() {
       
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // If redeemed: Clear old coins and set naye earned coins
+        // If redeemed: CLEAR PREVIOUS COINS and only add earned ones
         await updateDoc(userRef, { 
           coins: coinsToEarn, 
           updatedAt: serverTimestamp() 
@@ -301,7 +295,7 @@ export default function CartPage() {
                    <div className="text-sm font-black italic text-amber-400">₹{(item.price * item.quantity).toFixed(0)}</div>
                 </div>
               )) : (
-                <div className="text-center py-4 opacity-50">Your bag is empty</div>
+                <div className="text-center py-4 opacity-50 uppercase font-black text-xs">Bag is empty</div>
               )}
            </div>
         </section>
@@ -363,7 +357,15 @@ export default function CartPage() {
                  <div className="h-10 w-10 rounded-xl bg-green-400/10 flex items-center justify-center text-green-400"><Coins className="h-5 w-5" /></div>
                  <div><h4 className="text-[11px] font-black uppercase">Redeem Coins</h4><p className="text-[8px] font-bold text-gray-500 uppercase">Balance: {userCoins} Coins</p></div>
               </div>
-              <div className="flex items-center gap-2"><span className="text-[10px] font-black italic text-green-400">-₹5</span><Switch disabled={userCoins <= 0} checked={isRedeemCoins && userCoins > 0} onCheckedChange={setIsRedeemCoins} className="data-[state=checked]:bg-green-400" /></div>
+              <div className="flex items-center gap-2">
+                {userCoins > 0 && <span className="text-[10px] font-black italic text-green-400">-₹5</span>}
+                <Switch 
+                  disabled={userCoins <= 0} 
+                  checked={isRedeemCoins && userCoins > 0} 
+                  onCheckedChange={setIsRedeemCoins} 
+                  className="data-[state=checked]:bg-green-400" 
+                />
+              </div>
            </div>
         </section>
 

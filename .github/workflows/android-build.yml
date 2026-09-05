@@ -1,3 +1,4 @@
+
 name: Build Android APK & AAB
 
 on:
@@ -87,12 +88,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Capacitor Add/Sync Android
+      - name: Capacitor Force Platform Sync
         run: |
-          # Only add if directory doesn't exist, to preserve native config changes
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+          # Clean and re-add to ensure gradlew exists in clean CI environment
+          rm -rf android
+          npx cap add android
           npx cap sync android
 
       - name: Build APK (Debug)
