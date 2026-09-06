@@ -13,7 +13,8 @@ import {
   FileText,
   Clock,
   IndianRupee,
-  Phone
+  Phone,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -193,12 +194,19 @@ export default function OrderManagement() {
               </div>
 
               <div className="bg-gray-50 p-6 rounded-[2rem] border border-border shadow-inner mb-6 relative">
-                 <div className="flex items-center gap-4 mb-6">
-                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border shrink-0"><User className="h-6 w-6" /></div>
-                    <div className="min-w-0">
-                       <span className="font-black text-xl italic uppercase tracking-tighter truncate block text-gray-900">{order.customerName}</span>
-                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{order.customerPhone || 'NO PHONE'}</span>
+                 <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border shrink-0"><User className="h-6 w-6" /></div>
+                       <div className="min-w-0">
+                          <span className="font-black text-xl italic uppercase tracking-tighter truncate block text-gray-900">{order.customerName}</span>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{order.customerPhone || 'NO PHONE'}</span>
+                       </div>
                     </div>
+                    {order.customerPhone && (
+                      <button onClick={() => window.open(`https://wa.me/91${order.customerPhone}`)} className="p-3 bg-green-50 text-green-600 rounded-xl active:scale-90 transition-all border border-green-100">
+                        <MessageSquare className="h-5 w-5" />
+                      </button>
+                    )}
                  </div>
 
                  <div className="space-y-3 mb-6">

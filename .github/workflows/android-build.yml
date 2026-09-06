@@ -81,7 +81,6 @@ jobs:
       - name: Generate App Icons
         run: |
           # FORCE GENERATE ICONS FROM ASSETS (CRITICAL)
-          # We check for icon.png and generate all Android density folders
           if [ -f "assets/icon.png" ]; then
             echo "ShopyKart Logo detected. Running asset generator..."
             npx @capacitor/assets generate --android --assetPath assets
@@ -91,13 +90,10 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          # If android folder exists, just sync, otherwise add
-          if [ -d "android" ]; then
-            npx cap sync android
-          else
-            npx cap add android
-            npx cap sync android
-          fi
+          # Force clean and re-add to ensure gradlew exists and icons are applied
+          rm -rf android
+          npx cap add android
+          npx cap sync android
           
           if [ -f "android/gradlew" ]; then
             chmod +x android/gradlew
