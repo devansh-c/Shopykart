@@ -7,7 +7,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Radio, Loader2, BellRing, Bike, MessageSquare, Sparkles, AlertTriangle, Info, Bell, X } from 'lucide-react';
+import { Loader2, BellRing, MessageSquare, Bell, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Global Notification & Urgent Alert Handler.
  * Robust format handling to prevent crashes.
+ * Added: Defensive checks for alert data to prevent errors on customer app.
  */
 export default function NotificationHandler() {
   const { user } = useUser();
@@ -23,7 +24,6 @@ export default function NotificationHandler() {
   const pathname = usePathname();
   
   const [userRole, setUserRole] = useState<'admin' | 'vendor' | 'customer' | 'delivery' | null>(null);
-  const [userData, setUserData] = useState<any>(null);
   const [ringingOrders, setRingingOrders] = useState<any[]>([]);
   const [pushAlerts, setPushAlerts] = useState<any[]>([]);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -43,7 +43,6 @@ export default function NotificationHandler() {
           const partnerSnap = await getDoc(doc(firestore, 'delivery_partners', user.uid));
           if (partnerSnap.exists()) {
             setUserRole('delivery');
-            setUserData(partnerSnap.data());
             return;
           }
         } catch (e) {}
@@ -54,11 +53,12 @@ export default function NotificationHandler() {
           const vendorDoc = await getDoc(doc(firestore, 'vendors', user.uid));
           if (vendorDoc.exists()) { 
             setUserRole('vendor'); 
-            setUserData(vendorDoc.data());
             return; 
           }
           setUserRole('customer');
         } catch (e) { setUserRole('customer'); }
+      } else {
+        setUserRole('customer'); // Default to customer for anonymous
       }
     };
     checkRole();
@@ -70,7 +70,7 @@ export default function NotificationHandler() {
     return p.startsWith('/admin') || p.startsWith('/vendor') || p.startsWith('/delivery') || p.startsWith('/medical') || p.startsWith('/beauty');
   }, [pathname]);
 
-  // ORDER ALERTS
+  // ORDER ALERTS (For Admin/Vendor)
   useEffect(() => {
     if (!firestore || !userRole || !isManagementPath) return;
 
@@ -107,8 +107,14 @@ export default function NotificationHandler() {
     const unsub = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) return;
       const newAlerts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setPushAlerts(newAlerts);
-      playBellSound();
+      
+      // Robust Check: Ensure data exists before setting state
+      if (newAlerts[0] && (newAlerts[0].title || newAlerts[0].message)) {
+        setPushAlerts(newAlerts);
+        playBellSound();
+      }
+    }, (err) => {
+      console.debug("Notification listener restricted (expected for some auth states)");
     });
 
     return () => unsub();
@@ -130,10 +136,12 @@ export default function NotificationHandler() {
 
   const playBellSound = () => {
     if (typeof window === 'undefined') return;
-    if (!bellAudioRef.current) {
-      bellAudioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1350/1356-preview.mp3');
-    }
-    bellAudioRef.current.play().catch(() => {});
+    try {
+      if (!bellAudioRef.current) {
+        bellAudioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1350/1350-preview.mp3');
+      }
+      bellAudioRef.current.play().catch(() => {});
+    } catch (e) {}
   };
 
   const handleAction = async (orderId: string) => {
@@ -149,7 +157,7 @@ export default function NotificationHandler() {
 
   const markAlertAsRead = async (alert: any) => {
     setPushAlerts([]);
-    if (user && firestore && alert.id) {
+    if (user && firestore && alert?.id) {
       try {
         await updateDoc(doc(firestore, 'users', user.uid, 'notifications', alert.id), { read: true });
       } catch (e) {}

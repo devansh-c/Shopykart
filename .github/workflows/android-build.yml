@@ -80,6 +80,7 @@ jobs:
           rm -rf android
           npx cap add android
           
+          # Force Logo and Icon Generation
           if [ -f "assets/icon.png" ]; then
             echo "ShopyKart Logo detected. Generating all Android icons..."
             npx @capacitor/assets generate --android --assetPath assets
