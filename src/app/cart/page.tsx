@@ -64,16 +64,21 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
-  // HYDRATION & PERSISTENCE GUARD
+  // HYDRATION & PERSISTENCE GUARD - Fixes Internal Server Error
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('user_name') || '';
+      const savedPhone = localStorage.getItem('user_phone') || '';
+      const savedAddress = localStorage.getItem('user_address_line') || '';
+      const savedZone = localStorage.getItem('active_zone_id');
+      
       setRecipientForm({
-        name: localStorage.getItem('user_name') || '',
-        phone: localStorage.getItem('user_phone') || '',
-        address: localStorage.getItem('user_address_line') || ''
+        name: savedName,
+        phone: savedPhone,
+        address: savedAddress
       });
-      setActiveZoneId(localStorage.getItem('active_zone_id'));
+      setActiveZoneId(savedZone);
     }
   }, []);
 
@@ -103,7 +108,7 @@ export default function CartPage() {
     return adminCharges.filter((c: any) => !c.zoneId || c.zoneId === 'global' || c.zoneId === activeZoneId)
       .map((c: any) => {
         const value = c.type === 'percentage' ? (totalPrice * (c.value / 100)) : c.value;
-        return { name: c.name, value: Math.round(value) };
+        return { name: c.name, value: Math.round(Number(value) || 0) };
       });
   }, [adminCharges, totalPrice, activeZoneId]);
 
@@ -112,20 +117,20 @@ export default function CartPage() {
     if (appliedCoupon.discountType === 'percentage') {
       return (totalPrice * (appliedCoupon.discountValue / 100));
     }
-    return appliedCoupon.discountValue;
+    return Number(appliedCoupon.discountValue) || 0;
   }, [appliedCoupon, totalPrice]);
 
   const totalPayable = useMemo(() => {
-    let base = totalPrice + deliveryFee + deliveryTip;
-    calculatedAdminCharges.forEach(c => base += c.value);
+    let base = (Number(totalPrice) || 0) + (Number(deliveryFee) || 0) + (Number(deliveryTip) || 0);
+    calculatedAdminCharges.forEach(c => base += (Number(c.value) || 0));
     if (isPremiumPacking) base += 10;
     
-    // Stable Redeem Logic: Only subtract ₹5 once if toggle is active and balance exists
+    // Stable Redeem Logic: Only subtract ₹5 once if balance exists
     if (isRedeemCoins && userCoins > 0) {
       base -= 5;
     }
     
-    base -= couponDiscount;
+    base -= (Number(couponDiscount) || 0);
     return Math.max(0, base);
   }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount, userCoins]);
 
@@ -165,7 +170,6 @@ export default function CartPage() {
     
     setIsPlacing(true);
     try {
-      // Fetch exact order count for this user
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
       const ordersCount = countSnap.data().count;
@@ -204,13 +208,13 @@ export default function CartPage() {
       
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // Redeeem case: Overwrite (reset old) + add earned
+        // Redeeem case: Reset old balance to 0 and add new earned coins
         await updateDoc(userRef, { 
           coins: coinsToEarn, 
           updatedAt: serverTimestamp() 
         });
       } else {
-        // Accumulate case
+        // Accumulate case: Increment current balance
         await updateDoc(userRef, { 
           coins: increment(coinsToEarn), 
           updatedAt: serverTimestamp() 
@@ -262,7 +266,12 @@ export default function CartPage() {
     }
   };
 
-  if (!isMounted) return null;
+  if (!isMounted) return (
+    <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Restoring secure session...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32 no-scrollbar overflow-x-hidden">

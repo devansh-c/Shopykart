@@ -78,22 +78,27 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Initialize Capacitor Android
+      - name: Generate App Icons
         run: |
-          # Fresh start for Android folder to wipe out default icons
-          rm -rf android
-          npx cap add android
-          
           # FORCE GENERATE ICONS FROM ASSETS (CRITICAL)
           # We check for icon.png and generate all Android density folders
           if [ -f "assets/icon.png" ]; then
-            echo "Logo found. Overwriting system icons..."
+            echo "ShopyKart Logo detected. Running asset generator..."
             npx @capacitor/assets generate --android --assetPath assets
           else
-            echo "ERROR: assets/icon.png not found! Build will have default icons."
+            echo "WARNING: assets/icon.png not found! Using default icons."
           fi
 
-          npx cap sync android
+      - name: Initialize Capacitor Android
+        run: |
+          # If android folder exists, just sync, otherwise add
+          if [ -d "android" ]; then
+            npx cap sync android
+          else
+            npx cap add android
+            npx cap sync android
+          fi
+          
           if [ -f "android/gradlew" ]; then
             chmod +x android/gradlew
           fi
@@ -103,8 +108,12 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
+      - name: Get Current Time
+        id: time
+        run: echo "BUILD_TIME=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-${{ github.run_id }}
+          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-${{ env.BUILD_TIME }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
