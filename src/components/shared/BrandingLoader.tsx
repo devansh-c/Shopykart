@@ -5,7 +5,7 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 /**
- * @fileOverview BrandingLoader forced to use the new premium logo as default favicon.
+ * @fileOverview BrandingLoader for dynamic SEO and visual identity.
  */
 export default function BrandingLoader() {
   const firestore = useFirestore();
@@ -34,21 +34,22 @@ export default function BrandingLoader() {
     metaDesc.setAttribute('content', branding?.siteDescription || defaultDesc);
 
     // DYNAMIC FAVICON UPDATE
-    const faviconUrl = branding?.logoUrl || "/file_000000004d78821193714c20786ca8d1.png";
-    const updateIcon = (rel: string) => {
-      let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = rel;
-        document.head.appendChild(link);
-      }
-      const cacheBuster = faviconUrl.includes('?') ? '&' : '?';
-      link.href = `${faviconUrl}${cacheBuster}v=${Date.now()}`;
-    };
+    if (branding?.logoUrl) {
+      const updateIcon = (rel: string) => {
+        let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        const cacheBuster = branding.logoUrl.includes('?') ? '&' : '?';
+        link.href = `${branding.logoUrl}${cacheBuster}v=${Date.now()}`;
+      };
 
-    updateIcon('icon');
-    updateIcon('shortcut icon');
-    updateIcon('apple-touch-icon');
+      updateIcon('icon');
+      updateIcon('shortcut icon');
+      updateIcon('apple-touch-icon');
+    }
   }, [branding]);
 
   return null;

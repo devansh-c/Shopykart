@@ -79,9 +79,9 @@ jobs:
           rm -rf android
           npx cap add android
           
-          # Force Logo and Splash Screen Generation
-          # assets/icon.png and assets/splash.png are expected
-          echo "Generating all Android assets..."
+          # FORCE ASSET GENERATION (Icon + Splash)
+          # Assets/icon.png and assets/splash.png are used here
+          echo "Generating Native Android Assets from assets/ folder..."
           npx @capacitor/assets generate --android --assetPath assets || true
           
           npx cap sync android
