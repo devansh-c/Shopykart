@@ -6,7 +6,6 @@ import { ShieldCheck, Sparkles } from 'lucide-react';
 
 /**
  * @fileOverview Premium Splash Screen for ShopyKart.
- * Updated: Using user-uploaded premium logo for high-end branding.
  */
 export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
@@ -18,7 +17,7 @@ export function SplashScreen() {
       setTimeout(() => {
         setIsVisible(false);
       }, 500);
-    }, 2500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -46,7 +45,6 @@ export function SplashScreen() {
         <div className="relative">
           <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full animate-pulse scale-150" />
           <div className="relative h-44 w-44 rounded-[3rem] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex items-center justify-center overflow-hidden transform-gpu">
-            {/* BRANDED LOGO IMPLEMENTATION */}
             <img 
               src="/file_000000004d78821193714c20786ca8d1.png" 
               alt="ShopyKart Premium" 

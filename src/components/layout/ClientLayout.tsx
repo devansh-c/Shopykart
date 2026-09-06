@@ -8,7 +8,6 @@ import { EmailAuth } from '@/components/auth/EmailAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import React, { ReactNode, useState, useEffect, useMemo, memo } from 'react';
-import dynamic from 'next/dynamic';
 import FirebaseClientProvider from '@/firebase/client-provider';
 import { ZoneGuard } from '@/components/shared/ZoneGuard';
 import { useJsApiLoader } from '@react-google-maps/api';
@@ -22,6 +21,7 @@ import LocationRequest from '@/components/shared/LocationRequest';
 import BottomNav from '@/components/shared/BottomNav';
 import { TawkChat } from '@/components/shared/TawkChat';
 import PermissionManager from '@/components/shared/PermissionManager';
+import { SplashScreen } from '@/components/shared/SplashScreen';
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
@@ -89,8 +89,7 @@ AuthGuard.displayName = "AuthGuard";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [backTapCount, setBackTapCount] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
@@ -99,20 +98,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handlePopState = (event: PopStateEvent) => {
-      if (pathname === '/' || pathname === '') {
-        window.history.pushState(null, '', window.location.href);
-        setBackTapCount(prev => prev + 1);
-      }
-    };
-
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', handlePopState);
-    
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [pathname, backTapCount]);
+    const timer = setTimeout(() => setIsInitialLoad(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
@@ -132,6 +120,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <BrandingLoader />
           <FirebaseErrorListener />
           <PermissionManager />
+          
+          {isInitialLoad && !isExcludedPath && <SplashScreen />}
           
           <AuthGuard>
             <div className="relative min-h-screen flex flex-col">
