@@ -90,7 +90,7 @@ jobs:
 
       - name: Capacitor Force Platform Sync
         run: |
-          # Ensure capacitor is fully initialised in CI to avoid missing gradlew
+          # Force re-init android to ensure gradlew exists in the workspace
           rm -rf android
           npx cap add android
           npx cap sync android

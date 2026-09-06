@@ -1,3 +1,4 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -25,7 +26,7 @@
     "cap-assets": "npx capacitor-assets generate --android",
     "zip-project": "node scripts/zip-project.mjs",
     "reset-build": "rm -rf .next out && next build",
-    "android:build-apk": "cd android && ./gradelw assembleDebug"
+    "android:build-apk": "cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
