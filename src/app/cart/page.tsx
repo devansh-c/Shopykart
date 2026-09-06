@@ -41,6 +41,7 @@ export default function CartPage() {
   const { toast } = useToast();
   
   const [isMounted, setIsMounted] = useState(false);
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
@@ -72,6 +73,7 @@ export default function CartPage() {
         phone: localStorage.getItem('user_phone') || '',
         address: localStorage.getItem('user_address_line') || ''
       });
+      setActiveZoneId(localStorage.getItem('active_zone_id'));
     }
   }, []);
 
@@ -82,7 +84,6 @@ export default function CartPage() {
   const { data: profile } = useDoc<any>(userProfileRef);
   const userCoins = profile?.coins || 0;
 
-  const activeZoneId = isMounted ? localStorage.getItem('active_zone_id') : null;
   const zoneRef = useMemoFirebase(() => {
     if (!firestore || !activeZoneId) return null;
     return doc(firestore, 'zones', activeZoneId);

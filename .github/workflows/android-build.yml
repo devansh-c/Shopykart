@@ -85,7 +85,9 @@ jobs:
           npx cap add android
           npx cap sync android
           # Grant executable permissions to gradlew
-          chmod +x android/gradlew
+          if [ -f "android/gradlew" ]; then
+            chmod +x android/gradlew
+          fi
 
       - name: Build APK (Debug)
         run: |
