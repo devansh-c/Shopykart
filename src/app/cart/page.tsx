@@ -63,7 +63,7 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
-  // HYDRATION & PERSISTENCE FIX
+  // HYDRATION & PERSISTENCE GUARD
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -119,7 +119,7 @@ export default function CartPage() {
     calculatedAdminCharges.forEach(c => base += c.value);
     if (isPremiumPacking) base += 10;
     
-    // REDEEM LOGIC: Only apply discount if toggle is on AND user has coins
+    // Stable Redeem Logic: Only subtract ₹5 once if toggle is active and balance exists
     if (isRedeemCoins && userCoins > 0) {
       base -= 5;
     }
@@ -164,12 +164,13 @@ export default function CartPage() {
     
     setIsPlacing(true);
     try {
+      // Fetch exact order count for this user
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
       const countSnap = await getCountFromServer(q);
       const ordersCount = countSnap.data().count;
       const customerOrderNumber = ordersCount + 1;
 
-      // NEW REWARD LOGIC (20/10/5): 1st=20, 2nd=10, others=5
+      // 20/10/5 Reward Rule
       let coinsToEarn = 5;
       if (customerOrderNumber === 1) coinsToEarn = 20;
       else if (customerOrderNumber === 2) coinsToEarn = 10;
@@ -202,13 +203,13 @@ export default function CartPage() {
       
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // If redeemed: CLEAR PREVIOUS COINS and only add earned ones
+        // Redeeem case: Overwrite (reset old) + add earned
         await updateDoc(userRef, { 
           coins: coinsToEarn, 
           updatedAt: serverTimestamp() 
         });
       } else {
-        // Just increment earned coins
+        // Accumulate case
         await updateDoc(userRef, { 
           coins: increment(coinsToEarn), 
           updatedAt: serverTimestamp() 
@@ -263,16 +264,38 @@ export default function CartPage() {
   if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-20 no-scrollbar overflow-x-hidden">
+    <div className="min-h-screen bg-[#F9FAFB] pb-32 no-scrollbar overflow-x-hidden">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
-      <header className="bg-white border-b py-4 px-6 sticky top-0 z-[100] flex items-center gap-4">
-        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50"><ChevronLeft className="h-6 w-6 text-gray-700" /></button>
+      
+      <header className="bg-white border-b py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 shadow-sm">
+        <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90 transition-transform">
+          <ChevronLeft className="h-6 w-6 text-gray-700" />
+        </button>
         <h1 className="text-sm font-black uppercase italic tracking-widest text-gray-900">CHECKOUT</h1>
       </header>
 
       <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
+        
+        {/* ADDRESS BLOCK */}
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl group transition-all hover:bg-black">
+           <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-4">
+                 <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-lg shadow-amber-400/20">
+                    <Navigation className="h-6 w-6" />
+                 </div>
+                 <div className="min-w-0">
+                    <h4 className="text-xs font-black uppercase truncate max-w-[150px]">{recipientForm.name || 'SET RECIPIENT'}</h4>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase truncate max-w-[150px] leading-tight">
+                       {recipientForm.address || 'ENTER DROP ADDRESS'}
+                    </p>
+                 </div>
+              </div>
+              <button onClick={() => setIsAddressModalOpen(true)} className="bg-white/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shrink-0 border border-white/5 active:scale-95">CHANGE</button>
+           </div>
+        </section>
+
         {/* ITEMS SECTION */}
-        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6 transform-gpu">
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-6">
            <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-widest text-amber-400">ITEMS IN BAG</h3>
               <Badge className="bg-white/10 text-white border-none text-[8px] font-black">{cart.length} ITEMS</Badge>
@@ -300,33 +323,15 @@ export default function CartPage() {
            </div>
         </section>
 
-        {/* ADDRESS SECTION */}
-        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl group transition-all hover:bg-black">
-           <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-4">
-                 <div className="h-12 w-12 bg-amber-400 rounded-2xl flex items-center justify-center text-black shadow-lg shadow-amber-400/20 group-hover:scale-110 transition-transform">
-                    <Navigation className="h-6 w-6" />
-                 </div>
-                 <div className="min-w-0">
-                    <h4 className="text-xs font-black uppercase truncate max-w-[150px]">{recipientForm.name || 'SET RECIPIENT'}</h4>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase truncate max-w-[150px] leading-tight">
-                       {recipientForm.address || 'ENTER DROP ADDRESS'}
-                    </p>
-                 </div>
-              </div>
-              <button onClick={() => setIsAddressModalOpen(true)} className="bg-white/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shrink-0 border border-white/5">CHANGE</button>
-           </div>
-        </section>
-
-        {/* COUPON SECTION */}
+        {/* COUPON & PROMOS */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center gap-3 text-amber-400">
               <Tag className="h-4 w-4" />
-              <h3 className="text-xs font-black uppercase tracking-widest">COUPON CODES</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest">PROMO CODES</h3>
            </div>
            {!appliedCoupon ? (
              <div className="flex gap-2">
-                <Input placeholder="ENTER CODE" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="bg-white/5 border-white/10 text-white rounded-xl h-12 font-black italic placeholder:text-gray-600" />
+                <Input placeholder="ENTER CODE" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="bg-white/5 border-white/10 text-white rounded-xl h-12 font-black italic" />
                 <Button onClick={handleApplyCoupon} disabled={isApplyingCoupon || !couponCode.trim()} className="bg-amber-400 text-black rounded-xl h-12 px-6 font-black uppercase">APPLY</Button>
              </div>
            ) : (
@@ -338,24 +343,24 @@ export default function CartPage() {
                       <p className="text-[9px] font-bold text-green-500/60 uppercase">Saving ₹{couponDiscount.toFixed(0)}</p>
                    </div>
                 </div>
-                <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-red-400"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-red-400 active:scale-90"><Trash2 className="h-4 w-4" /></button>
              </div>
            )}
         </section>
 
-        {/* ADDONS & REWARDS */}
+        {/* REWARDS & PACKING */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
-           <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+           <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
               <div className="flex items-center gap-3">
                  <div className="h-10 w-10 rounded-xl bg-amber-400/10 flex items-center justify-center text-amber-400"><ShoppingBag className="h-5 w-5" /></div>
                  <div><h4 className="text-[11px] font-black uppercase">Premium Packing</h4><p className="text-[8px] font-bold text-gray-500 uppercase">Double-sealed safe delivery</p></div>
               </div>
               <div className="flex items-center gap-2"><span className="text-[10px] font-black italic text-amber-400">+₹10</span><Switch checked={isPremiumPacking} onCheckedChange={setIsPremiumPacking} className="data-[state=checked]:bg-amber-400" /></div>
            </div>
-           <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+           <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
               <div className="flex items-center gap-3">
                  <div className="h-10 w-10 rounded-xl bg-green-400/10 flex items-center justify-center text-green-400"><Coins className="h-5 w-5" /></div>
-                 <div><h4 className="text-[11px] font-black uppercase">Redeem Coins</h4><p className="text-[8px] font-bold text-gray-500 uppercase">Balance: {userCoins} Coins</p></div>
+                 <div><h4 className="text-[11px] font-black uppercase">Redeem Coins</h4><p className="text-[8px] font-bold text-gray-500 uppercase">Available: {userCoins} Coins</p></div>
               </div>
               <div className="flex items-center gap-2">
                 {userCoins > 0 && <span className="text-[10px] font-black italic text-green-400">-₹5</span>}
@@ -371,7 +376,7 @@ export default function CartPage() {
 
         {/* BILL SUMMARY */}
         <section className="bg-white rounded-[2.5rem] p-8 shadow-xl space-y-6 border border-gray-100">
-           <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">ORDER SUMMARY</h3>
+           <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">ORDER SUMMARY</h3>
            <div className="space-y-3 pt-2">
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Items Total</span><span className="text-gray-900">₹{totalPrice.toFixed(0)}</span></div>
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Fee</span><span className="text-gray-900">₹{deliveryFee.toFixed(0)}</span></div>
@@ -390,9 +395,8 @@ export default function CartPage() {
                     <span>{totalPayable.toFixed(0)}</span>
                  </div>
               </div>
-              <div className="flex flex-col items-end">
-                 <span className="text-[7px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-2 py-0.5 rounded-full mb-1">Reward Secured</span>
-                 <span className="text-[10px] font-bold text-gray-400 uppercase italic text-right">INC. ALL TAXES</span>
+              <div className="flex flex-col items-end opacity-50">
+                 <span className="text-[10px] font-bold text-gray-400 uppercase italic">INC. ALL TAXES</span>
               </div>
            </div>
         </section>
@@ -404,7 +408,7 @@ export default function CartPage() {
               <div className="absolute inset-y-0 left-0 bg-primary opacity-20 pointer-events-none" style={{ width: `${sliderOffset + 80}px` }} />
               <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform cursor-grab active:cursor-grabbing border-b-4 border-gray-200"><ArrowRight className="h-8 w-8 stroke-[3]" /></div>
               <div className="flex-1 text-right pr-8 pointer-events-none relative z-10">
-                <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">Total Payable</div>
+                <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">Payable Amount</div>
                 <div className="text-3xl font-black text-white italic tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div>
               </div>
               {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}

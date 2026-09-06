@@ -37,15 +37,12 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Configure Unique Package Name
+      - name: Configure Identity
         run: |
           TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
           echo "Configuring Identity for: $TYPE"
-          
-          # Default Values (Customer)
           APP_ID="co.in.shopykart.app"
           APP_NAME="ShopyKart"
-
           if [ "$TYPE" == "admin" ]; then
             APP_ID="co.in.shopykart.admin"
             APP_NAME="ShopyKart Admin"
@@ -56,19 +53,12 @@ jobs:
             APP_ID="co.in.shopykart.tow"
             APP_NAME="ShopyKart Fleet"
           fi
-
-          # Update capacitor.config.ts dynamically using sed
           sed -i "s/appId: '.*'/appId: '$APP_ID'/g" capacitor.config.ts
           sed -i "s/appName: '.*'/appName: '$APP_NAME'/g" capacitor.config.ts
-          
-          echo "Final Package ID: $APP_ID"
-          echo "Final App Name: $APP_NAME"
 
-      - name: Create Static Web Build
+      - name: Create Web Build
         run: |
           TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
-          echo "Building ShopyKart variant: $TYPE"
-          
           if [ "$TYPE" == "admin" ]; then
             npm run build:admin
           elif [ "$TYPE" == "biz" ]; then
@@ -88,32 +78,22 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Capacitor Force Platform Sync
+      - name: Initialize Capacitor Android
         run: |
-          # Force re-init android to ensure gradlew exists in the workspace
+          # Robust setup: Remove stale folders, force sync
           rm -rf android
           npx cap add android
           npx cap sync android
+          # Grant executable permissions to gradlew
+          chmod +x android/gradlew
 
       - name: Build APK (Debug)
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleDebug
-
-      - name: Build App Bundle (Release)
-        run: |
-          cd android
-          ./gradlew bundleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload App Bundle (AAB)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-AAB
-          path: android/app/build/outputs/bundle/release/app-release.aab

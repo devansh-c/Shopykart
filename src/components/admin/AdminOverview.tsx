@@ -63,19 +63,17 @@ export default function AdminOverview() {
     try {
       const snap = await getDocs(collection(firestore, 'users'));
       if (snap.empty) {
-        toast({ title: "No users found to reset" });
+        toast({ title: "No users found" });
         setIsResetting(false);
         return;
       }
 
       const batchSize = 500;
-      const chunks = [];
-      for (let i = 0; i < snap.docs.length; i += batchSize) {
-        chunks.push(snap.docs.slice(i, i + batchSize));
-      }
-
-      for (const chunk of chunks) {
+      const docs = snap.docs;
+      
+      for (let i = 0; i < docs.length; i += batchSize) {
         const batch = writeBatch(firestore);
+        const chunk = docs.slice(i, i + batchSize);
         chunk.forEach(uDoc => {
           batch.update(uDoc.ref, { 
             coins: 0, 
@@ -88,7 +86,7 @@ export default function AdminOverview() {
       toast({ title: "Rewards Reset Successfully! ✅", description: `Reset completed for ${snap.size} users.` });
     } catch (err) {
       console.error("Reset Error:", err);
-      toast({ variant: "destructive", title: "Reset Failed", description: "Could not update user database." });
+      toast({ variant: "destructive", title: "Reset Failed" });
     } finally {
       setIsResetting(false);
     }
