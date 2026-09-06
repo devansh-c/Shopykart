@@ -5,80 +5,9 @@ import { cn } from '@/lib/utils';
 import { ShieldCheck, Sparkles } from 'lucide-react';
 
 /**
- * @fileOverview Premium Splash Screen for ShopyKart.
+ * @fileOverview Native Splash Screen fallback. 
+ * Note: This component is currently disabled to allow Android Native Splash to show.
  */
 export function SplashScreen() {
-  const [isVisible, setIsVisible] = useState(true);
-  const [isFading, setIsFading] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsFading(true);
-      setTimeout(() => {
-        setIsVisible(false);
-      }, 500);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isVisible) return null;
-
-  return (
-    <div 
-      className={cn(
-        "fixed inset-0 z-[2000000] bg-white flex flex-col items-center justify-center p-8 transition-opacity duration-500 transform-gpu",
-        isFading ? "opacity-0 scale-105" : "opacity-100 scale-100"
-      )}
-    >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.03]">
-        <div 
-          className="absolute inset-0" 
-          style={{ 
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            backgroundSize: '60px'
-          }} 
-        />
-      </div>
-
-      <div className="relative flex flex-col items-center space-y-12 animate-in zoom-in-95 fade-in duration-1000 transform-gpu">
-        <div className="relative">
-          <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full animate-pulse scale-150" />
-          <div className="relative h-44 w-44 rounded-[3rem] bg-white shadow-[0_30px_60px_-12px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex items-center justify-center overflow-hidden transform-gpu">
-            <img 
-              src="/file_000000004d78821193714c20786ca8d1.png" 
-              alt="ShopyKart Premium" 
-              className="h-32 w-32 object-contain animate-in zoom-in duration-700" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full animate-[shine_3s_infinite]" />
-          </div>
-          <div className="absolute -top-4 -right-4 bg-amber-400 text-white p-2.5 rounded-2xl shadow-xl animate-bounce">
-            <Sparkles className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center text-center space-y-5">
-           <div className="space-y-1">
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">
-                PREMIUM <span className="text-primary">DELIVERY.</span>
-              </h2>
-              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.4em] opacity-60">
-                Quality First • Instant Support
-              </p>
-           </div>
-           <div className="w-44 h-1.5 bg-gray-100 rounded-full overflow-hidden relative border border-gray-50 shadow-inner">
-              <div className="absolute h-full bg-gradient-to-r from-primary to-amber-500 animate-[running-line_1.5s_infinite] w-1/2 rounded-full" />
-           </div>
-        </div>
-      </div>
-
-      <div className="absolute bottom-16 flex flex-col items-center gap-3 opacity-30 transform-gpu animate-in slide-in-from-bottom-2 duration-1000 delay-300">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-primary" />
-          <p className="text-[9px] font-black uppercase tracking-[0.5em] text-gray-900">Encrypted Infrastructure</p>
-        </div>
-        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">© 2024 ShopyKart Enterprise</p>
-      </div>
-    </div>
-  );
+  return null;
 }

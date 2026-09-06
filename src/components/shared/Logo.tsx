@@ -8,7 +8,6 @@ import { doc } from "firebase/firestore";
 
 /**
  * @fileOverview Logo component using dynamic branding or fallback placeholder.
- * Fixed: Removed non-existent file reference that was causing 404/Server Error.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
