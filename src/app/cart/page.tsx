@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -33,6 +32,10 @@ import { Badge } from '@/components/ui/badge';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
+/**
+ * @fileOverview Checkout Page with Hybrid Reward System (20/10/5) and Robust Hydration Safety.
+ * Fix: Removed NaN possibilities and ensured window/localStorage access only after mount.
+ */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
   const router = useRouter();
