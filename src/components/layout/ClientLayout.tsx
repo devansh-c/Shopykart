@@ -21,7 +21,6 @@ import LocationRequest from '@/components/shared/LocationRequest';
 import BottomNav from '@/components/shared/BottomNav';
 import { TawkChat } from '@/components/shared/TawkChat';
 import PermissionManager from '@/components/shared/PermissionManager';
-import { SplashScreen } from '@/components/shared/SplashScreen';
 
 const AuthGuard = memo(({ children }: { children: ReactNode }) => {
   const { user, loading } = useUser();
@@ -89,18 +88,12 @@ AuthGuard.displayName = "AuthGuard";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries: ['places', 'geometry'],
   });
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsInitialLoad(false), 3000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
@@ -120,8 +113,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <BrandingLoader />
           <FirebaseErrorListener />
           <PermissionManager />
-          
-          {isInitialLoad && !isExcludedPath && <SplashScreen />}
           
           <AuthGuard>
             <div className="relative min-h-screen flex flex-col">
