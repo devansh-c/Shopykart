@@ -77,13 +77,13 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          # FORCE GENERATE ANDROID FOLDER TO ENSURE GRADLEW EXISTS
+          # FORCE REGENERATE ANDROID TO REMOVE DEFAULT CAPACITOR ICONS
           rm -rf android
           npx cap add android
           
-          # FORCE GENERATE ICONS FROM ASSETS (12-DAY ICON FIX)
+          # FORCE GENERATE SHOPYKART ICONS FROM ASSETS (12-DAY ICON FIX)
           if [ -f "assets/icon.png" ]; then
-            echo "ShopyKart Logo detected. Overwriting default icons..."
+            echo "ShopyKart Logo detected. Generating all Android icons..."
             npx @capacitor/assets generate --android --assetPath assets
           else
             echo "WARNING: assets/icon.png not found! Using default icons."
