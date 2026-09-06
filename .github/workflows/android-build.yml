@@ -80,21 +80,20 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          # Remove stale folders to ensure a clean build
+          # Fresh start for Android folder to wipe out default icons
           rm -rf android
           npx cap add android
           
-          # GENERATE APP ICONS (CRITICAL FIX)
-          # This replaces the default Capacitor cross logo with ShopyKart logo
+          # FORCE GENERATE ICONS FROM ASSETS (CRITICAL)
+          # We check for icon.png and generate all Android density folders
           if [ -f "assets/icon.png" ]; then
-            echo "Logo detected in assets/icon.png. Generating Android resources..."
-            npm run cap-assets
+            echo "Logo found. Overwriting system icons..."
+            npx @capacitor/assets generate --android --assetPath assets
           else
-            echo "WARNING: assets/icon.png not found. Using default icons."
+            echo "ERROR: assets/icon.png not found! Build will have default icons."
           fi
 
           npx cap sync android
-          # Grant executable permissions to gradlew
           if [ -f "android/gradlew" ]; then
             chmod +x android/gradlew
           fi
@@ -107,5 +106,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-APK
+          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-${{ github.run_id }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
