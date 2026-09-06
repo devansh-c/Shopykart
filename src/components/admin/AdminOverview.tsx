@@ -57,7 +57,7 @@ export default function AdminOverview() {
   const handleResetAllRewards = async () => {
     if (!firestore || isResetting) return;
     
-    if (!confirm("🚨 WARNING: Are you sure you want to reset coins for ALL users to 0? This cannot be undone.")) return;
+    if (!confirm("🚨 WARNING: Are you sure you want to reset coins for ALL users to 0? This will prepare the system for the new 20/10/5 plan.")) return;
 
     setIsResetting(true);
     try {
@@ -83,7 +83,7 @@ export default function AdminOverview() {
         await batch.commit();
       }
       
-      toast({ title: "Rewards Reset Successfully! ✅", description: `Reset completed for ${snap.size} users.` });
+      toast({ title: "Rewards Reset Successfully! ✅", description: `Wallet cleared for ${snap.size} users.` });
     } catch (err) {
       console.error("Reset Error:", err);
       toast({ variant: "destructive", title: "Reset Failed" });
@@ -180,8 +180,8 @@ export default function AdminOverview() {
             <div className="relative z-10 space-y-6">
                <div>
                   <RefreshCw className="h-10 w-10 text-white mx-auto mb-4 animate-spin-slow" />
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Operations</h4>
-                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none uppercase">SYSTEM<br/>HEALTH</div>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Rewards Control</h4>
+                  <div className="text-4xl font-black italic tracking-tighter text-white leading-none uppercase">RESET<br/>WALLETS</div>
                </div>
 
                <Button 
@@ -190,7 +190,7 @@ export default function AdminOverview() {
                 className="w-full bg-black text-white hover:bg-red-600 rounded-xl h-14 font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95"
                >
                  {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                 RESET ALL REWARDS
+                 RESET ALL COINS
                </Button>
             </div>
             <div className="absolute inset-0 bg-black/10 -skew-x-12 translate-x-1/2 pointer-events-none" />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -63,7 +64,7 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
-  // HYDRATION GUARD
+  // HYDRATION GUARD: All localStorage and side effects must happen here
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -104,13 +105,13 @@ export default function CartPage() {
   const { data: adminCharges } = useCollection<any>(chargesQuery);
 
   const calculatedAdminCharges = useMemo(() => {
-    if (!adminCharges) return [];
+    if (!adminCharges || !isMounted) return [];
     return adminCharges.filter((c: any) => !c.zoneId || c.zoneId === 'global' || c.zoneId === activeZoneId)
       .map((c: any) => {
         const value = c.type === 'percentage' ? (totalPrice * (c.value / 100)) : c.value;
         return { name: c.name, value: Math.round(Number(value) || 0) };
       });
-  }, [adminCharges, totalPrice, activeZoneId]);
+  }, [adminCharges, totalPrice, activeZoneId, isMounted]);
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
@@ -121,18 +122,19 @@ export default function CartPage() {
   }, [appliedCoupon, totalPrice]);
 
   const totalPayable = useMemo(() => {
+    if (!isMounted) return 0;
     let base = (Number(totalPrice) || 0) + (Number(deliveryFee) || 0) + (Number(deliveryTip) || 0);
     calculatedAdminCharges.forEach(c => base += (Number(c.value) || 0));
     if (isPremiumPacking) base += 10;
     
-    // REDEEM LOGIC: Only subtract ₹5 once
+    // REDEEM LOGIC: Flat ₹5 slash once per order if user has balance
     if (isRedeemCoins && userCoins > 0) {
       base -= 5;
     }
     
     base -= (Number(couponDiscount) || 0);
     return Math.max(0, base);
-  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount, userCoins]);
+  }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount, userCoins, isMounted]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponCode.trim()) return;
@@ -175,7 +177,7 @@ export default function CartPage() {
       const ordersCount = countSnap.data().count;
       const customerOrderNumber = ordersCount + 1;
 
-      // 20/10/5 Reward Logic
+      // 20/10/5 Reward Logic (Robust)
       let coinsToEarn = 5;
       if (customerOrderNumber === 1) coinsToEarn = 20;
       else if (customerOrderNumber === 2) coinsToEarn = 10;
@@ -208,13 +210,13 @@ export default function CartPage() {
       
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // Clear old balance and set new earned coins
+        // Clear wallet and add new reward
         await updateDoc(userRef, { 
           coins: coinsToEarn, 
           updatedAt: serverTimestamp() 
         });
       } else {
-        // Add new earned coins to current balance
+        // Keep wallet and increment with new reward
         await updateDoc(userRef, { 
           coins: increment(coinsToEarn), 
           updatedAt: serverTimestamp() 
