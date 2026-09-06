@@ -7,7 +7,8 @@ import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 /**
- * @fileOverview Logo component using the new premium branded image.
+ * @fileOverview Logo component using dynamic branding or fallback placeholder.
+ * Fixed: Removed non-existent file reference that was causing 404/Server Error.
  */
 export function Logo({ className }: { className?: string }) {
   const [taps, setTaps] = useState(0);
@@ -44,11 +45,18 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
-      <img 
-        src={branding?.logoUrl || "/file_000000004d78821193714c20786ca8d1.png"} 
-        alt="ShopyKart Logo" 
-        className="h-8 w-auto object-contain" 
-      />
+      {branding?.logoUrl ? (
+        <img 
+          src={branding.logoUrl} 
+          alt="ShopyKart Logo" 
+          className="h-8 w-auto object-contain" 
+        />
+      ) : (
+        <div className="flex flex-col items-center">
+           <span className="text-white font-black italic text-sm tracking-tighter leading-none">SHOPYKART</span>
+           <span className="text-[6px] font-black text-primary uppercase tracking-[0.3em]">Premium Delivery</span>
+        </div>
+      )}
     </div>
   );
 }

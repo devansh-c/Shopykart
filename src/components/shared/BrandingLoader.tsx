@@ -6,6 +6,7 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview BrandingLoader for dynamic SEO and visual identity.
+ * Fixed: Removed broken favicon update logic that triggered 404s.
  */
 export default function BrandingLoader() {
   const firestore = useFirestore();
@@ -33,8 +34,8 @@ export default function BrandingLoader() {
     }
     metaDesc.setAttribute('content', branding?.siteDescription || defaultDesc);
 
-    // DYNAMIC FAVICON UPDATE
-    if (branding?.logoUrl) {
+    // DYNAMIC FAVICON UPDATE: Only if URL is valid
+    if (branding?.logoUrl && branding.logoUrl.startsWith('data:')) {
       const updateIcon = (rel: string) => {
         let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;
         if (!link) {
@@ -42,8 +43,7 @@ export default function BrandingLoader() {
           link.rel = rel;
           document.head.appendChild(link);
         }
-        const cacheBuster = branding.logoUrl.includes('?') ? '&' : '?';
-        link.href = `${branding.logoUrl}${cacheBuster}v=${Date.now()}`;
+        link.href = branding.logoUrl;
       };
 
       updateIcon('icon');

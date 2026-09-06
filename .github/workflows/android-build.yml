@@ -76,13 +76,14 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
+          # Fresh start for Android platform to ensure assets generate
           rm -rf android
           npx cap add android
           
-          # FORCE ASSET GENERATION (Icon + Splash)
-          # Assets/icon.png and assets/splash.png are used here
-          echo "Generating Native Android Assets from assets/ folder..."
-          npx @capacitor/assets generate --android --assetPath assets || true
+          # FORCE NATIVE ASSET GENERATION (Icon + Splash)
+          # Expects icon.png and splash.png in assets/ folder
+          echo "Generating Native Android Icons and Splash Screen..."
+          npx @capacitor/assets generate --android --assetPath assets || echo "Assets folder not found or files missing"
           
           npx cap sync android
           
