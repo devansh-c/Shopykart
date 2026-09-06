@@ -80,9 +80,19 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          # Robust setup: Remove stale folders, force sync
+          # Remove stale folders to ensure a clean build
           rm -rf android
           npx cap add android
+          
+          # GENERATE APP ICONS (CRITICAL FIX)
+          # This replaces the default Capacitor cross logo with ShopyKart logo
+          if [ -f "assets/icon.png" ]; then
+            echo "Logo detected in assets/icon.png. Generating Android resources..."
+            npm run cap-assets
+          else
+            echo "WARNING: assets/icon.png not found. Using default icons."
+          fi
+
           npx cap sync android
           # Grant executable permissions to gradlew
           if [ -f "android/gradlew" ]; then
