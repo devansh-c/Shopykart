@@ -17,7 +17,8 @@ import {
   Tag,
   CheckCircle2,
   Trash2,
-  IndianRupee
+  IndianRupee,
+  Heart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -34,8 +35,8 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
- * @fileOverview Checkout Page with Hybrid Reward System (20/10/5) and Robust Hydration Safety.
- * Fix: Removed NaN possibilities and ensured window/localStorage access only after mount.
+ * @fileOverview Checkout Page with Hybrid Reward System (20/10/5) and Delivery Tip.
+ * Fix: Prevented empty cart orders and added Delivery Tip UI.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -68,7 +69,7 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
-  // HYDRATION GUARD: All localStorage and side effects must happen here
+  // HYDRATION GUARD
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -131,7 +132,6 @@ export default function CartPage() {
     calculatedAdminCharges.forEach(c => base += (Number(c.value) || 0));
     if (isPremiumPacking) base += 10;
     
-    // REDEEM LOGIC: Flat ₹5 slash once per order if user has balance
     if (isRedeemCoins && userCoins > 0) {
       base -= 5;
     }
@@ -166,6 +166,11 @@ export default function CartPage() {
 
   const finalizeOrder = async () => {
     if (!user || !firestore) return;
+    if (cart.length === 0) {
+      toast({ variant: "destructive", title: "Empty Bag", description: "Add items before placing order." });
+      setSliderOffset(0);
+      return;
+    }
     
     if (!recipientForm.name.trim() || recipientForm.phone.length !== 10 || !recipientForm.address.trim()) {
       toast({ variant: "destructive", title: "Missing Info", description: "Complete your address and phone." });
@@ -181,7 +186,6 @@ export default function CartPage() {
       const ordersCount = countSnap.data().count;
       const customerOrderNumber = ordersCount + 1;
 
-      // 20/10/5 Reward Logic (Robust)
       let coinsToEarn = 5;
       if (customerOrderNumber === 1) coinsToEarn = 20;
       else if (customerOrderNumber === 2) coinsToEarn = 10;
@@ -214,17 +218,9 @@ export default function CartPage() {
       
       const userRef = doc(firestore, 'users', user.uid);
       if (isRedeemCoins) {
-        // Clear wallet and add new reward
-        await updateDoc(userRef, { 
-          coins: coinsToEarn, 
-          updatedAt: serverTimestamp() 
-        });
+        await updateDoc(userRef, { coins: coinsToEarn, updatedAt: serverTimestamp() });
       } else {
-        // Keep wallet and increment with new reward
-        await updateDoc(userRef, { 
-          coins: increment(coinsToEarn), 
-          updatedAt: serverTimestamp() 
-        });
+        await updateDoc(userRef, { coins: increment(coinsToEarn), updatedAt: serverTimestamp() });
       }
 
       setShowSuccessOverlay(true);
@@ -244,20 +240,20 @@ export default function CartPage() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isPlacing) return;
+    if (isPlacing || cart.length === 0) return;
     setIsDragging(true);
     startXRef.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || isPlacing || !sliderRef.current) return;
+    if (!isDragging || isPlacing || !sliderRef.current || cart.length === 0) return;
     const diff = e.touches[0].clientX - startXRef.current;
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (diff > 0) setSliderOffset(Math.min(diff, trackWidth));
   };
 
   const handleTouchEnd = () => {
-    if (!isDragging || isPlacing || !sliderRef.current) return;
+    if (!isDragging || isPlacing || !sliderRef.current || cart.length === 0) return;
     setIsDragging(false);
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (sliderOffset > trackWidth * 0.85) {
@@ -364,6 +360,31 @@ export default function CartPage() {
            )}
         </section>
 
+        {/* DELIVERY TIP */}
+        <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
+           <div className="flex items-center gap-3 text-amber-400">
+              <Heart className="h-4 w-4" />
+              <h3 className="text-xs font-black uppercase tracking-widest">DELIVERY TIP</h3>
+           </div>
+           <p className="text-[9px] font-bold text-gray-400 uppercase leading-tight">
+              Thank your delivery partner for their effort. 100% of the tip goes to them.
+           </p>
+           <div className="flex flex-wrap gap-2 pt-2">
+              {[10, 20, 30, 50].map((amount) => (
+                <button 
+                  key={amount}
+                  onClick={() => setDeliveryTip(deliveryTip === amount ? 0 : amount)}
+                  className={cn(
+                    "h-10 px-4 rounded-xl text-[10px] font-black uppercase transition-all border",
+                    deliveryTip === amount ? "bg-amber-400 text-black border-amber-400 shadow-lg shadow-amber-900/20" : "bg-white/5 text-gray-400 border-white/10"
+                  )}
+                >
+                  ₹{amount}
+                </button>
+              ))}
+           </div>
+        </section>
+
         {/* REWARDS & PACKING */}
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl space-y-4">
            <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -400,6 +421,7 @@ export default function CartPage() {
                 <div key={i} className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>{c.name}</span><span className="text-gray-900">₹{c.value.toFixed(0)}</span></div>
               ))}
               {isPremiumPacking && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Safe Packing</span><span className="text-gray-900">₹10</span></div>}
+              {deliveryTip > 0 && <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest"><span>Delivery Tip</span><span className="text-gray-900">₹{deliveryTip}</span></div>}
               {appliedCoupon && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest italic"><span>Promo Saving</span><span>- ₹{couponDiscount.toFixed(0)}</span></div>}
               {isRedeemCoins && userCoins > 0 && <div className="flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest italic"><span>Coin Reward</span><span>- ₹5</span></div>}
            </div>
@@ -417,16 +439,22 @@ export default function CartPage() {
 
         {/* PLACE ORDER SLIDER */}
         <div className="pt-8 pb-20">
-           <div ref={sliderRef} className="w-full h-24 bg-[#0B0B0B] rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 border-white/5 transform-gpu">
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className={cn("text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20 transition-opacity", sliderOffset > 20 && "opacity-0")}>SLIDE TO PLACE ORDER</span></div>
-              <div className="absolute inset-y-0 left-0 bg-primary opacity-20 pointer-events-none" style={{ width: `${sliderOffset + 80}px` }} />
-              <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform cursor-grab active:cursor-grabbing border-b-4 border-gray-200"><ArrowRight className="h-8 w-8 stroke-[3]" /></div>
-              <div className="flex-1 text-right pr-8 pointer-events-none relative z-10">
-                <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">Payable Amount</div>
-                <div className="text-3xl font-black text-white italic tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div>
-              </div>
-              {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
-           </div>
+           {cart.length > 0 ? (
+             <div ref={sliderRef} className="w-full h-24 bg-[#0B0B0B] rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 border-white/5 transform-gpu">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className={cn("text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20 transition-opacity", sliderOffset > 20 && "opacity-0")}>SLIDE TO PLACE ORDER</span></div>
+                <div className="absolute inset-y-0 left-0 bg-primary opacity-20 pointer-events-none" style={{ width: `${sliderOffset + 80}px` }} />
+                <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform cursor-grab active:cursor-grabbing border-b-4 border-gray-200"><ArrowRight className="h-8 w-8 stroke-[3]" /></div>
+                <div className="flex-1 text-right pr-8 pointer-events-none relative z-10">
+                  <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">Payable Amount</div>
+                  <div className="text-3xl font-black text-white italic tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div>
+                </div>
+                {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+             </div>
+           ) : (
+             <div className="w-full h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center border-2 border-dashed border-gray-200">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">BAG IS EMPTY - ADD ITEMS TO ORDER</p>
+             </div>
+           )}
         </div>
       </main>
 
