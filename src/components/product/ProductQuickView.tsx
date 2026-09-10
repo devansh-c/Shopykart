@@ -16,7 +16,8 @@ import {
   Zap,
   Loader2,
   Clock,
-  Timer
+  Timer,
+  ListTree
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,12 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
       return; 
     }
     if (isOffline) return;
+
+    if (product.isVarietyRequired && !selectedOption) {
+      toast({ variant: "destructive", title: "Select a Variety", description: "Please pick an option to continue." });
+      return;
+    }
+
     addToCart({ ...product, imageUrl: product.imageUrl, quantity: localQuantity, selectedOption, instructions, price: currentPrice });
     setIsOpen(false); setLocalQuantity(1); setSelectedOption(null);
     toast({ title: "Added to Bag" });
@@ -108,10 +115,43 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                 <div className="text-2xl font-black text-gray-900 italic tracking-tighter mt-2">₹ {currentPrice.toFixed(0)}</div>
              </div>
           </div>
+
           <div className="px-6 py-4 space-y-4">
             {product.description && <p className="text-[11px] font-medium text-muted-foreground italic leading-relaxed">{product.description}</p>}
+            
+            {/* VARIETY SELECTION BLOCK */}
+            {product.options && product.options.length > 0 && (
+              <div className="space-y-4 pt-2">
+                 <div className="flex items-center gap-2">
+                    <ListTree className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Select Variety {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
+                 </div>
+                 <div className="grid grid-cols-1 gap-3">
+                    {product.options.map((opt: any, idx: number) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setSelectedOption(opt)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all active:scale-[0.98]",
+                          selectedOption?.name === opt.name ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                           <div className={cn("h-4 w-4 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-gray-300")}>
+                              {selectedOption?.name === opt.name && <div className="h-2 w-2 rounded-full bg-primary" />}
+                           </div>
+                           <span className="text-xs font-black uppercase italic">{opt.name}</span>
+                        </div>
+                        <span className="text-sm font-black italic text-primary">+ ₹{opt.price}</span>
+                      </button>
+                    ))}
+                 </div>
+              </div>
+            )}
+
             {!isMedical && <Textarea disabled={isOffline} placeholder="Special instructions (e.g. no onion)..." value={instructions} onChange={e => setInstructions(e.target.value)} className="rounded-2xl bg-gray-50 border-none text-xs min-h-[100px] p-4" />}
           </div>
+
           <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t pb-10 z-[12000]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
                 <div className="flex items-center bg-muted/30 rounded-xl h-12 px-1.5">
@@ -119,8 +159,12 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                    <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
                    <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-9 w-9 flex items-center justify-center"><Plus className="h-4 w-4" /></button>
                 </div>
-                <Button onClick={handleAddToCart} className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] shadow-lg shadow-primary/20">
-                  {isOffline ? 'TIMING CLOSED' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={isOffline || (product.isVarietyRequired && !selectedOption)}
+                  className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] shadow-lg shadow-primary/20"
+                >
+                  {isOffline ? 'TIMING CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'SELECT OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>
              </div>
           </div>
