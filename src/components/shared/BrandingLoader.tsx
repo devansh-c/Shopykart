@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -6,7 +7,7 @@ import { doc } from 'firebase/firestore';
 
 /**
  * @fileOverview BrandingLoader for dynamic SEO and visual identity.
- * Fixed: Removed broken favicon update logic that triggered 404s.
+ * Fixed: Removed broken image links causing 404 errors in logs.
  */
 export default function BrandingLoader() {
   const firestore = useFirestore();
@@ -34,7 +35,7 @@ export default function BrandingLoader() {
     }
     metaDesc.setAttribute('content', branding?.siteDescription || defaultDesc);
 
-    // DYNAMIC FAVICON UPDATE: Only if URL is valid
+    // CLEAN LOGO HANDLING: Only update if a valid data URL exists
     if (branding?.logoUrl && branding.logoUrl.startsWith('data:')) {
       const updateIcon = (rel: string) => {
         let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;

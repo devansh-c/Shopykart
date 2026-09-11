@@ -7,22 +7,27 @@ import { requestPushToken } from '@/firebase/messaging';
 /**
  * @fileOverview Global Permission Manager.
  * Ensures the app asks for essential permissions (Notifications, GPS) on startup.
- * Enhanced for Android 13+ support.
+ * Enhanced for Android 13+ support with aggressive prompt logic.
  */
 export default function PermissionManager() {
   useEffect(() => {
     const askPermissions = async () => {
       if (typeof window === 'undefined') return;
 
-      // Small delay to let the app settle
+      // Small delay to let the app settle before annoying user with popups
       setTimeout(async () => {
         try {
-          // 1. Notification Permission - Forced request
+          // 1. Notification Permission - Forced request for Android 13+
           if ('Notification' in window) {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-              console.log("Notification permission granted.");
-              // Get Token if granted
+            const currentPermission = Notification.permission;
+            if (currentPermission !== 'granted') {
+              const permission = await Notification.requestPermission();
+              if (permission === 'granted') {
+                console.log("Notification permission granted by user.");
+                await requestPushToken();
+              }
+            } else {
+              // Already granted, just ensure token is fresh
               await requestPushToken();
             }
           }
@@ -38,7 +43,7 @@ export default function PermissionManager() {
         } catch (err) {
           console.debug("Silent permission check skip", err);
         }
-      }, 3000);
+      }, 5000); // 5 seconds delay is better for UX
     };
 
     askPermissions();

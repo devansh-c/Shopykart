@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -40,7 +41,7 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview Enhanced ProductQuickView with prominent variety selection.
+ * @fileOverview Enhanced ProductQuickView with Premium Variety Selection.
  */
 export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
@@ -135,7 +136,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                         key={idx}
                         onClick={() => setSelectedOption(opt)}
                         className={cn(
-                          "flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all active:scale-[0.98]",
+                          "flex items-center justify-between p-5 rounded-[1.75rem] border-2 transition-all active:scale-[0.98]",
                           selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
                         )}
                       >
