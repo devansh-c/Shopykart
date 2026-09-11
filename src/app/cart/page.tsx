@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -36,7 +35,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
  * @fileOverview Checkout Page with Hybrid Reward System (20/10/5) and Delivery Tip.
- * Fix: Prevented empty cart orders and added Delivery Tip UI.
+ * Fix: Prevented empty cart orders and restored Delivery Tip UI.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -182,8 +181,8 @@ export default function CartPage() {
     setIsPlacing(true);
     try {
       const q = query(collection(firestore, 'orders'), where('userId', '==', user.uid));
-      const countSnap = await getCountFromServer(q);
-      const ordersCount = countSnap.data().count;
+      const countSnap = await getDocs(q);
+      const ordersCount = countSnap.size;
       const customerOrderNumber = ordersCount + 1;
 
       let coinsToEarn = 5;
@@ -232,7 +231,6 @@ export default function CartPage() {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: '/orders',
         operation: 'create',
-        requestResourceData: recipientForm
       }));
     } finally {
       setIsPlacing(false);
@@ -320,6 +318,7 @@ export default function CartPage() {
                    </div>
                    <div className="flex-1 min-w-0">
                       <h4 className="text-[11px] font-black uppercase truncate leading-tight">{item.name}</h4>
+                      {item.selectedOption && <p className="text-[8px] font-black text-amber-400 uppercase">{item.selectedOption.name}</p>}
                       <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5 truncate">{item.restaurantName || 'ShopyKart'}</p>
                       <div className="flex items-center mt-2 bg-white/5 w-fit rounded-lg px-2 py-1">
                          <button onClick={() => removeFromCart(item.id)} className="text-amber-400 active:scale-75"><Minus className="h-3 w-3" /></button>
@@ -330,7 +329,7 @@ export default function CartPage() {
                    <div className="text-sm font-black italic text-amber-400">₹{(item.price * item.quantity).toFixed(0)}</div>
                 </div>
               )) : (
-                <div className="text-center py-4 opacity-50 uppercase font-black text-xs">Bag is empty</div>
+                <div className="text-center py-4 opacity-50 uppercase font-black text-xs italic">Bag is empty</div>
               )}
            </div>
         </section>
@@ -452,7 +451,7 @@ export default function CartPage() {
              </div>
            ) : (
              <div className="w-full h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center border-2 border-dashed border-gray-200">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">BAG IS EMPTY - ADD ITEMS TO ORDER</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">BAG IS EMPTY - ADD ITEMS TO ORDER</p>
              </div>
            )}
         </div>

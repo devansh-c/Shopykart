@@ -39,6 +39,9 @@ interface ProductQuickViewProps {
   vendorScheduleOpen?: boolean;
 }
 
+/**
+ * @fileOverview Enhanced ProductQuickView with prominent variety selection.
+ */
 export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
   const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
   const { toast } = useToast();
@@ -119,12 +122,12 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
           <div className="px-6 py-4 space-y-4">
             {product.description && <p className="text-[11px] font-medium text-muted-foreground italic leading-relaxed">{product.description}</p>}
             
-            {/* VARIETY SELECTION BLOCK */}
+            {/* VARIETY SELECTION BLOCK - ENHANCED VISIBILITY */}
             {product.options && product.options.length > 0 && (
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-2 bg-[#0B0B0B] p-6 rounded-[2rem] border border-white/5 shadow-inner">
                  <div className="flex items-center gap-2">
                     <ListTree className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Select Variety {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Available Sizes / Varieties {product.isVarietyRequired && <span className="text-primary font-black ml-1">(REQUIRED)</span>}</span>
                  </div>
                  <div className="grid grid-cols-1 gap-3">
                     {product.options.map((opt: any, idx: number) => (
@@ -132,17 +135,17 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                         key={idx}
                         onClick={() => setSelectedOption(opt)}
                         className={cn(
-                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all active:scale-[0.98]",
-                          selectedOption?.name === opt.name ? "border-primary bg-primary/5" : "border-gray-50 bg-gray-50"
+                          "flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all active:scale-[0.98]",
+                          selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
                         )}
                       >
-                        <div className="flex items-center gap-3">
-                           <div className={cn("h-4 w-4 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-gray-300")}>
-                              {selectedOption?.name === opt.name && <div className="h-2 w-2 rounded-full bg-primary" />}
+                        <div className="flex items-center gap-4">
+                           <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-white/20")}>
+                              {selectedOption?.name === opt.name && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
                            </div>
-                           <span className="text-xs font-black uppercase italic">{opt.name}</span>
+                           <span className={cn("text-xs font-black uppercase italic tracking-widest", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
                         </div>
-                        <span className="text-sm font-black italic text-primary">+ ₹{opt.price}</span>
+                        <span className="text-base font-black italic text-primary">₹ {opt.price}</span>
                       </button>
                     ))}
                  </div>
@@ -164,7 +167,7 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
                   disabled={isOffline || (product.isVarietyRequired && !selectedOption)}
                   className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] shadow-lg shadow-primary/20"
                 >
-                  {isOffline ? 'TIMING CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'SELECT OPTION' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
+                  {isOffline ? 'TIMING CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'PICK VARIETY' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>
              </div>
           </div>

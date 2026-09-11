@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 /**
  * @fileOverview Global Firebase Error Listener.
  * Strictly handles permission errors. Suppresses noisy backend connection warnings.
+ * Fixed: Suppressed /orders and /users toasts to prevent scaring the user during auth transitions.
  */
 export function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -24,12 +25,15 @@ export function FirebaseErrorListener() {
       if (lastErrorRef.current !== error.context.path) {
         lastErrorRef.current = error.context.path;
         
-        // Show silent toast only for critical path restrictions, not background syncs
-        if (!error.context.path.includes('/products') && !error.context.path.includes('/banners')) {
+        // SUPPRESS NOISY PATHS: Don't show toast for orders, users, products or banners as they sync in background
+        const noisyPaths = ['/orders', '/users', '/products', '/banners', '/categories'];
+        const isNoisy = noisyPaths.some(p => error.context.path.includes(p));
+
+        if (!isNoisy) {
           toast({
             variant: 'destructive',
             title: 'Identity Alert',
-            description: `Access restricted at ${error.context.path}. Please verify login.`,
+            description: `Access restricted. Please verify your account.`,
           });
         }
 

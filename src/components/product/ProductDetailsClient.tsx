@@ -12,7 +12,7 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@
 import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 
 /**
- * @fileOverview ProductDetailsClient with Variety Selection logic.
+ * @fileOverview ProductDetailsClient with enhanced Variety Selection logic.
  */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -150,12 +150,12 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
         <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-8 italic">{product?.description}</p>
 
-        {/* VARIETY SELECTION UI */}
+        {/* VARIETY SELECTION UI - ENHANCED */}
         {product?.options && product.options.length > 0 && (
-          <div className="space-y-4 mb-10 animate-in fade-in duration-500">
+          <div className="space-y-5 mb-10 animate-in fade-in duration-500 bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5">
              <div className="flex items-center gap-2">
                 <ListTree className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Select Variety {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Preference {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
              </div>
              <div className="grid grid-cols-1 gap-3">
                 {product.options.map((opt: any, idx: number) => (
@@ -164,16 +164,16 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
                     onClick={() => setSelectedOption(opt)}
                     className={cn(
                       "flex items-center justify-between p-5 rounded-[1.75rem] border-2 transition-all active:scale-[0.98]",
-                      selectedOption?.name === opt.name ? "border-primary bg-primary/5" : "border-gray-100 bg-white"
+                      selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                       <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-gray-300")}>
+                    <div className="flex items-center gap-4">
+                       <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-white/20")}>
                           {selectedOption?.name === opt.name && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
                        </div>
-                       <span className="text-sm font-black uppercase italic text-gray-800">{opt.name}</span>
+                       <span className={cn("text-sm font-black uppercase italic tracking-widest", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
                     </div>
-                    <span className="text-base font-black italic text-primary">+ ₹{opt.price}</span>
+                    <span className="text-base font-black italic text-primary">+ ₹ {opt.price}</span>
                   </button>
                 ))}
              </div>
