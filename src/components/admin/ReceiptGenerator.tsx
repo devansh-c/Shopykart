@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -155,45 +154,45 @@ export default function ReceiptGenerator() {
     setItems([{ id: '1', name: '', quantity: 1, price: 0, variety: '' }]);
   };
 
+  // Center-aligned QR code with Exact Total Amount
   const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${total.toFixed(2)}&cu=INR`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
   const receiptPreview = (
-    <div id="generated-receipt-dom" className="bg-white text-black p-6 font-mono text-[10px] uppercase leading-tight w-[300px] border border-gray-100 shadow-2xl mx-auto">
+    <div id="generated-receipt-dom" className="bg-white text-black p-8 font-mono text-[11px] uppercase leading-tight w-[320px] border border-gray-100 shadow-2xl mx-auto">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-black italic tracking-tighter leading-none mb-1">SHOPYKART</h2>
-        <p className="text-[7px] font-bold opacity-60">PREMIUM DELIVERY NETWORK</p>
-        <p className="text-[8px] whitespace-pre-line leading-tight mt-3">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
+        <h2 className="text-3xl font-black italic tracking-tighter leading-none mb-1">SHOPYKART</h2>
+        <p className="text-[8px] font-bold opacity-60 tracking-[0.2em]">PREMIUM DELIVERY NETWORK</p>
+        <p className="text-[9px] whitespace-pre-line leading-tight mt-4">{settings?.receiptHeader || 'MAIN ROAD, MAURANIPUR'}</p>
       </div>
 
-      <div className="border-t border-dashed border-black my-3" />
+      <div className="border-t border-dashed border-black my-4" />
 
-      <div className="space-y-1">
-        <div className="flex justify-between"><span>ORDER ID:</span><span className="font-black">#{orderId}</span></div>
-        <div className="flex justify-between"><span>DATE:</span><span>{format(new Date(), 'dd/MM/yy HH:mm')}</span></div>
-        <div className="flex justify-between"><span>CUSTOMER:</span><span className="font-black truncate max-w-[150px]">{customerName || 'Walk-in Guest'}</span></div>
-        <div className="flex justify-between"><span>PHONE:</span><span className="font-black">{customerPhone || '--'}</span></div>
-        <div className="flex justify-between"><span>ADDRESS:</span><span className="font-black text-right max-w-[120px]">{customerAddress || '--'}</span></div>
-        <div className="flex justify-between"><span>PAYMENT:</span><span className="font-black">{paymentMethod === 'online' ? 'PREPAID UPI' : 'CASH ON DELIVERY'}</span></div>
+      <div className="space-y-1.5">
+        <div className="flex justify-between"><span>BILL NO:</span><span className="font-black">#${orderId}</span></div>
+        <div className="flex justify-between"><span>DATE:</span><span>${format(new Date(), 'dd/MM/yy HH:mm')}</span></div>
+        <div className="flex justify-between"><span>NAME:</span><span className="font-black truncate max-w-[150px]">${customerName || 'GUEST'}</span></div>
+        <div className="flex justify-between"><span>PHONE:</span><span className="font-black">${customerPhone || '--'}</span></div>
+        <div className="flex justify-between"><span>ADDR:</span><span className="font-black text-right max-w-[140px]">${customerAddress || '--'}</span></div>
       </div>
 
-      <div className="border-t border-dashed border-black my-3" />
+      <div className="border-t border-dashed border-black my-4" />
 
-      <table className="w-full text-[9px]">
+      <table className="w-full text-[10px]">
         <thead>
           <tr className="border-b border-dashed border-black">
-            <th className="text-left py-1" width="55%">ITEM</th>
-            <th className="text-center py-1" width="15%">QTY</th>
-            <th className="text-right py-1" width="30%">AMT</th>
+            <th className="text-left py-2" width="60%">ITEM</th>
+            <th className="text-center py-2" width="10%">QTY</th>
+            <th className="text-right py-2" width="30%">AMT</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, i) => (
             item.name && (
               <tr key={item.id} className="border-b border-dashed border-black/5">
-                <td className="py-2 pr-1">
+                <td className="py-2.5 pr-2">
                    <div className="font-black leading-tight">${item.name}</div>
-                   ${item.variety ? `<div style="font-size: 7px; color: #333; font-weight: 900;">• ${item.variety}</div>` : ''}
+                   ${item.variety ? `<div style="font-size: 8px; color: #333; font-weight: 900; margin-top: 1px;">• ${item.variety}</div>` : ''}
                 </td>
                 <td className="text-center">${item.quantity}</td>
                 <td className="text-right">${(item.price * item.quantity).toFixed(2)}</td>
@@ -203,24 +202,25 @@ export default function ReceiptGenerator() {
         </tbody>
       </table>
       
-      <div className="border-t-2 border-black mt-4 pt-3 flex justify-between items-center text-base font-black italic">
-        <span>GRAND TOTAL</span>
+      <div className="border-t-2 border-black mt-5 pt-4 flex justify-between items-center text-xl font-black italic">
+        <span>TOTAL</span>
         <span>₹${total.toFixed(2)}</span>
       </div>
 
-      <div className="border-t border-dashed border-black my-4" />
+      <div className="border-t border-dashed border-black my-5" />
 
-      <div className="text-center space-y-4">
-        <div style="padding: 10px; border: 1.5px dashed #000; border-radius: 15px; display: inline-block;">
-           <p style="font-size: 7px; font-weight: 900; margin-bottom: 8px;">SCAN TO PAY UPI</p>
-           <img src="${qrUrl}" style="width: 100px; height: 100px;" />
-           <p style="font-size: 6px; font-weight: 800; margin-top: 5px;">9450355709@axl</p>
+      <div className="text-center space-y-6">
+        <div style="padding: 15px; border: 2px dashed #000; border-radius: 20px; display: inline-block; background: #fafafa;">
+           <p style="font-size: 8px; font-weight: 900; margin-bottom: 12px; letter-spacing: 1px;">SCAN TO PAY UPI</p>
+           <img src="${qrUrl}" style="width: 140px; height: 140px; margin: 0 auto; display: block;" />
+           <p style="font-size: 7px; font-weight: 800; margin-top: 8px; color: #555;">9450355709@axl</p>
         </div>
 
-        <p className="font-black text-[11px] italic">${settings?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
-        <p className="text-[7px] opacity-70 whitespace-pre-line uppercase leading-relaxed">${settings?.receiptFooter || 'THIS IS A COMPUTER GENERATED INVOICE'}</p>
-        <div className="pt-2">
-          <span className="text-[6px] font-black tracking-[0.3em] border border-black px-2 py-0.5">POWERED BY SHOPYKART POS</span>
+        <p className="font-black text-[12px] italic">${settings?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
+        <p className="text-[8px] opacity-70 whitespace-pre-line uppercase leading-relaxed px-2">${settings?.receiptFooter || 'COMPUTER GENERATED INVOICE'}</p>
+        
+        <div className="pt-4">
+          <span className="text-[7px] font-black tracking-[0.4em] border border-black px-3 py-1">POWERED BY SHOPYKART POS</span>
         </div>
       </div>
     </div>
@@ -276,7 +276,7 @@ export default function ReceiptGenerator() {
            
            <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.id} className="bg-muted/10 p-3 rounded-2xl border border-border/50 group animate-in slide-in-from-right-2 duration-300">
+                <div key={item.id} className="bg-muted/10 p-3 rounded-2xl border border-border/50 group animate-in slide-in-from-right-2 duration-300 flex gap-3">
                    <div className="flex-[2] space-y-1">
                       <label className="text-[8px] font-black text-gray-400 uppercase ml-1">Item Description</label>
                       <Input value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} placeholder="e.g. Veggie Burger" className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase" />
@@ -332,7 +332,7 @@ export default function ReceiptGenerator() {
            <div>
               <h4 className="font-black italic uppercase text-blue-900 text-sm">Variety & QR Ready</h4>
               <p className="text-[10px] font-bold text-blue-700/70 uppercase leading-relaxed mt-1">
-                Receipts now show specific Varieties (Sizes/Shades) and include the ShopyKart UPI QR for faster checkout.
+                Receipts now show specific Varieties (Sizes/Shades) and include the ShopyKart UPI QR for faster checkout with exact amounts.
               </p>
            </div>
         </div>

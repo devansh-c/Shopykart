@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -112,8 +111,9 @@ export default function OrderManagement() {
       if (order.deliveryTip > 0) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY TIP:</span><span>₹${order.deliveryTip.toFixed(2)}</span></div>`;
       if (order.redeemCoins) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
 
+      // Centered QR Code with Exact Amount
       const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
@@ -139,13 +139,15 @@ export default function OrderManagement() {
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
         </div>
         
-        <div style="text-align: center; margin-top: 20px; padding: 15px; border: 1.5px dashed #ccc; border-radius: 20px;">
-           <p style="font-size: 8px; font-weight: 900; margin-bottom: 10px;">SCAN TO PAY VIA UPI</p>
-           <img src="${qrUrl}" style="width: 120px; height: 120px;" />
-           <p style="font-size: 7px; font-weight: 800; margin-top: 8px;">9450355709@axl</p>
+        <div style="text-align: center; margin-top: 30px; padding: 20px; border: 2px dashed #000; border-radius: 25px; background: #fafafa;">
+           <p style="font-size: 9px; font-weight: 900; margin-bottom: 15px; letter-spacing: 1px;">SCAN TO PAY EXACT AMOUNT</p>
+           <img src="${qrUrl}" style="width: 150px; height: 150px; margin: 0 auto; display: block;" />
+           <p style="font-size: 8px; font-weight: 800; margin-top: 12px; color: #555;">ID: 9450355709@axl</p>
         </div>
 
-        <div style="text-align: center; margin-top: 30px;"><div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div></div>
+        <div style="text-align: center; margin-top: 40px;">
+          <div style="border: 1.5px solid #000; display: inline-block; padding: 6px 20px; font-size: 11px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div>
+        </div>
       `;
       
       document.body.appendChild(receipt);

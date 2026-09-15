@@ -245,6 +245,7 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
+          ${item.selectedOption ? `<div style="font-size: 9px; color: #000; font-weight: 900; margin-top: 1px;">• VARIETY: ${item.selectedOption.name}</div>` : ''}
           ${item.restaurantName ? `<div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName}</div>` : ''}
         </div>
       `).join('');
@@ -268,6 +269,10 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
       }
 
+      // Exact Amount QR Code
+      const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
+
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
           <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
@@ -290,7 +295,16 @@ function OrderDetailsInner({ forcedId }: { forcedId?: string }) {
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
         </div>
-        <div style="text-align: center; margin-top: 30px;"><div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div></div>
+        
+        <div style="text-align: center; margin-top: 25px; padding: 15px; border: 2px dashed #000; border-radius: 20px; background: #fafafa;">
+           <p style="font-size: 8px; font-weight: 900; margin-bottom: 12px;">SCAN TO PAY VIA UPI</p>
+           <img src="${qrUrl}" style="width: 140px; height: 140px; margin: 0 auto; display: block;" />
+           <p style="font-size: 7px; font-weight: 800; margin-top: 10px;">ID: 9450355709@axl</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+          <div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div>
+        </div>
       `;
       
       document.body.appendChild(receipt);

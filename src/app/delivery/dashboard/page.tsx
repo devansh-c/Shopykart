@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -249,7 +248,7 @@ const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
          </div>
        )}
 
-       {/* QR MODAL */}
+       {/* QR MODAL with Centered QR and Dynamic Amount */}
        <Dialog open={showQr} onOpenChange={setShowQr}>
           <DialogContent className="rounded-[3rem] max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-white focus:outline-none">
              <div className="h-2 w-full bg-primary" />
@@ -259,12 +258,13 @@ const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
                    <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest">Digital Collection QR</DialogDescription>
                 </DialogHeader>
                 
-                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-dashed border-gray-200 shadow-inner relative group">
+                <div className="bg-white p-8 rounded-[2.5rem] border-2 border-dashed border-gray-200 shadow-inner relative group flex flex-col items-center">
                    <img 
                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`)}`} 
-                     className="h-56 w-56 grayscale contrast-125" 
+                     className="h-56 w-56 grayscale contrast-125 mx-auto block" 
                      alt="UPI QR" 
                    />
+                   <p className="mt-4 text-2xl font-black italic tracking-tighter text-gray-900">₹{order.total?.toFixed(2)}</p>
                    <div className="absolute inset-0 border-4 border-primary/20 rounded-[2.5rem] pointer-events-none" />
                 </div>
                 <Button onClick={() => setShowQr(false)} className="w-full h-14 bg-black text-white rounded-2xl font-black uppercase italic">CLOSE QR</Button>
