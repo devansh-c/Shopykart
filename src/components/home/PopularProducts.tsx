@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -13,8 +12,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts with hardcoded 15-20 MIN timing labels.
- * Google Distance Matrix API removed completely for performance and cost saving.
+ * @fileOverview PopularProducts - Optimized for Production.
+ * Features: Variety support, offline awareness, and lazy-loading.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {

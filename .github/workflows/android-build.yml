@@ -1,29 +1,13 @@
-
 name: Build Android APK & AAB
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Select App Build Variant (Manual)'
-        required: true
-        default: 'customer'
-        type: choice
-        options:
-        - customer
-        - admin
-        - biz
-        - tow
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        build_type: [customer, admin, biz, tow]
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -37,37 +21,8 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Configure Identity
-        run: |
-          TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
-          echo "Configuring Identity for: $TYPE"
-          APP_ID="co.in.shopykart.app"
-          APP_NAME="ShopyKart"
-          if [ "$TYPE" == "admin" ]; then
-            APP_ID="co.in.shopykart.admin"
-            APP_NAME="ShopyKart Admin"
-          elif [ "$TYPE" == "biz" ]; then
-            APP_ID="co.in.shopykart.biz"
-            APP_NAME="ShopyKart Partner"
-          elif [ "$TYPE" == "tow" ]; then
-            APP_ID="co.in.shopykart.tow"
-            APP_NAME="ShopyKart Fleet"
-          fi
-          sed -i "s/appId: '.*'/appId: '$APP_ID'/g" capacitor.config.ts
-          sed -i "s/appName: '.*'/appName: '$APP_NAME'/g" capacitor.config.ts
-
       - name: Create Web Build
-        run: |
-          TYPE="${{ github.event.inputs.build_type || matrix.build_type }}"
-          if [ "$TYPE" == "admin" ]; then
-            npm run build:admin
-          elif [ "$TYPE" == "biz" ]; then
-            npm run build:biz
-          elif [ "$TYPE" == "tow" ]; then
-            npm run build:tow
-          else
-            npm run build:static
-          fi
+        run: npm run build:static
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -77,25 +32,17 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          # Fresh start for Android platform to ensure assets generate
           rm -rf android
           npx cap add android
           
-          # FORCE NATIVE ASSET GENERATION (Icon + Splash)
-          # Expects icon.png and splash.png in assets/ folder
-          echo "Generating Native Android Icons and Splash Screen..."
-          npx @capacitor/assets generate --android --assetPath assets || echo "Assets folder not found or files missing"
+          # FORCE ASSET GENERATION FROM ASSETS FOLDER
+          echo "Generating Branded Assets..."
+          npx @capacitor/assets generate --android --assetPath assets || echo "Assets folder issue"
           
           npx cap sync android
-          
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
-          else
-            echo "ERROR: gradlew generation failed."
-            exit 1
-          fi
+          chmod +x android/gradlew
 
-      - name: Build APK (Debug)
+      - name: Build APK (Release-Ready Debug)
         run: |
           cd android
           ./gradlew assembleDebug
@@ -107,6 +54,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          # FIXED: Artifact name cannot contain colons (:)
-          name: ShopyKart-${{ github.event.inputs.build_type || matrix.build_type }}-${{ env.BUILD_TIME }}
+          name: ShopyKart-Android-${{ env.BUILD_TIME }}
           path: android/app/build/outputs/apk/debug/app-debug.apk

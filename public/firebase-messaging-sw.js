@@ -1,6 +1,9 @@
-
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+/**
+ * @fileOverview Firebase Messaging Service Worker for ShopyKart.
+ * Mandatory for Background Push Notifications on Android/Web.
+ */
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyAjal_rhfGwRe2_OuyJE7eJVvuGbZ-6J4Q",
@@ -13,13 +16,14 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Handle Background Messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log('[SW] Background Message received: ', payload);
+  
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon.png',
-    badge: '/icon.png'
+    icon: '/favicon.ico'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
