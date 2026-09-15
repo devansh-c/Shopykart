@@ -17,12 +17,15 @@ import {
   CheckCircle2,
   Trash2,
   IndianRupee,
-  Heart
+  Heart,
+  AlertCircle,
+  Store,
+  Clock
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, getCountFromServer, query, where, updateDoc, increment, getDocs } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp, query, where, updateDoc, increment, getDocs } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -34,8 +37,36 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
- * @fileOverview Checkout Page with Hybrid Reward System (20/10/5) and Delivery Tip.
- * Fix: Prevented empty cart orders and restored Delivery Tip UI.
+ * Helper to check if store is currently open based on opening/closing times.
+ */
+function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
+  if (!vendor) return true;
+  if (!vendor.openingTime || !vendor.closingTime) return true;
+  if (currentMins === null || currentMins === undefined) return true;
+
+  const parseTimeToMinutes = (t: any) => {
+    try {
+      if (typeof t !== 'string') return 0;
+      const parts = t.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
+      let [hours, minutes] = time.split(':').map(Number);
+      if (isNaN(hours)) return 0;
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + (isNaN(minutes) ? 0 : minutes);
+    } catch (e) { return 0; }
+  };
+
+  const start = parseTimeToMinutes(vendor.openingTime);
+  const end = parseTimeToMinutes(vendor.closingTime);
+
+  return start < end ? (currentMins >= start && currentMins <= end) : (currentMins >= start || currentMins <= end);
+}
+
+/**
+ * @fileOverview Checkout Page with Real-time Store Status Guard.
+ * Fix: Prevents orders if any associated store is closed or offline.
  */
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, totalPrice, clearCart } = useCart();
@@ -50,6 +81,7 @@ export default function CartPage() {
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [isPremiumPacking, setIsPremiumPacking] = useState(false);
   const [isRedeemCoins, setIsRedeemCoins] = useState(false);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
   
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({
@@ -68,7 +100,7 @@ export default function CartPage() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
 
-  // HYDRATION GUARD
+  // HYDRATION GUARD & TIME SYNC
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -83,6 +115,14 @@ export default function CartPage() {
         address: savedAddress
       });
       setActiveZoneId(savedZone);
+
+      const syncTime = () => {
+        const now = new Date();
+        setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+      };
+      syncTime();
+      const interval = setInterval(syncTime, 60000);
+      return () => clearInterval(interval);
     }
   }, []);
 
@@ -101,6 +141,13 @@ export default function CartPage() {
   const { data: zoneData } = useDoc<any>(zoneRef);
 
   const deliveryFee = zoneData?.deliveryCharge || 0;
+
+  // FETCH VENDORS TO CHECK STATUS
+  const vendorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'vendors');
+  }, [firestore]);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'cart_vendors_sync');
 
   const chargesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -130,14 +177,26 @@ export default function CartPage() {
     let base = (Number(totalPrice) || 0) + (Number(deliveryFee) || 0) + (Number(deliveryTip) || 0);
     calculatedAdminCharges.forEach(c => base += (Number(c.value) || 0));
     if (isPremiumPacking) base += 10;
-    
-    if (isRedeemCoins && userCoins > 0) {
-      base -= 5;
-    }
-    
+    if (isRedeemCoins && userCoins > 0) base -= 5;
     base -= (Number(couponDiscount) || 0);
     return Math.max(0, base);
   }, [totalPrice, deliveryFee, calculatedAdminCharges, isPremiumPacking, isRedeemCoins, deliveryTip, couponDiscount, userCoins, isMounted]);
+
+  // STORE STATUS GUARD FOR ITEMS
+  const cartItemsWithStatus = useMemo(() => {
+    if (!vendors) return cart.map(item => ({ ...item, isStoreClosed: false }));
+    const vendorMap = new Map(vendors.map(v => [v.id, v]));
+    
+    return cart.map(item => {
+      const v = vendorMap.get(item.vendorId);
+      const isClosed = v ? (v.isOnline === false || !isStoreScheduleOpen(v, currentTimeMinutes)) : false;
+      return { ...item, isStoreClosed: isClosed };
+    });
+  }, [cart, vendors, currentTimeMinutes]);
+
+  const hasClosedStoreItems = useMemo(() => {
+    return cartItemsWithStatus.some(item => item.isStoreClosed);
+  }, [cartItemsWithStatus]);
 
   const handleApplyCoupon = async () => {
     if (!firestore || !couponCode.trim()) return;
@@ -167,6 +226,12 @@ export default function CartPage() {
     if (!user || !firestore) return;
     if (cart.length === 0) {
       toast({ variant: "destructive", title: "Empty Bag", description: "Add items before placing order." });
+      setSliderOffset(0);
+      return;
+    }
+
+    if (hasClosedStoreItems) {
+      toast({ variant: "destructive", title: "Store Closed", description: "Remove closed store items to continue." });
       setSliderOffset(0);
       return;
     }
@@ -238,20 +303,20 @@ export default function CartPage() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isPlacing || cart.length === 0) return;
+    if (isPlacing || cart.length === 0 || hasClosedStoreItems) return;
     setIsDragging(true);
     startXRef.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || isPlacing || !sliderRef.current || cart.length === 0) return;
+    if (!isDragging || isPlacing || !sliderRef.current || cart.length === 0 || hasClosedStoreItems) return;
     const diff = e.touches[0].clientX - startXRef.current;
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (diff > 0) setSliderOffset(Math.min(diff, trackWidth));
   };
 
   const handleTouchEnd = () => {
-    if (!isDragging || isPlacing || !sliderRef.current || cart.length === 0) return;
+    if (!isDragging || isPlacing || !sliderRef.current || cart.length === 0 || hasClosedStoreItems) return;
     setIsDragging(false);
     const trackWidth = sliderRef.current.offsetWidth - 80;
     if (sliderOffset > trackWidth * 0.85) {
@@ -311,15 +376,25 @@ export default function CartPage() {
               <Badge className="bg-white/10 text-white border-none text-[8px] font-black">{cart.length} ITEMS</Badge>
            </div>
            <div className="space-y-6">
-              {cart.length > 0 ? cart.map((item, idx) => (
-                <div key={idx} className="flex gap-4 items-center">
+              {cartItemsWithStatus.length > 0 ? cartItemsWithStatus.map((item, idx) => (
+                <div key={idx} className={cn("flex gap-4 items-center relative", item.isStoreClosed && "opacity-60")}>
                    <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white/5 border border-white/10 relative shrink-0">
-                      <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />
+                      <Image src={item.imageUrl} alt={item.name} fill className={cn("object-cover", item.isStoreClosed && "grayscale")} unoptimized />
+                      {item.isStoreClosed && (
+                        <div className="absolute inset-0 bg-red-600/60 flex items-center justify-center">
+                           <X className="h-6 w-6 text-white" />
+                        </div>
+                      )}
                    </div>
                    <div className="flex-1 min-w-0">
                       <h4 className="text-[11px] font-black uppercase truncate leading-tight">{item.name}</h4>
                       {item.selectedOption && <p className="text-[8px] font-black text-amber-400 uppercase">{item.selectedOption.name}</p>}
-                      <p className="text-[8px] font-bold text-gray-500 uppercase mt-0.5 truncate">{item.restaurantName || 'ShopyKart'}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[8px] font-bold text-gray-500 uppercase truncate">{item.restaurantName || 'ShopyKart'}</p>
+                        {item.isStoreClosed && (
+                          <Badge className="bg-red-500 text-white text-[7px] font-black border-none uppercase px-1.5 py-0">CLOSED</Badge>
+                        )}
+                      </div>
                       <div className="flex items-center mt-2 bg-white/5 w-fit rounded-lg px-2 py-1">
                          <button onClick={() => removeFromCart(item.id)} className="text-amber-400 active:scale-75"><Minus className="h-3 w-3" /></button>
                          <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
@@ -439,15 +514,56 @@ export default function CartPage() {
         {/* PLACE ORDER SLIDER */}
         <div className="pt-8 pb-20">
            {cart.length > 0 ? (
-             <div ref={sliderRef} className="w-full h-24 bg-[#0B0B0B] rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 border-white/5 transform-gpu">
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className={cn("text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20 transition-opacity", sliderOffset > 20 && "opacity-0")}>SLIDE TO PLACE ORDER</span></div>
-                <div className="absolute inset-y-0 left-0 bg-primary opacity-20 pointer-events-none" style={{ width: `${sliderOffset + 80}px` }} />
-                <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-primary shadow-xl z-10 transition-transform cursor-grab active:cursor-grabbing border-b-4 border-gray-200"><ArrowRight className="h-8 w-8 stroke-[3]" /></div>
-                <div className="flex-1 text-right pr-8 pointer-events-none relative z-10">
-                  <div className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">Payable Amount</div>
-                  <div className="text-3xl font-black text-white italic tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div>
+             <div className="space-y-4">
+                {hasClosedStoreItems && (
+                  <div className="bg-red-50 border-2 border-red-100 p-4 rounded-2xl flex items-start gap-3 animate-in shake duration-500">
+                    <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-[11px] font-black text-red-600 uppercase">Order Blocked</h4>
+                      <p className="text-[9px] font-bold text-red-800/70 uppercase leading-tight mt-0.5">
+                        Some stores in your bag are currently closed. Please remove closed items to place your order.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <div 
+                  ref={sliderRef} 
+                  className={cn(
+                    "w-full h-24 rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 transform-gpu transition-all",
+                    hasClosedStoreItems ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" : "bg-[#0B0B0B] border-white/5"
+                  )}
+                >
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase italic tracking-[0.4em] transition-opacity",
+                        hasClosedStoreItems ? "text-gray-500" : (sliderOffset > 20 ? "opacity-0" : "text-white/20")
+                      )}>
+                        {hasClosedStoreItems ? 'STORES CLOSED' : 'SLIDE TO PLACE ORDER'}
+                      </span>
+                    </div>
+                    <div 
+                      className={cn("absolute inset-y-0 left-0 opacity-20 pointer-events-none", hasClosedStoreItems ? "bg-gray-400" : "bg-primary")} 
+                      style={{ width: `${sliderOffset + 80}px` }} 
+                    />
+                    <div 
+                      onTouchStart={handleTouchStart} 
+                      onTouchMove={handleTouchMove} 
+                      onTouchEnd={handleTouchEnd} 
+                      style={{ transform: `translateX(${sliderOffset}px)` }} 
+                      className={cn(
+                        "h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl z-10 transition-transform border-b-4",
+                        hasClosedStoreItems ? "bg-gray-300 border-gray-400 text-gray-500" : "bg-white border-gray-200 text-primary cursor-grab active:cursor-grabbing"
+                      )}
+                    >
+                      <ArrowRight className="h-8 w-8 stroke-[3]" />
+                    </div>
+                    <div className="flex-1 text-right pr-8 pointer-events-none relative z-10">
+                      <div className={cn("text-[9px] font-black uppercase tracking-widest opacity-60", hasClosedStoreItems ? "text-gray-500" : "text-primary")}>Payable Amount</div>
+                      <div className={cn("text-3xl font-black italic tracking-tighter leading-none mt-1", hasClosedStoreItems ? "text-gray-600" : "text-white")}>₹{totalPayable.toFixed(0)}</div>
+                    </div>
+                    {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 </div>
-                {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
              </div>
            ) : (
              <div className="w-full h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center border-2 border-dashed border-gray-200">
