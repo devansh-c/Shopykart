@@ -15,7 +15,8 @@ import {
   PlusCircle,
   IndianRupee,
   RefreshCw,
-  Eye
+  Eye,
+  ListTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ type Item = {
   name: string;
   quantity: number;
   price: number;
+  variety?: string;
 };
 
 export default function ReceiptGenerator() {
@@ -43,7 +45,7 @@ export default function ReceiptGenerator() {
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [orderId, setOrderId] = useState('');
   const [items, setItems] = useState<Item[]>([
-    { id: '1', name: '', quantity: 1, price: 0 }
+    { id: '1', name: '', quantity: 1, price: 0, variety: '' }
   ]);
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function ReceiptGenerator() {
   }, [items]);
 
   const handleAddItem = () => {
-    setItems([...items, { id: Date.now().toString(), name: '', quantity: 1, price: 0 }]);
+    setItems([...items, { id: Date.now().toString(), name: '', quantity: 1, price: 0, variety: '' }]);
   };
 
   const handleRemoveItem = (id: string) => {
@@ -72,7 +74,7 @@ export default function ReceiptGenerator() {
 
   const updateItem = (id: string, field: keyof Item, value: any) => {
     setItems(items.map(item => 
-      item.id === id ? { ...item, [field]: field === 'name' ? value : parseFloat(value) || 0 } : item
+      item.id === id ? { ...item, [field]: field === 'name' || field === 'variety' ? value : parseFloat(value) || 0 } : item
     ));
   };
 
@@ -150,8 +152,11 @@ export default function ReceiptGenerator() {
     setCustomerName('');
     setCustomerPhone('');
     setCustomerAddress('');
-    setItems([{ id: '1', name: '', quantity: 1, price: 0 }]);
+    setItems([{ id: '1', name: '', quantity: 1, price: 0, variety: '' }]);
   };
+
+  const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${total.toFixed(2)}&cu=INR`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
 
   const receiptPreview = (
     <div id="generated-receipt-dom" className="bg-white text-black p-6 font-mono text-[10px] uppercase leading-tight w-[300px] border border-gray-100 shadow-2xl mx-auto">
@@ -186,9 +191,12 @@ export default function ReceiptGenerator() {
           {items.map((item, i) => (
             item.name && (
               <tr key={item.id} className="border-b border-dashed border-black/5">
-                <td className="py-2 pr-1 font-black leading-tight">{item.name}</td>
-                <td className="text-center">{item.quantity}</td>
-                <td className="text-right">{(item.price * item.quantity).toFixed(2)}</td>
+                <td className="py-2 pr-1">
+                   <div className="font-black leading-tight">${item.name}</div>
+                   ${item.variety ? `<div style="font-size: 7px; color: #333; font-weight: 900;">• ${item.variety}</div>` : ''}
+                </td>
+                <td className="text-center">${item.quantity}</td>
+                <td className="text-right">${(item.price * item.quantity).toFixed(2)}</td>
               </tr>
             )
           ))}
@@ -197,14 +205,20 @@ export default function ReceiptGenerator() {
       
       <div className="border-t-2 border-black mt-4 pt-3 flex justify-between items-center text-base font-black italic">
         <span>GRAND TOTAL</span>
-        <span>₹{total.toFixed(2)}</span>
+        <span>₹${total.toFixed(2)}</span>
       </div>
 
       <div className="border-t border-dashed border-black my-4" />
 
-      <div className="text-center space-y-3">
-        <p className="font-black text-[11px] italic">{settings?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
-        <p className="text-[7px] opacity-70 whitespace-pre-line uppercase leading-relaxed">{settings?.receiptFooter || 'THIS IS A COMPUTER GENERATED INVOICE'}</p>
+      <div className="text-center space-y-4">
+        <div style="padding: 10px; border: 1.5px dashed #000; border-radius: 15px; display: inline-block;">
+           <p style="font-size: 7px; font-weight: 900; margin-bottom: 8px;">SCAN TO PAY UPI</p>
+           <img src="${qrUrl}" style="width: 100px; height: 100px;" />
+           <p style="font-size: 6px; font-weight: 800; margin-top: 5px;">9450355709@axl</p>
+        </div>
+
+        <p className="font-black text-[11px] italic">${settings?.receiptThankYou || 'ENJOY YOUR DELICIOUS MEAL!'}</p>
+        <p className="text-[7px] opacity-70 whitespace-pre-line uppercase leading-relaxed">${settings?.receiptFooter || 'THIS IS A COMPUTER GENERATED INVOICE'}</p>
         <div className="pt-2">
           <span className="text-[6px] font-black tracking-[0.3em] border border-black px-2 py-0.5">POWERED BY SHOPYKART POS</span>
         </div>
@@ -262,16 +276,20 @@ export default function ReceiptGenerator() {
            
            <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.id} className="flex gap-3 bg-muted/10 p-3 rounded-2xl border border-border/50 group animate-in slide-in-from-right-2 duration-300">
+                <div key={item.id} className="bg-muted/10 p-3 rounded-2xl border border-border/50 group animate-in slide-in-from-right-2 duration-300">
                    <div className="flex-[2] space-y-1">
                       <label className="text-[8px] font-black text-gray-400 uppercase ml-1">Item Description</label>
                       <Input value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} placeholder="e.g. Veggie Burger" className="h-10 rounded-xl bg-white border-none font-bold text-xs uppercase" />
                    </div>
-                   <div className="w-16 space-y-1">
+                   <div className="flex-1 space-y-1">
+                      <label className="text-[8px] font-black text-gray-400 uppercase ml-1 flex items-center gap-1"><ListTree className="h-2 w-2" /> Variety</label>
+                      <Input value={item.variety} onChange={e => updateItem(item.id, 'variety', e.target.value)} placeholder="Full/Med" className="h-10 rounded-xl bg-white border-none font-black text-[10px] uppercase" />
+                   </div>
+                   <div className="w-12 space-y-1">
                       <label className="text-[8px] font-black text-gray-400 uppercase ml-1">Qty</label>
                       <Input type="number" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-center" />
                    </div>
-                   <div className="w-24 space-y-1">
+                   <div className="w-20 space-y-1">
                       <label className="text-[8px] font-black text-gray-400 uppercase ml-1">Rate ₹</label>
                       <Input type="number" value={item.price} onChange={e => updateItem(item.id, 'price', e.target.value)} className="h-10 rounded-xl bg-white border-none font-black text-center text-primary" />
                    </div>
@@ -292,7 +310,7 @@ export default function ReceiptGenerator() {
               <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full inline-block border border-white/10 mb-6">
                  <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-2"><Eye className="h-3.5 w-3.5 text-primary" /> Digital Preview</span>
               </div>
-              <div className="scale-[0.9] md:scale-100 origin-top transform-gpu">
+              <div className="scale-[0.8] md:scale-100 origin-top transform-gpu">
                 {receiptPreview}
               </div>
            </div>
@@ -312,9 +330,9 @@ export default function ReceiptGenerator() {
         <div className="bg-blue-50 p-6 rounded-[2.5rem] border-2 border-dashed border-blue-100 flex items-start gap-4">
            <div className="bg-blue-600 p-2.5 rounded-xl text-white"><ReceiptIcon className="h-5 w-5" /></div>
            <div>
-              <h4 className="font-black italic uppercase text-blue-900 text-sm">Pro Tip</h4>
+              <h4 className="font-black italic uppercase text-blue-900 text-sm">Variety & QR Ready</h4>
               <p className="text-[10px] font-bold text-blue-700/70 uppercase leading-relaxed mt-1">
-                Ye manual bills hain jo sirf instant generation ke liye hain. Inmein koi tax ya extra fee add nahi ki gayi hai.
+                Receipts now show specific Varieties (Sizes/Shades) and include the ShopyKart UPI QR for faster checkout.
               </p>
            </div>
         </div>

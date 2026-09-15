@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -27,7 +28,8 @@ import {
   ExternalLink,
   ChevronRight,
   Bike,
-  ShieldAlert
+  ShieldAlert,
+  ListTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -123,6 +125,23 @@ const OrderCard = memo(({ order, onUpdate, type, userData }: any) => {
           <div className="flex items-center gap-4">
             <div className="bg-white p-2 rounded-xl shadow-sm text-primary"><Bike className="h-5 w-5" /></div>
             <span className="text-sm font-black uppercase italic tracking-tighter text-gray-800">{order.restaurantName || 'ShopyKart Hub'}</span>
+          </div>
+
+          <div className="space-y-3 pt-1">
+             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block px-1">Packing List</span>
+             {order.items?.map((item: any, i: number) => (
+                <div key={i} className="bg-white/50 p-3 rounded-2xl border border-white/50">
+                   <div className="flex justify-between items-center text-[11px] font-black uppercase italic">
+                      <span className="text-gray-800"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                   </div>
+                   {item.selectedOption && (
+                     <div className="flex items-center gap-1.5 mt-1">
+                        <ListTree className="h-2.5 w-2.5 text-primary" />
+                        <span className="text-[8px] font-black uppercase text-primary tracking-widest">VARIETY: {item.selectedOption.name}</span>
+                     </div>
+                   )}
+                </div>
+             ))}
           </div>
           
           {!isReadyForPickup && (

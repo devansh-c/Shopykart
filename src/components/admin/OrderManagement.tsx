@@ -14,7 +14,8 @@ import {
   Clock,
   IndianRupee,
   Phone,
-  MessageSquare
+  MessageSquare,
+  ListTree
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -95,6 +96,7 @@ export default function OrderManagement() {
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
+          ${item.selectedOption ? `<div style="font-size: 9px; color: #000; font-weight: 900; margin-top: 1px;">• VARIETY: ${item.selectedOption.name}</div>` : ''}
           <div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName || 'PARTNER STORE'}</div>
         </div>
       `).join('');
@@ -109,6 +111,9 @@ export default function OrderManagement() {
       if (order.isPremiumPacking) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>`;
       if (order.deliveryTip > 0) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY TIP:</span><span>₹${order.deliveryTip.toFixed(2)}</span></div>`;
       if (order.redeemCoins) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
+
+      const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
 
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
@@ -133,6 +138,13 @@ export default function OrderManagement() {
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
           <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
         </div>
+        
+        <div style="text-align: center; margin-top: 20px; padding: 15px; border: 1.5px dashed #ccc; border-radius: 20px;">
+           <p style="font-size: 8px; font-weight: 900; margin-bottom: 10px;">SCAN TO PAY VIA UPI</p>
+           <img src="${qrUrl}" style="width: 120px; height: 120px;" />
+           <p style="font-size: 7px; font-weight: 800; margin-top: 8px;">9450355709@axl</p>
+        </div>
+
         <div style="text-align: center; margin-top: 30px;"><div style="border: 1.5px solid #000; display: inline-block; padding: 4px 15px; font-size: 10px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div></div>
       `;
       
@@ -209,11 +221,19 @@ export default function OrderManagement() {
                     )}
                  </div>
 
-                 <div className="space-y-3 mb-6">
+                 <div className="space-y-4 mb-6">
                     {order.items?.map((item: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center text-sm font-black italic border-b border-white pb-2 last:border-0">
-                         <span className="text-gray-400 truncate"><span className="text-gray-900">{item.quantity}x</span> {item.name}</span>
-                         <span className="text-primary shrink-0">₹{(item.price * item.quantity).toFixed(0)}</span>
+                      <div key={i} className="border-b border-white pb-3 last:border-0">
+                         <div className="flex justify-between items-center text-sm font-black italic">
+                            <span className="text-gray-900 leading-tight"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
+                            <span className="text-primary shrink-0 ml-4">₹{(item.price * item.quantity).toFixed(0)}</span>
+                         </div>
+                         {item.selectedOption && (
+                           <div className="flex items-center gap-1.5 mt-1.5">
+                              <ListTree className="h-3 w-3 text-gray-400" />
+                              <span className="text-[9px] font-black uppercase text-gray-500 tracking-widest bg-white px-2 py-0.5 rounded border border-gray-100">VARIETY: {item.selectedOption.name}</span>
+                           </div>
+                         )}
                       </div>
                     ))}
                  </div>
