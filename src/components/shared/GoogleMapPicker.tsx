@@ -23,14 +23,13 @@ interface GoogleMapPickerProps {
 
 /**
  * @fileOverview High-Precision Map Picker.
- * Features: Anti-Glitch Stabilizer, Geocoding-Only Search, 3D Red Pin.
- * Fixed: Unified loader options to match ClientLayout and prevent initialization errors.
+ * Fixed: Geocoding address visibility and instant resolution on mount/move.
  */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script-global', // Match ClientLayout ID
+    id: 'google-map-script-global',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places', 'geometry'], // Match ClientLayout Libraries
+    libraries: ['places', 'geometry'],
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -40,34 +39,31 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   const [isResolving, setIsResolving] = useState(false);
   const [searchInput, setSearchQuery] = useState('');
   
-  // Anti-Glitch: Track internal vs external changes to prevent re-render loops
   const lastMapCenter = useRef(forcedInitialCenter || defaultCenter);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
+  // Initialize Geocoder
   useEffect(() => {
-    if (forcedInitialCenter && isLoaded) {
-      setCenter(forcedInitialCenter);
-      lastMapCenter.current = forcedInitialCenter;
-      if (map) {
-        map.setCenter(forcedInitialCenter);
-        map.setZoom(19);
-      }
-      reverseGeocode(forcedInitialCenter.lat, forcedInitialCenter.lng);
+    if (isLoaded && typeof google !== 'undefined' && !geocoderRef.current) {
+      geocoderRef.current = new google.maps.Geocoder();
+      // Initial geocode
+      reverseGeocode(center.lat, center.lng);
     }
-  }, [forcedInitialCenter, isLoaded, map]);
+  }, [isLoaded]);
 
   const reverseGeocode = useCallback((lat: number, lng: number) => {
-    if (!isLoaded || typeof google === 'undefined') return;
+    if (!geocoderRef.current) return;
+    
     setIsResolving(true);
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+    geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
       if (status === "OK" && results?.[0]) {
         setResolvedAddress(results[0].formatted_address);
       } else {
-        setResolvedAddress("Selected Hub Location");
+        setResolvedAddress("Pinned Hub Location");
       }
       setIsResolving(false);
     });
-  }, [isLoaded]);
+  }, []);
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -75,10 +71,10 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!searchInput.trim() || !isLoaded) return;
+    if (!searchInput.trim() || !geocoderRef.current) return;
 
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address: searchInput }, (results, status) => {
+    setIsResolving(true);
+    geocoderRef.current.geocode({ address: searchInput }, (results, status) => {
       if (status === "OK" && results?.[0]) {
         const coords = {
           lat: results[0].geometry.location.lat(),
@@ -90,6 +86,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
         map?.setZoom(19);
         setResolvedAddress(results[0].formatted_address);
       }
+      setIsResolving(false);
     });
   };
 
@@ -100,7 +97,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
         const lat = currentCenter.lat();
         const lng = currentCenter.lng();
         
-        // Only update state if moved significantly to prevent glitching (Precision check)
+        // Anti-Glitch Precision Check
         const diff = Math.abs(lat - lastMapCenter.current.lat) + Math.abs(lng - lastMapCenter.current.lng);
         if (diff > 0.00001) {
           const newCenter = { lat, lng };
@@ -134,7 +131,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   if (!isLoaded) return (
     <div className="h-full w-full flex flex-col items-center justify-center bg-white gap-4">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Map Engine...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Syncing Map Hub...</p>
     </div>
   );
 
@@ -152,12 +149,12 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           gestureHandling: 'greedy',
         }}
       >
-        {/* Floating Search Bar */}
+        {/* Top Search Area */}
         <div className="absolute top-6 left-4 right-4 z-[1001]">
           <form onSubmit={handleSearch} className="relative shadow-2xl rounded-[1.25rem] overflow-hidden border border-black/5 bg-white">
             <input 
               type="text"
-              placeholder="Search building or street" 
+              placeholder="Search house or landmark" 
               value={searchInput}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full h-14 pl-12 pr-12 bg-transparent border-none font-bold text-sm text-gray-900 focus:outline-none placeholder:text-gray-400"
@@ -171,34 +168,27 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           </form>
         </div>
 
-        {/* 3D Red Pin (Stationary at Center) */}
+        {/* The 3D Pin (Fixed in Center) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none mb-1">
           <div className="relative flex flex-col items-center">
-            <div className="bg-[#0B0B0B] text-white text-[8px] font-black px-3 py-1.5 rounded-full mb-2 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
-               PIN HERE
+            <div className="bg-[#0B0B0B] text-white text-[7px] font-black px-3 py-1 rounded-lg mb-2 uppercase tracking-widest animate-bounce shadow-2xl border border-white/20">
+               CONFIRM SPOT
             </div>
             
             <div className="relative transform-gpu transition-all duration-300 scale-110">
-              <svg width="50" height="65" viewBox="0 0 50 65" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_15px_15px_rgba(239,68,68,0.4)]">
-                <defs>
-                  <radialGradient id="pinGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(25 25) rotate(90) scale(35)">
-                    <stop stopColor="#FF4D4D"/>
-                    <stop offset="1" stopColor="#B30000"/>
-                  </radialGradient>
-                </defs>
+              <svg width="45" height="60" viewBox="0 0 50 65" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_15px_15px_rgba(239,68,68,0.4)]">
                 <path 
                   d="M25 0C11.1929 0 0 11.1929 0 25C0 33.5 6 45 25 65C44 45 50 33.5 50 25C50 11.1929 38.8071 0 25 0ZM25 38C17.8203 38 12 32.1797 12 25C12 17.8203 17.8203 12 25 12C32.1797 12 38 17.8203 38 25C38 32.1797 32.1797 38 25 38Z" 
-                  fill="url(#pinGradient)"
+                  fill="#EF4444"
                 />
-                <path d="M15 10C10 15 8 20 8 25" stroke="white" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.3" />
               </svg>
               <div className="w-4 h-1.5 bg-black/20 rounded-full blur-[2px] mx-auto -mt-1 scale-x-125" />
             </div>
           </div>
         </div>
 
-        {/* Locate Me Button */}
-        <div className="absolute bottom-36 right-4 z-[1001]">
+        {/* Floating Locate Button */}
+        <div className="absolute bottom-40 right-4 z-[1001]">
           <button 
             onClick={handleLocate}
             className="h-14 w-14 bg-white rounded-full shadow-2xl flex items-center justify-center text-green-600 border border-black/5 active:scale-90 transition-all"
@@ -207,25 +197,37 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
           </button>
         </div>
 
-        {/* Action Panel */}
-        <div className="absolute bottom-0 left-0 right-0 z-[1001] p-4 pb-8 bg-gradient-to-t from-white via-white to-transparent">
-           <div className="bg-white rounded-[2rem] p-5 shadow-2xl border border-gray-100 mb-4 animate-in slide-in-from-bottom-4 duration-500">
+        {/* Address & Confirmation Panel */}
+        <div className="absolute bottom-0 left-0 right-0 z-[1001] p-4 pb-10 bg-gradient-to-t from-white via-white to-transparent">
+           <div className="bg-white rounded-[2.25rem] p-6 shadow-2xl border border-gray-100 mb-4 animate-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-start gap-4">
-                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0"><MapPin className="h-5 w-5" /></div>
-                 <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Marked Spot</span>
-                    <p className="text-sm font-bold text-gray-800 leading-tight line-clamp-2 italic uppercase">
-                       {isResolving ? 'Resolving address...' : resolvedAddress || 'Drag map to pin location...'}
-                    </p>
+                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+                    <MapPin className="h-5 w-5" />
+                 </div>
+                 <div className="flex-1 min-w-0 pr-2">
+                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Selected Drop Location</span>
+                    <div className="min-h-[2.5rem] flex items-center">
+                       {isResolving ? (
+                         <div className="flex items-center gap-2">
+                           <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+                           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest italic">Resolving Address...</span>
+                         </div>
+                       ) : (
+                         <p className="text-[12px] font-black text-gray-800 leading-tight line-clamp-2 uppercase italic tracking-tighter">
+                           {resolvedAddress || 'Drag map to pin your house'}
+                         </p>
+                       )}
+                    </div>
                  </div>
               </div>
            </div>
            
            <button 
             onClick={() => onConfirm(center.lat, center.lng, resolvedAddress)}
-            className="w-full h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter"
+            disabled={isResolving}
+            className="w-full h-18 bg-[#0B0B0B] hover:bg-primary text-white rounded-[2rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all tracking-tighter disabled:opacity-50"
            >
-            CONFIRM THIS LOCATION
+            {isResolving ? 'WAITING FOR ADDRESS...' : 'CONFIRM THIS LOCATION'}
           </button>
         </div>
       </GoogleMap>

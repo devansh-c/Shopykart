@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +16,7 @@ const GoogleMapPicker = dynamic(() => import('./GoogleMapPicker'), {
 
 /**
  * @fileOverview Manual Zone Selection with Map-Based Pinning and Identity Recovery.
- * SMART RECOVERY: Restores location from profile to prevent popups for existing users.
+ * Fixed: Immediate state update and window reload on map pinning to ensure location takes effect.
  */
 export default function LocationRequest() {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,28 +45,23 @@ export default function LocationRequest() {
     const checkLocationStatus = () => {
       if (typeof window === 'undefined') return;
       
-      const hasZoneId = !!localStorage.getItem('active_zone_id');
+      const hasLocationSet = localStorage.getItem('user_location_set') === 'true';
       const isBot = /bot|googlebot|crawler|spider|robot|lighthouse/i.test(navigator.userAgent);
       
-      // If we already have location in local storage, don't show popup
-      if (hasZoneId || isBot) return;
+      if (hasLocationSet || isBot) return;
 
-      // SMART RECOVERY: If user is logged in, wait for profile to see if we can restore location
       if (!userLoading && !profileLoading) {
         if (profile?.lastSelectedZone && activeZones) {
           const matchedZone = activeZones.find((z: any) => z.name === profile.lastSelectedZone);
           if (matchedZone) {
-            handleZoneSelect(matchedZone, true); // Silent restoration
+            handleZoneSelect(matchedZone, true);
             return;
           }
         }
-        
-        // No cached location and no profile recovery possible? Show popup.
         setIsOpen(true);
       }
     };
 
-    // Use a small delay to ensure Auth state is stable
     const timer = setTimeout(checkLocationStatus, 1500);
 
     const handleOpenManual = () => { setIsOpen(true); };
@@ -98,7 +92,7 @@ export default function LocationRequest() {
         const { latitude, longitude } = pos.coords;
         localStorage.setItem('user_lat', latitude.toString());
         localStorage.setItem('user_lng', longitude.toString());
-        toast({ title: "Signal Found!", description: "GPS coordinates locked." });
+        toast({ title: "GPS Signal Found!", description: "Locating your house on map..." });
         setIsMapOpen(true);
       },
       () => {
@@ -122,7 +116,6 @@ export default function LocationRequest() {
       toast({ title: `Zone Set: ${zone.name}` });
     }
 
-    // Save to profile for future cross-device recovery
     if (user && firestore && !isSilent) {
       setDoc(doc(firestore, 'users', user.uid), {
         city: zone.city || 'Local',
@@ -135,13 +128,36 @@ export default function LocationRequest() {
   const handleConfirmMapLocation = (lat: number, lng: number, address?: string) => {
     localStorage.setItem('user_lat', lat.toString());
     localStorage.setItem('user_lng', lng.toString());
-    if (address) localStorage.setItem('user_address_line', address);
+    if (address) {
+      localStorage.setItem('user_address_line', address);
+      // Automatically extract city/area from address if possible
+      const parts = address.split(',');
+      if (parts.length > 1) {
+        localStorage.setItem('user_address', parts[0].trim());
+      }
+    }
     
     setIsMapOpen(false);
     setIsOpen(false);
     localStorage.setItem('user_location_set', 'true');
+    
+    // Sync with Firebase if logged in
+    if (user && firestore) {
+      setDoc(doc(firestore, 'users', user.uid), {
+        lat,
+        lng,
+        address: address?.toUpperCase() || '',
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => {});
+    }
+
+    toast({ title: "Drop Spot Pinned! 🏠", description: "Identity synced for delivery." });
+    
+    // Force event trigger and reload to clear popups and update mode
     window.dispatchEvent(new CustomEvent('user-address-updated'));
-    toast({ title: "Drop Spot Pinned! 🏠" });
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (
@@ -198,13 +214,13 @@ export default function LocationRequest() {
       </Dialog>
 
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-         <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col">
+         <DialogContent className="rounded-none sm:rounded-[3rem] max-w-2xl h-full sm:h-[85vh] p-0 overflow-hidden border-none shadow-2xl focus:outline-none flex flex-col z-[100000]">
             <DialogHeader className="sr-only">
                <DialogTitle>Pin Your Delivery Spot</DialogTitle>
                <DialogDescription>Mark your exact house for precise 10-minute delivery.</DialogDescription>
             </DialogHeader>
-            <div className="absolute top-4 right-4 z-[10000]">
-               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400"><X className="h-5 w-5" /></button>
+            <div className="absolute top-4 right-4 z-[110000]">
+               <button onClick={() => setIsMapOpen(false)} className="h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 active:scale-90 transition-transform"><X className="h-5 w-5" /></button>
             </div>
             <div className="flex-1 min-h-0 relative">
                <GoogleMapPicker onConfirm={handleConfirmMapLocation} />
