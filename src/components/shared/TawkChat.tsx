@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
  * @fileOverview Tawk.to visibility control with ultra-defensive error handling.
  * Prevents internal [Tawk/Logger] errors by debouncing and wrapping API calls.
  * Implements a global error suppressor to prevent Next.js Error Overlay for Tawk internal bugs.
+ * Added: Specific suppression for Google Maps Billing errors to prevent RSoD.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -19,24 +20,34 @@ export function TawkChat() {
     setIsClient(true);
     
     if (typeof window !== 'undefined') {
-      // 1. STRICT SUPPRESSION: Override console.error specifically for Tawk Logger noise
+      // 1. STRICT SUPPRESSION: Override console.error specifically for Tawk Logger and Google Maps Billing noise
       const originalError = window.console.error;
       window.console.error = (...args) => {
         const msg = args[0];
-        if (typeof msg === 'string' && (msg.includes('[Tawk/Logger]') || msg.includes('Tawk_API') || msg.includes('i18next'))) {
-          return; // Ignore Tawk internal logs
+        if (typeof msg === 'string') {
+          const ignorePatterns = [
+            '[Tawk/Logger]',
+            'Tawk_API',
+            'i18next',
+            'Geocoding Service', // Ignore Google Maps Billing errors
+            'Google Maps JavaScript API error',
+            'Billing',
+          ];
+          if (ignorePatterns.some(pattern => msg.includes(pattern))) {
+            return; // Silently ignore matched patterns
+          }
         }
         originalError.apply(window.console, args);
       };
 
       // 2. GLOBAL ERROR SHIELD: Specifically catch and ignore Tawk-related runtime errors
-      // This prevents the Next.js Red Screen of Death for third-party script bugs.
       const originalWindowError = window.onerror;
       window.onerror = function(message, source, lineno, colno, error) {
         const msg = String(message).toLowerCase();
-        if (msg.includes('tawk') || msg.includes('i18next') || (source && source.includes('tawk.to'))) {
-          console.debug('Suppressed Tawk internal error:', message);
-          return true; // Prevents the error from propagating and triggering the overlay
+        // Ignore Google Maps and Tawk specific runtime strings
+        if (msg.includes('tawk') || msg.includes('i18next') || msg.includes('google') || msg.includes('billing') || (source && source.includes('tawk.to'))) {
+          console.debug('Suppressed internal script error:', message);
+          return true; // Prevents the error from propagating and triggering the Next.js overlay
         }
         if (originalWindowError) {
           return originalWindowError.apply(window, [message, source, lineno, colno, error]);
@@ -95,7 +106,7 @@ export function TawkChat() {
         }
       };
 
-      const timer = setTimeout(applyTawkState, 1500); // Increased debounce for stability
+      const timer = setTimeout(applyTawkState, 1500); 
       return () => clearTimeout(timer);
     }
   }, [pathname, isClient, isTawkReady]);

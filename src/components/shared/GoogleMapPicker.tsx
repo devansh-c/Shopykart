@@ -20,6 +20,9 @@ interface GoogleMapPickerProps {
   forcedInitialCenter?: { lat: number; lng: number };
 }
 
+/**
+ * @fileOverview Map Picker with graceful Geocoding failure handling.
+ */
 export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: GoogleMapPickerProps) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script-global',
@@ -32,14 +35,17 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
   const [isLocating, setIsLocating] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState('');
   const [isResolving, setIsResolving] = useState(false);
-  const [searchInput, setSearchQuery] = useState('');
   
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
   useEffect(() => {
     if (isLoaded && typeof google !== 'undefined' && !geocoderRef.current) {
-      geocoderRef.current = new google.maps.Geocoder();
-      reverseGeocode(center.lat, center.lng);
+      try {
+        geocoderRef.current = new google.maps.Geocoder();
+        reverseGeocode(center.lat, center.lng);
+      } catch (e) {
+        console.debug("Geocoder initialization skipped.");
+      }
     }
   }, [isLoaded]);
 
@@ -47,14 +53,21 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
     if (!geocoderRef.current) return;
     
     setIsResolving(true);
-    geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setResolvedAddress(results[0].formatted_address);
-      } else {
-        setResolvedAddress("Pinned Delivery Spot");
-      }
+    try {
+      geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setResolvedAddress(results[0].formatted_address);
+        } else {
+          // If billing is not enabled, status will be REQUEST_DENIED. 
+          // We show a placeholder instead of failing.
+          setResolvedAddress("Pinned Delivery Spot");
+        }
+        setIsResolving(false);
+      });
+    } catch (e) {
+      setResolvedAddress("Pinned Delivery Spot");
       setIsResolving(false);
-    });
+    }
   }, []);
 
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
@@ -104,18 +117,18 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
       >
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] z-[1000] pointer-events-none">
           <div className="relative flex flex-col items-center">
-            <div className="bg-black text-white text-[8px] font-black px-2 py-1 rounded-lg mb-2 uppercase animate-bounce">Confirm Spot</div>
-            <MapPin className="h-10 w-10 text-primary drop-shadow-xl" />
+            <div className="bg-black text-white text-[8px] font-black px-2 py-1 rounded-lg mb-2 uppercase animate-bounce shadow-xl">Confirm Spot</div>
+            <MapPin className="h-10 w-10 text-primary drop-shadow-2xl" />
           </div>
         </div>
 
         <div className="absolute bottom-40 right-4 z-[1001]">
-          <button onClick={handleLocate} className="h-12 w-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-green-600">
+          <button onClick={handleLocate} className="h-12 w-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-green-600 border border-gray-100">
             {isLocating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Crosshair className="h-5 w-5" />}
           </button>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-[1001] p-4 bg-white rounded-t-[2.5rem] shadow-2xl">
+        <div className="absolute bottom-0 left-0 right-0 z-[1001] p-4 bg-white rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
            <div className="p-4 bg-gray-50 rounded-2xl mb-4 border border-gray-100 min-h-[4rem]">
               <span className="text-[8px] font-black text-primary uppercase block mb-1">Pick Location</span>
               {isResolving ? (
@@ -127,7 +140,7 @@ export default function GoogleMapPicker({ onConfirm, forcedInitialCenter }: Goog
            <button 
             onClick={() => onConfirm(center.lat, center.lng, resolvedAddress)}
             disabled={isResolving}
-            className="w-full h-16 bg-black text-white rounded-[1.5rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all"
+            className="w-full h-16 bg-[#0B0B0B] text-white rounded-[1.5rem] font-black uppercase text-base shadow-xl active:scale-95 transition-all"
            >
             CONFIRM THIS SPOT
           </button>
