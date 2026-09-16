@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * @fileOverview PopularProducts - Optimized for Production.
- * Optimized with React.memo and stable callbacks to fix glitches and hangs.
+ * @fileOverview PopularProducts - Optimized for Ultra-Smooth Experience.
+ * Added hardware acceleration and lowered initial render count to fix hang/glitch issues.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -48,7 +48,10 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
   return (
-    <div className={cn("relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-primary/30 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02]", isOffline && "opacity-75 grayscale-[0.5]")}>
+    <div className={cn(
+      "relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-primary/30 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02] will-change-transform", 
+      isOffline && "opacity-75 grayscale-[0.5]"
+    )}>
       <div className="relative aspect-square w-full mb-3">
         <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
@@ -124,7 +127,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const { toast } = useToast();
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [currentTimeMinutes, setCurrentTimeMinutes] = useState<number | null>(null);
-  const [visibleCount, setVisibleCount] = useState(60); 
+  const [visibleCount, setVisibleCount] = useState(30); // Lowered initial visible items for faster paint
 
   useEffect(() => {
     const updateZone = () => setActiveZoneId(localStorage.getItem('active_zone_id'));
@@ -140,7 +143,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     
     const handleScroll = () => { 
       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
-        setVisibleCount(p => p + 40);
+        setVisibleCount(p => p + 30);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -208,7 +211,7 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
           {productsToDisplay.length} ITEMS
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 transform-gpu">
         {productsToDisplay.slice(0, visibleCount).map((product) => {
           const quantity = cart.find(c => c.id === product.id && !c.selectedOption)?.quantity || 0;
           const v = (vendors && vendors.length > 0 ? vendors : initialStores)?.find(s => s.id === product.vendorId);

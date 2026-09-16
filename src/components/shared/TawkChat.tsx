@@ -1,3 +1,4 @@
+
 'use client';
 
 import Script from 'next/script';
@@ -6,9 +7,7 @@ import { usePathname } from 'next/navigation';
 
 /**
  * @fileOverview Tawk.to visibility control with ultra-defensive error handling.
- * Prevents internal [Tawk/Logger] errors by debouncing and wrapping API calls.
- * Implements a global error suppressor to prevent Next.js Error Overlay for Tawk internal bugs.
- * Added: Specific suppression for Google Maps Billing errors to prevent RSoD.
+ * Hardened to suppress Google Maps Billing and Tawk internal noise that cause Red Screens.
  */
 export function TawkChat() {
   const [isClient, setIsClient] = useState(false);
@@ -29,11 +28,13 @@ export function TawkChat() {
             '[Tawk/Logger]',
             'Tawk_API',
             'i18next',
-            'Geocoding Service', // Ignore Google Maps Billing errors
+            'Geocoding Service',
             'Google Maps JavaScript API error',
             'Billing',
+            'quota',
+            'api-key'
           ];
-          if (ignorePatterns.some(pattern => msg.includes(pattern))) {
+          if (ignorePatterns.some(pattern => msg.toLowerCase().includes(pattern))) {
             return; // Silently ignore matched patterns
           }
         }
@@ -44,11 +45,13 @@ export function TawkChat() {
       const originalWindowError = window.onerror;
       window.onerror = function(message, source, lineno, colno, error) {
         const msg = String(message).toLowerCase();
-        // Ignore Google Maps and Tawk specific runtime strings
-        if (msg.includes('tawk') || msg.includes('i18next') || msg.includes('google') || msg.includes('billing') || (source && source.includes('tawk.to'))) {
+        const ignoreList = ['tawk', 'i18next', 'google', 'billing', 'maps', 'quota'];
+        
+        if (ignoreList.some(term => msg.includes(term)) || (source && source.includes('tawk.to'))) {
           console.debug('Suppressed internal script error:', message);
-          return true; // Prevents the error from propagating and triggering the Next.js overlay
+          return true; // Prevents the error from triggering the Next.js overlay
         }
+        
         if (originalWindowError) {
           return originalWindowError.apply(window, [message, source, lineno, colno, error]);
         }
