@@ -5,49 +5,31 @@ import { usePathname } from 'next/navigation';
 import { Map, ShoppingCart, User, Home, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 
 /**
- * @fileOverview Premium Bottom Navigation Centered.
- * Optimized: Removed dialog detection that was causing the nav to disappear permanently.
+ * @fileOverview Premium Bottom Navigation - Always Visible for Customers.
+ * Fixed: Removed scroll-hide logic and adjusted paths for 100% reliability.
  */
 export default function BottomNav() {
   const pathname = usePathname();
   const { totalItems } = useCart();
-  
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      // Threshold to prevent flickering
-      if (Math.abs(currentScrollY - lastScrollY.current) < 15) return;
-      
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        // Scrolling down - hide
-        setIsVisible(false);
-      } else {
-        // Scrolling up - show
-        setIsVisible(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    setIsMounted(true);
   }, []);
 
   const isExcludedPath = useMemo(() => {
     if (!pathname) return false;
     const p = pathname.toLowerCase();
-    // Nav hidden on management portals and direct checkout
+    // Nav only hidden on core business/admin portals
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') || 
-           p.startsWith('/medical') || 
-           p.startsWith('/beauty');
+           p.startsWith('/medical/store') || 
+           p.startsWith('/beauty/store');
   }, [pathname]);
 
   const navItems = [
@@ -58,22 +40,18 @@ export default function BottomNav() {
     { label: 'Profile', icon: User, href: '/profile' },
   ];
 
-  if (isExcludedPath) return null;
+  if (!isMounted || isExcludedPath) return null;
 
   return (
-    <div 
-      className={cn(
-        "fixed bottom-6 left-1/2 -translate-x-1/2 z-[99999] flex justify-center pointer-events-none transform-gpu transition-all duration-500 ease-premium w-full px-4",
-        isVisible ? "translate-y-0 opacity-100" : "translate-y-[150%] opacity-0"
-      )}
-    >
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] flex justify-center w-full px-4 max-w-sm pointer-events-none transform-gpu">
       <nav 
         className={cn(
-          "w-full max-w-sm h-[68px] rounded-full flex items-center justify-around px-2 pointer-events-auto",
-          "bg-white/80 backdrop-blur-xl border border-black/[0.03] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)]",
+          "w-full h-[68px] rounded-full flex items-center justify-around px-2 pointer-events-auto",
+          "bg-white/90 backdrop-blur-xl border border-black/[0.05] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)]",
         )}
       >
         {navItems.map((item) => {
+          // Robust active check
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
           const Icon = item.icon;
 
@@ -89,7 +67,7 @@ export default function BottomNav() {
                     strokeWidth={isActive ? 3 : 2}
                     className={cn(
                       "h-5 w-5 transition-all duration-300", 
-                      isActive ? "text-primary scale-110" : "text-gray-900 opacity-70"
+                      isActive ? "text-primary scale-110" : "text-gray-900 opacity-60"
                     )} 
                   />
                 )}
@@ -101,13 +79,13 @@ export default function BottomNav() {
               </div>
               <span className={cn(
                 "text-[9px] font-black tracking-tighter leading-none mt-1.5 uppercase",
-                isActive ? "text-primary" : "text-gray-900 opacity-60"
+                isActive ? "text-primary" : "text-gray-900 opacity-50"
               )}>
                 {item.label}
               </span>
               
               {isActive && (
-                <div className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full" />
+                <div className="absolute -bottom-1.5 w-1 h-1 bg-primary rounded-full" />
               )}
             </Link>
           );

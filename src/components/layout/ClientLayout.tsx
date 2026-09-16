@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -64,9 +65,8 @@ const AuthGuard = memo(({ children }: { children: ReactNode }) => {
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
            p.startsWith('/delivery') ||
-           p.startsWith('/medical') ||
-           p.startsWith('/beauty') ||
-           p.startsWith('/order/track');
+           p.startsWith('/medical/store') || 
+           p.startsWith('/beauty/store');
   }, [pathname]);
 
   const hasPersistentSession = typeof window !== 'undefined' && localStorage.getItem('shopykart_session_active') === 'true';
@@ -100,10 +100,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     const p = pathname.toLowerCase();
     return p.startsWith('/admin') || 
            p.startsWith('/vendor') || 
-           p.startsWith('/delivery') || 
-           p.startsWith('/medical') || 
-           p.startsWith('/beauty') || 
-           p.startsWith('/order/track');
+           p.startsWith('/delivery') ||
+           p.startsWith('/medical/store') || 
+           p.startsWith('/beauty/store');
   }, [pathname]);
 
   return (
@@ -116,7 +115,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           
           <AuthGuard>
             <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 transform-gpu">
-              <main className={cn("flex-1", !isExcludedPath && "pb-44")}>
+              <main className={cn("flex-1", !isExcludedPath && "pb-32")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />
                 <TelegramNotifier />
