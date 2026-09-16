@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -45,7 +44,8 @@
   html {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
-    height: 100%;
+    height: auto;
+    min-height: 100%;
     overflow-x: hidden;
     scroll-behavior: smooth;
   }
@@ -58,16 +58,14 @@
     overflow-x: hidden;
     overflow-y: auto !important;
     min-height: 100vh;
+    height: auto;
     -webkit-overflow-scrolling: touch !important; 
-    overscroll-behavior-y: none; /* Prevents bounce glitches */
   }
 
-  /* HARDWARE ACCELERATION ENGINE - Anti-Glitch */
+  /* HARDWARE ACCELERATION - Optimized */
   .transform-gpu {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
-    perspective: 1000px;
-    will-change: transform, opacity;
   }
 
   .content-visibility-auto {
@@ -84,19 +82,15 @@
     scrollbar-width: none;
   }
 
-  /* Smooth Premium Cards */
   .premium-card {
     @apply bg-white rounded-[2rem] border border-border/60 relative overflow-hidden;
     contain: content;
-    transform: translateZ(0);
-    will-change: transform;
     box-shadow: 0 2px 8px -2px rgba(0,0,0,0.02);
   }
 
   nav.fixed {
     isolation: isolate;
     z-index: 999999;
-    transform: translateZ(0);
   }
 
   svg {
@@ -108,7 +102,7 @@
   }
 }
 
-/* FAST ANIMATIONS - Accelerated for instant feel */
+/* FAST ANIMATIONS */
 @keyframes running-line {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }

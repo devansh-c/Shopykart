@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CartProvider } from '@/components/cart/CartProvider';
@@ -90,13 +89,13 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <FirebaseClientProvider>
       <CartProvider>
-        <div className="relative min-h-screen bg-[#F3F4F6] md:bg-gray-100 overflow-x-hidden transform-none">
+        <div className="relative min-h-screen bg-[#F3F4F6] md:bg-gray-100 overflow-x-hidden">
           <BrandingLoader />
           <FirebaseErrorListener />
           <PermissionManager />
           
           <AuthGuard>
-            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 transform-none">
+            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 overflow-y-auto">
               <main className={cn("flex-1", !isExcludedPath && "pb-24")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />
