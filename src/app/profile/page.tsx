@@ -111,10 +111,22 @@ function ProfileContent() {
     if (auth) {
       await signOut(auth).catch(() => {});
     }
+    
+    // CLEAR ALL SESSION DATA
     localStorage.removeItem('shopykart_session_active');
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_phone');
+    
+    // CLEAR ALL LOCATION DATA AS REQUESTED
     localStorage.removeItem('user_location_set');
+    localStorage.removeItem('active_zone_id');
+    localStorage.removeItem('user_city');
+    localStorage.removeItem('user_address');
+    localStorage.removeItem('user_address_line');
+    localStorage.removeItem('user_lat');
+    localStorage.removeItem('user_lng');
+    localStorage.removeItem('shopykart_zones_cache');
+
     window.location.href = '/';
   };
 
