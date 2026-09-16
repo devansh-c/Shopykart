@@ -27,7 +27,8 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 /**
- * @fileOverview LocationHeader with FCM Notification Bell and Identity Sync.
+ * @fileOverview LocationHeader - Simplified for Manual Area Selection Only.
+ * Removed GPS/Detection text.
  */
 export function LocationHeader({
   searchValue,
@@ -42,8 +43,7 @@ export function LocationHeader({
   const firestore = useFirestore();
   const router = useRouter();
   
-  const [currentAddress, setCurrentAddress] = useState('Detecting...');
-  const [fullAddress, setFullAddress] = useState('Searching current spot...');
+  const [currentAddress, setCurrentAddress] = useState('Select Area');
   const [isMounted, setIsMounted] = useState(false);
   const [isNotifyOpen, setIsNotifyOpen] = useState(false);
 
@@ -51,10 +51,7 @@ export function LocationHeader({
     setIsMounted(true);
     const updateAddress = () => {
       const savedShort = typeof window !== 'undefined' ? localStorage.getItem('user_address') : null;
-      const savedFull = typeof window !== 'undefined' ? localStorage.getItem('user_address_line') : null;
-      
       if (savedShort) setCurrentAddress(savedShort);
-      if (savedFull) setFullAddress(savedFull);
     };
 
     updateAddress();
@@ -85,7 +82,6 @@ export function LocationHeader({
         try {
           const token = await requestPushToken();
           if (token) {
-            // 1. Save Token for direct targeting
             const tokenRef = doc(firestore, 'users', user.uid, 'fcm_tokens', token);
             await setDoc(tokenRef, { 
               token, 
@@ -93,20 +89,16 @@ export function LocationHeader({
               platform: 'web'
             }, { merge: true });
 
-            // 2. Mark User as Push Ready for Admin Panel
             await updateDoc(doc(firestore, 'users', user.uid), {
               isPushEnabled: true,
               lastPushSync: serverTimestamp()
             });
-
-            console.log("Push Identity Verified & Synced.");
           }
         } catch (e) {
-          console.debug("FCM Sync skipped: Permission or Browser issue.");
+          console.debug("FCM Sync skipped.");
         }
       };
 
-      // Delay token request to ensure UI is ready
       const timer = setTimeout(syncToken, 4000);
       return () => clearTimeout(timer);
     }
@@ -152,12 +144,12 @@ export function LocationHeader({
           <div className="flex flex-col min-w-0 pr-10">
             <div className="flex items-center gap-1">
               <span className="text-black text-xs font-black tracking-tight uppercase leading-none truncate">
-                {isMounted ? currentAddress : 'Detecting...'}
+                {isMounted ? currentAddress : 'Select Area'}
               </span>
               <ChevronDown className="h-3 w-3 text-primary stroke-[3]" />
             </div>
             <span className="text-[8px] font-black text-primary uppercase tracking-widest mt-1 truncate">
-              {isMounted ? fullAddress : 'Syncing GPS...'}
+              SHIPPING TO THIS ZONE
             </span>
           </div>
         </button>
@@ -203,7 +195,6 @@ export function LocationHeader({
         </div>
       </div>
 
-      {/* NOTIFICATION CENTER DIALOG */}
       <Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
         <DialogContent className="rounded-t-[3rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[85vh] flex flex-col focus:outline-none bottom-0 top-auto translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
            <DialogHeader className="p-8 pb-4 shrink-0">
