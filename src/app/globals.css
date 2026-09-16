@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -58,9 +59,10 @@
     overflow-y: auto !important;
     min-height: 100vh;
     -webkit-overflow-scrolling: touch !important; 
+    overscroll-behavior-y: none; /* Prevents bounce glitches */
   }
 
-  /* HARDWARE ACCELERATION ENGINE */
+  /* HARDWARE ACCELERATION ENGINE - Anti-Glitch */
   .transform-gpu {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
@@ -93,7 +95,7 @@
 
   nav.fixed {
     isolation: isolate;
-    z-index: 10000;
+    z-index: 999999;
     transform: translateZ(0);
   }
 

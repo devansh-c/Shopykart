@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect, memo, useCallback } from "react"
@@ -13,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 
 /**
  * @fileOverview PopularProducts - Optimized for Production.
- * Features: Variety support, offline awareness, and lazy-loading.
+ * Optimized with React.memo and stable callbacks to fix glitches and hangs.
  */
 
 export function isStoreScheduleOpen(vendor: any, currentMins?: number | null) {
@@ -47,11 +48,11 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
   const displayPrice = isGuest ? Math.max(0, basePrice - 10) : basePrice;
 
   return (
-    <div className={cn("relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-primary/30 flex flex-col shadow-2xl transition-all transform-gpu", isOffline && "opacity-75 grayscale-[0.5]")}>
+    <div className={cn("relative bg-[#0B0B0B] rounded-[2.5rem] p-3 border-2 border-primary/30 flex flex-col shadow-2xl transition-all transform-gpu hover:scale-[1.02]", isOffline && "opacity-75 grayscale-[0.5]")}>
       <div className="relative aspect-square w-full mb-3">
         <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={!isOffline}>
            <div className="relative w-full h-full cursor-pointer overflow-hidden rounded-[1.5rem] border-2 border-white/5">
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized priority={false} />
               {isOffline && (
                 <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-center z-10">
                   <Store className="h-6 w-6 text-white/80 mb-1" />
@@ -79,7 +80,7 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
               )}
            </div>
         </ProductQuickView>
-        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-primary/40 shadow-lg active:scale-75 z-30">
+        <button onClick={(e) => onShare(e, product)} className="absolute top-2.5 right-2.5 h-8 w-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-primary/40 shadow-lg active:scale-75 z-30 transition-transform">
           <Share2 className="h-4 w-4 text-primary" />
         </button>
       </div>
@@ -97,13 +98,13 @@ const ProductItem = memo(({ product, quantity, isOffline, onShare, onAdd, onRemo
           {!isOffline ? (
             quantity === 0 ? (
               <ProductQuickView product={{...product, price: displayPrice}} vendorScheduleOpen={true}>
-                <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90">ADD</button>
+                <button className="bg-primary text-white h-9 px-6 rounded-full font-black text-[10px] uppercase shadow-lg active:scale-90 transition-transform">ADD</button>
               </ProductQuickView>
             ) : (
               <div className="flex items-center bg-primary text-white rounded-full h-9 px-1.5 shadow-xl border border-white/20">
-                <button onClick={() => onRemove(product.id)} className="w-7 h-full flex items-center justify-center"><Minus className="h-4 w-4 stroke-[3]" /></button>
+                <button onClick={() => onRemove(product.id)} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Minus className="h-4 w-4 stroke-[3]" /></button>
                 <span className="text-[11px] font-black w-5 text-center">{quantity}</span>
-                <button onClick={() => onAdd({...product, price: displayPrice, quantity: 1})} className="w-7 h-full flex items-center justify-center"><Plus className="h-4 w-4 stroke-[3]" /></button>
+                <button onClick={() => onAdd({...product, price: displayPrice, quantity: 1})} className="w-7 h-full flex items-center justify-center active:scale-90 transition-transform"><Plus className="h-4 w-4 stroke-[3]" /></button>
               </div>
             )
           ) : (
@@ -138,8 +139,8 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     const interval = setInterval(syncTime, 60000);
     
     const handleScroll = () => { 
-      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1200) {
-        setVisibleCount(p => p + 60);
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
+        setVisibleCount(p => p + 40);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -151,10 +152,10 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
     };
   }, []);
 
-  const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(2000)) : null, [firestore]);
-  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v2k_v4', initialData);
+  const productsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'products'), limit(1000)) : null, [firestore]);
+  const { data: dbProducts } = useCollection<any>(productsQuery, 'home_products_v4_stable', initialData);
   const vendorsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
-  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v2k_v4', initialStores);
+  const { data: vendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_stable', initialStores);
 
   const productsToDisplay = useMemo(() => {
     const list = (dbProducts && dbProducts.length > 0) ? dbProducts : initialData;
@@ -191,12 +192,16 @@ export function PopularProducts({ searchQuery = '', category = 'all', activeMode
   const handleShare = useCallback((e: React.MouseEvent, product: any) => {
     e.stopPropagation();
     const url = `${window.location.origin}/product/${product.slug || slugify(product.name)}`;
-    if (navigator.share) navigator.share({ title: product.name, url }).catch(() => {});
-    else { navigator.clipboard.writeText(url); toast({ title: "Link Copied! 🔗" }); }
+    if (navigator.share) {
+      navigator.share({ title: product.name, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+      toast({ title: "Link Copied! 🔗" });
+    }
   }, [toast]);
 
   return (
-    <div className="px-4 py-6 bg-white min-h-[800px]">
+    <div className="px-4 py-6 bg-white min-h-[600px] content-visibility-auto">
       <div className="flex items-center justify-between mb-6 px-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">Premium <span className="text-primary">Selection</span></h2>
         <Badge variant="outline" className="rounded-full border-primary/20 text-primary font-black uppercase text-[10px]">

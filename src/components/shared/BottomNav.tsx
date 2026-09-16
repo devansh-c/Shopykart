@@ -5,14 +5,14 @@ import { usePathname } from 'next/navigation';
 import { Map, ShoppingCart, User, Home, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/components/cart/CartProvider';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 
 /**
- * @fileOverview Fixed Bottom Navigation for ShopyKart.
- * Ensures Nav is always fixed to the bottom of the viewport.
+ * @fileOverview Optimized Fixed Bottom Navigation.
+ * Uses memoization and direct fixed positioning to prevent glitches and jumps.
  */
-export default function BottomNav() {
+const BottomNav = memo(() => {
   const pathname = usePathname();
   const { totalItems } = useCart();
   const [isMounted, setIsMounted] = useState(false);
@@ -43,7 +43,7 @@ export default function BottomNav() {
   if (!isMounted || isExcludedPath) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[999999] bg-white border-t border-black/[0.05] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-[999999] bg-white border-t border-black/[0.05] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] pb-safe transform-gpu">
       <nav className="max-w-lg mx-auto h-[68px] flex items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
@@ -53,27 +53,27 @@ export default function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90 group"
+              className="flex flex-col items-center justify-center flex-1 h-full transition-all relative active:scale-90 group outline-none"
             >
               <div className="relative">
                 {Icon && (
                   <Icon 
                     strokeWidth={isActive ? 3 : 2}
                     className={cn(
-                      "h-5 w-5 transition-all duration-300", 
+                      "h-5 w-5 transition-all duration-300 transform-gpu", 
                       isActive ? "text-primary scale-110" : "text-gray-900 opacity-60"
                     )} 
                   />
                 )}
                 {item.label === 'Cart' && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-primary text-white text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white shadow-md">
+                  <span className="absolute -top-1.5 -right-2 bg-primary text-white text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center border-2 border-white shadow-md animate-in zoom-in duration-300">
                     {totalItems}
                   </span>
                 )}
               </div>
               <span className={cn(
-                "text-[9px] font-black tracking-tighter mt-1.5 uppercase",
-                isActive ? "text-primary" : "text-gray-900 opacity-50"
+                "text-[9px] font-black tracking-tighter mt-1.5 uppercase transition-all transform-gpu",
+                isActive ? "text-primary translate-y-0.5" : "text-gray-900 opacity-50"
               )}>
                 {item.label}
               </span>
@@ -83,4 +83,7 @@ export default function BottomNav() {
       </nav>
     </div>
   );
-}
+});
+
+BottomNav.displayName = "BottomNav";
+export default BottomNav;

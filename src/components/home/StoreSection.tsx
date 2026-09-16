@@ -16,8 +16,7 @@ import {
 import { isStoreScheduleOpen } from "./PopularProducts"
 
 /**
- * @fileOverview StoreSection updated to remove Distance Matrix API.
- * Uses vendor profile's static delivery time for zero API overhead.
+ * @fileOverview StoreSection memoized to prevent lag during homepage scrolls.
  */
 export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] }: { activeMode?: string, initialData?: any[] }) => {
   const firestore = useFirestore();
@@ -46,10 +45,10 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
 
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'vendors'), limit(100));
+    return query(collection(firestore, 'vendors'), limit(50));
   }, [firestore]);
 
-  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_instant', initialData);
+  const { data: dbVendors } = useCollection<any>(vendorsQuery, 'home_vendors_v4_stable', initialData);
 
   const filteredVendors = React.useMemo(() => {
     const list = (dbVendors && dbVendors.length > 0) ? dbVendors : (initialData || []);
@@ -71,12 +70,12 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
   if (filteredVendors.length === 0) return null;
 
   return (
-    <div className="py-4 overflow-hidden bg-white">
+    <div className="py-4 overflow-hidden bg-white content-visibility-auto">
       <div className="flex items-center justify-between mb-4 px-6">
         <h2 className="text-xl font-black tracking-tighter uppercase italic text-gray-900 leading-none">
           Explore <span className="text-primary">Hub</span>
         </h2>
-        <button onClick={() => router.push('/stores/')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
+        <button onClick={() => router.push('/stores/')} className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1 active:scale-95 transition-all">VIEW ALL <ArrowRight className="h-3 w-3" /></button>
       </div>
 
       <Carousel className="w-full" opts={{ loop: true, align: 'center' }}>
@@ -96,7 +95,7 @@ export const StoreSection = React.memo(({ activeMode = 'Food', initialData = [] 
                     src={store.imageUrl || "https://picsum.photos/seed/store/400/300"} 
                     alt={store.storeName || "ShopyKart Store"} 
                     fill 
-                    className="object-cover" 
+                    className="object-cover transition-transform duration-500 group-hover:scale-105" 
                     unoptimized 
                   />
                 </div>
