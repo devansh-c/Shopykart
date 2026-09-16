@@ -1,9 +1,11 @@
+
 "use client"
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import { OfferSlider } from '@/components/home/OfferSlider';
 import { CategoryList } from '@/components/home/CategoryList';
@@ -15,38 +17,59 @@ import AnnouncementBanner from '@/components/home/AnnouncementBanner';
 interface HomeClientProps {
   initialBanners?: any[];
   initialCategories?: any[];
+  initialAnnouncement?: any;
   initialStores?: any[];
   initialProducts?: any[];
-  initialAnnouncement?: any;
 }
 
 /**
- * @fileOverview HomeClient - Simplified for Manual Selection Only.
- * Removed LocationPinPrompt.
+ * @fileOverview HomeClient - Updated to use URL Search Parameters for Mode/Category.
+ * This ensures the Back Button navigates through states instead of exiting the app.
  */
 export default function HomeClient({ 
   initialBanners, 
   initialCategories, 
+  initialAnnouncement, 
   initialStores, 
-  initialProducts,
-  initialAnnouncement
+  initialProducts 
 }: HomeClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [activeMode, setActiveMode] = useState('Food');
+
+  // Sync state with URL to create history entries
+  const activeMode = searchParams.get('mode') || 'Food';
+  const activeCategory = searchParams.get('cat') || 'all';
+
+  const updateUrlParam = useCallback((key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'all' || value === 'Food') {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    
+    // Reset category if mode changes
+    if (key === 'mode') {
+      params.delete('cat');
+    }
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    router.push(`${pathname}${query}`);
+  }, [router, searchParams, pathname]);
 
   const handleBackToFood = () => {
-    setActiveMode('Food');
-    setActiveCategory('all');
+    updateUrlParam('mode', 'Food');
   };
 
   const handleModeChange = (mode: string) => {
-    setActiveMode(mode);
-    setActiveCategory('all');
+    updateUrlParam('mode', mode);
   };
 
   const handleCategoryChange = (cat: string) => {
-    setActiveCategory(cat);
+    updateUrlParam('cat', cat);
   };
 
   return (

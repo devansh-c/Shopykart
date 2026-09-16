@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import HomeClient from '@/components/home/HomeClient';
 import { useFirestore } from '@/firebase';
@@ -8,15 +9,18 @@ import { collection, getDocs, query, limit, doc, getDoc } from 'firebase/firesto
 import { Loader2 } from 'lucide-react';
 import Loading from './loading';
 
+// Global cache to prevent "Loading..." flash during back navigation
+let globalDataCache: any = null;
+
 /**
  * @fileOverview Multi-App Router for APK Builds.
- * Restored Shimmer (Loading) for Customer App. Redirection for Portals.
+ * Now includes Suspense for searchParams handling and data caching.
  */
-export default function ShopyKartApp() {
+function ShopyKartAppContent() {
   const router = useRouter();
   const firestore = useFirestore();
-  const [initialData, setInitialData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialData, setInitialData] = useState<any>(globalDataCache);
+  const [loading, setLoading] = useState(!globalDataCache);
   const [appType, setAppType] = useState<'customer' | 'admin' | 'biz' | 'tow'>('customer');
 
   useEffect(() => {
@@ -36,7 +40,9 @@ export default function ShopyKartApp() {
       router.replace('/delivery/login');
     } else {
       setAppType('customer');
-      fetchData();
+      if (!globalDataCache) {
+        fetchData();
+      }
     }
   }, [router]);
 
@@ -56,13 +62,16 @@ export default function ShopyKartApp() {
         ...d.data()
       }));
 
-      setInitialData({
+      const data = {
         banners: sanitize(bannersSnap.docs),
         categories: sanitize(categoriesSnap.docs),
         announcement: announcementSnap.exists() ? { id: announcementSnap.id, ...announcementSnap.data() } : null,
         vendors: sanitize(vendorsSnap.docs),
         products: sanitize(productsSnap.docs)
-      });
+      };
+
+      globalDataCache = data;
+      setInitialData(data);
     } catch (e) {
       console.error("Initial data fetch error:", e);
       setInitialData({ banners: [], categories: [], announcement: null, vendors: [], products: [] });
@@ -71,12 +80,10 @@ export default function ShopyKartApp() {
     }
   }
 
-  // SHOW SHIMMER EFFECT FOR CUSTOMER APP
   if (appType === 'customer' && (loading || !initialData)) {
     return <Loading />;
   }
 
-  // SHOW LOADER FOR PORTAL REDIRECTS
   if (appType !== 'customer') {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -96,5 +103,13 @@ export default function ShopyKartApp() {
       initialStores={initialData.vendors}
       initialProducts={initialData.products}
     />
+  );
+}
+
+export default function ShopyKartApp() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <ShopyKartAppContent />
+    </Suspense>
   );
 }
