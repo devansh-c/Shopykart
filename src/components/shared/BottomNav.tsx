@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 /**
  * @fileOverview Premium Bottom Navigation - Fixed to Viewport.
- * Restored solid fixed positioning by removing transform-gpu from parent/self.
+ * Standard fixed positioning for consistent visibility across long pages.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -51,7 +51,6 @@ export default function BottomNav() {
         )}
       >
         {navItems.map((item) => {
-          // Robust active check
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
           const Icon = item.icon;
 
@@ -94,3 +93,4 @@ export default function BottomNav() {
     </div>
   );
 }
+

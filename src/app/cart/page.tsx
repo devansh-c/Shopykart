@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/components/cart/CartProvider';
@@ -22,7 +23,8 @@ import {
   Store,
   Clock,
   X,
-  ListTree
+  ListTree,
+  ArrowLeft
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -94,6 +96,10 @@ export default function CartPage() {
   const zoneRef = useMemoFirebase(() => (firestore && activeZoneId) ? doc(firestore, 'zones', activeZoneId) : null, [firestore, activeZoneId]);
   const { data: zoneData } = useDoc<any>(zoneRef);
   const deliveryFee = zoneData?.deliveryCharge || 0;
+  const minOrderValue = zoneData?.minOrder || 0;
+
+  // MOV CHECK: Compare item total (before fees) with zone min order
+  const isMinOrderMet = totalPrice >= minOrderValue;
 
   const totalPayable = useMemo(() => {
     let base = totalPrice + deliveryFee + deliveryTip;
@@ -103,7 +109,7 @@ export default function CartPage() {
   }, [totalPrice, deliveryFee, deliveryTip, isPremiumPacking, isRedeemCoins]);
 
   const finalizeOrder = async () => {
-    if (!user || !firestore || cart.length === 0 || hasClosedItems) {
+    if (!user || !firestore || cart.length === 0 || hasClosedItems || !isMinOrderMet) {
       setSliderOffset(0); return;
     }
     if (!recipientForm.name || recipientForm.phone.length !== 10 || !recipientForm.address) {
@@ -124,7 +130,8 @@ export default function CartPage() {
         deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
         deliveryFee,
         deliveryTip,
-        isPremiumPacking
+        isPremiumPacking,
+        zoneId: activeZoneId
       };
       await addDoc(collection(firestore, 'orders'), orderData);
       setShowSuccessOverlay(true);
@@ -133,12 +140,12 @@ export default function CartPage() {
   };
 
   // TOUCH EVENTS
-  const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
+  const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { if (!isDragging || !sliderRef.current) return; const diff = e.touches[0].clientX - startXRef.current; if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); };
   const handleTouchEnd = () => { if (!isDragging) return; setIsDragging(false); if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); else setSliderOffset(0); };
 
   // MOUSE EVENTS (FOR DESKTOP/LAPTOP)
-  const handleMouseDown = (e: React.MouseEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems) return; setIsDragging(true); startXRef.current = e.clientX; };
+  const handleMouseDown = (e: React.MouseEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems || !isMinOrderMet) return; setIsDragging(true); startXRef.current = e.clientX; };
   
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -169,8 +176,33 @@ export default function CartPage() {
 
   if (!isMounted) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
+  // EMPTY CART VIEW
+  if (cart.length === 0) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+        <div className="relative mb-8">
+           <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping opacity-20 scale-150" />
+           <div className="relative bg-white h-32 w-32 rounded-[3rem] flex items-center justify-center border-4 border-white shadow-2xl">
+              <ShoppingBag className="h-14 w-14 text-gray-200" />
+           </div>
+        </div>
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Your bag is<br /><span className="text-primary">Empty!</span></h2>
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-4 mb-10 max-w-[240px] leading-relaxed">
+          Looks like you haven't added anything to your cart yet.
+        </p>
+        <button 
+          onClick={() => router.push('/')}
+          className="h-16 px-10 bg-[#0B0B0B] text-white rounded-[2rem] font-black uppercase italic text-sm shadow-xl active:scale-95 transition-all flex items-center gap-3"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          START SHOPPING
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32 max-w-lg mx-auto border-x border-gray-100 shadow-sm">
+    <div className="min-h-screen bg-[#F9FAFB] pb-40 max-w-lg mx-auto border-x border-gray-100 shadow-sm">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       <header className="bg-white border-b py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90"><ChevronLeft className="h-6 w-6" /></button>
@@ -240,7 +272,7 @@ export default function CartPage() {
         </section>
 
         <div className="pt-8 pb-20">
-           {cart.length > 0 ? (
+           {cart.length > 0 && (
              <div className="space-y-4">
                 {hasClosedItems && (
                   <div className="bg-red-50 border-2 border-red-100 p-4 rounded-2xl flex items-center gap-3 animate-in shake duration-500">
@@ -248,14 +280,30 @@ export default function CartPage() {
                     <p className="text-[9px] font-bold text-red-800 uppercase leading-tight">Some stores in bag are CLOSED. Please remove items to proceed.</p>
                   </div>
                 )}
+                
+                {/* MIN ORDER WARNING */}
+                {!minOrderValue ? null : !isMinOrderMet && (
+                  <div className="bg-amber-50 border-2 border-amber-100 p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2">
+                    <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                    <div className="flex flex-col">
+                       <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">Min. Order Value required: ₹{minOrderValue}</p>
+                       <p className="text-[8px] font-bold text-amber-600 uppercase">Add items worth ₹{minOrderValue - totalPrice} more to place order.</p>
+                    </div>
+                  </div>
+                )}
+
                 <div 
                   ref={sliderRef} 
                   className={cn(
                     "w-full h-24 rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 transition-all duration-300", 
-                    hasClosedItems ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" : "bg-[#0B0B0B] border-white/5"
+                    (hasClosedItems || !isMinOrderMet) ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" : "bg-[#0B0B0B] border-white/5"
                   )}
                 >
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">{hasClosedItems ? 'STORE CLOSED' : 'SLIDE TO PLACE ORDER'}</span></div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">
+                        {hasClosedItems ? 'STORE CLOSED' : !isMinOrderMet ? 'MIN ORDER REQUIRED' : 'SLIDE TO PLACE ORDER'}
+                      </span>
+                    </div>
                     <div className="absolute inset-y-0 left-0 opacity-20 pointer-events-none bg-primary" style={{ width: `${sliderOffset + 80}px` }} />
                     <div 
                       onMouseDown={handleMouseDown}
@@ -265,7 +313,7 @@ export default function CartPage() {
                       style={{ transform: `translateX(${sliderOffset}px)` }} 
                       className={cn(
                         "h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl z-10 transition-transform bg-white text-primary cursor-grab active:cursor-grabbing", 
-                        hasClosedItems && "bg-gray-300"
+                        (hasClosedItems || !isMinOrderMet) && "bg-gray-300"
                       )}
                     >
                       <ArrowRight className="h-8 w-8 stroke-[3]" />
@@ -274,8 +322,6 @@ export default function CartPage() {
                     {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 </div>
              </div>
-           ) : (
-             <div className="w-full h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center border-2 border-dashed border-gray-200"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">BAG IS EMPTY</p></div>
            )}
         </div>
       </main>
@@ -294,3 +340,4 @@ export default function CartPage() {
     </div>
   );
 }
+

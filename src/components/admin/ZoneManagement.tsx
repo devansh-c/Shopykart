@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -202,7 +203,7 @@ export default function ZoneManagement() {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-xl font-black italic uppercase text-gray-800">Map Zone Control</h2>
-          <p className="text-xs text-muted-foreground font-bold">Define precise delivery boundaries</p>
+          <p className="text-xs text-muted-foreground font-bold">Define boundaries & Min. Order Values</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={(val) => { setIsAddOpen(val); if(!val) resetForm(); }}>
           <DialogTrigger asChild>
@@ -250,8 +251,8 @@ export default function ZoneManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Min. Order (₹)</label>
-                    <Input type="number" value={formData.minOrder} onChange={e => setFormData({...formData, minOrder: e.target.value})} className="h-12 rounded-xl font-bold" />
+                    <label className="text-[10px] font-black uppercase text-primary ml-1">Min. Order Value (₹) *</label>
+                    <Input type="number" value={formData.minOrder} onChange={e => setFormData({...formData, minOrder: e.target.value})} className="h-12 rounded-xl font-black italic bg-primary/5 border-primary/20" />
                  </div>
                  <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Delivery Fee (₹)</label>
@@ -269,7 +270,7 @@ export default function ZoneManagement() {
             </div>
 
             <div className="p-6 bg-muted/5 border-t">
-               <Button onClick={handleSave} className="w-full bg-primary h-16 rounded-[2rem] font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
+               <Button onClick={handleSave} className="w-full h-16 rounded-[2rem] bg-primary h-16 rounded-[2rem] font-black uppercase italic shadow-xl shadow-primary/20 text-lg">
                  {editingId ? 'UPDATE BOUNDARY' : 'SAVE MAP ZONE'}
                </Button>
             </div>
@@ -397,3 +398,4 @@ export default function ZoneManagement() {
     </div>
   );
 }
+
