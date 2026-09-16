@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, query, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
 import { 
   Package, 
   User, 
@@ -106,7 +107,7 @@ export default function OrderManagement() {
           <div style="border-top: 2px dashed #000; margin: 15px 0;"></div>
         </div>
         <div style="margin-bottom: 25px; font-size: 11px; font-weight: 800;">
-          <div style="display: flex; justify-content: space-between;"><span>ORDER:</span><span>#${order.customerOrderNumber}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>ORDER:</span><span>#${order.customerOrderNumber || '1'}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>DATE:</span><span>${orderDate}</span></div>
           <div style="display: flex; justify-content: space-between;"><span>USER:</span><span>${order.customerName}</span></div>
         </div>

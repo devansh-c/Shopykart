@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   },
   trailingSlash: false,
   staticPageGenerationTimeout: 600,
+  // No experimental flags to ensure maximum server stability
 };
 
 export default nextConfig;
