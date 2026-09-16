@@ -9,8 +9,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 
 /**
- * @fileOverview Premium Bottom Navigation - Always Visible for Customers.
- * Fixed: Removed scroll-hide logic and adjusted paths for 100% reliability.
+ * @fileOverview Premium Bottom Navigation - Fixed to Viewport.
+ * Restored solid fixed positioning by removing transform-gpu from parent/self.
  */
 export default function BottomNav() {
   const pathname = usePathname();
@@ -43,7 +43,7 @@ export default function BottomNav() {
   if (!isMounted || isExcludedPath) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] flex justify-center w-full px-4 max-w-sm pointer-events-none transform-gpu">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] flex justify-center w-full px-4 max-w-sm pointer-events-none">
       <nav 
         className={cn(
           "w-full h-[68px] rounded-full flex items-center justify-around px-2 pointer-events-auto",

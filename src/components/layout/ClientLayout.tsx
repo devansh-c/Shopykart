@@ -114,7 +114,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           <PermissionManager />
           
           <AuthGuard>
-            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 transform-gpu">
+            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100">
               <main className={cn("flex-1", !isExcludedPath && "pb-32")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />
