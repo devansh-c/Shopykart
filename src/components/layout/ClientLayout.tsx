@@ -109,13 +109,13 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <FirebaseClientProvider>
       <CartProvider>
-        <div className="relative min-h-screen flex flex-col">
+        <div className="relative min-h-screen flex flex-col bg-[#F3F4F6] md:bg-gray-100 overflow-x-hidden">
           <BrandingLoader />
           <FirebaseErrorListener />
           <PermissionManager />
           
           <AuthGuard>
-            <div className="relative min-h-screen flex flex-col">
+            <div className="relative min-h-screen flex flex-col max-w-lg mx-auto w-full bg-white shadow-2xl border-x border-gray-100 transform-gpu">
               <main className={cn("flex-1", !isExcludedPath && "pb-44")}>
                 {!isExcludedPath && <LocationRequest />}
                 <NotificationHandler />

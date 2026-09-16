@@ -35,8 +35,6 @@ import { OrderSuccessOverlay } from '@/components/cart/OrderSuccessOverlay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { isStoreScheduleOpen } from '@/components/home/PopularProducts';
 
 export default function CartPage() {
@@ -56,11 +54,9 @@ export default function CartPage() {
   
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [recipientForm, setRecipientForm] = useState({ name: '', phone: '', address: '' });
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [deliveryTip, setDeliveryTip] = useState(0);
 
+  // Interaction States
   const [sliderOffset, setSliderOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -102,13 +98,9 @@ export default function CartPage() {
   const totalPayable = useMemo(() => {
     let base = totalPrice + deliveryFee + deliveryTip;
     if (isPremiumPacking) base += 10;
-    if (appliedCoupon) {
-      const disc = appliedCoupon.discountType === 'percentage' ? (totalPrice * (appliedCoupon.discountValue / 100)) : appliedCoupon.discountValue;
-      base -= disc;
-    }
     if (isRedeemCoins) base -= 5;
     return Math.max(0, base);
-  }, [totalPrice, deliveryFee, deliveryTip, isPremiumPacking, appliedCoupon, isRedeemCoins]);
+  }, [totalPrice, deliveryFee, deliveryTip, isPremiumPacking, isRedeemCoins]);
 
   const finalizeOrder = async () => {
     if (!user || !firestore || cart.length === 0 || hasClosedItems) {
@@ -129,7 +121,10 @@ export default function CartPage() {
         status: 'Placed',
         createdAt: serverTimestamp(),
         restaurantName: cart[0]?.restaurantName || 'ShopyKart',
-        deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString()
+        deliveryOTP: Math.floor(100000 + Math.random() * 900000).toString(),
+        deliveryFee,
+        deliveryTip,
+        isPremiumPacking
       };
       await addDoc(collection(firestore, 'orders'), orderData);
       setShowSuccessOverlay(true);
@@ -137,21 +132,52 @@ export default function CartPage() {
     } catch (e) { setIsPlacing(false); setSliderOffset(0); }
   };
 
+  // TOUCH EVENTS
   const handleTouchStart = (e: React.TouchEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems) return; setIsDragging(true); startXRef.current = e.touches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { if (!isDragging || !sliderRef.current) return; const diff = e.touches[0].clientX - startXRef.current; if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80)); };
   const handleTouchEnd = () => { if (!isDragging) return; setIsDragging(false); if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) finalizeOrder(); else setSliderOffset(0); };
 
+  // MOUSE EVENTS (FOR DESKTOP/LAPTOP)
+  const handleMouseDown = (e: React.MouseEvent) => { if (isPlacing || cart.length === 0 || hasClosedItems) return; setIsDragging(true); startXRef.current = e.clientX; };
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !sliderRef.current) return;
+      const diff = e.clientX - startXRef.current;
+      if (diff > 0) setSliderOffset(Math.min(diff, sliderRef.current.offsetWidth - 80));
+    };
+
+    const handleMouseUp = () => {
+      if (!isDragging) return;
+      setIsDragging(false);
+      if (sliderOffset > (sliderRef.current?.offsetWidth || 0) * 0.75) {
+        finalizeOrder();
+      } else {
+        setSliderOffset(0);
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, sliderOffset]);
+
   if (!isMounted) return <div className="h-screen bg-white flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32">
+    <div className="min-h-screen bg-[#F9FAFB] pb-32 max-w-lg mx-auto border-x border-gray-100 shadow-sm">
       <OrderSuccessOverlay isVisible={showSuccessOverlay} />
       <header className="bg-white border-b py-4 px-6 sticky top-0 z-[100] flex items-center gap-4 shadow-sm">
         <button onClick={() => router.back()} className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 active:scale-90"><ChevronLeft className="h-6 w-6" /></button>
         <h1 className="text-sm font-black uppercase italic tracking-widest">CHECKOUT</h1>
       </header>
 
-      <main className="px-4 pt-6 space-y-6 max-w-lg mx-auto">
+      <main className="px-4 pt-6 space-y-6">
         <section className="bg-[#1C1917] rounded-[2.5rem] p-6 text-white shadow-2xl">
            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
@@ -173,7 +199,12 @@ export default function CartPage() {
                    </div>
                    <div className="flex-1 min-w-0">
                       <h4 className="text-[11px] font-black uppercase truncate leading-tight">{item.name}</h4>
-                      {item.selectedOption && <p className="text-[8px] font-black text-amber-400 uppercase">{item.selectedOption.name}</p>}
+                      {item.selectedOption && (
+                        <div className="flex items-center gap-1 mt-1 text-primary">
+                          <ListTree className="h-2 w-2" />
+                          <span className="text-[7px] font-black uppercase tracking-widest">{item.selectedOption.name}</span>
+                        </div>
+                      )}
                       <div className="flex items-center mt-2 bg-white/5 w-fit rounded-lg px-2 py-1">
                          <button onClick={() => removeFromCart(item.id)} className="text-amber-400 active:scale-75"><Minus className="h-3 w-3" /></button>
                          <span className="mx-2 text-[10px] font-black">{item.quantity}</span>
@@ -217,10 +248,28 @@ export default function CartPage() {
                     <p className="text-[9px] font-bold text-red-800 uppercase leading-tight">Some stores in bag are CLOSED. Please remove items to proceed.</p>
                   </div>
                 )}
-                <div ref={sliderRef} className={cn("w-full h-24 rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4", hasClosedItems ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" : "bg-[#0B0B0B] border-white/5")}>
+                <div 
+                  ref={sliderRef} 
+                  className={cn(
+                    "w-full h-24 rounded-[2.5rem] p-3 flex items-center relative shadow-2xl overflow-hidden select-none border-t-4 transition-all duration-300", 
+                    hasClosedItems ? "bg-gray-200 border-gray-300 opacity-50 grayscale cursor-not-allowed" : "bg-[#0B0B0B] border-white/5"
+                  )}
+                >
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="text-[10px] font-black uppercase italic tracking-[0.4em] text-white/20">{hasClosedItems ? 'STORE CLOSED' : 'SLIDE TO PLACE ORDER'}</span></div>
                     <div className="absolute inset-y-0 left-0 opacity-20 pointer-events-none bg-primary" style={{ width: `${sliderOffset + 80}px` }} />
-                    <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ transform: `translateX(${sliderOffset}px)` }} className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl z-10 transition-transform bg-white text-primary cursor-grab", hasClosedItems && "bg-gray-300")}><ArrowRight className="h-8 w-8 stroke-[3]" /></div>
+                    <div 
+                      onMouseDown={handleMouseDown}
+                      onTouchStart={handleTouchStart} 
+                      onTouchMove={handleTouchMove} 
+                      onTouchEnd={handleTouchEnd} 
+                      style={{ transform: `translateX(${sliderOffset}px)` }} 
+                      className={cn(
+                        "h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl z-10 transition-transform bg-white text-primary cursor-grab active:cursor-grabbing", 
+                        hasClosedItems && "bg-gray-300"
+                      )}
+                    >
+                      <ArrowRight className="h-8 w-8 stroke-[3]" />
+                    </div>
                     <div className="flex-1 text-right pr-8 relative z-10"><div className="text-[9px] font-black uppercase tracking-widest text-primary opacity-60">Payable Amount</div><div className="text-3xl font-black italic text-white tracking-tighter leading-none mt-1">₹{totalPayable.toFixed(0)}</div></div>
                     {isPlacing && <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 </div>
