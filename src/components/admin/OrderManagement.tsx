@@ -62,11 +62,8 @@ export default function OrderManagement() {
 
   const handleCancelOrder = async (id: string) => {
     if (!firestore) return;
-    if (confirm("Are you sure you want to CANCEL this order?")) {
-      await updateDoc(doc(firestore, 'orders', id), {
-        status: 'Cancelled',
-        updatedAt: serverTimestamp()
-      });
+    if (confirm("Are you sure?")) {
+      await updateDoc(doc(firestore, 'orders', id), { status: 'Cancelled', updatedAt: serverTimestamp() });
       toast({ title: "Order Cancelled" });
     }
   };
@@ -89,65 +86,40 @@ export default function OrderManagement() {
       const orderDate = format(new Date(order.createdAt?.seconds * 1000 || Date.now()), 'dd MMM yyyy, hh:mm a');
       
       const itemsHtml = order.items?.map((item: any) => `
-        <div style="margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 800;">
+        <div style="margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 900;">
             <span style="flex: 2;">${item.name}</span>
             <span style="flex: 0.5; text-align: center;">X${item.quantity}</span>
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
-          ${item.selectedOption ? `<div style="font-size: 9px; color: #000; font-weight: 900; margin-top: 1px;">• VARIETY: ${item.selectedOption.name}</div>` : ''}
-          <div style="font-size: 8px; color: #555; font-weight: 700; margin-top: 2px;">FROM: ${item.restaurantName || 'PARTNER STORE'}</div>
+          ${item.selectedOption ? `<div style="font-size: 9px; color: #EF4444; font-weight: 900; margin-top: 2px;">VARIETY: ${item.selectedOption.name}</div>` : ''}
         </div>
       `).join('');
 
-      let taxHtml = '';
-      if (order.deliveryFee > 0) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
-      if (order.chargesBreakdown) {
-        order.chargesBreakdown.forEach((c: any) => {
-          taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>${c.name}:</span><span>₹${c.value.toFixed(2)}</span></div>`;
-        });
-      }
-      if (order.isPremiumPacking) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>PREMIUM PACKING:</span><span>₹10.00</span></div>`;
-      if (order.deliveryTip > 0) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY TIP:</span><span>₹${order.deliveryTip.toFixed(2)}</span></div>`;
-      if (order.redeemCoins) taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #16a34a;"><span>COINS REDEEMED:</span><span>- ₹5.00</span></div>`;
-
-      // Centered QR Code with Exact Amount
       const upiUrl = `upi://pay?pa=9450355709@axl&pn=ShopyKart&am=${order.total?.toFixed(2)}&cu=INR`;
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
 
       receipt.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
-          <h1 style="margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; font-style: italic;">SHOPYKART</h1>
-          <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY NETWORK</p>
-          <div style="border-top: 1.5px dashed #000; margin: 15px auto 0; width: 100%;"></div>
+          <h1 style="margin: 0; font-size: 38px; font-weight: 900; font-style: italic;">SHOPYKART</h1>
+          <p style="margin: 2px 0; font-size: 10px; font-weight: 900; letter-spacing: 2px;">PREMIUM DELIVERY</p>
+          <div style="border-top: 2px dashed #000; margin: 15px 0;"></div>
         </div>
-        <div style="margin-bottom: 25px; line-height: 1.8; font-size: 11px; font-weight: 800;">
-          <div style="display: flex; justify-content: space-between;"><span>ORDER NO:</span><span>#${order.customerOrderNumber || '1'}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>TIME:</span><span>${orderDate}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>CUSTOMER:</span><span>${order.customerName}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>PHONE:</span><span>${order.customerPhone || 'N/A'}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span>ADDRESS:</span><span style="text-align: right; max-width: 200px;">${order.address}</span></div>
+        <div style="margin-bottom: 25px; font-size: 11px; font-weight: 800;">
+          <div style="display: flex; justify-content: space-between;"><span>ORDER:</span><span>#${order.customerOrderNumber}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>DATE:</span><span>${orderDate}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>USER:</span><span>${order.customerName}</span></div>
         </div>
-        <div style="border-top: 1.5px dashed #000; margin-bottom: 15px;"></div>
         <div>${itemsHtml}</div>
-        <div style="border-top: 1.5px dashed #000; margin: 15px 0; padding-top: 10px; font-size: 9px;">
-          <div style="font-weight: 900; margin-bottom: 5px;">TAX & EXTRA CHARGES:</div>
-          ${taxHtml || '<div>NO EXTRA CHARGES</div>'}
+        <div style="border-top: 2px solid #000; margin: 20px 0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 24px; font-weight: 900; font-style: italic;">
+          <span>TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
         </div>
-        <div style="border-top: 2px solid #000; margin: 15px 0;"></div>
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; font-style: italic;">
-          <span>GRAND TOTAL</span><span>₹${order.total?.toFixed(2)}</span>
+        <div style="text-align: center; margin: 30px 0; padding: 20px; border: 2px dashed #000; border-radius: 25px;">
+           <p style="font-size: 10px; font-weight: 900; margin-bottom: 15px;">SCAN TO PAY EXACT AMOUNT</p>
+           <img src="${qrUrl}" style="width: 180px; height: 180px; margin: 0 auto; display: block;" />
+           <p style="font-size: 9px; font-weight: 900; margin-top: 15px;">9450355709@axl</p>
         </div>
-        
-        <div style="text-align: center; margin-top: 30px; padding: 20px; border: 2px dashed #000; border-radius: 25px; background: #fafafa;">
-           <p style="font-size: 9px; font-weight: 900; margin-bottom: 15px; letter-spacing: 1px;">SCAN TO PAY EXACT AMOUNT</p>
-           <img src="${qrUrl}" style="width: 150px; height: 150px; margin: 0 auto; display: block;" />
-           <p style="font-size: 8px; font-weight: 800; margin-top: 12px; color: #555;">ID: 9450355709@axl</p>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px;">
-          <div style="border: 1.5px solid #000; display: inline-block; padding: 6px 20px; font-size: 11px; font-weight: 900; letter-spacing: 2px;">POWERED BY SHOPYKART</div>
-        </div>
+        <div style="text-align: center; font-size: 10px; font-weight: 900; margin-top: 40px; border: 2px solid #000; padding: 10px;">POWERED BY SHOPYKART</div>
       `;
       
       document.body.appendChild(receipt);
@@ -155,105 +127,67 @@ export default function OrderManagement() {
       document.body.removeChild(receipt);
       
       if (blob && typeof saveAs === 'function') {
-        saveAs(blob, `Receipt_${order.customerOrderNumber}.png`);
-        toast({ title: "Receipt Saved! ✅" });
+        saveAs(blob, `Bill_${order.customerOrderNumber}.png`);
+        toast({ title: "Receipt Saved!" });
       }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Download Failed" });
-    } finally {
-      setIsDownloading(null);
-    }
+    } catch (err) { toast({ variant: "destructive", title: "Failed" }); }
+    finally { setIsDownloading(null); }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6 pb-32">
-      <div className="flex items-center justify-between px-2">
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter">ORDER LOGISTICS</h2>
-        <Badge variant="outline" className="rounded-full border-primary text-primary font-black uppercase tracking-widest">{orders?.length || 0} TOTAL</Badge>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-        {orders?.map((order: any) => {
-          const isCancelled = order.status === 'Cancelled';
-          const isDelivered = order.status === 'Delivered';
-
-          return (
-            <div key={order.id} className={cn(
-              "bg-white rounded-[3rem] p-6 border-2 transition-all relative overflow-hidden",
-              isCancelled ? "border-red-100 opacity-60" : "border-border shadow-sm hover:shadow-xl"
-            )}>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                 <div className="flex items-center gap-4">
-                    <div className={cn("h-16 w-16 rounded-[1.25rem] flex items-center justify-center border-2 shrink-0", isCancelled ? "bg-red-50 text-red-500" : "bg-primary/5 text-primary")}>
-                       <Package className="h-8 w-8" />
-                    </div>
-                    <div>
-                       <h3 className="font-black text-2xl italic uppercase tracking-tighter">ORDER #{order.customerOrderNumber || '...'}</h3>
-                       <Badge className={cn("border-none text-[8px] font-black uppercase px-2 py-0.5 rounded-full mt-1", isCancelled ? "bg-red-500 text-white" : "bg-primary text-white animate-pulse")}>{order.status}</Badge>
-                    </div>
-                 </div>
-                 <div className="flex gap-2">
-                    {order.customerPhone && (
-                      <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-12 w-12 rounded-2xl bg-green-500 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
-                        <PhoneCall className="h-6 w-6" />
-                      </button>
-                    )}
-                    <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-blue-600 shadow-sm hover:bg-blue-50 transition-colors" title="Download Receipt"><FileText className="h-6 w-6" /></button>
-                    {!isCancelled && !isDelivered && (
-                      <button onClick={() => handleCancelOrder(order.id)} className="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm hover:bg-red-100 transition-colors" title="Cancel Order"><XCircle className="h-6 w-6" /></button>
-                    )}
-                 </div>
-              </div>
-
-              <div className="bg-gray-50 p-6 rounded-[2rem] border border-border shadow-inner mb-6 relative">
-                 <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                       <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border shrink-0"><User className="h-6 w-6" /></div>
-                       <div className="min-w-0">
-                          <span className="font-black text-xl italic uppercase tracking-tighter truncate block text-gray-900">{order.customerName}</span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{order.customerPhone || 'NO PHONE'}</span>
-                       </div>
-                    </div>
-                    {order.customerPhone && (
-                      <button onClick={() => window.open(`https://wa.me/91${order.customerPhone}`)} className="p-3 bg-green-50 text-green-600 rounded-xl active:scale-90 transition-all border border-green-100">
-                        <MessageSquare className="h-5 w-5" />
-                      </button>
-                    )}
-                 </div>
-
-                 <div className="space-y-4 mb-6">
-                    {order.items?.map((item: any, i: number) => (
-                      <div key={i} className="border-b border-white pb-3 last:border-0">
-                         <div className="flex justify-between items-center text-sm font-black italic">
-                            <span className="text-gray-900 leading-tight"><span className="text-primary">{item.quantity}x</span> {item.name}</span>
-                            <span className="text-primary shrink-0 ml-4">₹{(item.price * item.quantity).toFixed(0)}</span>
-                         </div>
-                         {item.selectedOption && (
-                           <div className="flex items-center gap-1.5 mt-1.5">
-                              <ListTree className="h-3 w-3 text-gray-400" />
-                              <span className="text-[9px] font-black uppercase text-gray-500 tracking-widest bg-white px-2 py-0.5 rounded border border-gray-100">VARIETY: {item.selectedOption.name}</span>
-                           </div>
-                         )}
-                      </div>
-                    ))}
-                 </div>
-
-                 <div className="flex items-start gap-3 pt-3 border-t border-dashed border-gray-300">
-                    <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[10px] font-bold text-gray-600 uppercase leading-relaxed tracking-tight italic">{order.address}</p>
-                 </div>
-              </div>
-
-              <div className="flex gap-3">
-                 <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={isDelivered || isCancelled} className="flex-1 h-16 bg-[#0B0B0B] hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl transition-all active:scale-95">
-                    UPDATE STATUS
-                 </Button>
-              </div>
+      <div className="grid grid-cols-1 gap-6">
+        {orders?.map((order: any) => (
+          <div key={order.id} className="bg-white rounded-[2.5rem] p-6 border-2 border-border shadow-sm hover:shadow-xl transition-all relative overflow-hidden">
+            <div className="flex justify-between items-center mb-6">
+               <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border-2 border-primary/10"><Package className="h-7 w-7" /></div>
+                  <div>
+                    <h3 className="font-black text-xl italic uppercase tracking-tighter">Order #{order.customerOrderNumber}</h3>
+                    <Badge className="bg-primary text-white text-[8px] uppercase font-black px-2 mt-1">{order.status}</Badge>
+                  </div>
+               </div>
+               <div className="flex gap-2">
+                  <button onClick={() => generateReceipt(order)} disabled={isDownloading === order.id} className="h-11 w-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 transition-all"><FileText className="h-5 w-5" /></button>
+                  <button onClick={() => window.open(`tel:${order.customerPhone}`)} className="h-11 w-11 bg-green-500 text-white rounded-xl flex items-center justify-center active:scale-90 transition-all"><PhoneCall className="h-5 w-5" /></button>
+                  {order.status === 'Placed' && <button onClick={() => handleCancelOrder(order.id)} className="h-11 w-11 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all"><XCircle className="h-5 w-5" /></button>}
+               </div>
             </div>
-          );
-        })}
+
+            <div className="bg-muted/30 rounded-[2rem] p-5 mb-6 space-y-4">
+               <div className="flex items-center gap-3 border-b border-white pb-3 mb-1">
+                  <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-sm text-primary"><User className="h-4 w-4" /></div>
+                  <span className="text-sm font-black uppercase italic truncate">{order.customerName}</span>
+               </div>
+               <div className="space-y-3">
+                  {order.items?.map((item: any, i: number) => (
+                    <div key={i} className="flex flex-col gap-1 border-b border-white/50 pb-2 last:border-0">
+                       <div className="flex justify-between text-xs font-black italic">
+                          <span>{item.quantity}x {item.name}</span>
+                          <span>₹{(item.price * item.quantity).toFixed(0)}</span>
+                       </div>
+                       {item.selectedOption && (
+                         <div className="flex items-center gap-1.5 text-primary">
+                            <ListTree className="h-3 w-3" />
+                            <span className="text-[9px] font-black uppercase tracking-widest bg-white px-2 py-0.5 rounded shadow-inner">VARIETY: {item.selectedOption.name}</span>
+                         </div>
+                       )}
+                    </div>
+                  ))}
+               </div>
+               <div className="flex justify-between items-center pt-2 font-black italic text-lg text-gray-900">
+                  <span>Grand Total</span>
+                  <span>₹{order.total?.toFixed(0)}</span>
+               </div>
+            </div>
+
+            <div className="flex gap-2">
+               <Button onClick={() => handleNextStatus(order.id, order.status)} disabled={['Delivered', 'Cancelled'].includes(order.status)} className="flex-1 h-14 bg-black hover:bg-primary text-white rounded-2xl font-black uppercase italic shadow-xl">NEXT STATUS</Button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

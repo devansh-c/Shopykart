@@ -15,13 +15,6 @@ const nextConfig: NextConfig = {
   },
   trailingSlash: false,
   staticPageGenerationTimeout: 600,
-  // Fix for workstation cross-origin warnings
-  experimental: {
-    allowedDevOrigins: [
-      '6000-firebase-studio-1778365071705.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev',
-      '9002-firebase-studio-1778365071705.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev'
-    ]
-  }
 };
 
 export default nextConfig;
