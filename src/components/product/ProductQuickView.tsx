@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -41,10 +40,11 @@ interface ProductQuickViewProps {
 }
 
 /**
- * @fileOverview Enhanced ProductQuickView with Premium Variety Selection.
+ * @fileOverview Enhanced ProductQuickView with Persistent Footer and Overflow handling.
+ * Optimized for mobile bottom-sheet feel with guaranteed button visibility.
  */
 export function ProductQuickView({ product, children, isMedical, globalOffer, vendorScheduleOpen }: ProductQuickViewProps) {
-  const { cart, addToCart, isInWishlist, toggleWishlist } = useCart();
+  const { cart, addToCart } = useCart();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -59,7 +59,6 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   const scheduleOpen = vendorScheduleOpen !== undefined ? vendorScheduleOpen : isStoreScheduleOpen(vendor);
   const isOffline = (vendor?.isOnline === false) || !scheduleOpen;
 
-  // GUEST DISCOUNT: ₹10 off if not logged in
   const displayBasePrice = !user ? Math.max(0, (product.price || 0) - 10) : (product.price || 0);
 
   const currentPrice = useMemo(() => {
@@ -94,79 +93,93 @@ export function ProductQuickView({ product, children, isMedical, globalOffer, ve
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[11000] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="font-black italic uppercase text-center text-xl">{product.name}</DialogTitle>
-          <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Customize and Add to Bag</DialogDescription>
-        </DialogHeader>
-        <div className="bg-white max-h-[90vh] overflow-y-auto no-scrollbar pb-32">
-          <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white shadow-lg border flex items-center justify-center text-gray-400 z-50"><X className="h-4 w-4" /></button>
-          <div className="p-6 pt-4 flex gap-4">
-             <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-muted border shadow-sm">
-                <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-                {!user && !isOffline && <div className="absolute top-1 left-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-lg">₹10 OFF</div>}
-             </div>
-             <div className="flex-1 min-w-0">
-                <h3 className="font-black text-xl text-gray-900 italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                   <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic">{product.restaurantName || 'ShopyKart Store'}</p>
-                   {product.preparingTime && (
-                     <Badge className="bg-green-100 text-green-700 border-none font-black text-[7px] uppercase px-1.5 py-0">
-                        <Timer className="h-2 w-2 mr-1" /> READY IN {product.preparingTime}M
-                     </Badge>
-                   )}
+      <DialogContent className="rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl z-[1000001] bottom-0 top-auto translate-y-0 sm:top-[50%] sm:translate-y-[-50%] focus:outline-none h-[85vh] sm:h-auto">
+        <div className="flex flex-col h-full bg-white relative">
+          
+          <DialogHeader className="p-6 pb-2 shrink-0 border-b border-gray-50">
+            <DialogTitle className="font-black italic uppercase text-center text-xl tracking-tighter">{product.name}</DialogTitle>
+            <DialogDescription className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Customize and Add to Bag</DialogDescription>
+            <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 z-50 active:scale-90 transition-transform"><X className="h-4 w-4" /></button>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+            <div className="p-6 pt-4 flex gap-4 border-b border-dashed border-gray-100">
+               <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted border shadow-sm shrink-0">
+                  <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+                  {!user && !isOffline && <div className="absolute top-1 left-1 bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-lg">₹10 OFF</div>}
+               </div>
+               <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-lg text-gray-900 italic uppercase tracking-tighter leading-tight line-clamp-2">{product.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                     <p className="text-[9px] font-black text-green-600 uppercase tracking-widest italic">{product.restaurantName || 'ShopyKart Store'}</p>
+                     {product.preparingTime && (
+                       <Badge className="bg-green-100 text-green-700 border-none font-black text-[7px] uppercase px-1.5 py-0">
+                          <Timer className="h-2 w-2 mr-1" /> READY IN {product.preparingTime}M
+                       </Badge>
+                     )}
+                  </div>
+                  <div className="text-2xl font-black text-gray-900 italic tracking-tighter mt-1">₹ {currentPrice.toFixed(0)}</div>
+               </div>
+            </div>
+
+            <div className="px-6 py-6 space-y-6">
+              {product.description && <p className="text-[11px] font-medium text-muted-foreground italic leading-relaxed">{product.description}</p>}
+              
+              {product.options && product.options.length > 0 && (
+                <div className="space-y-4 pt-2 bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5 shadow-inner">
+                   <div className="flex items-center gap-2">
+                      <ListTree className="h-4 w-4 text-primary" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Variety {product.isVarietyRequired && <span className="text-primary font-black ml-1">(REQUIRED)</span>}</span>
+                   </div>
+                   <div className="grid grid-cols-1 gap-3">
+                      {product.options.map((opt: any, idx: number) => (
+                        <button 
+                          key={idx}
+                          onClick={() => setSelectedOption(opt)}
+                          className={cn(
+                            "flex items-center justify-between p-5 rounded-[1.75rem] border-2 transition-all active:scale-[0.98]",
+                            selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
+                          )}
+                        >
+                          <div className="flex items-center gap-4">
+                             <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-white/20")}>
+                                {selectedOption?.name === opt.name && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                             </div>
+                             <span className={cn("text-xs font-black uppercase italic tracking-widest", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
+                          </div>
+                          <span className="text-base font-black italic text-primary">₹ {opt.price}</span>
+                        </button>
+                      ))}
+                   </div>
                 </div>
-                <div className="text-2xl font-black text-gray-900 italic tracking-tighter mt-2">₹ {currentPrice.toFixed(0)}</div>
-             </div>
+              )}
+
+              {!isMedical && (
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Cooking Instructions</label>
+                  <Textarea 
+                    disabled={isOffline} 
+                    placeholder="e.g. no onion, extra spicy..." 
+                    value={instructions} 
+                    onChange={e => setInstructions(e.target.value)} 
+                    className="rounded-2xl bg-gray-50 border-none text-xs min-h-[100px] p-4 focus-visible:ring-1 focus-visible:ring-primary/20" 
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="px-6 py-4 space-y-4">
-            {product.description && <p className="text-[11px] font-medium text-muted-foreground italic leading-relaxed">{product.description}</p>}
-            
-            {/* VARIETY SELECTION BLOCK - ENHANCED VISIBILITY */}
-            {product.options && product.options.length > 0 && (
-              <div className="space-y-4 pt-2 bg-[#0B0B0B] p-6 rounded-[2rem] border border-white/5 shadow-inner">
-                 <div className="flex items-center gap-2">
-                    <ListTree className="h-4 w-4 text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Available Sizes / Varieties {product.isVarietyRequired && <span className="text-primary font-black ml-1">(REQUIRED)</span>}</span>
-                 </div>
-                 <div className="grid grid-cols-1 gap-3">
-                    {product.options.map((opt: any, idx: number) => (
-                      <button 
-                        key={idx}
-                        onClick={() => setSelectedOption(opt)}
-                        className={cn(
-                          "flex items-center justify-between p-5 rounded-[1.75rem] border-2 transition-all active:scale-[0.98]",
-                          selectedOption?.name === opt.name ? "border-primary bg-primary/10" : "border-white/5 bg-white/5"
-                        )}
-                      >
-                        <div className="flex items-center gap-4">
-                           <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", selectedOption?.name === opt.name ? "border-primary" : "border-white/20")}>
-                              {selectedOption?.name === opt.name && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                           </div>
-                           <span className={cn("text-xs font-black uppercase italic tracking-widest", selectedOption?.name === opt.name ? "text-white" : "text-gray-400")}>{opt.name}</span>
-                        </div>
-                        <span className="text-base font-black italic text-primary">₹ {opt.price}</span>
-                      </button>
-                    ))}
-                 </div>
-              </div>
-            )}
-
-            {!isMedical && <Textarea disabled={isOffline} placeholder="Special instructions (e.g. no onion)..." value={instructions} onChange={e => setInstructions(e.target.value)} className="rounded-2xl bg-gray-50 border-none text-xs min-h-[100px] p-4" />}
-          </div>
-
-          <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t pb-10 z-[12000]">
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t pb-10 z-[1000010] shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
              <div className="flex items-center gap-3 max-w-md mx-auto">
-                <div className="flex items-center bg-muted/30 rounded-xl h-12 px-1.5">
-                   <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-9 w-9 flex items-center justify-center"><Minus className="h-4 w-4" /></button>
-                   <span className="w-8 text-center text-base font-black italic">{localQuantity}</span>
-                   <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-9 w-9 flex items-center justify-center"><Plus className="h-4 w-4" /></button>
+                <div className="flex items-center bg-muted/30 rounded-xl h-14 px-2">
+                   <button disabled={isOffline} onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90 transition-transform"><Minus className="h-4 w-4" /></button>
+                   <span className="w-10 text-center text-lg font-black italic">{localQuantity}</span>
+                   <button disabled={isOffline} onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90 transition-transform"><Plus className="h-4 w-4" /></button>
                 </div>
                 <Button 
                   onClick={handleAddToCart} 
                   disabled={isOffline || (product.isVarietyRequired && !selectedOption)}
-                  className="flex-1 h-12 bg-primary text-white rounded-xl font-black uppercase italic text-[11px] shadow-lg shadow-primary/20"
+                  className="flex-1 h-14 bg-primary text-white rounded-[1.25rem] font-black uppercase italic text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all"
                 >
                   {isOffline ? 'TIMING CLOSED' : (product.isVarietyRequired && !selectedOption) ? 'PICK VARIETY' : `ADD • ₹${(currentPrice * localQuantity).toFixed(0)}`}
                 </Button>

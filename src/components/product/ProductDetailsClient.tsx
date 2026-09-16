@@ -12,7 +12,7 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@
 import { collection, query, where, limit, doc, getDoc, getDocs } from 'firebase/firestore';
 
 /**
- * @fileOverview ProductDetailsClient with enhanced Variety Selection logic.
+ * @fileOverview ProductDetailsClient with persistent footer fix for mobile.
  */
 export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: string }) {
   const params = useParams();
@@ -49,16 +49,6 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
           setProduct({ id: idSnap.id, ...idSnap.data() });
           setLoading(false);
           return;
-        }
-
-        const parts = rawSlug.split('-');
-        const possibleId = parts[parts.length - 1];
-        if (possibleId && possibleId.length > 10) {
-          const fallbackRef = doc(firestore, 'products', possibleId);
-          const fallbackSnap = await getDoc(fallbackRef);
-          if (fallbackSnap.exists()) {
-            setProduct({ id: fallbackSnap.id, ...fallbackSnap.data() });
-          }
         }
       } catch (err) {
         console.error("Resolution error:", err);
@@ -150,12 +140,11 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
 
         <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-8 italic">{product?.description}</p>
 
-        {/* VARIETY SELECTION UI - ENHANCED */}
         {product?.options && product.options.length > 0 && (
           <div className="space-y-5 mb-10 animate-in fade-in duration-500 bg-[#0B0B0B] p-6 rounded-[2.5rem] border border-white/5">
              <div className="flex items-center gap-2">
                 <ListTree className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Preference {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Select Variety {product.isVarietyRequired && <span className="text-primary">*</span>}</span>
              </div>
              <div className="grid grid-cols-1 gap-3">
                 {product.options.map((opt: any, idx: number) => (
@@ -180,19 +169,19 @@ export default function ProductDetailsClient({ forcedSlug }: { forcedSlug?: stri
           </div>
         )}
 
-        <div className="fixed bottom-0 left-0 right-0 z-[11000] bg-white border-t border-border/50 p-4 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div className="fixed bottom-0 left-0 right-0 z-[1000010] bg-white border-t border-border/50 p-6 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-4 max-w-lg mx-auto">
             <div className="flex items-center bg-muted/50 rounded-2xl h-14 px-2">
-              <button onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center"><Minus className="h-4 w-4" /></button>
+              <button onClick={() => setLocalQuantity(Math.max(1, localQuantity - 1))} className="h-10 w-10 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90"><Minus className="h-4 w-4" /></button>
               <span className="w-10 text-center text-lg font-black">{localQuantity}</span>
-              <button onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center"><Plus className="h-4 w-4" /></button>
+              <button onClick={() => setLocalQuantity(localQuantity + 1)} className="h-10 w-10 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90"><Plus className="h-4 w-4" /></button>
             </div>
             <button 
               onClick={handleAddToCart} 
               disabled={isOffline || (product?.isVarietyRequired && !selectedOption)}
-              className="flex-1 h-14 rounded-2xl bg-primary text-white font-black uppercase italic shadow-lg active:scale-95 transition-all"
+              className="flex-1 h-14 rounded-[1.25rem] bg-primary text-white font-black uppercase italic shadow-xl active:scale-95 transition-all text-sm"
             >
-              {isOffline ? 'OFFLINE' : (product?.isVarietyRequired && !selectedOption) ? 'PICK OPTION' : `Add • ₹${totalPrice.toFixed(0)}`}
+              {isOffline ? 'OFFLINE' : (product?.isVarietyRequired && !selectedOption) ? 'PICK VARIETY' : `ADD • ₹${totalPrice.toFixed(0)}`}
             </button>
           </div>
         </div>
