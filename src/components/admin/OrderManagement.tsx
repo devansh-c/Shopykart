@@ -16,7 +16,8 @@ import {
   Phone,
   MessageSquare,
   ListTree,
-  CalendarDays
+  CalendarDays,
+  StickyNote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -95,10 +96,10 @@ export default function OrderManagement() {
             <span style="flex: 1; text-align: right;">${(item.price * item.quantity).toFixed(2)}</span>
           </div>
           ${item.selectedOption ? `<div style="font-size: 9px; color: #EF4444; font-weight: 900; margin-top: 2px;">VARIETY: ${item.selectedOption.name}</div>` : ''}
+          ${item.instructions ? `<div style="font-size: 9px; color: #555; font-weight: 700; margin-top: 2px; font-style: italic;">NOTE: ${item.instructions}</div>` : ''}
         </div>
       `).join('');
 
-      // Build Tax & Charges HTML
       let taxHtml = '';
       if (order.deliveryFee > 0) {
         taxHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>DELIVERY FEE:</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>`;
@@ -132,6 +133,14 @@ export default function OrderManagement() {
           </div>
         </div>
         <div>${itemsHtml}</div>
+        
+        ${order.deliveryInstructions ? `
+        <div style="margin-top: 15px; background: #fffbeb; padding: 10px; border: 1px solid #fef3c7; border-radius: 8px;">
+          <div style="font-size: 9px; font-weight: 900; margin-bottom: 4px; color: #92400e;">CUSTOMER NOTE:</div>
+          <div style="font-size: 10px; font-weight: 700; color: #000;">"${order.deliveryInstructions}"</div>
+        </div>
+        ` : ''}
+
         <div style="margin-top: 15px; font-size: 10px; font-weight: 700;">
           ${taxHtml}
         </div>
@@ -210,6 +219,17 @@ export default function OrderManagement() {
                   </div>
                </div>
 
+               {/* CUSTOMER INSTRUCTIONS - ADDED FOR ADMIN PANEL */}
+               {order.deliveryInstructions && (
+                 <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 space-y-1">
+                    <div className="flex items-center gap-2 text-amber-700">
+                       <StickyNote className="h-3.5 w-3.5" />
+                       <span className="text-[8px] font-black uppercase tracking-widest">Delivery Instruction</span>
+                    </div>
+                    <p className="text-xs font-black italic text-amber-900 leading-tight">"{order.deliveryInstructions}"</p>
+                 </div>
+               )}
+
                <div className="space-y-3 pt-2">
                   <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Items Summary</span>
                   {order.items?.map((item: any, i: number) => (
@@ -222,6 +242,12 @@ export default function OrderManagement() {
                          <div className="flex items-center gap-1.5 text-primary">
                             <ListTree className="h-3 w-3" />
                             <span className="text-[9px] font-black uppercase tracking-widest bg-white px-2 py-0.5 rounded shadow-inner">VARIETY: {item.selectedOption.name}</span>
+                         </div>
+                       )}
+                       {item.instructions && (
+                         <div className="flex items-center gap-1.5 text-gray-500">
+                            <MessageSquare className="h-3 w-3" />
+                            <span className="text-[9px] font-bold italic">Note: {item.instructions}</span>
                          </div>
                        )}
                     </div>

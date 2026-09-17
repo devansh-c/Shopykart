@@ -37,7 +37,9 @@ import {
   Banknote,
   Timer,
   ListTree,
-  AlertCircle
+  AlertCircle,
+  StickyNote,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -307,12 +309,29 @@ export default function VendorDashboard() {
                           </div>
                           <Badge className={cn("border-none text-[8px] font-black rounded-full px-2.5 py-1 uppercase", o.status === 'Cancelled' ? "bg-red-50 text-red-600" : "bg-primary/5 text-primary")}>{o.status}</Badge>
                       </div>
-                      <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-2">
+                      <div className="bg-muted/30 rounded-2xl p-4 mb-4 space-y-3">
                           <div className="flex items-center gap-2 border-b border-white pb-2 mb-1"><User className="h-3.5 w-3.5 text-primary" /><span className="text-xs font-black uppercase italic">{o.customerName}</span></div>
+                          
+                          {/* ORDER LEVEL NOTE FOR VENDOR */}
+                          {o.deliveryInstructions && (
+                            <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 flex items-start gap-2 mb-2">
+                               <StickyNote className="h-3 w-3 text-amber-600 shrink-0 mt-0.5" />
+                               <p className="text-[10px] font-black italic text-amber-900 leading-tight">"{o.deliveryInstructions}"</p>
+                            </div>
+                          )}
+
                           {o.items?.filter((it:any) => String(it.vendorId) === String(user?.uid)).map((item:any, i:number) => (
-                            <div key={i} className="flex justify-between items-center text-xs font-bold">
-                               <span className="text-gray-700">{item.quantity}x {item.name}</span>
-                               <span className="text-primary">₹{(item.price * item.quantity).toFixed(2)}</span>
+                            <div key={i} className="space-y-1">
+                               <div className="flex justify-between items-center text-xs font-bold">
+                                  <span className="text-gray-700">{item.quantity}x {item.name}</span>
+                                  <span className="text-primary">₹{(item.price * item.quantity).toFixed(2)}</span>
+                               </div>
+                               {item.instructions && (
+                                 <div className="flex items-center gap-1.5 text-gray-500 pl-2">
+                                    <MessageSquare className="h-2.5 w-2.5" />
+                                    <span className="text-[9px] font-bold italic">Note: {item.instructions}</span>
+                                 </div>
+                               )}
                             </div>
                           ))}
                       </div>
@@ -394,7 +413,7 @@ export default function VendorDashboard() {
 
             <div className="grid grid-cols-1 gap-4">
                {myProducts?.filter(p => !p.isDeleted).map(p => (
-                 <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-border/50 flex items-center justify-between shadow-sm group">
+                 <div key={p.id} className="bg-white p-4 rounded-[2rem] border border-border/50 shadow-sm flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                        <div className="h-16 w-16 rounded-2xl overflow-hidden bg-muted border shrink-0">
                           <img src={p.imageUrl} className="h-full w-full object-cover" alt="" />
