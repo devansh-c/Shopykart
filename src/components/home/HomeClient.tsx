@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { LocationHeader } from '@/components/home/LocationHeader';
 import { ShoppingBag, HeartPulse, Sparkles, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,10 +23,10 @@ interface HomeClientProps {
 }
 
 /**
- * @fileOverview HomeClient - Updated to use URL Search Parameters for Mode/Category.
- * This ensures the Back Button navigates through states instead of exiting the app.
+ * @fileOverview HomeClient - Optimized with Search Params for Navigation History.
+ * Ensures the back button navigates through sections instead of exiting the app.
  */
-export default function HomeClient({ 
+function HomeClientContent({ 
   initialBanners, 
   initialCategories, 
   initialAnnouncement, 
@@ -38,7 +39,7 @@ export default function HomeClient({
   
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sync state with URL to create history entries
+  // Sync state with URL to create history entries for Back button
   const activeMode = searchParams.get('mode') || 'Food';
   const activeCategory = searchParams.get('cat') || 'all';
 
@@ -82,7 +83,7 @@ export default function HomeClient({
         />
       )}
 
-      <main className="transition-none">
+      <main className="transition-all duration-300">
         {activeMode === 'Grocery' ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-300">
              <div className="relative mb-8">
@@ -155,5 +156,13 @@ export default function HomeClient({
         )}
       </main>
     </div>
+  );
+}
+
+export function HomeClient(props: HomeClientProps) {
+  return (
+    <Suspense fallback={<div className="h-screen bg-white" />}>
+      <HomeClientContent {...props} />
+    </Suspense>
   );
 }

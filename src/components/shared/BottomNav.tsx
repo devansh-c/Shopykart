@@ -9,8 +9,8 @@ import React, { useMemo, useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 
 /**
- * @fileOverview Optimized Fixed Bottom Navigation with Glassmorphism Theme.
- * Semi-transparent background with backdrop blur for a premium UI feel.
+ * @fileOverview Ultra-Glassy Fixed Bottom Navigation.
+ * Uses advanced glassmorphism with light transparency and high blur.
  */
 const BottomNav = memo(() => {
   const pathname = usePathname();
@@ -43,8 +43,8 @@ const BottomNav = memo(() => {
   if (!isMounted || isExcludedPath) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[999999] bg-white/70 backdrop-blur-xl border-t border-white/20 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] pb-safe transform-gpu">
-      <nav className="max-w-lg mx-auto h-[68px] flex items-center justify-around px-2">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] z-[999999] transform-gpu">
+      <nav className="bg-white/40 backdrop-blur-lg border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-[2rem] h-[72px] flex items-center justify-around px-4 overflow-hidden">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/') || (pathname?.startsWith(item.href) && item.href !== '/');
           const Icon = item.icon;
@@ -77,6 +77,9 @@ const BottomNav = memo(() => {
               )}>
                 {item.label}
               </span>
+              {isActive && (
+                <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+              )}
             </Link>
           );
         })}
