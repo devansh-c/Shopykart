@@ -24,7 +24,8 @@ import {
   Mail,
   Crown,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
@@ -155,7 +156,7 @@ export default function CustomerManagement() {
           </div>
           
           <div className="flex flex-wrap gap-4">
-            <Button 
+            <button 
               onClick={handleCopyAllNumbers}
               className={cn(
                 "h-14 px-6 rounded-2xl font-black uppercase italic text-[10px] tracking-widest transition-all",
@@ -164,7 +165,7 @@ export default function CustomerManagement() {
             >
               {isNumbersCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
               {isNumbersCopied ? 'NUMBERS COPIED' : 'COPY ALL NUMBERS'}
-            </Button>
+            </button>
 
             <Dialog open={isBulkMsgOpen} onOpenChange={setIsBulkMsgOpen}>
               <DialogTrigger asChild>
@@ -245,9 +246,13 @@ export default function CustomerManagement() {
           </div>
         ) : filteredUsers.length > 0 ? (
           filteredUsers.map((user: any) => {
-            const dateStr = isMounted && user.createdAt?.seconds 
-              ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, h:mm a') 
+            const fullDate = isMounted && user.createdAt?.seconds 
+              ? format(new Date(user.createdAt.seconds * 1000), 'MMM d, yyyy') 
               : 'Recently';
+            
+            const fullTime = isMounted && user.createdAt?.seconds 
+              ? format(new Date(user.createdAt.seconds * 1000), 'hh:mm a') 
+              : '';
 
             const isPremium = user.isPremium && new Date(user.premiumExpiry).getTime() > Date.now();
 
@@ -287,8 +292,13 @@ export default function CustomerManagement() {
                     <h3 className="font-black text-lg italic uppercase tracking-tighter leading-tight truncate pr-20">
                       {user.fullName || 'New User'}
                     </h3>
-                    <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase mt-1 tracking-widest italic">
-                      <Calendar className="h-2.5 w-2.5" /> {dateStr}
+                    <div className="flex flex-col mt-1">
+                       <div className="flex items-center gap-1 text-[9px] font-black text-primary uppercase tracking-widest italic">
+                          <Calendar className="h-2.5 w-2.5" /> Registered: {fullDate}
+                       </div>
+                       <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest italic mt-0.5">
+                          <Clock className="h-2.5 w-2.5" /> Time: {fullTime}
+                       </div>
                     </div>
                   </div>
                   
@@ -327,12 +337,6 @@ export default function CustomerManagement() {
                 </div>
 
                 <div className="bg-muted/20 rounded-[1.5rem] p-4 space-y-3 mb-4 flex-1 border border-border/30">
-                  {isPremium && (
-                    <div className="flex items-center gap-2 bg-amber-50 p-2 rounded-xl border border-amber-100 mb-1">
-                       <AlertCircle className="h-3 w-3 text-amber-600" />
-                       <span className="text-[8px] font-bold text-amber-700 uppercase">Elite UTR: {user.premiumUtr || 'ADMIN_ENABLED'}</span>
-                    </div>
-                  )}
                   <div className="flex flex-col gap-2 border-b border-white pb-3 mb-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -363,7 +367,7 @@ export default function CustomerManagement() {
                     <div className="flex items-start gap-2">
                       <div className="bg-white p-1 rounded-md shrink-0"><MapPin className="h-3 w-3 text-primary" /></div>
                       <div className="flex flex-col min-w-0">
-                         <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Full Address</span>
+                         <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Delivery Point</span>
                          <p className="text-[10px] font-bold text-gray-700 leading-tight">
                            {user.address || 'No address provided'}
                          </p>
@@ -386,13 +390,6 @@ export default function CustomerManagement() {
                         </div>
                       </div>
                     </div>
-
-                    {user.lastSelectedZone && (
-                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-xl border border-primary/10">
-                        <Badge className="bg-primary text-white text-[7px] px-1.5 py-0 rounded uppercase font-black border-none">ZONE</Badge>
-                        <span className="text-[9px] font-black uppercase italic text-primary">{user.lastSelectedZone}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
